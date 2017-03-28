@@ -164,10 +164,12 @@ service BackupCoprocessorService {
 }
 
 message PrepareBackupRequest {
+    optional bytes startKey=1;
+    optional bytes endKey=2;
 }
 
 message PrepareBackupResponse {
-  required bool readyForBackup = 1;
+  optional bool readyForBackup = 1;
 }
 
 message BlockingProbeRequest {

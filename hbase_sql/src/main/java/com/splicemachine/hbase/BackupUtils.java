@@ -32,11 +32,20 @@ public class BackupUtils {
     private static final Logger LOG=Logger.getLogger(BackupUtils.class);
 
 
-    public static SpliceMessage.PrepareBackupResponse.Builder prepare(HRegion region, boolean isSplitting,
+    public static SpliceMessage.PrepareBackupResponse.Builder prepare(SpliceMessage.PrepareBackupRequest request,
+                                                                      HRegion region, boolean isSplitting,
+                                                                      boolean isCompacting, boolean isFlushing,
                                                                       String tableName, String regionName, String path) throws Exception{
 
             SpliceMessage.PrepareBackupResponse.Builder responseBuilder = SpliceMessage.PrepareBackupResponse.newBuilder();
+            responseBuilder.setReadyForBackup(false);
+
+            if (shouldIgnore(request, region)) {
+                return responseBuilder;
+            }
+
             boolean canceled = false;
+
             if (isSplitting) {
                 if (LOG.isDebugEnabled()) {
                     SpliceLogUtils.debug(LOG, "%s:%s is being split before trying to prepare for backup", tableName, regionName);
@@ -44,38 +53,42 @@ public class BackupUtils {
                 // return false to client if the region is being split
                 responseBuilder.setReadyForBackup(false);
             } else {
-                // A region might have been in backup
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "%s:%s waits for flush and compaction to complete", tableName, regionName);
+                }
+
+                // A region might have been in backup. This is unlikely to happen unless the previous response ws lost
+                // and the client is retrying
                 if (!BackupUtils.regionIsBeingBackup(tableName, regionName, path)) {
+                    // Flush memsotore and Wait for flush and compaction to be done
+                    HBasePlatformUtils.flush(region);
+                    region.waitForFlushesAndCompactions();
+
                     canceled = BackupUtils.backupCanceled();
                     if (!canceled) {
-                        HBasePlatformUtils.flush(region);
                         // Create a ZNode to indicate that the region is being copied
                         ZkUtils.recursiveSafeCreate(path, HConfiguration.BACKUP_IN_PROGRESS, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-                    }
-                }
-                if (!canceled) {
-                    // check again if the region is being split. If so, return an error
-                    if (isSplitting) {
                         if (LOG.isDebugEnabled()) {
-                            SpliceLogUtils.debug(LOG, "%s:%s is being split when trying to prepare for backup", tableName, regionName);
+                            SpliceLogUtils.debug(LOG,"create node %s to mark backup in progress", path);
                         }
-                        responseBuilder.setReadyForBackup(false);
-                        //delete the ZNode
-                        ZkUtils.recursiveDelete(path);
-                    } else {
-                        //wait for all compaction and flush to complete
-                        if (LOG.isDebugEnabled()) {
-                            SpliceLogUtils.debug(LOG, "%s:%s waits for flush and compaction to complete", tableName, regionName);
+
+                        if (isFlushing || isCompacting || isSplitting) {
+                            if (LOG.isDebugEnabled()) {
+                                SpliceLogUtils.debug(LOG, "table %s region %s is not ready for backup: isSplitting=%s, isCompacting=%s, isFlushing=%s",
+                                        isSplitting, isCompacting, isFlushing);
+                            }
+                            ZkUtils.recursiveDelete(path);
                         }
-                        region.waitForFlushesAndCompactions();
-                        if (LOG.isDebugEnabled()) {
-                            SpliceLogUtils.debug(LOG, "%s:%s is ready for backup", tableName, regionName);
+                        else {
+                            responseBuilder.setReadyForBackup(true);
+                            if (LOG.isDebugEnabled()) {
+                                SpliceLogUtils.debug(LOG, "%s:%s is ready for backup", tableName, regionName);
+                            }
                         }
-                        responseBuilder.setReadyForBackup(true);
                     }
                 }
                 else
-                    responseBuilder.setReadyForBackup(false);
+                    responseBuilder.setReadyForBackup(true);
             }
             return responseBuilder;
     }
@@ -130,7 +143,11 @@ public class BackupUtils {
             try {
                 if (LOG.isDebugEnabled())
                     SpliceLogUtils.debug(LOG, "wait for backup to complete");
-                long waitTime = Math.min(100 * (long) Math.pow(2, i), maxWaitTime);
+                long waitTime = 100 * (long) Math.pow(2, i);
+                if (waitTime <= 0 || waitTime > maxWaitTime) {
+                    waitTime = maxWaitTime;
+                    i = 0;
+                }
                 Thread.sleep(waitTime);
                 i++;
             }
@@ -284,5 +301,21 @@ public class BackupUtils {
                 throw Exceptions.parseException(e);
             }
         }
+    }
+
+    /**
+     * If the end key from the request equals to the region start key, the request is meant for the previous region.
+     * Ignore shuch requests.
+     * @param request
+     * @param region
+     * @return
+     */
+    private static boolean shouldIgnore(SpliceMessage.PrepareBackupRequest request, HRegion region) {
+        byte[] endKey = request.hasEndKey() ? request.getEndKey().toByteArray() : null;
+        byte[] regionStartKey = region.getRegionInfo().getStartKey();
+        if (endKey != null && endKey.length > 0 && Bytes.compareTo(endKey, regionStartKey) == 0)
+            return true;
+
+        return false;
     }
 }

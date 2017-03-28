@@ -44,6 +44,9 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
     private static final Logger LOG=Logger.getLogger(BackupEndpointObserver.class);
 
     private volatile boolean isSplitting;
+    private volatile boolean isFlushing;
+    private volatile boolean isCompacting;
+
     private HRegion region;
     private String namespace;
     private String tableName;
@@ -90,8 +93,10 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         try {
             preparing = true;
             SpliceMessage.PrepareBackupResponse.Builder responseBuilder =
-                    BackupUtils.prepare(region, isSplitting, tableName, regionName, path);
+                    BackupUtils.prepare(request, region, isSplitting, isCompacting, isFlushing, tableName, regionName, path);
+
             preparing = false;
+            assert responseBuilder.hasReadyForBackup();
             done.run(responseBuilder.build());
         } catch (Exception e) {
             controller.setFailed(e.getMessage());
@@ -121,6 +126,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "BackupEndpointObserver.preCompactSelection()");
         BackupUtils.waitForBackupToComplete(tableName, regionName, path);
+        isCompacting = true;
         super.preCompactSelection(c, store, candidates);
     }
 
@@ -130,14 +136,22 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
             SpliceLogUtils.debug(LOG, "BackupEndpointObserver.preCompact()");
 
         BackupUtils.waitForBackupToComplete(tableName, regionName, path);
+        isCompacting = true;
         return super.preCompact(e, store, scanner, scanType);
     }
 
+    @Override
+    public void postCompact(ObserverContext<RegionCoprocessorEnvironment> e, Store store, StoreFile resultFile) throws IOException {
+        super.postCompact(e, store, resultFile);
+        isCompacting = false;
+    }
+    
     @Override
     public void preFlush(ObserverContext<RegionCoprocessorEnvironment> e) throws IOException {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "BackupEndpointObserver.preFlush()");
         BackupUtils.waitForBackupToComplete(tableName, regionName, path);
+        isFlushing = true;
         super.preFlush(e);
     }
 
@@ -150,6 +164,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
                 return;
             BackupUtils.captureIncrementalChanges(conf, region, path, fs, rootDir, backupDir,
                     tableName, resultFile.getPath().getName(), preparing);
+            isFlushing = false;
         } catch (Exception ex) {
             throw new IOException(ex);
         }
