@@ -31,6 +31,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
+import com.splicemachine.derby.stream.output.HBaseBulkImporterBuilder;
 import com.splicemachine.utils.ByteDataInput;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
@@ -761,5 +762,15 @@ public class SparkDataSet<V> implements DataSet<V> {
                 template.schema());
         pinDF.createOrReplaceTempView("SPLICE_"+conglomId);
         SpliceSpark.getSession().catalog().cacheTable("SPLICE_"+conglomId);
+    }
+
+    @Override
+    public DataSet<V> sampleWithoutReplacement(final double fraction) {
+        return new SparkDataSet<>(rdd.sample(false,fraction));
+    }
+
+    @Override
+    public HBaseBulkImporterBuilder bulkImportData(OperationContext operationContext) {
+        return new SparkHBaseBulkImporterBuilder(this);
     }
 }

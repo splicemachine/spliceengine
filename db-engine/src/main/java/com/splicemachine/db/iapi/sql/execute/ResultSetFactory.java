@@ -137,7 +137,12 @@ public interface ResultSetFactory {
 								 String storedAs,
 								 String location,
 								 String compression,
-								 int partitionBy)
+								 int partitionBy,
+								 String bulkImportDirectory,
+								 boolean samplingOnly,
+                                 boolean outputKeysOnly,
+								 boolean skipSampling,
+								 String indexName)
         throws StandardException;
 
 	/**
