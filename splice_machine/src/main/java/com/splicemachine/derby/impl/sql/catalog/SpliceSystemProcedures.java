@@ -148,6 +148,14 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                                            .varchar("splitPoints", 32672)
                                            .build());
 
+                    Procedure splitProc3 = Procedure.newBuilder().name("SYSCS_SPLIT_TABLE_OR_INDEX_AT_POINTS")
+                            .numOutputParams(0).numResultSets(0).ownerClass(TableSplit.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .catalog("indexName")
+                            .varchar("splitPoints", 32672)
+                            .build();
+                    procedures.add(splitProc3);
          			/*
         			 * Procedure get all active services
         			 */
@@ -350,7 +358,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .catalog("schemaName")
                             .catalog("tableName")
                             .catalog("indexName")
-                            .varchar("insertColumnList",32672)
+                            .varchar("columnList",32672)
                             .varchar("fileName",32672)
                             .varchar("columnDelimiter",5)
                             .varchar("characterDelimiter", 5)

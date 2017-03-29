@@ -112,11 +112,21 @@ public class TableSplit{
      */
     public static void SYSCS_SPLIT_TABLE_AT_POINTS(String schemaName, String tableName,
                                      String splitPoints) throws SQLException{
+        splitTable(schemaName, tableName, null, splitPoints);
+    }
+
+    public static void SYSCS_SPLIT_TABLE_OR_INDEX_AT_POINTS(String schemaName, String tableName,
+                                                   String indexName, String splitPoints) throws SQLException{
+        splitTable(schemaName, tableName, indexName, splitPoints);
+    }
+
+    private static void splitTable(String schemaName, String tableName,
+                                   String indexName, String splitPoints) throws SQLException {
         Connection conn = getDefaultConn();
 
         try{
             try{
-                splitTable(conn,schemaName,tableName,splitPoints);
+                splitTable(conn,schemaName,tableName,indexName,splitPoints);
             }catch(SQLException se){
                 try{
                     conn.rollback();
@@ -137,7 +147,6 @@ public class TableSplit{
         }
 
     }
-
     /**
      * Split a region on the given <code>splictpoints</code> or, if null, let HBase determine splitpoint.
      *
@@ -178,11 +187,9 @@ public class TableSplit{
 
     }
 
-    public static void splitTable(Connection conn,
-                                       String schemaName,
-                                       String tableName,
-                                       String splitPoints) throws SQLException{
-        long conglomId = getConglomerateId(conn, schemaName, tableName);
+    public static void splitTable(Connection conn, String schemaName, String tableName,
+                                  String indexName, String splitPoints) throws SQLException{
+        long conglomId = getConglomerateId(conn, schemaName, tableName, indexName);
 
         SIDriver driver=SIDriver.driver();
         try(PartitionAdmin pa = driver.getTableFactory().getAdmin()){
@@ -235,20 +242,28 @@ public class TableSplit{
         return sps.toArray(new byte[sps.size()][]);
     }
 
-    private static long getConglomerateId(Connection conn, String schemaName, String tableName) throws SQLException {
-        try(PreparedStatement ps = conn.prepareStatement("select " +
-                    "conglomeratenumber " +
-                    "from " +
-                    "sys.sysconglomerates c," +
-                    "sys.systables t," +
-                    "sys.sysschemas s " +
-                    "where " +
-                    "t.tableid = c.tableid " +
-                    "and t.schemaid = s.schemaid " +
-                    "and s.schemaname = ?" +
-                    "and t.tablename = ?")){
+    private static long getConglomerateId(Connection conn, String schemaName, String tableName, String indexName) throws SQLException {
+        String sql =  "select " +
+                "conglomeratenumber " +
+                "from " +
+                "sys.sysconglomerates c," +
+                "sys.systables t," +
+                "sys.sysschemas s " +
+                "where " +
+                "t.tableid = c.tableid " +
+                "and t.schemaid = s.schemaid " +
+                "and s.schemaname = ? " +
+                "and t.tablename = ? ";
+
+        if (indexName != null)
+            sql += "and c.conglomeratename = ?";
+        sql += " order by 1";
+        
+        try(PreparedStatement ps = conn.prepareStatement(sql)){
             ps.setString(1,schemaName.toUpperCase());
             ps.setString(2,tableName);
+            if (indexName != null)
+                ps.setString(3, indexName);
             try(ResultSet rs = ps.executeQuery()){
                 if(rs.next()){
                     return rs.getLong(1);
