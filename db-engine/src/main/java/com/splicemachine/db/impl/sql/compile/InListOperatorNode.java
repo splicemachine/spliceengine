@@ -256,8 +256,9 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 								vn.getTypeServices(), cf);
 					}
 				}
- 
-				/* Now wort the list in ascending order using the dominant
+				rightOperandList.eliminateDuplicates();
+
+				/* Now sort the list in ascending order using the dominant
 				 * type found above.
 				 */
 				DataValueDescriptor judgeODV = targetType.getNull();
@@ -265,27 +266,14 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 				rightOperandList.sortInAscendingOrder(judgeODV);
 				isOrdered = true;
 
-				ValueNode minValue = (ValueNode)rightOperandList.elementAt(0);
-				ValueNode maxValue =
-					(ValueNode)rightOperandList.elementAt(
-						rightOperandList.size() - 1);
-
-				/* Handle the degenerate case where the min and the max
-				 * are the same value.  Note (again) that we need to do
-				 * this comparison using the dominant type found above.
-				 */
-				DataValueDescriptor minODV =
-					((ConstantNode) minValue).getValue();
-				DataValueDescriptor maxODV =
-					 ((ConstantNode) maxValue).getValue();
-
-				if (judgeODV.equals(minODV, maxODV).equals(true))
+				if (rightOperandList.size() == 1)
 				{
-					BinaryComparisonOperatorNode equal = 
+					ValueNode value = (ValueNode)rightOperandList.elementAt(0);
+					BinaryComparisonOperatorNode equal =
 						(BinaryComparisonOperatorNode)getNodeFactory().getNode(
 							C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
 							leftOperand, 
-							minValue,
+							value,
 							getContextManager());
 					/* Set type info for the operator node */
 					equal.bindComparisonOperator();
