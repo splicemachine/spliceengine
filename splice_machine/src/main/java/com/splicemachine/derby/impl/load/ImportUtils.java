@@ -103,4 +103,72 @@ public class ImportUtils{
             throw StandardException.newException(SQLState.FILESYSTEM_IO_EXCEPTION, ioe.getMessage());
         }
     }
+
+    public static char unescape(String str) throws IOException {
+        assert str != null && str.length() > 0;
+
+        StringBuilder unescaped = new StringBuilder(4);
+        int sz = str.length();
+        boolean hadControl = false;
+        boolean hadBackslash = false;
+        char c = str.charAt(0);
+        for (int i = 0; i < sz; i++) {
+            char ch = str.charAt(i);
+            if (hadControl) {
+                // support ctrl chars
+                switch (ch) {
+                    case 'A':
+                    case 'a':
+                        c = '\u0001';
+                        break;
+                    case 'M':
+                    case 'm':
+                        c = '\n';
+                        break;
+                    default:
+                        throw new IOException("Unsupported control char '"+str+"'");
+                }
+                continue;
+            } else if (hadBackslash) {
+                // handle an escaped value
+                hadBackslash = false;
+                switch (ch) {
+                    case '\\':
+                        c = '\\';
+                        break;
+                    case '\'':
+                        c = '\'';
+                        break;
+                    case '\"':
+                        c ='"';
+                        break;
+                    case 'r':
+                        c = '\r';
+                        break;
+                    case 'f':
+                        c = '\f';
+                        break;
+                    case 't':
+                        c = '\t';
+                        break;
+                    case 'n':
+                        c = '\n';
+                        break;
+                    case 'b':
+                        c = '\b';
+                        break;
+                    default :
+                        throw new IOException("Unsupported escape char '"+str+"'");
+                }
+                continue;
+            } else if (ch == '\\') {
+                hadBackslash = true;
+                continue;
+            } else if (ch == '^') {
+                hadControl = true;
+                continue;
+            }
+        }
+        return c;
+    }
 }
