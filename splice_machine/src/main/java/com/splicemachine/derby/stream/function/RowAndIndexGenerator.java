@@ -163,6 +163,7 @@ public class RowAndIndexGenerator extends SpliceFlatMapFunction<SpliceBaseOperat
                 indexTransformFunctions[i] = new IndexTransformFunction(index);
                 i++;
             }
+            initialized = true;
         }
 
         try {
