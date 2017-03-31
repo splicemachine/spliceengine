@@ -156,6 +156,26 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .varchar("splitPoints", 32672)
                             .build();
                     procedures.add(splitProc3);
+
+                    Procedure splitProc4 = Procedure.newBuilder().name("SYSCS_SPLIT_TABLE_OR_INDEX")
+                            .numOutputParams(0).numResultSets(1).ownerClass(TableSplit.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .catalog("indexName")
+                            .varchar("columnList",32672)
+                            .varchar("fileName",32672)
+                            .varchar("columnDelimiter",5)
+                            .varchar("characterDelimiter", 5)
+                            .varchar("timestampFormat",32672)
+                            .varchar("dateFormat",32672)
+                            .varchar("timeFormat",32672)
+                            .bigint("maxBadRecords")
+                            .varchar("badRecordDirectory",32672)
+                            .varchar("oneLineRecords",5)
+                            .varchar("charset",32672)
+                            .build();
+                    procedures.add(splitProc4);
+                    
          			/*
         			 * Procedure get all active services
         			 */

@@ -15,7 +15,8 @@
 
 package com.splicemachine.derby.impl.storage;
 
-import java.io.IOException;
+import java.io.*;
+import java.net.URI;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -23,7 +24,14 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.pipeline.ErrorState;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FSInputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import org.sparkproject.guava.base.Splitter;
@@ -45,6 +53,54 @@ import com.splicemachine.utils.SpliceLogUtils;
 public class TableSplit{
     private static final Logger LOG = Logger.getLogger(TableSplit.class);
 
+    public static void SYSCS_SPLIT_TABLE_OR_INDEX(String schemaName,
+                                                  String tableName,
+                                                  String indexName,
+                                                  String insertColumnList,
+                                                  String fileName,
+                                                  String columnDelimiter,
+                                                  String characterDelimiter,
+                                                  String timestampFormat,
+                                                  String dateFormat,
+                                                  String timeFormat,
+                                                  long badRecordsAllowed,
+                                                  String badRecordDirectory,
+                                                  String oneLineRecords,
+                                                  String charset,
+                                                  ResultSet[] results
+    ) throws Exception {
+        Connection connection = getDefaultConn();
+        long conglomId = getConglomerateId(connection, schemaName, tableName, indexName);
+        String tempDir = new Path(badRecordDirectory, ".TMP").toString();
+        String sql = "call syscs_util.compute_split_key(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        PreparedStatement ps = connection.prepareStatement(sql);
+        ps.setString(1, schemaName);
+        ps.setString(2, tableName);
+        ps.setString(3, indexName);
+        ps.setString(4, insertColumnList);
+        ps.setString(5, fileName);
+        ps.setString(6, columnDelimiter);
+        ps.setString(7, characterDelimiter);
+        ps.setString(8, timestampFormat);
+        ps.setString(9, dateFormat);
+        ps.setString(10, timeFormat);
+        ps.setLong(11, badRecordsAllowed);
+        ps.setString(12, badRecordDirectory);
+        ps.setString(13, oneLineRecords);
+        ps.setString(14, charset);
+        ps.setString(15, tempDir);
+        ps.executeQuery();
+
+        Configuration conf = HBaseConfiguration.create();
+        FileSystem fs = FileSystem.get(URI.create(tempDir), conf);
+        Path filePath = new Path(tempDir, conglomId + "/keys");
+        FSDataInputStream in = fs.open(filePath);
+        BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
+        String splitKey = null;
+        while((splitKey = br.readLine()) != null) {
+            splitTable(schemaName, tableName, indexName, splitKey);
+        }
+    }
     /**
      * Split a <em>non-primary-key</em> table into {@code numSplits} splits. Only
      * works if there is data already in the table, else HBase doesn't perform the
