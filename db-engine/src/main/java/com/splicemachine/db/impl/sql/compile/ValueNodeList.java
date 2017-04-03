@@ -33,14 +33,12 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.StringDataValue;
-import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.iapi.util.StringUtil;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -738,17 +736,33 @@ public class ValueNodeList extends QueryTreeNodeVector
 		return hashCode;
 	}
 
-	public void eliminateDuplicates()
-	{
+	/**
+	 * Eliminate duplicates from the IN list and adjust the CharConstantNode with correct padding
+	 * @param dtd dataTypeDescriptor
+	 * @throws StandardException
+	 */
+	public void eliminateDuplicates(DataTypeDescriptor dtd) throws StandardException {
+		int maxSize = dtd.getMaximumWidth();
+		String typeid = dtd.getTypeName();
+
 		HashSet<ValueNode> vset = new HashSet<ValueNode>(getNodes());
 		removeAllElements();
 		Iterator iterator = vset.iterator();
 		while (iterator.hasNext())
 		{
 			ValueNode valueNode = (ValueNode) iterator.next();
+			if (valueNode instanceof CharConstantNode && typeid.equals(TypeId.CHAR_NAME)) {
+				rightPadCharConstantNode((CharConstantNode) valueNode, maxSize);
+			}
 			addElement(valueNode);
 		}
 
 	}
+
+	public static void rightPadCharConstantNode(CharConstantNode constantNode, int maxSize) throws StandardException {
+		String stringConstant = constantNode.getString();
+		constantNode.setValue(new SQLChar(StringUtil.padRight(stringConstant, SQLChar.PAD, maxSize)));
+	}
+
 
 }
