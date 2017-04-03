@@ -144,33 +144,6 @@ public class SelectivityIT extends SpliceUnitTest {
                         row(null, null),
                         row(null, null))).create();
 
-        new TableCreator(conn)
-                .withCreate("create table pk_multiple_scan (i bigint, " +
-                        "dt1 date, ch1 char(16), vc1 varchar(2) default 'aa', primary key (dt1,ch1))")
-                .withInsert("insert into pk_multiple_scan(dt1, ch1) values(?, ?)")
-                .withRows(rows(
-                        row("2016-07-12", "100001"),
-                        row("2016-07-12", "100002"),
-                        row("2016-07-12", "100003"),
-                        row("2016-07-12", "100004"),
-                        row("2016-07-13", "100005"),
-                        row("2016-07-14", "100006"),
-                        row("2016-07-15", "100007"),
-                        row("2016-07-16", "100008")))
-                .withIndex("create index ia on pk_multiple_scan(ch1)")
-                .create();
-
-        spliceClassWatcher.executeUpdate("insert into pk_multiple_scan (dt1,ch1) select dt1, char(bigint(ch1)+16) from pk_multiple_scan");
-        spliceClassWatcher.executeUpdate("insert into pk_multiple_scan (dt1,ch1) select dt1, char(bigint(ch1)+32) from pk_multiple_scan");
-        spliceClassWatcher.executeUpdate("insert into pk_multiple_scan (dt1,ch1) select dt1, char(bigint(ch1)+64) from pk_multiple_scan");
-        spliceClassWatcher.executeUpdate("insert into pk_multiple_scan (dt1,ch1) select dt1, char(bigint(ch1)+128) from pk_multiple_scan");
-        spliceClassWatcher.executeUpdate("insert into pk_multiple_scan (dt1,ch1) select dt1, char(bigint(ch1)+256) from pk_multiple_scan");
-        spliceClassWatcher.executeUpdate("insert into pk_multiple_scan (dt1,ch1) select dt1, char(bigint(ch1)+512) from pk_multiple_scan");
-        spliceClassWatcher.executeUpdate("insert into pk_multiple_scan (dt1,ch1) select dt1, char(bigint(ch1)+1024) from pk_multiple_scan");
-        spliceClassWatcher.executeUpdate("insert into pk_multiple_scan (dt1,ch1) select dt1, char(bigint(ch1)+2048) from pk_multiple_scan");
-        spliceClassWatcher.executeUpdate("insert into pk_multiple_scan (dt1,ch1) select dt1, char(bigint(ch1)+4096) from pk_multiple_scan");
-
-
         conn.createStatement().executeQuery(format(
                 "call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s',false)",
                 schemaName));
@@ -451,14 +424,5 @@ public class SelectivityIT extends SpliceUnitTest {
             count++;
         }
         Assert.assertTrue(count>0);
-    }
-
-    @Test
-    public void testPrimaryKeyMultipleLevelSelectivityIT() throws Exception {
-        rowContainsQuery(5,"explain select * from pk_multiple_scan where dt1 >= '2016-07-12' and ch1 = '100004'",
-                "IndexScan[IA", methodWatcher);
-        // both the predicates tobe applied on base tablescan
-        rowContainsQuery(3,"explain select * from pk_multiple_scan where dt1 = '2016-07-12' and ch1 != '100004'",
-                "TableScan[PK_MULTIPLE_SCAN", methodWatcher);
     }
 }
