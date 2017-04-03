@@ -24,6 +24,7 @@ import org.apache.hadoop.hbase.util.SimplePositionedMutableByteRange;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
+import org.apache.spark.sql.types.Decimal;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -51,17 +52,18 @@ public class SQLDecimalTest extends SQLDataValueDescriptorTest {
         }
         @Test
         public void serdeValueData() throws Exception {
-                UnsafeRowWriter writer = new UnsafeRowWriter();
-                writer.initialize(new BufferHolder(),1);
-                SQLDecimal value = new SQLDecimal(new BigDecimal(100.0d));
-                SQLDecimal valueA = new SQLDecimal();
-                value.write(writer, 0);
-                UnsafeRow row = new UnsafeRow();
-                row.pointTo(writer.holder().buffer,1,writer.holder().cursor);
-                Assert.assertEquals("SerdeIncorrect",new BigDecimal(100.0d),row.getDecimal(0,value.getDecimalValueScale(),value.getDecimalValuePrecision()).toJavaBigDecimal());
-                valueA.read(row,0);
-                Assert.assertEquals("SerdeIncorrect",new BigDecimal("100"),valueA.getBigDecimal());
-            }
+            UnsafeRowWriter writer = new UnsafeRowWriter();
+            writer.initialize(new BufferHolder(),1);
+            SQLDecimal value = new SQLDecimal(new BigDecimal(100.0d));
+            SQLDecimal valueA = new SQLDecimal(null,value.precision,value.getScale());
+            value.write(writer, 0);
+            UnsafeRow row = new UnsafeRow();
+            row.pointTo(writer.holder().buffer,1,writer.holder().cursor);
+            Decimal sparkDecimal = row.getDecimal(0,value.getDecimalValuePrecision(),value.getDecimalValueScale());
+            Assert.assertEquals("SerdeIncorrect",new BigDecimal("100"),sparkDecimal.toBigDecimal().bigDecimal());
+            valueA.read(row,0);
+            Assert.assertEquals("SerdeIncorrect",new BigDecimal("100"),valueA.getBigDecimal());
+        }
 
         @Test
         public void serdeNullValueData() throws Exception {

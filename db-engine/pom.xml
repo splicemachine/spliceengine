@@ -158,7 +158,7 @@
                     ===================================================================================================== -->
                     <execution>
                         <id>generate-class-size-catalog-source</id>
-                        <phase>prepare-package</phase>
+                        <phase>process-classes</phase>
                         <goals>
                             <goal>java</goal>
                         </goals>
@@ -224,7 +224,7 @@
                 <executions>
                     <execution>
                         <id>compile-class-size-catalog</id>
-                        <phase>prepare-package</phase>
+                        <phase>process-classes</phase>
                         <goals>
                             <goal>compile</goal>
                         </goals>

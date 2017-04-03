@@ -132,7 +132,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		setValue(val);
 	}
 
-	public SQLDecimal(BigDecimal val, int nprecision, int scale)
+	public SQLDecimal(BigDecimal val, int precision, int scale)
 			throws StandardException
 	{
 
@@ -140,6 +140,10 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		if ((value != null) && (scale >= 0))
 		{
 			setValue(value.setScale(scale, BigDecimal.ROUND_DOWN));
+		}
+		if (value ==null) {
+			this.precision = precision;
+			this.scale = scale;
 		}
 	}
 
