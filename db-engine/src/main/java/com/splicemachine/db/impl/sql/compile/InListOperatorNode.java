@@ -142,11 +142,19 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 		 */
 		if (rightOperandList.size() == 1)
 		{
-			BinaryComparisonOperatorNode equal = 
+			ValueNode value = (ValueNode)rightOperandList.elementAt(0);
+            if ((value instanceof CharConstantNode) && (leftOperand instanceof ColumnReference)) {
+				DataTypeDescriptor targetType = leftOperand.getTypeServices();
+				if (targetType.getTypeName().equals(TypeId.CHAR_NAME)) {
+					int maxSize = leftOperand.getTypeServices().getMaximumWidth();
+					ValueNodeList.rightPadCharConstantNode((CharConstantNode) value, maxSize);
+				}
+			}
+			BinaryComparisonOperatorNode equal =
 				(BinaryComparisonOperatorNode) getNodeFactory().getNode(
 						C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
 						leftOperand, 
-						(ValueNode) rightOperandList.elementAt(0),
+						value,
 						getContextManager());
 			/* Set type info for the operator node */
 			equal.bindComparisonOperator();
@@ -256,7 +264,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 								vn.getTypeServices(), cf);
 					}
 				}
-				rightOperandList.eliminateDuplicates();
+				rightOperandList.eliminateDuplicates(targetType);
 
 				/* Now sort the list in ascending order using the dominant
 				 * type found above.
