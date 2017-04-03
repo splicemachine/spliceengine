@@ -14,6 +14,8 @@
  */
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
+import com.splicemachine.db.iapi.stats.ItemStatistics;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -24,12 +26,17 @@ import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+
 /**
  *
  * Test Class for SQLChar
  *
  */
-public class SQLVarcharTest {
+public class SQLCharTest extends SQLDataValueDescriptorTest {
 
         @Test
         public void serdeValueData() throws Exception {
@@ -77,4 +84,56 @@ public class SQLVarcharTest {
                 Assert.assertEquals("1 incorrect",value1.getString(),value1a.getString());
                 Assert.assertEquals("2 incorrect",value2.getString(),value2a.getString());
         }
+
+        @Test
+        public void testSerde() throws Exception {
+                SQLChar charString = new SQLChar("foo");
+                ByteArrayOutputStream outputStream = new ByteArrayOutputStream(4096);
+                ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+                charString.writeExternal(objectOutputStream);
+                objectOutputStream.flush();
+
+                SQLChar charString2 = new SQLChar();
+                ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
+                ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
+                charString2.readExternal(objectInputStream);
+                System.out.println("charString2 " + charString2);
+
+
+                //
+                //
+
+
+
+
+        }
+
+        @Test
+        public void testColumnStatistics() throws Exception {
+                SQLChar value1 = new SQLChar();
+                ItemStatistics stats = new ColumnStatisticsImpl(value1);
+                SQLChar sqlChar;
+                for (int i = 0; i < 10000; i++) {
+                        if (i>=5000 && i < 6000)
+                                sqlChar = new SQLChar();
+                        else
+                                sqlChar = new SQLChar(new char[]{(char) ('A' + (i%26))});
+                        stats.update(sqlChar);
+                }
+                stats = serde(stats);
+                Assert.assertEquals(1000,stats.nullCount());
+                Assert.assertEquals(9000,stats.notNullCount());
+                Assert.assertEquals(10000,stats.totalCount());
+                Assert.assertEquals(new SQLChar(new char[]{'Z'}),stats.maxValue());
+                Assert.assertEquals(new SQLChar(new char[]{'A'}),stats.minValue());
+                Assert.assertEquals(1000,stats.selectivity(null));
+                Assert.assertEquals(1000,stats.selectivity(new SQLChar()));
+                Assert.assertEquals(347,stats.selectivity(new SQLChar(new char[]{'A'})));
+                Assert.assertEquals(347,stats.selectivity(new SQLChar(new char[]{'F'})));
+                Assert.assertEquals(1404.0d,(double) stats.rangeSelectivity(new SQLChar(new char[]{'C'}),new SQLChar(new char[]{'G'}),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+                Assert.assertEquals(700.0d,(double) stats.rangeSelectivity(new SQLChar(),new SQLChar(new char[]{'C'}),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+                Assert.assertEquals(2392.0d,(double) stats.rangeSelectivity(new SQLChar(new char[]{'T'}),new SQLChar(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+        }
+
+
 }

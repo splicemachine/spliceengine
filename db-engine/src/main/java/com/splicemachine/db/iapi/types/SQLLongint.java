@@ -46,6 +46,7 @@ import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -71,9 +72,7 @@ import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
  * possible for this implementation -- it new's Long
  * more than it probably wants to.
  */
-public final class SQLLongint
-	extends NumberDataType
-{
+public final class SQLLongint extends NumberDataType {
 	/*
 	 * DataValueDescriptor interface
 	 * (mostly implemented in DataType)
@@ -858,7 +857,6 @@ public final class SQLLongint
      *
      * @return  A boolean.  if this.value is negative, return true.
      *
-     * @exception StandException       Thrown on error
      */
     
     protected boolean isNegative()
@@ -944,5 +942,8 @@ public final class SQLLongint
 		else
 			value = OrderedBytes.decodeInt64(src);
 	}
-
+	
+	public void updateThetaSketch(UpdateSketch updateSketch) {
+		updateSketch.update(value);
+	}
 }

@@ -43,6 +43,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -1148,8 +1149,10 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) {
 		if (isNull())
 				unsafeRowWriter.setNullAt(ordinal);
-		else
-			unsafeRowWriter.write(ordinal, Decimal.apply(value),value.precision(),value.scale());
+		else {
+			Decimal foobar = Decimal.apply(value,value.precision(),value.scale());
+			unsafeRowWriter.write(ordinal, Decimal.apply(value,value.precision(),value.scale()), value.precision(), value.scale());
+		}
 	}
 
 	/**
@@ -1179,8 +1182,8 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
      */
 	@Override
 	public int encodedKeyLength() throws StandardException {
-		throw new RuntimeException("not implemented correctly");
-//		return isNull()?1:9;
+//		throw new RuntimeException("not implemented correctly");
+		return 33;
 	}
 
 	/**
@@ -1255,5 +1258,9 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
      */
 	public void setScale(int scale) {
 		this.scale = scale;
+	}
+
+	public void updateThetaSketch(UpdateSketch updateSketch) {
+		updateSketch.update(this.value.toEngineeringString());
 	}
 }

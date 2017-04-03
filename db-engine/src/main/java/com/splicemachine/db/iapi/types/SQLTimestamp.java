@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.iapi.util.ReuseFactory;
+import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -44,7 +45,6 @@ import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.unsafe.Platform;
 import org.joda.time.DateTime;
-
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -60,9 +60,6 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import org.joda.time.Days;
-import org.joda.time.LocalDate;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
 
 
 /**
@@ -1664,4 +1661,9 @@ public final class SQLTimestamp extends DataType
 				setIsNull(false);
 			}
 	    }
+
+	@Override
+	public void updateThetaSketch(UpdateSketch updateSketch) {
+		updateSketch.update(new int[]{encodedDate,encodedTime,nanos});
+	}
 }

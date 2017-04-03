@@ -291,12 +291,17 @@ public abstract class NumberDataType extends DataType
 	/** @exception StandardException		Thrown on error */
 	public final int compare(DataValueDescriptor arg) throws StandardException
 	{
+		assert arg!=null:"argument is null";
 		/* Use compare method from dominant type, negating result
 		 * to reflect flipping of sides.
 		 */
-		if (typePrecedence() < arg.typePrecedence())
-		{
-			return - (arg.compare(this));
+		try {
+			if (typePrecedence() < arg.typePrecedence()) {
+				return -(arg.compare(this));
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
 		}
 
 
