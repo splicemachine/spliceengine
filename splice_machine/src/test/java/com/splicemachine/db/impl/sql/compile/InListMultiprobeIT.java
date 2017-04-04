@@ -24,6 +24,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 import static com.splicemachine.test_tools.Rows.row;
@@ -264,6 +265,34 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         rs.close();
     }
 
+    @Test
+    public void testInListWithDynamicParamsIT() throws Exception {
+        String sqlText = "select count(*) from ts_char where c IN ( ?, ?, ?, ? )";
+        PreparedStatement ps = methodWatcher.prepareStatement(sqlText);
+        ps.setString(1, "c");
+        ps.setString(2, "d");
+        ps.setString(3, "c");
+        ps.setString(4, "d");
+        ResultSet rs = ps.executeQuery();
+
+        rs.next();
+        int val = rs.getInt(1);
+        Assert.assertEquals("Incorrect value returned!", 2, val);
+        rs.close();
+
+        sqlText = "select count(*) from ts_char where c IN ( ?, ?, ?, ? )";
+        ps = methodWatcher.prepareStatement(sqlText);
+        ps.setString(1, "c");
+        ps.setString(2, "c");
+        ps.setString(3, "c");
+        ps.setString(4, "c");
+        rs = ps.executeQuery();
+
+        rs.next();
+        val = rs.getInt(1);
+        Assert.assertEquals("Incorrect value returned!", 1, val);
+        rs.close();
+    }
 
 
 }
