@@ -2109,4 +2109,6 @@ public interface DataDictionary{
     void addBackupJob(TupleDescriptor descriptor, TransactionController tc) throws StandardException;
 
     void deleteBackupJob(long jobId, TransactionController tc) throws StandardException;
+
+    void saveSourceCode(SourceCodeDescriptor descriptor, TransactionController tc) throws StandardException;
 }

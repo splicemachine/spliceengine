@@ -895,4 +895,29 @@ public class SpliceAdmin extends BaseAdminProcedures{
             }
         }
     }
+
+    /**
+     * Save (or delete) the source text for a user-defined code object in the SYS.SYSSOURCECODE table
+     *
+     * @param schemaName name of the user that owns the code object
+     * @param objectName name of the code object
+     * @param objectType user-defined type of the code object (e.g. "Function")
+     * @param objectForm user-defined format of the source text (e.g. "Java8@UTF8")
+     * @param definerName name of the user saving the object
+     * @param sourceCode source text of the code object (or null to request deletion of the code object)
+     * @throws SQLException Error saving the sourcecode
+     */
+    public static void SYSCS_SAVE_SOURCECODE(String schemaName, String objectName, String objectType, String objectForm, String definerName, Blob sourceCode) throws SQLException{
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        TransactionController tc = lcc.getTransactionExecute();
+        try{
+            tc.elevate("sourceCode");
+            DataDictionary dd = lcc.getDataDictionary();
+            SourceCodeDescriptor descriptor = new SourceCodeDescriptor(schemaName, objectName, objectType, objectForm, definerName, sourceCode);
+            dd.saveSourceCode(descriptor, tc);
+
+        }catch(StandardException se){
+            throw PublicAPI.wrapStandardException(se);
+        }
+    }
 }
