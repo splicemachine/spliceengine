@@ -150,11 +150,12 @@ public class TableScanOperation extends ScanOperation{
                               String escaped,
                               String lines,
                               String storedAs,
-                              String location) throws StandardException{
+                              String location,
+                              int partitionByRefItem) throws StandardException{
         super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,
                 sameStartStopPosition,rowIdKey,qualifiersField,resultRowAllocator,lockMode,tableLocked,isolationLevel,
                 colRefItem,indexColItem,oneRowScan,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion,
-                pin,delimited,escaped,lines,storedAs,location);
+                pin,delimited,escaped,lines,storedAs,location,partitionByRefItem);
         SpliceLogUtils.trace(LOG,"instantiated for tablename %s or indexName %s with conglomerateID %d",
                 tableName,indexName,conglomId);
         this.forUpdate=forUpdate;
@@ -349,6 +350,7 @@ public class TableScanOperation extends ScanOperation{
                 .lines(lines)
                 .storedAs(storedAs)
                 .location(location)
+                .partitionByColumns(getPartitionColumnMap())
                 .buildDataSet(this);
     }
 }

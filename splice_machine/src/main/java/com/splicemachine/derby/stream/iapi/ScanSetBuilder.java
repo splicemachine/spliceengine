@@ -73,11 +73,14 @@ public interface ScanSetBuilder<V>{
 
     ScanSetBuilder<V> baseColumnMap(int[] baseColumnMap);
 
+
     ScanSetBuilder<V> reuseRowLocation(boolean reuseRowLocation);
 
     ScanSetBuilder<V> keyColumnEncodingOrder(int[] keyColumnEncodingOrder);
 
     ScanSetBuilder<V> keyColumnSortOrder(boolean[] keyColumnSortOrder);
+
+    ScanSetBuilder<V> partitionByColumns(int[] partitionByColumns);
 
     ScanSetBuilder<V> keyColumnTypes(int[] keyColumnTypes);
 
@@ -120,6 +123,9 @@ public interface ScanSetBuilder<V>{
     int[] getBaseColumnMap();
 
     int[] getColumnPositionMap();
+
+    int[] getPartitionByColumnMap();
+
 
     long getBaseTableConglomId();
 

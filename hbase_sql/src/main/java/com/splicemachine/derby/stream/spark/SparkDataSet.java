@@ -53,6 +53,8 @@ import org.apache.spark.sql.Column;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.storage.StorageLevel;
+import scala.collection.JavaConversions;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
@@ -718,12 +720,12 @@ public class SparkDataSet<V> implements DataSet<V> {
             for (int i = 0; i < baseColumnMap.length; i++) {
                 cols.add(new Column(ValueRow.getNamedColumn(baseColumnMap[i])));
             }
-            List<Column> partitionByCols = new ArrayList();
+            String[] partitionByCols = new String[partitionBy.length];
             for (int i = 0; i < partitionBy.length; i++) {
-                partitionByCols.add(new Column(ValueRow.getNamedColumn(partitionBy[i])));
+                partitionByCols[i] = ValueRow.getNamedColumn(partitionBy[i]);
             }
             insertDF.write().option(SPARK_COMPRESSION_OPTION,compression)
-                    .partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
+                    .partitionBy(partitionByCols)
                     .mode(SaveMode.Append).orc(location);
             ValueRow valueRow=new ValueRow(1);
             valueRow.setColumn(1,new SQLLongint(context.getRecordsWritten()));

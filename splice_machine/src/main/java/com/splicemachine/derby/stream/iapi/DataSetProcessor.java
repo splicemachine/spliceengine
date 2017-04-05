@@ -136,7 +136,7 @@ public interface DataSetProcessor {
      * @return
      * @throws StandardException
      */
-    <V> DataSet<V> readParquetFile(int[] baseColumnMap, String location,
+    <V> DataSet<V> readParquetFile(int[] baseColumnMap, int[] partitionColumnMap, String location,
                                    OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow) throws StandardException ;
 
     /**
@@ -204,7 +204,7 @@ public interface DataSetProcessor {
      * @return
      * @throws StandardException
      */
-    <V> DataSet<V> readORCFile(int[] baseColumnMap, String location,
+    <V> DataSet<V> readORCFile(int[] baseColumnMap, int[] partitionColumnMap, String location,
                                OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow) throws StandardException;
 
     /**

@@ -287,7 +287,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         location = in.readBoolean()?in.readUTF():null;
         compression = in.readBoolean()?in.readUTF():null;
         bulkImportDirectory = in.readBoolean()?in.readUTF():null;
-        this.partitionByRefItem = in.readInt();
         skipConflictDetection=in.readBoolean();
         skipWAL=in.readBoolean();
         samplingOnly = in.readBoolean();
@@ -295,6 +294,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         skipSampling = in.readBoolean();
         if (in.readBoolean())
             indexName = in.readUTF();
+        partitionByRefItem = in.readInt();
     }
 
     @Override
@@ -331,7 +331,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         out.writeBoolean(bulkImportDirectory!=null);
         if (bulkImportDirectory!=null)
             out.writeUTF(bulkImportDirectory);
-        out.writeInt(partitionByRefItem);
         out.writeBoolean(skipConflictDetection);
         out.writeBoolean(skipWAL);
         out.writeBoolean(samplingOnly);
@@ -340,6 +339,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         out.writeBoolean(indexName != null);
         if (indexName != null)
             out.writeUTF(indexName);
+        out.writeInt(partitionByRefItem);
     }
 
     @SuppressWarnings({ "unchecked" })

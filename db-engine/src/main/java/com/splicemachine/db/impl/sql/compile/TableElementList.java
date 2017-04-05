@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
@@ -477,7 +478,7 @@ public class TableElementList extends QueryTreeNodeVector {
         throws StandardException {
 		int	numConstraints = 0;
 		int size = size();
-		String[] columnNames = partitionedColumnList==null?new String[0]:partitionedColumnList.getColumnNames();
+		List<String> columnNames = Lists.newArrayList(partitionedColumnList==null?new String[0]:partitionedColumnList.getColumnNames());
 		for (int index = 0; index < size; index++)
 		{
 			if (((TableElementNode) elementAt(index)).getElementType() == TableElementNode.AT_DROP_COLUMN)
@@ -489,7 +490,7 @@ public class TableElementList extends QueryTreeNodeVector {
 								td.getColumnDescriptor( columnName ).getType(),
                                 null, null, null, null, null,
 								ColumnInfo.DROP, 0, 0, 0,
-							ArrayUtils.indexOf(columnNames,columnName)
+							-1
 						);
 				break;
 			}
@@ -541,7 +542,7 @@ public class TableElementList extends QueryTreeNodeVector {
 								coldef.getAutoincrementIncrement() : 0),
 							   (coldef.isAutoincrementColumn() ? 
 								coldef.getAutoinc_create_or_modify_Start_Increment() : -1),
-						-1);
+						columnNames.indexOf(coldef.getColumnName()));
 
 			/* Remember how many constraints that we've seen */
 			if (coldef.hasConstraint())

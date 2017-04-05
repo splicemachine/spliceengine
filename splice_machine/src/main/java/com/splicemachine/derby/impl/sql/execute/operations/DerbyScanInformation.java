@@ -366,4 +366,5 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         return keyColumns;
 
     }
+
 }

@@ -21,8 +21,6 @@ import java.util.List;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.base.Joiner;
 import org.spark_project.guava.collect.ImmutableList;
-import static org.apache.hadoop.fs.s3a.Constants.ACCESS_KEY;
-import static org.apache.hadoop.fs.s3a.Constants.SECRET_KEY;
 import com.splicemachine.compactions.SpliceDefaultCompactionPolicy;
 import com.splicemachine.hbase.*;
 import org.apache.hadoop.conf.Configuration;
@@ -194,9 +192,10 @@ class SpliceTestPlatformConfig {
         // AWS Credentials for test...
         //
 
-        config.set(ACCESS_KEY,"AKIAJ6HBMCK5ALHVBFPQ");
-        config.set(SECRET_KEY,"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");
-
+        config.set("presto.s3.access-key","AKIAIWVXS5FSUZHSGQ7A");
+        config.set("presto.s3.secret-key","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");
+        config.set("fs.s3a.impl",com.splicemachine.fs.s3.PrestoS3FileSystem.class.getCanonicalName());
+        config.set("hive.exec.orc.split.strategy","BI");
 
         //
         // Splice
