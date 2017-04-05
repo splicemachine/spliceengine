@@ -8080,7 +8080,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         // Get schema ID for SYSCS_UTIL schema
         String schemaID=getSystemUtilSchemaDescriptor().getUUID().toString();
 
-        for(String routineName : sysUtilProceduresWithPublicAccess){
+        for(String routineName : sysUtilRoutinesWithPublicAccess){
 
             if(!newlyCreatedRoutines.contains(routineName)){
                 continue;
