@@ -35,6 +35,8 @@ import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
+import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
@@ -978,7 +980,6 @@ public final class InsertNode extends DMLModStatementNode {
 		/* generate the parameters */
 		generateParameterValueSet(acb);
 
-		/* Generate Partitions if Applicable */
 		int partitionReferenceItem = -1;
 		int[] partitionBy = targetTableDescriptor.getPartitionBy();
 		if (partitionBy.length != 0)

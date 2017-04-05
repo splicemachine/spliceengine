@@ -148,13 +148,13 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <V> DataSet<V> readParquetFile(int[] baseColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,ExecRow execRow) throws StandardException {
-        return delegate.readParquetFile(baseColumnMap, location, context,qualifiers,probeValue,execRow);
+    public <V> DataSet<V> readParquetFile(int[] baseColumnMap,int[] partitionColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,ExecRow execRow) throws StandardException {
+        return delegate.readParquetFile(baseColumnMap, partitionColumnMap,location, context,qualifiers,probeValue,execRow);
     }
 
     @Override
-    public <V> DataSet<V> readORCFile(int[] baseColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,ExecRow execRow) throws StandardException {
-        return delegate.readORCFile(baseColumnMap, location, context,qualifiers,probeValue,execRow);
+    public <V> DataSet<V> readORCFile(int[] baseColumnMap,int[] partitionColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,ExecRow execRow) throws StandardException {
+        return delegate.readORCFile(baseColumnMap, partitionColumnMap, location, context,qualifiers,probeValue,execRow);
     }
 
     @Override

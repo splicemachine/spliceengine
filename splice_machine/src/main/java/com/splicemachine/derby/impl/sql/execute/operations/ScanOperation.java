@@ -15,12 +15,16 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
+import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -63,6 +67,8 @@ public abstract class ScanOperation extends SpliceBaseOperation{
     protected String lines;
     protected String storedAs;
     protected String location;
+    int partitionRefItem;
+    protected int[] partitionColumnMap;
 
     public ScanOperation(){
         super();
@@ -82,7 +88,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
                          double optimizerEstimatedRowCount,
                          double optimizerEstimatedCost,String tableVersion,
                          boolean pin, String delimited, String escaped, String lines,
-                         String storedAs, String location
+                         String storedAs, String location, int partitionRefItem
     ) throws StandardException{
         super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
         this.lockMode=lockMode;
@@ -97,6 +103,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         this.lines = lines;
         this.storedAs = storedAs;
         this.location = location;
+        this.partitionRefItem = partitionRefItem;
         this.scanInformation=new DerbyScanInformation(resultRowAllocator.getMethodName(),
                 startKeyGetter!=null?startKeyGetter.getMethodName():null,
                 stopKeyGetter!=null?stopKeyGetter.getMethodName():null,
@@ -135,6 +142,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         lines = in.readBoolean()?in.readUTF():null;
         storedAs = in.readBoolean()?in.readUTF():null;
         location = in.readBoolean()?in.readUTF():null;
+        partitionRefItem = in.readInt();
     }
 
     @Override
@@ -162,6 +170,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         out.writeBoolean(location!=null);
         if (location!=null)
             out.writeUTF(location);
+        out.writeInt(partitionRefItem);
     }
 
     @Override
@@ -170,11 +179,16 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         super.init(context);
         scanInformation.initialize(context);
         try{
+            GenericStorablePreparedStatement statement = context.getPreparedStatement();
             ExecRow candidate=scanInformation.getResultRow();
             currentRow=operationInformation.compactRow(candidate,scanInformation);
             currentTemplate=currentRow.getClone();
             if(currentRowLocation==null)
                 currentRowLocation=new HBaseRowLocation();
+            if (this.partitionRefItem == -1)
+                partitionColumnMap = DerbyScanInformation.Empty_Array;
+            else
+                partitionColumnMap = ((ReferencedColumnsDescriptorImpl) statement.getSavedObject(partitionRefItem)).getReferencedColumnPositions();
         }catch(Exception e){
             SpliceLogUtils.logAndThrowRuntime(LOG,"Operation Init Failed!",e);
         }
@@ -406,4 +420,11 @@ public abstract class ScanOperation extends SpliceBaseOperation{
     public boolean getRowIdKey() {
         return rowIdKey;
     }
+
+
+
+    public int[] getPartitionColumnMap() {
+        return partitionColumnMap;
+    }
+
 }

@@ -59,9 +59,9 @@ public class StatsCollectionJob implements Callable<Void> {
                     if (storedAs.equals("T"))
                         statsDataSet = dsp.readTextFile(null,builder.getLocation(),builder.getDelimited(),null,builder.getColumnPositionMap(),null,null,null, builder.getTemplate());
                     else if (storedAs.equals("P"))
-                        statsDataSet = dsp.readParquetFile(builder.getColumnPositionMap(),builder.getLocation(),null,null,null,builder.getTemplate());
+                        statsDataSet = dsp.readParquetFile(builder.getColumnPositionMap(),builder.getPartitionByColumnMap(),builder.getLocation(),null,null,null,builder.getTemplate());
                     else if (storedAs.equals("O"))
-                        statsDataSet =  dsp.readORCFile(builder.getColumnPositionMap(),builder.getLocation(),null,null,null,builder.getTemplate());
+                        statsDataSet =  dsp.readORCFile(builder.getColumnPositionMap(),builder.getPartitionByColumnMap(),builder.getLocation(),null,null,null,builder.getTemplate());
                     else {
                         throw new UnsupportedOperationException("storedAs Type not supported -> " + storedAs);
                     }

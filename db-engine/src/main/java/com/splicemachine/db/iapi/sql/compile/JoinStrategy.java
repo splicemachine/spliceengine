@@ -284,7 +284,8 @@ public interface JoinStrategy {
 							String escaped,
 							String lines,
 							String storedAs,
-							String location)
+							String location,
+							int partitionRefItem)
 					throws StandardException;
 
 	/**

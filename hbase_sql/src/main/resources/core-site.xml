@@ -33,4 +33,44 @@
         <value>file:///</value>
     </property>
 
-    </configuration>
+    <property>
+        <name>fs.s3.awsAccessKeyId</name>
+        <value>AKIAIWVXS5FSUZHSGQ7A</value>
+    </property>
+
+    <property>
+        <name>fs.s3.awsSecretAccessKey</name>
+        <value>SZnh4OurVM6dKT2juf+BVeR/kgxfAK662nPF1AYz</value>
+    </property>
+
+    <property>
+        <name>fs.s3a.access.key</name>
+        <value>AKIAIWVXS5FSUZHSGQ7A</value>
+    </property>
+
+    <property>
+        <name>fs.s3a.secret.key</name>
+        <value>SZnh4OurVM6dKT2juf+BVeR/kgxfAK662nPF1AYz</value>
+    </property>
+
+
+    <property>
+        <name>presto.s3.access-key</name>
+        <value>AKIAIWVXS5FSUZHSGQ7A</value>
+    </property>
+
+    <property>
+        <name>presto.s3.secret-key</name>
+        <value>SZnh4OurVM6dKT2juf+BVeR/kgxfAK662nPF1AYz</value>
+    </property>
+
+
+    <property>
+        <name>fs.s3a.impl</name>
+        <value>com.splicemachine.fs.PrestoS3FileSystem</value>
+    </property>
+
+
+
+
+</configuration>

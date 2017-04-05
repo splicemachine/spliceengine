@@ -79,6 +79,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     protected String storedAs;
     protected String location;
     protected String compression;
+    protected int[] partitionByColumns;
 
     @Override
     public ScanSetBuilder<V> metricFactory(MetricFactory metricFactory){
@@ -91,6 +92,14 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
         this.activation = activation;
         return this;
     }
+
+    @Override
+    public ScanSetBuilder<V> partitionByColumns(int[] partitionByColumns){
+        assert partitionByColumns!=null:"Null partitionByColumns are not allowed!";
+        this.partitionByColumns = partitionByColumns;
+        return this;
+    }
+
 
     @Override
     public ScanSetBuilder<V> scanner(DataScanner scanner){
@@ -399,6 +408,8 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
             }
             writeTxn(out);
             ArrayUtil.writeIntArray(out,keyColumnEncodingOrder);
+            ArrayUtil.writeIntArray(out,partitionByColumns);
+
             out.writeBoolean(keyColumnSortOrder!=null);
             if(keyColumnSortOrder!=null){
                 ArrayUtil.writeBooleanArray(out,keyColumnSortOrder);
@@ -473,6 +484,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
             }
             txn=readTxn(in);
             keyColumnEncodingOrder=ArrayUtil.readIntArray(in);
+            partitionByColumns=ArrayUtil.readIntArray(in);
             if(in.readBoolean()){
                 keyColumnSortOrder=ArrayUtil.readBooleanArray(in);
             }
@@ -630,5 +642,10 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     @Override
     public String getLocation() {
         return location;
+    }
+
+    @Override
+    public int[] getPartitionByColumnMap() {
+        return partitionByColumns;
     }
 }

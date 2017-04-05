@@ -388,6 +388,7 @@ public class ExternalTableIT extends SpliceUnitTest{
 
 
     @Test
+    @Ignore
     public void testWriteReadWithPartitionedByFloatTable() throws Exception {
         String tablePath = getExternalResourceDirectory()+"simple_parquet_with_partition";
         methodWatcher.executeUpdate(String.format("create external table simple_parquet_with_partition (col1 int, col2 varchar(24), col3 float(10) )" +
@@ -436,7 +437,7 @@ public class ExternalTableIT extends SpliceUnitTest{
     public void testWriteReadFromPartitionedParquetExternalTable() throws Exception {
         String tablePath =  getExternalResourceDirectory()+"partitioned_parquet";
                 methodWatcher.executeUpdate(String.format("create external table partitioned_parquet (col1 int, col2 varchar(24))" +
-                "partitioned by (col1) STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"partitioned_parquet"));
+                "partitioned by (col2) STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"partitioned_parquet"));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into partitioned_parquet values (1,'XXXX')," +
                 "(2,'YYYY')," +
                 "(3,'ZZZZ')"));
@@ -483,6 +484,12 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "  1  |XXXX |\n" +
                 "  2  |YYYY |\n" +
                 "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        ResultSet r2 = methodWatcher.executeQuery("select count(*) from partitioned_orc");
+        Assert.assertEquals("COL1 |COL2 |\n" +
+                "------------\n" +
+                "  1  |XXXX |\n" +
+                "  2  |YYYY |\n" +
+                "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(r2));
     }
 
     @Test
