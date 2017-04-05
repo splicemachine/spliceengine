@@ -459,6 +459,18 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
 					.catalog("procName")
 					.build()
 			,
+		    Procedure.newBuilder().name("SYSCS_SAVE_SOURCECODE")
+				    .numResultSets(0).numOutputParams(0).modifiesSql()
+				    .returnType(null).isDeterministic(false)
+				    .ownerClass(SYSTEM_PROCEDURES)
+				    .catalog("schemaName")
+				    .catalog("objectName")
+				    .varchar("objectType", 16)
+				    .varchar("objectForm", 32)
+				    .catalog("definerName")
+				    .arg("sourceCode", DataTypeDescriptor.getCatalogType(Types.BLOB,64*1024*1024))
+				    .build()
+		    ,
 				/*
                  * PLEASE NOTE:
                  * This method is currently not used, but will be used and moved when Splice Machine has a SYS_DEBUG schema available
