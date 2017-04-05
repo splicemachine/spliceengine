@@ -103,7 +103,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                 //free null check plus cast protection
                 if(n instanceof Procedure){
                     Procedure procedure = (Procedure)n;
-                    newlyCreatedRoutines.add(procedure.createSystemProcedure(uuid,dictionary,tc));
+                    newlyCreatedRoutines.add(procedure.createSystemProcedure(uuid,dictionary,tc).getMethodName());
                 }
             }
         }
@@ -145,7 +145,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     	if (procedure == null) {
     		throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
     	} else {
-    		newlyCreatedRoutines.add(procedure.createSystemProcedure(schemaId, dictionary, tc));
+    		newlyCreatedRoutines.add(procedure.createSystemProcedure(schemaId, dictionary, tc).getMethodName());
     	}
     }
 
@@ -232,7 +232,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     	if (procedure == null) {
     		throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
     	} else {
-    		newlyCreatedRoutines.add(procedure.createSystemProcedure(schemaId, dictionary, tc));
+    		newlyCreatedRoutines.add(procedure.createSystemProcedure(schemaId, dictionary, tc).getMethodName());
     	}
     }
 
