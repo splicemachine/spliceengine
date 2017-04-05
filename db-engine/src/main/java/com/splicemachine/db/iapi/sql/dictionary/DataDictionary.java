@@ -2145,4 +2145,6 @@ public interface DataDictionary{
     void deleteToken(byte[] token) throws StandardException;
 
     TokenDescriptor getToken(byte[] token) throws StandardException;
+
+    void saveSourceCode(SourceCodeDescriptor descriptor, TransactionController tc) throws StandardException;
 }
