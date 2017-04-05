@@ -7325,6 +7325,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 case SYSTABLESTATS_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSTABLESTATISTICSRowFactory(luuidFactory,exFactory,dvf));
                     break;
+                case SYSSOURCECODE_CATALOG_NUM:
+                    retval=new TabInfoImpl(new SYSSOURCECODERowFactory(luuidFactory,exFactory,dvf));
+                    break;
                 case SYSDUMMY1_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSDUMMY1RowFactory(luuidFactory,exFactory,dvf));
                     break;

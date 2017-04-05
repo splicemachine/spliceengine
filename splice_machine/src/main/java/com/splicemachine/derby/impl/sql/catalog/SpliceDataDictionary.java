@@ -21,6 +21,7 @@ import java.util.Properties;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.impl.sql.catalog.SYSSOURCECODERowFactory;
 import com.splicemachine.management.Manager;
 import org.apache.log4j.Logger;
 
@@ -95,6 +96,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     private volatile TabInfoImpl tableStatsTable=null;
     private volatile TabInfoImpl columnStatsTable=null;
     private volatile TabInfoImpl physicalStatsTable=null;
+    private volatile TabInfoImpl sourceCodeTable=null;
     private Splice_DD_Version spliceSoftwareVersion;
 
     public static final String SPLICE_DATA_DICTIONARY_VERSION="SpliceDataDictionaryVersion";
@@ -222,6 +224,13 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         addTableIfAbsent(tc,systemSchema,physicalStatsInfo,physicalPkOrder);
     }
 
+    public void createSourceCodeTable(TransactionController tc) throws StandardException{
+        SchemaDescriptor systemSchema=getSystemSchemaDescriptor();
+
+        TabInfoImpl tableStatsInfo=getSourceCodeTable();
+        addTableIfAbsent(tc,systemSchema,tableStatsInfo,null);
+    }
+
     private TabInfoImpl getBackupTable() throws StandardException{
         if(backupTable==null){
             backupTable=new TabInfoImpl(new SYSBACKUPRowFactory(uuidFactory,exFactory,dvf));
@@ -330,6 +339,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         //create the Statistics tables
         createStatisticsTables(tc);
 
+        createSourceCodeTable(tc);
     }
 
     @Override
@@ -501,6 +511,14 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
         initSystemIndexVariables(tableStatsTable);
         return tableStatsTable;
+    }
+
+    private TabInfoImpl getSourceCodeTable() throws StandardException{
+        if(sourceCodeTable==null){
+            sourceCodeTable=new TabInfoImpl(new SYSSOURCECODERowFactory(uuidFactory,exFactory,dvf));
+        }
+        initSystemIndexVariables(sourceCodeTable);
+        return sourceCodeTable;
     }
 
     protected TabInfoImpl getPkTable() throws StandardException{
