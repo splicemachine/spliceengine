@@ -36,6 +36,8 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.util.JBitSet;
 
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -729,4 +731,18 @@ public class ValueNodeList extends QueryTreeNodeVector
 		}
 		return hashCode;
 	}
+
+	public void eliminateDuplicates()
+	{
+		HashSet<ValueNode> vset = new HashSet<ValueNode>(getNodes());
+		removeAllElements();
+		Iterator iterator = vset.iterator();
+		while (iterator.hasNext())
+		{
+			ValueNode valueNode = (ValueNode) iterator.next();
+			addElement(valueNode);
+		}
+
+	}
+
 }
