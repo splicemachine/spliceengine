@@ -105,9 +105,12 @@ public class UnionOperation extends SpliceBaseOperation {
 
 		@Override
 		public void init(SpliceOperationContext context) throws StandardException, IOException {
+			if (initialized)
+				return;
 				super.init(context);
 				leftResultSet.init(context);
 				rightResultSet.init(context);
+			initialized=true;
 		}
 
 		@Override

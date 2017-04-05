@@ -159,7 +159,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 lines,
                 storedAs,
                 location);
-
+        initialized = false;
         if (SanityManager.DEBUG)
         {
             SanityManager.ASSERT(
@@ -211,7 +211,10 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
+        if (initialized)
+            return;
         super.init(context);
+        initialized = true;
     }
 
     @Override

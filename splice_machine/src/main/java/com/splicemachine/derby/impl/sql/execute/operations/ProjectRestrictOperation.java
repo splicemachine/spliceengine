@@ -132,6 +132,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
 		@Override
 		public void init(SpliceOperationContext context) throws StandardException, IOException {
+				if (initialized)
+					return;
 				super.init(context);
 				source.init(context);
 
@@ -153,6 +155,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 						restriction =new SpliceMethod<>(restrictionMethodName,activation);
 				if (projectionMethodName != null)
 						projection =new SpliceMethod<>(projectionMethodName,activation);
+				initialized=true;
 		}
 
 

@@ -92,11 +92,14 @@ public class BatchOnceOperation extends SpliceBaseOperation {
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
+        if (initialized)
+            return;
         super.init(context);
         source.init(context);
         subquerySource.init(context);
         sourceCorrelatedColumnPositions = generateColumnPositions(sourceCorrelatedColumnItem);
         subqueryCorrelatedColumnPositions = generateColumnPositions(subqueryCorrelatedColumnItem);
+        initialized = true;
     }
 
     @Override

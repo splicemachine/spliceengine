@@ -138,10 +138,13 @@ public class RowOperation extends SpliceBaseOperation{
      */
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException{
+        if (initialized)
+            return;
         super.init(context);
         if(rowMethod==null && rowMethodName!=null){
             this.rowMethod=new SpliceMethod<>(rowMethodName,activation);
         }
+        initialized=true;
     }
 
     /**
