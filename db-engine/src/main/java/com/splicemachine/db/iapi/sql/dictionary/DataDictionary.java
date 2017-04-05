@@ -240,6 +240,8 @@ public interface DataDictionary{
     int SYSSCHEMAPERMS_CATALOG_NUM=30;
     int SYSSNAPSHOT_NUM=31;
     int SYSTOKENS_NUM=32;
+    int SYSSOURCECODE_CATALOG_NUM=33;
+
     /* static finals for constraints
      * (Here because they are needed by parser, compilation and execution.)
 	 */
