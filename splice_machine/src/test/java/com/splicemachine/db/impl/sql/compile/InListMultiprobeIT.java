@@ -24,6 +24,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 import static com.splicemachine.test_tools.Rows.row;
@@ -108,7 +109,7 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
                         row(null, null, null, null),
                         row(null, null, null, null),
                         row(null, null, null, null)))
-                .withIndex("create index ix_char on ts_char(c)")
+                .withIndex("create index ix_char on ts_char(c, v)")
                 .create();
 
         new TableCreator(conn)
@@ -193,7 +194,7 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
 
     @Test
     public void testInListWithCharIT() throws Exception {
-        String sqlText = "select count(*) from ts_char where trim(c) in ('a', 'b', 'c', 'd')";
+        String sqlText = "select count(*) from ts_char where c in ('a', 'b', 'c', 'd')";
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
                 "1 |\n" +
@@ -203,9 +204,44 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
 
-        sqlText = "select count(*) from ts_char where trim(c) in ('a', 'b', 'b', 'c', 'a', 'c', 'd')";
+        sqlText = "select count(*) from ts_char where c in ('a', 'b', 'b', 'c', 'a', 'c', 'd')";
         rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
 
+        sqlText = "select count(*) from ts_char where c in ('c')";
+        expected =
+                "1 |\n" +
+                        "----\n" +
+                        " 1 |";
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testInListWithVarCharIT() throws Exception {
+        String sqlText = "select count(*) from ts_char where v in ('cc', 'k')";
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "1 |\n" +
+                        "----\n" +
+                        " 2 |";
+
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        sqlText = "select count(*) from ts_char where v in ('cc', 'k', 'cc', 'k')";
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        sqlText = "select count(*) from ts_char where v in ('cc')";
+        expected =
+                "1 |\n" +
+                        "----\n" +
+                        " 1 |";
+        rs = methodWatcher.executeQuery(sqlText);
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
@@ -229,6 +265,34 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         rs.close();
     }
 
+    @Test
+    public void testInListWithDynamicParamsIT() throws Exception {
+        String sqlText = "select count(*) from ts_char where c IN ( ?, ?, ?, ? )";
+        PreparedStatement ps = methodWatcher.prepareStatement(sqlText);
+        ps.setString(1, "c");
+        ps.setString(2, "d");
+        ps.setString(3, "c");
+        ps.setString(4, "d");
+        ResultSet rs = ps.executeQuery();
+
+        rs.next();
+        int val = rs.getInt(1);
+        Assert.assertEquals("Incorrect value returned!", 2, val);
+        rs.close();
+
+        sqlText = "select count(*) from ts_char where c IN ( ?, ?, ?, ? )";
+        ps = methodWatcher.prepareStatement(sqlText);
+        ps.setString(1, "c");
+        ps.setString(2, "c");
+        ps.setString(3, "c");
+        ps.setString(4, "c");
+        rs = ps.executeQuery();
+
+        rs.next();
+        val = rs.getInt(1);
+        Assert.assertEquals("Incorrect value returned!", 1, val);
+        rs.close();
+    }
 
 
 }
