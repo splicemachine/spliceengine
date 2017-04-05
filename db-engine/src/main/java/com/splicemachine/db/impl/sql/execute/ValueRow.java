@@ -145,7 +145,7 @@ public class ValueRow implements ExecRow, Externalizable {
 		int numColumns = column.length;
 
 		/* Get the right type of row */
-		ExecRow rowClone = cloneMe();
+		ValueRow rowClone = cloneMe();
 
 		for (int colCtr = 0; colCtr < numColumns; colCtr++) {
 			// Copy those columns whose bit isn't set (and there is a FormatableBitSet)
@@ -169,7 +169,7 @@ public class ValueRow implements ExecRow, Externalizable {
 	public ExecRow getNewNullRow()
 	{
 		int numColumns = column.length;
-		ExecRow rowClone = cloneMe();
+		ValueRow rowClone = cloneMe();
 
 
 		for (int colCtr = 0; colCtr < numColumns; colCtr++) 
@@ -183,7 +183,7 @@ public class ValueRow implements ExecRow, Externalizable {
 		return rowClone;
 	}
 
-	public ExecRow cloneMe() {
+	public ValueRow cloneMe() {
 		return new ValueRow(ncols);
 	}
 
