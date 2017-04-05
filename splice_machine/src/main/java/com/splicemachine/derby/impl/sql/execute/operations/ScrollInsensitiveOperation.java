@@ -132,8 +132,11 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 
     @Override
     public void init(SpliceOperationContext context) throws IOException, StandardException{
+        if (initialized)
+            return;
         super.init(context);
         source.init(context);
+        initialized = true;
     }
 
     @Override

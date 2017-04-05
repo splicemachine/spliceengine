@@ -67,6 +67,8 @@ public class CachedOperation extends SpliceBaseOperation {
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException {
+        if (initialized)
+            return;
         try {
             super.init(context);
             source.init(context);
@@ -74,6 +76,7 @@ public class CachedOperation extends SpliceBaseOperation {
                 populateCache();
                 populated = true;
             }
+            initialized = true;
         }
         catch (IOException e) {
             throw Exceptions.parseException(e);

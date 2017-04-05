@@ -163,9 +163,12 @@ public class BroadcastJoinOperation extends JoinOperation{
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
+        if (initialized)
+            return;
         super.init(context);
         leftHashKeys = generateHashKeys(leftHashKeyItem);
         rightHashKeys = generateHashKeys(rightHashKeyItem);
+        initialized = true;
     }
 
     @Override

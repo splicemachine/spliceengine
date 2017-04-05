@@ -83,6 +83,8 @@ public class MergeJoinOperation extends JoinOperation {
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
+        if (initialized)
+            return;
     	super.init(context);
         leftHashKeys = generateHashKeys(leftHashKeyItem);
         rightHashKeys = generateHashKeys(rightHashKeyItem);
@@ -90,6 +92,7 @@ public class MergeJoinOperation extends JoinOperation {
     		SpliceLogUtils.debug(LOG,"left hash keys {%s}",Arrays.toString(leftHashKeys));
     		SpliceLogUtils.debug(LOG,"right hash keys {%s}",Arrays.toString(rightHashKeys));
     	}
+        initialized = true;
     }
 
     @Override

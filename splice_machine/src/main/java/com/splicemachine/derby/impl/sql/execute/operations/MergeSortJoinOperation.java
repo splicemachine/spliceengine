@@ -155,6 +155,8 @@ public class MergeSortJoinOperation extends JoinOperation {
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
+        if (initialized)
+            return;
         SpliceLogUtils.trace(LOG, "init");
         super.init(context);
         SpliceLogUtils.trace(LOG, "leftHashkeyItem=%d,rightHashKeyItem=%d", leftHashKeyItem, rightHashKeyItem);
@@ -162,6 +164,7 @@ public class MergeSortJoinOperation extends JoinOperation {
         leftHashKeys = generateHashKeys(leftHashKeyItem);
         rightHashKeys = generateHashKeys(rightHashKeyItem);
         JoinUtils.getMergedRow(leftRow, rightRow, wasRightOuterJoin, mergedRow);
+        initialized = true;
     }
 
     @Override

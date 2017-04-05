@@ -103,10 +103,13 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     @Override
     public void init(SpliceOperationContext context) throws StandardException,
                                                             IOException {
+        if (initialized)
+            return;
         SpliceLogUtils.trace(LOG, "init called");
         super.init(context);
         source.init(context);
         groupedAggregateContext.init(context, aggregateContext);
+        initialized = true;
     }
 
     @Override

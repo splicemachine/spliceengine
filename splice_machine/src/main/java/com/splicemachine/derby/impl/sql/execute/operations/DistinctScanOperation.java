@@ -184,6 +184,8 @@ public class DistinctScanOperation extends ScanOperation {
      */
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
+        if (initialized)
+            return;
         super.init(context);
         FormatableArrayHolder fah = (FormatableArrayHolder)activation.getPreparedStatement().getSavedObject(hashKeyItem);
         FormatableIntHolder[] fihArray = (FormatableIntHolder[])fah.getArray(FormatableIntHolder.class);
@@ -193,6 +195,7 @@ public class DistinctScanOperation extends ScanOperation {
         for(int index=0;index<fihArray.length;index++){
             keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(scanInformation.getAccessedColumns(),fihArray[index].getInt());
         }
+        initialized = true;
     }
 
     /**
