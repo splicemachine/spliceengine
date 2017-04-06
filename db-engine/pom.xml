@@ -127,7 +127,7 @@
                             <goal>javacc</goal>
                         </goals>
                         <configuration>
-                            <jdkVersion>1.8</jdkVersion>
+                            <jdkVersion>1.7</jdkVersion>
                             <packageName>com.splicemachine.db.impl.sql.compile</packageName>
                             <sourceDirectory>src/main/java/com/splicemachine/db/impl/sql/compile</sourceDirectory>
                             <outputDirectory>${project.build.directory}/generated-sources/javacc_engine
