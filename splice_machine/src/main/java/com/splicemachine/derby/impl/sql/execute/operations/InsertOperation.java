@@ -23,6 +23,7 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.stream.iapi.*;
+import com.splicemachine.derby.stream.output.HBaseBulkImporter;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.client.am.SqlCode;
@@ -97,6 +98,11 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     protected int[] partitionBy;
     private boolean skipConflictDetection;
     private boolean skipWAL;
+    protected String bulkImportDirectory;
+    protected boolean samplingOnly;
+    protected boolean outputKeysOnly;
+    protected boolean skipSampling;
+    protected String indexName;
 
     @Override
     public String getName(){
@@ -125,7 +131,12 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                            String storedAs,
                            String location,
                            String compression,
-                           int partitionByRefItem) throws StandardException{
+                           int partitionByRefItem,
+                           String bulkImportDirectory,
+                           boolean samplingOnly,
+                           boolean outputKeysOnly,
+                           boolean skipSampling,
+                           String indexName) throws StandardException{
         super(source,generationClauses,checkGM,source.getActivation(),optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
         this.insertMode=InsertNode.InsertMode.valueOf(insertMode);
         this.statusDirectory=statusDirectory;
@@ -139,6 +150,11 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         this.location = location;
         this.compression = compression;
         this.partitionByRefItem = partitionByRefItem;
+        this.bulkImportDirectory = bulkImportDirectory;
+        this.samplingOnly = samplingOnly;
+        this.outputKeysOnly = outputKeysOnly;
+        this.skipSampling = skipSampling;
+        this.indexName = indexName;
         init();
     }
 
@@ -270,9 +286,15 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         storedAs = in.readBoolean()?in.readUTF():null;
         location = in.readBoolean()?in.readUTF():null;
         compression = in.readBoolean()?in.readUTF():null;
+        bulkImportDirectory = in.readBoolean()?in.readUTF():null;
         this.partitionByRefItem = in.readInt();
         skipConflictDetection=in.readBoolean();
         skipWAL=in.readBoolean();
+        samplingOnly = in.readBoolean();
+        outputKeysOnly = in.readBoolean();
+        skipSampling = in.readBoolean();
+        if (in.readBoolean())
+            indexName = in.readUTF();
     }
 
     @Override
@@ -306,9 +328,18 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         out.writeBoolean(compression!=null);
         if (compression!=null)
             out.writeUTF(compression);
+        out.writeBoolean(bulkImportDirectory!=null);
+        if (bulkImportDirectory!=null)
+            out.writeUTF(bulkImportDirectory);
         out.writeInt(partitionByRefItem);
         out.writeBoolean(skipConflictDetection);
         out.writeBoolean(skipWAL);
+        out.writeBoolean(samplingOnly);
+        out.writeBoolean(outputKeysOnly);
+        out.writeBoolean(skipSampling);
+        out.writeBoolean(indexName != null);
+        if (indexName != null)
+            out.writeUTF(indexName);
     }
 
     @SuppressWarnings({ "unchecked" })
@@ -317,6 +348,11 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         if(statusDirectory != null) {
             // if we have a status directory, we're an import and so permissive
             dsp.setPermissive(statusDirectory, getVTIFileName(), failBadRecordCount);
+        }
+        if (outputKeysOnly) {
+            // Bypass normalization if it is only for split key generation
+            // TODO: JY - this is a hack.
+            source = source.getLeftOperation();
         }
         DataSet set=source.getDataSet(dsp);
         OperationContext operationContext=dsp.createOperationContext(this);
@@ -347,23 +383,52 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                 new RuntimeException("storedAs type not supported -> " + storedAs);
             }
 
+            if (bulkImportDirectory!=null && bulkImportDirectory.compareToIgnoreCase("NULL") !=0) {
+                HBaseBulkImporter importer = set.bulkImportData(operationContext)
+                        .heapConglom(heapConglom)
+                        .tableVersion(tableVersion)
+                        .operationContext(operationContext)
+                        .autoIncrementRowLocationArray(autoIncrementRowLocationArray)
+                        .sequences(spliceSequences)
+                        .pkCols(pkCols)
+                        .execRow(getExecRowDefinition())
+                        .txn(txn)
+                        .bulkImportDirectory(bulkImportDirectory)
+                        .samplingOnly(samplingOnly)
+                        .outputKeysOnly(outputKeysOnly)
+                        .skipSampling(skipSampling)
+                        .indexName(indexName)
+                        .build();
+                return importer.write();
+            }
+            else {
+                /*
 
-
-
-            PairDataSet dataSet=set.index(new InsertPairFunction(operationContext),true);
-            DataSetWriter writer=dataSet.insertData(operationContext)
-                    .autoIncrementRowLocationArray(autoIncrementRowLocationArray)
-                    .execRowDefinition(getExecRowDefinition())
-                    .execRowTypeFormatIds(execRowTypeFormatIds)
-                    .sequences(spliceSequences)
-                    .isUpsert(insertMode.equals(InsertNode.InsertMode.UPSERT))
-                    .pkCols(pkCols)
-                    .tableVersion(tableVersion)
-                    .destConglomerate(heapConglom)
-                    .operationContext(operationContext)
-                    .txn(txn)
-                    .build();
-            return writer.write();
+                int[] pkCols,
+                              String tableVersion,
+                              ExecRow execRowDefinition,
+                              RowLocation[] autoIncrementRowLocationArray,
+                              SpliceSequence[] spliceSequences,
+                              long heapConglom,
+                              TxnView txn,
+                              OperationContext operationContext,
+                              boolean isUpsert
+                 */
+                PairDataSet dataSet = set.index(new InsertPairFunction(operationContext), true);
+                DataSetWriter writer = dataSet.insertData(operationContext)
+                        .autoIncrementRowLocationArray(autoIncrementRowLocationArray)
+                        .execRowDefinition(getExecRowDefinition())
+                        .execRowTypeFormatIds(execRowTypeFormatIds)
+                        .sequences(spliceSequences)
+                        .isUpsert(insertMode.equals(InsertNode.InsertMode.UPSERT))
+                        .pkCols(pkCols)
+                        .tableVersion(tableVersion)
+                        .destConglomerate(heapConglom)
+                        .operationContext(operationContext)
+                        .txn(txn)
+                        .build();
+                return writer.write();
+            }
         }finally{
             if (skipWAL) {
                 flushAndCheckErrors(healthWatcher);

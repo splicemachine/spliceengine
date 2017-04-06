@@ -14,7 +14,8 @@
 
 package com.splicemachine.derby.impl.storage;
 
-import java.io.IOException;
+import java.io.*;
+import java.net.URI;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -22,7 +23,15 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.pipeline.ErrorState;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FSInputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Splitter;
 
@@ -30,9 +39,7 @@ import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.jdbc.InternalDriver;
-import com.splicemachine.encoding.Encoding;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -45,6 +52,54 @@ import com.splicemachine.utils.SpliceLogUtils;
 public class TableSplit{
     private static final Logger LOG = Logger.getLogger(TableSplit.class);
 
+    public static void SYSCS_SPLIT_TABLE_OR_INDEX(String schemaName,
+                                                  String tableName,
+                                                  String indexName,
+                                                  String insertColumnList,
+                                                  String fileName,
+                                                  String columnDelimiter,
+                                                  String characterDelimiter,
+                                                  String timestampFormat,
+                                                  String dateFormat,
+                                                  String timeFormat,
+                                                  long badRecordsAllowed,
+                                                  String badRecordDirectory,
+                                                  String oneLineRecords,
+                                                  String charset,
+                                                  ResultSet[] results
+    ) throws Exception {
+        Connection connection = getDefaultConn();
+        long conglomId = getConglomerateId(connection, schemaName, tableName, indexName);
+        String tempDir = new Path(badRecordDirectory, ".TMP").toString();
+        String sql = "call syscs_util.compute_split_key(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        PreparedStatement ps = connection.prepareStatement(sql);
+        ps.setString(1, schemaName);
+        ps.setString(2, tableName);
+        ps.setString(3, indexName);
+        ps.setString(4, insertColumnList);
+        ps.setString(5, fileName);
+        ps.setString(6, columnDelimiter);
+        ps.setString(7, characterDelimiter);
+        ps.setString(8, timestampFormat);
+        ps.setString(9, dateFormat);
+        ps.setString(10, timeFormat);
+        ps.setLong(11, badRecordsAllowed);
+        ps.setString(12, badRecordDirectory);
+        ps.setString(13, oneLineRecords);
+        ps.setString(14, charset);
+        ps.setString(15, tempDir);
+        ps.executeQuery();
+
+        Configuration conf = HBaseConfiguration.create();
+        FileSystem fs = FileSystem.get(URI.create(tempDir), conf);
+        Path filePath = new Path(tempDir, conglomId + "/keys");
+        FSDataInputStream in = fs.open(filePath);
+        BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
+        String splitKey = null;
+        while((splitKey = br.readLine()) != null) {
+            splitTable(schemaName, tableName, indexName, splitKey);
+        }
+    }
     /**
      * Split a <em>non-primary-key</em> table into {@code numSplits} splits. Only
      * works if there is data already in the table, else HBase doesn't perform the
@@ -112,11 +167,21 @@ public class TableSplit{
      */
     public static void SYSCS_SPLIT_TABLE_AT_POINTS(String schemaName, String tableName,
                                      String splitPoints) throws SQLException{
+        splitTable(schemaName, tableName, null, splitPoints);
+    }
+
+    public static void SYSCS_SPLIT_TABLE_OR_INDEX_AT_POINTS(String schemaName, String tableName,
+                                                   String indexName, String splitPoints) throws SQLException{
+        splitTable(schemaName, tableName, indexName, splitPoints);
+    }
+
+    private static void splitTable(String schemaName, String tableName,
+                                   String indexName, String splitPoints) throws SQLException {
         Connection conn = getDefaultConn();
 
         try{
             try{
-                splitTable(conn,schemaName,tableName,splitPoints);
+                splitTable(conn,schemaName,tableName,indexName,splitPoints);
             }catch(SQLException se){
                 try{
                     conn.rollback();
@@ -137,7 +202,6 @@ public class TableSplit{
         }
 
     }
-
     /**
      * Split a region on the given <code>splictpoints</code> or, if null, let HBase determine splitpoint.
      *
@@ -178,11 +242,9 @@ public class TableSplit{
 
     }
 
-    public static void splitTable(Connection conn,
-                                       String schemaName,
-                                       String tableName,
-                                       String splitPoints) throws SQLException{
-        long conglomId = getConglomerateId(conn, schemaName, tableName);
+    public static void splitTable(Connection conn, String schemaName, String tableName,
+                                  String indexName, String splitPoints) throws SQLException{
+        long conglomId = getConglomerateId(conn, schemaName, tableName, indexName);
 
         SIDriver driver=SIDriver.driver();
         try(PartitionAdmin pa = driver.getTableFactory().getAdmin()){
@@ -228,32 +290,35 @@ public class TableSplit{
              * Because of that, if you just feed in ints, then we will parse them as ints first,
              * rather than as Strings.
              */
-            byte[] pos;
-            try{
-                pos = Encoding.encode(Integer.parseInt(split));
-            }catch(NumberFormatException nfe){
-                //not an integer, so assume you know what you're doing.
-                pos = Encoding.encode(Bytes.toBytes(split));
-            }
+            byte[] pos = Bytes.toBytesBinary(split);
+
             sps.add(pos);
         }
         return sps.toArray(new byte[sps.size()][]);
     }
 
-    private static long getConglomerateId(Connection conn, String schemaName, String tableName) throws SQLException {
-        try(PreparedStatement ps = conn.prepareStatement("select " +
-                    "conglomeratenumber " +
-                    "from " +
-                    "sys.sysconglomerates c," +
-                    "sys.systables t," +
-                    "sys.sysschemas s " +
-                    "where " +
-                    "t.tableid = c.tableid " +
-                    "and t.schemaid = s.schemaid " +
-                    "and s.schemaname = ?" +
-                    "and t.tablename = ?")){
+    private static long getConglomerateId(Connection conn, String schemaName, String tableName, String indexName) throws SQLException {
+        String sql =  "select " +
+                "conglomeratenumber " +
+                "from " +
+                "sys.sysconglomerates c," +
+                "sys.systables t," +
+                "sys.sysschemas s " +
+                "where " +
+                "t.tableid = c.tableid " +
+                "and t.schemaid = s.schemaid " +
+                "and s.schemaname = ? " +
+                "and t.tablename = ? ";
+
+        if (indexName != null)
+            sql += "and c.conglomeratename = ?";
+        sql += " order by 1";
+        
+        try(PreparedStatement ps = conn.prepareStatement(sql)){
             ps.setString(1,schemaName.toUpperCase());
             ps.setString(2,tableName);
+            if (indexName != null)
+                ps.setString(3, indexName);
             try(ResultSet rs = ps.executeQuery()){
                 if(rs.next()){
                     return rs.getLong(1);

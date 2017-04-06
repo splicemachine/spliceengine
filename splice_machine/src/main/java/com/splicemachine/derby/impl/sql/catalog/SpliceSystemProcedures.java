@@ -156,6 +156,34 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                                            .varchar("splitPoints", 32672)
                                            .build());
 
+                    Procedure splitProc3 = Procedure.newBuilder().name("SYSCS_SPLIT_TABLE_OR_INDEX_AT_POINTS")
+                            .numOutputParams(0).numResultSets(0).ownerClass(TableSplit.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .catalog("indexName")
+                            .varchar("splitPoints", 32672)
+                            .build();
+                    procedures.add(splitProc3);
+
+                    Procedure splitProc4 = Procedure.newBuilder().name("SYSCS_SPLIT_TABLE_OR_INDEX")
+                            .numOutputParams(0).numResultSets(1).ownerClass(TableSplit.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .catalog("indexName")
+                            .varchar("columnList",32672)
+                            .varchar("fileName",32672)
+                            .varchar("columnDelimiter",5)
+                            .varchar("characterDelimiter", 5)
+                            .varchar("timestampFormat",32672)
+                            .varchar("dateFormat",32672)
+                            .varchar("timeFormat",32672)
+                            .bigint("maxBadRecords")
+                            .varchar("badRecordDirectory",32672)
+                            .varchar("oneLineRecords",5)
+                            .varchar("charset",32672)
+                            .build();
+                    procedures.add(splitProc4);
+                    
          			/*
         			 * Procedure get all active services
         			 */
@@ -312,6 +340,66 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .varchar("charset",32672)
                             .build();
                     procedures.add(importUnsafe);
+
+                   Procedure bulkImportHFile = Procedure.newBuilder().name("BULK_IMPORT_HFILE")
+                            .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .varchar("insertColumnList",32672)
+                            .varchar("fileName",32672)
+                            .varchar("columnDelimiter",5)
+                            .varchar("characterDelimiter", 5)
+                            .varchar("timestampFormat",32672)
+                            .varchar("dateFormat",32672)
+                            .varchar("timeFormat",32672)
+                            .bigint("maxBadRecords")
+                            .varchar("badRecordDirectory",32672)
+                            .varchar("oneLineRecords",5)
+                            .varchar("charset",32672)
+                            .varchar("bulkImportDirectory", 32672)
+                            .varchar("skipSampling", 5)
+                            .build();
+                    procedures.add(bulkImportHFile);
+
+
+                    Procedure sampleData = Procedure.newBuilder().name("SAMPLE_DATA")
+                            .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .varchar("insertColumnList",32672)
+                            .varchar("fileName",32672)
+                            .varchar("columnDelimiter",5)
+                            .varchar("characterDelimiter", 5)
+                            .varchar("timestampFormat",32672)
+                            .varchar("dateFormat",32672)
+                            .varchar("timeFormat",32672)
+                            .bigint("maxBadRecords")
+                            .varchar("badRecordDirectory",32672)
+                            .varchar("oneLineRecords",5)
+                            .varchar("charset",32672)
+                            .varchar("bulkImportDirectory", 32672)
+                            .build();
+                    procedures.add(sampleData);
+
+                    Procedure computeSplitKey= Procedure.newBuilder().name("COMPUTE_SPLIT_KEY")
+                            .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .catalog("indexName")
+                            .varchar("columnList",32672)
+                            .varchar("fileName",32672)
+                            .varchar("columnDelimiter",5)
+                            .varchar("characterDelimiter", 5)
+                            .varchar("timestampFormat",32672)
+                            .varchar("dateFormat",32672)
+                            .varchar("timeFormat",32672)
+                            .bigint("maxBadRecords")
+                            .varchar("badRecordDirectory",32672)
+                            .varchar("oneLineRecords",5)
+                            .varchar("charset",32672)
+                            .varchar("outputDirectory", 32672)
+                            .build();
+                    procedures.add(computeSplitKey);
 
                     Procedure upport = Procedure.newBuilder().name("UPSERT_DATA_FROM_FILE")
                             .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
