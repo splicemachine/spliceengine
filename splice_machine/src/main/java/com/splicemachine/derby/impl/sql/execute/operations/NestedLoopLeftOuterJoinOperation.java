@@ -52,7 +52,6 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 								activation, restriction, resultSetNumber,oneRowRightSide, notExistsRightSide,
 								optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides);
 				SpliceLogUtils.trace(LOG, "instantiate");
-				initialized = false;
 				this.emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
 				this.wasRightOuterJoin = wasRightOuterJoin;
                 this.isOuterJoin = true;
@@ -62,13 +61,10 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 
 		@Override
 		public void init(SpliceOperationContext context) throws StandardException, IOException {
-			if (initialized)
-				return;
 				SpliceLogUtils.trace(LOG, "init");
             super.init(context);
             emptyRightRowsReturned = 0;
             emptyRowFun = (emptyRowFunMethodName == null) ? null : new SpliceMethod<ExecRow>(emptyRowFunMethodName,activation);
-			initialized = true;
 		}
 
 		@Override

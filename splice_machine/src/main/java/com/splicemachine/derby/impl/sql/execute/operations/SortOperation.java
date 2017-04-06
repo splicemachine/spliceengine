@@ -114,8 +114,6 @@ public class SortOperation extends SpliceBaseOperation{
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException{
-        if (initialized)
-            return;
         super.init(context);
         source.init(context);
 
@@ -136,7 +134,6 @@ public class SortOperation extends SpliceBaseOperation{
         }
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"keyColumns %s, distinct %s",Arrays.toString(keyColumns),distinct);
-        initialized=true;
     }
 
     @Override

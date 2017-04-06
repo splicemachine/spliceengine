@@ -84,14 +84,11 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
     
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
-        if (initialized)
-            return;
 		super.init(context);
 		source.init(context);
 		try {
 			sortTemplateRow = this.aggregateContext.getSortTemplateRow();
 			sourceExecIndexRow = this.aggregateContext.getSourceIndexRow();
-            initialized = true;
 		} catch (StandardException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
 		}

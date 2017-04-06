@@ -161,8 +161,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     @Override
     @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION",justification = "Intentional")
     public void init(SpliceOperationContext context) throws StandardException, IOException{
-        if (initialized)
-            return;
         try{
             super.init(context);
             source.init(context);
@@ -200,7 +198,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                     spliceSequences[i]=EngineDriver.driver().sequencePool().get(key);
                 }
             }
-            initialized = true;
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }

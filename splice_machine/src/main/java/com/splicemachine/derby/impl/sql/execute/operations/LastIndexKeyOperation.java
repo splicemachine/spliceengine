@@ -81,11 +81,8 @@ public class LastIndexKeyOperation extends ScanOperation {
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
-        if (initialized)
-            return;
         super.init(context);
 	    this.baseColumnMap = operationInformation.getBaseColumnMap();
-        initialized = true;
     }
 
     @Override

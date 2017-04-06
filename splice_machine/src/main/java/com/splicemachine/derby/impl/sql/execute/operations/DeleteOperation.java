@@ -51,12 +51,9 @@ public class DeleteOperation extends DMLWriteOperation {
 
 	@Override
 	public void init(SpliceOperationContext context) throws StandardException, IOException {
-		if (initialized)
-			return;
 		SpliceLogUtils.trace(LOG,"DeleteOperation init");
 		super.init(context);
 		heapConglom = writeInfo.getConglomerateId();
-		initialized = true;
 	}
 
     @Override

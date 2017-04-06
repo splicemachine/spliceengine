@@ -54,7 +54,6 @@ public class MergeSortLeftOuterJoinOperation extends MergeSortJoinOperation {
 								activation, restriction, resultSetNumber, oneRowRightSide, notExistsRightSide,
 								optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides);
 				SpliceLogUtils.trace(LOG, "instantiate");
-				initialized = false;
 				this.emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
 				this.wasRightOuterJoin = wasRightOuterJoin;
                 this.isOuterJoin = true;

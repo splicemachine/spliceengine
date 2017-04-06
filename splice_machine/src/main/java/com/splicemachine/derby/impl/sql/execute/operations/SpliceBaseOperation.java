@@ -92,7 +92,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     protected RemoteQueryClient remoteQueryClient;
     protected long modifiedRowCount = 0;
     protected long badRecords = 0;
-    protected boolean initialized;
 
     public SpliceBaseOperation(){
         super();

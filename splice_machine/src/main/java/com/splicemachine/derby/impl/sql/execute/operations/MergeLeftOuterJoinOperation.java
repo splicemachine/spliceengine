@@ -58,7 +58,6 @@ public class MergeLeftOuterJoinOperation extends MergeJoinOperation {
         super(leftResultSet, leftNumCols, rightResultSet, rightNumCols, leftHashKeyItem, rightHashKeyItem,
                  activation, restriction, resultSetNumber, oneRowRightSide, notExistsRightSide,
                  optimizerEstimatedRowCount, optimizerEstimatedCost, userSuppliedOptimizerOverrides);
-        initialized = false;
         SpliceLogUtils.trace(LOG, "instantiate");
         emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
         this.wasRightOuterJoin = wasRightOuterJoin;
@@ -67,12 +66,9 @@ public class MergeLeftOuterJoinOperation extends MergeJoinOperation {
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
-        if (initialized)
-            return;
         super.init(context);
         emptyRowFun = (emptyRowFunMethodName == null) ? null :
                           new SpliceMethod<ExecRow>(emptyRowFunMethodName,activation);
-        initialized = true;
     }
 
     @Override

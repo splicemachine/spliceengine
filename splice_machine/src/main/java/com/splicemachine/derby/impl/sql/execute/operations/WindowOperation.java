@@ -108,8 +108,6 @@ public class WindowOperation extends SpliceBaseOperation {
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
-        if (initialized)
-            return;
         SpliceLogUtils.trace(LOG, "init called");
         super.init(context);
         if (source != null) {
@@ -118,7 +116,6 @@ public class WindowOperation extends SpliceBaseOperation {
         windowContext.init(context);
         sortTemplateRow = windowContext.getSortTemplateRow();
         templateRow = windowContext.getSourceIndexRow();
-        initialized=true;
     }
 
     @Override

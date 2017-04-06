@@ -40,10 +40,7 @@ public abstract class NoRowsOperation extends SpliceBaseOperation {
 	
 	@Override
 	public void init(SpliceOperationContext context) throws StandardException, IOException {
-		if (initialized)
-			return;
 		super.init(context);
-		initialized = true;
 	}
 	
 	@Override

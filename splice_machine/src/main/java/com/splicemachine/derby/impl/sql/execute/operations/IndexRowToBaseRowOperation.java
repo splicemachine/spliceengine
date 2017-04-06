@@ -165,8 +165,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
-        if (initialized)
-            return;
         super.init(context);
         source.init(context);
         try {
@@ -237,7 +235,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
             SpliceLogUtils.trace(LOG,"rowArray=%s,compactRow=%s,resultRow=%s,resultSetNumber=%d",
                     Arrays.asList(rowArray),compactRow,resultRow,resultSetNumber);
             getConglomerate();
-            initialized=true;
         } catch (StandardException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!",e);
         }

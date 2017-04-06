@@ -71,8 +71,6 @@ public class CallStatementOperation extends NoRowsOperation {
 
 	@Override
 	public void init(SpliceOperationContext context) throws StandardException, IOException {
-		if (initialized)
-			return;
 		super.init(context);
 		/*
 		 * init() is called by the super class, which means that methodName will be null the first
@@ -82,7 +80,6 @@ public class CallStatementOperation extends NoRowsOperation {
 		 */
 		if(methodName!=null)
 			methodCall =new SpliceMethod<>(methodName,activation);
-		initialized = true;
 	}
 
 	@Override

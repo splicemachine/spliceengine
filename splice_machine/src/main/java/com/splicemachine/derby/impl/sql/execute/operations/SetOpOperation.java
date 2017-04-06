@@ -116,14 +116,11 @@ public class SetOpOperation extends SpliceBaseOperation {
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
-        if (initialized)
-            return;
         super.init(context);
         leftSource.init(context);
         rightSource.init(context);
         this.leftInputRow = leftSource.getExecRowDefinition();
         this.rightInputRow = rightSource.getExecRowDefinition();
-        initialized=true;
     }
 
     @Override

@@ -102,8 +102,6 @@ public class NormalizeOperation extends SpliceBaseOperation{
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException{
-        if (initialized)
-            return;
         super.init(context);
         source.init(context);
         this.resultDescription=
@@ -112,7 +110,6 @@ public class NormalizeOperation extends SpliceBaseOperation{
         normalizedRow=activation.getExecutionFactory().getValueRow(numCols);
         cachedDestinations=new DataValueDescriptor[numCols];
         startCol=computeStartColumn(forUpdate,resultDescription);
-        initialized = true;
     }
 
     private int computeStartColumn(boolean forUpdate,

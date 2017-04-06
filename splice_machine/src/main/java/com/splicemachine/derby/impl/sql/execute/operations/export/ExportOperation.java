@@ -97,12 +97,9 @@ public class ExportOperation extends SpliceBaseOperation {
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
-        if (initialized)
-            return;
         super.init(context);
         source.init(context);
         currentTemplate = new ValueRow(0);
-        initialized = true;
     }
 
     @Override

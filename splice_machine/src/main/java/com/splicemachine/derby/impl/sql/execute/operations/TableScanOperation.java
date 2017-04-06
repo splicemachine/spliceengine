@@ -218,12 +218,9 @@ public class TableScanOperation extends ScanOperation{
      */
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException{
-        if (initialized)
-            return;
         super.init(context);
         this.baseColumnMap=operationInformation.getBaseColumnMap();
         this.slice=ByteSlice.empty();
-        initialized = true;
     }
 
     /**

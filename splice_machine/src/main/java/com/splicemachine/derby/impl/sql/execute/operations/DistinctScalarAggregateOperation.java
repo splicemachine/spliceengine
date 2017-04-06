@@ -97,8 +97,6 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
-        if (initialized)
-            return;
         super.init(context);
         ExecPreparedStatement gsps = activation.getPreparedStatement();
         ColumnOrdering[] order =
@@ -108,7 +106,6 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
         for (int index = 0; index < order.length; index++) {
             keyColumns[index] = order[index].getColumnId();
         }
-        initialized = true;
     }
 
     @Override

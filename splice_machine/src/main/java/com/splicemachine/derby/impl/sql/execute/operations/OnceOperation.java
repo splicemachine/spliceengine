@@ -108,14 +108,11 @@ public class OnceOperation extends SpliceBaseOperation {
 
 		@Override
 		public void init(SpliceOperationContext context) throws StandardException, IOException {
-				if (initialized)
-					return;
 				super.init(context);
 				source.init(context);
 				if(emptyRowFun == null) {
 						emptyRowFun = new SpliceMethod<ExecRow>(emptyRowFunMethodName, activation);
 				}
-				initialized=true;
 		}
 
 		@Override

@@ -78,8 +78,6 @@ public class UpdateOperation extends DMLWriteOperation{
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException{
-        if (initialized)
-            return;
         SpliceLogUtils.trace(LOG,"init");
         super.init(context);
         heapConglom=writeInfo.getConglomerateId();
@@ -92,7 +90,6 @@ public class UpdateOperation extends DMLWriteOperation{
         for(int i=0;i<columnOrdering.length;++i){
             kdvds[i]=LazyDataValueFactory.getLazyNull(format_ids[columnOrdering[i]]);
         }
-        initialized = true;
     }
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")

@@ -97,8 +97,6 @@ public class RowCountOperation extends SpliceBaseOperation {
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
-        if (initialized)
-            return;
         super.init(context);
         source.init(context);
         if (offsetMethodName != null) {
@@ -107,7 +105,6 @@ public class RowCountOperation extends SpliceBaseOperation {
         if (fetchFirstMethodName != null) {
             fetchFirstMethod = new SpliceMethod<>(fetchFirstMethodName, activation);
         }
-        initialized=true;
     }
 
 

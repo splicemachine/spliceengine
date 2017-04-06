@@ -185,14 +185,11 @@ public class VTIOperation extends SpliceBaseOperation {
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
-        if (initialized)
-            return;
         super.init(context);
         this.activation = context.getActivation();
         this.row = (rowMethodName==null)? null: new SpliceMethod<ExecRow>(rowMethodName,activation);
         this.constructor = (constructorMethodName==null)? null: new SpliceMethod<DatasetProvider>(constructorMethodName,activation);
         this.userVTI = constructor==null?null:constructor.invoke();
-        initialized = true;
     }
 
     @Override
