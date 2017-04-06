@@ -1210,13 +1210,19 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              double optimizerEstimatedRowCount,
                                              double optimizerEstimatedCost,
                                              String tableVersion,
-                                             String explainPlan)
+                                             String explainPlan,
+                                             String bulkImportDirectory,
+                                             boolean samplingOnly,
+                                             boolean outputKeysOnly,
+                                             boolean skipSampling,
+                                             String indexName)
             throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation top = new InsertOperation(below.getOperation(), generationClauses, checkGM, insertMode,
                     statusDirectory, failBadRecordCount, skipConflictDetection, skipWAL,
-                    optimizerEstimatedRowCount,optimizerEstimatedCost, tableVersion);
+                    optimizerEstimatedRowCount,optimizerEstimatedCost, tableVersion, bulkImportDirectory,
+                    samplingOnly, outputKeysOnly, skipSampling, indexName);
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();
             top.setExplainPlan(explainPlan);

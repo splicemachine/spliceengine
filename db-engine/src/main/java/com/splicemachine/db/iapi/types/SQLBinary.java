@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.services.io.InputStreamUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
+import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -344,6 +345,9 @@ abstract class SQLBinary
 	 */
 	public final void writeExternal(ObjectOutput out) throws IOException
 	{
+		out.writeBoolean(evaluateNull());
+		if (evaluateNull())
+			return;
         if ( _blobValue != null )
         {
             writeBlob(  out );
@@ -429,7 +433,15 @@ abstract class SQLBinary
 		streamValueLength = -1;
         _blobValue = null;
 
+        if (in instanceof FormatIdInputStream) {
 
+        } else {
+            isNull = in.readBoolean();
+            if (isNull) {
+                return;
+            }
+        }
+        
 		int len = SQLBinary.readBinaryLength(in);
 
 		if (len != 0)
@@ -1440,4 +1452,7 @@ abstract class SQLBinary
 			dataValue = OrderedBytes.decodeBlobVar(src);
 	}
 
+	public void updateThetaSketch(UpdateSketch updateSketch) {
+		updateSketch.update(dataValue);
+	}
 }

@@ -16,9 +16,10 @@
 package com.splicemachine.derby.stream.iapi;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
+import com.splicemachine.derby.stream.output.HBaseBulkImporterBuilder;
+
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
@@ -212,4 +213,8 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
     void saveAsTextFile(String path);
 
     PairDataSet<V, Long> zipWithIndex();
+
+    DataSet<V> sampleWithoutReplacement(final double fraction);
+
+    HBaseBulkImporterBuilder bulkImportData(OperationContext operationContext);
 }

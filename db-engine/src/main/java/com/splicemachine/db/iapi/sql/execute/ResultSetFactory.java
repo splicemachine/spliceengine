@@ -126,7 +126,12 @@ public interface ResultSetFactory {
                                  double optimizerEstimatedRowCount,
                                  double optimizerEstimatedCost,
                                  String tableVersion,
-                                 String explainPlan)
+                                 String explainPlan,
+								 String bulkImportDirectory,
+								 boolean samplingOnly,
+                                 boolean outputKeysOnly,
+								 boolean skipSampling,
+								 String indexName)
         throws StandardException;
 
 	/**
