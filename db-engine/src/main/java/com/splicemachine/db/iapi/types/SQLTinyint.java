@@ -26,21 +26,26 @@
 package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.iapi.reference.SQLState;
+
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.io.Storable;
+
 import com.splicemachine.db.iapi.error.StandardException;
+
 import com.splicemachine.db.iapi.services.cache.ClassSize;
+
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
+
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
-import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -231,32 +236,24 @@ public final class SQLTinyint
 		return StoredFormatIds.SQL_TINYINT_ID;
 	}
 
+	public void writeExternal(ObjectOutput out) throws IOException {
 
-    public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeBoolean(isNull());
-        if (!isNull)
-            out.writeByte(value);
-    }
+		// never called when value is null
+		if (SanityManager.DEBUG)
+			SanityManager.ASSERT(! isNull());
+
+		out.writeByte(value);
+	}
 
 	/** @see java.io.Externalizable#readExternal */
 	public void readExternal(ObjectInput in) throws IOException {
-		if (!in.readBoolean()) {
-			setValue(in.readByte());
-			setIsNull(false);
-		} else {
-			setIsNull(true);
-		}
 
+		setValue(in.readByte());
 	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException {
-		if (!in.readBoolean()) {
-			setValue(in.readByte());
-			setIsNull(false);
-		} else {
-			setIsNull(true);
-		}
-	}
 
+		setValue(in.readByte());
+	}
 
 
 	/**
@@ -832,8 +829,4 @@ public final class SQLTinyint
 	        else
 	            value = OrderedBytes.decodeInt8(src);
 	    }
-
-	public void updateThetaSketch(UpdateSketch updateSketch) {
-		updateSketch.update(value);
-	}
 }

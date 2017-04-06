@@ -20,11 +20,18 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.db.client.am.SqlCode;
+import com.splicemachine.db.client.am.SqlState;
+import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.si.api.server.ClusterHealth;
 import com.splicemachine.storage.Partition;
-import com.splicemachine.derby.stream.output.HBaseBulkImporter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import com.splicemachine.EngineDriver;
@@ -80,12 +87,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     private boolean skipConflictDetection;
     private boolean skipWAL;
 
-    protected String bulkImportDirectory;
-    protected boolean samplingOnly;
-    protected boolean outputKeysOnly;
-    protected boolean skipSampling;
-    protected String indexName;
-
     @Override
     public String getName(){
         return NAME;
@@ -106,23 +107,13 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                            boolean skipWAL,
                            double optimizerEstimatedRowCount,
                            double optimizerEstimatedCost,
-                           String tableVersion,
-                           String bulkImportDirectory,
-                           boolean samplingOnly,
-                           boolean outputKeysOnly,
-                           boolean skipSampling,
-                           String indexName) throws StandardException{
+                           String tableVersion) throws StandardException{
         super(source,generationClauses,checkGM,source.getActivation(),optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
         this.insertMode=InsertNode.InsertMode.valueOf(insertMode);
         this.statusDirectory=statusDirectory;
         this.skipConflictDetection=skipConflictDetection;
         this.skipWAL=skipWAL;
         this.failBadRecordCount = (failBadRecordCount >= 0 ? failBadRecordCount : -1);
-        this.bulkImportDirectory = bulkImportDirectory;
-        this.samplingOnly = samplingOnly;
-        this.outputKeysOnly = outputKeysOnly;
-        this.skipSampling = skipSampling;
-        this.indexName = indexName;
         init();
     }
 
@@ -244,12 +235,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         failBadRecordCount=in.readInt();
         skipConflictDetection=in.readBoolean();
         skipWAL=in.readBoolean();
-        bulkImportDirectory = in.readBoolean()?in.readUTF():null;
-        samplingOnly = in.readBoolean();
-        outputKeysOnly = in.readBoolean();
-        skipSampling = in.readBoolean();
-        if (in.readBoolean())
-            indexName = in.readUTF();
     }
 
     @Override
@@ -267,15 +252,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         out.writeInt(failBadRecordCount);
         out.writeBoolean(skipConflictDetection);
         out.writeBoolean(skipWAL);
-        out.writeBoolean(bulkImportDirectory!=null);
-        if (bulkImportDirectory!=null)
-            out.writeUTF(bulkImportDirectory);
-        out.writeBoolean(samplingOnly);
-        out.writeBoolean(outputKeysOnly);
-        out.writeBoolean(skipSampling);
-        out.writeBoolean(indexName != null);
-        if (indexName != null)
-            out.writeUTF(indexName);
     }
 
     @SuppressWarnings({ "unchecked" })
@@ -284,9 +260,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         if(statusDirectory != null) {
             // if we have a status directory, we're an import and so permissive
             dsp.setPermissive(statusDirectory, getVTIFileName(), failBadRecordCount);
-        }
-        if (outputKeysOnly) {
-            source = source.getLeftOperation();
         }
         DataSet set=source.getDataSet(dsp);
         OperationContext operationContext=dsp.createOperationContext(this);
@@ -305,53 +278,20 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         try{
             if(statusDirectory!=null)
                 dsp.setSchedulerPool("import");
-
-            if (bulkImportDirectory!=null && bulkImportDirectory.compareToIgnoreCase("NULL") !=0) {
-                HBaseBulkImporter importer = set.bulkImportData(operationContext)
-                        .heapConglom(heapConglom)
-                        .tableVersion(tableVersion)
-                        .operationContext(operationContext)
-                        .autoIncrementRowLocationArray(autoIncrementRowLocationArray)
-                        .sequences(spliceSequences)
-                        .pkCols(pkCols)
-                        .execRow(getExecRowDefinition())
-                        .txn(txn)
-                        .bulkImportDirectory(bulkImportDirectory)
-                        .samplingOnly(samplingOnly)
-                        .outputKeysOnly(outputKeysOnly)
-                        .skipSampling(skipSampling)
-                        .indexName(indexName)
-                        .build();
-                return importer.write();
-            }
-            else {
-                /*
-
-                int[] pkCols,
-                              String tableVersion,
-                              ExecRow execRowDefinition,
-                              RowLocation[] autoIncrementRowLocationArray,
-                              SpliceSequence[] spliceSequences,
-                              long heapConglom,
-                              TxnView txn,
-                              OperationContext operationContext,
-                              boolean isUpsert
-                 */
-                PairDataSet dataSet = set.index(new InsertPairFunction(operationContext), true);
-                DataSetWriter writer = dataSet.insertData(operationContext)
-                        .autoIncrementRowLocationArray(autoIncrementRowLocationArray)
-                        .execRowDefinition(getExecRowDefinition())
-                        .execRowTypeFormatIds(execRowTypeFormatIds)
-                        .sequences(spliceSequences)
-                        .isUpsert(insertMode.equals(InsertNode.InsertMode.UPSERT))
-                        .pkCols(pkCols)
-                        .tableVersion(tableVersion)
-                        .destConglomerate(heapConglom)
-                        .operationContext(operationContext)
-                        .txn(txn)
-                        .build();
-                return writer.write();
-            }
+            PairDataSet dataSet=set.index(new InsertPairFunction(operationContext),true);
+            DataSetWriter writer=dataSet.insertData(operationContext)
+                    .autoIncrementRowLocationArray(autoIncrementRowLocationArray)
+                    .execRowDefinition(getExecRowDefinition())
+                    .execRowTypeFormatIds(execRowTypeFormatIds)
+                    .sequences(spliceSequences)
+                    .isUpsert(insertMode.equals(InsertNode.InsertMode.UPSERT))
+                    .pkCols(pkCols)
+                    .tableVersion(tableVersion)
+                    .destConglomerate(heapConglom)
+                    .operationContext(operationContext)
+                    .txn(txn)
+                    .build();
+            return writer.write();
         }finally{
             if (skipWAL) {
                 flushAndCheckErrors(healthWatcher);

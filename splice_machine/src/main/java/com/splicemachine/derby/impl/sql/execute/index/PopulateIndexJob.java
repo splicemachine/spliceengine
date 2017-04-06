@@ -54,7 +54,7 @@ public class PopulateIndexJob implements Callable<Void> {
         String scope = request.scope;
         DataSet<LocatedRow> dataSet = request.scanSetBuilder.buildDataSet(request.prefix);
         PairDataSet dsToWrite = dataSet
-                .map(new IndexTransformFunction(tentativeIndex), null, false, true, scope + ": Prepare Index")
+                .map(new IndexTransformFunction(tentativeIndex,request.indexFormatIds), null, false, true, scope + ": Prepare Index")
                 .index(new KVPairFunction(), false, true, scope + ": Populate Index");
         DataSetWriter writer = dsToWrite.directWriteData()
                 .operationContext(request.scanSetBuilder.getOperationContext())

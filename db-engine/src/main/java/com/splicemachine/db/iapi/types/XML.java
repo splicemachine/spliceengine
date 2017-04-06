@@ -26,6 +26,7 @@
 package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.iapi.error.StandardException;
+
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
@@ -34,16 +35,22 @@ import com.splicemachine.db.iapi.services.io.Storable;
 import com.splicemachine.db.iapi.services.io.TypedFormat;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
+
 import com.splicemachine.db.iapi.reference.SQLState;
-import java.io.*;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.text.RuleBasedCollator;
+
+import java.io.InputStream;
+import java.io.IOException;
+import java.io.ObjectOutput;
+import java.io.ObjectInput;
 import java.lang.reflect.Method;
+
 import java.util.List;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
-import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -1171,9 +1178,5 @@ public class XML
                     xmlStringValue = new SQLChar();
         xmlStringValue.decodeFromKey(src);
     }
-
-    public void updateThetaSketch(UpdateSketch updateSketch) {
-        if (!isNull())
-            xmlStringValue.updateThetaSketch(updateSketch);
-    }
+    
 }

@@ -46,7 +46,6 @@ import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
-import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -72,7 +71,9 @@ import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
  * possible for this implementation -- it new's Long
  * more than it probably wants to.
  */
-public final class SQLLongint extends NumberDataType {
+public final class SQLLongint
+	extends NumberDataType
+{
 	/*
 	 * DataValueDescriptor interface
 	 * (mostly implemented in DataType)
@@ -178,23 +179,23 @@ public final class SQLLongint extends NumberDataType {
 	}
 
 	public void writeExternal(ObjectOutput out) throws IOException {
-		out.writeBoolean(isNull);
-		if (!isNull)
-			out.writeLong(value);
+
+		// never called when value is null
+		if (SanityManager.DEBUG)
+			SanityManager.ASSERT(! isNull());
+
+		out.writeLong(value);
 	}
 
 	/** @see java.io.Externalizable#readExternal */
 	public void readExternal(ObjectInput in) throws IOException {
-		setIsNull(in.readBoolean());
-		if (!isNull)
-			setValue(in.readLong());
+
+		setValue(in.readLong());
 	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException {
-		setIsNull(in.readBoolean());
-		if (!isNull)
-			setValue(in.readLong());
-	}
 
+		setValue(in.readLong());
+	}
 
 	/**
 	 * @see Storable#restoreToNull
@@ -857,6 +858,7 @@ public final class SQLLongint extends NumberDataType {
      *
      * @return  A boolean.  if this.value is negative, return true.
      *
+     * @exception StandException       Thrown on error
      */
     
     protected boolean isNegative()
@@ -942,8 +944,5 @@ public final class SQLLongint extends NumberDataType {
 		else
 			value = OrderedBytes.decodeInt64(src);
 	}
-	
-	public void updateThetaSketch(UpdateSketch updateSketch) {
-		updateSketch.update(value);
-	}
+
 }

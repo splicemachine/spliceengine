@@ -36,7 +36,6 @@ import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.iapi.util.ReuseFactory;
-import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -45,6 +44,7 @@ import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.unsafe.Platform;
 import org.joda.time.DateTime;
+
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -60,6 +60,9 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import org.joda.time.Days;
+import org.joda.time.LocalDate;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 
 
 /**
@@ -234,16 +237,16 @@ public final class SQLTimestamp extends DataType
 	*/
 	public void writeExternal(ObjectOutput out) throws IOException {
 
-		out.writeBoolean(isNull);
-		if (!isNull) {
-            /*
-            ** Timestamp is written out 3 ints, encoded date, encoded time, and
-            ** nanoseconds
-            */
-            out.writeInt(encodedDate);
-            out.writeInt(encodedTime);
-            out.writeInt(nanos);
-        }
+		if (SanityManager.DEBUG)
+			SanityManager.ASSERT(!isNull(), "writeExternal() is not supposed to be called for null values.");
+
+		/*
+		** Timestamp is written out 3 ints, encoded date, encoded time, and
+		** nanoseconds
+		*/
+		out.writeInt(encodedDate);
+		out.writeInt(encodedTime);
+		out.writeInt(nanos);
 	}
 
 	/**
@@ -255,28 +258,20 @@ public final class SQLTimestamp extends DataType
 	{
 		int date;
 		int time;
-		int nanos;
-		isNull = in.readBoolean();
-		if (!isNull) {
-            date = in.readInt();
-            time = in.readInt();
-            nanos = in.readInt();
-            setValue(date, time, nanos);
-        }
-	}
 
+		date = in.readInt();
+		time = in.readInt();
+		setValue(date, time);
+	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException
 	{
 		int date;
 		int time;
 		int nanos;
-		isNull = in.readBoolean();
-		if (!isNull) {
-            date = in.readInt();
-            time = in.readInt();
-            nanos = in.readInt();
-            setValue(date, time, nanos);
-        }
+
+		date = in.readInt();
+		time = in.readInt();
+		setValue(date, time);
 	}
 
 	/*
@@ -1661,9 +1656,4 @@ public final class SQLTimestamp extends DataType
 				setIsNull(false);
 			}
 	    }
-
-	@Override
-	public void updateThetaSketch(UpdateSketch updateSketch) {
-		updateSketch.update(new int[]{encodedDate,encodedTime,nanos});
-	}
 }

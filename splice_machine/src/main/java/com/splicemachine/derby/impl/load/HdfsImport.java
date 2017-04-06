@@ -37,7 +37,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
-import com.splicemachine.derby.vti.SpliceFileVTI;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
@@ -111,151 +110,6 @@ public class HdfsImport {
         new GenericColumnDescriptor("failedLog", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR))
     };
 
-    public static void COMPUTE_SPLIT_KEY(String schemaName,
-                                         String tableName,
-                                         String indexName,
-                                         String insertColumnList,
-                                         String fileName,
-                                         String columnDelimiter,
-                                         String characterDelimiter,
-                                         String timestampFormat,
-                                         String dateFormat,
-                                         String timeFormat,
-                                         long badRecordsAllowed,
-                                         String badRecordDirectory,
-                                         String oneLineRecords,
-                                         String charset,
-                                         String outputDirectory,
-                                         ResultSet[] results
-    ) throws SQLException {
-        SpliceFileVTI fileVTI = new SpliceFileVTI();
-
-        doImport(schemaName,
-                tableName,
-                indexName,
-                insertColumnList,
-                fileName,
-                columnDelimiter,
-                characterDelimiter,
-                timestampFormat,
-                dateFormat,
-                timeFormat,
-                badRecordsAllowed,
-                badRecordDirectory,
-                oneLineRecords,
-                charset,
-                false,
-                false,
-                false,
-                false,
-                outputDirectory,
-                null,
-                "TRUE",
-                null,
-                results);
-    }
-
-    public static void SAMPLE_DATA(String schemaName,
-                                         String tableName,
-                                         String insertColumnList,
-                                         String fileName,
-                                         String columnDelimiter,
-                                         String characterDelimiter,
-                                         String timestampFormat,
-                                         String dateFormat,
-                                         String timeFormat,
-                                         long badRecordsAllowed,
-                                         String badRecordDirectory,
-                                         String oneLineRecords,
-                                         String charset,
-                                         String bulkImportDirectory,
-                                         ResultSet[] results
-    ) throws SQLException {
-        doImport(schemaName,
-                tableName,
-                null,
-                insertColumnList,
-                fileName,
-                columnDelimiter,
-                characterDelimiter,
-                timestampFormat,
-                dateFormat,
-                timeFormat,
-                badRecordsAllowed,
-                badRecordDirectory,
-                oneLineRecords,
-                charset,
-                false,
-                false,
-                false,
-                false,
-                bulkImportDirectory,
-                "TRUE",
-                null,
-                "FALSE",
-                results);
-    }
-
-    /**
-     *
-     * @param schemaName
-     * @param tableName
-     * @param insertColumnList
-     * @param fileName
-     * @param columnDelimiter
-     * @param characterDelimiter
-     * @param timestampFormat
-     * @param dateFormat
-     * @param timeFormat
-     * @param badRecordsAllowed
-     * @param badRecordDirectory
-     * @param oneLineRecords
-     * @param charset
-     * @param bulkImportDirectory
-     * @param results
-     * @throws SQLException
-     */
-    public static void BULK_IMPORT_HFILE(String schemaName,
-                                         String tableName,
-                                         String insertColumnList,
-                                         String fileName,
-                                         String columnDelimiter,
-                                         String characterDelimiter,
-                                         String timestampFormat,
-                                         String dateFormat,
-                                         String timeFormat,
-                                         long badRecordsAllowed,
-                                         String badRecordDirectory,
-                                         String oneLineRecords,
-                                         String charset,
-                                         String bulkImportDirectory,
-                                         String skipSampling,
-                                         ResultSet[] results
-    ) throws SQLException {
-        doImport(schemaName,
-                tableName,
-                null,
-                insertColumnList,
-                fileName,
-                columnDelimiter,
-                characterDelimiter,
-                timestampFormat,
-                dateFormat,
-                timeFormat,
-                badRecordsAllowed,
-                badRecordDirectory,
-                oneLineRecords,
-                charset,
-                false,
-                false,
-                false,
-                false,
-                bulkImportDirectory,
-                null,
-                null,
-                skipSampling,
-                results);
-    }
     /**
      * The SYSCS_UTIL.UPSERT_DATA_FROM_FILE system procedure updates or inserts data from a file to a subset of columns
      * in a table. You choose the subset of columns by specifying insert columns.
@@ -326,30 +180,24 @@ public class HdfsImport {
                                              ResultSet[] results
     ) throws SQLException {
         doImport(schemaName,
-
-                tableName,
-                null,
-                insertColumnList,
-                fileName,
-                columnDelimiter,
-                characterDelimiter,
-                timestampFormat,
-                dateFormat,
-                timeFormat,
-                badRecordsAllowed,
-                badRecordDirectory,
-                oneLineRecords,
-                charset,
-                true,
-                false,
-                false,
-                false,
-                null,
-                null,
-                null,
-                null,
-                results);
-   }
+                 tableName,
+                 insertColumnList,
+                 fileName,
+                 columnDelimiter,
+                 characterDelimiter,
+                 timestampFormat,
+                 dateFormat,
+                 timeFormat,
+                 badRecordsAllowed,
+                 badRecordDirectory,
+                 oneLineRecords,
+                 charset,
+                 true,
+                 false,
+                 false,
+                 false,
+                 results);
+    }
 
     /**
      * The SYSCS_UTIL.IMPORT_DATA system procedure imports data to a subset of columns in a table. You choose the subset
@@ -414,28 +262,23 @@ public class HdfsImport {
                                    ResultSet[] results
     ) throws SQLException {
         doImport(schemaName,
-                tableName,
-                null,
-                insertColumnList,
-                fileName,
-                columnDelimiter,
-                characterDelimiter,
-                timestampFormat,
-                dateFormat,
-                timeFormat,
-                badRecordsAllowed,
-                badRecordDirectory,
-                oneLineRecords,
-                charset,
-                false,
-                false,
-                false,
-                false,
-                null,
-                null,
-                null,
-                null,
-                results);
+                 tableName,
+                 insertColumnList,
+                 fileName,
+                 columnDelimiter,
+                 characterDelimiter,
+                 timestampFormat,
+                 dateFormat,
+                 timeFormat,
+                 badRecordsAllowed,
+                 badRecordDirectory,
+                 oneLineRecords,
+                 charset,
+                 false,
+                 false,
+                 false,
+                 false,
+                 results);
     }
 
     public static void IMPORT_DATA_UNSAFE(String schemaName,
@@ -455,7 +298,6 @@ public class HdfsImport {
     ) throws SQLException {
         doImport(schemaName,
                 tableName,
-                null,
                 insertColumnList,
                 fileName,
                 columnDelimiter,
@@ -471,10 +313,6 @@ public class HdfsImport {
                 false,
                 true,
                 true,
-                null,
-                null,
-                null,
-                null,
                 results);
     }
 
@@ -482,7 +320,6 @@ public class HdfsImport {
     @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION",justification = "Intentional")
     private static void doImport(String schemaName,
                                  String tableName,
-                                 String indexName,
                                  String insertColumnListString,
                                  String fileName,
                                  String columnDelimiter,
@@ -498,10 +335,6 @@ public class HdfsImport {
                                  boolean isCheckScan,
                                  boolean skipConflictDetection,
                                  boolean skipWAL,
-                                 String bulkImportDirectory,
-                                 String samplingOnly,
-                                 String outputKeysOnly,
-                                 String skipSampling,
                                  ResultSet[] results) throws SQLException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "doImport {schemaName=%s, tableName=%s, insertColumnList=%s, fileName=%s, " +
@@ -586,29 +419,17 @@ public class HdfsImport {
                 ! insertColumnListString.toLowerCase().equals("null")) {
                 insertColumnList = normalizeIdentifierList(insertColumnListString);
             }
-            // Remove trailing back slash
-            if (badRecordDirectory != null)
-                badRecordDirectory = badRecordDirectory.replaceAll("/$", "");
 
-            if (samplingOnly == null)
-                samplingOnly ="false";
-
-            if (outputKeysOnly == null)
-                outputKeysOnly = "false";
-
-            if (skipSampling == null)
-                skipSampling = "false";
             ColumnInfo columnInfo = new ColumnInfo(conn, schemaName, tableName, insertColumnList);
             String insertSql = "INSERT INTO " + entityName + "(" + columnInfo.getInsertColumnNames() + ") " +
-                    "--splice-properties useSpark=true , insertMode=" + (isUpsert ? "UPSERT" : "INSERT") + ", statusDirectory=" +
-                    badRecordDirectory + ", badRecordsAllowed=" + badRecordsAllowed + ", bulkImportDirectory=" + bulkImportDirectory
-                    + ", samplingOnly=" + samplingOnly + ", outputKeysOnly=" + outputKeysOnly + ", skipSampling=" + skipSampling
-                    + (skipConflictDetection ? ", skipConflictDetection=true" : "") + (skipWAL ? ", skipWAL=true" : "")
-                    + (indexName != null ? (", index=" + indexName) : "") + "\n" +
-                    " SELECT "+
+                "--splice-properties useSpark=true , insertMode=" + (isUpsert ? "UPSERT" : "INSERT") + ", statusDirectory=" +
+                badRecordDirectory + ", badRecordsAllowed=" + badRecordsAllowed +
+                    (skipConflictDetection ? ", skipConflictDetection=true" : "") +
+                    (skipWAL ? ", skipWAL=true" : "") + "\n" +
+                " SELECT "+
                     generateColumnList(((EmbedConnection)conn).getLanguageConnection(),schemaName,tableName,insertColumnList) +
                     " from " +
-                    importVTI + " AS importVTI (" + columnInfo.getImportAsColumns() + ")";
+                importVTI + " AS importVTI (" + columnInfo.getImportAsColumns() + ")";
 
             //prepare the import statement to hit any errors before locking the table
             //execute the import operation.

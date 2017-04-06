@@ -31,16 +31,17 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.db.DatabaseContext;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.iapi.util.StringUtil;
-import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.joda.time.DateTime;
+
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.sql.PreparedStatement;
@@ -204,9 +205,10 @@ public final class SQLDate extends DataType
 	*/
 	public void writeExternal(ObjectOutput out) throws IOException {
 
-        out.writeBoolean(isNull);
-        if (!isNull)
-            out.writeInt(encodedDate);
+		if (SanityManager.DEBUG)
+			SanityManager.ASSERT(!isNull(), "writeExternal() is not supposed to be called for null values.");
+
+		out.writeInt(encodedDate);
 	}
 
 	/**
@@ -216,9 +218,7 @@ public final class SQLDate extends DataType
 	 */
 	public void readExternal(ObjectInput in) throws IOException
 	{
-        isNull = in.readBoolean();
-        if (!isNull)
-            setValue(in.readInt());
+		setValue(in.readInt());
 	}
 
 	public void readExternalFromArray(ArrayInputStream in) throws IOException
@@ -827,7 +827,8 @@ public final class SQLDate extends DataType
 	{
         if (isNull())
             return null;
-		return Date.valueOf(java.time.LocalDate.of(getYear(encodedDate),getMonth(encodedDate),getDay(encodedDate)));
+        
+        return new Date(getTimeInMillis(cal));
 	}
 	
 	
@@ -1323,15 +1324,14 @@ public final class SQLDate extends DataType
      */
 	@Override
 	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
-        if (unsafeRow.isNullAt(ordinal))
-            setToNull();
-        else
-            encodedDate = unsafeRow.getInt(ordinal);
-        isNull = false;
-    }
+		if (unsafeRow.isNullAt(ordinal))
+				setToNull();
+		else
+			encodedDate = unsafeRow.getInt(ordinal);
+			setIsNull(false);
+	}
 
-
-    /**
+	/**
 	 *
 	 * Get the encoded key length.  1 if null else 5.
 	 *
@@ -1376,11 +1376,6 @@ public final class SQLDate extends DataType
 			setToNull();
 		else
 			encodedDate = OrderedBytes.decodeInt32(src);
-		setIsNull(false);
-	}
-
-
-	public void updateThetaSketch(UpdateSketch updateSketch) {
-		updateSketch.update(encodedDate);
-	}
+			setIsNull(false);
+		}
 }

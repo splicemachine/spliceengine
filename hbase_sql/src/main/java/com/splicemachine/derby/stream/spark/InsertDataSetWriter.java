@@ -53,7 +53,6 @@ import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
-import scala.Tuple2;
 
 /**
  * @author Scott Fines

@@ -42,7 +42,7 @@ public interface Aggregator<V,R,A extends Aggregator<V,R,A>>    extends Serializ
     public void init();
 
     /** Accumulate the next scalar value */
-    public  void    accumulate( V value ) throws StandardException;
+    public  void    accumulate( V value );
 
     /**
      * <p>

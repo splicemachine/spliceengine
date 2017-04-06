@@ -36,6 +36,7 @@ import java.util.List;
 public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceFunction<Op,LocatedRow,KVPair> {
     private boolean initialized;
     private DDLMessage.TentativeIndex tentativeIndex;
+    private int[] indexFormatIds;
     private int[] projectedMapping;
 
     private transient IndexTransformer transformer;
@@ -44,8 +45,9 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
         super();
     }
 
-    public IndexTransformFunction(DDLMessage.TentativeIndex tentativeIndex) {
+    public IndexTransformFunction(DDLMessage.TentativeIndex tentativeIndex, int[] indexFormatIds) {
         this.tentativeIndex = tentativeIndex;
+        this.indexFormatIds = indexFormatIds;
         List<Integer> actualList = tentativeIndex.getIndex().getIndexColsToMainColMapList();
         List<Integer> sortedList = new ArrayList<>(actualList);
         Collections.sort(sortedList);
@@ -79,6 +81,7 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
         byte[] message = tentativeIndex.toByteArray();
         out.writeInt(message.length);
         out.write(message);
+        ArrayUtil.writeIntArray(out,indexFormatIds);
         ArrayUtil.writeIntArray(out,projectedMapping);
     }
 
@@ -87,16 +90,8 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
         byte[] message = new byte[in.readInt()];
         in.readFully(message);
         tentativeIndex = DDLMessage.TentativeIndex.parseFrom(message);
+        indexFormatIds= ArrayUtil.readIntArray(in);
         projectedMapping= ArrayUtil.readIntArray(in);
         initialized = false;
-    }
-
-    public long getIndexConglomerateId() {
-        return tentativeIndex.getIndex().getConglomerate();
-    }
-
-    public List<Integer> getIndexColsToMainColMapList() {
-        List<Integer> indexColsToMainColMapList = tentativeIndex.getIndex().getIndexColsToMainColMapList();
-        return indexColsToMainColMapList;
     }
 }

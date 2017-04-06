@@ -48,7 +48,6 @@ import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
-import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -188,16 +187,17 @@ public final class SQLTime extends DataType
 		return StoredFormatIds.SQL_TIME_ID;
 	}
 
-	/**
-	 @exception IOException error writing data
+	/** 
+		@exception IOException error writing data
 
-	 */
+	*/
 	public void writeExternal(ObjectOutput out) throws IOException {
-		out.writeBoolean(isNull);
-		if (!isNull) {
-			out.writeInt(encodedTime);
-			out.writeInt(encodedTimeFraction);
-		}
+
+		if (SanityManager.DEBUG)
+			SanityManager.ASSERT(!isNull(), "writeExternal() is not supposed to be called for null values.");
+
+		out.writeInt(encodedTime);
+		out.writeInt(encodedTimeFraction);
 	}
 
 	/**
@@ -205,15 +205,13 @@ public final class SQLTime extends DataType
 	 *
 	 * @exception IOException	Thrown on error reading the object
 	 */
-	public void readExternal(ObjectInput in) throws IOException {
-		isNull = in.readBoolean();
-		if (!isNull)
-			setValue(in.readInt(), in.readInt());
+	public void readExternal(ObjectInput in) throws IOException
+	{
+		setValue(in.readInt(), in.readInt());
 	}
-	public void readExternalFromArray(ArrayInputStream in) throws IOException {
-		isNull = in.readBoolean();
-		if (!isNull)
-			setValue(in.readInt(), in.readInt());
+	public void readExternalFromArray(ArrayInputStream in) throws IOException
+	{
+		setValue(in.readInt(), in.readInt());
 	}
 
 	/*
@@ -1223,8 +1221,5 @@ public final class SQLTime extends DataType
 		}
 	}
 
-	public void updateThetaSketch(UpdateSketch updateSketch) {
-		updateSketch.update(new int[]{encodedTime,encodedTimeFraction});
-	}
 }
 

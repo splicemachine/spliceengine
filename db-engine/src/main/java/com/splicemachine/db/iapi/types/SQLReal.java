@@ -47,7 +47,6 @@ import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
-import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -223,22 +222,27 @@ public final class SQLReal
 
 	public void writeExternal(ObjectOutput out) throws IOException {
 
-		out.writeBoolean(isNull);
-		if (!isNull)
-			out.writeFloat(value);
+		// never called when value is null
+		if (SanityManager.DEBUG)
+			SanityManager.ASSERT(! isNull());
+
+		out.writeFloat(value);
 	}
 
 	/** @see java.io.Externalizable#readExternal */
 	public void readExternal(ObjectInput in) throws IOException {
-		isNull = in.readBoolean();
-		if (!isNull)
-			value = in.readFloat();
+        // setValue(in.readFloat()); // can throw StandardException which we can't pass on
+        // assume we wrote the value, so we can read it without problem, for now.
+        value = in.readFloat();
+        isNull = false;
 	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException {
-		isNull = in.readBoolean();
-		if (!isNull)
-			value = in.readFloat();
+        // setValue(in.readFloat()); // can throw StandardException which we can't pass on
+        // assume we wrote the value, so we can read it without problem, for now.
+        value = in.readFloat();
+        isNull = false;
 	}
+
 	/**
 	 * @see Storable#restoreToNull
 	 *
@@ -971,9 +975,5 @@ public final class SQLReal
 				setToNull();
 		else
 			value = OrderedBytes.decodeFloat32(src);
-	}
-
-	public void updateThetaSketch(UpdateSketch updateSketch) {
-		updateSketch.update(value);
 	}
 }

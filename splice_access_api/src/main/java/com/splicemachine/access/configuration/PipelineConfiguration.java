@@ -157,12 +157,6 @@ public class PipelineConfiguration implements ConfigurationDefault {
     public static final String PIPELINE_KRYO_POOL_SIZE= "splice.writer.kryoPoolSize";
     private static final int DEFAULT_PIPELINE_KRYO_POOL_SIZE=1024;
 
-    public static final String BULK_IMPORT_SAMPLE_FRACTION = "splice.bulkImport.sample.fraction";
-    private static final double DEFAULT_BULK_IMPORT_SAMPLE_FRACTION = 0.005d;
-
-    public static final String BULK_IMPORT_TASKS_PER_REGION = "splice.bulkImport.tasks.perRegion";
-    private static final int DEFAULT_BULK_IMPORT_TASKS_PER_REGION = 3;
-
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         builder.ipcThreads = configurationSource.getInt(IPC_THREADS, DEFAULT_IPC_THREADS);
@@ -186,9 +180,5 @@ public class PipelineConfiguration implements ConfigurationDefault {
         builder.compactionReservedSlots = configurationSource.getInt(SPARK_COMPACTION_RESERVED_SLOTS, DEFAULT_SPARK_COMPACTION_RESERVED_SLOTS);
         builder.olapCompactionMaximumWait = configurationSource.getInt(SPARK_COMPACTION_MAXIMUM_WAIT, DEFAULT_SPARK_COMPACTION_MAXIMUM_WAIT);
         builder.reservedSlotsTimeout = configurationSource.getInt(SPARK_RESERVED_SLOTS_TIMEOUT, DEFAULT_SPARK_RESERVED_SLOTS_TIMEOUT);
-        builder.bulkImportSampleFraction = configurationSource.getDouble(BULK_IMPORT_SAMPLE_FRACTION, DEFAULT_BULK_IMPORT_SAMPLE_FRACTION);
-        builder.bulkImportSampleFraction = configurationSource.getDouble(BULK_IMPORT_SAMPLE_FRACTION, DEFAULT_BULK_IMPORT_SAMPLE_FRACTION);
-        builder.bulkImportTasksPerRegion = configurationSource.getInt(BULK_IMPORT_TASKS_PER_REGION, DEFAULT_BULK_IMPORT_TASKS_PER_REGION);
-
     }
 }

@@ -876,11 +876,7 @@ public class DataTypeDescriptor implements Formatable{
         DataValueDescriptor returnDVD=typeId.getNull();
         //If we are dealing with default collation, then we have got the
         //right DVD already. Just return it.
-        if (typeId.getTypeFormatId() == StoredFormatIds.DECIMAL_TYPE_ID) {
-            ((SQLDecimal) returnDVD).setScale(typeDescriptor.getScale());
-            ((SQLDecimal) returnDVD).setPrecision(typeDescriptor.getPrecision());
-        }
-        else if(typeDescriptor.getCollationType()==StringDataValue.COLLATION_TYPE_UCS_BASIC)
+        if(typeDescriptor.getCollationType()==StringDataValue.COLLATION_TYPE_UCS_BASIC)
             return returnDVD;
         //If we are dealing with territory based collation and returnDVD is
         //of type StringDataValue, then we need to return a StringDataValue
@@ -893,8 +889,7 @@ public class DataTypeDescriptor implements Formatable{
             }catch(java.sql.SQLException sqle){
                 throw StandardException.plainWrapException(sqle);
             }
-        }
-        else
+        }else
             return returnDVD;
     }
 

@@ -88,11 +88,7 @@ public final class InsertNode extends DMLModStatementNode {
 	public static final String SKIP_CONFLICT_DETECTION = "skipConflictDetection";
 	public static final String SKIP_WAL = "skipWAL";
     public static final String INSERT = "INSERT";
-	public static final String BULK_IMPORT_DIRECTORY = "bulkImportDirectory";
-	public static final String SAMPLING_ONLY = "samplingOnly";
-    public static final String OUTPUT_KEYS_ONLY = "outputKeysOnly";
-    public static final String SKIP_SAMPLING = "skipSampling";
-	public static final String INDEX_NAME = "index";
+
 
 	public		ResultColumnList	targetColumnList;
 	public 		boolean				deferred;
@@ -102,17 +98,11 @@ public final class InsertNode extends DMLModStatementNode {
 	private     OrderByList         orderByList;
     private     ValueNode           offset;
     private     ValueNode           fetchFirst;
-    private     boolean           	hasJDBClimitClause; // true if using JDBC limit/offset escape syntax
+    private     boolean           hasJDBClimitClause; // true if using JDBC limit/offset escape syntax
     private     String              statusDirectory;
+	private     int              badRecordsAllowed = 0;
 	private     boolean              skipConflictDetection = false;
 	private     boolean              skipWAL = false;
-    private     int              	badRecordsAllowed = 0;
-	private		String 				bulkImportDirectory;
-	private     boolean             samplingOnly;
-	private     boolean             outputKeysOnly;
-    private     boolean             skipSampling;
-    private     String              indexName;
-
 	private CompilerContext.DataSetProcessorType dataSetProcessorType = CompilerContext.DataSetProcessorType.DEFAULT_CONTROL;
 
 
@@ -720,11 +710,6 @@ public final class InsertNode extends DMLModStatementNode {
 		// The only property that we're currently interested in is insertMode
 		String insertModeString = targetProperties.getProperty(INSERT_MODE);
         String statusDirectoryString = targetProperties.getProperty(STATUS_DIRECTORY);
-		bulkImportDirectory = targetProperties.getProperty(BULK_IMPORT_DIRECTORY);
-		samplingOnly = Boolean.parseBoolean(targetProperties.getProperty(SAMPLING_ONLY));
-        outputKeysOnly = Boolean.parseBoolean(targetProperties.getProperty(OUTPUT_KEYS_ONLY));
-		skipSampling = Boolean.parseBoolean(targetProperties.getProperty(SKIP_SAMPLING));
-		indexName = targetProperties.getProperty(INDEX_NAME);
         String failBadRecordCountString = targetProperties.getProperty(BAD_RECORDS_ALLOWED);
 		String useSparkString = targetProperties.getProperty(USE_SPARK);
 		String skipConflictDetectionString = targetProperties.getProperty(SKIP_CONFLICT_DETECTION);
@@ -992,19 +977,8 @@ public final class InsertNode extends DMLModStatementNode {
             mb.push(this.resultSet.getFinalCostEstimate().getEstimatedCost());
             mb.push(targetTableDescriptor.getVersion());
             mb.push(this.printExplainInformationForActivation());
-            if (bulkImportDirectory == null)
-                mb.pushNull("java.lang.String");
-            else
-                mb.push(bulkImportDirectory);
-			mb.push(samplingOnly);
-            mb.push(outputKeysOnly);
-            mb.push(skipSampling);
-            if (indexName == null)
-                mb.pushNull("java.lang.String");
-            else
-                mb.push(indexName);
-            mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 17);
 
+			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 12);
 		}
 		else
 		{

@@ -26,14 +26,15 @@
 package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+
 import com.splicemachine.db.iapi.error.StandardException;
-import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.joda.time.DateTime;
 import com.splicemachine.db.iapi.services.io.Storable;
+
 import java.io.InputStream;
 import java.io.IOException;
 import java.sql.Blob;
@@ -46,7 +47,6 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.SQLException;
 import java.util.Calendar;
-import java.util.Comparator;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 
 /**
@@ -104,7 +104,7 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
  * 
  */
 
-public interface DataValueDescriptor extends Storable, Orderable, Comparator
+public interface DataValueDescriptor extends Storable, Orderable
 {
 
     /**
@@ -1037,34 +1037,4 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator
 	*
 	*/
 	void decodeFromKey(PositionedByteRange builder) throws StandardException;
-
-     /*
-	 * Return the quantiles Sketch to use for this data value descriptor
-	 *
-	 * @return
-	 * @throws StandardException
-     */
-	com.yahoo.sketches.quantiles.ItemsSketch getQuantilesSketch() throws StandardException;
-
-	/**
-	 *
-	 * Return the frequencies Sketch to use for this data value descriptor
-	 *
-	 * @return
-	 * @throws StandardException
-	 */
-	com.yahoo.sketches.frequencies.ItemsSketch getFrequenciesSketch() throws StandardException;
-
-	/**
-	 *
-	 * Retrieve the Update Sketch.  This should be specialized based on the type...
-	 *
-	 * @return
-	 * @throws StandardException
-     */
-	UpdateSketch getThetaSketch() throws StandardException;
-
-	void updateThetaSketch(UpdateSketch updateSketch);
-
-	int getRowWidth();
 }

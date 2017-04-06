@@ -46,7 +46,6 @@ import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
-import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -158,25 +157,24 @@ public final class SQLInteger
 	}
 
 	public void writeExternal(ObjectOutput out) throws IOException {
-		out.writeBoolean(isNull());
-		if (!isNull())
-			out.writeInt(value);
+
+		// never called when value is null
+		if (SanityManager.DEBUG)
+			SanityManager.ASSERT(! isNull());
+
+		out.writeInt(value);
 	}
 
 	/** @see java.io.Externalizable#readExternal */
-	public final void readExternal(ObjectInput in)
-			throws IOException {
-		if (!in.readBoolean())
-			setValue(in.readInt());
-		else
-			setToNull();
+	public final void readExternal(ObjectInput in) 
+        throws IOException {
+
+		setValue(in.readInt());
 	}
-	public final void readExternalFromArray(ArrayInputStream in)
-			throws IOException {
-		if (!in.readBoolean())
-			setValue(in.readInt());
-		else
-			setToNull();
+	public final void readExternalFromArray(ArrayInputStream in) 
+        throws IOException {
+
+		setValue(in.readInt());
 	}
 
 	/**
@@ -789,9 +787,5 @@ public final class SQLInteger
 		else
 			value = OrderedBytes.decodeInt32(src);
 	}
-
-	public void updateThetaSketch(UpdateSketch updateSketch) {
-		updateSketch.update(value);
-	}
-
+	
 }

@@ -29,7 +29,6 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.yahoo.sketches.theta.UpdateSketch;
 import org.joda.time.DateTime;
 import java.io.InputStream;
 import java.sql.Blob;
@@ -43,6 +42,7 @@ import java.sql.ResultSet;
 import java.sql.RowId;
 import java.util.Calendar;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import com.splicemachine.db.iapi.types.NullValueData;
 
 /**
  *
@@ -286,7 +286,7 @@ public abstract class DataType extends NullValueData
 	 *
 	 */
 
-	public BooleanDataValue isNullOp()
+	public final BooleanDataValue isNullOp()
 	{
 		return SQLBoolean.truthValue(isNull());
 	}
@@ -300,7 +300,7 @@ public abstract class DataType extends NullValueData
 	 *
 	 */
 
-	public BooleanDataValue isNotNull()
+	public final BooleanDataValue isNotNull()
 	{
 		return SQLBoolean.truthValue(!isNull());
 	}
@@ -537,7 +537,7 @@ public abstract class DataType extends NullValueData
 	}
 
 
-	public void setValue(DataValueDescriptor dvd) throws StandardException {
+	public final void setValue(DataValueDescriptor dvd) throws StandardException {
 
 		if (dvd.isNull())
 		{
@@ -1298,43 +1298,5 @@ public abstract class DataType extends NullValueData
     public Format getFormat() {
     	throw new RuntimeException("getFormat not supported for type " + this.getClass() + " : "+ this);
     }
-
-	@Override
-	public int compare(Object o1, Object o2) {
-		try {
-			DataValueDescriptor dvd1 = (DataValueDescriptor)o1;
-			DataValueDescriptor dvd2 = (DataValueDescriptor)o2;
-			return dvd1.compare(dvd2);
-		} catch (StandardException se) {
-			throw new RuntimeException(se);
-		}
-	}
-
-	/**
-	 *
-	 * 256 gives < 1% normalized rank error
-	 *
-	 * @return
-	 * @throws StandardException
-     */
-	@Override
-	public com.yahoo.sketches.quantiles.ItemsSketch getQuantilesSketch() throws StandardException {
-		return com.yahoo.sketches.quantiles.ItemsSketch.getInstance(256,this);
-	}
-
-	@Override
-	public com.yahoo.sketches.frequencies.ItemsSketch getFrequenciesSketch() throws StandardException {
-		return new com.yahoo.sketches.frequencies.ItemsSketch(1024);
-	}
-
-	@Override
-	public UpdateSketch getThetaSketch() throws StandardException {
-		return UpdateSketch.builder().build(4096);
-	}
-
-
-	@Override
-	public int getRowWidth() {
-		return 8;
-	}
+        
 }
