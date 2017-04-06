@@ -114,13 +114,12 @@ public class ArrayOperatorNode extends ValueNode {
 		String resultTypeName = getTypeCompiler().interfaceName();
 
 		String receiverType = ArrayDataValue.class.getCanonicalName();
+		acb.generateNull(mb, getTypeCompiler(getTypeId()),
+				getTypeServices());
+		LocalField field = acb.newFieldDeclaration(Modifier.PRIVATE, resultTypeName);
+		mb.setField(field);
 		operand.generateExpression(acb, mb);
 		mb.cast(receiverType);
-		MethodBuilder	acbConstructor = acb.getConstructor();
-		LocalField field = acb.newFieldDeclaration(Modifier.PRIVATE, resultTypeName);
-		acb.generateNull(acbConstructor, getTypeCompiler(getTypeId()),
-				getTypeServices());
-		acbConstructor.setField(field);
 
 		mb.push(extractField);
 		mb.getField(field);
@@ -238,4 +237,24 @@ public class ArrayOperatorNode extends ValueNode {
 	public long nonZeroCardinality(long numberOfRows) throws StandardException {
 		return numberOfRows; // No Cardinality Estimte for now...
 	}
+
+	@Override
+	public ColumnReference getHashableJoinColumnReference() {
+		return operand.getHashableJoinColumnReference();
+	}
+
+	@Override
+	public boolean checkCRLevel(int level){
+		return operand.checkCRLevel(level);
+	}
+
+	@Override
+	public void setHashableJoinColumnReference(ColumnReference cr) {
+		if (operand instanceof ColumnReference)
+			operand = cr;
+		else
+			operand.setHashableJoinColumnReference(cr);
+	}
+
+
 }
