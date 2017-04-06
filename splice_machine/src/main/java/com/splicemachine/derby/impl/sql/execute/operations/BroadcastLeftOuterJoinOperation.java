@@ -58,13 +58,17 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
                 emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
                 this.wasRightOuterJoin = wasRightOuterJoin;
                 this.isOuterJoin = true;
+				initialized = false;
                 init();
 	}
 	
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
+		if (initialized)
+			return;
         super.init(context);
         emptyRowFun = (emptyRowFunMethodName == null) ? null : new SpliceMethod<ExecRow>(emptyRowFunMethodName,activation);
+		initialized = true;
     }
 
     @Override

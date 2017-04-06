@@ -76,7 +76,10 @@ public class NestedLoopJoinOperation extends JoinOperation {
 
 		@Override
 		public void init(SpliceOperationContext context) throws IOException, StandardException{
+			if (initialized)
+				return;
 				super.init(context);
+			initialized=true;
 		}
 
 		@Override
