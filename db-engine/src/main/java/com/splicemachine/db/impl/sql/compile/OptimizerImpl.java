@@ -835,7 +835,7 @@ public class OptimizerImpl implements Optimizer{
 			 */
             optimizableList.getOptimizable(nextOptimizable).getBestAccessPath().setCostEstimate(null);
 
-            tracer.trace(OptimizerFlag.CONSIDERING_JOIN_ORDER,0,0,0.0);
+            tracer.trace(OptimizerFlag.CONSIDERING_JOIN_ORDER,0,0,0.0, null);
 
             Optimizable nextOpt= optimizableList.getOptimizable(nextOptimizable);
 

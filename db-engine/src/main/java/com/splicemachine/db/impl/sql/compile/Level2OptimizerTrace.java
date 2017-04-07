@@ -53,10 +53,14 @@ public class Level2OptimizerTrace implements OptimizerTrace{
         String traceString;
         Object objectParam1 = null;
         Object objectParam2 = null;
-        if (objectParams != null) {
+        Object objectParam3 = null;
+        if (objectParams != null && objectParams.length > 0) {
             objectParam1 = objectParams[0];
             if (objectParams.length >= 2) {
                 objectParam2 = objectParams[1];
+            }
+            if (objectParams.length >= 3) {
+                objectParam3 = objectParams[2];
             }
         }
 
@@ -274,7 +278,7 @@ public class Level2OptimizerTrace implements OptimizerTrace{
                 cd=(ConglomerateDescriptor) objectParam1;
                 cdString=dumpConglomerateDescriptor(cd);
                 traceString="Cost of conglomerate "+cdString+" scan for table number "+intParam1 +
-                    " ("+objectParam2+") is : " + objectParam1;
+                    " ("+objectParam2+") is : " + objectParam3;
                 break;
             case COST_OF_CONGLOMERATE_SCAN3:
                 traceString="\tNumber of extra first column predicates is : "+
