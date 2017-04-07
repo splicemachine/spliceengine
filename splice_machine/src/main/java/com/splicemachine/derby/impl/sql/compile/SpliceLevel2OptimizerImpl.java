@@ -125,7 +125,7 @@ import com.splicemachine.derby.impl.store.access.TempSortController;
  *
  */
 public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
-    private static final Logger TRACE_LOGGER=Logger.getLogger("optimizer.trace");
+    private static final Logger TRACE_LOGGER=Logger.getLogger(SpliceLevel2OptimizerImpl.class);
     private final OptimizerTrace tracer = new Level2OptimizerTrace(null,this){
         @Override
         @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT",justification = "Intentional")
