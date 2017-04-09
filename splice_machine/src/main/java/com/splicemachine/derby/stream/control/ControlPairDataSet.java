@@ -292,10 +292,15 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     public <Op extends SpliceOperation, U> DataSet<U> flatmap(SpliceFlatMapFunction<Op, Tuple2<K,V>, U> function) {
         try {
             Iterator<U> iterator = Iterators.emptyIterator();
+            List<Iterator<U>> l = Lists.newArrayList();
 
             while (source.hasNext()) {
                 Tuple2<K, V> entry = source.next();
-                iterator = Iterators.concat(iterator, function.call(new Tuple2<>(entry._1(),entry._2())));
+                Iterator<U> it = function.call(new Tuple2<>(entry._1(),entry._2()));
+                l.add(it);
+            }
+            if (!l.isEmpty()) {
+                iterator = Iterators.concat(l.iterator());
             }
             return new ControlDataSet<>(iterator);
         } catch (Exception e) {
