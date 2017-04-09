@@ -290,10 +290,12 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> flatmap(SpliceFlatMapFunction<Op, Tuple2<K,V>, U> function) {
         try {
-            Iterable<U> iterable =new ArrayList<>(0);
+
+            List<Iterable<U>> iterables = Lists.newArrayList();
             for (Tuple2<K, V> entry : source) {
-                iterable = Iterables.concat(iterable, function.call(new Tuple2<>(entry._1(),entry._2())));
+                iterables.add(function.call(new Tuple2<>(entry._1(),entry._2())));
             }
+            Iterable<U> iterable = Iterables.concat(iterables);
             return new ControlDataSet<>(iterable);
         } catch (Exception e) {
             throw new RuntimeException(e);
