@@ -1132,6 +1132,7 @@
 				<argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
                                 <argument>-Xmx6g</argument>
                                 <argument>-Xms1g</argument>
+                                <argument>-Xss6m</argument>
                                 <!-- Spark Sys props -->
                                 <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
                                 <argument>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse</argument>
@@ -1179,6 +1180,7 @@
                                 <argument>-Dsplice.spark.serializer=com.splicemachine.serializer.SpliceKryoSerializer</argument>
                                 <argument>-Dsplice.spark.shuffle.compress=false</argument>
                                 <argument>-Dsplice.spark.executor.extraJavaOptions=
+					-Xss12m
                                     -Dhbase.rootdir=${project.build.directory}/hbase
                                     -Dlog4j.configuration=${log4j.config.uri}
                                     -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020

@@ -177,7 +177,6 @@ public class BroadcastJoinOperation extends JoinOperation{
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext operationContext = dsp.createOperationContext(this);
         DataSet<LocatedRow> leftDataSet = leftResultSet.getDataSet(dsp);
-        DataSet<LocatedRow> rightDataSet = rightResultSet.getDataSet(dsp);
 
 //        operationContext.pushScope();
         leftDataSet = leftDataSet.map(new CountJoinedLeftFunction(operationContext));
@@ -186,8 +185,9 @@ public class BroadcastJoinOperation extends JoinOperation{
                 isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
 
         DataSet<LocatedRow> result;
-        if (dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
+        if (false && dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
                 (restriction ==null || (!isOuterJoin && !notExistsRightSide))) {
+            DataSet<LocatedRow> rightDataSet = rightResultSet.getDataSet(dsp);
             if (isOuterJoin)
                 result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTOUTER,true);
             else if (notExistsRightSide)
