@@ -36,11 +36,19 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.impl.ast.JsonTreeBuilderVisitor;
+import com.splicemachine.db.impl.sql.compile.aggregatepush.PushAggregation;
 import com.splicemachine.db.impl.sql.compile.subquery.SubqueryFlattening;
+import org.apache.log4j.Logger;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 /**
@@ -52,7 +60,7 @@ import java.util.*;
  */
 
 public abstract class DMLStatementNode extends StatementNode {
-
+    private static final Logger JSON_TREE_LOG = Logger.getLogger(JsonTreeBuilderVisitor.class);
     /**
      * The result set is the rows that result from running the statement.  What this means for SELECT statements is
      * fairly obvious. For a DELETE, there is one result column representing the key of the row to be deleted (most
@@ -134,6 +142,9 @@ public abstract class DMLStatementNode extends StatementNode {
 
         /* Perform subquery flattening if applicable. */
         SubqueryFlattening.flatten(this);
+        saveTree(this, 1);
+        PushAggregation.push(this);
+        saveTree(this, 2);
 
         resultSet = resultSet.preprocess(getCompilerContext().getNumTables(), null, null);
         // Evaluate expressions with constant operands here to simplify the
@@ -145,8 +156,12 @@ public abstract class DMLStatementNode extends StatementNode {
         // selectivity 1.0.)
         accept(new ConstantExpressionVisitor());
 
+        saveTree(this, 3);
+
         resultSet = resultSet.optimize(getDataDictionary(), null, 1.0d);
         resultSet = resultSet.modifyAccessPaths();
+
+        saveTree(this, 4);
 
     }
 
@@ -361,5 +376,30 @@ public abstract class DMLStatementNode extends StatementNode {
         tree.add(this);
         if (resultSet != null)
             resultSet.buildTree(tree, depth + 1);
+    }
+
+    private Path getTargePath(String destinationFileName) throws IOException {
+        Path target = Paths.get(destinationFileName);
+        // Attempt to write to target director, if exists under CWD
+        Path subDir = Paths.get("./target");
+        if (Files.isDirectory(subDir)) {
+            target = subDir.resolve(target);
+        }
+        return target;
+    }
+    private void saveTree(Visitable queryTree, int stage) throws StandardException {
+        if (JSON_TREE_LOG.isTraceEnabled()) {
+            JSON_TREE_LOG.warn("JSON AST logging is enabled");
+            try {
+                JsonTreeBuilderVisitor jsonVisitor = new JsonTreeBuilderVisitor();
+                queryTree.accept(jsonVisitor);
+                Path target = getTargePath(String.format("temp%d.json", stage));
+                Files.write(target, jsonVisitor.toJson().getBytes("UTF-8"));
+            } catch (IOException e) {
+                /* Don't let the exception propagate.  If we are trying to use this tool on a server where we can't
+                   write to the destination, for example, then warn but let the query run. */
+                JSON_TREE_LOG.warn("unable to save AST JSON file", e);
+            }
+        }
     }
 }

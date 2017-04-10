@@ -38,8 +38,13 @@ import com.splicemachine.db.iapi.sql.compile.ASTVisitor;
 import com.splicemachine.db.iapi.sql.compile.CompilationPhase;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
+import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.ImmutableMap;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +61,7 @@ import java.util.Map;
  * Date: 7/5/13
  */
 public class SpliceASTWalker implements ASTVisitor {
+    private static final Logger JSON_TREE_LOG = Logger.getLogger(JsonTreeBuilderVisitor.class);
     private List<ASTVisitor> visitors = new ArrayList<ASTVisitor>();
     public final Map<CompilationPhase, List<Class<? extends ISpliceVisitor>>> visitorClasses;
 
@@ -95,6 +101,7 @@ public class SpliceASTWalker implements ASTVisitor {
     public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
         for (ASTVisitor v : visitors) {
             node = node.accept(v);
+       //     saveTree(node, ((SpliceDerbyVisitorAdapter) v).v.getClass().getSimpleName());
         }
         return node;
     }
@@ -121,5 +128,30 @@ public class SpliceASTWalker implements ASTVisitor {
 
     @Override
     public void teardownVisitor() throws StandardException {
+    }
+
+    private Path getTargePath(String destinationFileName) throws IOException {
+        Path target = Paths.get(destinationFileName);
+        // Attempt to write to target director, if exists under CWD
+        Path subDir = Paths.get("./target");
+        if (Files.isDirectory(subDir)) {
+            target = subDir.resolve(target);
+        }
+        return target;
+    }
+    private void saveTree(Visitable queryTree, String name) throws StandardException {
+        if (JSON_TREE_LOG.isTraceEnabled()) {
+            JSON_TREE_LOG.warn("JSON AST logging is enabled");
+            try {
+                JsonTreeBuilderVisitor jsonVisitor = new JsonTreeBuilderVisitor();
+                queryTree.accept(jsonVisitor);
+                Path target = getTargePath(String.format("temp-%s.json", name));
+                Files.write(target, jsonVisitor.toJson().getBytes("UTF-8"));
+            } catch (IOException e) {
+                /* Don't let the exception propagate.  If we are trying to use this tool on a server where we can't
+                   write to the destination, for example, then warn but let the query run. */
+                JSON_TREE_LOG.warn("unable to save AST JSON file", e);
+            }
+        }
     }
 }

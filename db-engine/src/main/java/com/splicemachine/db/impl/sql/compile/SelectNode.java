@@ -53,6 +53,7 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.JBitSet;
+import org.apache.avro.generic.GenericData;
 
 /**
  * A SelectNode represents the result set for any of the basic DML
@@ -1838,7 +1839,7 @@ public class SelectNode extends ResultSetNode{
      * @return true if there are aggregates in the select list.
      */
     public boolean hasAggregatesInSelectList(){
-        if(selectAggregates.isEmpty()){
+        if (selectAggregates.isEmpty()) {
             return false;
         }
         boolean hasAggregates=false;
@@ -2329,5 +2330,49 @@ public class SelectNode extends ResultSetNode{
         public Integer apply(SelectNode input) {
             return input.getNestingLevel();
         }
+    }
+
+    public static class SelectNodeWithAggregates implements org.spark_project.guava.base.Predicate<Visitable> {
+        @Override
+        public boolean apply(Visitable input) {
+            return (input instanceof SelectNode) && ((SelectNode) input).hasAggregatesInSelectList();
+        }
+    }
+/*
+    public void setSelectAggregates(List<AggregateNode> list) {
+        selectAggregates = list;
+        return;
+    }
+
+    public void setWhereAggregates(List<AggregateNode> list) {
+        whereAggregates = list;
+        return;
+    }
+
+    public void setSelectSubquerys(SubqueryList list) {
+        selectSubquerys = list;
+        return;
+    }
+
+    public void setWhereSubquerys(SubqueryList list) {
+        whereSubquerys = list;
+        return;
+    }
+*/
+    public void setupnInitFields() throws StandardException {
+        selectSubquerys = (SubqueryList)getNodeFactory().getNode(
+                C_NodeTypes.SUBQUERY_LIST,
+                getContextManager());
+        whereSubquerys = (SubqueryList)getNodeFactory().getNode(
+                C_NodeTypes.SUBQUERY_LIST,
+                getContextManager());
+        selectAggregates = new ArrayList<AggregateNode>();
+        whereAggregates = new LinkedList<AggregateNode>();
+        wherePredicates=(PredicateList)getNodeFactory().getNode( C_NodeTypes.PREDICATE_LIST, getContextManager());
+        preJoinFL=(FromList)getNodeFactory().getNode(
+                C_NodeTypes.FROM_LIST,
+                getNodeFactory().doJoinOrderOptimization(),
+                getContextManager());
+        return;
     }
 }
