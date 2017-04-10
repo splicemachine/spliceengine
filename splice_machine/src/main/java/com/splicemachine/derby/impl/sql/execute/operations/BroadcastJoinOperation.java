@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.EngineDriver;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.function.broadcast.BroadcastJoinFlatMapFunction;
@@ -177,7 +179,6 @@ public class BroadcastJoinOperation extends JoinOperation{
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext operationContext = dsp.createOperationContext(this);
         DataSet<LocatedRow> leftDataSet = leftResultSet.getDataSet(dsp);
-        DataSet<LocatedRow> rightDataSet = rightResultSet.getDataSet(dsp);
 
 //        operationContext.pushScope();
         leftDataSet = leftDataSet.map(new CountJoinedLeftFunction(operationContext));
@@ -185,9 +186,13 @@ public class BroadcastJoinOperation extends JoinOperation{
             SpliceLogUtils.debug(LOG, "getDataSet Performing BroadcastJoin type=%s, antiJoin=%s, hasRestriction=%s",
                 isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
 
+        SConfiguration configuration= EngineDriver.driver().getConfiguration();
+        boolean useDataset = rightResultSet.getEstimatedCost() / 1000 > configuration.getBroadcastDatasetCostThreshold();
+
         DataSet<LocatedRow> result;
-        if (dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
+        if (useDataset && dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
                 (restriction ==null || (!isOuterJoin && !notExistsRightSide))) {
+            DataSet<LocatedRow> rightDataSet = rightResultSet.getDataSet(dsp);
             if (isOuterJoin)
                 result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTOUTER,true);
             else if (notExistsRightSide)

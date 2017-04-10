@@ -31,8 +31,11 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.Streams;
 import javax.annotation.Nullable;
+import java.io.IOException;
+import java.io.ObjectInput;
 import java.util.Iterator;
 import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
 
 /**
  * Created by dgomezferro on 11/4/15.
@@ -40,6 +43,8 @@ import java.util.concurrent.Callable;
 public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends SpliceFlatMapFunction<JoinOperation, Iterator<In>, Out> {
     private static final BroadcastJoinCache broadcastJoinCache = new BroadcastJoinCache();
     private JoinOperation operation;
+    private Future<JoinTable> joinTable ;
+    private boolean init = false;
 
     public AbstractBroadcastJoinFlatMapFunction() {
     }
@@ -50,21 +55,32 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
 
     @Override
     public final Iterator<Out> call(Iterator<In> locatedRows) throws Exception {
-        JoinTable joinTable ;
-        operation = getOperation();
-        Callable<Stream<ExecRow>> rhsLoader = new Callable<Stream<ExecRow>>() {
-            @Override
-            public Stream<ExecRow> call() throws Exception {
+        init();
+        return call(locatedRows, joinTable.get()).iterator();
+    }
+
+    protected abstract Iterable<Out> call(Iterator<In> locatedRows, JoinTable joinTable);
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        init();
+    }
+
+    private synchronized void init() {
+        if (init)
+            return;
+        init = true;
+        joinTable = EngineDriver.driver().getExecutorService().submit(() -> {
+            operation = getOperation();
+            Callable<Stream<ExecRow>> rhsLoader = () -> {
                 DataSetProcessorFactory dataSetProcessorFactory=EngineDriver.driver().processorFactory();
                 final DataSetProcessor dsp =dataSetProcessorFactory.bulkProcessor(getActivation(),operation.getRightOperation());
-                return Streams.wrap(FluentIterable.from(new Iterable<LocatedRow>(){
-                    @Override
-                    public Iterator<LocatedRow> iterator(){
-                        try{
-                            return operation.getRightOperation().getDataSet(dsp).filter(new InnerJoinNullFilterFunction(operationContext,operation.getRightHashKeys())).toLocalIterator();
-                        }catch(StandardException e){
-                            throw new RuntimeException(e);
-                        }
+                return Streams.wrap(FluentIterable.from(() -> {
+                    try{
+                        return operation.getRightOperation().getDataSet(dsp).filter(new InnerJoinNullFilterFunction(operationContext,operation.getRightHashKeys())).toLocalIterator();
+                    }catch(StandardException e){
+                        throw new RuntimeException(e);
                     }
                 }).transform(new Function<LocatedRow, ExecRow>() {
                     @Nullable
@@ -75,13 +91,9 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
                         return locatedRow.getRow();
                     }
                 }));
-            }
-        };
-        ExecRow leftTemplate = operation.getLeftOperation().getExecRowDefinition();
-        joinTable = broadcastJoinCache.get(operation.getSequenceId(), rhsLoader, operation.getRightHashKeys(), operation.getLeftHashKeys(), leftTemplate).newTable();
-
-        return call(locatedRows, joinTable).iterator();
+            };
+            ExecRow leftTemplate = operation.getLeftOperation().getExecRowDefinition();
+            return broadcastJoinCache.get(operation.getSequenceId(), rhsLoader, operation.getRightHashKeys(), operation.getLeftHashKeys(), leftTemplate).newTable();
+        });
     }
-
-    protected abstract Iterable<Out> call(Iterator<In> locatedRows, JoinTable joinTable);
 }

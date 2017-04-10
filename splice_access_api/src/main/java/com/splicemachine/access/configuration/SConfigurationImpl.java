@@ -140,6 +140,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  int partitionserverPort;
     private final  long broadcastRegionMbThreshold;
     private final  long broadcastRegionRowThreshold;
+    private final  long broadcastDatasetCostThreshold;
     private final  long optimizerPlanMaximumTimeout;
     private final  long optimizerPlanMinimumTimeout;
     private final  String networkBindAddress;
@@ -503,6 +504,10 @@ public final class SConfigurationImpl implements SConfiguration {
         return broadcastRegionRowThreshold;
     }
     @Override
+    public long getBroadcastDatasetCostThreshold() {
+        return broadcastDatasetCostThreshold;
+    }
+    @Override
     public long getOptimizerPlanMaximumTimeout() {
         return optimizerPlanMaximumTimeout;
     }
@@ -670,6 +675,7 @@ public final class SConfigurationImpl implements SConfiguration {
         partitionserverPort = builder.partitionserverPort;
         broadcastRegionMbThreshold = builder.broadcastRegionMbThreshold;
         broadcastRegionRowThreshold = builder.broadcastRegionRowThreshold;
+        broadcastDatasetCostThreshold = builder.broadcastDatasetCostThreshold;
         optimizerPlanMaximumTimeout = builder.optimizerPlanMaximumTimeout;
         optimizerPlanMinimumTimeout = builder.optimizerPlanMinimumTimeout;
         networkBindAddress = builder.networkBindAddress;
