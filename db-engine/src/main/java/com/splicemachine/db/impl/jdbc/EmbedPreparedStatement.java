@@ -1288,7 +1288,7 @@ public abstract class EmbedPreparedStatement extends EmbedStatement implements E
         if (colType == Types.ARRAY) {
             try {
                 /* JDBC is one-based, DBMS is zero-based */
-                getParms().getParameterForSet(parameterIndex - 1).setValue((SQLArray) x);
+                getParms().getParameterForSet(parameterIndex - 1).setValue((Array) x);
                 return;
 
             } catch (Throwable t) {
