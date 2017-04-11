@@ -465,6 +465,7 @@ public class ColumnMetaData implements java.sql.ResultSetMetaData {
             case Types.TIMESTAMP:
                 return 29;
             case Types.JAVA_OBJECT:
+                case Types.ARRAY:
                 return JDBC30Translation.UNKNOWN_PRECISION;
             default:
                 throw new SqlException(logWriter_, 
@@ -621,6 +622,9 @@ public class ColumnMetaData implements java.sql.ResultSetMetaData {
             case DRDAConstants.DB2_SQLTYPE_NUMERIC:
             case DRDAConstants.DB2_SQLTYPE_NNUMERIC:
                 return "NUMERIC";
+            case DRDAConstants.DB2_SQLTYPE_FAKE_ARRAY:
+            case DRDAConstants.DB2_SQLTYPE_FAKE_NARRAY:
+                    return "ARRAY";
             case DRDAConstants.DB2_SQLTYPE_FAKE_UDT:
             case DRDAConstants.DB2_SQLTYPE_FAKE_NUDT:
                 return sqlUDTname_[ column - 1 ];
