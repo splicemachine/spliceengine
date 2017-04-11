@@ -77,6 +77,12 @@ public class InsertOperationIT {
         classWatcher.executeUpdate("create table TABLE_BIGINT (CUSTOMER_ID BIGINT)");
         classWatcher.executeUpdate("create table TABLE_RESULT (CUSTOMER_ID BIGINT)");
         classWatcher.executeUpdate("insert into TABLE_BIGINT values (1),(2),(3)");
+
+        classWatcher.executeUpdate("create table TT(i int)");
+        classWatcher.executeUpdate("create table AA(c1 int, c2 int)");
+        classWatcher.executeUpdate("create table BB(c1 int, c2 int, c3 int, c4 int)");
+        classWatcher.executeUpdate("insert into AA values(1,1)");
+        classWatcher.executeUpdate("insert into BB values(1,1,1,1)");
     }
 
     @Rule
@@ -427,6 +433,24 @@ public class InsertOperationIT {
             Assert.assertEquals("Wrong result", i++, rs.getInt(1));
         }
         rs.close();
+    }
+
+    @Test
+    public void testInsertSelectFromSubquery() throws Exception {
+         String sqlText =
+                 "INSERT INTO TT\n" +
+                 "SELECT\n" +
+                 "count(*)\n" +
+                 "FROM aa \n" +
+                 "LEFT JOIN (SELECT col1, col2, col3 FROM\n" +
+                 "(SELECT b1.c1 AS col1, b1.c2 AS col2,b1.c3 AS col3\n" +
+                 " FROM bb b1\n" +
+                 ")b2 LEFT OUTER JOIN bb b3 ON b2.col3=b3.c4\n" +
+                 ") b3 ON b3.col1 = aa.c1 AND b3.col2 = aa.c2";
+        methodWatcher.executeUpdate(sqlText);
+        ResultSet rs = methodWatcher.executeQuery("select * from TT");
+        assert rs.next();
+        Assert.assertEquals(1, rs.getInt(1));
     }
 
 }
