@@ -38,15 +38,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.joda.time.DateTime;
 import java.io.InputStream;
-import java.sql.Blob;
-import java.sql.Clob;
-import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.ResultSet;
-import java.sql.RowId;
+import java.sql.*;
 import java.util.Calendar;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 
@@ -395,8 +387,11 @@ public abstract class DataType extends NullValueData
 		throwLangSetMismatch("java.lang.Object");
 	}
 
-    public void setValue(RowId theValue) throws StandardException
-    {
+	public void setValue(Array array) throws StandardException {
+		throwLangSetMismatch("java.sql.Array");
+	}
+
+    public void setValue(RowId theValue) throws StandardException {
         throwLangSetMismatch("java.lang.Object");
     }
 	/**

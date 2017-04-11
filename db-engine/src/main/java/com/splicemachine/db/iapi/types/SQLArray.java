@@ -32,6 +32,7 @@ import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import com.splicemachine.db.impl.jdbc.SQLExceptionFactory;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -647,4 +648,32 @@ public class SQLArray extends DataType implements ArrayDataValue {
 
 	}
 
+	/**
+	 * Set the value of this DataValueDescriptor.
+	 * At DataType level just throws an error lower classes will override
+	 *
+	 * @param theValue	The BigDecimal value to set this DataValueDescriptor to
+	 */
+	public void setValue(Array theValue) throws StandardException {
+		try {
+			Object object = theValue.getArray();
+			if (object == null) {
+				this.setToNull();
+				return;
+			}
+			Object[] objects = (Object[]) object;
+			value = new DataValueDescriptor[objects.length];
+			for (int i = 0; i< objects.length; i++) {
+				value[i] = type.cloneValue(true);
+				value[i].setSparkObject(objects[i]);
+			}
+		} catch (SQLException sqle) {
+			throw StandardException.plainWrapException(sqle);
+		}
+	}
+
+	@Override
+	public void setValue(Object theValue) throws StandardException {
+		setValue((Array) theValue);
+	}
 }
