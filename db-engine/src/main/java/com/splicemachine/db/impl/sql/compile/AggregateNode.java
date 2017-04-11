@@ -760,4 +760,14 @@ public class AggregateNode extends UnaryOperatorNode
     public FunctionType getType(){
 		return  this.type;
 	}
+
+    public static class AggregateNodeTableNumberFunction implements org.spark_project.guava.base.Function<AggregateNode, Integer> {
+        @Override
+        public Integer apply(AggregateNode input) {
+            if (input.getOperand() instanceof ColumnReference)
+                return input.getOperand().getTableNumber();
+            else
+                return -1;
+        }
+    }
 }

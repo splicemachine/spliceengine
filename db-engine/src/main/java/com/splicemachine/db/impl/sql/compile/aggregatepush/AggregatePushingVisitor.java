@@ -41,9 +41,13 @@ import com.splicemachine.db.impl.ast.CollectingVisitorBuilder;
 import com.splicemachine.db.impl.sql.compile.*;
 
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.ArrayList;
+
+import org.apache.commons.lang3.tuple.Pair;
+import org.spark_project.guava.collect.Multimap;
+import org.spark_project.guava.collect.Multimaps;
+
 
 /**
  * Created by yxia on 4/3/17.
@@ -99,16 +103,22 @@ public class AggregatePushingVisitor extends AbstractSpliceVisitor implements Vi
                 return node;
         }
 
-        for (AggregateNode aggregateNode: pushableAggregates) {
-            push(topSelectNode, aggregateNode);
-        }
+        // group the aggregates based on the base table number
+        Multimap<Integer, AggregateNode> aggrMap =
+                Multimaps.index(pushableAggregates, new AggregateNode.AggregateNodeTableNumberFunction());
 
+        for (Integer tableNumber: aggrMap.keySet()) {
+            push(topSelectNode, new ArrayList<>(aggrMap.get(tableNumber)));
+        }
         return node;
     }
 
-    private boolean push(SelectNode topSelectNode, AggregateNode aggregateNode) throws StandardException {
+    private boolean push(SelectNode topSelectNode, List<AggregateNode> aggrList) throws StandardException {
+        if (aggrList.size() == 0)
+            return false;
+
         //get the base table from the FromTable list
-        ColumnReference cr = (ColumnReference)aggregateNode.getOperand();
+        ColumnReference cr = (ColumnReference)aggrList.get(0).getOperand();
 
         int tableNumber = cr.getTableNumber();
         FromTable ft = null;
@@ -126,8 +136,7 @@ public class AggregatePushingVisitor extends AbstractSpliceVisitor implements Vi
 
         //create a FromSubquery from it with groupby and aggregate + count in the select list
         if (ft instanceof FromBaseTable) {
-            FromSubquery fromSubquery = replaceTableWithFromSubquery(
-                    aggregateNode, (FromBaseTable)ft, tableNumber, topSelectNode, tabPosInFL);
+            replaceTableWithFromSubquery(aggrList, (FromBaseTable)ft, tableNumber, topSelectNode, tabPosInFL);
         } else
             return false;
 
@@ -135,7 +144,7 @@ public class AggregatePushingVisitor extends AbstractSpliceVisitor implements Vi
 
     }
 
-    private FromSubquery replaceTableWithFromSubquery(AggregateNode aggregateNode,
+    private FromSubquery replaceTableWithFromSubquery(List<AggregateNode> aggregateList,
                                                       FromBaseTable ft,
                                                       int baseTableNumber,
                                                       SelectNode outerSelect,
@@ -154,41 +163,53 @@ public class AggregatePushingVisitor extends AbstractSpliceVisitor implements Vi
         ResultColumnList rcl = (ResultColumnList) nf.getNode(C_NodeTypes.RESULT_COLUMN_LIST, cm);
 
         SelectNode selectNode = (SelectNode)nf.getNode(
-                        C_NodeTypes.SELECT_NODE,
-                        rcl,      // ResultColumns
-                        null,     // AGGREGATE list
-                        fromList, // FROM list
-                        null,     // WHERE clause
-                        null,     // GROUP BY list
-                        null,     // having clause
-                        null, /* window list */
-                        cm);
+                C_NodeTypes.SELECT_NODE,
+                rcl,      // ResultColumns
+                null,     // AGGREGATE list
+                fromList, // FROM list
+                null,     // WHERE clause
+                null,     // GROUP BY list
+                null,     // having clause
+                null, /* window list */
+                cm);
 
         // add group by columns
-        List<ColumnReference> cfl = CollectingVisitorBuilder.<ColumnReference>forClass(ColumnReference.class)
-                .collect(outerSelect.getWhereClause());
-        for (ValueNode cf:cfl) {
-            if (cf.getTableNumber() != baseTableNumber)
-                continue;
 
-            AggregateUtil.addGroupByNode(selectNode, cf);
+        List<ColumnReference> cfl =null;
+
+        if (outerSelect.getWhereClause() != null) {
+            cfl = CollectingVisitorBuilder.<ColumnReference>forClass(ColumnReference.class)
+                    .collect(outerSelect.getWhereClause());
+            for (ValueNode cf : cfl) {
+                if (cf.getTableNumber() != baseTableNumber)
+                    continue;
+
+                AggregateUtil.addGroupByNode(selectNode, cf);
+            }
         }
 
         //add join columns
-        cfl = CollectingVisitorBuilder.<ColumnReference>forClass(ColumnReference.class)
-                .collect(outerSelect.getGroupByList());
-        for (ValueNode cf:cfl) {
-            if (cf.getTableNumber() != baseTableNumber)
-                continue;
-            AggregateUtil.addGroupByNode(selectNode, cf);
+        if (outerSelect.getGroupByList() != null) {
+            cfl = CollectingVisitorBuilder.<ColumnReference>forClass(ColumnReference.class)
+                    .collect(outerSelect.getGroupByList());
+            for (ValueNode cf : cfl) {
+                if (cf.getTableNumber() != baseTableNumber)
+                    continue;
+                AggregateUtil.addGroupByNode(selectNode, cf);
+            }
         }
 
         // according to bindExpressions() in SelectNode, the following fields are always set even
         // if they are empty
         selectNode.setupnInitFields();
 
+        List<Pair<AggregateNode, Integer>> aggrColMap = new ArrayList<Pair<AggregateNode, Integer>>();
+
         //Push the original aggregate to the base table
-        int aggrColId = AggregateUtil.addAggregateNode(selectNode, aggregateNode, ++aggCount);
+        for (AggregateNode aggrNode:aggregateList) {
+            int aggrColId = AggregateUtil.addAggregateNode(selectNode, aggrNode, ++aggCount);
+            aggrColMap.add(Pair.of(aggrNode, aggrColId));
+        }
 
         //Generate Count aggregation on the base table
         AggregateUtil.addCountAggregation(selectNode, ++aggCount);
@@ -225,8 +246,9 @@ public class AggregatePushingVisitor extends AbstractSpliceVisitor implements Vi
         // replace the original FromBaseTable with the new FromSubquery
         outerSelect.getFromList().setElementAt(fromSubquery, tabPosInFL);
 
-        //Generate the final aggregate based on the original one
-        AggregateUtil.rewriteFinalAggregateNode(outerSelect, aggregateNode, fromSubquery, aggrColId);
+        //Generate the final aggregates based on the original ones
+        for (Pair<AggregateNode,Integer> pair:aggrColMap)
+            AggregateUtil.rewriteFinalAggregateNode(outerSelect, pair.getLeft(), fromSubquery, pair.getRight());
 
 
         // update column references in the outer query block for all the column references
@@ -243,7 +265,10 @@ public class AggregatePushingVisitor extends AbstractSpliceVisitor implements Vi
                 new ColumnMapVisitor(fieldMap, baseTableNumber, fromSubquery.getTableNumber());
 
         outerSelect.getResultColumns().accept(columnMapVisitor);
-        outerSelect.getWhereClause().accept(columnMapVisitor);
+
+        ValueNode whereClause = outerSelect.getWhereClause();
+        if (whereClause != null)
+            whereClause.accept(columnMapVisitor);
         GroupByList gbList = outerSelect.getGroupByList();
         if (gbList != null)
             gbList.accept(columnMapVisitor);
