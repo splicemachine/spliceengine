@@ -30,6 +30,7 @@ import java.util.Collection;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.assertEquals;
 
 /**
  *
@@ -85,6 +86,10 @@ public class SetOpOperationIT extends SpliceUnitTest {
                     .withInsert("insert into FOO2 values(?,?)")
                     .withRows(rows(row(1, 5), row(3, 7), row(5, 9))).create();
 
+            new TableCreator(connection)
+                    .withCreate("create table FOO3 (col1 int primary key, col2 int)")
+                    .withInsert("insert into FOO3 values(?,?)")
+                    .withRows(rows(row(2, 1), row(3, 2), row(1, 5))).create();
         }
 
     @Test
@@ -142,4 +147,46 @@ public class SetOpOperationIT extends SpliceUnitTest {
                 "select col1 from foo --SPLICE-PROPERTIES useSpark = %s except all select col1 from foo2) argh",useSpark));
     }
 
+    /* negative test, expect to throw an error */
+    @Test(expected = SQLException.class)
+    public void testTopN1() throws Exception {
+        String sqlText = "select * from foo union all select top 1 * from foo2";
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+    }
+
+    /* negative test, expect to throw an error */
+    @Test(expected = SQLException.class)
+    public void testTopN2() throws Exception {
+        String sqlText = "select * from foo intersect (select top 1 * from foo2 union all select * from foo3)";
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+    }
+
+    /* positive test, top N is applied on the union all result */
+    @Test
+    public void testTopN3() throws Exception {
+        String sqlText = "select top 2 * from foo union all select * from foo2 order by 1,2";
+        String expected =
+                "COL1 |COL2 |\n" +
+                        "------------\n" +
+                        "  1  |  1  |\n" +
+                        "  1  |  5  |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    /* positive test, top N is applied on the union all result */
+    @Test
+    public void testTopN4() throws Exception {
+        String sqlText = "select count(*) from (select top 2 * from foo union all select * from foo2)dt";
+        String expected =
+                "1 |\n" +
+                        "----\n" +
+                        " 2 |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
 }
