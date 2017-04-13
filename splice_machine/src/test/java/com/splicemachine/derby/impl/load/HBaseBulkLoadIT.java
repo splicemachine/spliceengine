@@ -66,14 +66,14 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
     public static void loadData() throws Exception {
         try {
             TestUtils.executeSqlFile(spliceClassWatcher, "tcph/TPCHIT.sql", SCHEMA_NAME);
-            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, LINEITEM, getResource("lineitem.tbl"), getResource("DATA"))).execute();
-            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, ORDERS, getResource("orders.tbl"), getResource("DATA"))).execute();
-            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, CUSTOMERS, getResource("customer.tbl"), getResource("DATA"))).execute();
-            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, PARTSUPP, getResource("partsupp.tbl"), getResource("DATA"))).execute();
-            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, SUPPLIER, getResource("supplier.tbl"), getResource("DATA"))).execute();
-            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, PART, getResource("part.tbl"), getResource("DATA"))).execute();
-            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, NATION, getResource("nation.tbl"), getResource("DATA"))).execute();
-            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, REGION, getResource("region.tbl"), getResource("DATA"))).execute();
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, LINEITEM, getResource("lineitem.tbl"), getResource("data"))).execute();
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, ORDERS, getResource("orders.tbl"), getResource("data"))).execute();
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, CUSTOMERS, getResource("customer.tbl"), getResource("data"))).execute();
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, PARTSUPP, getResource("partsupp.tbl"), getResource("data"))).execute();
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, SUPPLIER, getResource("supplier.tbl"), getResource("data"))).execute();
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, PART, getResource("part.tbl"), getResource("data"))).execute();
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, NATION, getResource("nation.tbl"), getResource("data"))).execute();
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, REGION, getResource("region.tbl"), getResource("data"))).execute();
 
             spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s', false)", SCHEMA_NAME)).execute();
             spliceClassWatcher.prepareStatement(format("create table A(c varchar(200))"));
@@ -95,7 +95,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @AfterClass
     public static void cleanup() throws Exception {
-        String dir = getResource("DATA");
+        String dir = getResource("data");
         FileUtils.deleteDirectory(new File(dir));
     }
     @Test
@@ -328,7 +328,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
         long conglomId = rs.getLong(1);
         methodWatcher.execute(format("call SYSCS_UTIL.COMPUTE_SPLIT_KEY('%s','%s',null,'L_ORDERKEY,L_LINENUMBER'," +
                         "'%s','|',null,null,null,null,-1,'/BAD',true,null,'%s')",SCHEMA_NAME,LINEITEM,
-                getResource("lineitemKey.csv"), getResource("DATA")));
+                getResource("lineitemKey.csv"), getResource("data")));
         rs.close();
 
         String select =
@@ -336,7 +336,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
                         "from new com.splicemachine.derby.vti.SpliceFileVTI(" +
                         "'%s',NULL,'|',NULL,'HH:mm:ss','yyyy-MM-dd','yyyy-MM-dd HH:mm:ss','true','UTF-8' ) " +
                         "AS splitKey (\"KEY\" varchar(200))";
-        rs = methodWatcher.executeQuery(format(select, getResource("DATA/"+conglomId+"/keys")));
+        rs = methodWatcher.executeQuery(format(select, getResource("data/"+conglomId+"/keys")));
         String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
         String expected =
                 "KEY     |\n" +
@@ -366,7 +366,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
         methodWatcher.execute(format("call SYSCS_UTIL.COMPUTE_SPLIT_KEY('%s','%s','L_SHIPDATE_IDX'," +
                         "'L_SHIPDATE,L_PARTKEY,L_EXTENDEDPRICE,L_DISCOUNT'," +
                         "'%s','|',null,null,null,null,-1,'/BAD',true,null,'%s')",SCHEMA_NAME,LINEITEM,
-                getResource("shipDateIndex.csv"), getResource("DATA")));
+                getResource("shipDateIndex.csv"), getResource("data")));
         rs.close();
 
         String select =
@@ -374,7 +374,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
                         "from new com.splicemachine.derby.vti.SpliceFileVTI(" +
                         "'%s',NULL,'|',NULL,'HH:mm:ss','yyyy-MM-dd','yyyy-MM-dd HH:mm:ss','true','UTF-8' ) " +
                         "AS splitKey (\"KEY\" varchar(200))";
-        rs = methodWatcher.executeQuery(format(select, getResource("DATA/"+conglomId+"/keys")));
+        rs = methodWatcher.executeQuery(format(select, getResource("data/"+conglomId+"/keys")));
         String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
         String expected =
                 "KEY                                         |\n" +
