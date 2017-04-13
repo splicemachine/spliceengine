@@ -19,6 +19,7 @@ import java.io.IOException;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -53,6 +54,7 @@ public class SpliceSpark {
     private static final String SCOPE_OVERRIDE = "spark.rdd.scope.noOverride";
     private static final String OLD_SCOPE_KEY = "spark.rdd.scope.old";
     private static final String OLD_SCOPE_OVERRIDE = "spark.rdd.scope.noOverride.old";
+    public static boolean isClient = false;
 
     // Sets both ctx and session
     public static synchronized SparkSession getSession() {
@@ -97,7 +99,10 @@ public class SpliceSpark {
                     @Override public void distributedStart() throws IOException{ }
                     @Override public void markBootFinished() throws IOException{ }
                     @Override public boolean connectAsFirstTime(){ return false; }
+                    @Override public boolean useCache() {return false;}
                 },config).start();
+
+                SpliceDataDictionary.IGNORE_CACHE = true;
 
                 EngineDriver engineDriver = EngineDriver.driver();
                 assert engineDriver!=null: "Not booted yet!";

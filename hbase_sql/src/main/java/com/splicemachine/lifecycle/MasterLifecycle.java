@@ -62,4 +62,9 @@ public class MasterLifecycle implements DistributedDerbyStartup{
     public boolean connectAsFirstTime(){
         return loading;
     }
+
+    @Override
+    public boolean useCache() {
+        return true;
+    }
 }

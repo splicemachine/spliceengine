@@ -88,6 +88,8 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
         // Create an embedded connection to Derby.  This essentially boots up Derby by creating an internal connection to it.
         // External connections to Derby are created later when the Derby network server is started.
         EmbedConnectionMaker maker = new EmbedConnectionMaker();
+        if (!startup.useCache())
+        dbProperties.setProperty("USE_DICTIONARY_CACHE",startup.useCache()?"true":"false");
         if(startup.connectAsFirstTime()){
             isCreate.set(Boolean.TRUE);
             internalConnection=maker.createFirstNew(configuration,dbProperties);

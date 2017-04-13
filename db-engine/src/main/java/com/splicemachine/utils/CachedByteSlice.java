@@ -14,7 +14,6 @@
 
 package com.splicemachine.utils;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * A ByteSlice that keeps an on-demand cached version of
@@ -30,7 +29,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * @author Scott Fines
  *         Date: 1/23/15
  */
-@SuppressFBWarnings(value = "EQ_DOESNT_OVERRIDE_EQUALS",justification = "Intentional")
 public class CachedByteSlice extends ByteSlice {
     private transient byte[] cachedCopy = null;
 
@@ -49,7 +47,6 @@ public class CachedByteSlice extends ByteSlice {
     }
 
     @Override
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public byte[] getByteCopy() {
         if(cachedCopy==null)
             cachedCopy = super.getByteCopy();
@@ -98,7 +95,6 @@ public class CachedByteSlice extends ByteSlice {
     }
 
     @Override
-    @SuppressFBWarnings(value = "CN_IDIOM_NO_SUPER_CALL",justification = "Intentional")
     @SuppressWarnings("CloneDoesntCallSuperClone") //intentionally doesn't call it
     public ByteSlice clone(){
         if(array()==null) return new CachedByteSlice();

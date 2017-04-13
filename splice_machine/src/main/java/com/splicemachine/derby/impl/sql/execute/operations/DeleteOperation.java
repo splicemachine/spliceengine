@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.stream.function.DeletePairFunction;
 import com.splicemachine.derby.stream.function.InsertPairFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -74,7 +75,7 @@ public class DeleteOperation extends DMLWriteOperation {
         TxnView txn = getCurrentTransaction();
 		operationContext.pushScope();
         try {
-            PairDataSet toWrite = set.index(new InsertPairFunction(operationContext),true);
+            PairDataSet toWrite = set.index(new DeletePairFunction(operationContext),true);
 			DataSetWriterBuilder dataSetWriterBuilder = toWrite.deleteData(operationContext)
                 .destConglomerate(heapConglom)
                 .operationContext(operationContext)

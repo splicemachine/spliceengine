@@ -36,7 +36,7 @@ import org.junit.Test;
 
 import com.splicemachine.db.iapi.types.SQLDecimal;
 import com.splicemachine.db.iapi.types.SQLRef;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.CachedByteSlice;

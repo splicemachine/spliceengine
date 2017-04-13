@@ -236,6 +236,8 @@ public	interface	DRDAConstants
     public   static final int DB2_SQLTYPE_FAKE_UDT = 2000;
     public   static final int DB2_SQLTYPE_FAKE_NUDT = 2001;
 	public   static final int DB2_SQLTYPE_FAKE_ARRAY = 2002;
+	public   static final int DB2_SQLTYPE_FAKE_NARRAY = 2003;
+
 
     // DB2 and DRDA support timestamps with microseconds precision, but not
     // nanoseconds precision: yyyy-mm-dd-hh.mm.ss.ffffff

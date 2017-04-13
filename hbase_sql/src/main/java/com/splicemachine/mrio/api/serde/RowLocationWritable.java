@@ -19,7 +19,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.utils.ByteSlice;
 
 import org.apache.hadoop.io.Writable;

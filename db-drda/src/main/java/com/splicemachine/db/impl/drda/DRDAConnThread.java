@@ -8100,8 +8100,10 @@ class DRDAConnThread extends Thread {
 					writer.writeInt(((EngineLOB)val).getLocator());
 					break;
 				case DRDAConstants.DRDA_TYPE_NUDT:
-				case DRDAConstants.DRDA_TYPE_NARRAY:
 					writer.writeUDT( val, index );
+					break;
+				case DRDAConstants.DRDA_TYPE_NARRAY:
+					writer.writeArray( val, index );
 					break;
                 case DRDAConstants.DRDA_TYPE_NROWID:
                     writer.writeRowId(val, index);

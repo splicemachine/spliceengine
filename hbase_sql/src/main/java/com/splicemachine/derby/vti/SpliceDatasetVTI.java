@@ -22,67 +22,45 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.spark.SparkDataSet;
 import com.splicemachine.derby.vti.iapi.DatasetProvider;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 
 import java.sql.*;
 
 /**
  * Created by jleach on 10/7/15.
  */
-public class SpliceParquetVTI implements DatasetProvider, VTICosting {
-    private String connectionUrl;
-    private String schemaName;
-    private String tableName;
-    private String sql; // Bind Variables?
+public class SpliceDatasetVTI implements DatasetProvider, VTICosting {
     protected OperationContext operationContext;
-    public SpliceParquetVTI() {
+    public static final ThreadLocal<Dataset<Row>> datasetThreadLocal = new ThreadLocal();
+    public SpliceDatasetVTI() {
 
     }
-    public SpliceParquetVTI(String connectionUrl, String schemaName, String tableName) {
-        this.connectionUrl = connectionUrl;
-        this.schemaName = schemaName;
-        this.tableName = tableName;
-    }
 
-    public SpliceParquetVTI(String connectionUrl, String sql) {
-        this.connectionUrl = connectionUrl;
-        this.sql = sql;
-    }
-
-
-    public static DatasetProvider getJDBCTableVTI(String connectionUrl, String schemaName, String tableName) {
-        return new SpliceParquetVTI(connectionUrl, schemaName, tableName);
-    }
-
-    public static DatasetProvider getJDBCSQLVTI(String connectionUrl, String sql) {
-        return new SpliceParquetVTI(connectionUrl, sql);
+    public static DatasetProvider getSpliceDatasetVTI() {
+        return new SpliceDatasetVTI();
     }
 
     @Override
     public DataSet<LocatedRow> getDataSet(SpliceOperation op,DataSetProcessor dsp,  ExecRow execRow) throws StandardException {
-        Connection connection = null;
         operationContext = dsp.createOperationContext(op);
-        final PreparedStatement ps;
-        try {
-            connection = DriverManager.getConnection(connectionUrl);
-            ps = connection.prepareStatement(sql != null ? sql : "select * from " + schemaName + "." + tableName);
-            ResultSetIterator it = new ResultSetIterator(connection,ps,execRow);
-            op.registerCloseable(it);
-            return dsp.createDataSet(it);
-        } catch (SQLException e) {
-            throw StandardException.plainWrapException(e);
-        }
+        if (datasetThreadLocal.get() == null)
+            throw new RuntimeException("dataset is null");
+       return SparkDataSet.toSpliceLocatedRow(datasetThreadLocal.get(),operationContext);
     }
 
     @Override
     public double getEstimatedRowCount(VTIEnvironment vtiEnvironment) throws SQLException {
-        return 1000;
+        return 100000;
     }
 
     @Override
     public double getEstimatedCostPerInstantiation(VTIEnvironment vtiEnvironment) throws SQLException {
-        return 0;
+        return 100000;
     }
 
     @Override
@@ -92,19 +70,12 @@ public class SpliceParquetVTI implements DatasetProvider, VTICosting {
 
     @Override
     public ResultSetMetaData getMetaData() throws SQLException {
-        Connection connection = DriverManager.getConnection(connectionUrl);
-        PreparedStatement ps;
-        try {
-            ps = connection.prepareStatement(sql != null ? sql : "select * from " + schemaName + "." + tableName);
-            return ps.getMetaData();
-        } finally {
-            if (connection!=null)
-                connection.close();
-        }
+throw new UnsupportedOperationException();
     }
 
     @Override
     public OperationContext getOperationContext() {
         return operationContext;
     }
+
 }

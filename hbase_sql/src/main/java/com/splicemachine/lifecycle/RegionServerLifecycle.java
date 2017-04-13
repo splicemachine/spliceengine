@@ -110,4 +110,9 @@ public class RegionServerLifecycle implements DistributedDerbyStartup{
     public boolean connectAsFirstTime(){
         return false;
     }
+
+    @Override
+    public boolean useCache() {
+        return true;
+    }
 }

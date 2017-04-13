@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.splicemachine.client.SpliceClient;
 import com.splicemachine.derby.stream.iapi.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
@@ -417,7 +418,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     @Override
     public void openCore() throws StandardException{
         DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation,this);
-        if (dsp.getType() == DataSetProcessor.Type.SPARK && !isOlapServer()) {
+        if (dsp.getType() == DataSetProcessor.Type.SPARK && !isOlapServer() && !SpliceClient.isClient) {
             remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
             remoteQueryClient.submit();
             locatedRowIterator = remoteQueryClient.getIterator();

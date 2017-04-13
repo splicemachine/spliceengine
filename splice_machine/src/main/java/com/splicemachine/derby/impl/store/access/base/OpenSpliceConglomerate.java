@@ -25,7 +25,7 @@ import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import java.util.Arrays;
 
 /**

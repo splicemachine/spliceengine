@@ -27,6 +27,7 @@ package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.DRDAConstants;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
@@ -676,4 +677,17 @@ public class SQLArray extends DataType implements ArrayDataValue {
 	public void setValue(Object theValue) throws StandardException {
 		setValue((Array) theValue);
 	}
+
+	public Array getJavaSQLArray() throws StandardException{
+		return new ArrayImpl(type.getTypeName(), type.getTypeFormatId(),convertObjectArray());
+	}
+
+	private Object[] convertObjectArray() throws StandardException {
+		Object[] objects = new Object[value.length];
+		for (int i = 0; i< objects.length; i++) {
+			objects[i] = value[i].getObject();
+		}
+		return objects;
+	}
+
 }

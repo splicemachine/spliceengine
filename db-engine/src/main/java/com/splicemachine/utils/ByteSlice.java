@@ -17,8 +17,6 @@ package com.splicemachine.utils;
 import com.splicemachine.hash.Hash32;
 import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.primitives.Bytes;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -131,7 +129,6 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice>,Cloneable
         set(bytes,0,bytes.length);
     }
 
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public void set(byte[] buffer, int offset, int length) {
         assertLengthCorrect(buffer, offset, length);
         this.buffer = buffer;
@@ -182,7 +179,6 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice>,Cloneable
         return data;
     }
 
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public byte[] array() {
         return buffer;
     }
@@ -292,7 +288,6 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice>,Cloneable
 
     @Override
     @SuppressWarnings("CloneDoesntCallSuperClone") //intentionally doesn't call it
-    @SuppressFBWarnings(value = "CN_IDIOM_NO_SUPER_CALL",justification = "Intentional")
     public ByteSlice clone() {
         if(buffer == null) return new ByteSlice();
         return new ByteSlice(getByteCopy(), 0, length);

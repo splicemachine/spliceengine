@@ -96,6 +96,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     private volatile TabInfoImpl columnStatsTable=null;
     private volatile TabInfoImpl physicalStatsTable=null;
     private Splice_DD_Version spliceSoftwareVersion;
+    public static boolean IGNORE_CACHE = false;
 
     public static final String SPLICE_DATA_DICTIONARY_VERSION="SpliceDataDictionaryVersion";
     private ConcurrentLinkedHashMap<String, byte[]> sequenceRowLocationBytesMap=null;
@@ -637,6 +638,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     @Override
     public boolean canUseCache(TransactionController xactMgr) throws StandardException {
+        if (IGNORE_CACHE)
+            return false;
         DDLDriver driver=DDLDriver.driver();
         if(driver==null) return false;
         DDLWatcher ddlWatcher=driver.ddlWatcher();

@@ -16,7 +16,7 @@ package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.iapi.types.DataType;
 import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.pipeline.Exceptions;

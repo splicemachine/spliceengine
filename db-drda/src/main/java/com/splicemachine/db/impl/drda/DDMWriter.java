@@ -46,12 +46,14 @@ import java.sql.DataTruncation;
 import java.sql.SQLException;
 import java.util.Arrays;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.DRDAConstants;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.io.DynamicByteArrayOutputStream;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.iapi.types.SQLArray;
 import org.apache.log4j.Logger;
 import org.xerial.snappy.Snappy;
 
@@ -1166,6 +1168,58 @@ class DDMWriter
 	{
 		writeLDString(s, 0, null, false);
 	}
+
+	/**
+	 * Write a value of a user defined type.
+	 *
+	 * @param val object to be written
+	 *
+	 * @exception DRDAProtocolException
+	 */
+	protected void writeArray( Object val, int index ) throws DRDAProtocolException
+	{
+		// should not be called if val is null
+		if (SanityManager.DEBUG)
+		{
+			if ( val == null )
+			{
+				SanityManager.THROWASSERT( "UDT is null" );
+			}
+		}
+
+		byte[] buffer = null;
+		int length = 0;
+
+		try {
+
+			SQLArray arrayValue = (SQLArray) val;
+
+			DynamicByteArrayOutputStream dbaos = new DynamicByteArrayOutputStream();
+			ObjectOutputStream oos = new ObjectOutputStream( dbaos );
+
+			oos.writeObject( ((SQLArray) val).getJavaSQLArray() );
+
+			buffer = dbaos.getByteArray();
+			length = dbaos.getUsed();
+
+		} catch(IOException | StandardException e)
+		{
+			agent.markCommunicationsFailure
+					( e,"DDMWriter.writeUDT()", "", e.getMessage(), "" );
+		}
+
+		if ( length > DRDAConstants.MAX_DRDA_UDT_SIZE )
+		{
+			agent.markCommunicationsFailure
+					( "DDMWriter.writeUDT()", "User defined type is longer than " + DRDAConstants.MAX_DRDA_UDT_SIZE + " bytes.", "", "" );
+		}
+		else
+		{
+			writeShort( length );
+			writeBytes( buffer, 0, length );
+		}
+	}
+
 
 	/**
 	 * Write a value of a user defined type.

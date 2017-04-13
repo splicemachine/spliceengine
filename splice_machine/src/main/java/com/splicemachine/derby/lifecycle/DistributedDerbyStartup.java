@@ -35,4 +35,6 @@ public interface DistributedDerbyStartup{
      *  booted (e.g. create new tables)
      */
     boolean connectAsFirstTime();
+
+    boolean useCache();
 }

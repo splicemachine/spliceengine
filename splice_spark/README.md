@@ -1,12 +1,13 @@
-# Splice Machine Spark Adapter
+## Welcome to Splice Machine's Spark Adapter.
+##### This implements a spark datasource for splice machine and utility methods for CRUD Operations
 
-This is initial infrastructure for Splice Machine's Spark Adapter.
+#### Running Splice Machine code via Spark
 
-## Key Capabilities
+You will need to import certain libraries that will include splicemachine as a possible data source.
 
-Currently, we are just allowing the running of Splice Machine SQL and returning a dataframe.
+```scala
+%spark
 
-TODO ITEMS:
+import com.splicemachine.spark.splicemachine._
 
-Parquet and Orc Reading Via Presto (Spark Readers are terrible performance wise)
-Full Relation Support for Spark SQL.
+```

@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.store.access.hbase;
 
 import com.splicemachine.db.iapi.services.io.FormatableInstanceGetter;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
 
 
 public class HBaseClassInfo extends FormatableInstanceGetter {

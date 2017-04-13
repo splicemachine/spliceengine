@@ -1,55 +1,111 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Copyright (c) 2012 - 2017 Splice Machine, Inc.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
  */
-
 package com.splicemachine.spark.splicemachine
 
+import org.apache.spark.sql.execution.datasources.jdbc.JdbcUtils._
+import org.apache.spark.sql.execution.datasources.jdbc.{JdbcUtils, SpliceRelation, JDBCOptions, JDBCRDD}
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{DataFrame, Row, SQLContext, SaveMode}
+import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
 
 class DefaultSource extends RelationProvider with CreatableRelationProvider
   with SchemaRelationProvider {
 
+
   override def createRelation(sqlContext: SQLContext,
                               parameters: Map[String, String]):
-  BaseRelation = { null }
+  BaseRelation = {
+    new SpliceRelation(new JDBCOptions(parameters))(sqlContext,None)
+  }
+
+  /**
+    *
+    * Creates a relation and inserts data to specified table.
+    *
+    * @param sqlContext
+    * @param mode
+    * @param parameters
+    * @param df
+    * @return
+    */
 
   override def createRelation(sqlContext: SQLContext, mode: SaveMode,
-                              parameters: Map[String, String], data: DataFrame):
-  BaseRelation = { null }
+                              parameters: Map[String, String], df: DataFrame):
+  BaseRelation = {
+    val jdbcOptions = new JDBCOptions(parameters)
+    val url = jdbcOptions.url
+    val table = jdbcOptions.table
+    val createTableOptions = jdbcOptions.createTableOptions
+    val isTruncate = jdbcOptions.isTruncate
+    val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
+    try {
+      val tableExists = JdbcUtils.tableExists(conn, url, table)
+      if (tableExists) {
+        val actualRelation = new SpliceRelation(new JDBCOptions(parameters))(sqlContext,Option.apply(df.schema))
 
+        mode match {
+          case SaveMode.Overwrite =>
+            if (isTruncate && isCascadingTruncateTable(url) == Some(false)) {
+              // In this case, we should truncate table and then load.
+              truncateTable(conn, table)
+              actualRelation.insert(df,true)
+              actualRelation
+            } else {
+              // Otherwise, do not truncate the table, instead drop and recreate it
+              dropTable(conn, table)
+              createTable(df.schema, url, table, createTableOptions, conn)
+              actualRelation.insert(df,false)
+              actualRelation
+            }
+          case SaveMode.Append =>
+            actualRelation.insert(df,false)
+            actualRelation
+
+          case SaveMode.ErrorIfExists =>
+            throw new Exception(
+              s"Table or view '$table' already exists. SaveMode: ErrorIfExists.")
+
+          case SaveMode.Ignore =>
+            actualRelation
+          // With `SaveMode.Ignore` mode, if table already exists, the save operation is expected
+          // to not save the contents of the DataFrame and to not change the existing data.
+          // Therefore, it is okay to do nothing here and then just return the relation below.
+        }
+      } else {
+        createTable(df.schema, url, table, createTableOptions, conn)
+        val actualRelation = new SpliceRelation(new JDBCOptions(parameters))(sqlContext,Option.apply(df.schema))
+        actualRelation.insert(df,false)
+        actualRelation
+      }
+    } finally {
+      conn.close()
+    }
+  }
+
+  /**
+    *
+    * Creates a relation based on the schema
+    *
+    * @param sqlContext
+    * @param parameters
+    * @param schema
+    * @return
+    */
   override def createRelation(sqlContext: SQLContext, parameters: Map[String, String],
                               schema: StructType):
-  BaseRelation = { new SpliceRelation(sqlContext,parameters,schema)  }
-
-  class SpliceRelation(override val sqlContext: SQLContext, parameters : Map[String, String], userSchema : StructType )
-    extends BaseRelation with InsertableRelation with Serializable {
-
-    override def schema: StructType = {
-      if (userSchema != null) {
-        userSchema
-      } else {
-        StructType(
-          StructField("id",IntegerType,false) ::Nil
-        )
-      }
-    }
-
-    override def insert(data: _root_.org.apache.spark.sql.DataFrame, overwrite: Boolean): Unit = ???
+  BaseRelation = {
+    new SpliceRelation(new JDBCOptions(parameters))(sqlContext,Option.apply(schema))
   }
 
 }
