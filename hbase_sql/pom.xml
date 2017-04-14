@@ -50,13 +50,6 @@
             <artifactId>akka-remote_${scala.binary.version}</artifactId>
             <version>2.4.8</version>
         </dependency>
-<!--
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-hive_${scala.binary.version}</artifactId>
-            <version>${spark.version}</version>
-        </dependency>
-    -->
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-mesos_${scala.binary.version}</artifactId>
@@ -495,31 +488,6 @@
             <artifactId>hadoop-common</artifactId>
             <version>${hadoop.version}</version>
         </dependency>
-        <!--
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-aws</artifactId>
-            <version>${hadoop.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-databind</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-core</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>joda-time</groupId>
-                    <artifactId>joda-time</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-annotations</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        -->
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-beeline</artifactId>
@@ -542,32 +510,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <!--
-        <dependency>
-            <groupId>org.apache.hive</groupId>
-            <artifactId>hive-common</artifactId>
-            <scope>provided</scope>
-            <version>${hive.version}</version>
-	    <exclusions>
-		    <exclusion>
-			    <groupId>asm</groupId>
-			    <artifactId>asm</artifactId>
-		    </exclusion>
-            <exclusion>
-                <groupId>com.codahale.metrics</groupId>
-                <artifactId>metrics-core</artifactId>
-            </exclusion>
-            <exclusion>
-                <groupId>com.codahale.metrics</groupId>
-                <artifactId>metrics-jvm</artifactId>
-            </exclusion>
-            <exclusion>
-                <groupId>com.codahale.metrics</groupId>
-                <artifactId>metrics-json</artifactId>
-            </exclusion>
-	    </exclusions>
-        </dependency>
-        -->
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-contrib</artifactId>

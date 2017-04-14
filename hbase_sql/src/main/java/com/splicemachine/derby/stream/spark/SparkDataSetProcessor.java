@@ -469,13 +469,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         assert baseColumnMap != null:"baseColumnMap Null";
         assert partitionColumnMap != null:"partitionColumnMap Null";
         try {
-//            Dataset<Row> table = null;
-            try {
-//                table = SpliceSpark.getSession().read().orc(location);
-            } catch (Exception e) {
-                return handleExceptionInCaseOfEmptySet(e,location);
-            }
-
             SpliceORCPredicate predicate = new SpliceORCPredicate(qualifiers,baseColumnMap,execRow.createStructType());
             Configuration configuration = new Configuration(HConfiguration.unwrapDelegate());
             configuration.set(SpliceOrcNewInputFormat.SPLICE_PREDICATE,predicate.serialize());
