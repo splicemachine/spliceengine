@@ -5869,13 +5869,21 @@ querySpecification(ValueNode[] topNOut) throws StandardException :
 {
 	ResultColumnList	selectList;
 	SelectNode			selectNode;
+	ValueNode           tmpTopN = null;
 	boolean	isDistinct = false;
 }
 {
-	<SELECT> [ isDistinct = setQuantifier() ] [ topNOut[0] = topNClause() ]
+	<SELECT> [ isDistinct = setQuantifier() ] [ tmpTopN = topNClause() ]
 		selectList = selectList()
 		selectNode = tableExpression(selectList)
 	{
+        if (topNOut == null && tmpTopN != null)
+        {
+            throw StandardException.newException(
+            		SQLState.LANG_SYNTAX_ERROR, "TopN is not allowed in SET operation");
+        }
+        if (tmpTopN != null)
+            topNOut[0] = tmpTopN;
 		if (isDistinct) selectNode.makeDistinct();
 		return selectNode;
 	}
@@ -11944,7 +11952,8 @@ propertyList(boolean propertiesUseAllowed) throws StandardException :
 				/* Trim off the leading and trailing ", and compress all "" to " */
 				else if (value.startsWith("\"") && value.endsWith("\""))
 					value = StringUtil.compressQuotes(value.substring(1, value.length() - 1), DOUBLEQUOTES);
-				else if (! InsertNode.STATUS_DIRECTORY.equals(key))
+				else if (! InsertNode.STATUS_DIRECTORY.equals(key) &&
+				         ! InsertNode.BULK_IMPORT_DIRECTORY.equals(key))
 					value = value.toUpperCase();
 				// Do not allow user to specify multiple values for the same key
 				if (properties.put(key, value) != null)

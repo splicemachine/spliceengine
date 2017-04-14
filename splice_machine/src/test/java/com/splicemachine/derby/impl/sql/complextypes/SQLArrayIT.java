@@ -30,6 +30,7 @@ public class SQLArrayIT extends SpliceUnitTest {
     private static final SpliceTableWatcher arrayFive = new SpliceTableWatcher("ARRAY_FIVE",schema.schemaName,"(col1 int array)");
     private static final SpliceTableWatcher arraySix = new SpliceTableWatcher("ARRAY_SIX",schema.schemaName,"(col1 int array)");
     private static final SpliceTableWatcher arraySeven = new SpliceTableWatcher("ARRAY_SEVEN",schema.schemaName,"(col1 int array)");
+    private static final SpliceTableWatcher arrayEight = new SpliceTableWatcher("ARRAY_EIGHT",schema.schemaName,"(col1 int array)");
 
 
     @Rule
@@ -45,6 +46,7 @@ public class SQLArrayIT extends SpliceUnitTest {
             .around(arrayFive)
             .around(arraySix)
             .around(arraySeven)
+            .around(arrayEight)
             .around(new SpliceDataWatcher(){
                 @Override
                 protected void starting(Description description) {
@@ -55,6 +57,7 @@ public class SQLArrayIT extends SpliceUnitTest {
                         classWatcher.executeUpdate(format("insert into %s.%s values ([1,1,1]),(null),([2,1])", schema.schemaName, "ARRAY_FIVE"));
                         classWatcher.executeUpdate(format("insert into %s.%s values ([1,1,1]),(null),([2,1])", schema.schemaName, "ARRAY_SIX"));
                         classWatcher.executeUpdate(format("insert into %s.%s values ([1,1,1]),(null),([2,1])", schema.schemaName, "ARRAY_SEVEN"));
+                        classWatcher.executeUpdate(format("insert into %s.%s values ([1,1,1]),([1,3]),([2,1]),([2,2]),([3])", schema.schemaName, "ARRAY_EIGHT"));
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -199,6 +202,35 @@ public class SQLArrayIT extends SpliceUnitTest {
                 "[1, 1, 1] |\n" +
                 " [2, 1]   |\n" +
                 "  NULL    |", TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs2));
+
+    }
+
+    @Test
+    public void testSortOnArrayElement() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select col1[0] from array_two order by col1[0] nulls first");
+        assertEquals("1  |\n" +
+                "------\n" +
+                "NULL |\n" +
+                "  1  |\n" +
+                "  2  |", TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        ResultSet rs2 = methodWatcher.executeQuery("select col1[0] from array_two order by col1[0] nulls last");
+        assertEquals("1  |\n" +
+                "------\n" +
+                "  1  |\n" +
+                "  2  |\n" +
+                "NULL |", TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs2));
+    }
+
+    @Test
+    public void testGroupByOnArrayElement() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select col1[0], max(col1[1]) from array_eight group by col1[0]");
+        assertEquals(
+                "1 |  2  |\n" +
+                "----------\n" +
+                " 1 |  3  |\n" +
+                " 2 |  2  |\n" +
+                " 3 |NULL |", TestUtils.FormattedResult.ResultFactory.toString(rs));
 
     }
 

@@ -34,6 +34,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -179,11 +180,13 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
              * we're going to sort the values we use clones.  This is not
              * ideal, but it works for now.
              */
-            DataValueDescriptor[] probeValues =
-                    new DataValueDescriptor[probingVals.length];
 
-            for (int i = 0; i < probeValues.length; i++)
-                probeValues[i] = probingVals[i].cloneValue(false);
+            // eliminate duplicates from probeValues
+            HashSet<DataValueDescriptor> vset = new HashSet<DataValueDescriptor>(probingVals.length);
+            for (int i = 0; i < probingVals.length; i++)
+                vset.add(probingVals[i].cloneValue(false));
+
+            DataValueDescriptor[] probeValues = vset.toArray(new DataValueDescriptor[vset.size()]);
 
             if (sortRequired == RowOrdering.ASCENDING)
                 Arrays.sort(probeValues);
@@ -201,7 +204,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 sameStartStopPosition,
                 startSearchOperator,
                 stopSearchOperator,
-                probingVals,
+                probeValues,
                 tableVersion
         );
         init();

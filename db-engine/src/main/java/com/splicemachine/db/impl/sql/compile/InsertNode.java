@@ -53,6 +53,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.vti.DeferModification;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.util.StringUtil;
@@ -60,6 +61,7 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.impl.sql.execute.FKInfo;
 
 import java.sql.Types;
+import java.util.List;
 import java.util.Properties;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
@@ -346,7 +348,9 @@ public final class InsertNode extends DMLModStatementNode {
 		 * that do not have tables.  It's too hard/not work the effort to
 		 * avoid the redundancy.
 		 */
-		super.bindExpressions();
+		List<SelectNode> selectNodeList = RSUtils.collectNodes(resultSet, SelectNode.class);
+		// If underlying resultset is SelectNode, do not bind it again
+        super.bindExpressions(selectNodeList.isEmpty());
 
 		/*
 		** If the result set is a union, it could be a table constructor.
