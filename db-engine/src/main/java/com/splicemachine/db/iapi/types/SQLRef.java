@@ -358,7 +358,7 @@ public class SQLRef extends DataType implements RefDataValue {
 
 	@Override
 	public void read(Row row, int ordinal) throws StandardException {
-		if (row.isNullAt(ordinal))
+		if (row.isNullAt(ordinal) || value == null)
 			value = new SQLRowId();
 		value.read(row,ordinal);
 	}
@@ -419,7 +419,19 @@ public class SQLRef extends DataType implements RefDataValue {
 
 	@Override
 	public void setSparkObject(Object sparkObject) throws StandardException {
-
+		if (sparkObject == null)
+			setToNull();
+		else {
+			value = new HBaseRowLocation();
+			value.setSparkObject(sparkObject);
+			setIsNull(false);
+		}
 	}
 
+	@Override
+	public Object getSparkObject() throws StandardException {
+		if (isNull() || value == null)
+			return null;
+		return value.getSparkObject();
+	}
 }
