@@ -1,0 +1,36 @@
+Steps to install Zeppelin
+
+1.  Keep only these directories in ZEPPELIN_HOME/interpreter
+
+angular	jdbc	lib	md	python	scio	spark
+
+rm -Rf alluxio/
+rm -Rf bgsql/
+rm -Rf cassandra/
+rm -Rf elasticsearch/
+rm -Rf file/
+rm -Rf flink/
+rm -Rf hbase/
+rm -Rf ignite/
+rm -Rf kylin/
+rm -Rf lens/
+rm -Rf livy/
+rm -Rf psql/
+rm -Rf sh/
+
+2.  Clean up tutorials
+
+rm -Rf notebook/2C57UKYWR
+rm -Rf notebook/2C35YU814
+
+
+2.  Install Python Required Libs
+
+pip install matplotlib
+
+3.  Install R
+
+r
+install.packages('knitr', dependencies = TRUE)
+
+4.
