@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.store.access.hbase;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
 import com.splicemachine.utils.ByteSlice;
 import org.junit.Test;

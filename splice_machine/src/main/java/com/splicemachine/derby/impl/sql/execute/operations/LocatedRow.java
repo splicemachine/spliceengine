@@ -18,7 +18,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.KeyableRow;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructType;
 import scala.collection.Map;
