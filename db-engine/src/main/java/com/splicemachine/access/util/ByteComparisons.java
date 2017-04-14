@@ -12,15 +12,25 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.impl.store.access.hbase;
+package com.splicemachine.access.util;
 
-import com.splicemachine.db.iapi.services.io.FormatableInstanceGetter;
-import com.splicemachine.db.iapi.types.HBaseRowLocation;
+import com.splicemachine.primitives.ByteComparator;
+import com.splicemachine.primitives.Bytes;
 
+/**
+ * @author Scott Fines
+ *         Date: 4/20/16
+ */
+public class ByteComparisons{
+    private static volatile ByteComparator COMPARATOR = Bytes.basicByteComparator();
 
-public class HBaseClassInfo extends FormatableInstanceGetter {
+    private ByteComparisons(){}
 
-	public Object getNewInstance() {
-		return new HBaseRowLocation();
-	}
+    public static ByteComparator comparator(){
+        return COMPARATOR;
+    }
+
+    public static void setComparator(ByteComparator comparator){
+        COMPARATOR = comparator;
+    }
 }
