@@ -38,6 +38,7 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 
 import java.io.IOException;
+import java.sql.Timestamp;
 
 /**
  * Created by jyuan on 8/10/16.
@@ -81,7 +82,7 @@ public class BackupUtils {
                     canceled = BackupUtils.backupCanceled();
                     if (!canceled) {
                         // Create a ZNode to indicate that the region is being copied
-                        ZkUtils.recursiveSafeCreate(path, HConfiguration.BACKUP_IN_PROGRESS, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                        ZkUtils.recursiveSafeCreate(path, HConfiguration.BACKUP_IN_PROGRESS, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
                         if (LOG.isDebugEnabled()) {
                             SpliceLogUtils.debug(LOG,"create node %s to mark backup in progress", path);
                         }
@@ -176,7 +177,12 @@ public class BackupUtils {
         boolean isBackup = false;
         try {
             RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
-            if (zooKeeper.exists(path, false) == null) {
+            if (zooKeeper.exists(HConfiguration.getConfiguration().getBackupPath(), false) == null ||
+                    backupTimedout()) {
+                // Not in backup or backup timed out
+                isBackup = false;
+            }
+            else if (zooKeeper.exists(path, false) == null) {
                 if (LOG.isDebugEnabled())
                     SpliceLogUtils.debug(LOG, "Table %s region %s is not in backup", tableName, regionName);
                 isBackup = false;
@@ -187,13 +193,11 @@ public class BackupUtils {
                     if (LOG.isDebugEnabled())
                         SpliceLogUtils.debug(LOG, "Table %s region %s is in backup", tableName, regionName);
                     isBackup = true;
-                }
-                else if (Bytes.compareTo(status, HConfiguration.BACKUP_DONE) == 0) {
+                } else if (Bytes.compareTo(status, HConfiguration.BACKUP_DONE) == 0) {
                     if (LOG.isDebugEnabled())
                         SpliceLogUtils.debug(LOG, "Table %s region %s is done with backup", tableName, regionName);
                     isBackup = false;
-                }
-                else {
+                } else {
                     throw new RuntimeException("Unexpected data in node:" + path);
                 }
             }
@@ -232,7 +236,9 @@ public class BackupUtils {
                         byte[] status = ZkUtils.getData(path);
                         if (Bytes.compareTo(status, HConfiguration.BACKUP_DONE) == 0) {
                             if (LOG.isDebugEnabled()) {
-                                SpliceLogUtils.debug(LOG, "Table %s is being backup", tableName);
+                                SpliceLogUtils.debug(LOG, "Table %s is in full backup", tableName);
+                                SpliceLogUtils.debug(LOG, "Region %s:%s has just finished full backup", tableName,
+                                        region.getRegionInfo().getEncodedName());
                             }
                             shouldRegister = true;
                         }
@@ -302,7 +308,11 @@ public class BackupUtils {
             if (!fs.exists(new Path(backupDir, BackupRestoreConstants.REGION_FILE_NAME))) {
                 HRegionFileSystem.createRegionOnFileSystem(conf, fs, backupDir.getParent(), region.getRegionInfo());
             }
-            out = fs.create(new Path(backupDir.toString() + "/" + SIConstants.DEFAULT_FAMILY_NAME + "/" + fileName));
+            Path p = new Path(backupDir.toString() + "/" + SIConstants.DEFAULT_FAMILY_NAME + "/" + fileName);
+            if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.debug(LOG, "Register %s for incrmental backup", p.toString());
+            }
+            out = fs.create(p);
         }
         catch (Exception e) {
             throw Exceptions.parseException(e);
@@ -331,5 +341,28 @@ public class BackupUtils {
             return true;
 
         return false;
+    }
+
+    private static boolean backupTimedout() throws Exception {
+        String path = HConfiguration.getConfiguration().getBackupPath();
+        byte[] data = ZkUtils.getData(path);
+        BackupJobStatus backupJobStatus = BackupJobStatus.parseFrom(data);
+        long lastActiveTimestamp = backupJobStatus.getLastActiveTimestamp();
+        long currentTimestamp = System.currentTimeMillis();
+        long elapsedTime = currentTimestamp - lastActiveTimestamp;
+        boolean timedout = (lastActiveTimestamp > 0 && elapsedTime > 2 * BackupRestoreConstants.BACKUP_JOB_TIMEOUT);
+        try {
+            if (timedout) {
+                SpliceLogUtils.info(LOG, "Found a timeout backup that were active at %s", new Timestamp(lastActiveTimestamp));
+                ZkUtils.recursiveDelete(path);
+            }
+        }catch (KeeperException e) {
+            if (e.code()!=KeeperException.Code.NONODE) {
+                // Ignore NONODE exception because it may be deleted by another thread.
+                throw e;
+            }
+        }
+
+        return timedout;
     }
 }
