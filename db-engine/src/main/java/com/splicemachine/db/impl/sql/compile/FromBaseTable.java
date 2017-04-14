@@ -631,7 +631,9 @@ public class FromBaseTable extends FromTable {
                     throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK,value); // TODO Fix Error message - JL
                 }
             }
-
+            else if (key.equals("pushAggregates")) {
+                 // this is a valid property
+            }
             else{
                 // No other "legal" values at this time
                 throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key,

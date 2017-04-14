@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
+
 import java.util.*;
 
 /**
@@ -1143,5 +1144,9 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 
     public void setDataSetProcessorType(CompilerContext.DataSetProcessorType dataSetProcessorType) {
         this.dataSetProcessorType = dataSetProcessorType;
+    }
+
+    public Properties getTableProperties() {
+        return tableProperties;
     }
 }

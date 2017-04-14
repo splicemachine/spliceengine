@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.ast.AbstractSpliceVisitor;
 import com.splicemachine.db.impl.ast.CollectingVisitorBuilder;
 import com.splicemachine.db.impl.sql.compile.*;
@@ -43,6 +44,7 @@ import com.splicemachine.db.impl.sql.compile.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Properties;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.spark_project.guava.collect.Multimap;
@@ -133,6 +135,17 @@ public class AggregatePushingVisitor extends AbstractSpliceVisitor implements Vi
         }
 
         assert ft != null;
+
+        // by default, aggregate pushing is turned off. Do aggregation pushing only if hint suggests so
+        Properties tableProperties = ft.getTableProperties();
+        boolean aggregatePushHintOn = false;
+        if (tableProperties != null) {
+            String value = tableProperties.getProperty("pushAggregates");
+            if (value != null && Boolean.parseBoolean(StringUtil.SQLToUpperCase(value)))
+                aggregatePushHintOn = true;
+        }
+        if (!aggregatePushHintOn)
+            return false;
 
         //create a FromSubquery from it with groupby and aggregate + count in the select list
         if (ft instanceof FromBaseTable) {

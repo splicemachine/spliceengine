@@ -88,7 +88,7 @@ public class PushAggregationIT extends SpliceUnitTest {
 
     @Test
     public void testPushAggregationOnSingleTableSingeAggregateColumn() throws Exception {
-        String sqlText = "select a1, sum(c1) from t1, t2 where b1=b2 group by a1";
+        String sqlText = "select a1, sum(c1) from t1 --splice-properties pushAggregates=true\n, t2 where b1=b2 group by a1";
 
         rowContainsQuery(9,"explain " + sqlText,"GroupBy",methodWatcher);
 
@@ -107,7 +107,7 @@ public class PushAggregationIT extends SpliceUnitTest {
 
     @Test
     public void testPushAggregationOnSingleTableMultipleAggregateColumns() throws Exception {
-        String sqlText = "select a1, sum(c1), count(c1) from t1, t2 where b1=b2 group by a1";
+        String sqlText = "select a1, sum(c1), count(c1) from t1 --splice-properties pushAggregates=true\n, t2 where b1=b2 group by a1";
 
         rowContainsQuery(9,"explain " + sqlText,"GroupBy",methodWatcher);
 
@@ -123,4 +123,5 @@ public class PushAggregationIT extends SpliceUnitTest {
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
+
 }
