@@ -111,6 +111,24 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         isSplitting = true;
         super.preSplit(e);
     }
+    @Override
+    public void preSplit(ObserverContext<RegionCoprocessorEnvironment> c, byte[] splitRow) throws IOException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "BackupEndpointObserver.preSplit()");
+
+        BackupUtils.waitForBackupToComplete(tableName, regionName, path);
+        isSplitting = true;
+        super.preSplit(c, splitRow);
+    }
+
+    @Override
+    public void postRollBackSplit(ObserverContext<RegionCoprocessorEnvironment> ctx) throws IOException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "BackupEndpointObserver.postRollBackSplit()");
+
+        isSplitting = false;
+        super.postRollBackSplit(ctx);
+    }
 
     @Override
     public void postSplit(ObserverContext<RegionCoprocessorEnvironment> e, HRegion l, HRegion r) throws IOException {
@@ -144,6 +162,15 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         super.postCompact(e, store, resultFile);
         isCompacting = false;
     }
+
+    @Override
+    public InternalScanner preFlush(ObserverContext<RegionCoprocessorEnvironment> e, Store store, InternalScanner scanner) throws IOException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "BackupEndpointObserver.preFlush()");
+        BackupUtils.waitForBackupToComplete(tableName, regionName, path);
+        isFlushing = true;
+        return super.preFlush(e,store,scanner);
+    }
     
     @Override
     public void preFlush(ObserverContext<RegionCoprocessorEnvironment> e) throws IOException {
@@ -167,5 +194,13 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         } catch (Exception ex) {
             throw new IOException(ex);
         }
+    }
+
+    @Override
+    public void postFlush(ObserverContext<RegionCoprocessorEnvironment> e) throws IOException {
+        SpliceLogUtils.info(LOG, "Flushing region %s.%s", tableName, regionName);
+        if (!BackupUtils.isSpliceTable(namespace, tableName))
+            return;
+        isFlushing = false;
     }
 }
