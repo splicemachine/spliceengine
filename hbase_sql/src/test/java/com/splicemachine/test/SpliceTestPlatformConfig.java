@@ -189,11 +189,12 @@ class SpliceTestPlatformConfig {
         config.set("hbase.cluster.distributed", "true");  // don't start zookeeper for us
         config.set("hbase.master.distributed.log.splitting", "false"); // TODO: explain why we are setting this
 
+        //
         // AWS Credentials for test...
         //
 
-        config.set("presto.s3.access-key","AKIAIWVXS5FSUZHSGQ7A");
-        config.set("presto.s3.secret-key","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");
+        //config.set("presto.s3.access-key","");
+        //config.set("presto.s3.secret-key","");
         config.set("fs.s3a.impl",com.splicemachine.fs.s3.PrestoS3FileSystem.class.getCanonicalName());
         config.set("hive.exec.orc.split.strategy","BI");
 
