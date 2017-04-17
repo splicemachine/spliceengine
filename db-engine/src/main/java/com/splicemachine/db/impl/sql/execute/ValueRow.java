@@ -66,7 +66,7 @@ public class ValueRow implements ExecRow, Externalizable {
 
 	private DataValueDescriptor[] column;
 	private int ncols;
-	private String hmm = null;
+	private int hash = 0; // Cached value of hashCode(). Invalidate on any change to the object.
 
 	///////////////////////////////////////////////////////////////////////
 	//
@@ -105,6 +105,7 @@ public class ValueRow implements ExecRow, Externalizable {
 	public void getNewObjectArray()
 	{
 		column = new DataValueDescriptor[ncols];
+        hash = 0;
 	}
 
 	/*
@@ -121,6 +122,7 @@ public class ValueRow implements ExecRow, Externalizable {
 
 	// position is 1-based.
 	public void setColumn(int position, DataValueDescriptor col) {
+        hash = 0;
         try {
             column[position-1] = col;
         } catch (Exception e) {
@@ -191,6 +193,7 @@ public class ValueRow implements ExecRow, Externalizable {
      * Reset all columns in the row array to null values.
      */
     public void resetRowArray() {
+        hash = 0;
         for (int i = 0; i < column.length; i++) {
             if (column[i] != null) {
                 column[i] = column[i].recycle();
@@ -262,6 +265,7 @@ public class ValueRow implements ExecRow, Externalizable {
 	 */
 	public void setRowArray(DataValueDescriptor[] value)
 	{
+        hash = 0;
 		column = value;
 	}
 		
@@ -317,6 +321,7 @@ public class ValueRow implements ExecRow, Externalizable {
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
+		out.writeInt(hash);
 		out.writeInt(ncols);
 		for (DataValueDescriptor desc: column) {
 			out.writeObject(desc);
@@ -325,6 +330,7 @@ public class ValueRow implements ExecRow, Externalizable {
 
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        hash = in.readInt();
 		ncols = in.readInt();
 		column = new DataValueDescriptor[ncols];
 		for (int i = 0; i < ncols; i++) {
@@ -333,7 +339,10 @@ public class ValueRow implements ExecRow, Externalizable {
 	}
 
     public int hashCode() {
-		return MurmurHash3.arrayHashing().hash(column);
+        if (hash == 0) {
+            hash = MurmurHash3.arrayHashing().hash(column);
+        }
+        return hash;
     }
 
     public boolean equals(Object obj) {
