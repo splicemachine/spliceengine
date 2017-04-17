@@ -20,21 +20,14 @@ import java.io.ObjectOutput;
 
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.output.HBaseBulkImporter;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.db.client.am.SqlCode;
-import com.splicemachine.db.client.am.SqlState;
-import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.si.api.server.ClusterHealth;
 import com.splicemachine.storage.Partition;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -55,7 +48,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.stream.function.InsertPairFunction;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
@@ -65,8 +57,6 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.Pair;
-
-import static com.splicemachine.derby.utils.BaseAdminProcedures.getDefaultConn;
 
 
 /**
