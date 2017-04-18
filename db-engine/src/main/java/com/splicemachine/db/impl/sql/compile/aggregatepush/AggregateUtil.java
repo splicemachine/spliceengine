@@ -74,10 +74,10 @@ public class AggregateUtil {
     }
 
     public static AggregateNode rewriteFinalAggregateNode(SelectNode outerSelectNode,
-                                                           AggregateNode origAggregateNode,
-                                                           FromSubquery fromSubquery,
-                                                           int aggrColId) throws StandardException {
-
+                                                          AggregateNode origAggregateNode,
+                                                          ValueNode duplicateFactor,
+                                                          FromSubquery fromSubquery,
+                                                          int aggrColId) throws StandardException {
         String origAggName = origAggregateNode.getAggregateName();
         Class  aggregateClass = null;
         String aggregateName = origAggName;
@@ -103,15 +103,29 @@ public class AggregateUtil {
         }
 
         //prepare ValueNode
-        ResultColumn aggrColumn = fromSubquery.getResultColumns().elementAt(aggrColId-1);
+        ValueNode expressionNode;
+        if (aggrColId >= 0) {
+            ResultColumn aggrColumn = fromSubquery.getResultColumns().elementAt(aggrColId - 1);
 
-        ColumnReference expressionNode = (ColumnReference)outerSelectNode.
-                getNodeFactory().getNode(
-                C_NodeTypes.COLUMN_REFERENCE,
-                aggrColumn.getName(),
-                null,
-                outerSelectNode.getContextManager());
+            expressionNode = (ColumnReference) outerSelectNode.
+                    getNodeFactory().getNode(
+                    C_NodeTypes.COLUMN_REFERENCE,
+                    aggrColumn.getName(),
+                    null,
+                    outerSelectNode.getContextManager());
+        } else {
+            // get the expression from the original aggregate
+            expressionNode = origAggregateNode.getOperand();
+        }
 
+        if (duplicateFactor != null) {
+            expressionNode = (ValueNode)outerSelectNode.
+                    getNodeFactory().getNode(
+                            C_NodeTypes.BINARY_TIMES_OPERATOR_NODE,
+                            expressionNode,
+                            duplicateFactor,
+                            outerSelectNode.getContextManager());
+        }
 
         AggregateNode finalAggr = (AggregateNode)outerSelectNode.
                 getNodeFactory().getNode(C_NodeTypes.AGGREGATE_NODE,
@@ -157,7 +171,11 @@ public class AggregateUtil {
 
     public static int addCountAggregation(SelectNode selectNode,
                                            int aggCount) throws StandardException {
-        ValueNode valueNode = null;
+        ValueNode valueNode = (ValueNode)selectNode.
+                        getNodeFactory().getNode(
+                        C_NodeTypes.INT_CONSTANT_NODE,
+                        new Integer(1),
+                        selectNode.getContextManager());
 
         AggregateNode countAggr = (AggregateNode)selectNode.
                 getNodeFactory().getNode(C_NodeTypes.AGGREGATE_NODE,
@@ -177,10 +195,6 @@ public class AggregateUtil {
         return addAggregateNode(selectNode, countAggr, aggCount);
     }
 
-    public static void replaceAggregateNode(SelectNode selectNode,
-                                            AggregateNode finalAggregateNode,
-                                            AggregateNode origAggregateNode) throws StandardException {
-    }
 
     public static int locateColumn(ResultColumnList targetRCL, ValueNode colRef) throws StandardException {
         int rclSize = targetRCL.size();
