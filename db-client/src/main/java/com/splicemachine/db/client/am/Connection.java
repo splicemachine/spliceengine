@@ -172,6 +172,9 @@ public abstract class Connection
     public int portNumber_;
     public int clientSSLMode_ = ClientBaseDataSource.SSL_OFF;
 
+    public String principal;
+    public String keytab;
+
     java.util.Hashtable clientCursorNameCache_ = new java.util.Hashtable();
     public int commBufferSize_ = 32767;
 
@@ -325,6 +328,9 @@ public abstract class Connection
         serverNameIP_ = serverName;
         portNumber_ = portNumber;
         clientSSLMode_ = ClientDataSource.getClientSSLMode(properties);
+
+        principal = ClientDataSource.getClientPrincipal(properties);
+        keytab =  ClientDataSource.getClientKeytab(properties);
 
         agent_ = newAgent_(logWriter,
                 loginTimeout_,
