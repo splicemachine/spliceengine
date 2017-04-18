@@ -67,16 +67,18 @@ public class JNDIAuthenticationService
 		// - if db.connection.requireAuthentication system
 		//   property is set to true.
 		// - if db.authentication.provider is set to one
-		// of the JNDI scheme we support (i.e. LDAP).
+		// of the JNDI scheme we support (LDAP or Kerberos).
 		//
 
         String authenticationProvider = PropertyUtil.getPropertyFromSet(
             properties,
             Property.AUTHENTICATION_PROVIDER_PARAMETER);
 
-        return (authenticationProvider != null) &&
-            (StringUtil.SQLEqualsIgnoreCase(authenticationProvider,
-                                            Property.AUTHENTICATION_PROVIDER_LDAP));
+		return (authenticationProvider != null) &&
+				(StringUtil.SQLEqualsIgnoreCase(authenticationProvider,
+						Property.AUTHENTICATION_PROVIDER_LDAP) ||
+				StringUtil.SQLEqualsIgnoreCase(authenticationProvider,
+						Property.AUTHENTICATION_PROVIDER_KERBEROS));
 
     }
 
@@ -100,6 +102,10 @@ public class JNDIAuthenticationService
 		// Set ourselves as being ready and loading the proper
 		// authentication scheme for this service
 		UserAuthenticator aJNDIAuthscheme;
+
+		String authenticationProvider = PropertyUtil.getPropertyFromSet(
+				properties,
+				Property.AUTHENTICATION_PROVIDER_PARAMETER);
 
 		// we're dealing with LDAP
 		aJNDIAuthscheme = ManagerLoader.load().getAuthenticationManager(this, properties);
