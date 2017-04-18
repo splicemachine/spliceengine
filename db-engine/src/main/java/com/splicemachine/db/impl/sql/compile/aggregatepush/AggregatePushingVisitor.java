@@ -46,7 +46,6 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Properties;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.spark_project.guava.collect.Multimap;
 import org.spark_project.guava.collect.Multimaps;
 
@@ -91,7 +90,7 @@ public class AggregatePushingVisitor extends AbstractSpliceVisitor implements Vi
             return node;
 
         //TODO
-        // if there are aggregates other than Min, Max, Count Sum, do not trigger this optimization
+        // if there are aggregates other than Min, Max, Count, Sum, do not trigger this optimization
 
         List<AggregateNode> pushableAggregates = new ArrayList<>();
         for (AggregateNode aggregateNode: topSelectNode.getSelectAggregates()) {
@@ -105,24 +104,30 @@ public class AggregatePushingVisitor extends AbstractSpliceVisitor implements Vi
                 return node;
         }
 
+        // create aggregate pushing context
+        AggregatePushingContext apContexts = new AggregatePushingContext(topSelectNode);
+
         // group the aggregates based on the base table number
         Multimap<Integer, AggregateNode> aggrMap =
                 Multimaps.index(pushableAggregates, new AggregateNode.AggregateNodeTableNumberFunction());
 
+        boolean anyAggregatePushed = false;
         for (Integer tableNumber: aggrMap.keySet()) {
-            push(topSelectNode, new ArrayList<>(aggrMap.get(tableNumber)));
+            SingleTableAggrPushContext aContext = push(topSelectNode, tableNumber, new ArrayList<>(aggrMap.get(tableNumber)));
+            apContexts.addContext(aContext);
+            if (aContext.isPushed())
+                anyAggregatePushed = true;
         }
+
+        //Generate the final aggregates based on the original ones
+        if (anyAggregatePushed)
+            generateFinalAggregates(topSelectNode, apContexts);
         return node;
     }
 
-    private boolean push(SelectNode topSelectNode, List<AggregateNode> aggrList) throws StandardException {
-        if (aggrList.size() == 0)
-            return false;
-
-        //get the base table from the FromTable list
-        ColumnReference cr = (ColumnReference)aggrList.get(0).getOperand();
-
-        int tableNumber = cr.getTableNumber();
+    private SingleTableAggrPushContext push(SelectNode topSelectNode,
+                                            int tableNumber,
+                                            List<AggregateNode> aggrList) throws StandardException {
         FromTable ft = null;
         FromList fromList = topSelectNode.getFromList();
 
@@ -135,6 +140,10 @@ public class AggregatePushingVisitor extends AbstractSpliceVisitor implements Vi
         }
 
         assert ft != null;
+        SingleTableAggrPushContext aContext = new SingleTableAggrPushContext(ft, aggrList);
+
+        if (aggrList.size() == 0)
+            return aContext;
 
         // by default, aggregate pushing is turned off. Do aggregation pushing only if hint suggests so
         Properties tableProperties = ft.getTableProperties();
@@ -145,25 +154,25 @@ public class AggregatePushingVisitor extends AbstractSpliceVisitor implements Vi
                 aggregatePushHintOn = true;
         }
         if (!aggregatePushHintOn)
-            return false;
+            return aContext;
 
         //create a FromSubquery from it with groupby and aggregate + count in the select list
-        if (ft instanceof FromBaseTable) {
-            replaceTableWithFromSubquery(aggrList, (FromBaseTable)ft, tableNumber, topSelectNode, tabPosInFL);
-        } else
-            return false;
+        replaceTableWithFromSubquery(topSelectNode, tabPosInFL, aContext);
 
-        return true;
-
+        return aContext;
     }
 
-    private FromSubquery replaceTableWithFromSubquery(List<AggregateNode> aggregateList,
-                                                      FromBaseTable ft,
-                                                      int baseTableNumber,
-                                                      SelectNode outerSelect,
-                                                      int tabPosInFL) throws StandardException {
+    private void replaceTableWithFromSubquery(SelectNode outerSelect,
+                                              int tabPosInFL,
+                                              SingleTableAggrPushContext aContext) throws StandardException {
         ContextManager cm = outerSelect.getContextManager();
         NodeFactory nf = outerSelect.getNodeFactory();
+        List<AggregateNode> aggregateList = aContext.getAggrList();
+        if (!(aContext.getOrigTable() instanceof FromBaseTable))
+            return;
+
+        FromBaseTable ft = (FromBaseTable)aContext.getOrigTable();
+        int baseTableNumber = ft.getTableNumber();
 
         //create a SelectNode
         // 1: create a FromList to hold the base table
@@ -216,16 +225,16 @@ public class AggregatePushingVisitor extends AbstractSpliceVisitor implements Vi
         // if they are empty
         selectNode.setupnInitFields();
 
-        List<Pair<AggregateNode, Integer>> aggrColMap = new ArrayList<Pair<AggregateNode, Integer>>();
+        List<Integer> aggrColIdList = new ArrayList<>();
 
         //Push the original aggregate to the base table
         for (AggregateNode aggrNode:aggregateList) {
             int aggrColId = AggregateUtil.addAggregateNode(selectNode, aggrNode, ++aggCount);
-            aggrColMap.add(Pair.of(aggrNode, aggrColId));
+            aggrColIdList.add(aggrColId);
         }
 
         //Generate Count aggregation on the base table
-        AggregateUtil.addCountAggregation(selectNode, ++aggCount);
+        int countColId = AggregateUtil.addCountAggregation(selectNode, ++aggCount);
 
         //genreate RCL for FromSubquery
         ResultColumnList newRcl = selectNode.getResultColumns().copyListAndObjects();
@@ -250,7 +259,8 @@ public class AggregatePushingVisitor extends AbstractSpliceVisitor implements Vi
         selectNode.getFromList().setLevel(origNestingLevel+1);
         baseTable.setLevel(origNestingLevel + 1);
 
-        //TODO: should we push in single table predicate?
+        //TODO: Should we push in single table predicate?
+        //No need
 
         // update all column references' nestinglevel in the fromSubquery
         ColumnNestingLevelAdjustor cnlAdjustor = new ColumnNestingLevelAdjustor(baseTableNumber);
@@ -258,11 +268,6 @@ public class AggregatePushingVisitor extends AbstractSpliceVisitor implements Vi
 
         // replace the original FromBaseTable with the new FromSubquery
         outerSelect.getFromList().setElementAt(fromSubquery, tabPosInFL);
-
-        //Generate the final aggregates based on the original ones
-        for (Pair<AggregateNode,Integer> pair:aggrColMap)
-            AggregateUtil.rewriteFinalAggregateNode(outerSelect, pair.getLeft(), fromSubquery, pair.getRight());
-
 
         // update column references in the outer query block for all the column references
         // originally pointing to this base table
@@ -289,11 +294,37 @@ public class AggregatePushingVisitor extends AbstractSpliceVisitor implements Vi
         if (obList != null)
             obList.accept(columnMapVisitor);
         //TODO: what about other fields, like having, and original Where ...
-        return fromSubquery;
+
+        //populate the aggregate context
+        aContext.setFromSubquery(fromSubquery);
+        aContext.setAggrColIdList(aggrColIdList);
+        aContext.setCountColId(countColId);
+        return;
     }
 
     private String getSubqueryAlias() {
         return String.format(AGGREGATE_PUSH_ALIAS_PREFIX + "%s", ++pushCount);
     }
 
+
+    void generateFinalAggregates(SelectNode outerSelect,
+                                 AggregatePushingContext apContexts) throws StandardException {
+
+        apContexts.computeDuplicationFactors();
+
+
+        for (int i=0; i<apContexts.getNumOfContexts(); i++) {
+            SingleTableAggrPushContext aContext = apContexts.getContext(i);
+            List<AggregateNode> aggrList = aContext.getAggrList();
+            List<Integer> aggrColIdList = aContext.getAggrColIdList();
+            boolean aggrPushed = aContext.isPushed();
+            for (int j=0; j<aggrList.size(); j++)
+                AggregateUtil.rewriteFinalAggregateNode(outerSelect,
+                                                        aggrList.get(j),
+                                                        aContext.getDuplicationFactor(),
+                                                        aggrPushed?aContext.getFromSubquery():null,
+                                                        aggrPushed?aggrColIdList.get(j):-1);
+        }
+        return;
+    }
 }
