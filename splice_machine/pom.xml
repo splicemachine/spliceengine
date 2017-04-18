@@ -157,7 +157,7 @@
                     <systemProperties>
                         <systemProperty>
                             <key>ij.connection.splice</key>
-                            <value>jdbc:splice://localhost:${ij.connection.port}/splicedb;user=splice;password=admin
+                            <value>jdbc:splice://localhost:${ij.connection.port}/splicedb;user=splice
                             </value>
                         </systemProperty>
                     </systemProperties>

@@ -308,6 +308,9 @@ public final class NativeAuthenticationServiceImpl
         throws SQLException
 	{
         try {
+            if (Boolean.parseBoolean(info.getProperty(Attribute.DRDA_KERSEC_AUTHED))) {
+                return true;
+            }
             // No "guest" user
             if ( userName == null ) { return false; }
             if ( userPassword == null ) { return false; }

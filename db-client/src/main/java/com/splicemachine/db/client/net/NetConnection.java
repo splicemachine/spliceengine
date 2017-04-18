@@ -26,6 +26,7 @@ package com.splicemachine.db.client.net;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
+import java.security.PrivilegedAction;
 import java.sql.*;
 import java.util.Properties;
 import java.util.concurrent.Executor;
@@ -44,6 +45,14 @@ import com.splicemachine.db.client.ClientPooledConnection;
 
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
+import org.ietf.jgss.GSSContext;
+import org.ietf.jgss.GSSException;
+import org.ietf.jgss.GSSManager;
+import org.ietf.jgss.GSSName;
+import org.ietf.jgss.Oid;
+
+import javax.security.auth.Subject;
+import javax.security.auth.login.LoginContext;
 
 public class NetConnection extends com.splicemachine.db.client.am.Connection {
     
@@ -150,6 +159,8 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
 
     // stored the password for deferred reset only.
     private transient char[] deferredResetPassword_ = null;
+
+    byte[] secToken;
     
     //If Network Server gets null connection from the embedded driver, 
     //it sends RDBAFLRM followed by SQLCARD with null SQLException.
@@ -442,7 +453,10 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
                 checkUserPassword(user_, password);
                 flowUSRSSBPWDconnect(password);
                 break;
-
+            case NetConfiguration.SECMEC_KERSEC: // Kerberos
+                // do stuff;
+                flowKERSECconnect();
+                break;
             default:
                 throw new SqlException(agent_.logWriter_, 
                     new ClientMessageId(SQLState.SECMECH_NOT_SUPPORTED),
@@ -606,6 +620,103 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
                 password,
                 null, //encryptedUserid
                 null); //encryptedPassword
+    }
+
+    private void flowKERSECconnect() throws SqlException {
+        // ACCSEC
+        flowServerAttributesAndKeyExchange(NetConfiguration.SECMEC_KERSEC,
+                null); // publicKey
+
+        try {
+            // Create a LoginContext with a callback handler
+            LoginContext loginContext = new LoginContext("client");
+
+            // Perform authentication
+            loginContext.login();
+
+            Exception exception = Subject.doAs(loginContext.getSubject(), new PrivilegedAction<Exception>() {
+                @Override
+                public Exception run() {
+                    try {
+                    /*
+                     * This Oid is used to represent the Kerberos version 5 GSS-API
+                     * mechanism. It is defined in RFC 1964. We will use this Oid
+                     * whenever we need to indicate to the GSS-API that it must
+                     * use Kerberos for some purpose.
+                     */
+                        Oid krb5Oid = new Oid("1.2.840.113554.1.2.2");
+
+                        GSSManager manager = GSSManager.getInstance();
+
+                        /*
+                         * Create a GSSName out of the server's name.
+                         */
+                        GSSName serverName = manager.createName("splicemachine@touro.local", GSSName.NT_HOSTBASED_SERVICE);
+
+                        /*
+                         * Create a GSSContext for mutual authentication with the
+                         * server.
+                         *    - serverName is the GSSName that represents the server.
+                         *    - krb5Oid is the Oid that represents the mechanism to
+                         *      use. The client chooses the mechanism to use.
+                         *    - null is passed in for client credentials
+                         *    - DEFAULT_LIFETIME lets the mechanism decide how long the
+                         *      context can remain valid.
+                         * Note: Passing in null for the credentials asks GSS-API to
+                         * use the default credentials. This means that the mechanism
+                         * will look among the credentials stored in the current Subject
+                         * to find the right kind of credentials that it needs.
+                         */
+                        GSSContext context = manager.createContext(serverName,
+                                krb5Oid,
+                                null,
+                                GSSContext.DEFAULT_LIFETIME);
+
+                        // Set the desired optional features on the context. The client
+                        // chooses these options.
+
+                        context.requestMutualAuth(true);  // Mutual authentication
+                        context.requestConf(true);  // Will use confidentiality later
+                        context.requestInteg(true); // Will use integrity later
+
+                        // Do the context eastablishment loop
+                        byte[] token = new byte[0];
+
+                        while (!context.isEstablished()) {
+                            // token is ignored on the first call
+                            token = context.initSecContext(token, 0, token.length);
+
+                            // Send a token to the server if one was generated by
+                            // initSecContext
+                            if (token != null) {
+                                // SECCHK
+                                flowSecurityCheckAndAccessRdb(targetSecmec_, //securityMechanism
+                                        user_,
+                                        null,
+                                        token, //encryptedUserid
+                                        null); //encryptedPassword
+                            }
+
+                            // If the client is done with context establishment
+                            // then there will be no more tokens to read in this loop
+                            if (!context.isEstablished()) {
+                                token = secToken;
+                            }
+                        }
+                    } catch (Exception e) {
+                        return e;
+                    }
+                    return null;
+                }
+            });
+            if (exception != null) {
+                throw exception;
+            }
+        } catch (Exception e) {
+            agent_.accumulateReadException(new SqlException(agent_.logWriter_,
+                    new ClientMessageId(SQLState.NET_CONNECT_AUTH_FAILED),
+                    msgutil.getTextMessage(MessageId.AUTH_INVALID), e));
+        }
     }
 
 
@@ -932,6 +1043,10 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         targetSrvclsnm_ = srvclsnm;      // since then can be optionally returned from the
         targetSrvnam_ = srvnam;          // server
         targetSrvrlslv_ = srvrlslv;
+    }
+
+    void setSecToken(byte[] token) {
+        secToken = token;
     }
 
     // secmecList is always required and will not be null.

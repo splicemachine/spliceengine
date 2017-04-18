@@ -612,6 +612,7 @@ public class NetConnectionReply extends Reply
         checkRequiredObjects(svrcodReceived, secchkcdReceived);
 
         netConnection.securityCheckComplete(svrcod, secchkcd);
+        netConnection.setSecToken(sectkn);
     }
 
 

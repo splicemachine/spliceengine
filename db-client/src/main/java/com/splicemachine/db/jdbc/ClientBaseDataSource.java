@@ -308,7 +308,7 @@ public abstract class ClientBaseDataSource implements Serializable, Referenceabl
 
     //  Default security mechanism is USER_ONLY_SECURITY.
     public final static short propertyDefault_securityMechanism =
-                                    (short) NetConfiguration.SECMEC_USRIDONL;
+                                    (short) NetConfiguration.SECMEC_KERSEC;
 
     
     // We use the NET layer constants to avoid a mapping for the NET driver.
@@ -386,7 +386,7 @@ public abstract class ClientBaseDataSource implements Serializable, Referenceabl
             // return (short)NetConfiguration.SECMEC_USRSSBPWD;
          // ----------------------
          */
-         return (short)NetConfiguration.SECMEC_USRIDPWD;
+         return (short)NetConfiguration.SECMEC_KERSEC;
 
     }
 
