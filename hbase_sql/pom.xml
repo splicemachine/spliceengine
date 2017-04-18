@@ -50,18 +50,137 @@
             <artifactId>akka-remote_${scala.binary.version}</artifactId>
             <version>2.4.8</version>
         </dependency>
-
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-hive_${scala.binary.version}</artifactId>
-            <version>${spark.version}</version>
-        </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-mesos_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>splice_aws</artifactId>
+            <version>2.6.0.1713-SNAPSHOT</version>
+            <classifier>shade</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.amazonaws</groupId>
+                    <artifactId>aws-java-sdk-s3</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.amazonaws</groupId>
+                    <artifactId>aws-java-sdk-kms</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.amazonaws</groupId>
+                    <artifactId>aws-java-sdk-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>software.amazon.ion</groupId>
+                    <artifactId>ion-java</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>joda-time</groupId>
+                    <artifactId>joda-time</artifactId>
+                </exclusion>
+
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.dataformat</groupId>
+                    <artifactId>jackson-dataformat-cbor</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.amazonaws</groupId>
+                    <artifactId>jmespath-java</artifactId>
+                </exclusion>
+
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>io.airlift</groupId>
+            <artifactId>units</artifactId>
+            <version>1.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.guava</groupId>
+                    <artifactId>guava</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>io.airlift</groupId>
+            <artifactId>log</artifactId>
+            <version>0.144</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.guava</groupId>
+                    <artifactId>guava</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>io.airlift</groupId>
+            <artifactId>configuration</artifactId>
+            <version>0.144</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.guava</groupId>
+                    <artifactId>guava</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.google.inject</groupId>
+                    <artifactId>guice</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.google.inject.extensions</groupId>
+                    <artifactId>guice-multibindings</artifactId>
+                </exclusion>
+
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>io.airlift</groupId>
+            <artifactId>testing</artifactId>
+            <version>0.144</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.guava</groupId>
+                    <artifactId>guava</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>io.airlift</groupId>
+            <artifactId>stats</artifactId>
+            <version>0.144</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.guava</groupId>
+                    <artifactId>guava</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>io.airlift</groupId>
+            <artifactId>slice</artifactId>
+            <version>0.28</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.guava</groupId>
+                    <artifactId>guava</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>com.facebook.presto.orc</groupId>
+            <artifactId>orc-protobuf</artifactId>
+            <version>1</version>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.spark</groupId>
@@ -370,29 +489,6 @@
             <version>${hadoop.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-aws</artifactId>
-            <version>${hadoop.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-databind</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-core</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>joda-time</groupId>
-                    <artifactId>joda-time</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-annotations</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-beeline</artifactId>
             <version>${hive.version}</version>
@@ -414,32 +510,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <!--
-        <dependency>
-            <groupId>org.apache.hive</groupId>
-            <artifactId>hive-common</artifactId>
-            <scope>provided</scope>
-            <version>${hive.version}</version>
-	    <exclusions>
-		    <exclusion>
-			    <groupId>asm</groupId>
-			    <artifactId>asm</artifactId>
-		    </exclusion>
-            <exclusion>
-                <groupId>com.codahale.metrics</groupId>
-                <artifactId>metrics-core</artifactId>
-            </exclusion>
-            <exclusion>
-                <groupId>com.codahale.metrics</groupId>
-                <artifactId>metrics-jvm</artifactId>
-            </exclusion>
-            <exclusion>
-                <groupId>com.codahale.metrics</groupId>
-                <artifactId>metrics-json</artifactId>
-            </exclusion>
-	    </exclusions>
-        </dependency>
-        -->
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-contrib</artifactId>
@@ -1421,6 +1491,17 @@
                             </dependency>
                         </dependencies>
                     </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <additionalClasspathElements>
+                                <additionalClasspathElement>${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}</additionalClasspathElement>
+                            </additionalClasspathElements>
+                        </configuration>
+                    </plugin>
+
                 </plugins>
             </build>
         </profile>

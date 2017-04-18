@@ -270,7 +270,8 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
             String escaped,
             String lines,
             String storedAs,
-            String location
+            String location,
+            int partitionRefItem
             ) throws StandardException {
         ExpressionClassBuilder acb = (ExpressionClassBuilder) acbi;
         int numArgs;
@@ -281,10 +282,10 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 		 * sorted.
 		 */
         if (genInListVals) {
-            numArgs = 35;
+            numArgs = 36;
         }
         else {
-            numArgs = 33 ;
+            numArgs = 34 ;
         }
         // Splice: our Hashable joins (MSJ, Broadcast) don't have a notion of store vs. non-store
         // filters, so include any nonStoreRestrictions in the storeRestrictionList
@@ -314,7 +315,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         }
 
         fillInScanArgs2(mb,innerTable, bulkFetch, colRefItem, indexColItem, lockMode, tableLocked, isolationLevel,tableVersion,pin,
-            delimited, escaped, lines, storedAs, location);
+            delimited, escaped, lines, storedAs, location, partitionRefItem);
         return numArgs;
     }
 

@@ -407,7 +407,7 @@ public final class SQLDate extends DataType
 		setValue(computeEncodedDate(value));
 	}
 
-	private SQLDate(int encodedDate) throws StandardException
+	public SQLDate(int encodedDate) throws StandardException
 	{
 		setValue(encodedDate);
 	}

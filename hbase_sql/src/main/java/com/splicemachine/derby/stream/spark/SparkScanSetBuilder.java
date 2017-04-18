@@ -19,6 +19,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.stream.function.TableScanQualifierFunction;
 import org.apache.commons.codec.binary.Base64;
@@ -77,15 +78,17 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
             ScanOperation operation = op==null?null:(ScanOperation) op;
             ExecRow execRow = operation==null?template:op.getExecRowDefinition();
             Qualifier[][] qualifiers = operation == null?null:operation.getScanInformation().getScanQualifiers();
+            DataSet locatedRows;
             if (storedAs.equals("T"))
-                return dsp.readTextFile(op,location,escaped,delimited,baseColumnMap,operationContext,qualifiers,null,execRow).flatMap(new TableScanQualifierFunction(operationContext,null));
-            if (storedAs.equals("P"))
-                return dsp.readParquetFile(baseColumnMap,location,operationContext,qualifiers,null,execRow).flatMap(new TableScanQualifierFunction(operationContext,null));
-            if (storedAs.equals("O"))
-                return dsp.readORCFile(baseColumnMap,location,operationContext,qualifiers,null,execRow).flatMap(new TableScanQualifierFunction(operationContext,null));
+                locatedRows = dsp.readTextFile(op,location,escaped,delimited,baseColumnMap,operationContext,qualifiers,null,execRow);
+            else if (storedAs.equals("P"))
+                locatedRows = dsp.readParquetFile(baseColumnMap,partitionByColumns,location,operationContext,qualifiers,null,execRow);
+            else if (storedAs.equals("O"))
+                locatedRows = dsp.readORCFile(baseColumnMap,partitionByColumns,location,operationContext,qualifiers,null,execRow);
             else {
                 throw new UnsupportedOperationException("storedAs Type not supported -> " + storedAs);
             }
+            return qualifiers == null?locatedRows:locatedRows.flatMap(new TableScanQualifierFunction(operationContext,null));
         }
 
         JavaSparkContext ctx = SpliceSpark.getContext();

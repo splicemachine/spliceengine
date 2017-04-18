@@ -20,6 +20,7 @@ import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.store.access.Qualifier;
@@ -28,10 +29,16 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
 import com.splicemachine.derby.vti.SpliceFileVTI;
+import com.splicemachine.orc.input.OrcMapreduceRecordReader;
+import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
+import com.splicemachine.orc.predicate.SpliceORCPredicate;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.ql.io.orc.OrcNewInputFormat;
+import org.apache.hadoop.hive.serde2.ColumnProjectionUtils;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -42,6 +49,12 @@ import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
+import org.apache.spark.sql.catalyst.InternalRow;
+import org.apache.spark.sql.catalyst.expressions.Expression;
+import org.apache.spark.sql.catalyst.expressions.UnsafeProjection;
+import org.apache.spark.sql.catalyst.expressions.codegen.CodegenContext;
+import org.apache.spark.sql.catalyst.expressions.codegen.ExprCode;
+import org.apache.spark.sql.execution.vectorized.ColumnarBatch;
 import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
 import com.splicemachine.access.HConfiguration;
@@ -69,6 +82,7 @@ import com.splicemachine.mrio.api.core.SMTextInputFormat;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import scala.collection.JavaConverters;
+import scala.collection.Seq;
 
 /**
  * Spark-based DataSetProcessor.
@@ -79,6 +93,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     private boolean permissive;
     private String statusDirectory;
     private String importFileName;
+    private static final Joiner CSV_JOINER = Joiner.on(",").skipNulls();
+
 
     private static final Logger LOG = Logger.getLogger(SparkDataSetProcessor.class);
 
@@ -299,7 +315,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
 
     @Override
-    public <V> DataSet<V> readParquetFile(int[] baseColumnMap, String location,
+    public <V> DataSet<V> readParquetFile(int[] baseColumnMap, int[] partitionColumnMap, String location,
                                           OperationContext context, Qualifier[][] qualifiers,
                                           DataValueDescriptor probeValue,  ExecRow execRow) throws StandardException {
         try {
@@ -422,8 +438,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 .select(cols.toArray(new Column[cols.size()]));
         if (qualifiers !=null) {
             Column filter = createFilterCondition(dataset,allCols, qualifiers, baseColumnMap, probeValue);
-            if (filter != null)
+            if (filter != null) {
                 dataset = dataset.filter(filter);
+            }
         }
         return dataset;
 
@@ -446,24 +463,43 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
-    public <V> DataSet<V> readORCFile(int[] baseColumnMap, String location,
+    public <V> DataSet<V> readORCFile(int[] baseColumnMap,int[] partitionColumnMap, String location,
                                           OperationContext context, Qualifier[][] qualifiers,
                                       DataValueDescriptor probeValue, ExecRow execRow) throws StandardException {
+        assert baseColumnMap != null:"baseColumnMap Null";
+        assert partitionColumnMap != null:"partitionColumnMap Null";
         try {
-            Dataset<Row> table = null;
-            try {
-                table = SpliceSpark.getSession().read().orc(location);
-            } catch (Exception e) {
-                return handleExceptionInCaseOfEmptySet(e,location);
-            }
-            table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
-            return new SparkDataSet(table
-                    .rdd().toJavaRDD()
-                    .map(new RowToLocatedRowFunction(context,execRow)));
+            SpliceORCPredicate predicate = new SpliceORCPredicate(qualifiers,baseColumnMap,execRow.createStructType());
+            Configuration configuration = new Configuration(HConfiguration.unwrapDelegate());
+            configuration.set(SpliceOrcNewInputFormat.SPLICE_PREDICATE,predicate.serialize());
+            configuration.set(SpliceOrcNewInputFormat.SPARK_STRUCT,execRow.createStructType().json());
+            configuration.set(SpliceOrcNewInputFormat.SPLICE_COLUMNS,intArrayToString(baseColumnMap));
+            configuration.set(SpliceOrcNewInputFormat.SPLICE_PARTITIONS,intArrayToString(partitionColumnMap));
+
+            JavaRDD<Row> rows = SpliceSpark.getContext().newAPIHadoopFile(
+                    location,
+                    SpliceOrcNewInputFormat.class,
+                    NullWritable.class,
+                    Row.class,
+                    configuration)
+                            .values();
+            return new SparkDataSet(rows.map(new RowToLocatedRowFunction(context,execRow)));
         } catch (Exception e) {
             throw StandardException.newException(
                     SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
         }
+    }
+
+    private String intArrayToString(int[] ints) {
+        StringBuilder sb = new StringBuilder();
+        boolean first = true;
+        for (int i = 0 ; i < ints.length; i++) {
+            if (!first)
+                sb.append(",");
+            sb.append(ints[i]);
+            first = false;
+        }
+        return sb.toString();
     }
 
     @Override

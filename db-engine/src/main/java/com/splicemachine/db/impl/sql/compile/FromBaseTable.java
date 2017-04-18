@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.catalog.IndexDescriptor;
+import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -2132,6 +2133,15 @@ public class FromBaseTable extends FromTable {
             }
         }
 
+        		/* Generate Partitions if Applicable */
+        int partitionReferenceItem = -1;
+        int[] partitionBy = tableDescriptor.getPartitionBy();
+        if (partitionBy.length != 0)
+            partitionReferenceItem=acb.addItem(new ReferencedColumnsDescriptorImpl(partitionBy));
+
+
+
+
         FormatableIntHolder[] fihArray=
                 FormatableIntHolder.getFormatableIntHolders(hashKeyColumns);
         FormatableArrayHolder hashKeyHolder=new FormatableArrayHolder(fihArray);
@@ -2173,8 +2183,9 @@ public class FromBaseTable extends FromTable {
         BaseJoinStrategy.pushNullableString(mb,tableDescriptor.getLines());
         BaseJoinStrategy.pushNullableString(mb,tableDescriptor.getStoredAs());
         BaseJoinStrategy.pushNullableString(mb,tableDescriptor.getLocation());
+        mb.push(partitionReferenceItem);
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getDistinctScanResultSet",
-                ClassName.NoPutResultSet,24);
+                ClassName.NoPutResultSet,25);
     }
 
     private int getScanArguments(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException{
@@ -2220,6 +2231,12 @@ public class FromBaseTable extends FromTable {
 		}
 		*/
 
+        int partitionReferenceItem = -1;
+        int[] partitionBy = tableDescriptor.getPartitionBy();
+        if (partitionBy.length != 0)
+            partitionReferenceItem=acb.addItem(new ReferencedColumnsDescriptorImpl(partitionBy));
+
+
         AccessPath ap=getTrulyTheBestAccessPath();
         JoinStrategy trulyTheBestJoinStrategy=ap.getJoinStrategy();
 
@@ -2258,7 +2275,8 @@ public class FromBaseTable extends FromTable {
                 tableDescriptor.getEscaped(),
                 tableDescriptor.getLines(),
                 tableDescriptor.getStoredAs(),
-                tableDescriptor.getLocation()
+                tableDescriptor.getLocation(),
+                partitionReferenceItem
         );
     }
 

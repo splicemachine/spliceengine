@@ -120,7 +120,8 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                                         String escaped,
                                         String lines,
                                         String storedAs,
-                                        String location
+                                        String location,
+                                        int partitionByRefItem
                                         )
             throws StandardException
     {
@@ -158,7 +159,8 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 escaped,
                 lines,
                 storedAs,
-                location);
+                location,
+                partitionByRefItem);
 
         if (SanityManager.DEBUG)
         {

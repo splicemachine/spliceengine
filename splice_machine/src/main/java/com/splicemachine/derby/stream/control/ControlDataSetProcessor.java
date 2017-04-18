@@ -314,15 +314,15 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <V> DataSet<V> readParquetFile(int[] baseColumnMap, String location, OperationContext context,Qualifier[][] qualifiers,DataValueDescriptor probeValue, ExecRow execRow) throws StandardException {
+    public <V> DataSet<V> readParquetFile(int[] baseColumnMap, int[] partitionColumnMap,String location, OperationContext context,Qualifier[][] qualifiers,DataValueDescriptor probeValue, ExecRow execRow) throws StandardException {
             DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
-            return new ControlDataSet(proc.readParquetFile(baseColumnMap, location, context, qualifiers, probeValue,execRow).toLocalIterator());
+            return new ControlDataSet(proc.readParquetFile(baseColumnMap,partitionColumnMap, location, context, qualifiers, probeValue,execRow).toLocalIterator());
    }
 
     @Override
-    public <V> DataSet<V> readORCFile(int[] baseColumnMap, String location, OperationContext context,Qualifier[][] qualifiers,DataValueDescriptor probeValue, ExecRow execRow) throws StandardException {
+    public <V> DataSet<V> readORCFile(int[] baseColumnMap,int[] partitionColumnMap, String location, OperationContext context,Qualifier[][] qualifiers,DataValueDescriptor probeValue, ExecRow execRow) throws StandardException {
         DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
-        return new ControlDataSet(proc.readORCFile(baseColumnMap,location,context,qualifiers,probeValue,execRow).toLocalIterator());
+        return new ControlDataSet(proc.readORCFile(baseColumnMap,partitionColumnMap,location,context,qualifiers,probeValue,execRow).toLocalIterator());
     }
 
     @Override
