@@ -35,14 +35,7 @@ import com.splicemachine.db.iapi.services.loader.ClassInspector;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
-import com.splicemachine.db.iapi.sql.compile.Optimizer;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
-import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-import com.splicemachine.db.iapi.sql.compile.Visitor;
-import com.splicemachine.db.iapi.sql.compile.RowOrdering;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
@@ -154,6 +147,41 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                 typeDescriptor);
     }
 
+    @Override
+    public void startOptimizing(Optimizer optimizer,RowOrdering rowOrdering){
+        AccessPath ap=getCurrentAccessPath();
+        AccessPath bestAp=getBestAccessPath();
+        AccessPath bestSortAp=getBestSortAvoidancePath();
+
+        ap.setConglomerateDescriptor(null);
+        bestAp.setConglomerateDescriptor(null);
+        bestSortAp.setConglomerateDescriptor(null);
+        ap.setCoveringIndexScan(false);
+        bestAp.setCoveringIndexScan(false);
+        bestSortAp.setCoveringIndexScan(false);
+        ap.setLockMode(0);
+        bestAp.setLockMode(0);
+        bestSortAp.setLockMode(0);
+
+		/*
+		 ** Only need to do this for current access path, because the
+		 ** costEstimate will be copied to the best access paths as
+		 ** necessary.
+		 */
+        CostEstimate costEstimate=getCostEstimate(optimizer);
+        ap.setCostEstimate(costEstimate);
+
+		/*
+		 ** This is the initial cost of this optimizable.  Initialize it
+		 ** to the maximum cost so that the optimizer will think that
+		 ** any access path is better than none.
+		 */
+        costEstimate.setCost(Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE);
+
+        super.startOptimizing(optimizer,rowOrdering);
+    }
+
+
     /**
      * @param invocation		The constructor or static method for the VTI
      * @param correlationName	The correlation name
@@ -204,18 +232,23 @@ public class FromVTI extends FromTable implements VTIEnvironment {
             RowOrdering rowOrdering)
             throws StandardException
     {
-        costEstimate = getCostEstimate(optimizer);
+        costEstimate = getScratchCostEstimate(optimizer);
 
 		/* Cost the VTI if it implements VTICosting.
 		 * Otherwise we use the defaults.
 		 * NOTE: We only cost the VTI once.
 		 */
-        if (implementsVTICosting && ! vtiCosted) {
+        if (implementsVTICosting) {
             try {
                 VTICosting vtic = getVTICosting();
                 estimatedCost = vtic.getEstimatedCostPerInstantiation(this);
                 estimatedRowCount = vtic.getEstimatedRowCount(this);
                 supportsMultipleInstantiations = vtic.supportsMultipleInstantiations(this);
+                costEstimate.setEstimatedCost(estimatedCost);
+                costEstimate.setRowCount(estimatedRowCount);
+                costEstimate.setSingleScanRowCount(estimatedRowCount);
+                costEstimate.setLocalCost(estimatedCost);
+                costEstimate.setRemoteCost(estimatedCost);
             }
             catch (SQLException sqle)
             {
@@ -224,35 +257,14 @@ public class FromVTI extends FromTable implements VTIEnvironment {
             vtiCosted = true;
         }
 
-        costEstimate.setCost(estimatedCost, estimatedRowCount, estimatedRowCount);
+        AccessPath currentAccessPath=getCurrentAccessPath();
+        JoinStrategy currentJoinStrategy=currentAccessPath.getJoinStrategy();
+        OptimizerTrace tracer =optimizer.tracer();
 
-		/*
-		** Let the join strategy decide whether the cost of the base
-		** scan is a single scan, or a scan per outer row.
-		** NOTE: The multiplication should only be done against the
-		** total row count, not the singleScanRowCount.
-		** RESOLVE - If the join strategy does not do materialization,
-		** the VTI does not support multiple instantiations and the
-		** outer row count is not exactly 1 row, then we need to change
-		** the costing formula to take into account the cost of creating
-		** the temp conglomerate, writing to it and reading from it
-		** outerCost.rowCount() - 1 times.
-		*/
-        if (getCurrentAccessPath().
-                getJoinStrategy().
-                multiplyBaseCostByOuterRows())
-        {
-            costEstimate.multiply(outerCost.rowCount(), costEstimate);
-        }
-
-        if ( ! optimized)
-        {
-            subqueryList.optimize(optimizer.getDataDictionary(),
-                    costEstimate.rowCount());
-            subqueryList.modifyAccessPaths();
-        }
-
-        optimized = true;
+        boolean oldIsAntiJoin = outerCost.isAntiJoin();
+        currentJoinStrategy.estimateCost(this,predList,cd,outerCost,optimizer,costEstimate);
+        outerCost.setAntiJoin(oldIsAntiJoin);
+        tracer.trace(OptimizerFlag.COST_OF_N_SCANS,tableNumber,0,outerCost.rowCount(),costEstimate, correlationName);
 
         return costEstimate;
     }
@@ -1018,24 +1030,8 @@ public class FromVTI extends FromTable implements VTIEnvironment {
      * @exception StandardException		Thrown on error
      */
     public boolean performMaterialization(JBitSet outerTables)
-            throws StandardException
-    {
-		/* We need to materialize the VTI iff:
-		 *	o  It is an inner table.
-		 *	o  The VTI can be materialized.
-		 *	o  The VTI cannot be instantiated multiple times.
-		 *	o  The join strategy does not do materialization.
-		 * RESOLVE - We don't have to materialize if all of the
-		 * outer tables are 1 row tables.
-		 */
-        return (outerTables.getFirstSetBit() != -1 &&
-                ! outerTables.hasSingleBitSet() && // Not the outer table
-                (! getTrulyTheBestAccessPath().
-                        getJoinStrategy().
-                        doesMaterialization()) &&		// Join strategy does not do materialization
-                isMaterializable() &&					// VTI can be materialized
-                ! supportsMultipleInstantiations		// VTI does not support multiple instantiations
-        );
+            throws StandardException {
+        return false;
     }
 
     /**
@@ -1775,6 +1771,23 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                 attrDelim + getFinalCostEstimate().prettyProcessingString(attrDelim) +
                 ")";
         return sb;
+    }
+
+    @Override
+    public CostEstimate optimizeIt(Optimizer optimizer,
+                                   OptimizablePredicateList predList,
+                                   CostEstimate outerCost,
+                                   RowOrdering rowOrdering) throws StandardException{
+        optimizer.costOptimizable(this,null,
+                getCurrentAccessPath().getConglomerateDescriptor(),
+                predList,
+                outerCost);
+
+        // The cost that we found from the above call is now stored in the
+        // cost field of this FBT's current access path.  So that's the
+        // cost we want to return here.
+        //        costEstimate.setRowOrdering(rowOrdering);
+        return getCurrentAccessPath().getCostEstimate();
     }
 
 
