@@ -847,6 +847,7 @@
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Djava.awt.headless=true</argument>
+                                <argument>-Djava.security.auth.login.config=jaas-krb5.conf</argument>
                                 <argument>-Dzookeeper.sasl.client=false</argument>
                                 <argument>-Dcom.sun.management.jmxremote.ssl=false</argument>
                                 <argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
