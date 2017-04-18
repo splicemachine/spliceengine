@@ -251,6 +251,16 @@ public interface Attribute {
     String CLIENT_SECURITY_MECHANISM = "securityMechanism";
 
     /**
+     * Kerberos Principal, implies security mechanism = KERBEROS
+     */
+    String CLIENT_KERBEROS_PRINCIPAL = "principal";
+
+    /**
+     * Kerberos keytab, requires setting CLIENT_KERBEROS_PRINCIPAL too
+     */
+    String CLIENT_KERBEROS_KEYTAB = "keytab";
+
+    /**
      * traceFile sets the client side trace file. Client driver attribute.
      */
     String CLIENT_TRACE_FILE = "traceFile";
