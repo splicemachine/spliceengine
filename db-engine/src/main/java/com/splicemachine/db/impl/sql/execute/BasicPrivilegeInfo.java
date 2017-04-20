@@ -196,7 +196,14 @@ public abstract class BasicPrivilegeInfo extends PrivilegeInfo {
 
 	}
 
-
+	public boolean hasColumns() {
+		if(columnBitSets != null && columnBitSets.length>0){
+			for(int i=0; i<columnBitSets.length; i++){
+				if(columnBitSets[i]!= null) return true;
+			}
+		}
+		return false;
+	}
 }
 
 
