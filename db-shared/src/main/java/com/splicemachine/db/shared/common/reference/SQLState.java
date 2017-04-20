@@ -1987,5 +1987,6 @@ public interface SQLState {
 	String DIRECTORY_REQUIRED			    						= "EXT33";
 	String ACCESSING_S3_EXCEPTION                                   = "EXT34";
 
+
 }
 
