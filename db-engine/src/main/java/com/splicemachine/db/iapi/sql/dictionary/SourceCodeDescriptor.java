@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.iapi.sql.dictionary;
 
+import org.joda.time.DateTime;
+
 import java.sql.Blob;
 
 public class SourceCodeDescriptor extends TupleDescriptor{
@@ -40,6 +42,7 @@ public class SourceCodeDescriptor extends TupleDescriptor{
     private String objectType;
     private String objectForm;
     private String definerName;
+    private DateTime lastModified;
     private Blob sourceCode;
 
     public SourceCodeDescriptor() {}
@@ -49,12 +52,14 @@ public class SourceCodeDescriptor extends TupleDescriptor{
                                 String objectType,
                                 String objectForm,
                                 String definerName,
+                                DateTime lastModified,
                                 Blob sourceCode) {
         this.schemaName = schemaName;
         this.objectName = objectName;
         this.objectType = objectType;
         this.objectForm = objectForm;
         this.definerName = definerName;
+        this.lastModified = lastModified;
         this.sourceCode = sourceCode;
     }
 
@@ -76,6 +81,10 @@ public class SourceCodeDescriptor extends TupleDescriptor{
 
     public String getDefinerName() {
         return definerName;
+    }
+
+    public DateTime getLastModified() {
+        return lastModified;
     }
 
     public Blob getSourceCode() {

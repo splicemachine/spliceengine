@@ -20,6 +20,7 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
+import org.joda.time.DateTime;
 import org.spark_project.guava.collect.Lists;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DatabaseVersion;
@@ -913,7 +914,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         try{
             tc.elevate("sourceCode");
             DataDictionary dd = lcc.getDataDictionary();
-            SourceCodeDescriptor descriptor = new SourceCodeDescriptor(schemaName, objectName, objectType, objectForm, definerName, sourceCode);
+            SourceCodeDescriptor descriptor = new SourceCodeDescriptor(schemaName, objectName, objectType, objectForm, definerName, DateTime.now(), sourceCode);
             dd.saveSourceCode(descriptor, tc);
 
         }catch(StandardException se){

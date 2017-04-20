@@ -44,21 +44,25 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.SQLBlob;
+import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.splicemachine.db.iapi.types.SQLVarchar;
+import org.joda.time.DateTime;
 
 import java.sql.Blob;
+import java.sql.Timestamp;
 import java.sql.Types;
 
 public class SYSSOURCECODERowFactory extends CatalogRowFactory {
     private static final String TABLENAME_STRING = "SYSSOURCECODE";
-    private static final int SOURCECODE_COLUMN_COUNT = 6;
+    private static final int SOURCECODE_COLUMN_COUNT = 7;
 
     public static final int SCHEMA_NAME = 1;
     public static final int OBJECT_NAME = 2;
     public static final int OBJECT_TYPE = 3;
     public static final int OBJECT_FORM = 4;
     public static final int DEFINER_NAME = 5;
-    public static final int SOURCE_CODE = 6;
+    public static final int LAST_MODIFIED = 6;
+    public static final int SOURCE_CODE = 7;
 
     static final int SYSSOURCECODE_INDEX1_ID = 0;
 
@@ -87,6 +91,7 @@ public class SYSSOURCECODERowFactory extends CatalogRowFactory {
         String objectType = null;
         String objectForm = null;
         String definerName = null;
+        DateTime lastModified = null;
         Blob sourceCode = null;
 
         if (td != null) {
@@ -96,6 +101,7 @@ public class SYSSOURCECODERowFactory extends CatalogRowFactory {
             objectType = d.getObjectType();
             objectForm = d.getObjectForm();
             definerName = d.getDefinerName();
+            lastModified = d.getLastModified();
             sourceCode = d.getSourceCode();
         }
 
@@ -106,6 +112,7 @@ public class SYSSOURCECODERowFactory extends CatalogRowFactory {
         row.setColumn(OBJECT_TYPE, new SQLVarchar(objectType));
         row.setColumn(OBJECT_FORM, new SQLVarchar(objectForm));
         row.setColumn(DEFINER_NAME, new SQLVarchar(definerName));
+        row.setColumn(LAST_MODIFIED, new SQLTimestamp(lastModified));
         row.setColumn(SOURCE_CODE, new SQLBlob(sourceCode));
 
         return row;
@@ -136,10 +143,13 @@ public class SYSSOURCECODERowFactory extends CatalogRowFactory {
         col = row.getColumn(DEFINER_NAME);
         String definerName = col.getString();
 
+        col = row.getColumn(LAST_MODIFIED);
+        DateTime lastModified = col.getDateTime();
+
         col = row.getColumn(SOURCE_CODE);
         Blob sourceCode = (Blob)col.getObject();
 
-        return new SourceCodeDescriptor(schemaName, objectName, objectType, objectForm, definerName, sourceCode);
+        return new SourceCodeDescriptor(schemaName, objectName, objectType, objectForm, definerName, lastModified, sourceCode);
     }
 
     @Override

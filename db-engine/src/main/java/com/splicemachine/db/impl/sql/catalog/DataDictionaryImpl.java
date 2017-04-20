@@ -10221,6 +10221,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             boolean[] bArray = {false};
             int[] colsToUpdate = {
                     SYSSOURCECODERowFactory.DEFINER_NAME,
+                    SYSSOURCECODERowFactory.LAST_MODIFIED,
                     SYSSOURCECODERowFactory.SOURCE_CODE,
             };
             ti.updateRow(keyRow,row,SYSSOURCECODERowFactory.SYSSOURCECODE_INDEX1_ID,bArray,colsToUpdate,tc);
