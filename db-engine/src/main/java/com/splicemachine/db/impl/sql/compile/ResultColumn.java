@@ -95,6 +95,7 @@ public class ResultColumn extends ValueNode
 	private boolean defaultColumn;
 	private boolean wasDefault;
 	private boolean isPulledupOrderingColumn;
+    private boolean fromLeftChild = true;
 
 	//Following 2 fields have been added for DERBY-4631.
 	//rightOuterJoinUsingClause will be set to true for following 2 cases
@@ -1636,6 +1637,7 @@ public class ResultColumn extends ValueNode
 			newResultColumn.markAsPulledupOrderingColumn();
 		}
 
+        newResultColumn.fromLeftChild = this.fromLeftChild;
 		return newResultColumn;
 	}
 
@@ -1997,6 +1999,14 @@ public class ResultColumn extends ValueNode
 
     public void setColumnDescriptor(ColumnDescriptor columnDescriptor) {
         this.columnDescriptor = columnDescriptor;
+    }
+
+    public void setFromLeftChild(boolean fromLeftChild) {
+        this.fromLeftChild = fromLeftChild;
+    }
+
+    public boolean isFromLeftChild() {
+        return fromLeftChild;
     }
 }
 
