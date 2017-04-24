@@ -222,4 +222,11 @@ public class SpliceStringFunctionsIT {
             Assert.assertEquals("Wrong result value", sCell2, sCell1);
 	    }
     }
+
+    @Test
+    public void testReges() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select count(*) from d where REGEXP_LIKE(a, 'aa*')");
+        rs.next();
+        Assert.assertEquals(3, rs.getInt(1));
+    }
 }
