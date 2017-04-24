@@ -1397,8 +1397,13 @@ public class JoinNode extends TableOperatorNode{
 		/* We get a shallow copy of the left's ResultColumnList and its ResultColumns. (Copy maintains
 		   ResultColumn.expression for now.) */
         resultColumns=leftResultSet.getResultColumns();
+
         ResultColumnList leftRCL=resultColumns.copyListAndObjects();
         leftResultSet.setResultColumns(leftRCL);
+        for (int index = 0; index < resultColumns.size(); ++index) {
+            ResultColumn rc = resultColumns.elementAt(index);
+            rc.setFromLeftChild(true);
+        }
 
 		/* Replace ResultColumn.expression with new VirtualColumnNodes in the ProjectRestrictNode's ResultColumnList.
 		   (VirtualColumnNodes include pointers to source ResultSetNode, this, and source ResultColumn.) */
@@ -1414,6 +1419,11 @@ public class JoinNode extends TableOperatorNode{
         ResultColumnList tmpRCL=rightResultSet.getResultColumns();
         ResultColumnList rightRCL=tmpRCL.copyListAndObjects();
         rightResultSet.setResultColumns(rightRCL);
+
+        for (int index = 0; index < tmpRCL.size(); ++index) {
+            ResultColumn rc = tmpRCL.elementAt(index);
+            rc.setFromLeftChild(false);
+        }
 
 		/* Replace ResultColumn.expression with new VirtualColumnNodes in the ProjectRestrictNode's ResultColumnList.
 		 * (VirtualColumnNodes include pointers to source ResultSetNode, this, and source ResultColumn.)
