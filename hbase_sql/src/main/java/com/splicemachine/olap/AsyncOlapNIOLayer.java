@@ -283,7 +283,6 @@ public class AsyncOlapNIOLayer implements JobExecutor{
                     LOG.trace("Interrupted exception", ie);
             }
 
-            this.keepAlive = executorService.scheduleWithFixedDelay(this, tickTimeNanos, tickTimeNanos, TimeUnit.NANOSECONDS);
         }
 
         void signal(){
@@ -307,6 +306,10 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         @Override
         public void addListener(Runnable runnable, Executor executor) {
             executionList.add(runnable, executor);
+        }
+
+        public void scheduleStatusCheck() {
+            this.keepAlive = executorService.scheduleWithFixedDelay(this, 0, tickTimeNanos, TimeUnit.NANOSECONDS);
         }
     }
 
@@ -511,6 +514,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
             ctx.pipeline().remove(this); //we don't want this in the pipeline anymore
             Channel channel=ctx.channel();
             channelPool.release(channel); //release the underlying channel back to the pool cause we're done
+            future.scheduleStatusCheck();
             future.signal();
         }
 

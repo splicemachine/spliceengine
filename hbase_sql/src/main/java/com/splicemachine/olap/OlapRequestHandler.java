@@ -93,6 +93,12 @@ class OlapRequestHandler extends AbstractOlapHandler{
         }
         final Callable<Void> job=jr.toCallable(jobStatus,clock,clientCheckTimeMs);
 
+        // Tell the client it was successfully submitted before we actually schedule it for execution, otherwise
+        // it might send the result before we send the confirmation
+        if(LOG.isTraceEnabled())
+            LOG.trace("Job "+ jobRequest.getUniqueName()+" successfully submitted");
+        writeResponse(e,jr.getUniqueName(),jobStatus);
+
         executionPool.submit(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
@@ -107,9 +113,6 @@ class OlapRequestHandler extends AbstractOlapHandler{
                 return null;
             }
         });
-        if(LOG.isTraceEnabled())
-            LOG.trace("Job "+ jobRequest.getUniqueName()+" successfully submitted");
-        writeResponse(e,jr.getUniqueName(),jobStatus);
     }
 
 

@@ -40,7 +40,6 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
  *
  * Created by dgomezferro on 3/17/16.
  */
-@Ignore
 @SuppressWarnings("unused")
 public class OlapClientTest {
     private static final Logger LOG = Logger.getLogger(OlapClientTest.class);
@@ -81,6 +80,18 @@ public class OlapClientTest {
         Assert.assertNotNull(result);
         Assert.assertEquals(13, result.order);
     }
+
+    @Test(timeout = 16000)
+    public void manyFastJobsTest() throws Exception {
+        final Random rand = new Random(0);
+        int sleep = 0;
+        for (int i = 0; i < 200; ++i) {
+            DumbOlapResult result = olapClient.execute(new DumbDistributedJob(sleep, i));
+            Assert.assertNotNull(result);
+            Assert.assertEquals(i, result.order);
+        }
+    }
+
 
     @Test(timeout = 20000, expected = IllegalStateException.class)
     public void cantReuseJobsTest() throws Exception {
