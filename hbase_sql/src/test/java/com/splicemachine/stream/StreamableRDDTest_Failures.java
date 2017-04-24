@@ -396,6 +396,46 @@ public class StreamableRDDTest_Failures extends BaseStreamTest implements Serial
         assertEquals(size, count);
     }
 
+
+    @Test
+    public void testPersistentFailureWithOffset() throws StandardException, FileNotFoundException, UnsupportedEncodingException {
+        int size = 100000;
+        int batches = 2;
+        int batchSize = 512;
+        StreamListener<ExecRow> sl = new StreamListener<>(-1, 10, batches, batchSize);
+        HostAndPort hostAndPort = server.getHostAndPort();
+        server.register(sl);
+
+        List<Tuple2<ExecRow,ExecRow>> manyRows = new ArrayList<>();
+        for(int i = 0; i < size; ++i) {
+            manyRows.add(new Tuple2<ExecRow, ExecRow>(getExecRow(i, 1), getExecRow(i, 2)));
+        }
+
+        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContextUnsafe().parallelizePairs(manyRows, 2).sortByKey().mapToPair(new FailsForeverFunction(0));
+        final StreamableRDD srdd = new StreamableRDD(rdd.distinct().values(), null, sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort(), batches, batchSize);
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    srdd.submit();
+                } catch (Exception e) {
+                    sl.failed(e);
+                    throw new RuntimeException(e);
+                }
+
+            }
+        }.start();
+        // This call shoul not raise an exception even though the Spark job fails
+        Iterator<ExecRow> it = sl.getIterator();
+
+        try {
+            it.hasNext();
+            fail("Should have raised exception");
+        } catch (Exception e) {
+            //expected exception
+        }
+    }
+
 }
 
 class FailsFunction implements PairFunction<Tuple2<ExecRow, ExecRow>, ExecRow, ExecRow> {
@@ -454,4 +494,22 @@ class FailsTwiceFunction implements PairFunction<Tuple2<ExecRow, ExecRow>, ExecR
         failed.set(false);
         failed2.set(false);
     }
+}
+
+class FailsForeverFunction implements PairFunction<Tuple2<ExecRow, ExecRow>, ExecRow, ExecRow> {
+    final long toFail;
+
+    public FailsForeverFunction(long toFail) {
+        this.toFail = toFail;
+    }
+
+    @Override
+    public Tuple2<ExecRow, ExecRow> call(Tuple2<ExecRow, ExecRow> element) throws Exception {
+
+        if (element._1().getColumn(1).getInt() == toFail) {
+            throw new RuntimeException("Failure");
+        }
+        return element;
+    }
+
 }
