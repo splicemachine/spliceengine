@@ -152,6 +152,11 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
                 PartitionState state = partitionStateMap.get(currentQueue);
                 // We take a message first to make sure we have a connection
                 Object msg = canBlock ? state.messages.take() : state.messages.remove();
+                if (msg == FAILURE) {
+                    // The olap job failed, return right away
+                    currentResult = null;
+                    return;
+                }
                 if (!state.initialized && (offset > 0 || limit > 0)) {
                     if (LOG.isTraceEnabled())
                         LOG.trace("Sending skip " + limit + ", " + offset);
@@ -178,10 +183,6 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
                         LOG.trace("Retried task, currentRead " + currentRead + " offset " + offset +
                                 " currentOffset " + currentOffset + " serverLimit " + serverLimit + " state " + state);
                     }
-                } else if (msg == FAILURE) {
-                    // The olap job failed, return
-                    currentResult = null;
-                    return;
                 } else if (msg == SENTINEL) {
                     // This queue is finished, start reading from the next queue
                     LOG.trace("Moving queues");
