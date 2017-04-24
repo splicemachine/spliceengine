@@ -117,12 +117,12 @@ public class StoreCostControllerImpl implements StoreCostController {
                     missingPartitions++;
                     continue; //skip missing partitions entirely
                 }
-                partitionStats.add(new PartitionStatisticsImpl(tStats));
+                partitionStats.add(new PartitionStatisticsImpl(tStats, fallbackNullFraction, extraQualifierMultiplier));
             }
         } else {
             partitionStats = new ArrayList<>(partitionStatistics.size());
             for (PartitionStatisticsDescriptor tStats : partitionStatistics) {
-                partitionStats.add(new PartitionStatisticsImpl(tStats));
+                partitionStats.add(new PartitionStatisticsImpl(tStats, fallbackNullFraction, extraQualifierMultiplier));
             }
         }
 

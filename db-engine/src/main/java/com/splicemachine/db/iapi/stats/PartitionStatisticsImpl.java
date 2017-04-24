@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.sql.dictionary.PartitionStatisticsDescriptor;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -43,16 +44,26 @@ import java.util.List;
 public class PartitionStatisticsImpl implements PartitionStatistics {
     PartitionStatisticsDescriptor partitionStatistics;
     private List<ItemStatistics> itemStatistics = new ArrayList<>();
+    double fallbackNullFraction;
+    double extraQualifierMultiplier;
+
+    /* map between columnId and index into the itemStatistics list */
+    private HashMap<Integer,Integer> colIndex = new HashMap<>();
 
     public PartitionStatisticsImpl() {
 
     }
 
-    public PartitionStatisticsImpl(PartitionStatisticsDescriptor partitionStatistics) {
+    public PartitionStatisticsImpl(PartitionStatisticsDescriptor partitionStatistics,
+                                   double fallbackNullFraction,
+                                   double extraQualifierMultiplier) {
        this.partitionStatistics = partitionStatistics;
         for (ColumnStatisticsDescriptor columnStatisticsDescriptor : partitionStatistics.getColumnStatsDescriptors()) {
             itemStatistics.add(columnStatisticsDescriptor.getStats());
+            colIndex.put(columnStatisticsDescriptor.getColumnId()-1, itemStatistics.size()-1);
         }
+        this.fallbackNullFraction = fallbackNullFraction;
+        this.extraQualifierMultiplier = extraQualifierMultiplier;
     }
 
     @Override
@@ -89,41 +100,76 @@ public class PartitionStatisticsImpl implements PartitionStatistics {
      */
     @Override
     public ItemStatistics getColumnStatistics(int columnId) {
-        return itemStatistics.get(columnId);
+        Integer index = colIndex.get(columnId);
+        return index==null?null:itemStatistics.get(index);
     }
 
     @Override
     public <T extends Comparator<T>> T minValue(int positionNumber) {
-        return (T) itemStatistics.get(positionNumber).minValue();
+        Integer index = colIndex.get(positionNumber);
+        /* if no stats available, follow the same behavior as FakePartitionStatisticsImpl */
+        return (T) (index==null?null:itemStatistics.get(index).minValue());
     }
 
     @Override
     public <T extends Comparator<T>> T maxValue(int positionNumber) {
-        return (T) itemStatistics.get(positionNumber).maxValue();
+        Integer index = colIndex.get(positionNumber);
+        /* if no stats available, follow the same behavior as FakePartitionStatisticsImpl */
+        return (T)(index==null?null:itemStatistics.get(index).maxValue());
     }
 
     @Override
     public long nullCount(int positionNumber) {
-        return itemStatistics.get(positionNumber).nullCount();
+        Integer index = colIndex.get(positionNumber);
+        /* if no stats available, follow the same behavior as FakePartitionStatisticsImpl */
+        if (index==null)
+            return (long) (fallbackNullFraction * (double)rowCount());
+        else
+            return itemStatistics.get(index).nullCount();
     }
 
     @Override
     public long notNullCount(int positionNumber) {
-        return itemStatistics.get(positionNumber).notNullCount();
+        Integer index = colIndex.get(positionNumber);
+        /* if no stats available, follow the same behavior as FakePartitionStatisticsImpl */
+        if (index == null)
+            return (long) ((1.0 - fallbackNullFraction) * (double)rowCount());
+        else
+            return itemStatistics.get(index).notNullCount();
     }
 
     @Override
     public long cardinality(int positionNumber) {
-        return itemStatistics.get(positionNumber).cardinality();
+        Integer index = colIndex.get(positionNumber);
+        /* if no stats available, follow the same behavior as FakePartitionStatisticsImpl */
+        if (index == null)
+            return 0;
+        else
+            return itemStatistics.get(index).cardinality();
     }
 
     @Override
     public <T extends Comparator<T>> long selectivity(T element, int positionNumber) {
-        return itemStatistics.get(positionNumber).selectivity((T) element);
+        Integer index = colIndex.get(positionNumber);
+        /* if no stats available, follow the same behavior as FakePartitionStatisticsImpl */
+        if (index == null)
+            return 0L;
+        else
+            return itemStatistics.get(index).selectivity((T) element);
     }
 
     @Override
     public <T extends Comparator<T>> long rangeSelectivity(T start, T stop, boolean includeStart, boolean includeStop, int positionNumber) {
-        return itemStatistics.get(positionNumber).rangeSelectivity((T) start, (T) stop, includeStart, includeStop);
+        Integer index = colIndex.get(positionNumber);
+        /* if no stats available, follow the same behavior as FakePartitionStatisticsImpl */
+        if (index == null)
+            return (long) (extraQualifierMultiplier * (double) rowCount());
+        else
+            return itemStatistics.get(index).rangeSelectivity((T) start, (T) stop, includeStart, includeStop);
+    }
+
+    @Override
+    public HashMap<Integer, Integer> getColIndex() {
+        return colIndex;
     }
 }
