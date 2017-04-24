@@ -31,6 +31,7 @@
 package com.splicemachine.db.iapi.stats;
 
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -107,5 +108,10 @@ public interface PartitionStatistics {
      */
     ItemStatistics getColumnStatistics(int columnId);
 
+    /**
+     *
+     * @return the hashmap that tracks the mapping between columnId and the index into the columnStatistics array
+     */
+    HashMap<Integer, Integer> getColIndex();
 }
 

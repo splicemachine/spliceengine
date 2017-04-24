@@ -32,6 +32,7 @@
 package com.splicemachine.db.iapi.stats;
 
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -50,6 +51,7 @@ public class EffectivePartitionStatisticsImpl implements PartitionStatistics {
     private int avgRowWidth;
     double fallbackNullFraction;
     double extraQualifierMultiplier;
+    private HashMap<Integer,Integer> colIndex;
 
 
     public EffectivePartitionStatisticsImpl() {
@@ -66,6 +68,7 @@ public class EffectivePartitionStatisticsImpl implements PartitionStatistics {
      * @param avgRowWidth
      */
     public EffectivePartitionStatisticsImpl(ColumnStatisticsMerge[] itemStatisticsBuilder,
+                                            HashMap<Integer,Integer> colIndex,
                                             long rowCount, long totalSize,
                                             int avgRowWidth,
                                             double fallbackNullFraction,
@@ -75,10 +78,11 @@ public class EffectivePartitionStatisticsImpl implements PartitionStatistics {
         this.avgRowWidth = avgRowWidth;
         this.fallbackNullFraction = fallbackNullFraction;
         this.extraQualifierMultiplier = extraQualifierMultiplier;
-       itemStatistics = new ItemStatistics[itemStatisticsBuilder.length];
-       for (int i =0; i<itemStatisticsBuilder.length;i++) {
+        itemStatistics = new ItemStatistics[itemStatisticsBuilder.length];
+        for (int i =0; i<itemStatisticsBuilder.length;i++) {
             itemStatistics[i] = itemStatisticsBuilder[i].terminate();
-       }
+        }
+        this.colIndex = colIndex;
     }
 
     /**
@@ -144,7 +148,8 @@ public class EffectivePartitionStatisticsImpl implements PartitionStatistics {
      */
     @Override
     public ItemStatistics getColumnStatistics(int columnId) {
-        return columnId >= itemStatistics.length?null:itemStatistics[columnId];
+        Integer index = colIndex.get(columnId);
+        return index==null?null:itemStatistics[index];
     }
 
     /**
@@ -157,8 +162,9 @@ public class EffectivePartitionStatisticsImpl implements PartitionStatistics {
      */
     @Override
     public <T extends Comparator<T>> T minValue(int positionNumber) {
-        ItemStatistics stats = positionNumber >= itemStatistics.length?null:itemStatistics[positionNumber];
-        return (T) (stats==null?null:itemStatistics[positionNumber].minValue());
+        Integer index = colIndex.get(positionNumber);
+        ItemStatistics stats = index == null?null:itemStatistics[index];
+        return (T) (stats==null?null:itemStatistics[index].minValue());
     }
 
     /**
@@ -171,8 +177,9 @@ public class EffectivePartitionStatisticsImpl implements PartitionStatistics {
      */
     @Override
     public <T extends Comparator<T>> T maxValue(int positionNumber) {
-        ItemStatistics stats = positionNumber >= itemStatistics.length?null:itemStatistics[positionNumber];
-        return (T) (stats==null?null:itemStatistics[positionNumber].maxValue());
+        Integer index = colIndex.get(positionNumber);
+        ItemStatistics stats = index == null?null:itemStatistics[index];
+        return (T) (stats==null?null:itemStatistics[index].maxValue());
     }
 
     /**
@@ -184,8 +191,9 @@ public class EffectivePartitionStatisticsImpl implements PartitionStatistics {
      */
     @Override
     public long nullCount(int positionNumber) {
-        ItemStatistics stats = positionNumber >= itemStatistics.length?null:itemStatistics[positionNumber];
-        return stats==null?(long) (fallbackNullFraction * (double) rowCount()):itemStatistics[positionNumber].nullCount();
+        Integer index = colIndex.get(positionNumber);
+        ItemStatistics stats = index == null?null:itemStatistics[index];
+        return stats==null?(long) (fallbackNullFraction * (double) rowCount()):itemStatistics[index].nullCount();
     }
 
     /**
@@ -197,8 +205,9 @@ public class EffectivePartitionStatisticsImpl implements PartitionStatistics {
      */
     @Override
     public long notNullCount(int positionNumber) {
-        ItemStatistics stats = positionNumber >= itemStatistics.length?null:itemStatistics[positionNumber];
-        return stats==null?(long) ( (1.0 - fallbackNullFraction) * (double) rowCount()):itemStatistics[positionNumber].notNullCount();
+        Integer index = colIndex.get(positionNumber);
+        ItemStatistics stats = index == null?null:itemStatistics[index];
+        return stats==null?(long) ( (1.0 - fallbackNullFraction) * (double) rowCount()):itemStatistics[index].notNullCount();
     }
 
     /**
@@ -210,8 +219,9 @@ public class EffectivePartitionStatisticsImpl implements PartitionStatistics {
      */
     @Override
     public long cardinality(int positionNumber) {
-        ItemStatistics stats = positionNumber >= itemStatistics.length?null:itemStatistics[positionNumber];
-        return stats==null?rowCount():itemStatistics[positionNumber].cardinality();
+        Integer index = colIndex.get(positionNumber);
+        ItemStatistics stats = index == null?null:itemStatistics[index];
+        return stats==null?rowCount():itemStatistics[index].cardinality();
     }
 
     /**
@@ -225,8 +235,9 @@ public class EffectivePartitionStatisticsImpl implements PartitionStatistics {
      */
     @Override
     public <T extends Comparator<T>> long selectivity(T element, int positionNumber) {
-        ItemStatistics stats = positionNumber >= itemStatistics.length?null:itemStatistics[positionNumber];
-        return stats==null?(long) (( (double) rowCount()) * extraQualifierMultiplier ):itemStatistics[positionNumber].selectivity((T) element);
+        Integer index = colIndex.get(positionNumber);
+        ItemStatistics stats = index == null?null:itemStatistics[index];
+        return stats==null?(long) (( (double) rowCount()) * extraQualifierMultiplier ):itemStatistics[index].selectivity((T) element);
     }
 
     /**
@@ -250,5 +261,10 @@ public class EffectivePartitionStatisticsImpl implements PartitionStatistics {
     @Override
     public <T extends Comparator<T>> long rangeSelectivity(T start, T stop, boolean includeStart, boolean includeStop, int positionNumber) {
         throw new UnsupportedOperationException("Use Range Selectivity on the table vs. agains the effective partition.");
+    }
+
+    @Override
+    public HashMap<Integer, Integer> getColIndex() {
+        return colIndex;
     }
 }

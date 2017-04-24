@@ -30,6 +30,7 @@
  */
 package com.splicemachine.db.iapi.stats;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -124,11 +125,18 @@ public class TableStatisticsImpl implements TableStatistics {
     public PartitionStatistics getEffectivePartitionStatistics()  {
         try {
             ColumnStatisticsMerge[] itemStatisticsBuilder = null;
+            HashMap<Integer, Integer> colIndex = null;
             boolean fake = false;
             if (effectivePartitionStatistics == null) {
                 assert partitionStatistics !=null:"Partition Statistics are null";
                 for (PartitionStatistics partStats : partitionStatistics) {
                     List<? extends ItemStatistics> itemStatisticsList = partStats.getAllColumnStatistics();
+
+                    if (colIndex == null)
+                        colIndex = partStats.getColIndex();
+                    else
+                        assert (colIndex.size() == partStats.getColIndex().size()): "Column stats in different partitions do no match";
+
                     rowCount += partStats.rowCount();
                     totalSize += partStats.totalSize();
                     avgRowWidth += partStats.avgRowWidth(); // todo fix
@@ -148,6 +156,7 @@ public class TableStatisticsImpl implements TableStatistics {
                     }
                     else {
                         effectivePartitionStatistics = new EffectivePartitionStatisticsImpl(itemStatisticsBuilder,
+                                colIndex,
                                 rowCount, totalSize,
                                 avgRowWidth,fallbackNullFraction,extraQualifierMultiplier);
                     }

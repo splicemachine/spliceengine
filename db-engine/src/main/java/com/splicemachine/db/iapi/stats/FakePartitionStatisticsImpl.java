@@ -33,6 +33,7 @@ package com.splicemachine.db.iapi.stats;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -50,6 +51,7 @@ public class FakePartitionStatisticsImpl implements PartitionStatistics {
     long heapSize;
     double fallbackNullFraction;
     double extraQualifierMultiplier;
+    HashMap<Integer,Integer> colIndex = new HashMap<>();
 
     /**
      *
@@ -224,5 +226,10 @@ public class FakePartitionStatisticsImpl implements PartitionStatistics {
     @Override
     public <T extends Comparator<T>> long rangeSelectivity(T start, T stop, boolean includeStart, boolean includeStop, int positionNumber) {
         return (long) (extraQualifierMultiplier * (double) rowCount());
+    }
+
+    @Override
+    public HashMap<Integer, Integer> getColIndex() {
+        return colIndex;
     }
 }
