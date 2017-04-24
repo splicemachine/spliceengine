@@ -88,6 +88,21 @@ public class JoinWithFunctionIT extends SpliceUnitTest {
                 .withCreate("create table e (c char(10))")
                 .withInsert("insert into e values(?)")
                 .withRows(rows(row("1"), row("2"), row("3"), row("4"))).create();
+
+        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+                .withCreate("CREATE TABLE TABLE_A (ID BIGINT,TYPE VARCHAR(325))")
+                .withInsert("insert into table_a values(?,?)")
+                .withRows(rows(row(1,"A"))).create();
+
+        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+                .withCreate("CREATE TABLE TABLE_B(ID BIGINT,BD SMALLINT)")
+                .withInsert("insert into table_b values(?,?)")
+                .withRows(rows(row(1,1))).create();
+
+        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+                .withCreate("CREATE TABLE TABLE_C (ACCOUNT VARCHAR(75),CATEGORY VARCHAR(75),SUB_CATEGORY VARCHAR(75),SOURCE VARCHAR(75),TYPE VARCHAR(500))")
+                .withInsert("insert into table_c values(?,?,?,?,?)")
+                .withRows(rows(row("ACCOUNT", "CATEGORY", "SUB_CATEGORY", "PBD_SMARTWORKS", "A"))).create();
     }
 
     @Test
@@ -202,6 +217,28 @@ public class JoinWithFunctionIT extends SpliceUnitTest {
                         " 2 | 2 |\n" +
                         " 3 | 3 |\n" +
                         " 4 | 4 |";
+        assertEquals(s, expected, s);
+    }
+
+
+    @Test
+    public void testLeftOuterJoin() throws Exception {
+        String sqlText = "SELECT C.ACCOUNT ,C.CATEGORY, C.SUB_CATEGORY\n" +
+                "FROM TABLE_A A\n" +
+                "LEFT JOIN TABLE_B B\n" +
+                "ON A.ID = B.ID\n" +
+                "LEFT JOIN TABLE_C C\n" +
+                "ON C.SOURCE= 'PBD_SMARTWORKS'\n" +
+                "and C.TYPE=UPPER(A.type)\n" +
+                "WHERE B.BD = 1";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        rs.close();
+        String expected =
+                "ACCOUNT |CATEGORY |SUB_CATEGORY |\n" +
+                "----------------------------------\n" +
+                " ACCOUNT |CATEGORY |SUB_CATEGORY |";
         assertEquals(s, expected, s);
     }
 }
