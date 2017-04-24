@@ -137,6 +137,8 @@ public class TableStatisticsImpl implements TableStatistics {
                     if (itemStatisticsBuilder == null)
                         itemStatisticsBuilder = new ColumnStatisticsMerge[itemStatisticsList.size()];
                     for (int i = 0; i < itemStatisticsList.size(); i++) {
+                        if (itemStatisticsList.get(i) == null)
+                            continue;
                         if (itemStatisticsBuilder[i] == null)
                             itemStatisticsBuilder[i] = ColumnStatisticsMerge.instance();
                         itemStatisticsBuilder[i].accumulate((ColumnStatisticsImpl)itemStatisticsList.get(i));
