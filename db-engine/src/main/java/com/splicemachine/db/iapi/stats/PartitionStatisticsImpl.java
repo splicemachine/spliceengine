@@ -34,6 +34,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ColumnStatisticsDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.PartitionStatisticsDescriptor;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
@@ -43,16 +44,32 @@ import java.util.List;
 public class PartitionStatisticsImpl implements PartitionStatistics {
     PartitionStatisticsDescriptor partitionStatistics;
     private List<ItemStatistics> itemStatistics = new ArrayList<>();
+    double fallbackNullFraction;
+    double extraQualifierMultiplier;
 
     public PartitionStatisticsImpl() {
 
     }
 
-    public PartitionStatisticsImpl(PartitionStatisticsDescriptor partitionStatistics) {
-       this.partitionStatistics = partitionStatistics;
+    public PartitionStatisticsImpl(PartitionStatisticsDescriptor partitionStatistics,
+                                   double fallbackNullFraction,
+                                   double extraQualifierMultiplier) {
+        this.partitionStatistics = partitionStatistics;
+
+        // find the max column with stats collected
+        int maxColId = 0;
         for (ColumnStatisticsDescriptor columnStatisticsDescriptor : partitionStatistics.getColumnStatsDescriptors()) {
-            itemStatistics.add(columnStatisticsDescriptor.getStats());
+            if (columnStatisticsDescriptor.getColumnId() > maxColId)
+                maxColId = columnStatisticsDescriptor.getColumnId();
         }
+
+        ItemStatistics[] tmpArray = new ItemStatistics[maxColId];
+        for (ColumnStatisticsDescriptor columnStatisticsDescriptor : partitionStatistics.getColumnStatsDescriptors()) {
+            tmpArray[columnStatisticsDescriptor.getColumnId()-1] = columnStatisticsDescriptor.getStats();
+        }
+        itemStatistics = Arrays.asList(tmpArray);
+        this.fallbackNullFraction = fallbackNullFraction;
+        this.extraQualifierMultiplier = extraQualifierMultiplier;
     }
 
     @Override
@@ -89,41 +106,55 @@ public class PartitionStatisticsImpl implements PartitionStatistics {
      */
     @Override
     public ItemStatistics getColumnStatistics(int columnId) {
-        return itemStatistics.get(columnId);
+        return columnId >= itemStatistics.size()?null:itemStatistics.get(columnId);
     }
 
     @Override
     public <T extends Comparator<T>> T minValue(int positionNumber) {
-        return (T) itemStatistics.get(positionNumber).minValue();
+        ItemStatistics stats = positionNumber >= itemStatistics.size()?null:itemStatistics.get(positionNumber);
+        return (T) (stats == null? null:stats.minValue());
     }
 
     @Override
     public <T extends Comparator<T>> T maxValue(int positionNumber) {
-        return (T) itemStatistics.get(positionNumber).maxValue();
+        ItemStatistics stats = positionNumber >= itemStatistics.size()?null:itemStatistics.get(positionNumber);
+        return (T) (stats == null? null:stats.maxValue());
     }
 
     @Override
     public long nullCount(int positionNumber) {
-        return itemStatistics.get(positionNumber).nullCount();
+        ItemStatistics stats = positionNumber >= itemStatistics.size()?null:itemStatistics.get(positionNumber);
+        if (stats==null)
+            return (long) (fallbackNullFraction * (double)rowCount());
+        else
+            return stats.nullCount();
     }
 
     @Override
     public long notNullCount(int positionNumber) {
-        return itemStatistics.get(positionNumber).notNullCount();
+        ItemStatistics stats = positionNumber >= itemStatistics.size()?null:itemStatistics.get(positionNumber);
+        if (stats == null)
+            return (long) ((1.0 - fallbackNullFraction) * (double)rowCount());
+        else
+            return stats.notNullCount();
     }
 
     @Override
     public long cardinality(int positionNumber) {
-        return itemStatistics.get(positionNumber).cardinality();
+        return positionNumber >= itemStatistics.size()?0:itemStatistics.get(positionNumber).cardinality();
     }
 
     @Override
     public <T extends Comparator<T>> long selectivity(T element, int positionNumber) {
-        return itemStatistics.get(positionNumber).selectivity((T) element);
+        return positionNumber >= itemStatistics.size()?0L:itemStatistics.get(positionNumber).selectivity((T) element);
     }
 
     @Override
     public <T extends Comparator<T>> long rangeSelectivity(T start, T stop, boolean includeStart, boolean includeStop, int positionNumber) {
-        return itemStatistics.get(positionNumber).rangeSelectivity((T) start, (T) stop, includeStart, includeStop);
+        ItemStatistics stats = positionNumber >= itemStatistics.size()?null:itemStatistics.get(positionNumber);
+        if (stats == null)
+            return (long) (extraQualifierMultiplier * (double) rowCount());
+        else
+            return stats.rangeSelectivity((T) start, (T) stop, includeStart, includeStop);
     }
 }
