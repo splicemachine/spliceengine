@@ -1964,10 +1964,10 @@ class DRDAConnThread extends Thread {
 
 //TODO use this mechanism
 // Create a LoginContext with a callback handler
-//									user = UserGroupInformation.getCurrentUser();
-//
-//									Exception exception = user.doAs(new PrivilegedAction<Exception>() {
-									Exception exception = Subject.doAs(loginContext.getSubject(), new PrivilegedAction<Exception>() {
+									user = UserGroupInformation.getCurrentUser();
+
+									Exception exception = user.doAs(new PrivilegedAction<Exception>() {
+//									Exception exception = Subject.doAs(loginContext.getSubject(), new PrivilegedAction<Exception>() {
 										@Override
 										public Exception run() {
 											try {
@@ -3086,8 +3086,8 @@ class DRDAConnThread extends Thread {
     		writer.endDdm();
 
 			writer.startDdm(CodePoint.KERSECPPL);
-// TODO use this			writer.writeString(user.getUserName());
-			writer.writeString(loginContext.getSubject().getPrincipals().iterator().next().getName());
+ 			writer.writeString(user.getUserName());
+//			writer.writeString(loginContext.getSubject().getPrincipals().iterator().next().getName());
 		}
 		writer.endDdmAndDss();
 
