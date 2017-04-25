@@ -75,9 +75,12 @@ public class EffectivePartitionStatisticsImpl implements PartitionStatistics {
         this.avgRowWidth = avgRowWidth;
         this.fallbackNullFraction = fallbackNullFraction;
         this.extraQualifierMultiplier = extraQualifierMultiplier;
-       itemStatistics = new ItemStatistics[itemStatisticsBuilder.length];
-       for (int i =0; i<itemStatisticsBuilder.length;i++) {
-            itemStatistics[i] = itemStatisticsBuilder[i].terminate();
+        itemStatistics = new ItemStatistics[itemStatisticsBuilder.length];
+        for (int i =0; i<itemStatisticsBuilder.length;i++) {
+            if (itemStatisticsBuilder[i] == null)
+                itemStatistics[i] = null;
+            else
+                itemStatistics[i] = itemStatisticsBuilder[i].terminate();
        }
     }
 
