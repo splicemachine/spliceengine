@@ -506,6 +506,9 @@ public class CodePoint {
     // SQL Error Diagnostic Level
     static final int DIAGLVL = 0x2160;
 
+    // Kerberos Principal
+    static final int KERSECPPL = 0x1C02;
+
     //-----------------------DDM reply codepoints---------------------------------
 
     // Command Check codepoint constant.

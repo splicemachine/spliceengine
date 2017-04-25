@@ -64,6 +64,7 @@ import com.splicemachine.db.impl.jdbc.EmbedSQLException;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.db.iapi.jdbc.EnginePreparedStatement;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSException;
@@ -186,6 +187,7 @@ class DRDAConnThread extends Thread {
 	// contexts for Kerberos authentication
 	private GSSContext gssContext;
 	private LoginContext loginContext;
+	private UserGroupInformation user;
 
     // generated target seed to be used to generate the password substitute
     // as part of SECMEC_USRSSBPWD security mechanism
@@ -1954,13 +1956,17 @@ class DRDAConnThread extends Thread {
 
 
 								try {
-
 									// Create a LoginContext with a callback handler
 									loginContext = new LoginContext("server");
 
 									// Perform authentication
 									loginContext.login();
 
+//TODO use this mechanism
+// Create a LoginContext with a callback handler
+//									user = UserGroupInformation.getCurrentUser();
+//
+//									Exception exception = user.doAs(new PrivilegedAction<Exception>() {
 									Exception exception = Subject.doAs(loginContext.getSubject(), new PrivilegedAction<Exception>() {
 										@Override
 										public Exception run() {
@@ -3075,7 +3081,15 @@ class DRDAConnThread extends Thread {
             else if (database.securityMechanism == CodePoint.SECMEC_USRSSBPWD)
 				writer.writeScalarBytes(CodePoint.SECTKN, myTargetSeed);
 		}
-    	writer.endDdmAndDss ();
+
+		if (database.securityMechanism == CodePoint.SECMEC_KERSEC) {
+    		writer.endDdm();
+
+			writer.startDdm(CodePoint.KERSECPPL);
+// TODO use this			writer.writeString(user.getUserName());
+			writer.writeString(loginContext.getSubject().getPrincipals().iterator().next().getName());
+		}
+		writer.endDdmAndDss();
 
 		if (securityCheckCode != 0) {
 		// then we have an error and so can ignore the rest of the

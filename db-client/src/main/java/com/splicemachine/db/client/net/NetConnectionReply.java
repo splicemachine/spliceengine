@@ -257,10 +257,23 @@ public class NetConnectionReply extends Reply
         netAgent_.exceptionConvertingRdbnam = null;
 
         peekCP = peekCodePoint();
+
+        if (peekCP == CodePoint.KERSECPPL) {
+            parseKERSECPPL(netConnection);
+
+            peekCP = peekCodePoint();
+        }
+
         if (peekCP == Reply.END_OF_SAME_ID_CHAIN) {
             return;
         }
 
+    }
+
+    private void parseKERSECPPL(NetConnection netConnection) throws DisconnectException {
+        parseLengthAndMatchCodePoint(CodePoint.KERSECPPL);
+        String serverPrincipal = readString();
+        netConnection.setServerPrincipal(serverPrincipal);
     }
 
     // Parse the reply for the Security Check Command.
@@ -598,7 +611,7 @@ public class NetConnectionReply extends Reply
                 // as an ignorable instance variable in the ddm manual).
                 foundInPass = true;
                 sectknReceived = checkAndGetReceivedFlag(sectknReceived);
-                sectkn = parseSECTKN(true);
+                sectkn = parseSECTKN(false);
                 peekCP = peekCodePoint();
             }
 
