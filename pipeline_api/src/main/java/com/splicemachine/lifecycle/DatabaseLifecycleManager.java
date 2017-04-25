@@ -291,6 +291,7 @@ public class DatabaseLifecycleManager{
                     LOG.error("Error during shutdown of service "+ service+":",e);
                 }
             }
+            state.compareAndSet(State.SHUTTING_DOWN, State.SHUTDOWN);
         }
     }
 }

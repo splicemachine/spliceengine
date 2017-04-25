@@ -238,6 +238,7 @@ public interface DataDictionary{
     int SYSTABLESTATS_CATALOG_NUM=28;
     int SYSDUMMY1_CATALOG_NUM=29;
     int SYSSCHEMAPERMS_CATALOG_NUM=30;
+    int SYSSOURCECODE_CATALOG_NUM=31;
 
     /* static finals for constraints
      * (Here because they are needed by parser, compilation and execution.)
@@ -2108,4 +2109,6 @@ public interface DataDictionary{
     void addBackupJob(TupleDescriptor descriptor, TransactionController tc) throws StandardException;
 
     void deleteBackupJob(long jobId, TransactionController tc) throws StandardException;
+
+    void saveSourceCode(SourceCodeDescriptor descriptor, TransactionController tc) throws StandardException;
 }

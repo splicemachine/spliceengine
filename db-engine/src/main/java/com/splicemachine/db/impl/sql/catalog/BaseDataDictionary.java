@@ -157,6 +157,7 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
                                     "SYSCOLUMNSTATS",
                                     "SYSPHYSICALSTATS",
                                     "SYSTABLESTATS",
+                                    "SYSSOURCECODE",
                                     "SYSDUMMY1"
     };
 
@@ -185,18 +186,13 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
     };
 
 	/**
-	 * List of procedures in SYSCS_UTIL schema with PUBLIC access
+	 * List of procedures and functions in SYSCS_UTIL schema with PUBLIC access
 	 */
-	protected static final String[] sysUtilProceduresWithPublicAccess = { 
+	protected static final String[] sysUtilRoutinesWithPublicAccess = { 
 												"SYSCS_INPLACE_COMPRESS_TABLE",
 												"SYSCS_COMPRESS_TABLE",
 												"SYSCS_MODIFY_PASSWORD",
-												};
-	
-	/**
-	 * List of functions in SYSCS_UTIL schema with PUBLIC access
-	 */
-	protected static final String[] sysUtilFunctionsWithPublicAccess = { 
+												"SYSCS_SAVE_SOURCECODE",
 												"SYSCS_PEEK_AT_SEQUENCE",
 												};
 

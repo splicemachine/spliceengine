@@ -7325,6 +7325,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 case SYSTABLESTATS_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSTABLESTATISTICSRowFactory(luuidFactory,exFactory,dvf));
                     break;
+                case SYSSOURCECODE_CATALOG_NUM:
+                    retval=new TabInfoImpl(new SYSSOURCECODERowFactory(luuidFactory,exFactory,dvf));
+                    break;
                 case SYSDUMMY1_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSDUMMY1RowFactory(luuidFactory,exFactory,dvf));
                     break;
@@ -8077,7 +8080,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         // Get schema ID for SYSCS_UTIL schema
         String schemaID=getSystemUtilSchemaDescriptor().getUUID().toString();
 
-        for(String routineName : sysUtilProceduresWithPublicAccess){
+        for(String routineName : sysUtilRoutinesWithPublicAccess){
 
             if(!newlyCreatedRoutines.contains(routineName)){
                 continue;
@@ -10189,5 +10192,38 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         ExecIndexRow keyRow=exFactory.getIndexableRow(1);
         keyRow.setColumn(1, new SQLLongint(jobId));
         ti.deleteRow(tc, keyRow, SYSBACKUPJOBSRowFactory.SYSBACKUPJOBS_INDEX1_ID);
+    }
+
+    @Override
+    public void saveSourceCode(SourceCodeDescriptor descriptor, TransactionController tc) throws StandardException {
+        TabInfoImpl ti=getNonCoreTI(SYSSOURCECODE_CATALOG_NUM);
+
+        ExecIndexRow keyRow;
+        keyRow=exFactory.getIndexableRow(4);
+        keyRow.setColumn(1,new SQLVarchar(descriptor.getSchemaName()));
+        keyRow.setColumn(2,new SQLVarchar(descriptor.getObjectName()));
+        keyRow.setColumn(3,new SQLVarchar(descriptor.getObjectType()));
+        keyRow.setColumn(4,new SQLVarchar(descriptor.getObjectForm()));
+
+        if (descriptor.getSourceCode() == null) { // drop sourcecode object
+            ti.deleteRow(tc,keyRow,SYSSOURCECODERowFactory.SYSSOURCECODE_INDEX1_ID);
+            return;
+        }
+
+        ExecRow row = ti.getCatalogRowFactory().makeRow(descriptor,null);
+
+        ExecRow existingRow=ti.getRow(tc,keyRow,SYSSOURCECODERowFactory.SYSSOURCECODE_INDEX1_ID);
+        if (existingRow==null) {
+            int insertRetCode=ti.insertRow(row,tc);
+            if(insertRetCode!=TabInfoImpl.ROWNOTDUPLICATE)
+                throw duplicateDescriptorException(descriptor,null);
+        } else {
+            boolean[] bArray = {false};
+            int[] colsToUpdate = {
+                    SYSSOURCECODERowFactory.DEFINER_NAME,
+                    SYSSOURCECODERowFactory.SOURCE_CODE,
+            };
+            ti.updateRow(keyRow,row,SYSSOURCECODERowFactory.SYSSOURCECODE_INDEX1_ID,bArray,colsToUpdate,tc);
+        }
     }
 }

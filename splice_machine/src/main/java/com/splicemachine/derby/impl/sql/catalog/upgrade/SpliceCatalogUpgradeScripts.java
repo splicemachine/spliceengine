@@ -61,6 +61,7 @@ public class SpliceCatalogUpgradeScripts{
         scripts=new TreeMap<>(ddComparator);
         scripts.put(new Splice_DD_Version(sdd,1,0,0),new UpgradeScriptForFuji(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,1,1,1),new LassenUpgradeScript(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,1,1,2),new SourceCodeUpgradeScript(sdd,tc));
     }
 
     public void run() throws StandardException{
