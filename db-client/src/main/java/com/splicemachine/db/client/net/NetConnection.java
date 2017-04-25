@@ -161,11 +161,12 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
     private transient char[] deferredResetPassword_ = null;
 
     byte[] secToken;
-    
-    //If Network Server gets null connection from the embedded driver, 
+    private String serverPrincipal;
+
+    //If Network Server gets null connection from the embedded driver,
     //it sends RDBAFLRM followed by SQLCARD with null SQLException.
     //Client will parse the SQLCARD and set connectionNull to true if the
-    //SQLCARD is empty. If connectionNull=true, connect method in 
+    //SQLCARD is empty. If connectionNull=true, connect method in
     //ClientDriver will in turn return null connection.
     private boolean connectionNull = false;
 
@@ -651,7 +652,8 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
                         /*
                          * Create a GSSName out of the server's name.
                          */
-                        GSSName serverName = manager.createName("splicemachine@touro.local", GSSName.NT_HOSTBASED_SERVICE);
+                        String name = serverPrincipal.split("@")[0].replace('/', '@');
+                        GSSName serverName = manager.createName(name, GSSName.NT_HOSTBASED_SERVICE);
 
                         /*
                          * Create a GSSContext for mutual authentication with the
@@ -2047,6 +2049,10 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
     
     protected void writeXATransactionStart(Statement statement) throws SqlException {
         xares_.netXAConn_.writeTransactionStart(statement);
+    }
+
+    public void setServerPrincipal(String serverPrincipal) {
+        this.serverPrincipal = serverPrincipal;
     }
 }
 
