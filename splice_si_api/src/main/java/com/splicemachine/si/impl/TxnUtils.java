@@ -29,7 +29,7 @@ public class TxnUtils {
 		public static byte[] getRowKey(long txnId) {
 				long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
 				byte[] rowKey = new byte[9];
-				rowKey[0] = (byte)(beginTS & (TRANSACTION_TABLE_BUCKET_COUNT-1));
+				rowKey[0] = (byte)((beginTS / SIConstants.TRASANCTION_INCREMENT) & (TRANSACTION_TABLE_BUCKET_COUNT-1));
 				Bytes.longToBytes(beginTS, rowKey, 1);
 				return rowKey;
 		}
