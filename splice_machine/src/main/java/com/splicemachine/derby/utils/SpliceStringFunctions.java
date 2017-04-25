@@ -102,7 +102,8 @@ public class SpliceStringFunctions {
     public static boolean REGEXP_LIKE(String s, String regexp)
     {
     	try {
-			return patternCache.get(regexp).matcher(s).matches();
+
+			return (s != null) ? patternCache.get(regexp).matcher(s).matches() : false;
 	    } catch (ExecutionException e) {
 	        throw new RuntimeException(String.format("Unable to fetch Pattern for regexp [%s]", regexp), e);
 	    }
