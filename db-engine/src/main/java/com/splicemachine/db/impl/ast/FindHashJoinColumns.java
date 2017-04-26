@@ -32,7 +32,6 @@ import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.Predicate;
 import org.apache.commons.lang3.tuple.Pair;
@@ -41,7 +40,6 @@ import org.sparkproject.guava.collect.Lists;
 import org.sparkproject.guava.collect.Sets;
 import org.sparkproject.guava.primitives.Ints;
 
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 
@@ -258,7 +256,7 @@ public class FindHashJoinColumns extends AbstractSpliceVisitor {
             wasRightOuterJoin = ((HalfOuterJoinNode)node).isRightOuterJoin();
         }
 
-        if (isLeft && !wasRightOuterJoin) {
+        if (isLeft && !wasRightOuterJoin || !isLeft && wasRightOuterJoin) {
             int size = rcl.size();
             // make a copy of result column list
             ResultColumnList temp = new ResultColumnList();
@@ -268,11 +266,10 @@ public class FindHashJoinColumns extends AbstractSpliceVisitor {
             }
 
             // copy result columns that reference to left result set
-            Set<ResultSetNode>  leftResultSetNodeSet = getResultSetNodes(node.getLeftResultSet());
             Iterator<ResultColumn> iter=temp.iterator();
             while(iter.hasNext()){
                ResultColumn resultColumn = iter.next();
-                if (fromResultSets(leftResultSetNodeSet, resultColumn)) {
+                if (resultColumn.isFromLeftChild()) {
                     rcl.addResultColumn(resultColumn);
                     iter.remove();
                 }else break;
@@ -287,40 +284,8 @@ public class FindHashJoinColumns extends AbstractSpliceVisitor {
                 temp.removeElementAt(0);
             }
         }
-        else if (!isLeft && wasRightOuterJoin) {
-            // for right outer join, we have switched the left and right resultset, however, the result columns
-            // still follow the order of inner table columns first then outer table columns. When adding a column
-            // from the inner table, we need to insert the new column after the original inner table columns and
-            // before the original outer table columns
-            int size = rcl.size();
-            // make a copy of result column list
-            ResultColumnList temp = new ResultColumnList();
-            for (int i = 0; i < size; ++i) {
-                temp.addResultColumn(rcl.elementAt(0));
-                rcl.removeElementAt(0);
-            }
-
-            // copy result columns that reference to right result set
-            Set<ResultSetNode>  rightResultSetNodeSet = getResultSetNodes(node.getRightResultSet());
-            Iterator<ResultColumn> iter=temp.iterator();
-            while(iter.hasNext()){
-                ResultColumn resultColumn = iter.next();
-                if (fromResultSets(rightResultSetNodeSet, resultColumn)) {
-                    rcl.addResultColumn(resultColumn);
-                    iter.remove();
-                }else break;
-            }
-
-            // Add a new column to join result column list
-            rcl.addResultColumn(rc);
-
-            // copy columns that reference to the left result set
-            while(temp.size() > 0) {
-                rcl.addResultColumn(temp.elementAt(0));
-                temp.removeElementAt(0);
-            }
-        }
         else {
+            rc.setFromLeftChild(false);
             rcl.addResultColumn(rc);
         }
     }
@@ -332,15 +297,5 @@ public class FindHashJoinColumns extends AbstractSpliceVisitor {
             resultSetNodeSet.add(resultSetNode);
         }
         return resultSetNodeSet;
-    }
-
-    private static boolean fromResultSets(Set<ResultSetNode>  resultSetNodeSet, ResultColumn resultColumn) {
-        ValueNode v = resultColumn.getExpression();
-        if (v instanceof VirtualColumnNode) {
-            ResultSetNode sourceResultSet = ((VirtualColumnNode) v).getSourceResultSet();
-            if (resultSetNodeSet.contains(sourceResultSet))
-                return true;
-        }
-        return false;
     }
 }
