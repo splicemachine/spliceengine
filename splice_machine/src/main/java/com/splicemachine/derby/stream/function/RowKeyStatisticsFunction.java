@@ -19,9 +19,6 @@ import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.types.SQLBlob;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.kvpair.KVPair;
-import org.apache.hadoop.hdfs.server.namenode.HostFileManager;
 import scala.Tuple2;
 
 import java.io.IOException;
