@@ -1956,11 +1956,11 @@ class DRDAConnThread extends Thread {
 
 
 								try {
-									// Create a LoginContext with a callback handler
-									loginContext = new LoginContext("server");
-
-									// Perform authentication
-									loginContext.login();
+//									// Create a LoginContext with a callback handler
+//									loginContext = new LoginContext("server");
+//
+//									// Perform authentication
+//									loginContext.login();
 
 //TODO use this mechanism
 // Create a LoginContext with a callback handler
@@ -3242,8 +3242,8 @@ class DRDAConnThread extends Thread {
 												CodePoint.SECMEC_KERSEC)
 					{
 						try {
-							byte[] secToken = reader.readBytes();
-							Exception exception = Subject.doAs(loginContext.getSubject(), new PrivilegedAction<Exception>() {
+							final byte[] secToken = reader.readBytes();
+							Exception exception = user.doAs(new PrivilegedAction<Exception>() {
 								@Override
 								public Exception run() {
 									try {
