@@ -1688,6 +1688,11 @@ public class SelectNode extends ResultSetNode{
             leftResultSet.setResultColumns(leftRCList.copyListAndObjects());
             leftRCList.genVirtualColumnNodes(leftResultSet,leftResultSet.resultColumns);
 
+            for (int i = 0; i < leftRCList.size(); ++i) {
+                ResultColumn rc = leftRCList.elementAt(i);
+                rc.setFromLeftChild(true);
+            }
+
 			/* Get right's ResultColumnList, assign shallow copy back to it,
 			 * create new VirtualColumnNodes for the original's
 			 * ResultColumn.expressions and increment the virtualColumnIds.
@@ -1699,6 +1704,10 @@ public class SelectNode extends ResultSetNode{
 
             rightRCList=rightResultSet.getResultColumns();
             rightResultSet.setResultColumns(rightRCList.copyListAndObjects());
+            for (int i = 0; i < rightRCList.size(); ++i) {
+                ResultColumn rc = rightRCList.elementAt(i);
+                rc.setFromLeftChild(false);
+            }
             rightRCList.genVirtualColumnNodes(rightResultSet,rightResultSet.resultColumns);
             rightRCList.adjustVirtualColumnIds(leftRCList.size());
 
