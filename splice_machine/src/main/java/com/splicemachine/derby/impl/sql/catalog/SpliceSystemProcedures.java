@@ -757,6 +757,19 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .sqlControl(RoutineAliasInfo.NO_SQL).returnType(null).isDeterministic(false)
                             .build());
+
+                    procedures.add(Procedure.newBuilder().name("SYSCS_SAVE_SOURCECODE")
+                            .numResultSets(0).numOutputParams(0).modifiesSql()
+                            .returnType(null).isDeterministic(false)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .catalog("objectName")
+                            .varchar("objectType", 32)
+                            .varchar("objectForm", 32)
+                            .catalog("definerName")
+                            .arg("sourceCode", DataTypeDescriptor.getCatalogType(Types.BLOB,64*1024*1024))
+                            .build());
+
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)

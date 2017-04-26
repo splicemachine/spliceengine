@@ -157,6 +157,7 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
                                     "SYSCOLUMNSTATS",
                                     "SYSPHYSICALSTATS",
                                     "SYSTABLESTATS",
+                                    "SYSSOURCECODE",
                                     "SYSDUMMY1"
     };
 
@@ -191,6 +192,7 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 												"SYSCS_INPLACE_COMPRESS_TABLE",
 												"SYSCS_COMPRESS_TABLE",
 												"SYSCS_MODIFY_PASSWORD",
+												"SYSCS_SAVE_SOURCECODE",
 												};
 	
 	/**
