@@ -27,11 +27,9 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
-import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -1280,4 +1278,40 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         return this.getAndNode() !=null && this.getAndNode().getLeftOperand()!= null && (this.getAndNode().getLeftOperand() instanceof IsNullNode);
     }
 
+    public boolean isUnsatisfiable() {
+        if (andNode.getLeftOperand() instanceof BooleanConstantNode) {
+            if (andNode.getLeftOperand().isBooleanFalse())
+                return true;
+        }
+
+        if (isOrList()) {
+            //TODO check if every branch is unsatisfiable
+            return false;
+        }
+        return false;
+    }
+
+    public static Predicate generateUnsatPredicate(int numTables, NodeFactory nf, ContextManager cm) throws StandardException{
+        BooleanConstantNode trueNode=(BooleanConstantNode)nf.
+                getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
+                        Boolean.TRUE,
+                        cm);
+        BooleanConstantNode falseNode=(BooleanConstantNode)nf.
+                getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
+                        Boolean.FALSE,
+                        cm);
+        AndNode andNode = (AndNode)nf.
+                getNode(C_NodeTypes.AND_NODE,
+                        falseNode,
+                        trueNode,
+                        cm);
+        JBitSet newJBitSet=new JBitSet(numTables);
+        Predicate newPred=(Predicate)nf.
+                getNode(C_NodeTypes.PREDICATE,
+                        andNode,
+                        newJBitSet,
+                        cm);
+
+        return newPred;
+    }
 }
