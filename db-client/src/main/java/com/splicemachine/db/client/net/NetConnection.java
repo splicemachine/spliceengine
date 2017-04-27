@@ -715,9 +715,9 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
                 throw exception;
             }
         } catch (Exception e) {
-            agent_.accumulateReadException(new SqlException(agent_.logWriter_,
-                    new ClientMessageId(SQLState.NET_CONNECT_AUTH_FAILED),
-                    msgutil.getTextMessage(MessageId.AUTH_INVALID), e));
+            throw new SqlException(agent_.logWriter_,
+                    new ClientMessageId(SQLState.AUTH_ERROR_KERBEROS_CLIENT),
+                    e);
         }
     }
 
@@ -947,8 +947,20 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
                 netAgent_.typdef_);
     }
 
+    private void writeAccessRdb() throws SqlException {
+        netAgent_.netConnectionRequest_.writeAccessDatabase(databaseName_,
+                false,
+                crrtkn_,
+                prddta_.array(),
+                netAgent_.typdef_);
+    }
+
     private void readSecurityCheckAndAccessRdb() throws SqlException {
         netAgent_.netConnectionReply_.readSecurityCheck(this);
+        netAgent_.netConnectionReply_.readAccessDatabase(this);
+    }
+
+    private void readAccessRdb() throws SqlException {
         netAgent_.netConnectionReply_.readAccessDatabase(this);
     }
 

@@ -310,6 +310,7 @@ public final class NativeAuthenticationServiceImpl
             if (Boolean.parseBoolean(info.getProperty(Attribute.DRDA_KERSEC_AUTHED))) {
                 return true;
             }
+
             // No "guest" user
             if ( userName == null ) { return false; }
             if ( userPassword == null ) { return false; }

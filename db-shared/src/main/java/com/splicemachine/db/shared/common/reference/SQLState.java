@@ -1534,6 +1534,7 @@ public interface SQLState {
 	String AUTH_DDL_WITH_READ_ONLY_CONNECTION                          = "25503";
 	String AUTH_CANNOT_SET_READ_WRITE                                  = "25505";
 	String AUTH_INVALID_USER_NAME                                      = "28502";
+	String AUTH_ERROR_KERBEROS_CLIENT                                  = "28503";
 
 	/*
 	** Dependency manager
