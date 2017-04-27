@@ -869,6 +869,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 throw StandardException.newException(String.format("User '%s' does not exist.", ownerName));
             }
             ((DataDictionaryImpl)dd).updateSchemaAuth(schemaName, ownerName, tc);
+            dd.clearCaches();
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
         } catch (Exception e) {

@@ -592,4 +592,16 @@ public class SchemaPrivilegeIT {
         assertFailed(user2Conn, query, SQLState.AUTH_NOT_OWNER);
 
     }
+
+    @Test
+    public void testChangeOwner() throws Exception {
+        String schemaName = "TEST_SCHEMA";
+        adminConn.execute(String.format("CREATE SCHEMA %s",schemaName));
+        adminConn.execute(String.format("CALL SYSCS_UTIL.SYSCS_UPDATE_SCHEMA_OWNER( '%s', '%s')",schemaName,USER1));
+        //make sure there is no failures
+        user1Conn.execute(String.format("CREATE TABLE %s.%s(a int)",schemaName,USER1));
+        adminConn.execute(String.format("DROP TABLE %s.%s ",schemaName,USER1));
+        adminConn.execute(String.format("DROP SCHEMA %s restrict",schemaName));
+
+    }
 }
