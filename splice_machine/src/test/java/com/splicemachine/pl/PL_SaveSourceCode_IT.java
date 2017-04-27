@@ -75,6 +75,7 @@ public class PL_SaveSourceCode_IT {
         methodWatcher.setConnection(conn);
     }
 
+    @Ignore
     @Test
     public void saveSourceCode() throws Exception {
         // no source code has been saved yet, so following query should return 0 rows
