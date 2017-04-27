@@ -36,7 +36,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.ql.io.orc.OrcNewInputFormat;
 import org.apache.hadoop.hive.serde2.ColumnProjectionUtils;
-import org.apache.hadoop.hive.serde2.objectinspector.StructField;
+
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
@@ -55,6 +55,7 @@ import org.apache.spark.sql.catalyst.expressions.UnsafeProjection;
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenContext;
 import org.apache.spark.sql.catalyst.expressions.codegen.ExprCode;
 import org.apache.spark.sql.execution.vectorized.ColumnarBatch;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
 import com.splicemachine.access.HConfiguration;
@@ -81,8 +82,8 @@ import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.mrio.api.core.SMTextInputFormat;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
-import scala.collection.JavaConverters;
-import scala.collection.Seq;
+
+
 
 /**
  * Spark-based DataSetProcessor.
@@ -517,13 +518,16 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             try {
                 table = SpliceSpark.getSession().read().csv(location);
 
-                //1. spark cvs assume all the columns to be string by default
-                //   we know the schema, no need to use infer schema which is doing a full scan
-                //   so 2 scan , not cheap.
-                //2. There is a annoying underscore with csv in columns names
-                List<Column> correctSchemaSelection = Arrays.stream(execRow.schema().fields())
-                        .map( field -> new Column("_"+field.name()).cast(field.dataType())).collect(Collectors.toList());
-                table = table.select(correctSchemaSelection.toArray(new Column[correctSchemaSelection.size()]));
+
+                for( int index = 0; index< baseColumnMap.length; index++){
+                    if(baseColumnMap[index]!=-1){
+                        StructField ft = table.schema().fields()[index];
+                        Column cl = new Column(ft.name()).cast(execRow.schema().fields()[baseColumnMap[index]].dataType());
+                        table = table.withColumn(ft.name(),cl);
+                    }
+
+                }
+
 
             } catch (Exception e) {
                 return handleExceptionInCaseOfEmptySet(e,location);
