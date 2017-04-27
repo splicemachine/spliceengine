@@ -692,7 +692,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
                             // initSecContext
                             if (token != null) {
                                 // SECCHK
-                                flowSecurityCheckAndAccessRdb(targetSecmec_, //securityMechanism
+                                flowSecurityCheck(targetSecmec_, //securityMechanism
                                         user_,
                                         null,
                                         token, //encryptedUserid
@@ -705,6 +705,8 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
                                 token = secToken;
                             }
                         }
+                        // ACCRDB
+                        flowAccessRdb();
                     } catch (Exception e) {
                         return e;
                     }
@@ -889,6 +891,30 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         agent_.endReadChain();
     }
 
+    private void flowSecurityCheck(int securityMechanism,
+                                               String user,
+                                               String password,
+                                               byte[] encryptedUserid,
+                                               byte[] encryptedPassword) throws SqlException {
+        agent_.beginWriteChainOutsideUOW();
+        writeSecurityCheck(securityMechanism,
+                user,
+                password,
+                encryptedUserid,
+                encryptedPassword);
+        agent_.flowOutsideUOW();
+        readSecurityCheck();
+        agent_.endReadChain();
+    }
+
+    private void flowAccessRdb() throws SqlException {
+        agent_.beginWriteChainOutsideUOW();
+        writeAccessRdb();
+        agent_.flowOutsideUOW();
+        readAccessRdb();
+        agent_.endReadChain();
+    }
+
     private void writeAllConnectCommandsChained(int securityMechanism,
                                                 String user,
                                                 String password) throws SqlException {
@@ -934,17 +960,21 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
                                                 String password,
                                                 byte[] encryptedUserid,
                                                 byte[] encryptedPassword) throws SqlException {
+        writeSecurityCheck(securityMechanism, user, password, encryptedUserid, encryptedPassword);
+        writeAccessRdb();
+    }
+
+    private void writeSecurityCheck(int securityMechanism,
+                                                String user,
+                                                String password,
+                                                byte[] encryptedUserid,
+                                                byte[] encryptedPassword) throws SqlException {
         netAgent_.netConnectionRequest_.writeSecurityCheck(securityMechanism,
                 databaseName_,
                 user,
                 password,
                 encryptedUserid,
                 encryptedPassword);
-        netAgent_.netConnectionRequest_.writeAccessDatabase(databaseName_,
-                false,
-                crrtkn_,
-                prddta_.array(),
-                netAgent_.typdef_);
     }
 
     private void writeAccessRdb() throws SqlException {
@@ -956,8 +986,13 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
     }
 
     private void readSecurityCheckAndAccessRdb() throws SqlException {
+        readSecurityCheck();
+        readAccessRdb();
+    }
+
+
+    private void readSecurityCheck() throws SqlException {
         netAgent_.netConnectionReply_.readSecurityCheck(this);
-        netAgent_.netConnectionReply_.readAccessDatabase(this);
     }
 
     private void readAccessRdb() throws SqlException {
