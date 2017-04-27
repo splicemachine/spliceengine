@@ -22,6 +22,7 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.Ignore;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -75,8 +76,8 @@ public class PL_SaveSourceCode_IT {
         methodWatcher.setConnection(conn);
     }
 
-    @Ignore
     @Test
+    @Ignore
     public void saveSourceCode() throws Exception {
         // no source code has been saved yet, so following query should return 0 rows
         assertEquals(0, methodWatcher.queryList("SELECT SOURCE_CODE FROM SYS.SYSSOURCECODE").size());
