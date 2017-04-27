@@ -77,6 +77,17 @@ public abstract class ResultSetNode extends QueryTreeNode{
     protected CostEstimate finalCostEstimate;
 
     /**
+     *  The below ENUM is introduced to indicate whether a node that represents a query block is satisfiable or not:
+     *    UNKNOWN: we haven't gone through the exercise to check satisfiability;
+     *    UNSAT: the query block is unsatisfiable, that is, no row will be returned;
+     *    SAT: the query block is satisfiable, that is, all rows will be returned;
+     *    NEITHER: the rows of this query block are subject to join/condition evaluation at run time.
+     */
+    protected enum Satisfiability {UNKNOWN, UNSAT, SAT, NEITHER}
+
+    Satisfiability sat = Satisfiability.UNKNOWN;
+
+    /**
      * Count the number of distinct aggregates in the list.
      * By 'distinct' we mean aggregates of the form:
      * <UL><I>SELECT MAX(DISTINCT x) FROM T<\I><\UL>
@@ -1706,6 +1717,11 @@ public abstract class ResultSetNode extends QueryTreeNode{
         newResultColumn.setColumnDescriptor(targetTD,colDesc);
 
         return newResultColumn;
+    }
+
+    public boolean isUnsatisfiable() {
+        sat = Satisfiability.NEITHER;
+        return false;
     }
 
     public String printExplainInformation() throws StandardException {

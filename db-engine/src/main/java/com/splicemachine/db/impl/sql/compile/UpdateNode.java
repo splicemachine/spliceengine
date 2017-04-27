@@ -34,6 +34,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.catalog.DefaultInfo;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.sql.compile.AccessPath;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
@@ -703,10 +704,14 @@ public final class UpdateNode extends DMLModStatementNode
 		*/
 		if (! deferred )
 		{
-			ConglomerateDescriptor updateCD =
-										targetTable.
-											getTrulyTheBestAccessPath().
-												getConglomerateDescriptor();
+			/**
+			 * When the underneath SelectNode is unsatisfiable, we rewrite it to
+			 * a RowResultSetNode representing "values (null, null, ..., null) where 1=0"
+			 * In such a case, it is possible that the target table does not participate in planning and thus
+			 * its accessPath remains as null
+			 */
+			AccessPath accessPath = targetTable.getTrulyTheBestAccessPath();
+			ConglomerateDescriptor updateCD = accessPath==null?null:accessPath.getConglomerateDescriptor();
 
 			if (updateCD != null && updateCD.isIndex())
 			{
