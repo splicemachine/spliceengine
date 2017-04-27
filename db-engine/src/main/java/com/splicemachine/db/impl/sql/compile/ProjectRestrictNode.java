@@ -1669,6 +1669,30 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         }
     }
 
+    public boolean isUnsatisfiable() {
+        if (sat == Satisfiability.UNSAT)
+            return true;
+
+        if (sat != Satisfiability.UNKNOWN)
+            return false;
+
+        if (childResult.isNotExists())
+            return false;
+
+        if (restrictionList != null && restrictionList.isUnsatisfiable()) {
+            sat = Satisfiability.UNSAT;
+            return true;
+        }
+
+        if (childResult.isUnsatisfiable()) {
+            sat = Satisfiability.UNSAT;
+            return true;
+        }
+
+        sat = Satisfiability.NEITHER;
+        return false;
+    }
+
     public boolean hasSubqueries() {
         return (projectSubquerys != null && projectSubquerys.size()>0) ||
                 (restrictSubquerys != null && restrictSubquerys.size()>0);
