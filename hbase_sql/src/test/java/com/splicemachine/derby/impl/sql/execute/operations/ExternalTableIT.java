@@ -1053,4 +1053,34 @@ public class ExternalTableIT extends SpliceUnitTest{
         Assert.assertEquals(after, before, after);
 
     }
+
+    @Test
+    public void testBuildInFunctionText()  throws Exception {
+        //
+        String tablePath = getExternalResourceDirectory()+ "EXT_FUNCTION_TEXT";
+        methodWatcher.executeUpdate(String.format("CREATE EXTERNAL TABLE EXT_FUNCTION_TEXT (id INT, c_vchar varchar(30), c_date DATE,  c_num NUMERIC, c_bool BOOLEAN) \n" +
+                "ROW FORMAT DELIMITED \n" +
+                "FIELDS TERMINATED BY ','\n" +
+                "STORED AS TEXTFILE\n" +
+                "location '%s'", tablePath));
+
+
+
+        methodWatcher.execute("insert into EXT_FUNCTION_TEXT (id, c_vchar, c_date, c_num, c_bool) values (1, 'nR-trkDr#,`9DSUbCw C+U8QctPUBy', '7958-05-18', 13691,  true)," +
+                "(2, '$c\">0n`w6b-$O7F`Q6#QWNnivV=6v?', '3450-03-06', 35317, false)," +
+                "(3, 'Q=-DoLR#Bd|(M/![FaN6q Jn>\"CEIW', '4736-03-12', 2877, true)," +
+                "(4, 'eo}+Eyd~%MwIbheQ>aHz;h~Wb{T%5y', '2871-11-07', 71800, true), " +
+                "(5, '@SEulog}9|{]46m~cYDYspt%Z4tZ_4', '2833-03-03', 67859, false)");
+
+        ResultSet rs = methodWatcher.executeQuery("select  DAY(c_date) from EXT_FUNCTION_TEXT  order by 1");
+        Assert.assertEquals("1 |\n" +
+                "----\n" +
+                "12 |\n" +
+                "18 |\n" +
+                " 3 |\n" +
+                " 6 |\n" +
+                " 7 |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+    }
 }
