@@ -161,13 +161,8 @@ public class SimpleTxnFilter implements TxnFilter{
             return;
         }
 
-        TxnView t=fetchTransaction(ts);
-        assert t!=null:"Could not find a transaction for id "+ts;
-
         //submit it to the resolver to resolve asynchronously
-        if(t.getEffectiveState().isFinal()){
-            doResolve(element,ts);
-        }
+        doResolve(element,ts);
     }
 
     protected void doResolve(DataCell data,long ts){
