@@ -32,12 +32,26 @@ import java.util.Iterator;
  */
 public class NormalizeFunction extends SpliceFlatMapFunction<NormalizeOperation, LocatedRow, LocatedRow> {
     private static final long serialVersionUID = 7780564699906451370L;
+    private boolean requireNotNull;
 
     public NormalizeFunction() {
     }
 
-    public NormalizeFunction(OperationContext<NormalizeOperation> operationContext) {
+    public NormalizeFunction(OperationContext<NormalizeOperation> operationContext, boolean requireNotNull) {
         super(operationContext);
+        this.requireNotNull = requireNotNull;
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeBoolean(requireNotNull);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        requireNotNull = in.readBoolean();
     }
 
     @Override
@@ -48,7 +62,7 @@ public class NormalizeFunction extends SpliceFlatMapFunction<NormalizeOperation,
         if (sourceRow != null) {
             ExecRow normalized = null;
             try {
-                normalized = normalize.normalizeRow(sourceRow.getRow(), true);
+                normalized = normalize.normalizeRow(sourceRow.getRow(), requireNotNull);
             } catch (StandardException e) {
                 if (operationContext!=null && operationContext.isPermissive()) {
                     operationContext.recordBadRecord(e.getLocalizedMessage() + sourceRow.toString(), e);
