@@ -340,9 +340,10 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
             dsp.setPermissive(statusDirectory, getVTIFileName(), failBadRecordCount);
         }
         if (outputKeysOnly) {
-            // Bypass normalization if it is only for split key generation
-            // TODO: JY - this is a hack.
-            source = source.getLeftOperation();
+            // For split key calculation, allow nonnullable column to be null
+            if (source instanceof NormalizeOperation) {
+                ((NormalizeOperation) source).setRequireNotNull(false);
+            }
         }
         DataSet set=source.getDataSet(dsp);
         OperationContext operationContext=dsp.createOperationContext(this);
