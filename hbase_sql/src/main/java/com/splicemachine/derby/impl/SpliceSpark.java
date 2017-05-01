@@ -16,9 +16,12 @@ package com.splicemachine.derby.impl;
 
 import java.io.IOException;
 
+import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -57,7 +60,7 @@ public class SpliceSpark {
     // Sets both ctx and session
     public static synchronized SparkSession getSession() {
         String threadName = Thread.currentThread().getName();
-        if (!threadName.startsWith("olap-worker-")) {
+        if (!SpliceClient.isClient && !threadName.startsWith("olap-worker-")) {
              // Not running on the Olap Server... raise exception. Use getSessionUnsafe() if you know what you are doing.
             throw new RuntimeException("Trying to get a SparkSession from outside the OlapServer");
         }

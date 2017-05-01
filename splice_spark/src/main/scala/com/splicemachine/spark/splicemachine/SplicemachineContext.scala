@@ -168,6 +168,26 @@ class SplicemachineContext() extends Serializable {
   }
 
 
+  def bulkImportHFile(dataFrame: DataFrame, schemaTableName: String,
+                      options: scala.collection.mutable.Map[String, String]): Unit = {
+
+    val bulkImportDirectory = options.get("bulkImportDirectory")
+    if (bulkImportDirectory == null) {
+      throw new IllegalArgumentException("bulkImportDirectory cannot be null")
+    }
+    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
+    val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
+    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema,url)
+    var properties = "--SPLICE-PROPERTIES "
+    options foreach(option => properties += option._1 + "=" + option._2 +",")
+    properties = properties.substring(0, properties.length-1)
+
+    val sqlText = "insert into " + schemaTableName + " (" + columnList + ") " + properties + "\n" +
+      "select "+columnList+" from " +
+      "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
+      "as SpliceDatasetVTI (" + schemaString + ")"
+    internalConnection.createStatement().executeUpdate(sqlText)
+  }
 
   def getSchema(schemaTableName: String): StructType = {
     val newSpliceOptions = Map(

@@ -13,7 +13,7 @@
  */
 package com.splicemachine.spark.splicemachine
 
-import org.apache.spark.sql.execution.datasources.jdbc.JDBCOptions
+import java.io.File
 
 import scala.collection.immutable.IndexedSeq
 import org.apache.spark.sql.SQLContext
@@ -51,6 +51,28 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     val df = sqlContext.read.options(internalOptions).splicemachine
     val changedDF = df.withColumn("C6_INT", when(col("C6_INT").leq(10), col("C6_INT").plus(10)) )
     splicemachineContext.insert(changedDF, internalTN)
+    val newDF = sqlContext.read.options(internalOptions).splicemachine
+    assert(newDF.count == 20)
+  }
+
+  test("bulkImportHFile") {
+    val bulkImportOptions = scala.collection.mutable.Map(
+      "useSpark" -> "true",
+      "skipSampling" -> "true"
+    )
+    val tmpDir: String = System.getProperty("java.io.tmpdir");
+    val bulkImportDirectory: File = new File(tmpDir, "bulkImport")
+    bulkImportDirectory.mkdirs()
+    val statusDirectory: File = new File(bulkImportDirectory, "BAD")
+    statusDirectory.mkdir()
+
+    bulkImportOptions += ("bulkImportDirectory" -> bulkImportDirectory.getAbsolutePath);
+    bulkImportOptions += ("statusDirectory" -> statusDirectory.getAbsolutePath);
+
+    val df = sqlContext.read.options(internalOptions).splicemachine
+    val changedDF = df.withColumn("C6_INT", when(col("C6_INT").leq(10), col("C6_INT").plus(20)) )
+
+    splicemachineContext.bulkImportHFile(changedDF, internalTN, bulkImportOptions)
     val newDF = sqlContext.read.options(internalOptions).splicemachine
     assert(newDF.count == 20)
   }
