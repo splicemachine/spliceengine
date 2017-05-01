@@ -31,7 +31,7 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
   val externalTN = schema+"."+externalTable
 
   val appID = new Date().toString + math.floor(math.random * 10E4).toLong.toString
-  val defaultJDBCURL = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin"
+  val defaultJDBCURL = "jdbc:splice://localhost:1527/splicedb;user=splice;password=admin"
   val allTypesCreateStringWithPrimaryKey = "(" +
     "c1_boolean boolean, " +
     "c2_char char(5), " +
