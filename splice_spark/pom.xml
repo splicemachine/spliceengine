@@ -211,6 +211,13 @@
     </dependencies>
 
     <build>
+        <extensions>
+            <extension>
+                <groupId>kr.motd.maven</groupId>
+                <artifactId>os-maven-plugin</artifactId>
+                <version>1.5.0.Final</version>
+            </extension>
+        </extensions>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -247,6 +254,9 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/ -Dhbase.rootdir=${project.build.directory}/../../hbase_sql/target/hbase</argLine>
+                </configuration>
             </plugin>
 
             <plugin>
@@ -369,7 +379,7 @@
                     <dependency>
                         <groupId>com.splicemachine</groupId>
                         <artifactId>splice_machine</artifactId>
-                        <version>2.6.0.1708-SNAPSHOT</version>
+                        <version>${project.version}</version>
                         <classifier>tests</classifier>
                     </dependency>
 

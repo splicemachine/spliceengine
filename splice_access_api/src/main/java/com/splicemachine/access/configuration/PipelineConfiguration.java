@@ -160,7 +160,7 @@ public class PipelineConfiguration implements ConfigurationDefault {
     private static final double DEFAULT_BULK_IMPORT_SAMPLE_FRACTION = 0.005d;
 
     public static final String BULK_IMPORT_TASKS_PER_REGION = "splice.bulkImport.tasks.perRegion";
-    private static final int DEFAULT_BULK_IMPORT_TASKS_PER_REGION = 3;
+    private static final int DEFAULT_BULK_IMPORT_TASKS_PER_REGION = 1;
 
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
