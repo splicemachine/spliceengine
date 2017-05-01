@@ -14,6 +14,7 @@
 package com.splicemachine.spark.splicemachine
 
 import java.io.File
+import java.sql.Timestamp
 
 import scala.collection.immutable.IndexedSeq
 import org.apache.spark.sql.SQLContext
@@ -159,8 +160,16 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
   */
 
   test("table scan with projection and predicate timestamp") {
-    assertEquals("[[1969-12-31 18:00:00.0], [1969-12-31 18:00:00.001], [1969-12-31 18:00:00.002], [1969-12-31 18:00:00.003], [1969-12-31 18:00:00.004]]",
-      sqlContext.sql(s"""SELECT c11_timestamp FROM $table where c11_timestamp < "1969-12-31 18:00:00.005"""").collectAsList().toString)
+    val ts0 = new Timestamp(0)
+    val ts1 = new Timestamp(1)
+    val ts2 = new Timestamp(2)
+    val ts3 = new Timestamp(3)
+    val ts4 = new Timestamp(4)
+    val ts5 = new Timestamp(5)
+
+    val results = String.format("[[%s], [%s], [%s], [%s], [%s]]", ts0, ts1, ts2, ts3, ts4)
+    assertEquals(results,
+      sqlContext.sql(s"""SELECT c11_timestamp FROM $table where c11_timestamp < "$ts5"""").collectAsList().toString)
   }
 
 
