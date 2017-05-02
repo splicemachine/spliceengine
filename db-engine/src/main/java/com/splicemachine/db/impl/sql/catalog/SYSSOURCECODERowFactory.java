@@ -160,6 +160,7 @@ public class SYSSOURCECODERowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getColumn("OBJECT_TYPE", Types.VARCHAR, false, 32),
                 SystemColumnImpl.getColumn("OBJECT_FORM", Types.VARCHAR, false, 32),
                 SystemColumnImpl.getColumn("DEFINER_NAME",Types.VARCHAR, false, 128),
+                SystemColumnImpl.getColumn("LAST_MODIFIED",Types.TIMESTAMP, false, 0),
                 SystemColumnImpl.getColumn("SOURCE_CODE", Types.BLOB, false, 64*1024*1024)
         };
     }

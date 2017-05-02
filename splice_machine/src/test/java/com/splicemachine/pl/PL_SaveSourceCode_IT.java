@@ -58,8 +58,8 @@ public class PL_SaveSourceCode_IT {
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
-        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin"});
-        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true"});
+        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;user=splice;password=admin"});
+        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;user=splice;password=admin;useSpark=true"});
         return params;
     }
 
@@ -77,7 +77,6 @@ public class PL_SaveSourceCode_IT {
     }
 
     @Test
-    @Ignore
     public void saveSourceCode() throws Exception {
         // no source code has been saved yet, so following query should return 0 rows
         assertEquals(0, methodWatcher.queryList("SELECT SOURCE_CODE FROM SYS.SYSSOURCECODE").size());
