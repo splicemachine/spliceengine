@@ -97,7 +97,6 @@ public class BackupSystemProcedures {
      * @throws SQLException
      */
     public static void SYSCS_RESTORE_DATABASE(String directory, long backupId, ResultSet[] resultSets) throws StandardException, SQLException {
-        String changeId = null;
         IteratorNoPutResultSet inprs = null;
 
         Connection conn = SpliceAdmin.getDefaultConn();
@@ -151,13 +150,6 @@ public class BackupSystemProcedures {
             SpliceLogUtils.error(LOG, "Error recovering backup", t);
 
         } finally {
-            try {
-                if (changeId != null) {
-                    DDLUtils.finishMetadataChange(changeId);
-                }
-            } catch (StandardException e) {
-                SpliceLogUtils.error(LOG, "Error recovering backup", e);
-            }
             resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class),inprs,false,null,true);
         }
     }
