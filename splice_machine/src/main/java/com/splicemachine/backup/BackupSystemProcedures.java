@@ -274,5 +274,15 @@ public class BackupSystemProcedures {
         }
     }
 
+    public static void POST_RESTORE_CLEANUP(long backupId, ResultSet[] resultSets) throws StandardException, SQLException {
 
+        try {
+            BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
+            backupManager.post_restore_cleanup(backupId);
+            resultSets[0] = ProcedureUtils.generateResult("Success", "Rolled back transactions with start timestamp greater than "+backupId);
+        } catch (Throwable t) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
+            SpliceLogUtils.error(LOG, "post restore cleanup", t);
+        }
+    }
 }

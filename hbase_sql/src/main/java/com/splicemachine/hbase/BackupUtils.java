@@ -300,7 +300,15 @@ public class BackupUtils {
         FSDataOutputStream out = null;
         try {
             if (!fs.exists(new Path(backupDir, BackupRestoreConstants.REGION_FILE_NAME))) {
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "creating a new region on file system for %s",
+                            region.getRegionInfo().getEncodedName());
+                }
                 HRegionFileSystem.createRegionOnFileSystem(conf, fs, backupDir.getParent(), region.getRegionInfo());
+            }
+            if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.debug(LOG, "register HFile %s.%s for incremental backup",
+                        region.getRegionInfo().getEncodedName(), fileName);
             }
             out = fs.create(new Path(backupDir.toString() + "/" + SIConstants.DEFAULT_FAMILY_NAME + "/" + fileName));
         }
