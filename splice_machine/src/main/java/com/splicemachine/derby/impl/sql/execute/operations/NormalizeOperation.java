@@ -49,6 +49,7 @@ public class NormalizeOperation extends SpliceBaseOperation{
     private int startCol;
     private boolean forUpdate;
     private int erdNumber;
+    private boolean requireNotNull = true;
 
     private DataValueDescriptor[] cachedDestinations;
 
@@ -90,6 +91,7 @@ public class NormalizeOperation extends SpliceBaseOperation{
         forUpdate=in.readBoolean();
         erdNumber=in.readInt();
         source=(SpliceOperation)in.readObject();
+        requireNotNull = in.readBoolean();
     }
 
     @Override
@@ -98,6 +100,7 @@ public class NormalizeOperation extends SpliceBaseOperation{
         out.writeBoolean(forUpdate);
         out.writeInt(erdNumber);
         out.writeObject(source);
+        out.writeBoolean(requireNotNull);
     }
 
     @Override
@@ -284,7 +287,7 @@ public class NormalizeOperation extends SpliceBaseOperation{
         OperationContext operationContext=dsp.createOperationContext(this);
         operationContext.pushScope();
         try{
-            return sourceSet.flatMap(new NormalizeFunction(operationContext),true);
+            return sourceSet.flatMap(new NormalizeFunction(operationContext, requireNotNull),true);
         }finally{
             operationContext.popScope();
         }
@@ -295,4 +298,7 @@ public class NormalizeOperation extends SpliceBaseOperation{
         return getSubOperations().get(0).getVTIFileName();
     }
 
+    public void setRequireNotNull(boolean requireNotNull) {
+        this.requireNotNull = requireNotNull;
+    }
 }

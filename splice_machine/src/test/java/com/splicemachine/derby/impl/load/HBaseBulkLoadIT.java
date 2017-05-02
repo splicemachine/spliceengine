@@ -23,6 +23,7 @@ import com.splicemachine.homeless.TestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.*;
+import org.spark_project.guava.base.Throwables;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -88,7 +89,8 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
             assertEquals(5L, (long) spliceClassWatcher.query("select count(*) from " + REGION));
         }
         catch (Exception e) {
-             if (e.getMessage().compareToIgnoreCase("bulk load not supported") == 0)
+            java.lang.Throwable ex = Throwables.getRootCause(e);
+             if (ex.getMessage().contains("bulk load not supported"))
                  notSupported = true;
         }
     }
@@ -100,14 +102,14 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
     }
     @Test
     public void sql1() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
         executeQuery(getContent("1.sql"), getContent("1.expected.txt"), true);
     }
 
     @Test
     public void sql2() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
         String sql = getContent("2.sql");
         executeQuery(sql, "", true);
@@ -116,14 +118,14 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql3() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
         executeQuery(getContent("3.sql"), "", true);
     }
 
     @Test
     public void sql4() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
         String sql = getContent("4.sql");
         executeQuery(sql, getContent("4.expected.txt"), true);
@@ -132,21 +134,21 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql5() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
         executeQuery(getContent("5.sql"), "", true);
     }
 
     @Test
     public void sql6() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
         executeQuery(getContent("6.sql"), getContent("6.expected.txt"), false);
     }
 
     @Test
     public void sql7() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
         String sql = getContent("7.sql");
         executeQuery(sql, "", true);
@@ -155,7 +157,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql8() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
         String sql = getContent("8.sql");
         executeQuery(sql, "", true);
@@ -164,7 +166,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql8InvalidMergeJoin() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
         try {
             executeQuery(getContent("8-invalid-merge.sql"), "", true);
@@ -177,7 +179,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql9() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
         String sql = getContent("9.sql");
         executeQuery(sql, "", true);
@@ -186,7 +188,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql9Repeated() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
         for (int i = 0; i < 3; i++) {
             sql9();
@@ -195,14 +197,14 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql10() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
         executeQuery(getContent("10.sql"), "", true);
     }
 
     @Test
     public void sql11() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
         String sql = getContent("11.sql");
         executeQuery(sql, "", true);
@@ -211,14 +213,14 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql12() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
         executeQuery(getContent("12.sql"), getContent("12.expected.txt"), true);
     }
 
     @Test
     public void sql13() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
         String sql = getContent("13.sql");
         executeQuery(sql, getContent("13.expected.txt"), true);
@@ -227,14 +229,14 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql14() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
         executeQuery(getContent("14.sql"), getContent("14.expected.txt"), false);
     }
 
     @Test
     public void sql15() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
         String sql15a = getContent("15a.sql");
         String sql15b = getContent("15b.sql");
@@ -247,7 +249,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql16() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
         String sql = getContent("16.sql");
         executeQuery(sql, getContent("16.expected.txt"), true);
@@ -256,7 +258,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql17() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
         String sql = getContent("17.sql");
         executeQuery(sql, getContent("17.expected.txt"), false);
@@ -265,7 +267,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test(timeout = 30000)
     public void sql18() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
         String sql = getContent("18.sql");
         executeQuery(sql, "", true);
@@ -274,14 +276,14 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql19() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
         executeQuery(getContent("19.sql"), getContent("19.expected.txt"), false);
     }
 
     @Test
     public void sql20() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
         String sql = getContent("20.sql");
         executeQuery(sql, "", true);
@@ -290,7 +292,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql21() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
         String sql = getContent("21.sql");
         executeQuery(sql, "", true);
@@ -299,7 +301,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void sql22() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
         String sql = getContent("22.sql");
         executeQuery(sql, getContent("22.expected.txt"), true);
@@ -308,7 +310,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void testPredicatePushdownOnRightSideOfJoin() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
         rowContainsQuery(7,"explain select count(*) from --splice-properties joinOrder=fixed\n" +
                 " ORDERS, LINEITEM --splice-properties joinStrategy=BROADCAST\n" +
@@ -317,7 +319,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void testComputeTableSplitKeys() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
        String sql =
                " select conglomeratenumber from sys.systables t, sys.sysconglomerates c, sys.sysschemas s " +
@@ -341,19 +343,20 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
         String expected =
                 "KEY     |\n" +
                 "--------------\n" +
-                "\\x81\\x00\\x81 |\n" +
-                "\\x81\\x00\\x82 |\n" +
+                "    \\x81     |\n" +
                 "\\x81\\x00\\x83 |\n" +
                 "\\x81\\x00\\x84 |\n" +
                 "\\x81\\x00\\x85 |\n" +
                 "\\x81\\x00\\x86 |\n" +
+                "    \\x82     |\n" +
                 "\\x82\\x00\\x81 |";
+
         Assert.assertEquals(expected, s);
     }
 
     @Test
     public void testComputeIndexSplitKeys() throws Exception {
-        if (!notSupported)
+        if (notSupported)
             return;
         String sql =
                 " select conglomeratenumber from sys.systables t, sys.sysconglomerates c, sys.sysschemas s " +
@@ -376,11 +379,10 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
                         "AS splitKey (\"KEY\" varchar(200))";
         rs = methodWatcher.executeQuery(format(select, getResource("data/"+conglomId+"/keys")));
         String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        String expected =
-                "KEY                                         |\n" +
-                "-------------------------------------------------------------------------------------\n" +
-                "       \\xEC\\xC0{e\\xF4\\x00\\x00\\xE2^6\\x00\\xE42'\\x93@\\x01\\x00\\xDEP\\x01\\x00\\x80         |\n" +
-                "\\xEC\\xC1\\x15\\xAD\\xCD\\x80\\x00\\xE1\\x06\\xEE\\x00\\xE4V\\xA9Bp\\x01\\x00\\xDE\\xA0\\x01\\x00\\x80 |";
+        String expected = "KEY                                      |\n" +
+                "-------------------------------------------------------------------------------\n" +
+                "   \\xEC\\xC0y\\xAE\\x80\\x00\\x00\\xE2^6\\x00\\xE42'\\x93@\\x01\\x00\\xDEP\\x01\\x00\\x80    |\n" +
+                "\\xEC\\xC1\\x14-H\\x00\\x00\\xE1\\x06\\xEE\\x00\\xE4V\\xA9Bp\\x01\\x00\\xDE\\xA0\\x01\\x00\\x80 |";
         Assert.assertEquals(expected, s);
     }
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
