@@ -749,6 +749,13 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .sqlControl(RoutineAliasInfo.NO_SQL).returnType(null).isDeterministic(false)
                             .build());
+
+                    procedures.add(Procedure.newBuilder().name("POST_RESTORE_CLEANUP")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                            .bigint("backupId")
+                            .build());
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)

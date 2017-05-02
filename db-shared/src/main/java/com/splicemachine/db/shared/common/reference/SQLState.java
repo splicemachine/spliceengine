@@ -1945,6 +1945,7 @@ public interface SQLState {
 	String BACKUP_DOESNOT_EXIST                                    = "BR012";
 	String PARENT_BACKUP_MISSING                                   = "BR013";
 	String EXISTS_CONCURRENT_BACKUP                                = "BR014";
+    String INVALID_RESTORE                                         = "BR015";
 
 	String FILESYSTEM_URI_EXCEPTION				    				= "EXT25";
 	String FILESYSTEM_IO_EXCEPTION				    				= "EXT26";
