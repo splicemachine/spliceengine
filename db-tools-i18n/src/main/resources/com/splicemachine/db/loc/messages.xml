@@ -8863,6 +8863,11 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <arg>backupId</arg>
            </msg>
            <msg>
+               <name>BR015</name>
+               <text>The latest restored data is not from backup {0}</text>
+               <arg>backupId</arg>
+           </msg>
+           <msg>
                <name>BR016</name>
                <text>Backup timed out for table {0} region {1}.</text>
                <arg>tableName</arg>

@@ -1951,6 +1951,7 @@ public interface SQLState {
 	String BACKUP_DOESNOT_EXIST                                    = "BR012";
 	String PARENT_BACKUP_MISSING                                   = "BR013";
 	String EXISTS_CONCURRENT_BACKUP                                = "BR014";
+	String INVALID_RESTORE                                         = "BR015";
 	String BACKUP_TIMEOUT                                          = "BR016";
 
 

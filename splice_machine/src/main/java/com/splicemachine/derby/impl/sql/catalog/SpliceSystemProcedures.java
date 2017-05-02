@@ -770,6 +770,12 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .arg("sourceCode", DataTypeDescriptor.getCatalogType(Types.BLOB,64*1024*1024))
                             .build());
 
+                    procedures.add(Procedure.newBuilder().name("POST_RESTORE_CLEANUP")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                            .bigint("backupId")
+                            .build());
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)

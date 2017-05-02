@@ -72,4 +72,9 @@ public class NoOpBackupManager implements BackupManager{
     public void cancelBackup() throws StandardException {
         throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
     }
+
+    @Override
+    public void post_restore_cleanup(long backupId) throws StandardException {
+        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
+    }
 }

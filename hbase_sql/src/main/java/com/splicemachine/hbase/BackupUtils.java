@@ -306,6 +306,10 @@ public class BackupUtils {
         FSDataOutputStream out = null;
         try {
             if (!fs.exists(new Path(backupDir, BackupRestoreConstants.REGION_FILE_NAME))) {
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "creating a new region on file system for %s",
+                            region.getRegionInfo().getEncodedName());
+                }
                 HRegionFileSystem.createRegionOnFileSystem(conf, fs, backupDir.getParent(), region.getRegionInfo());
             }
             Path p = new Path(backupDir.toString() + "/" + SIConstants.DEFAULT_FAMILY_NAME + "/" + fileName);
