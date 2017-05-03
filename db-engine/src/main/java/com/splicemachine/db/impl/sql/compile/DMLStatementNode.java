@@ -145,6 +145,9 @@ public abstract class DMLStatementNode extends StatementNode {
         // selectivity 1.0.)
         accept(new ConstantExpressionVisitor());
 
+        // prune tree based on unsat condition
+        accept(new TreePruningVisitor());
+
         resultSet = resultSet.optimize(getDataDictionary(), null, 1.0d);
         resultSet = resultSet.modifyAccessPaths();
 
