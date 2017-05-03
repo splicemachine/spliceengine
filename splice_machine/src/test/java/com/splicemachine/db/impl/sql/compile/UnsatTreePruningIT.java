@@ -548,7 +548,7 @@ public class UnsatTreePruningIT extends SpliceUnitTest {
         assertPruneResult(sqlText, expected, true);
 
         /* case 5 */
-        /* except 2 */
+        /* except 2
         sqlText = "select a1,b1 from t1, t2 where a1=a2 except select a3,b3 from t3,t4 where a3=a4 and 1=0 order by 1";
 
         expected =
@@ -558,6 +558,7 @@ public class UnsatTreePruningIT extends SpliceUnitTest {
                         " 2 |bbb |";
 
         assertPruneResult(sqlText, expected, true);
+        */
 
         /* case 6 */
         /* intersect */
