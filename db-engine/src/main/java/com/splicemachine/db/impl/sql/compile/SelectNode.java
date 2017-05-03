@@ -35,13 +35,9 @@ import java.util.Vector;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-import com.splicemachine.db.iapi.sql.compile.Optimizer;
-import com.splicemachine.db.iapi.sql.compile.Visitable;
-import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
@@ -119,6 +115,7 @@ public class SelectNode extends ResultSetNode{
     /* Copy of fromList prior to generating join tree */
     private FromList preJoinFL;
     private int nestingLevel;
+    private Satisfiability nonAggregatePartSat = Satisfiability.UNKNOWN;
 
     public static void checkNoWindowFunctions(QueryTreeNode clause, String clauseName) throws StandardException{
         // Clause cannot contain window functions except inside subqueries
@@ -2327,5 +2324,178 @@ public class SelectNode extends ResultSetNode{
         public Integer apply(SelectNode input) {
             return input.getNestingLevel();
         }
+    }
+
+
+
+    public boolean isUnsatisfiable() {
+        if (sat == Satisfiability.UNSAT)
+            return true;
+
+        if (sat != Satisfiability.UNKNOWN)
+            return false;
+
+
+        //if the query contains aggregate but no group by clause
+        //even with unsatisfiable condition, one row will be returned,
+        //so don't mark it as unsatisfiable
+        //e.g., 1 row is returned for the following query:
+        //select max(a1) from t1 where 1=0;
+        if (selectAggregates != null && selectAggregates.size() > 0 ||
+                havingAggregates != null && havingAggregates.size() > 0) {
+            if (groupByList == null || groupByList.size() == 0) {
+                sat = Satisfiability.NEITHER;
+                return false;
+            }
+        }
+
+        if (isNonAggregatePartUnsat()) {
+            sat = Satisfiability.UNSAT;
+            return true;
+        }
+
+        sat = Satisfiability.NEITHER;
+        return false;
+    }
+
+    /* the non-aggregate part is unsatisfiable if:
+       1. its wherePredicate contains an unsat condition (1=0) (assume CNF form); or
+       2. its fromList contains a node that is unsat
+     */
+
+    public boolean isNonAggregatePartUnsat() {
+        if (nonAggregatePartSat == Satisfiability.UNSAT)
+            return true;
+
+        if (nonAggregatePartSat != Satisfiability.UNKNOWN)
+            return false;
+
+        if (wherePredicates != null) {
+            if (wherePredicates.isUnsatisfiable()) {
+                nonAggregatePartSat = Satisfiability.UNSAT;
+                return true;
+            }
+        }
+
+        for (int i=0; i<fromList.size(); i++) {
+            FromTable ft = (FromTable)fromList.elementAt(i);
+            if (ft.isUnsatisfiable()) {
+                nonAggregatePartSat = Satisfiability.UNSAT;
+                return true;
+            }
+        }
+        nonAggregatePartSat = Satisfiability.NEITHER;
+        return false;
+    }
+
+    /**
+     * If the non-aggregate portion of the SelectNode is not satisfiable, perform a rewrite by
+     * replacing the non-aggregate portion to a simple RowResultSetNode which represents one row of all nulls.
+     * For example, the below function will rewrite the query:
+     *     select a1, a2 from t1 left join t2 on a1=a2 where 1=0;
+     * to
+           select a1, a2 from (values (null, null)) as dt (a1,a2) where 1=0;
+     */
+    public Visitable unsatTreePruning() throws StandardException {
+        // check if the non-aggregate part of the Select is unsatisfiable
+        if (!isNonAggregatePartUnsat())
+            return this;
+
+        if (fromList.size() == 0)
+            return this;
+        // if the SelectNode contains only one RowResultSetNode, no need to do this optimization
+        if (fromList.size() == 1) {
+            FromTable ft = (FromTable)fromList.elementAt(0);
+            if (ft instanceof ProjectRestrictNode) {
+                if (((ProjectRestrictNode) ft).getChildResult() instanceof RowResultSetNode)
+                    return this;
+            }
+        }
+
+        NodeFactory nf = getNodeFactory();
+        ContextManager cm = getContextManager();
+
+        // create a RCL based on the current RCL list in the fromList
+        // this will be the new RowResultSetNode's RCL
+        ResultColumnList rowRCL = null;
+        for (int i=0; i<fromList.size(); i++) {
+            FromTable ft = (FromTable)fromList.elementAt(i);
+            ResultColumnList tmpRCL = ft.getResultColumns();
+            ft.setResultColumns(tmpRCL.copyListAndObjects());
+            if (rowRCL == null)
+                rowRCL = tmpRCL;
+            else {
+                rowRCL.appendResultColumns(tmpRCL, true);
+            }
+        }
+
+        // replace the source of each result column with null value
+        for (int i=0; i < rowRCL.size(); i++) {
+            ResultColumn rc = rowRCL.elementAt(i);
+            if (rc.getTypeId() == null)
+                throw StandardException.newException("Type in Result Column is not specified");
+            rc.setExpression(getNullNode(rc.getTypeServices()));
+        }
+
+        // Manufacture a RowResultSetNode
+        RowResultSetNode rowResultSetNode =(RowResultSetNode) nf.getNode(
+                                    C_NodeTypes.ROW_RESULT_SET_NODE,
+                                    rowRCL,
+                                    null,
+                                    cm);
+        FromList tmpFromList = (FromList)nf.getNode(
+                C_NodeTypes.FROM_LIST,
+                nf.doJoinOrderOptimization(),
+                cm);
+        rowResultSetNode.bindExpressions(tmpFromList);
+        rowResultSetNode.setLevel(((FromTable)fromList.elementAt(0)).getLevel());
+
+        // reuse an existing tableNumber from the fromList
+        int reusedTableNumber = referencedTableMap.getFirstSetBit();
+        rowResultSetNode.setTableNumber(reusedTableNumber);
+        /* Allocate a dummy referenced table map */
+        int numTables = getCompilerContext().getNumTables();
+        JBitSet tableMap = new JBitSet(numTables);
+        tableMap.set(reusedTableNumber);
+        rowResultSetNode.setReferencedTableMap(tableMap);
+
+
+        ResultColumnList prRCL = rowRCL;
+        rowRCL = rowRCL.copyListAndObjects();
+        rowResultSetNode.setResultColumns(rowRCL);
+        prRCL.genVirtualColumnNodes(rowResultSetNode, rowRCL);
+
+        //generate UNSAT condition
+        Predicate unsatPredicate = Predicate.generateUnsatPredicate(numTables, nf, cm);
+        PredicateList predList = (PredicateList)nf.getNode( C_NodeTypes.PREDICATE_LIST, cm);
+        predList.addPredicate(unsatPredicate);
+
+        // Add ProjectRestrictNode ontop with unsat condition
+        ProjectRestrictNode newPRN = (ProjectRestrictNode) nf.getNode(
+                C_NodeTypes.PROJECT_RESTRICT_NODE,
+                rowResultSetNode,		/* Child ResultSet */
+                prRCL,	/* Projection */
+                null,			/* Restriction */
+                predList,			/* Restriction as PredicateList */
+                null,			/* Subquerys in Projection */
+                null,			/* Subquerys in Restriction */
+                null,          /* table properties */
+                getContextManager()	 );
+
+        newPRN.setLevel(rowResultSetNode.getLevel());
+        // set referenced tableMap for the PRN
+        newPRN.setReferencedTableMap((JBitSet)tableMap.clone());
+
+        fromList.removeAllElements();
+        fromList.addElement(newPRN);
+
+        //update other fields in the current SelectNode
+        referencedTableMap.clearAll();
+        referencedTableMap.or(tableMap);
+        wherePredicates.removeAllElements();
+        whereSubquerys.removeAllElements();
+
+        //if query contains aggregation and group by
+        return this;
     }
 }

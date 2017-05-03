@@ -3781,4 +3781,11 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             return weight;
         }
     }
+
+    public boolean isUnsatisfiable() {
+        for (int i=0; i<size(); i++)
+            if (elementAt(i).isUnsatisfiable())
+                return true;
+        return false;
+    }
 }

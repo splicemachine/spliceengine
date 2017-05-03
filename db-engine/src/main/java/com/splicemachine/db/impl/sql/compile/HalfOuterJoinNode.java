@@ -791,6 +791,22 @@ public class HalfOuterJoinNode extends JoinNode{
             return leftResultSet.LOJgetReferencedTables(numTables);
     }
 
+    public boolean isUnsatisfiable() {
+        if (sat == Satisfiability.UNSAT)
+            return true;
+
+        if (sat != Satisfiability.UNKNOWN)
+            return false;
+
+        if (leftResultSet.isUnsatisfiable()) {
+            sat = Satisfiability.UNSAT;
+            return true;
+        }
+
+        sat = Satisfiability.NEITHER;
+        return false;
+    }
+
     @Override
     public String printExplainInformation(String attrDelim, int order) throws StandardException {
         JoinStrategy joinStrategy = RSUtils.ap(this).getJoinStrategy();
