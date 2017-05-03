@@ -77,7 +77,7 @@ public class PL_SaveSourceCode_IT {
     }
 
     @Test
-    @Ingore
+    @Ignore
     public void saveSourceCode() throws Exception {
         // no source code has been saved yet, so following query should return 0 rows
         assertEquals(0, methodWatcher.queryList("SELECT SOURCE_CODE FROM SYS.SYSSOURCECODE").size());
