@@ -168,9 +168,11 @@ public final class CharConstantNode extends ConstantNode
 	    //if at this bind time, we find that the char constant's collation
 	    //type is territory based, then we should change value from SQLxxx
 	    //to CollatorSQLxxx. That is what is getting done below.
-	    value = ((StringDataValue)value).getValue(
-	    		getLanguageConnectionContext().getDataValueFactory().getCharacterCollator(
-	    				getTypeServices().getCollationType()));
+		if (value != null) {
+			value = ((StringDataValue)value).getValue(
+					getLanguageConnectionContext().getDataValueFactory().getCharacterCollator(
+							getTypeServices().getCollationType()));
+		}
 		return this;
 	}
 
