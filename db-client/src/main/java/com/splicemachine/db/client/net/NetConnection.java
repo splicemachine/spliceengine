@@ -456,7 +456,6 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
                 flowUSRSSBPWDconnect(password);
                 break;
             case NetConfiguration.SECMEC_KERSEC: // Kerberos
-                // do stuff;
                 flowKERSECconnect();
                 break;
             default:
