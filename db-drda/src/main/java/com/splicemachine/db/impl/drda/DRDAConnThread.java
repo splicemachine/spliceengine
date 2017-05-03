@@ -72,7 +72,6 @@ import org.ietf.jgss.GSSManager;
 import org.ietf.jgss.Oid;
 
 import javax.security.auth.Subject;
-import javax.security.auth.login.LoginContext;
 
 /**
  * This class translates DRDA protocol from an application requester to JDBC
@@ -185,7 +184,6 @@ class DRDAConnThread extends Thread {
 
 	// contexts for Kerberos authentication
 	private GSSContext gssContext;
-	private LoginContext loginContext;
 	private UserGroupInformation user;
 
     // generated target seed to be used to generate the password substitute
@@ -1955,18 +1953,9 @@ class DRDAConnThread extends Thread {
 
 
 								try {
-									// Create a LoginContext with a callback handler
-									loginContext = new LoginContext("server");
+									user = UserGroupInformation.getCurrentUser();
 
-									// Perform authentication
-									loginContext.login();
-
-//TODO use this mechanism
-// Create a LoginContext with a callback handler
-//									user = UserGroupInformation.getCurrentUser();
-//
-//									Exception exception = user.doAs(new PrivilegedAction<Exception>() {
-									Exception exception = Subject.doAs(loginContext.getSubject(), new PrivilegedAction<Exception>() {
+									Exception exception = user.doAs(new PrivilegedAction<Exception>() {
 										@Override
 										public Exception run() {
 											try {
@@ -3085,8 +3074,7 @@ class DRDAConnThread extends Thread {
     		writer.endDdm();
 
 			writer.startDdm(CodePoint.KERSECPPL);
-// TODO use this			writer.writeString(user.getUserName());
-			writer.writeString(loginContext.getSubject().getPrincipals().iterator().next().getName());
+			writer.writeString(user.getUserName());
 		}
 		writer.endDdmAndDss();
 
@@ -3242,7 +3230,7 @@ class DRDAConnThread extends Thread {
 					{
 						try {
 							final byte[] secToken = reader.readBytes();
-							Exception exception = Subject.doAs(loginContext.getSubject(), new PrivilegedAction<Exception>() {
+							Exception exception = user.doAs(new PrivilegedAction<Exception>() {
 								@Override
 								public Exception run() {
 									try {
