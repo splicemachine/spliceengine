@@ -55,7 +55,7 @@ public class ClientDriver implements java.sql.Driver {
             // We'd rather load this slightly more capable driver.
             // But if the vm level doesn't support it, then we fall
             // back on the JDBC3 level driver.
-            //
+            //                             x
             Class.forName("com.splicemachine.db.jdbc.ClientDriver40");
         } catch (Throwable e) {
             registerMe(new ClientDriver());

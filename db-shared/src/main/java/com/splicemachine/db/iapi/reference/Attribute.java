@@ -295,7 +295,7 @@ public interface Attribute {
      */
     String DRDA_SECTKN_IN = "drdaSecTokenIn";
 	String DRDA_SECTKN_OUT = "drdaSecTokenOut";
-	String DRDA_KERSEC_AUTHED = "drdaKersecAuthed";
+	String DRDA_KERSEC_AUTHENTICATED = "drdaKersecAuthed";
     /**
      * Internal attribute which holds the value of the securityMechanism
      * attribute specified by the client. Used for passing information about

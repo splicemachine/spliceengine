@@ -73,7 +73,6 @@ import org.ietf.jgss.Oid;
 
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginContext;
-import javax.security.auth.login.LoginException;
 
 /**
  * This class translates DRDA protocol from an application requester to JDBC
@@ -1480,7 +1479,7 @@ class DRDAConnThread extends Thread {
         }
 
 		if (database.securityMechanism == CodePoint.SECMEC_KERSEC) {
-		    p.put(Attribute.DRDA_KERSEC_AUTHED, Boolean.toString(gssContext.isEstablished()));
+		    p.put(Attribute.DRDA_KERSEC_AUTHENTICATED, Boolean.toString(gssContext.isEstablished()));
 		}
             
 	 	try {
@@ -1956,18 +1955,18 @@ class DRDAConnThread extends Thread {
 
 
 								try {
-//									// Create a LoginContext with a callback handler
-//									loginContext = new LoginContext("server");
-//
-//									// Perform authentication
-//									loginContext.login();
+									// Create a LoginContext with a callback handler
+									loginContext = new LoginContext("server");
+
+									// Perform authentication
+									loginContext.login();
 
 //TODO use this mechanism
 // Create a LoginContext with a callback handler
-									user = UserGroupInformation.getCurrentUser();
-
-									Exception exception = user.doAs(new PrivilegedAction<Exception>() {
-//									Exception exception = Subject.doAs(loginContext.getSubject(), new PrivilegedAction<Exception>() {
+//									user = UserGroupInformation.getCurrentUser();
+//
+//									Exception exception = user.doAs(new PrivilegedAction<Exception>() {
+									Exception exception = Subject.doAs(loginContext.getSubject(), new PrivilegedAction<Exception>() {
 										@Override
 										public Exception run() {
 											try {
@@ -3086,8 +3085,8 @@ class DRDAConnThread extends Thread {
     		writer.endDdm();
 
 			writer.startDdm(CodePoint.KERSECPPL);
- 			writer.writeString(user.getUserName());
-//			writer.writeString(loginContext.getSubject().getPrincipals().iterator().next().getName());
+// TODO use this			writer.writeString(user.getUserName());
+			writer.writeString(loginContext.getSubject().getPrincipals().iterator().next().getName());
 		}
 		writer.endDdmAndDss();
 
@@ -3243,7 +3242,7 @@ class DRDAConnThread extends Thread {
 					{
 						try {
 							final byte[] secToken = reader.readBytes();
-							Exception exception = user.doAs(new PrivilegedAction<Exception>() {
+							Exception exception = Subject.doAs(loginContext.getSubject(), new PrivilegedAction<Exception>() {
 								@Override
 								public Exception run() {
 									try {

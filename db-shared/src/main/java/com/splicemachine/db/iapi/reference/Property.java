@@ -826,6 +826,9 @@ public interface Property {
 	public static final String AUTHENTICATION_PROVIDER_LDAP =
 								"LDAP";
 
+	public static final String AUTHENTICATION_PROVIDER_KERBEROS =
+								"KERBEROS";
+
 	public static final String AUTHENTICATION_SERVER_PARAMETER =
 								"derby.authentication.server";
 

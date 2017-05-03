@@ -52,7 +52,8 @@ import org.ietf.jgss.GSSName;
 import org.ietf.jgss.Oid;
 
 import javax.security.auth.Subject;
-import javax.security.auth.login.LoginContext;
+import javax.security.auth.login.Configuration;
+import javax.security.auth.login.*;
 
 public class NetConnection extends com.splicemachine.db.client.am.Connection {
     
@@ -629,8 +630,11 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
                 null); // publicKey
 
         try {
+            Configuration configuration = new JaasConfiguration("spliceClient", principal, keytab);
+            Configuration.setConfiguration(configuration);
+
             // Create a LoginContext with a callback handler
-            LoginContext loginContext = new LoginContext("client");
+            LoginContext loginContext = new LoginContext("spliceClient");
 
             // Perform authentication
             loginContext.login();
