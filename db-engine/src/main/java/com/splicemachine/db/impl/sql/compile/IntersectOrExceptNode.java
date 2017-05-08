@@ -144,6 +144,7 @@ public class IntersectOrExceptNode extends SetOperatorNode
         intermediateOrderByColumns = new int[ getResultColumns().size()];
         intermediateOrderByDirection = new int[ intermediateOrderByColumns.length];
         intermediateOrderByNullsLow = new boolean[ intermediateOrderByColumns.length];
+
         /* If there is an order by on the result of the intersect then use that because we know that doing so
          * will avoid a sort.  If the output of the intersect/except is small relative to its inputs then in some
          * cases it would be better to sort the inputs on a different sequence of columns, but it is hard to analyze
@@ -176,7 +177,6 @@ public class IntersectOrExceptNode extends SetOperatorNode
                     intermediateOrderByIdx++;
                 }
             }
-            orderByList = null; // It will be pushed down.
         }
         else // The output of the intersect/except does not have to be ordered
         {
@@ -481,10 +481,10 @@ public class IntersectOrExceptNode extends SetOperatorNode
         switch( opType)
         {
             case INTERSECT_OP:
-                return "INTERSECT";
+                return "Intersect";
 
             case EXCEPT_OP:
-                return "EXCEPT";
+                return "Except";
 
         }
         throw StandardException.plainWrapException(new IOException("incorrent op type"));

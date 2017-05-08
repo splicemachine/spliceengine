@@ -861,45 +861,6 @@ abstract class SetOperatorNode extends TableOperatorNode
 		/* Build the referenced table map (left || right) */
 		referencedTableMap = (JBitSet) leftResultSet.getReferencedTableMap().clone();
 		referencedTableMap.or((JBitSet) rightResultSet.getReferencedTableMap());
-
-		/* If this is a UNION without an all and we have
-		 * an order by then we can consider eliminating the sort for the
-		 * order by.  All of the columns in the order by list must
-		 * be ascending in order to do this.  There are 2 cases:
-		 *	o	The order by list is an in order prefix of the columns
-		 *		in the select list.  In this case the output of the
-		 *		sort from the distinct will be in the right order
-		 *		so we simply eliminate the order by list.
-		 *	o	The order by list is a subset of the columns in the
-		 *		the select list.  In this case we need to reorder the
-		 *		columns in the select list so that the ordering columns
-		 *		are an in order prefix of the select list and put a PRN
-		 *		above the select so that the shape of the result set
-		 *		is as expected.
-		 */
-		if ((! all) && orderByList != null && orderByList.allAscending())
-		{
-			/* Order by list currently restricted to columns in select
-			 * list, so we will always eliminate the order by here.
-			 */
-			if (orderByList.isInOrderPrefix(resultColumns))
-			{
-				orderByList = null;
-			}
-			/* RESOLVE - We currently only eliminate the order by if it is
-			 * a prefix of the select list.  We do not currently do the 
-			 * elimination if the order by is not a prefix because the code
-			 * doesn't work.  The problem has something to do with the
-			 * fact that we generate additional nodes between the union
-			 * and the PRN (for reordering that we would generate here)
-			 * when modifying the access paths.  VCNs under the PRN can be
-			 * seen as correlated since their source resultset is the Union
-			 * which is no longer the result set directly under them.  This
-			 * causes the wrong code to get generated. (jerry - 11/3/98)
-			 * (bug 59)
-			 */
-		}
-
 		return newTop;
 	}
 	

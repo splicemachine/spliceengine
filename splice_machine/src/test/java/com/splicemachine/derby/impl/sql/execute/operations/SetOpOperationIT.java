@@ -18,6 +18,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import java.sql.ResultSet;
@@ -63,6 +64,17 @@ public class SetOpOperationIT extends SpliceUnitTest {
                     .withInsert("insert into FOO2 values(?,?)")
                     .withRows(rows(row(1, 5), row(3, 7), row(5, 9))).create();
 
+            new TableCreator(connection)
+                    .withCreate("create table t1 (a1 int, b1 varchar(10), c1 float)")
+                    .withInsert("insert into t1 values(?,?,?)")
+                    .withRows(rows(row(1,"aaa",1.0), row(2,"bbb",2.0), row(3,"ccc",3.0),
+                            row(4,"ddd",4.0),row(null, null, null))).create();
+
+            new TableCreator(connection)
+                    .withCreate("create table t2 (a2 int, b2 varchar(10), c2 float)")
+                    .withInsert("insert into t2 values(?,?,?)")
+                    .withRows(rows(row(1,"aaa",1.0), row(2,"bbb",2.0), row(3,"ccc",3.0),
+                            row(4,"ddd",4.0),row(null, null, null))).create();
         }
 
     @Test
@@ -92,6 +104,72 @@ public class SetOpOperationIT extends SpliceUnitTest {
         Assert.assertEquals("Wrong Count", 2, rs.getInt(1));
         Assert.assertEquals("Wrong Max", 4, rs.getInt(2));
         Assert.assertEquals("Wrong Min", 2, rs.getInt(3));
+    }
+
+    @Test
+    public void testExceptWithOrderBy() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(
+                format("select * from t1 except select * from t2 where 1=0 order by 1"));
+        String expected =
+                "1  |  2  |  3  |\n" +
+                        "------------------\n" +
+                        "  1  | aaa | 1.0 |\n" +
+                        "  2  | bbb | 2.0 |\n" +
+                        "  3  | ccc | 3.0 |\n" +
+                        "  4  | ddd | 4.0 |\n" +
+                        "NULL |NULL |NULL |";
+        Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+    @Test
+    public void testExceptWithOrderByExplain() throws Exception {
+        String query = String.format("explain select * from t1 except select * from t2 where 1=0 order by 1");
+        thirdRowContainsQuery(query, "OrderBy", methodWatcher);
+        fourthRowContainsQuery(query, "Except", methodWatcher);
+    }
+
+    @Test
+    public void testIntersectWithOrderBy() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(
+                format("select * from t1 intersect select * from t2 order by 1"));
+        String expected =
+                "1  |  2  |  3  |\n" +
+                        "------------------\n" +
+                        "  1  | aaa | 1.0 |\n" +
+                        "  2  | bbb | 2.0 |\n" +
+                        "  3  | ccc | 3.0 |\n" +
+                        "  4  | ddd | 4.0 |\n" +
+                        "NULL |NULL |NULL |";
+        Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+    @Test
+    public void testIntersectWithOrderByExplain() throws Exception {
+        String query = String.format("explain select * from t1 intersect select * from t2 order by 1");
+        thirdRowContainsQuery(query, "OrderBy", methodWatcher);
+        fourthRowContainsQuery(query, "Intersect", methodWatcher);
+    }
+
+    @Test
+    public void testUnionWithOrderBy() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(
+                format("select * from t1 union select * from t2 order by 1"));
+        String expected =
+                "1  |  2  |  3  |\n" +
+                        "------------------\n" +
+                        "  1  | aaa | 1.0 |\n" +
+                        "  2  | bbb | 2.0 |\n" +
+                        "  3  | ccc | 3.0 |\n" +
+                        "  4  | ddd | 4.0 |\n" +
+                        "NULL |NULL |NULL |";
+        Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+    @Test
+    public void testUnionWithOrderByExplain() throws Exception {
+        String query = String.format("explain select * from t1 union select * from t2 order by 1");
+        thirdRowContainsQuery(query, "OrderBy", methodWatcher);
+        fourthRowContainsQuery(query, "Distinct", methodWatcher);
     }
 
     @Test(expected = SQLException.class)
