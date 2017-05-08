@@ -35,6 +35,8 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
+import com.yahoo.memory.Memory;
+import com.yahoo.memory.NativeMemory;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
@@ -164,8 +166,11 @@ public class SQLCharTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(1000,stats.selectivity(new SQLChar()));
                 Assert.assertEquals(347,stats.selectivity(new SQLChar(new char[]{'A'})));
                 Assert.assertEquals(347,stats.selectivity(new SQLChar(new char[]{'F'})));
-                Assert.assertEquals(1404.0d,(double) stats.rangeSelectivity(new SQLChar(new char[]{'C'}),new SQLChar(new char[]{'G'}),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
-                Assert.assertEquals(700.0d,(double) stats.rangeSelectivity(new SQLChar(),new SQLChar(new char[]{'C'}),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+                double range = stats.rangeSelectivity(new SQLChar(new char[]{'C'}),new SQLChar(new char[]{'G'}),true,false);
+                Assert.assertTrue(range + " did not match expected", (range == 1372.0d || range == 1404.0d));
+                range = stats.rangeSelectivity(new SQLChar(),new SQLChar(new char[]{'C'}),true,false);
+                Assert.assertTrue(range + " did not match exptected",(range == 702.0d || range == 670.0d));
+
                 Assert.assertEquals(2392.0d,(double) stats.rangeSelectivity(new SQLChar(new char[]{'T'}),new SQLChar(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
         }
 

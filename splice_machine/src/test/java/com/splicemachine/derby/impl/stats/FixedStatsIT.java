@@ -256,7 +256,7 @@ public class FixedStatsIT{
 
                 long c = rs.getLong(1);
                 Assert.assertFalse("returned null!",rs.wasNull());
-                Assert.assertEquals("Incorrect cardinality!",(double)LOAD_ROW_COUNT,(double)c,100);
+                Assert.assertEquals("Incorrect cardinality!",6152.0d,(double)c,100);
 
                 Assert.assertFalse("Too many rows returned!",rs.next());
             }
