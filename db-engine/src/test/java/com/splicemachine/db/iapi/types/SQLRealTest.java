@@ -144,7 +144,7 @@ public class SQLRealTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(new SQLReal(1),stats.minValue());
                 Assert.assertEquals(1000,stats.selectivity(null));
                 Assert.assertEquals(1000,stats.selectivity(new SQLReal()));
-                Assert.assertEquals(51,stats.selectivity(new SQLReal(1010)));
+                Assert.assertEquals(55,stats.selectivity(new SQLReal(1010)));
                 Assert.assertEquals(1,stats.selectivity(new SQLReal(9000)));
                 Assert.assertEquals(1000.0d,(double) stats.rangeSelectivity(new SQLReal(1000),new SQLReal(2000),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(500.0d,(double) stats.rangeSelectivity(new SQLReal(),new SQLReal(500),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);

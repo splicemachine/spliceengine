@@ -1109,6 +1109,15 @@ public abstract class DataType extends NullValueData
 
 	}
 
+	@Override
+	public DataValueDescriptor setArray(DataValueDescriptor[] theValue, DataValueDescriptor dvd) {
+		// Need to check type...
+		if (dvd == null)
+			dvd = new SQLArray();
+		((SQLArray) dvd).setValue(theValue);
+		return dvd;
+	}
+
 	/**
 	 * @see DataValueDescriptor#in
 	 * @exception StandardException		Thrown on error
@@ -1328,12 +1337,12 @@ public abstract class DataType extends NullValueData
 
 	@Override
 	public com.yahoo.sketches.frequencies.ItemsSketch getFrequenciesSketch() throws StandardException {
-		return new com.yahoo.sketches.frequencies.ItemsSketch(1024);
+		return new com.yahoo.sketches.frequencies.ItemsSketch(256);
 	}
 
 	@Override
 	public UpdateSketch getThetaSketch() throws StandardException {
-		return UpdateSketch.builder().build(4096);
+		return UpdateSketch.builder().build(256);
 	}
 
 
@@ -1346,4 +1355,5 @@ public abstract class DataType extends NullValueData
 	public Object getSparkObject() throws StandardException {
 		return getObject();
 	}
+
 }
