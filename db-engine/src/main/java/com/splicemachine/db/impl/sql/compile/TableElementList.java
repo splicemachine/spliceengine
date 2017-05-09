@@ -387,6 +387,9 @@ public class TableElementList extends QueryTreeNodeVector {
                     // in ALTER TABLE so raise error if any columns are nullable
                     checkForNullColumns(cdn, td);
                 }
+				// Arrays look ok as primary keys.
+				// Add Array Check During Nullability check.
+				//validateNoArrays(cdn);
             }
         }
     }
@@ -1466,12 +1469,26 @@ public class TableElementList extends QueryTreeNodeVector {
 		for (int index = 0; index < rclSize; index++)
 		{
 			String colName = ((ResultColumn) rcl.elementAt(index)).getName();
-            
-            findColumnDefinition(colName).setNullability(false);
+            ColumnDefinitionNode colDef = findColumnDefinition(colName);
+			colDef.setNullability(false);
         }
 	}
 
-    /**
+	public void validateNoArrays(ConstraintDefinitionNode cdn) throws StandardException {
+		ResultColumnList rcl = cdn.getColumnList();
+		int rclSize = rcl.size();
+		for (int index = 0; index < rclSize; index++)
+		{
+			String colName = ((ResultColumn) rcl.elementAt(index)).getName();
+			ColumnDefinitionNode colDef = findColumnDefinition(colName);
+			if (colDef.getType().getTypeId().isArray()) {
+				throw StandardException.newException(SQLState.NO_ARRAY_IN_PRIMARY_KEY, colName);
+			}
+		}
+	}
+
+
+	/**
      * Checks if any of the columns in the constraint can be null.
      *
      * @param cdn Constraint node

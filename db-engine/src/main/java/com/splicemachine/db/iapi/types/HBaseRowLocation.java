@@ -12,17 +12,13 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.impl.store.access.hbase;
+package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.access.util.ByteComparisons;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.types.DataType;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.DataValueFactoryImpl;
-import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.utils.ByteSlice;
 import com.yahoo.sketches.theta.UpdateSketch;
@@ -30,7 +26,9 @@ import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -246,6 +244,22 @@ public class HBaseRowLocation extends DataType implements RowLocation {
     }
 
     @Override
+    public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
+        if (isNull())
+            unsafeArrayWriter.setNull(ordinal);
+        else
+            unsafeArrayWriter.write(ordinal,slice.getByteCopy());
+    }
+
+    @Override
+    public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
+        if (unsafeArrayData.isNullAt(ordinal))
+            setToNull();
+        else
+            slice = ByteSlice.wrap(unsafeArrayData.getBinary(ordinal));
+    }
+
+    @Override
     public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
         if (unsafeRow.isNullAt(ordinal))
             setToNull();
@@ -291,4 +305,22 @@ public class HBaseRowLocation extends DataType implements RowLocation {
     public void updateThetaSketch(UpdateSketch updateSketch) {
         updateSketch.update(slice.getByteCopy());
     }
+
+    @Override
+    public void setSparkObject(Object sparkObject) throws StandardException {
+        if (sparkObject == null)
+            setToNull();
+        else {
+            slice = ByteSlice.wrap((byte[]) sparkObject); // Autobox, must be something better.
+            setIsNull(false);
+        }
+    }
+
+    @Override
+    public Object getSparkObject() throws StandardException {
+        if (isNull() || slice == null)
+            return null;
+        return slice.getByteCopy();
+    }
+
 }

@@ -52,7 +52,9 @@ import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Decimal;
@@ -1172,6 +1174,42 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		}
 	}
 
+	/**
+	 *
+	 * Write Element into positioned array
+	 *
+	 * @param unsafeArrayWriter
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
+		if (isNull())
+			unsafeArrayWriter.setNull(ordinal);
+		else {
+			Decimal foobar = Decimal.apply(value,value.precision(),value.scale());
+			unsafeArrayWriter.write(ordinal, Decimal.apply(value,value.precision(),value.scale()), value.precision(), value.scale());
+		}
+	}
+
+	/**
+	 *
+	 * Read element from positioned array
+	 *
+	 * @param unsafeArrayData
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
+		if (unsafeArrayData.isNullAt(ordinal))
+			setToNull();
+		else {
+			isNull = false;
+			value = unsafeArrayData.getDecimal(ordinal,precision,scale).toJavaBigDecimal();
+		}
+	}
+
 	@Override
 	public void read(Row row, int ordinal) throws StandardException {
 		if (row.isNullAt(ordinal))
@@ -1301,4 +1339,15 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	public void updateThetaSketch(UpdateSketch updateSketch) {
 		updateSketch.update(this.value.toEngineeringString());
 	}
+
+	@Override
+	public void setSparkObject(Object sparkObject) throws StandardException {
+		if (sparkObject == null)
+			setToNull();
+		else {
+			value = (BigDecimal) sparkObject; //
+			setIsNull(false);
+		}
+	}
+
 }

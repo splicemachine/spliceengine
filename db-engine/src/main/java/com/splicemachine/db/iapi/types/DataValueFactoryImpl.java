@@ -715,6 +715,14 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
                 }
         }
 
+        public ArrayDataValue getNullArray(ArrayDataValue dataValue, DataValueDescriptor type) throws StandardException {
+                if (dataValue == null)
+                        dataValue = new SQLArray();
+                dataValue.setToNull();
+                dataValue.setType(type);
+                return dataValue;
+        }
+
         public BitDataValue             getNullBit(BitDataValue dataValue) throws StandardException
         {
                 if (dataValue == null)
@@ -1187,6 +1195,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
         case StoredFormatIds.SQL_BLOB_ID: return new SQLBlob();
         case StoredFormatIds.SQL_CLOB_ID: return new SQLClob();
         case StoredFormatIds.XML_ID: return new XML();
+        case StoredFormatIds.SQL_ARRAY_ID: return new SQLArray();
         default:return null;
         }
     }
@@ -1230,7 +1239,8 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
             LONGVARBIT(StoredFormatIds.SQL_LONGVARBIT_ID),
             BLOB(StoredFormatIds.SQL_BLOB_ID),
             BIT(StoredFormatIds.SQL_BIT_ID),
-            ROW_LOCATION(StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID);
+            ROW_LOCATION(StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID),
+            ARRAY(StoredFormatIds.SQL_ARRAY_ID);
 
             private final int storedFormatId;
 
@@ -1291,6 +1301,8 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
                         return BIT;
                     case StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID:
                         return ROW_LOCATION;
+                    case StoredFormatIds.SQL_ARRAY_ID:
+                         return ARRAY;
                     default:
                         throw new IllegalArgumentException("Unable to determine format for dvd class"+ dvd.getClass());
                 }

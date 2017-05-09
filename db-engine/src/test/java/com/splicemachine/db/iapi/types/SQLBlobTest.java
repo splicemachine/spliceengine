@@ -30,12 +30,18 @@
  */
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.util.*;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.sql.Blob;
+import java.util.Arrays;
 
 /**
  *
@@ -86,4 +92,34 @@ public class SQLBlobTest extends SQLDataValueDescriptorTest {
                 Assert.assertTrue("1 incorrect",Bytes.equals(value1.getBytes(),value1a.getBytes()));
                 Assert.assertTrue("2 incorrect",Bytes.equals(value2.getBytes(),value2a.getBytes()));
         }
+
+        @Test
+        public void testArray() throws Exception {
+                UnsafeRow row = new UnsafeRow(1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                SQLArray value = new SQLArray();
+                value.setType(new SQLBlob());
+                value.setValue(new DataValueDescriptor[] {new SQLBlob("1234".getBytes()),new SQLBlob("123".getBytes()),
+                        new SQLBlob("3248932894893289489234892fwdkjfdsjksdjkffddfgdfgdfgfdgdfgdf".getBytes()), new SQLBlob()});
+                SQLArray valueA = new SQLArray();
+                valueA.setType(new SQLBlob());
+                writer.reset();
+                value.write(writer,0);
+                valueA.read(row,0);
+                Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
+        }
+
+        @Test
+        public void testExecRowSparkRowConversion() throws StandardException {
+                ValueRow execRow = new ValueRow(1);
+                execRow.setRowArray(new DataValueDescriptor[]{new SQLBlob("1234".getBytes())});
+                Row row = execRow.getSparkRow();
+                Assert.assertTrue(Arrays.equals("1234".getBytes(),(byte[])row.get(0)));
+                ValueRow execRow2 = new ValueRow(1);
+                execRow2.setRowArray(new DataValueDescriptor[]{new SQLBlob()});
+                execRow2.getColumn(1).setSparkObject(row.get(0));
+                Assert.assertEquals("ExecRow Mismatch",execRow,execRow2);
+        }
+
+
 }

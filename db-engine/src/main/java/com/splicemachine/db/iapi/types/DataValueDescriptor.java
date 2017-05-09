@@ -37,7 +37,9 @@ import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.StructField;
 import org.joda.time.DateTime;
@@ -817,6 +819,18 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 						throws StandardException;
 
 	/**
+	 *
+	 * Supports setting array elements.
+	 *
+	 * @param theValue
+	 * @param dvd
+	 * @return
+	 * @throws StandardException
+     */
+	public DataValueDescriptor setArray(DataValueDescriptor[] theValue, DataValueDescriptor dvd) throws
+			StandardException;
+
+	/**
 	 * The SQL language IN operator.  This method is called from the language
 	 * module.  This method allows us to optimize and short circuit the search
 	 * if the list is ordered.
@@ -1016,7 +1030,17 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 */
 	void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException;
 
-	 /**
+	/**
+	 *
+	 * This allows one to write a DataValueDescriptor to a
+	 * Project Tungsten format (UnsafeRow).
+	 *
+	 * @param unsafeRowWriter
+	 * @param ordinal
+	 */
+	void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException;
+
+	/**
 	  * This allows one to read a DataValueDescriptor from a
 	  * Project Tungsten format (UnsafeRow).
 	 *
@@ -1024,6 +1048,15 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 * @param ordinal
 	 */
 	void read(UnsafeRow unsafeRow, int ordinal) throws StandardException;
+
+	/**
+	 * This allows one to read a DataValueDescriptor from a
+	 * Project Tungsten format (UnsafeRow).
+	 *
+	 * @param unsafeRow
+	 * @param ordinal
+	 */
+	void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException;
 
 	/**
 	 * This allows one to read a DataValueDescriptor from a
@@ -1100,5 +1133,13 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 * @return
      */
 	Object getSparkObject() throws StandardException;
+
+	/**
+	 * Retrieve the Spark Object (required in places where spark has type issues (time for example).
+	 *
+	 * @return
+	 */
+	void setSparkObject(Object sparkObject) throws StandardException;
+
 
 }

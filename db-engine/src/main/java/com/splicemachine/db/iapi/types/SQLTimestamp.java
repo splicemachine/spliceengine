@@ -47,8 +47,10 @@ import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -1590,6 +1592,49 @@ public final class SQLTimestamp extends DataType
 				holder.cursor = 12;
 			}
 	    }
+
+	/**
+	 *
+	 * Write Element into Positioned Array
+	 *
+	 * @param unsafeArrayWriter
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
+		if (isNull())
+			unsafeArrayWriter.setNull(ordinal);
+		else {
+			byte[] data = new byte[12];
+			Platform.putInt(data,16,encodedDate);
+			Platform.putInt(data,20,encodedTime);
+			Platform.putInt(data,24,nanos);
+			unsafeArrayWriter.write(ordinal,data);
+		}
+	}
+
+	/**
+	 *
+	 * Read Element from Positioned Array
+	 *
+	 * @param unsafeArrayData
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
+		if (unsafeArrayData.isNullAt(ordinal))
+			setToNull();
+		else {
+			byte[] data = unsafeArrayData.getBinary(ordinal);
+			encodedDate = Platform.getInt(data, 16);
+			encodedTime = Platform.getInt(data, 20);
+			nanos = Platform.getInt(data, 24);
+			isNull = false;
+		}
+	}
+
 	/**
 	 *
 	 * Read from Project Tungsten format (UnsafeRow).  Timestamp is
@@ -1681,6 +1726,16 @@ public final class SQLTimestamp extends DataType
 	@Override
 	public void updateThetaSketch(UpdateSketch updateSketch) {
 		updateSketch.update(new int[]{encodedDate,encodedTime,nanos});
+	}
+
+	@Override
+	public void setSparkObject(Object sparkObject) throws StandardException {
+		if (sparkObject == null)
+			setToNull();
+		else {
+			setValue((Timestamp) sparkObject);
+			setIsNull(false);
+		}
 	}
 
 }

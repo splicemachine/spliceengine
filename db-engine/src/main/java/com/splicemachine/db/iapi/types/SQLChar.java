@@ -80,7 +80,9 @@ import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -124,6 +126,10 @@ public class SQLChar
      * static fields of the class
      **************************************************************************
      */
+
+
+    static final long serialVersionUID = 1234548923L;
+
 
     /**
      * The pad character (space).
@@ -3337,6 +3343,41 @@ public class SQLChar
 
     /**
      *
+     * Write Array of SQLChars
+     *
+     * @param unsafeArrayWriter
+     * @param ordinal
+     * @throws StandardException
+     */
+    @Override
+    public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
+        if (isNull())
+            unsafeArrayWriter.setNull(ordinal);
+        else {
+            unsafeArrayWriter.write(ordinal, UTF8String.fromString(value));
+        }
+    }
+
+    /**
+     *
+     * Read the data from the array into this element
+     *
+     * @param unsafeArrayData
+     * @param ordinal
+     * @throws StandardException
+     */
+    @Override
+    public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
+        if (unsafeArrayData.isNullAt(ordinal))
+            setToNull();
+        else {
+            isNull = false;
+            value = unsafeArrayData.getUTF8String(ordinal).toString();
+        }
+    }
+
+    /**
+     *
      * Read into the Project Tungsten Format (UnsafeRow).
      *
      * @see UnsafeRow#getUTF8String(int)
@@ -3418,4 +3459,15 @@ public class SQLChar
     public void updateThetaSketch(UpdateSketch updateSketch) {
         updateSketch.update(value);
     }
+
+    @Override
+    public void setSparkObject(Object sparkObject) throws StandardException {
+        if (sparkObject == null)
+            setToNull();
+        else {
+            value = (String) sparkObject; // Autobox, must be something better.
+            setIsNull(false);
+        }
+    }
+
 }

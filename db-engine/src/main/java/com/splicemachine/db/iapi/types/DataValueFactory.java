@@ -604,6 +604,13 @@ public interface DataValueFactory
         BooleanDataValue getNullBoolean(BooleanDataValue dataValue);
 
         /**
+         * Get a SQL array with  a SQL null value. If the supplied value
+         * is null then get a new value, otherwise set it to null and return
+         * that value.
+         */
+        ArrayDataValue getNullArray(ArrayDataValue dataValue, DataValueDescriptor typeDataValue) throws StandardException;
+
+    /**
          * Get a SQL Bit with a SQL null value. If the supplied value
          * is null then get a new value, otherwise set it to null and return 
          * that value.

@@ -30,15 +30,22 @@
  */
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.hadoop.hbase.util.SimplePositionedMutableByteRange;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
+import org.joda.time.DateTime;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.sql.Date;
 import java.sql.Time;
+import java.util.Arrays;
 import java.util.GregorianCalendar;
 
 /**
@@ -92,4 +99,33 @@ public class SQLTimeTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals("1 incorrect",value1.getTime(gc),value1a.getTime(gc));
                 Assert.assertEquals("2 incorrect",value2.getTime(gc),value2a.getTime(gc));
         }
+
+        @Test
+        public void testArray() throws Exception {
+                UnsafeRow row = new UnsafeRow(1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                SQLArray value = new SQLArray();
+                value.setType(new SQLTime());
+                value.setValue(new DataValueDescriptor[] {new SQLTime(new Time(System.currentTimeMillis())),new SQLTime(new Time(System.currentTimeMillis())),
+                        new SQLTime(new Time(System.currentTimeMillis())), new SQLTime()});
+                SQLArray valueA = new SQLArray();
+                valueA.setType(new SQLTime());
+                writer.reset();
+                value.write(writer,0);
+                valueA.read(row,0);
+                Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
+        }
+
+        @Test
+        public void testExecRowSparkRowConversion() throws StandardException {
+                ValueRow execRow = new ValueRow(1);
+                execRow.setRowArray(new DataValueDescriptor[]{new SQLTime(new Time(System.currentTimeMillis()))});
+                Row row = execRow.getSparkRow();
+                Assert.assertEquals( execRow.getColumn(1).getTimestamp(null),row.getTimestamp(0));
+                ValueRow execRow2 = new ValueRow(1);
+                execRow2.setRowArray(new DataValueDescriptor[]{new SQLTime()});
+                execRow2.getColumn(1).setSparkObject(row.get(0));
+                Assert.assertEquals("ExecRow Mismatch",execRow,execRow2);
+        }
+
 }

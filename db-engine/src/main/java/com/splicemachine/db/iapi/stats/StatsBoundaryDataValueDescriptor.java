@@ -41,7 +41,9 @@ import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.StructField;
 import org.joda.time.DateTime;
@@ -525,5 +527,25 @@ public class StatsBoundaryDataValueDescriptor implements DataValueDescriptor {
     @Override
     public Object getSparkObject() throws StandardException {
         return dvd.getSparkObject();
+    }
+
+    @Override
+    public DataValueDescriptor setArray(DataValueDescriptor[] theValue, DataValueDescriptor dvd) throws StandardException {
+        return dvd.setArray(theValue,dvd);
+    }
+
+    @Override
+    public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
+        dvd.writeArray(unsafeArrayWriter, ordinal);
+    }
+
+    @Override
+    public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
+        dvd.read(unsafeArrayData, ordinal);
+    }
+
+    @Override
+    public void setSparkObject(Object sparkObject) throws StandardException {
+        dvd.setSparkObject(sparkObject);
     }
 }

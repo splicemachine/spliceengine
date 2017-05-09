@@ -50,7 +50,9 @@ import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -925,6 +927,40 @@ public final class SQLDouble extends NumberDataType
 
 	/**
 	 *
+	 * Write Array Data
+	 *
+	 * @param unsafeArrayWriter
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
+		if (isNull())
+			unsafeArrayWriter.setNull(ordinal);
+		else
+			unsafeArrayWriter.write(ordinal,value);
+	}
+
+	/**
+	 *
+	 * Read Array Data
+	 *
+	 * @param unsafeArrayData
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
+		if (unsafeArrayData.isNullAt(ordinal))
+			setToNull();
+		else {
+			isNull = false;
+			value = unsafeArrayData.getDouble(ordinal);
+		}
+	}
+
+	/**
+	 *
 	 * Read from a Project Tungsten Format.
 	 *
 	 * @see UnsafeRow#getDouble(int)
@@ -1010,4 +1046,15 @@ public final class SQLDouble extends NumberDataType
 	public void updateThetaSketch(UpdateSketch updateSketch) {
 		updateSketch.update(value);
 	}
+
+	@Override
+	public void setSparkObject(Object sparkObject) throws StandardException {
+		if (sparkObject == null)
+			setToNull();
+		else {
+			value = (Double) sparkObject; // Autobox, must be something better.
+			setIsNull(false);
+		}
+	}
+
 }

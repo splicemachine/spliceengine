@@ -47,6 +47,8 @@ import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Arrays;
+
 /**
  *
  * Test Class for SQLInteger
@@ -167,5 +169,32 @@ public class SQLIntegerTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(4000.0d,(double) stats.rangeSelectivity(new SQLInteger(5000),new SQLInteger(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
         }
 
+        @Test
+        public void testArray() throws Exception {
+                UnsafeRow row = new UnsafeRow(1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                SQLArray value = new SQLArray();
+                value.setType(new SQLInteger());
+                value.setValue(new DataValueDescriptor[] {new SQLInteger(23),new SQLInteger(48), new SQLInteger(10), new SQLInteger()});
+                SQLArray valueA = new SQLArray();
+                valueA.setType(new SQLInteger());
+                writer.reset();
+                value.write(writer,0);
+                valueA.read(row,0);
+                Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
+
+        }
+
+        @Test
+        public void testExecRowSparkRowConversion() throws StandardException {
+                ValueRow execRow = new ValueRow(1);
+                execRow.setRowArray(new DataValueDescriptor[]{new SQLInteger(1234)});
+                Row row = execRow.getSparkRow();
+                Assert.assertEquals(1234,row.getInt(0));
+                ValueRow execRow2 = new ValueRow(1);
+                execRow2.setRowArray(new DataValueDescriptor[]{new SQLInteger()});
+                execRow2.getColumn(1).setSparkObject(row.get(0));
+                Assert.assertEquals("ExecRow Mismatch",execRow,execRow2);
+        }
 
 }

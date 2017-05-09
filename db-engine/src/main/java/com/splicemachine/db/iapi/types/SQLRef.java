@@ -49,7 +49,9 @@ import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -303,6 +305,43 @@ public class SQLRef extends DataType implements RefDataValue {
 
 	/**
 	 *
+	 * Write Element into Positioned Array
+	 *
+	 * @param unsafeArrayWriter
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
+		if (isNull())
+			unsafeArrayWriter.setNull(ordinal);
+		else {
+			value.writeArray(unsafeArrayWriter,ordinal);
+		}
+	}
+
+	/**
+	 *
+	 * Read Element from Positioned Array
+	 *
+	 * @param unsafeArrayData
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
+		if (unsafeArrayData.isNullAt(ordinal)) {
+			setIsNull(true);
+		} else {
+			if (value == null)
+				value = new SQLRowId();
+			value.read(unsafeArrayData, ordinal);
+			setIsNull(false);
+		}
+	}
+
+	/**
+	 *
 	 * Read into a Project Tungsten format.  This calls the Reference's
 	 * read method.
 	 *
@@ -319,7 +358,7 @@ public class SQLRef extends DataType implements RefDataValue {
 
 	@Override
 	public void read(Row row, int ordinal) throws StandardException {
-		if (row.isNullAt(ordinal))
+		if (row.isNullAt(ordinal) || value == null)
 			value = new SQLRowId();
 		value.read(row,ordinal);
 	}
@@ -378,4 +417,21 @@ public class SQLRef extends DataType implements RefDataValue {
 		value.updateThetaSketch(updateSketch);
 	}
 
+	@Override
+	public void setSparkObject(Object sparkObject) throws StandardException {
+		if (sparkObject == null)
+			setToNull();
+		else {
+			value = new HBaseRowLocation();
+			value.setSparkObject(sparkObject);
+			setIsNull(false);
+		}
+	}
+
+	@Override
+	public Object getSparkObject() throws StandardException {
+		if (isNull() || value == null)
+			return null;
+		return value.getSparkObject();
+	}
 }

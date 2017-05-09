@@ -55,7 +55,9 @@ import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -641,6 +643,40 @@ public class UserType extends DataType
 
 	/**
 	 *
+	 * Write Element into Positioned Array
+	 *
+	 * @param unsafeArrayWriter
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
+		if (isNull())
+			unsafeArrayWriter.setNull(ordinal);
+		else
+			unsafeArrayWriter.write(ordinal, SerializationUtils.serialize((Serializable)value));
+	}
+
+	/**
+	 *
+	 * Read Element from Positioned Array
+	 *
+	 * @param unsafeArrayData
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
+		if (unsafeArrayData.isNullAt(ordinal))
+			setToNull();
+		else {
+			isNull = false;
+			value = SerializationUtils.deserialize(unsafeArrayData.getBinary(ordinal));
+		}
+	}
+
+	/**
+	 *
 	 * Read from a Project Tungsten Format.  Reads the object as a byte[]
 	 *
 	 * @see UnsafeRow#getBinary(int)
@@ -725,6 +761,11 @@ public class UserType extends DataType
 	public void updateThetaSketch(UpdateSketch updateSketch) {
 		if (!isNull())
 		updateSketch.update(SerializationUtils.serialize(SerializationUtils.serialize((Serializable)value)));
+	}
+
+	@Override
+	public void setSparkObject(Object sparkObject) throws StandardException {
+
 	}
 
 }

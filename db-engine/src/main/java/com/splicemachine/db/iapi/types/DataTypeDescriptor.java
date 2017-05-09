@@ -351,6 +351,7 @@ public class DataTypeDescriptor implements Formatable{
 
     private TypeDescriptorImpl typeDescriptor;
     private TypeId typeId;
+    private DataTypeDescriptor[] children;
 
     /**
      * Derivation of this type. All catalog types are
@@ -454,6 +455,7 @@ public class DataTypeDescriptor implements Formatable{
                 source.getMaximumWidth(),
                 source.getCollationType()
         );
+        setChildren(source.getChildren());
         this.collationDerivation=source.getCollationDerivation();
     }
 
@@ -472,6 +474,7 @@ public class DataTypeDescriptor implements Formatable{
                 source.getMaximumWidth(),
                 collationType
         );
+        setChildren(source.getChildren());
         this.collationDerivation=collationDerivation;
     }
 
@@ -496,6 +499,7 @@ public class DataTypeDescriptor implements Formatable{
                 maximumWidth,
                 source.getCollationType()
         );
+        setChildren(source.getChildren());
         this.collationDerivation=source.getCollationDerivation();
     }
 
@@ -516,6 +520,7 @@ public class DataTypeDescriptor implements Formatable{
                 maximumWidth,
                 source.getCollationType()
         );
+        setChildren(source.getChildren());
         this.collationDerivation=source.getCollationDerivation();
 
     }
@@ -620,7 +625,7 @@ public class DataTypeDescriptor implements Formatable{
         TypeId thisType;
         TypeId otherType;
         DataTypeDescriptor higherType;
-        DataTypeDescriptor lowerType;
+        DataTypeDescriptor lowerType = null;
         int maximumWidth;
         int precision=getPrecision();
         int scale=getScale();
@@ -788,6 +793,10 @@ public class DataTypeDescriptor implements Formatable{
             scale=higherType.getScale();
         }
 
+        lowerType.getChildren();
+
+        if (higherType != null && higherType.getChildren() == null && lowerType!=null && lowerType.getChildren()!=null) // set children
+            higherType.setChildren(lowerType.getChildren());
 
         higherType=new DataTypeDescriptor(higherType, precision,scale,nullable,maximumWidth);
 
@@ -885,6 +894,17 @@ public class DataTypeDescriptor implements Formatable{
         if (typeId.getTypeFormatId() == StoredFormatIds.DECIMAL_TYPE_ID) {
             ((SQLDecimal) returnDVD).setScale(typeDescriptor.getScale());
             ((SQLDecimal) returnDVD).setPrecision(typeDescriptor.getPrecision());
+        }
+        else if (typeId.getTypeFormatId() == StoredFormatIds.ARRAY_TYPE_ID) { // PopulateArrayType
+            assert getCatalogType()!=null:"Catalog Type";
+            assert ((TypeDescriptorImpl) getCatalogType()).getChildren() != null:"Catalog Type";
+            TypeDescriptorImpl typeDescriptor = (TypeDescriptorImpl) ((TypeDescriptorImpl) getCatalogType()).getChildren()[0];
+            ((SQLArray)returnDVD).setType(new DataTypeDescriptor(
+                    TypeId.getBuiltInTypeId(typeDescriptor.getTypeId().getJDBCTypeId()),
+                    true
+            ).getNull());
+            ((SQLArray)returnDVD).setBaseType(typeDescriptor.getTypeId().getJDBCTypeId());
+            ((SQLArray)returnDVD).setBaseTypeName(typeDescriptor.getTypeId().getSQLTypeName());
         }
         else if(typeDescriptor.getCollationType()==StringDataValue.COLLATION_TYPE_UCS_BASIC)
             return returnDVD;
@@ -1244,6 +1264,9 @@ public class DataTypeDescriptor implements Formatable{
             return compareWithJDBCTypeId==Types.TIMESTAMP
                     || compareWithJDBCTypeId==Types.DATE
                     || compareWithTypeID.isStringTypeId();
+
+        if (typeId.getJDBCTypeId()==Types.ARRAY)
+            return compareWithJDBCTypeId==Types.ARRAY;
 
         // Right now, user defined types are not comparable.
         // This removes old logic which we might want
@@ -1680,5 +1703,21 @@ public class DataTypeDescriptor implements Formatable{
         }
         return name;
     }
+
+    public DataTypeDescriptor[] getChildren() {
+        return this.children;
+    }
+
+    public void setChildren(DataTypeDescriptor[] children) {
+        this.children = children;
+        if (children != null) {
+            TypeDescriptor[] array = new TypeDescriptor[children.length];
+            for (int i = 0; i< children.length; i++) {
+                array[i] = children[i].typeDescriptor;
+            }
+            typeDescriptor.setChildren(array);
+         }
+     }
+
 }
 

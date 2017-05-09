@@ -213,6 +213,7 @@ class SQLTypes {
           case java.sql.Types.REF:
               return DRDAConstants.DB2_SQLTYPE_ROWID + nullAddVal;
 		  case java.sql.Types.ARRAY:
+              return DRDAConstants.DB2_SQLTYPE_FAKE_ARRAY + nullAddVal;
 		  case java.sql.Types.DISTINCT:
 		  case java.sql.Types.NULL:
 		  case java.sql.Types.OTHER:

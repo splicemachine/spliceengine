@@ -53,6 +53,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.Arrays;
 
 /**
  *
@@ -168,6 +169,35 @@ public class SQLCharTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(1404.0d,(double) stats.rangeSelectivity(new SQLChar(new char[]{'C'}),new SQLChar(new char[]{'G'}),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(700.0d,(double) stats.rangeSelectivity(new SQLChar(),new SQLChar(new char[]{'C'}),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(2392.0d,(double) stats.rangeSelectivity(new SQLChar(new char[]{'T'}),new SQLChar(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+        }
+
+        @Test
+        public void testArray() throws Exception {
+                UnsafeRow row = new UnsafeRow(1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                SQLArray value = new SQLArray();
+                value.setType(new SQLChar());
+                value.setValue(new DataValueDescriptor[] {new SQLChar("23"),new SQLChar("48"),
+                        new SQLChar("10"), new SQLChar()});
+                SQLArray valueA = new SQLArray();
+                valueA.setType(new SQLChar());
+                writer.reset();
+                value.write(writer,0);
+                valueA.read(row,0);
+                Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
+
+        }
+
+        @Test
+        public void testExecRowSparkRowConversion() throws StandardException {
+                ValueRow execRow = new ValueRow(1);
+                execRow.setRowArray(new DataValueDescriptor[]{new SQLChar("1234")});
+                Row row = execRow.getSparkRow();
+                Assert.assertEquals("1234",row.getString(0));
+                ValueRow execRow2 = new ValueRow(1);
+                execRow2.setRowArray(new DataValueDescriptor[]{new SQLChar()});
+                execRow2.getColumn(1).setSparkObject(row.get(0));
+                Assert.assertEquals("ExecRow Mismatch",execRow,execRow2);
         }
 
 

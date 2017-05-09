@@ -42,7 +42,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.framework.DerbyAggreg
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.DerbyGroupedAggregateContext;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.spark.HBasePartitioner;
@@ -684,6 +684,8 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(RowTransformFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(TxnViewDecoderFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(CountWriteFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SQLArray.class,EXTERNALIZABLE_SERIALIZER);
+
 
 
     }

@@ -51,7 +51,9 @@ import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -771,6 +773,40 @@ public final class SQLTinyint
 
 	/**
 	 *
+	 * Write positioned element from array
+	 *
+	 * @param unsafeArrayWriter
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
+		if (isNull())
+			unsafeArrayWriter.setNull(ordinal);
+		else
+			unsafeArrayWriter.write(ordinal,value);
+	}
+
+	/**
+	 *
+	 * Read element from positioned array
+	 *
+	 * @param unsafeArrayData
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
+		if (unsafeArrayData.isNullAt(ordinal))
+			setToNull();
+		else {
+			isNull = false;
+			value = unsafeArrayData.getByte(ordinal);
+		}
+	}
+
+	/**
+	 *
 	 * Read from Project Tungsten Format (UnsafeRow)
 	 *
 	 * @see UnsafeRow#getByte(int)
@@ -853,5 +889,24 @@ public final class SQLTinyint
 	public void updateThetaSketch(UpdateSketch updateSketch) {
 		updateSketch.update(value);
 	}
+
+	@Override
+	public void setSparkObject(Object sparkObject) throws StandardException {
+		if (sparkObject == null)
+			setToNull();
+		else {
+			value = (Byte) sparkObject; // Autobox, must be something better.
+			setIsNull(false);
+		}
+	}
+
+	@Override
+	public Object getSparkObject() throws StandardException {
+		if (isNull())
+			return null;
+		return value;
+	}
+
+
 
 }

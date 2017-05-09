@@ -38,6 +38,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -62,6 +63,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * Created by mzweben on 8/25/16.
  */
+@Ignore("SPLICE-1444")
 public class DataFrameIT extends SpliceUnitTest {
 
     private static Logger LOG = Logger.getLogger(DataFrameIT.class);

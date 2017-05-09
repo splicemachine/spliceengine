@@ -1062,7 +1062,8 @@ public abstract class Cursor {
                 return (maxFieldSize_ == 0) ? tempString :
                         tempString.substring(0, java.lang.Math.min(maxFieldSize_, tempString.length()));
             case java.sql.Types.JAVA_OBJECT:
-                Object obj = get_UDT( column );
+            case java.sql.Types.ARRAY:
+                    Object obj = get_UDT( column );
                 if ( obj == null ) { return null; }
                 else { return obj.toString(); }
             case java.sql.Types.BLOB:
@@ -1076,6 +1077,7 @@ public abstract class Cursor {
                 return tempString;
             case java.sql.Types.ROWID:
                 return getRowId(column).toString();
+
             default:
                 throw coercionError( "String", column );
             }
@@ -1337,6 +1339,7 @@ public abstract class Cursor {
         case java.sql.Types.LONGVARBINARY:
             return get_VARCHAR_FOR_BIT_DATA(column);
         case java.sql.Types.JAVA_OBJECT:
+        case java.sql.Types.ARRAY:
             return get_UDT( column );
         case java.sql.Types.BLOB:
             return getBlobColumn_(column, agent_, true);

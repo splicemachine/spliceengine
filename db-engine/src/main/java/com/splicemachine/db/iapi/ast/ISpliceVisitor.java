@@ -210,5 +210,8 @@ public interface ISpliceVisitor {
     public Visitable visit(BatchOnceNode node) throws StandardException;
     public Visitable visit(CreatePinNode node) throws StandardException;
     public Visitable visit(DropPinNode node) throws StandardException;
+    public Visitable visit(ArrayOperatorNode node) throws StandardException;
+    public Visitable visit(ArrayConstantNode node) throws StandardException;
+
 
 }

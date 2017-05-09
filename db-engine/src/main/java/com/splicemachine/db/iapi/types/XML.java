@@ -54,7 +54,9 @@ import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -1124,6 +1126,35 @@ public class XML
 
     /**
      *
+     * Write Element in Positioned Array
+     *
+     * @param unsafeArrayWriter
+     * @param ordinal
+     * @throws StandardException
+     */
+    @Override
+    public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
+        if (isNull())
+            unsafeArrayWriter.setNull(ordinal);
+        else
+            xmlStringValue.writeArray(unsafeArrayWriter,ordinal);
+    }
+
+    /**
+     *
+     * Read Element from positioned array
+     *
+     * @param unsafeArrayData
+     * @param ordinal
+     * @throws StandardException
+     */
+    @Override
+    public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
+        xmlStringValue = new SQLChar(unsafeArrayData.getUTF8String(ordinal).toString());
+    }
+
+    /**
+     *
      * Read XML from Project Tungsten Format (UnsafeRow)
      *
      * @param unsafeRow
@@ -1196,5 +1227,10 @@ public class XML
     public void updateThetaSketch(UpdateSketch updateSketch) {
         if (!isNull())
             xmlStringValue.updateThetaSketch(updateSketch);
+    }
+
+    @Override
+    public void setSparkObject(Object sparkObject) throws StandardException {
+
     }
 }

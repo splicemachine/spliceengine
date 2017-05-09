@@ -17,6 +17,7 @@ package com.splicemachine.stream;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.log4j.Logger;
+import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import scala.collection.JavaConversions;
 import scala.collection.Seq;
@@ -76,7 +77,9 @@ public class StreamableRDD<T> {
             if (LOG.isTraceEnabled())
                 LOG.trace("Num partitions " + numPartitions + " clientBatches " + partitionBatches);
 
-            Properties properties = SpliceSpark.getContext().sc().getLocalProperties();
+            // Assume this will always be called either from testing or from the OlapServer, since those are the only
+            // places this is used
+            Properties properties = SpliceSpark.getContextUnsafe().sc().getLocalProperties();
 
             submitBatch(0, partitionsBatchSize, numPartitions, streamed, properties);
             if (partitionBatches > 1)
@@ -124,8 +127,9 @@ public class StreamableRDD<T> {
         completionService.submit(new Callable<Object>() {
             @Override
             public Object call() {
-                SpliceSpark.getContext().sc().setLocalProperties(properties);
-                String[] results = (String[]) SpliceSpark.getContext().sc().runJob(streamed.rdd(), new FunctionAdapter(), objects, tag);
+                SparkContext sc = SpliceSpark.getContextUnsafe().sc();
+                sc.setLocalProperties(properties);
+                String[] results = (String[]) sc.runJob(streamed.rdd(), new FunctionAdapter(), objects, tag);
                 for (String o2: results) {
                     if ("STOP".equals(o2)) {
                         return "STOP";

@@ -57,7 +57,9 @@ import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.OrderedBytes;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -197,7 +199,7 @@ public final class SQLLongint extends NumberDataType {
 		setValue(in.readLong());
 	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException {
-
+		setIsNull(in.readBoolean());
 		setValue(in.readLong());
 	}
 
@@ -919,6 +921,40 @@ public final class SQLLongint extends NumberDataType {
 			unsafeRowWriter.write(ordinal,value);
 	}
 
+	/**
+	 *
+	 * Write Element into Array
+	 *
+	 * @param unsafeArrayWriter
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
+		if (isNull())
+			unsafeArrayWriter.setNull(ordinal);
+		else
+			unsafeArrayWriter.write(ordinal,value);
+	}
+
+	/**
+	 *
+	 * Read Element from Array
+	 *
+	 * @param unsafeArrayData
+	 * @param ordinal
+	 * @throws StandardException
+     */
+	@Override
+	public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
+		if (unsafeArrayData.isNullAt(ordinal))
+			setToNull();
+		else {
+			isNull = false;
+			value = unsafeArrayData.getLong(ordinal);
+		}
+	}
+
 	@Override
 	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
 		if (unsafeRow.isNullAt(ordinal))
@@ -970,5 +1006,16 @@ public final class SQLLongint extends NumberDataType {
 	public void updateThetaSketch(UpdateSketch updateSketch) {
 		updateSketch.update(value);
 	}
+
+	@Override
+	public void setSparkObject(Object sparkObject) throws StandardException {
+		if (sparkObject == null)
+			setToNull();
+		else {
+			value = (Long) sparkObject; // Autobox, must be something better.
+			setIsNull(false);
+		}
+	}
+
 
 }

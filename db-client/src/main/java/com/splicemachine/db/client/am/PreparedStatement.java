@@ -975,7 +975,16 @@ public class PreparedStatement extends Statement
         setInput(parameterIndex, x);
 
     }
-    
+
+    public void setArrayX(int parameterIndex, Array x) throws SqlException {
+        parameterMetaData_.clientParamtertype_[parameterIndex - 1] = java.sql.Types.ARRAY;
+        if (x == null) {
+            setNullX(parameterIndex, java.sql.Types.ARRAY);
+            return;
+        }
+        setInput(parameterIndex, x);
+    }
+
     /**
      * sets the parameter to the  Binary Stream object
      *
@@ -1358,14 +1367,25 @@ public class PreparedStatement extends Statement
                 if (agent_.loggingEnabled()) {
                     agent_.logWriter_.traceEntry(this, "setArray", parameterIndex, x);
                 }
-                throw new SqlException(agent_.logWriter_, 
-                    new ClientMessageId(SQLState.JDBC_METHOD_NOT_IMPLEMENTED));
+
+                final int paramType =
+                        getColumnMetaDataX().getColumnType(parameterIndex);
+
+                if( ! PossibleTypes.POSSIBLE_TYPES_IN_SET_ARRAY.checkType( paramType ) ){
+
+                    PossibleTypes.throw22005Exception(agent_.logWriter_,
+                            java.sql.Types.ARRAY,
+                            paramType );
+                }
+
+                setArrayX(parameterIndex, x);
             }
         }
         catch ( SqlException se )
         {
             throw se.getSQLException();
         }
+
     }
 
     public void setRef(int parameterIndex, java.sql.Ref x) throws SQLException {
@@ -2823,7 +2843,15 @@ public class PreparedStatement extends Statement
                 java.sql.Types.DOUBLE,
                 java.sql.Types.VARCHAR,
                 java.sql.Types.BOOLEAN } );
-        
+
+        /**
+         * This is possibleTypes of variable which can be set by set method for SQL Array.
+         */
+        final public static PossibleTypes POSSIBLE_TYPES_IN_SET_ARRAY =
+                new PossibleTypes( new int[] {
+                        java.sql.Types.ARRAY } );
+
+
         /**
          * This is possibleTypes of variable which can be set by setDate method.
          */
