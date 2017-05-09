@@ -172,6 +172,9 @@ public class NetConfiguration {
     // Indicates userid with strong password substitute security mechanism.
     public static final int SECMEC_USRSSBPWD = 0x08;
 
+    // Indicates Kerberos authentication.
+    public static final int SECMEC_KERSEC = 0x0B;
+
     // list of security mechanisms supported by this driver
     static final int[] SECMGR_SECMECS = {NetConfiguration.SECMEC_EUSRIDPWD,
                                          NetConfiguration.SECMEC_USRENCPWD,
@@ -179,7 +182,8 @@ public class NetConfiguration {
                                          NetConfiguration.SECMEC_USRIDONL,
                                          NetConfiguration.SECMEC_EUSRIDDTA,
                                          NetConfiguration.SECMEC_EUSRPWDDTA,
-                                         NetConfiguration.SECMEC_USRSSBPWD};
+                                         NetConfiguration.SECMEC_USRSSBPWD,
+                                         NetConfiguration.SECMEC_KERSEC};
 
 
     // IEEE ASCII constant.

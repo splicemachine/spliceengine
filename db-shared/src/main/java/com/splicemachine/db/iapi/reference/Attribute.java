@@ -294,7 +294,8 @@ public interface Attribute {
      * DRDA_SECTKN_OUT is the random server seed (RDr)
      */
     String DRDA_SECTKN_IN = "drdaSecTokenIn";
-    String DRDA_SECTKN_OUT = "drdaSecTokenOut";
+	String DRDA_SECTKN_OUT = "drdaSecTokenOut";
+	String DRDA_KERSEC_AUTHENTICATED = "drdaKersecAuthed";
     /**
      * Internal attribute which holds the value of the securityMechanism
      * attribute specified by the client. Used for passing information about

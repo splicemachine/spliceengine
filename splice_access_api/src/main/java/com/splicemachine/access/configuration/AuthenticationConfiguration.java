@@ -15,6 +15,8 @@
 
 package com.splicemachine.access.configuration;
 
+import com.splicemachine.db.iapi.reference.Property;
+
 import javax.annotation.Resource;
 
 /**
@@ -64,7 +66,7 @@ public class AuthenticationConfiguration implements ConfigurationDefault {
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         builder.authentication = configurationSource.getString(AUTHENTICATION, DEFAULT_AUTHENTICATION);
 
-        if (builder.authentication.equals("LDAP")) {
+        if (builder.authentication.equals(Property.AUTHENTICATION_PROVIDER_LDAP)) {
             builder.authenticationLdapServer = configurationSource.getString(AUTHENTICATION_LDAP_SERVER, DEFAULT_AUTHENTICATION_LDAP_SERVER);
             builder.authenticationLdapSearchauthdn = configurationSource.getString(AUTHENTICATION_LDAP_SEARCHAUTHDN, DEFAULT_AUTHENTICATION_LDAP_SEARCHAUTHDN);
             builder.authenticationLdapSearchauthpw = configurationSource.getString(AUTHENTICATION_LDAP_SEARCHAUTHPW, DEFAULT_AUTHENTICATION_LDAP_SEARCHAUTHPW);

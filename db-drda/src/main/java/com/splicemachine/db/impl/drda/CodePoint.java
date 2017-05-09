@@ -502,6 +502,9 @@ class CodePoint
 	// SQL Error Diagnostic Level
 	static final int DIAGLVL = 0x2160;
 
+	// Kerberos Principal
+	static final int KERSECPPL = 0x1C02;
+
 	//-----------------------DDM reply codepoints---------------------------------
 
 	// Invalid description
@@ -740,6 +743,7 @@ class CodePoint
     static final int SECMEC_USRSSBPWD = 8;  // Userid with Strong password substitute
 	static final int SECMEC_EUSRIDPWD = 9;  // Encrpyted userid and password
 	static final int SECMEC_EUSRIDNWPWD = 10;  // Encrpyted userid and password
+	static final int SECMEC_KERSEC = 11;  // Kerberos authentication
 
 	//---------------------Security Check Codes ---------------------------
 	static final int SECCHKCD_OK = 0;		// Security info correct and acceptable
@@ -748,6 +752,7 @@ class CodePoint
 	static final int SECCHKCD_PASSWORDMISSING = 0x10;	// Password missing  
 	static final int SECCHKCD_USERIDMISSING = 0x12;	// User Id missing  
 	static final int SECCHKCD_USERIDINVALID = 0x13;	// Userid invalid
+	static final int SECCHKCD_CONTINUE = 0x19;	// Continue — require more security context information for authentication.
 
 	//----------------------Type Definition Names we care about -----------
 	static final String TYPDEFNAM_QTDSQLASC = "QTDSQLASC"; // ASCII
