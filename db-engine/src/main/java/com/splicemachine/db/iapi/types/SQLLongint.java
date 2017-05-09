@@ -198,6 +198,7 @@ public final class SQLLongint extends NumberDataType {
 	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException {
 
+		setIsNull(in.readBoolean());
 		setValue(in.readLong());
 	}
 
@@ -971,4 +972,13 @@ public final class SQLLongint extends NumberDataType {
 		updateSketch.update(value);
 	}
 
+	@Override
+	public void setSparkObject(Object sparkObject) throws StandardException {
+		if (sparkObject == null)
+			setToNull();
+		else {
+			value = (Long) sparkObject; // Autobox, must be something better.
+			setIsNull(false);
+		}
+	}
 }

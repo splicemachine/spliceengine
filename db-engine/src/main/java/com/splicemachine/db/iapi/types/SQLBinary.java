@@ -1489,4 +1489,23 @@ abstract class SQLBinary
 	public void updateThetaSketch(UpdateSketch updateSketch) {
 		updateSketch.update(dataValue);
 	}
+
+
+	@Override
+	public void setSparkObject(Object sparkObject) throws StandardException {
+		if (sparkObject == null)
+			setToNull();
+		else {
+			dataValue = (byte[]) sparkObject; // Autobox, must be something better.
+			setIsNull(false);
+		}
+	}
+
+	@Override
+	public Object getSparkObject() throws StandardException {
+		if (isNull() || dataValue == null)
+			return null;
+		return dataValue;
+	}
+
 }

@@ -526,4 +526,9 @@ public class StatsBoundaryDataValueDescriptor implements DataValueDescriptor {
     public Object getSparkObject() throws StandardException {
         return dvd.getSparkObject();
     }
+
+    @Override
+    public void setSparkObject(Object sparkObject) throws StandardException {
+        dvd.setSparkObject(sparkObject);
+    }
 }

@@ -287,4 +287,22 @@ public class HBaseRowLocation extends DataType implements RowLocation {
     public void updateThetaSketch(UpdateSketch updateSketch) {
         updateSketch.update(slice.getByteCopy());
     }
+
+    @Override
+    public void setSparkObject(Object sparkObject) throws StandardException {
+        if (sparkObject == null)
+            setToNull();
+        else {
+            slice = ByteSlice.wrap((byte[]) sparkObject); // Autobox, must be something better.
+            setIsNull(false);
+        }
+    }
+
+    @Override
+    public Object getSparkObject() throws StandardException {
+        if (isNull() || slice == null)
+            return null;
+        return slice.getByteCopy();
+    }
+
 }

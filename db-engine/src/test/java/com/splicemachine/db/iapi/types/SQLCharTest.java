@@ -173,5 +173,15 @@ public class SQLCharTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(2392.0d,(double) stats.rangeSelectivity(new SQLChar(new char[]{'T'}),new SQLChar(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
         }
 
-
+        @Test
+        public void testExecRowSparkRowConversion() throws StandardException {
+                ValueRow execRow = new ValueRow(1);
+                execRow.setRowArray(new DataValueDescriptor[]{new SQLChar("1234")});
+                Row row = execRow.getSparkRow();
+                Assert.assertEquals("1234",row.getString(0));
+                ValueRow execRow2 = new ValueRow(1);
+                execRow2.setRowArray(new DataValueDescriptor[]{new SQLChar()});
+                execRow2.getColumn(1).setSparkObject(row.get(0));
+                Assert.assertEquals("ExecRow Mismatch",execRow,execRow2);
+        }
 }

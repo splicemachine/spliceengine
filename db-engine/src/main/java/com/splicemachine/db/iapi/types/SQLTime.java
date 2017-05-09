@@ -1251,5 +1251,15 @@ public final class SQLTime extends DataType
 	public Object getSparkObject() throws StandardException {
 		return getTimestamp(null);
 	}
+
+	@Override
+	public void setSparkObject(Object sparkObject) throws StandardException {
+		if (sparkObject == null)
+			setToNull();
+		else {
+			setValue((Timestamp) sparkObject);
+			setIsNull(false);
+		}
+	}
 }
 

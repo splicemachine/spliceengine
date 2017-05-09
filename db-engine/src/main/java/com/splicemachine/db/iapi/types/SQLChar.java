@@ -124,7 +124,7 @@ public class SQLChar
      * static fields of the class
      **************************************************************************
      */
-
+    static final long serialVersionUID = 1234548923L;
     /**
      * The pad character (space).
      */
@@ -3417,5 +3417,15 @@ public class SQLChar
 
     public void updateThetaSketch(UpdateSketch updateSketch) {
         updateSketch.update(value);
+    }
+
+    @Override
+    public void setSparkObject(Object sparkObject) throws StandardException {
+        if (sparkObject == null)
+            setToNull();
+        else {
+            value = (String) sparkObject; // Autobox, must be something better.
+            setIsNull(false);
+        }
     }
 }
