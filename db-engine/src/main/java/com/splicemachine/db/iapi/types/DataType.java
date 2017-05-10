@@ -1109,14 +1109,6 @@ public abstract class DataType extends NullValueData
 
 	}
 
-	@Override
-	public DataValueDescriptor setArray(DataValueDescriptor[] theValue, DataValueDescriptor dvd) {
-		// Need to check type...
-		if (dvd == null)
-			dvd = new SQLArray();
-		((SQLArray) dvd).setValue(theValue);
-		return dvd;
-	}
 
 	/**
 	 * @see DataValueDescriptor#in
