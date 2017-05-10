@@ -62,6 +62,11 @@ public class MGet implements DataGet{
     }
 
     @Override
+    public void returnLatestVersion() {
+        // no-op
+    }
+
+    @Override
     public void setFilter(DataFilter txnFilter){
         this.filter = txnFilter; //TODO -sf- combine multiple filters together
     }

@@ -62,6 +62,15 @@ public class HGet implements DataGet{
     }
 
     @Override
+    public void returnLatestVersion() {
+        try {
+            get.setMaxVersions(1);
+        } catch (IOException e) {
+            // can't happen
+        }
+    }
+
+    @Override
     public void setFilter(DataFilter txnFilter){
         Filter toAdd;
         Filter existingFilter=get.getFilter();
