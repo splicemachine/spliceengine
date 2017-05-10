@@ -26,6 +26,8 @@ public interface DataGet extends Attributable{
 
     void returnAllVersions();
 
+    void returnLatestVersion();
+
     void setFilter(DataFilter txnFilter);
 
     byte[] key();
