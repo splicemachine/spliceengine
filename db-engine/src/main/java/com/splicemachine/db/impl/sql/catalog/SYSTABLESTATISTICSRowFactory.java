@@ -48,16 +48,15 @@ import java.sql.Types;
  */
 public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
     public static final String TABLENAME_STRING = "SYSTABLESTATS";
-    public static final int SYSTABLESTATISTICS_COLUMN_COUNT= 9;
+    public static final int SYSTABLESTATISTICS_COLUMN_COUNT= 8;
     public static final int CONGLOMID = 1;
-    public static final int PARTITIONID = 2; // GLOBAL
+    public static final int PARTITIONID = 2;
     public static final int TIMESTAMP = 3;
     public static final int STALENESS = 4;
     public static final int INPROGRESS = 5;
     public static final int ROWCOUNT = 6;
     public static final int PARTITION_SIZE = 7;
     public static final int MEANROWWIDTH= 8;
-    public static final int NUMBEROFPARTITIONS = 9;
 
     protected static final int		SYSTABLESTATISTICS_INDEX1_ID = 0;
     protected static final int		SYSTABLESTATISTICS_INDEX2_ID = 1;
@@ -99,7 +98,6 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
         long rowCount = 0;
         long partitionSize = 0;
         int meanRowWidth=0;
-        long numberOfPartitions = 1L;
 
         if(td!=null){
             PartitionStatisticsDescriptor tsd = (PartitionStatisticsDescriptor)td;
@@ -111,7 +109,6 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
             rowCount = tsd.getRowCount();
             partitionSize = tsd.getPartitionSize();
             meanRowWidth = tsd.getMeanRowWidth();
-            numberOfPartitions = tsd.getNumberOfPartitions();
         }
 
         ExecRow row = getExecutionFactory().getValueRow(SYSTABLESTATISTICS_COLUMN_COUNT);
@@ -123,7 +120,6 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
         row.setColumn(ROWCOUNT,new SQLLongint(rowCount));
         row.setColumn(PARTITION_SIZE,new SQLLongint(partitionSize));
         row.setColumn(MEANROWWIDTH,new SQLInteger(meanRowWidth));
-        row.setColumn(NUMBEROFPARTITIONS,new SQLLongint(numberOfPartitions));
         return row;
     }
 
@@ -150,8 +146,6 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
         long partitionSize = col.getLong();
         col = row.getColumn(MEANROWWIDTH);
         int rowWidth = col.getInt();
-        col = row.getColumn(NUMBEROFPARTITIONS);
-        long numberOfPartitions = col.getLong();
 
         return new PartitionStatisticsDescriptor(conglomId,
                 partitionId,
@@ -160,8 +154,7 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
                 inProgress,
                 rowCount,
                 partitionSize,
-                rowWidth,
-                numberOfPartitions);
+                rowWidth);
     }
 
     @Override
@@ -174,9 +167,7 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getColumn("IN_PROGRESS", Types.BOOLEAN, false),
                 SystemColumnImpl.getColumn("ROWCOUNT",Types.BIGINT,true),
                 SystemColumnImpl.getColumn("PARTITION_SIZE",Types.BIGINT,true),
-                SystemColumnImpl.getColumn("MEANROWWIDTH",Types.INTEGER,true),
-                SystemColumnImpl.getColumn("NUMPARTITIONS",Types.BIGINT,true)
-
+                SystemColumnImpl.getColumn("MEANROWWIDTH",Types.INTEGER,true)
         };
     }
 

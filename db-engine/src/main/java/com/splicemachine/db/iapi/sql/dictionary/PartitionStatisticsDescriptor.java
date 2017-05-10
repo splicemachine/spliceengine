@@ -46,9 +46,7 @@ public class PartitionStatisticsDescriptor extends TupleDescriptor {
     private long partitionSize;
     private long rowCount;
     private boolean inProgress;
-    private long numberOfPartitions;
     private List<ColumnStatisticsDescriptor> columnStatsDescriptors;
-
 
     public PartitionStatisticsDescriptor(long conglomerateId,
                                          String partitionId,
@@ -57,7 +55,7 @@ public class PartitionStatisticsDescriptor extends TupleDescriptor {
                                          boolean inProgress,
                                          long rowCount,
                                          long partitionSize,
-                                         int meanRowWidth, long numberOfPartitions) {
+                                         int meanRowWidth) {
         this.conglomerateId = conglomerateId;
         this.partitionId = partitionId;
         this.timestamp = timestamp;
@@ -66,7 +64,6 @@ public class PartitionStatisticsDescriptor extends TupleDescriptor {
         this.partitionSize = partitionSize;
         this.rowCount = rowCount;
         this.inProgress = inProgress;
-        this.numberOfPartitions = numberOfPartitions;
     }
 
     public long getConglomerateId() { return conglomerateId; }
@@ -77,10 +74,6 @@ public class PartitionStatisticsDescriptor extends TupleDescriptor {
     public long getPartitionSize() { return partitionSize; }
     public long getRowCount() { return rowCount; }
     public boolean isInProgress() { return inProgress; }
-
-    public long getNumberOfPartitions() {
-        return this.numberOfPartitions;
-    }
 
     public List<ColumnStatisticsDescriptor> getColumnStatsDescriptors() {
         return columnStatsDescriptors;
