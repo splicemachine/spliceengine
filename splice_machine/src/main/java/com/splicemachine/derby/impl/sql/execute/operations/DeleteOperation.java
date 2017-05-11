@@ -21,6 +21,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -28,11 +29,16 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import org.apache.log4j.Logger;
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 public class DeleteOperation extends DMLWriteOperation {
 	private static final Logger LOG = Logger.getLogger(DeleteOperation.class);
 	protected  boolean cascadeDelete;
     protected static final String NAME = DeleteOperation.class.getSimpleName().replaceAll("Operation","");
+    protected String bulkDeleteDirectory;
+    protected int colMapRefItem;
+    protected int[] colMap;
 
 	@Override
 	public String getName() {
@@ -44,8 +50,12 @@ public class DeleteOperation extends DMLWriteOperation {
 	}
 
 	public DeleteOperation(SpliceOperation source, Activation activation,double optimizerEstimatedRowCount,
-                           double optimizerEstimatedCost, String tableVersion) throws StandardException, IOException {
-		super(source, activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
+                           double optimizerEstimatedCost, String tableVersion,
+						   String bulkDeleteDirectory, int colMapRefItem) throws StandardException, IOException {
+
+        super(source, activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
+        this.bulkDeleteDirectory = bulkDeleteDirectory;
+        this.colMapRefItem = colMapRefItem;
         init();
 	}
 
@@ -54,6 +64,9 @@ public class DeleteOperation extends DMLWriteOperation {
 		SpliceLogUtils.trace(LOG,"DeleteOperation init");
 		super.init(context);
 		heapConglom = writeInfo.getConglomerateId();
+        if (colMapRefItem >= 0) {
+            colMap = (int[]) context.getPreparedStatement().getSavedObject(colMapRefItem);
+        }
 	}
 
     @Override
@@ -73,15 +86,41 @@ public class DeleteOperation extends DMLWriteOperation {
         OperationContext operationContext = dsp.createOperationContext(this);
         TxnView txn = getCurrentTransaction();
 		operationContext.pushScope();
+        DataSetWriterBuilder dataSetWriterBuilder = null;
         try {
-            PairDataSet toWrite = set.index(new InsertPairFunction(operationContext),true);
-			DataSetWriterBuilder dataSetWriterBuilder = toWrite.deleteData(operationContext)
-                .destConglomerate(heapConglom)
-                .operationContext(operationContext)
-				.txn(txn);
-			return dataSetWriterBuilder.build().write();
+            if (bulkDeleteDirectory != null) {
+                dataSetWriterBuilder = set
+                        .bulkDeleteData(operationContext)
+                        .bulkDeleteDirectory(bulkDeleteDirectory)
+                        .colMap(colMap);
+            }
+            if (dataSetWriterBuilder == null) {
+                PairDataSet toWrite = set.index(new InsertPairFunction(operationContext), true);
+                dataSetWriterBuilder = toWrite.deleteData(operationContext);
+            }
+            DataSetWriter dataSetWriter = dataSetWriterBuilder
+                    .destConglomerate(heapConglom)
+                    .operationContext(operationContext)
+                    .txn(txn).build();
+            return dataSetWriter.write();
+
         } finally {
             operationContext.popScope();
         }
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException{
+        super.writeExternal(out);
+        writeNullableString(bulkDeleteDirectory,out);
+        out.writeInt(colMapRefItem);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException,
+            ClassNotFoundException{
+        super.readExternal(in);
+        bulkDeleteDirectory = readNullableString(in);
+        colMapRefItem = in.readInt();
     }
 }

@@ -15,15 +15,12 @@
 package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.output.DataSetWriter;
-import com.splicemachine.derby.stream.output.direct.DirectPipelineWriter;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import org.apache.hadoop.conf.Configuration;
@@ -73,11 +70,6 @@ public class SparkDirectDataSetWriter<K,V> implements DataSetWriter{
     @Override
     public void setTxn(TxnView childTxn){
         this.txn = childTxn;
-    }
-
-    @Override
-    public TableWriter getTableWriter() throws StandardException{
-        return new DirectPipelineWriter(destConglom,txn,opContext,skipIndex);
     }
 
     @Override

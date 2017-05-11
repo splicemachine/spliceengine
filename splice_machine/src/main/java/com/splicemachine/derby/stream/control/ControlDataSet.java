@@ -14,11 +14,12 @@
 
 package com.splicemachine.derby.stream.control;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.stream.output.HBaseBulkImporter;
-import com.splicemachine.derby.stream.output.HBaseBulkImporterBuilder;
+import com.splicemachine.derby.stream.output.BulkDeleteDataSetWriterBuilder;
+import com.splicemachine.derby.stream.output.BulkInsertDataSetWriterBuilder;
 import org.apache.commons.collections.IteratorUtils;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.base.Predicate;
@@ -491,10 +492,14 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public HBaseBulkImporterBuilder bulkImportData(OperationContext operationContext) {
+    public BulkInsertDataSetWriterBuilder bulkInsertData(OperationContext operationContext) throws StandardException {
        throw new RuntimeException("bulk load not supported");
     };
 
+    @Override
+    public BulkDeleteDataSetWriterBuilder bulkDeleteData(OperationContext operationContext) throws StandardException {
+        throw new RuntimeException("bulk load not supported");
+    };
     /**
      *
      * Non Lazy Callable

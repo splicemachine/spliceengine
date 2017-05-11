@@ -30,8 +30,9 @@ import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.derby.stream.output.BulkDeleteDataSetWriterBuilder;
+import com.splicemachine.derby.stream.output.BulkInsertDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
-import com.splicemachine.derby.stream.output.HBaseBulkImporterBuilder;
 import com.splicemachine.utils.ByteDataInput;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
@@ -773,7 +774,12 @@ public class SparkDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public HBaseBulkImporterBuilder bulkImportData(OperationContext operationContext) {
-        return new SparkHBaseBulkImporterBuilder(this);
+    public BulkInsertDataSetWriterBuilder bulkInsertData(OperationContext operationContext) throws StandardException {
+        return new SparkBulkInsertTableWriterBuilder(this);
+    }
+
+    @Override
+    public BulkDeleteDataSetWriterBuilder bulkDeleteData(OperationContext operationContext) throws StandardException {
+        return new SparkBulkDeleteTableWriterBuilder(this);
     }
 }

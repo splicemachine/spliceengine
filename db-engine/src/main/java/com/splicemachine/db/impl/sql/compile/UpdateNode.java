@@ -1089,7 +1089,7 @@ public final class UpdateNode extends DMLModStatementNode
 		** columns where 1 or more columns in the index
 		** are going to be modified.
 		*/
-		DMLModStatementNode.getXAffectedIndexes(baseTable, updateColumnList, columnMap, conglomVector );
+		DMLModStatementNode.getXAffectedIndexes(baseTable, updateColumnList, columnMap, conglomVector, false);
  
 		/* 
 		** Add all columns needed for constraints.  We don't

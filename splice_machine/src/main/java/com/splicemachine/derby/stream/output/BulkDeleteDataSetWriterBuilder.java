@@ -14,23 +14,12 @@
 
 package com.splicemachine.derby.stream.output;
 
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.stream.iapi.DataSet;
-import com.splicemachine.derby.stream.iapi.TableWriter;
-import com.splicemachine.si.api.txn.TxnView;
-
 /**
- * @author Scott Fines
- *         Date: 1/8/16
+ * Created by jyuan on 5/31/17.
  */
-public interface DataSetWriter{
+public interface BulkDeleteDataSetWriterBuilder extends DataSetWriterBuilder {
 
-    DataSet<LocatedRow> write() throws StandardException;
+    BulkDeleteDataSetWriterBuilder bulkDeleteDirectory(String bulkDeleteDirectory);
 
-    void setTxn(TxnView childTxn);
-
-    TxnView getTxn();
-
-    byte[] getDestinationTable();
+    BulkDeleteDataSetWriterBuilder colMap(int[] colMap);
 }

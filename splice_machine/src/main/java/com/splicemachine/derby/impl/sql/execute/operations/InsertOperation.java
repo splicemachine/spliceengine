@@ -24,7 +24,7 @@ import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.stream.iapi.*;
-import com.splicemachine.derby.stream.output.HBaseBulkImporter;
+import com.splicemachine.derby.stream.output.*;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -49,8 +49,6 @@ import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.stream.function.InsertPairFunction;
-import com.splicemachine.derby.stream.output.DataSetWriter;
-import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.stream.output.insert.InsertPipelineWriter;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
@@ -373,53 +371,34 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                     return set.writeTextFile(this,location,delimited,lines,IntArrays.count(execRowTypeFormatIds.length), operationContext);
                 new RuntimeException("storedAs type not supported -> " + storedAs);
             }
-
+            InsertDataSetWriterBuilder writerBuilder = null;
             if (bulkImportDirectory!=null && bulkImportDirectory.compareToIgnoreCase("NULL") !=0) {
-                HBaseBulkImporter importer = set.bulkImportData(operationContext)
-                        .heapConglom(heapConglom)
-                        .tableVersion(tableVersion)
-                        .operationContext(operationContext)
-                        .autoIncrementRowLocationArray(autoIncrementRowLocationArray)
-                        .sequences(spliceSequences)
-                        .pkCols(pkCols)
-                        .execRow(getExecRowDefinition())
-                        .txn(txn)
+                writerBuilder = set.bulkInsertData(operationContext)
                         .bulkImportDirectory(bulkImportDirectory)
                         .samplingOnly(samplingOnly)
                         .outputKeysOnly(outputKeysOnly)
                         .skipSampling(skipSampling)
-                        .indexName(indexName)
-                        .build();
-                return importer.write();
+                        .indexName(indexName);
             }
-            else {
-                /*
 
-                int[] pkCols,
-                              String tableVersion,
-                              ExecRow execRowDefinition,
-                              RowLocation[] autoIncrementRowLocationArray,
-                              SpliceSequence[] spliceSequences,
-                              long heapConglom,
-                              TxnView txn,
-                              OperationContext operationContext,
-                              boolean isUpsert
-                 */
+            if (writerBuilder == null) {
                 PairDataSet dataSet = set.index(new InsertPairFunction(operationContext), true);
-                DataSetWriter writer = dataSet.insertData(operationContext)
-                        .autoIncrementRowLocationArray(autoIncrementRowLocationArray)
-                        .execRowDefinition(getExecRowDefinition())
-                        .execRowTypeFormatIds(execRowTypeFormatIds)
-                        .sequences(spliceSequences)
-                        .isUpsert(insertMode.equals(InsertNode.InsertMode.UPSERT))
-                        .pkCols(pkCols)
-                        .tableVersion(tableVersion)
-                        .destConglomerate(heapConglom)
-                        .operationContext(operationContext)
-                        .txn(txn)
-                        .build();
-                return writer.write();
+                writerBuilder = dataSet.insertData(operationContext);
             }
+            DataSetWriter writer = writerBuilder
+                    .autoIncrementRowLocationArray(autoIncrementRowLocationArray)
+                    .execRowDefinition(getExecRowDefinition())
+                    .execRowTypeFormatIds(execRowTypeFormatIds)
+                    .sequences(spliceSequences)
+                    .isUpsert(insertMode.equals(InsertNode.InsertMode.UPSERT))
+                    .pkCols(pkCols)
+                    .tableVersion(tableVersion)
+                    .destConglomerate(heapConglom)
+                    .operationContext(operationContext)
+                    .txn(txn)
+                    .build();
+            return writer.write();
+
         }finally{
             if (skipWAL) {
                 flushAndCheckErrors(healthWatcher);

@@ -97,8 +97,43 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @AfterClass
     public static void cleanup() throws Exception {
+        testBulkDelete();
         String dir = getResource("data");
         FileUtils.deleteDirectory(new File(dir));
+    }
+
+    private static void testBulkDelete() throws Exception {
+        if (notSupported)
+            return;
+        bulkDelete(LINEITEM);
+        bulkDelete(ORDERS);
+        bulkDelete(CUSTOMERS);
+        bulkDelete(PART);
+        bulkDelete(PARTSUPP);
+        bulkDelete(NATION);
+        bulkDelete(REGION);
+        bulkDelete(SUPPLIER);
+        countUsingIndex(LINEITEM, "L_PART_IDX");
+        countUsingIndex(LINEITEM, "L_SHIPDATE_IDX");
+        countUsingIndex(ORDERS, "O_CUST_IDX");
+        countUsingIndex(ORDERS, "O_DATE_PRI_KEY_IDX");
+    }
+
+    private static void bulkDelete(String tableName) throws Exception {
+        String sql = String.format("delete from %s --splice-properties bulkDeleteDirectory='%s'", tableName, getResource("data"));
+        spliceClassWatcher.execute(sql);
+        ResultSet rs = spliceClassWatcher.executeQuery(String.format("select count(*) from %s", tableName));
+        rs.next();
+        int count = rs.getInt(1);
+        Assert.assertTrue(count==0);
+    }
+
+    private static void countUsingIndex(String tableName, String indexName) throws Exception {
+        ResultSet rs = spliceClassWatcher.executeQuery(
+                String.format("select count(*) from %s --splice-properties index=%s", tableName, indexName));
+        rs.next();
+        int count = rs.getInt(1);
+        Assert.assertTrue(count==0);
     }
     @Test
     public void sql1() throws Exception {
