@@ -235,12 +235,12 @@ public class StoreCostControllerImpl implements StoreCostController {
 
     @Override
     public long cardinality(int columnNumber) {
-        if (missingPartitions > 0) {
+        if (missingPartitions > 0)
             assert tableStatistics.numPartitions() > 0: "Number of partitions cannot be 0";
-            return tableStatistics.notNullCount(columnNumber - 1) + tableStatistics.notNullCount(columnNumber - 1) * (missingPartitions / tableStatistics.numPartitions());
-        }
-        else
-            return tableStatistics.cardinality(columnNumber-1);
+        /** Even when there are partitions with missing stats, we can still assume that these partitions
+         *  do not contribute more unique values, thus have the same cardinality as the rest partitions
+         */
+        return tableStatistics.cardinality(columnNumber-1);
     }
 
     @Override
