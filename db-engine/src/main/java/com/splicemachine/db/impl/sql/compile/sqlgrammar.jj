@@ -828,7 +828,8 @@ public class SQLParser
 	 */
 	 private StatementNode getDeleteNode(FromTable fromTable,
 										 TableName tableName,
-										 ValueNode whereClause)
+										 ValueNode whereClause,
+										 Properties targetProperties)
 		throws StandardException
 	{
 		FromList   fromList = (FromList) nodeFactory.getNode(
@@ -853,6 +854,7 @@ public class SQLParser
 							C_NodeTypes.DELETE_NODE,
 							tableName,
 							resultSet,
+							targetProperties,
 							getContextManager());
 
 		setUpAndLinkParameters();
@@ -3854,7 +3856,8 @@ deleteBody() throws StandardException :
 	ValueNode  whereClause = null;
 	FromTable  fromTable = null;
 	QueryTreeNode retval;
-	Properties targetProperties = null;
+	Properties tableProperties = null;
+	Properties deleteProperties = null;
 	Token	   whereToken = null;
 }
 {
@@ -3870,7 +3873,7 @@ deleteBody() throws StandardException :
 									(Properties) null,
 									getContextManager()); 
 
-		return getDeleteNode(fromTable, tableName, whereClause);
+		return getDeleteNode(fromTable, tableName, whereClause, null);
 	}
 |
 	<FROM> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) 
@@ -3879,7 +3882,7 @@ deleteBody() throws StandardException :
 			( { (getToken(1).kind != EOF) && (getToken(1).kind != WHERE) && !splicePropertiesListFollows() } )
 			[ <AS> ] correlationName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) 
 		]
-		[targetProperties = propertyList(false) <CHECK_PROPERTIES>] 
+		[tableProperties = propertyList(false) <CHECK_PROPERTIES>]
 		[ 
 			whereToken = <WHERE>
 		    (
@@ -3916,8 +3919,15 @@ deleteBody() throws StandardException :
 										null,
 										getContextManager());
 
+        if (tableProperties != null) {
+            String dir = (String)tableProperties.remove(DeleteNode.BULK_DELETE_DIRECTORY);
+            if (dir != null) {
+                deleteProperties = new FormatableProperties();
+                deleteProperties.setProperty(DeleteNode.BULK_DELETE_DIRECTORY, dir);
+            }
+        }
 		/* Update the FromTable with any properties, if non-null */
-		if (targetProperties != null)
+		if (tableProperties != null && tableProperties.size() > 0)
 		{
 			if (SanityManager.DEBUG)
 			{
@@ -3927,10 +3937,10 @@ deleteBody() throws StandardException :
 						"Overwriting existing properties");
 				}
 			}
-			((FromBaseTable) fromTable).setTableProperties(targetProperties);
+			((FromBaseTable) fromTable).setTableProperties(tableProperties);
 		}
 
-		return getDeleteNode(fromTable, tableName, whereClause);
+		return getDeleteNode(fromTable, tableName, whereClause, deleteProperties);
 	}
 }
 
@@ -11864,7 +11874,8 @@ propertyList(boolean propertiesUseAllowed) throws StandardException :
 				else if (value.startsWith("\"") && value.endsWith("\""))
 					value = StringUtil.compressQuotes(value.substring(1, value.length() - 1), DOUBLEQUOTES);
 				else if (! InsertNode.STATUS_DIRECTORY.equals(key) &&
-				         ! InsertNode.BULK_IMPORT_DIRECTORY.equals(key))
+				         ! InsertNode.BULK_IMPORT_DIRECTORY.equals(key) &&
+				         ! DeleteNode.BULK_DELETE_DIRECTORY.equals(key))
 					value = value.toUpperCase();
 				// Do not allow user to specify multiple values for the same key
 				if (properties.put(key, value) != null)
