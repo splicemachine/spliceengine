@@ -40,4 +40,6 @@ public interface BackupManager{
     void cancelDailyBackup(long jobId) throws StandardException;
 
     void cancelBackup() throws StandardException;
+
+    void post_restore_cleanup(long backupId) throws StandardException;
 }
