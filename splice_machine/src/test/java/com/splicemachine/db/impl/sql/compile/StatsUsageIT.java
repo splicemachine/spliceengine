@@ -96,8 +96,10 @@ public class StatsUsageIT extends SpliceUnitTest {
             factor = factor * 2;
         }
 
+        /*
         conn.createStatement().executeUpdate(format("CALL SYSCS_UTIL.SYSCS_SPLIT_TABLE('%s', '%s')",
                 spliceSchemaWatcher.toString(), "T2"));
+        */
 
         conn.createStatement().executeQuery(format(
                 "call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s',false)",
@@ -136,6 +138,7 @@ public class StatsUsageIT extends SpliceUnitTest {
                 "        where X.c1=Y.c1 and Y.c1=1","outputRows=2,",methodWatcher);
     }
 
+    @Ignore("test case does not have deterministic behavior")
     @Test
     public void testCardinalityAfterTableSplit() throws Exception {
         String sqlText = "explain select * from --splice-properties joinOrder=fixed \n" +
