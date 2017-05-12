@@ -2261,19 +2261,25 @@ public class OptimizerImpl implements Optimizer{
         AccessPath ap=optimizable.getBestAccessPath();
         CostEstimate bestCostEstimate=ap.getCostEstimate();
 
-        if((bestCostEstimate==null) || bestCostEstimate.isUninitialized() || (estimatedCost.compare(bestCostEstimate)<0)){
-            ap.setConglomerateDescriptor(cd);
-            ap.setCostEstimate(estimatedCost);
-            ap.setCoveringIndexScan(optimizable.isCoveringIndex(cd));
+        boolean memoryOK = checkPathMemoryUsage(optimizable, false);
+
+        // only update the best access path if the current access path passes the memory limit check
+        if (memoryOK) {
+            if ((bestCostEstimate == null) || bestCostEstimate.isUninitialized() || (estimatedCost.compare(bestCostEstimate) < 0)) {
+                ap.setConglomerateDescriptor(cd);
+                ap.setCostEstimate(estimatedCost);
+                ap.setCoveringIndexScan(optimizable.isCoveringIndex(cd));
 
 			/*
 			** It's a non-matching index scan either if there is no
 			** predicate list, or nothing in the predicate list is useful
 			** for limiting the scan.
 			*/
-            ap.setNonMatchingIndexScan((predList==null) || (!(predList.useful(optimizable,cd))));
-            ap.setLockMode(optimizable.getCurrentAccessPath().getLockMode());
-            optimizable.rememberJoinStrategyAsBest(ap);
+                ap.setNonMatchingIndexScan((predList==null) || (!(predList.useful(optimizable,cd))));
+                ap.setLockMode(optimizable.getCurrentAccessPath().getLockMode());
+                optimizable.rememberJoinStrategyAsBest(ap);
+
+            }
         }
 
 		/*
@@ -2296,29 +2302,33 @@ public class OptimizerImpl implements Optimizer{
                     ap=optimizable.getBestSortAvoidancePath();
                     bestCostEstimate=ap.getCostEstimate();
 
+                    memoryOK = checkPathMemoryUsage(optimizable, true);
+
 					/* Is this the cheapest sort-avoidance path? */
-                    if((bestCostEstimate==null) ||
-                            bestCostEstimate.isUninitialized() ||
-                            (estimatedCost.compare(bestCostEstimate)<0)){
-                        ap.setConglomerateDescriptor(cd);
-                        ap.setCostEstimate(estimatedCost);
-                        ap.setCoveringIndexScan(
-                                optimizable.isCoveringIndex(cd));
+					if (memoryOK) {
+                        if ((bestCostEstimate == null) ||
+                                bestCostEstimate.isUninitialized() ||
+                                (estimatedCost.compare(bestCostEstimate) < 0)) {
+                            ap.setConglomerateDescriptor(cd);
+                            ap.setCostEstimate(estimatedCost);
+                            ap.setCoveringIndexScan(
+                                    optimizable.isCoveringIndex(cd));
 
 						/*
 						** It's a non-matching index scan either if there is no
 						** predicate list, or nothing in the predicate list is
 						** useful for limiting the scan.
 						*/
-                        ap.setNonMatchingIndexScan( (predList==null) || (!(predList.useful(optimizable,cd))) );
-                        ap.setLockMode( optimizable.getCurrentAccessPath().getLockMode());
-                        optimizable.rememberJoinStrategyAsBest(ap);
-                        optimizable.rememberSortAvoidancePath();
+                            ap.setNonMatchingIndexScan((predList == null) || (!(predList.useful(optimizable, cd))));
+                            ap.setLockMode(optimizable.getCurrentAccessPath().getLockMode());
+                            optimizable.rememberJoinStrategyAsBest(ap);
+                            optimizable.rememberSortAvoidancePath();
 
 						/*
 						** Remember the current row ordering as best
 						*/
-                        currentRowOrdering.copy(bestRowOrdering);
+                            currentRowOrdering.copy(bestRowOrdering);
+                        }
                     }
                 }
             }
@@ -2405,4 +2415,38 @@ public class OptimizerImpl implements Optimizer{
     protected long getMaxTimeout() {
         return Long.MAX_VALUE; // milliseconds
     }
+
+    /**
+     * In the presence of consecutive broadcast joins, we should not only check whether
+     * individual join can fit in memory but also the accumulative memory usage.
+     * The memory check for individual join has already been conducted as part of the broadcast join costing,
+     * here, we check whether the accumulative memory usage is still under the limit.
+     * @return true if the accumulative memory usage is under the limit, false otherwise
+     */
+
+    boolean checkPathMemoryUsage(Optimizable optimizable, boolean checkSortAvoidancePlan) {
+        AccessPath currentAp = optimizable.getCurrentAccessPath();
+        if (currentAp.getJoinStrategy().getJoinStrategyType() != JoinStrategy.JoinStrategyType.BROADCAST)
+            return true;
+
+        double memoryAlreadyConsumed = 0;
+        for (int i=joinPosition-1; i>=0; i--) {
+            AccessPath ap;
+
+            if (checkSortAvoidancePlan)
+                ap = optimizableList.getOptimizable(proposedJoinOrder[i]).getBestSortAvoidancePath();
+            else
+                ap = optimizableList.getOptimizable(proposedJoinOrder[i]).getBestAccessPath();
+
+            if (ap == null || ap.getJoinStrategy().getJoinStrategyType() != JoinStrategy.JoinStrategyType.BROADCAST)
+                break;
+            memoryAlreadyConsumed += ap.getCostEstimate().getBase().getEstimatedHeapSize();
+        }
+
+        if (memoryAlreadyConsumed > 0 && !currentAp.isJoinPathMemoryUsageUnderLimit(memoryAlreadyConsumed))
+            return false;
+
+        return true;
+    }
+
 }
