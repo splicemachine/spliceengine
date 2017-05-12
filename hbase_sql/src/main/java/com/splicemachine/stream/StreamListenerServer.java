@@ -16,8 +16,10 @@ package com.splicemachine.stream;
 
 
 import com.google.common.net.HostAndPort;
+import com.splicemachine.access.configuration.SIConfigurations;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stream.handlers.OpenHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -51,9 +53,12 @@ public class StreamListenerServer<T> extends ChannelInboundHandlerAdapter {
     private NioEventLoopGroup workerGroup;
     private HostAndPort hostAndPort;
     private CloseHandler closeHandler = new CloseHandler();
+    private String host;
 
     public StreamListenerServer(int port) {
         this.port = port;
+        if (SIDriver.driver() != null)
+            host = SIDriver.driver().getConfiguration().getConfigSource().getString("hbase.regionserver.hostname",null); // Added to Support CNI Networks
     }
 
     public void register(StreamListener listener) {
@@ -78,14 +83,18 @@ public class StreamListenerServer<T> extends ChannelInboundHandlerAdapter {
                     .option(ChannelOption.SO_BACKLOG, 128)
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
 
+
             // Bind and start to accept incoming connections.
-            ChannelFuture f = b.bind(port).sync();
+
+
+
+            ChannelFuture f = host == null ? b.bind(port).sync(): b.bind(host,port).sync(); // Supports Multiple Interfaces on a Host
 
             this.serverChannel = f.channel();
             InetSocketAddress socketAddress = (InetSocketAddress)this.serverChannel.localAddress();
-            String host = InetAddress.getLocalHost().getHostName();
+            if (host == null)
+                host =  InetAddress.getLocalHost().getHostName();
             int port = socketAddress.getPort();
-
             this.hostAndPort = HostAndPort.fromParts(host, port);
             LOG.info("StreamListenerServer listening on " + hostAndPort);
 

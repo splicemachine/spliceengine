@@ -28,8 +28,7 @@ import org.apache.spark.sql.{Dataset, DataFrame, Row}
 import java.util.Properties
 import java.sql.Connection
 
-class SplicemachineContext() extends Serializable {
-  val url = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin"
+class SplicemachineContext(url: String) extends Serializable {
   JdbcDialects.registerDialect(new SplicemachineDialect)
 
   @transient lazy val internalConnection = {

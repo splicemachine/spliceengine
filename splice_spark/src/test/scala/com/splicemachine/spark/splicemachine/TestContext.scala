@@ -21,7 +21,6 @@ import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest.{BeforeAndAfterAll, Suite}
 
 trait TestContext extends BeforeAndAfterAll { self: Suite =>
-
   var sc: SparkContext = null
   var splicemachineContext: SplicemachineContext = null
   val table = "test"
@@ -105,7 +104,7 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
 
   override def beforeAll() {
     sc = new SparkContext(conf)
-    splicemachineContext = new SplicemachineContext()
+    splicemachineContext = new SplicemachineContext(defaultJDBCURL)
   }
 
   override def afterAll() {
