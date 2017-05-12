@@ -367,4 +367,10 @@ public interface JoinStrategy {
      */
 	JoinStrategyType getJoinStrategyType();
 
+	/**
+	 * Check whether memory usage is under the system limit in the presence of consecutive joins, specifically,
+	 * consecutive broadcast joins.
+	 * @param totalMemoryConsumed the memory consumed by consecutive joins in bytes
+	 */
+	boolean isMemoryUsageUnderLimit(double totalMemoryConsumed);
 }
