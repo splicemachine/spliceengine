@@ -48,7 +48,7 @@ import org.apache.log4j.Logger;
 public class PipelineDriver{
     private static final Logger LOG = Logger.getLogger(PipelineDriver.class);
     private static final int ipcReserved=10;
-    private static PipelineDriver INSTANCE;
+    private static volatile PipelineDriver INSTANCE;
 
     private final SpliceWriteControl writeControl;
     private final WritePipelineFactory writePipelineFactory;

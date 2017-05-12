@@ -39,7 +39,7 @@ import com.splicemachine.uuid.UUIDGenerator;
  *         Date: 1/6/16
  */
 public class EngineDriver{
-    private static EngineDriver INSTANCE;
+    private static volatile EngineDriver INSTANCE;
 
     private final Connection internalConnection;
     private final Snowflake uuidGen;

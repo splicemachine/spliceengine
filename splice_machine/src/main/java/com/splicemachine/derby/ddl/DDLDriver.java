@@ -22,7 +22,7 @@ import com.splicemachine.access.api.SConfiguration;
  *         Date: 12/31/15
  */
 public class DDLDriver{
-    private static DDLDriver INSTANCE;
+    private static volatile DDLDriver INSTANCE;
 
     private final DDLController ddlController;
     private final DDLWatcher ddlWatcher;
