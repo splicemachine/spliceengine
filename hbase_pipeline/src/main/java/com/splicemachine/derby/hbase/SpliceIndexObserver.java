@@ -163,6 +163,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
             if(put.getAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)!=null) return;
             if(factoryLoader==null){
                 try{
+                    LOG.trace("Waiting for DatabaseLifecycleManager startup");
                     DatabaseLifecycleManager.manager().awaitStartup();
                 }catch(InterruptedException e1){
                     throw new InterruptedIOException();

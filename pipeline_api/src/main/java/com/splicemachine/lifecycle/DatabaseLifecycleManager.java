@@ -220,9 +220,14 @@ public class DatabaseLifecycleManager{
             if(!bootServices(State.BOOTING_GENERAL_SERVICES,engineServices)) return; //bail, we encountered an error
             if(!bootServices(State.BOOTING_SERVER,generalServices)) return; //bail, we encountered an error
             bootServices(State.RUNNING,networkServices);
+
+            LOG.trace("Booting process complete");
         }
 
         private boolean bootServices(State nextState,List<DatabaseLifecycleService> services){
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Booting services, current state: " + state.get());
+            }
             try{
                 for(DatabaseLifecycleService service : services){
                     try{
@@ -238,6 +243,9 @@ public class DatabaseLifecycleManager{
                 state.set(nextState);
             }finally{
                 startupLock.countDown(); //release any waiting threads
+                if (LOG.isTraceEnabled()) {
+                    LOG.trace("Startup lock unlocked, current state: " + state.get());
+                }
             }
             //register JMX
             if(jmxServer==null)
