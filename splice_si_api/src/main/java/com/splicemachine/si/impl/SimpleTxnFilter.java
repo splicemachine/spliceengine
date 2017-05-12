@@ -162,10 +162,9 @@ public class SimpleTxnFilter implements TxnFilter{
         }
 
         TxnView t=fetchTransaction(ts);
-        assert t!=null:"Could not find a transaction for id "+ts;
 
         //submit it to the resolver to resolve asynchronously
-        if(t.getEffectiveState().isFinal()){
+        if(t!=null && t.getEffectiveState().isFinal()){
             doResolve(element,ts);
         }
     }
@@ -210,7 +209,7 @@ public class SimpleTxnFilter implements TxnFilter{
 
     private boolean isVisible(long txnId) throws IOException{
         TxnView toCompare=fetchTransaction(txnId);
-        return myTxn.canSee(toCompare);
+        return toCompare != null ? myTxn.canSee(toCompare) : false;
     }
 
     private TxnView fetchTransaction(long txnId) throws IOException{

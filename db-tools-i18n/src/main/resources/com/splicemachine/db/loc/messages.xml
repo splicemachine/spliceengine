@@ -8862,6 +8862,11 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <text>A concurrent {0} backup is running. Please wait until it completes or call syscs_util.syscs_cancel_backup() to cancel it.</text>
                <arg>backupType</arg>
            </msg>
+           <msg>
+               <name>BR015</name>
+               <text>The latest restored data is not from backup {0}</text>
+               <arg>backupId</arg>
+           </msg>
 
            <msg>
                <name>EXT01</name>
