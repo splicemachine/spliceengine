@@ -42,10 +42,10 @@ public class OperationConfiguration implements ConfigurationDefault {
      * due to the weak-ordering. However, it will also result in a greater number of "missing" ids, since
      * a block, once allocated, can never be allocated again.
      *
-     * Defaults to 1000
+     * Defaults to 10000
      */
     public static final String SEQUENCE_BLOCK_SIZE = "splice.sequence.allocationBlockSize";
-    private static final int DEFAULT_SEQUENCE_BLOCK_SIZE = 1000;
+    private static final int DEFAULT_SEQUENCE_BLOCK_SIZE = 10000;
 
     /* The maximum number of threads to be created in the general thread pool */
     public static final String THREAD_POOL_MAX_SIZE = "splice.threadPool.maxSize";
