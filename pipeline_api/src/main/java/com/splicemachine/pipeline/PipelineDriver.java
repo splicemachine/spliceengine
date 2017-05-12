@@ -39,12 +39,14 @@ import com.splicemachine.pipeline.contextfactory.ContextFactoryLoader;
 import com.splicemachine.pipeline.traffic.SpliceWriteControl;
 import com.splicemachine.pipeline.traffic.SynchronousWriteControl;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
+import org.apache.log4j.Logger;
 
 /**
  * @author Scott Fines
  *         Date: 12/23/15
  */
 public class PipelineDriver{
+    private static final Logger LOG = Logger.getLogger(PipelineDriver.class);
     private static final int ipcReserved=10;
     private static PipelineDriver INSTANCE;
 
@@ -60,6 +62,10 @@ public class PipelineDriver{
     private final AtomicBoolean jmxRegistered = new AtomicBoolean(false);
 
     public static void loadDriver(PipelineEnvironment env){
+        LOG.info("Loading PipelineDriver");
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("Stack trace for loadDriver: ", new Exception());
+        }
         SConfiguration config = env.configuration();
         PipelineExceptionFactory pef = env.pipelineExceptionFactory();
         PartitionFactory partitionFactory = env.tableFactory();
@@ -73,7 +79,13 @@ public class PipelineDriver{
         writerFactory.setWriter(INSTANCE.pipelineWriter);
     }
 
-    public static PipelineDriver driver(){ return INSTANCE; }
+    public static PipelineDriver driver() {
+        PipelineDriver result = INSTANCE;
+        if (result == null) {
+            LOG.error("PipelineDriver not loaded yet");
+        }
+        return result;
+    }
 
     private PipelineDriver(SConfiguration config,
                            ContextFactoryDriver ctxFactoryDriver,

@@ -55,12 +55,14 @@ import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.utils.kryo.KryoPool;
+import org.apache.log4j.Logger;
 
 /**
  * @author Scott Fines
  *         Date: 12/28/15
  */
 public class HBasePipelineEnvironment implements PipelineEnvironment{
+    private static final Logger LOG = Logger.getLogger(HBasePipelineEnvironment.class);
     private static volatile HBasePipelineEnvironment INSTANCE;
 
     private final SIEnvironment delegate;
@@ -78,6 +80,7 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
             synchronized(HBasePipelineEnvironment.class){
                 env = INSTANCE;
                 if(env==null){
+                    LOG.info("Loading HBasePipelineEnvironment");
                     SIEnvironment siEnv =HBaseSIEnvironment.loadEnvironment(systemClock,ZkUtils.getRecoverableZooKeeper());
                     env = new HBasePipelineEnvironment(siEnv,ctxFactoryLoader,HPipelineExceptionFactory.INSTANCE);
                     PipelineDriver.loadDriver(env);
