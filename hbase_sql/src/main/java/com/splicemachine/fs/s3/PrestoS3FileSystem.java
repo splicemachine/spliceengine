@@ -162,9 +162,9 @@ public class PrestoS3FileSystem
                 .withProtocol(sslEnabled ? Protocol.HTTPS : Protocol.HTTP)
                 .withConnectionTimeout(toIntExact(connectTimeout.toMillis()))
                 .withSocketTimeout(toIntExact(socketTimeout.toMillis()))
-                .withMaxConnections(maxConnections);
-            //    .withUserAgentPrefix(userAgentPrefix)
-//                .withUserAgentSuffix(S3_USER_AGENT_SUFFIX);
+                .withMaxConnections(maxConnections)
+                .withUserAgentPrefix(userAgentPrefix)
+                .withUserAgentSuffix(S3_USER_AGENT_SUFFIX);
 
         this.s3 = createAmazonS3Client(uri, conf, configuration);
 
@@ -519,6 +519,7 @@ public class PrestoS3FileSystem
                                     case SC_NOT_FOUND:
                                         return null;
                                     case SC_FORBIDDEN:
+                                    case SC_BAD_REQUEST:
                                         throw new UnrecoverableS3OperationException(path, e);
                                 }
                             }
@@ -640,7 +641,7 @@ public class PrestoS3FileSystem
     {
         Optional<AWSCredentials> credentials = getAwsCredentials(uri, conf);
         if (credentials.isPresent()) {
-            return new StaticCredentialsProvider(credentials.get());
+            return new AWSStaticCredentialsProvider(credentials.get());
         }
 
         if (useInstanceCredentials) {
@@ -705,7 +706,6 @@ public class PrestoS3FileSystem
         private boolean closed;
         private InputStream in;
         private long streamPosition;
-        private long streamEndPosition;
         private long nextReadPosition;
 
         public PrestoS3InputStream(AmazonS3 s3, String host, Path path, int maxAttempts, Duration maxBackoffTime, Duration maxRetryTime)
@@ -761,7 +761,7 @@ public class PrestoS3FileSystem
                         .stopOn(InterruptedException.class, UnrecoverableS3OperationException.class, AbortedException.class)
                         .onRetry(STATS::newReadRetry)
                         .run("readStream", () -> {
-                            seekStream(length);
+                            seekStream();
                             try {
                                 return in.read(buffer, offset, length);
                             }
@@ -794,7 +794,7 @@ public class PrestoS3FileSystem
             return false;
         }
 
-        private void seekStream(int length)
+        private void seekStream()
                 throws IOException
         {
             if ((in != null) && (nextReadPosition == streamPosition)) {
@@ -802,7 +802,7 @@ public class PrestoS3FileSystem
                 return;
             }
 
-            if ((in != null) && (nextReadPosition > streamPosition) && (nextReadPosition < streamEndPosition)) {
+            if ((in != null) && (nextReadPosition > streamPosition)) {
                 // seeking forwards
                 long skip = nextReadPosition - streamPosition;
                 if (skip <= max(in.available(), MAX_SKIP_SIZE.toBytes())) {
@@ -820,16 +820,24 @@ public class PrestoS3FileSystem
             }
 
             // close the stream and open at desired position
+            streamPosition = nextReadPosition;
             closeStream();
-            in = openStream(nextReadPosition, nextReadPosition + length);
-            STATS.connectionOpened();
+            openStream();
         }
 
-        private InputStream openStream(long start, long end)
+        private void openStream()
                 throws IOException
         {
-            streamPosition = start;
-            streamEndPosition = end;
+            if (in == null) {
+                in = openStream(path, nextReadPosition);
+                streamPosition = nextReadPosition;
+                STATS.connectionOpened();
+            }
+        }
+
+        private InputStream openStream(Path path, long start)
+                throws IOException
+        {
             try {
                 return retry()
                         .maxAttempts(maxAttempts)
@@ -838,7 +846,7 @@ public class PrestoS3FileSystem
                         .onRetry(STATS::newGetObjectRetry)
                         .run("getS3Object", () -> {
                             try {
-                                GetObjectRequest request = new GetObjectRequest(host, keyFromPath(path)).withRange(streamPosition, streamEndPosition);
+                                GetObjectRequest request = new GetObjectRequest(host, keyFromPath(path)).withRange(start, Long.MAX_VALUE);
                                 return s3.getObject(request).getObjectContent();
                             }
                             catch (RuntimeException e) {
@@ -850,6 +858,7 @@ public class PrestoS3FileSystem
                                             return new ByteArrayInputStream(new byte[0]);
                                         case SC_FORBIDDEN:
                                         case SC_NOT_FOUND:
+                                        case SC_BAD_REQUEST:
                                             throw new UnrecoverableS3OperationException(path, e);
                                     }
                                 }
@@ -871,14 +880,12 @@ public class PrestoS3FileSystem
         {
             if (in != null) {
                 try {
-                    // Drain no more than 1024 bytes. If we reach EOF the underlying HTTP(S) connection
-                    // will be reused otherwise it will be aborted causing a costly reopening for a new stream.
-                    for (int i = 0; i < 1024; ++i) {
-                        if (in.read() == -1) {
-                            break;
-                        }
+                    if (in instanceof S3ObjectInputStream) {
+                        ((S3ObjectInputStream) in).abort();
                     }
-                    in.close();
+                    else {
+                        in.close();
+                    }
                 }
                 catch (IOException | AbortedException ignored) {
                     // thrown if the current thread is in the interrupted state
