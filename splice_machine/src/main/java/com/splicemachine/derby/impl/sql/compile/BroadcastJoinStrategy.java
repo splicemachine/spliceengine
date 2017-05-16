@@ -19,10 +19,7 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.impl.sql.compile.HashableJoinStrategy;
-import com.splicemachine.db.impl.sql.compile.Predicate;
-import com.splicemachine.db.impl.sql.compile.PredicateList;
 import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
 
 public class BroadcastJoinStrategy extends HashableJoinStrategy {
@@ -160,6 +157,15 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
     @Override
     public JoinStrategyType getJoinStrategyType() {
         return JoinStrategyType.BROADCAST;
+    }
+
+    @Override
+    public boolean isMemoryUsageUnderLimit(double totalMemoryConsumed) {
+        double totalMemoryinMB = totalMemoryConsumed/1024d/1024d;
+        SConfiguration configuration=EngineDriver.driver().getConfiguration();
+        long regionThreshold = configuration.getBroadcastRegionMbThreshold();
+
+        return (totalMemoryinMB < regionThreshold);
     }
 }
 

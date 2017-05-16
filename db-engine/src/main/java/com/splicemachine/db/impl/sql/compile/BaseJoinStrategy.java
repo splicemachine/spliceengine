@@ -253,4 +253,9 @@ public abstract class BaseJoinStrategy implements JoinStrategy{
         else
             mb.pushNull("java.lang.String");
     }
+
+    @Override
+    public boolean isMemoryUsageUnderLimit(double totalMemoryConsumed) {
+        return true;
+    }
 }

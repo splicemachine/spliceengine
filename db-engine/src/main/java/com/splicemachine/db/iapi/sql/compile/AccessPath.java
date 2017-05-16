@@ -156,4 +156,10 @@ public interface AccessPath {
 	 * {@code false} otherwise
 	 */
 	boolean isHintedJoinStrategy();
+
+	/**
+	 * Check whether memory usage is under the system limit in the presence of consecutive joins
+	 * @param memoryAlreadyConsumed the memory consumed before the join specified in the current access path
+	 */
+	boolean isJoinPathMemoryUsageUnderLimit(double memoryAlreadyConsumed);
 }
