@@ -26,14 +26,28 @@ import org.apache.spark.sql.jdbc.JdbcDialects
 import org.apache.spark.sql.types.{StructType}
 import org.apache.spark.sql.{Dataset, DataFrame, Row}
 import java.util.Properties
-import java.sql.Connection
+import java.sql.{DriverManager, Connection}
 
 class SplicemachineContext(url: String) extends Serializable {
   JdbcDialects.registerDialect(new SplicemachineDialect)
+  loadDriver()
+
+  def loadDriver(): Boolean = {
+    try {
+      DriverManager.getDriver(url)
+      true
+    }
+    catch {
+      case exception: Exception =>
+    }
+    false
+  }
+
 
   @transient lazy val internalConnection = {
     SpliceSpark.setupSpliceStaticComponents();
     val engineDriver: EngineDriver = EngineDriver.driver
+    loadDriver()
     assert(engineDriver != null, "Not booted yet!")
     // Create a static statement context to enable nested connections
     val maker: EmbedConnectionMaker = new EmbedConnectionMaker
@@ -123,7 +137,7 @@ class SplicemachineContext(url: String) extends Serializable {
     SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
     val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
     val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema,url)
-    val sqlText = "insert into " + schemaTableName + " (" + columnList + ") select "+columnList+" from " +
+    val sqlText = "insert into " + schemaTableName + " (" + columnList + ") " + "--splice-properties useSpark=true\n" +  " select "+columnList+" from " +
       "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
       "as SpliceDatasetVTI (" + schemaString + ")"
     internalConnection.createStatement().executeUpdate(sqlText)
