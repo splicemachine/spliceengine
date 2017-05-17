@@ -298,23 +298,10 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter{
      * @throws StandardException
      */
     private void bulkLoad(List<BulkImportPartition> bulkImportPartitions) throws StandardException{
-        try {
-            Configuration conf = HConfiguration.unwrapDelegate();
-            LoadIncrementalHFiles loader = new LoadIncrementalHFiles(conf);
-            FileSystem fs = FileSystem.get(URI.create(bulkImportDirectory), conf);
-            for (BulkImportPartition partition : bulkImportPartitions) {
-                Long conglomerateId = partition.getConglomerateId();
-                HTable table = new HTable(conf, TableName.valueOf("splice:" + conglomerateId));
-                Path path = new Path(partition.getFilePath()).getParent();
-                if (fs.exists(path)) {
-                    loader.doBulkLoad(path, table);
-                }
-                if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.debug(LOG, "Loaded file %s", path.toString());
-                }
-            }
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
+        List<StandardException> exceptions = SpliceSpark.getContext().parallelize(bulkImportPartitions, bulkImportPartitions.size())
+                .flatMap(new BulkImportFunction(bulkImportDirectory)).collect();
+        if (!exceptions.isEmpty()) {
+            throw  exceptions.get(0);
         }
     }
 
