@@ -992,6 +992,10 @@ Guide.
                 <text>The user name '{0}' is not valid. </text>
                 <arg>authorizationID</arg>
             </msg>
+            <msg>
+                <name>28503</name>
+                <text>Error during Kerberos client initialization, check configuration.</text>
+            </msg>
 
         </family>
 

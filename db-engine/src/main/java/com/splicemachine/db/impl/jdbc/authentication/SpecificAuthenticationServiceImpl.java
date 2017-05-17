@@ -92,8 +92,10 @@ public class SpecificAuthenticationServiceImpl
 
 			  (!((StringUtil.SQLEqualsIgnoreCase(specificAuthenticationScheme,
 					  Property.AUTHENTICATION_PROVIDER_BUILTIN)) ||
-			  (specificAuthenticationScheme.equalsIgnoreCase(
-                                                             Property.AUTHENTICATION_PROVIDER_LDAP))  ))))
+			  (specificAuthenticationScheme.equalsIgnoreCase(Property.AUTHENTICATION_PROVIDER_LDAP))     ||
+					  (specificAuthenticationScheme.equalsIgnoreCase(Property.AUTHENTICATION_PROVIDER_KERBEROS))
+
+			  ))))
 			return true;
 		else
 			return false;

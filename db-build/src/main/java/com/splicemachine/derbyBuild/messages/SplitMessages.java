@@ -131,6 +131,7 @@ public class SplitMessages {
         clientMessageIds.add(SQLState.PROPERTY_INVALID_VALUE);
         clientMessageIds.add(SQLState.LANG_SUBSTR_START_ADDING_LEN_OUT_OF_RANGE);
         clientMessageIds.add(SQLState.LANG_CURSOR_NOT_FOUND);
+        clientMessageIds.add(SQLState.AUTH_ERROR_KERBEROS_CLIENT);
     }
 
 

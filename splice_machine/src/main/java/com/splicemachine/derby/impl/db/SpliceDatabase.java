@@ -216,12 +216,22 @@ public class SpliceDatabase extends BasicDatabase{
             case NATIVE:
                 configureNative(configuration,false);
                 break;
+            case KERBEROS:
+                configureKerberosAuth(configuration);
+                break;
             case CUSTOM:
                 configureCustomAuth(configuration);
                 break;
             default:// Default is Native with warning:
                 configureNative(configuration,true);
         }
+    }
+
+    private void configureKerberosAuth(SConfiguration config){
+        System.setProperty("derby.connection.requireAuthentication","true");
+        System.setProperty("derby.database.sqlAuthorization","true");
+        SpliceLogUtils.info(LOG,"using Kerberos to authorize Splice Machine");
+        System.setProperty("derby.authentication.provider", Property.AUTHENTICATION_PROVIDER_KERBEROS);
     }
 
     private void configureLDAPAuth(SConfiguration config){
@@ -238,7 +248,7 @@ public class SpliceDatabase extends BasicDatabase{
                 authenticationLDAPSearchAuthPW,
                 authenticationLDAPSearchBase,
                 authenticationLDAPSearchFilter);
-        System.setProperty("derby.authentication.provider","LDAP");
+        System.setProperty("derby.authentication.provider", Property.AUTHENTICATION_PROVIDER_LDAP);
         System.setProperty("derby.authentication.ldap.searchAuthDN",authenticationLDAPSearchAuthDN);
         System.setProperty("derby.authentication.ldap.searchAuthPW",authenticationLDAPSearchAuthPW);
         System.setProperty("derby.authentication.ldap.searchBase",authenticationLDAPSearchBase);
