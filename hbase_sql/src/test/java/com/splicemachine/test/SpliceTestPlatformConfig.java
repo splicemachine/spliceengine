@@ -197,6 +197,7 @@ class SpliceTestPlatformConfig {
         //config.set("presto.s3.secret-key","");
         config.set("fs.s3a.impl",com.splicemachine.fs.s3.PrestoS3FileSystem.class.getCanonicalName());
         config.set("hive.exec.orc.split.strategy","BI");
+        config.setInt("io.file.buffer.size",65536);
 
         //
         // Splice
