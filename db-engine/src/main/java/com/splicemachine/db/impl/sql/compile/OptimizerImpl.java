@@ -2430,6 +2430,7 @@ public class OptimizerImpl implements Optimizer{
             return true;
 
         double memoryAlreadyConsumed = 0;
+        int depth = 0;
         for (int i=joinPosition-1; i>=0; i--) {
             AccessPath ap;
 
@@ -2440,6 +2441,9 @@ public class OptimizerImpl implements Optimizer{
 
             if (ap == null || ap.getJoinStrategy().getJoinStrategyType() != JoinStrategy.JoinStrategyType.BROADCAST)
                 break;
+            depth++;
+            if (depth > 10)
+                return false;
             memoryAlreadyConsumed += ap.getCostEstimate().getBase().getEstimatedHeapSize();
         }
 
