@@ -15,18 +15,6 @@
 
 package com.splicemachine.derby.stream.function;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.util.List;
-
-import com.splicemachine.db.iapi.types.DateTimeDataValue;
-import com.splicemachine.derby.stream.utils.BooleanList;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.supercsv.prefs.CsvPreference;
-
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -34,12 +22,23 @@ import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.DateTimeDataValue;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
+import com.splicemachine.derby.stream.utils.BooleanList;
 import com.splicemachine.derby.utils.SpliceDateFunctions;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.supercsv.prefs.CsvPreference;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+import java.util.List;
 
 /**
  *
@@ -125,20 +124,34 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
 
     @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION",justification = "Intentional")
     public LocatedRow call(List<String> values,BooleanList quotedColumns) throws Exception {
+        int columnID = 0;
+        String columnValue = null;
+        int numofColumnsinTable = 0;
+        int numofColumnsinFile = 0;
+        boolean columnnumbermistmatch = false;
+
         operationContext.recordRead();
         try {
             ExecRow returnRow = execRow.getClone();
-            if(values==null)
+            if (values == null) {
+                columnnumbermistmatch = true;
                 throw StandardException.newException(SQLState.COLUMN_NUMBER_MISMATCH, execRow.nColumns(), 0);
+            }
+            else if (values.size() < returnRow.nColumns()) {
+                columnnumbermistmatch = true;
+                throw StandardException.newException(SQLState.COLUMN_NUMBER_MISMATCH, returnRow.nColumns(), values.size());
+            }
+            numofColumnsinTable = returnRow.nColumns();
+            numofColumnsinFile = values.size();
             for (int i = 1; i <= returnRow.nColumns(); i++) {
                 DataValueDescriptor dvd = returnRow.getColumn(i);
+                columnID = i;
                 int type = dvd.getTypeFormatId();
-                if (values.size()<=i-1) {
-                    throw StandardException.newException(SQLState.COLUMN_NUMBER_MISMATCH, execRow.nColumns(),values.size());
-                }
+
                 String value = values.get(i - 1);
                 if (shouldBeNull(value,quotedColumns.valueAt(i-1)))
                     value = null;
+                columnValue = value;
                 switch(type){
                     case StoredFormatIds.SQL_TIME_ID:
                         if(calendar==null)
@@ -171,7 +184,12 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
             return new LocatedRow(returnRow);
         } catch (Exception e) {
             if (operationContext.isPermissive()) {
-               operationContext.recordBadRecord(e.getLocalizedMessage() + values, e);
+                String extendedMessage;
+                if (columnnumbermistmatch)
+                    extendedMessage = " row Data: " + values;
+                else
+                    extendedMessage = " [Columns in Table: " + numofColumnsinTable + "] [Columns in File: " + numofColumnsinFile + "] [Bad Column ID: " + columnID + "] "+ "[Bad Column Value: " + columnValue + "]" + " row Data: " + values;
+                operationContext.recordBadRecord(e.getLocalizedMessage() + extendedMessage, e);
                 return null;
             }
             throw e; // Not Permissive of errors
