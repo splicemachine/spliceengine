@@ -141,4 +141,9 @@ class AccessPathImpl implements AccessPath{
     public boolean isHintedJoinStrategy(){
         return isJoinStrategyHinted;
     }
+
+    @Override
+    public boolean isJoinPathMemoryUsageUnderLimit(double memoryAlreadyConsumed) {
+        return joinStrategy.isMemoryUsageUnderLimit(memoryAlreadyConsumed + costEstimate.getBase().getEstimatedHeapSize());
+    }
 }
