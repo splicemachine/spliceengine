@@ -21,7 +21,7 @@
     <parent>
         <groupId>com.splicemachine</groupId>
         <artifactId>spliceengine-parent</artifactId>
-        <version>2.0.1.1719-SNAPSHOT</version>
+        <version>2.0.1.1720-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
