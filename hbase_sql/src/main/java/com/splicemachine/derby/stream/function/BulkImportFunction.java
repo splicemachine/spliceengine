@@ -15,12 +15,9 @@
 
 package com.splicemachine.derby.stream.function;
 
-import com.google.common.collect.Lists;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.db.iapi.error.PublicAPI;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.Partition;
@@ -28,24 +25,26 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles;
 import org.apache.log4j.Logger;
-import org.apache.spark.api.java.function.FlatMapFunction;
+import org.apache.spark.api.java.function.VoidFunction;
 
+import java.io.Externalizable;
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.io.Serializable;
 import java.net.URI;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
 
 /**
  * Created by dgomezferro on 5/17/17.
  */
-public class BulkImportFunction implements FlatMapFunction<BulkImportPartition, StandardException>, Serializable {
+public class BulkImportFunction implements VoidFunction<BulkImportPartition>, Externalizable {
     private static final Logger LOG = Logger.getLogger(BulkImportFunction.class);
+
+    // serialization
+    public BulkImportFunction() {}
 
     public BulkImportFunction(String bulkImportDirectory) {
         this.bulkImportDirectory = bulkImportDirectory;
@@ -54,27 +53,33 @@ public class BulkImportFunction implements FlatMapFunction<BulkImportPartition, 
     String bulkImportDirectory;
 
     @Override
-    public Iterator<StandardException> call(BulkImportPartition importPartition) {
-        try {
-            Configuration conf = HConfiguration.unwrapDelegate();
-            LoadIncrementalHFiles loader = new LoadIncrementalHFiles(conf);
-            FileSystem fs = FileSystem.get(URI.create(bulkImportDirectory), conf);
-            Long conglomerateId = importPartition.getConglomerateId();
-            PartitionFactory tableFactory= SIDriver.driver().getTableFactory();
-            try(Partition partition=tableFactory.getTable(Long.toString(conglomerateId))){
-                Path path = new Path(importPartition.getFilePath()).getParent();
-                if (fs.exists(path)) {
-                    loader.doBulkLoad(path,(HTable) ((ClientPartition)partition).unwrapDelegate());
-                } else {
-                    LOG.warn("Path doesn't exist, nothing to load into this partition? " + path);
-                }
-                if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.debug(LOG, "Loaded file %s", path.toString());
-                }
+    public void call(BulkImportPartition importPartition) throws Exception {
+        Configuration conf = HConfiguration.unwrapDelegate();
+        LoadIncrementalHFiles loader = new LoadIncrementalHFiles(conf);
+        FileSystem fs = FileSystem.get(URI.create(bulkImportDirectory), conf);
+        Long conglomerateId = importPartition.getConglomerateId();
+        PartitionFactory tableFactory= SIDriver.driver().getTableFactory();
+        try(Partition partition=tableFactory.getTable(Long.toString(conglomerateId))){
+            Path path = new Path(importPartition.getFilePath()).getParent();
+            if (fs.exists(path)) {
+                loader.doBulkLoad(path,(HTable) ((ClientPartition)partition).unwrapDelegate());
+            } else {
+                LOG.warn("Path doesn't exist, nothing to load into this partition? " + path);
             }
-        } catch (Exception e) {
-            return Arrays.asList(StandardException.plainWrapException(e)).iterator();
+            if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.debug(LOG, "Loaded file %s", path.toString());
+            }
         }
-        return Collections.emptyIterator();
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeObject(bulkImportDirectory);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        bulkImportDirectory = (String) in.readObject();
+        SpliceSpark.setupSpliceStaticComponents();
     }
 }
