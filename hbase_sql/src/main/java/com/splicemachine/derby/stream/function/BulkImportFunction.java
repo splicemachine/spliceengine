@@ -66,7 +66,7 @@ public class BulkImportFunction implements FlatMapFunction<BulkImportPartition, 
                 if (fs.exists(path)) {
                     loader.doBulkLoad(path,(HTable) ((ClientPartition)partition).unwrapDelegate());
                 } else {
-                    throw new IOException("Path doesn't exist: " + path);
+                    LOG.warn("Path doesn't exist, nothing to load into this partition? " + path);
                 }
                 if (LOG.isDebugEnabled()) {
                     SpliceLogUtils.debug(LOG, "Loaded file %s", path.toString());
