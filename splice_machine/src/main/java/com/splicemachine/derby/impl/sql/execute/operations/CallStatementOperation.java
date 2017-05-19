@@ -30,7 +30,6 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.sql.ResultSet;
 
-@SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION",justification = "Not actually serialized")
 public class CallStatementOperation extends NoRowsOperation {
 	private static final String NAME = CallStatementOperation.class.getSimpleName().replaceAll("Operation","");
     private static final Logger LOG = Logger.getLogger(CallStatementOperation.class);
@@ -43,6 +42,8 @@ public class CallStatementOperation extends NoRowsOperation {
 	public String getName() {
 		return NAME;
 	}
+
+	public CallStatementOperation() {}
 
 	public CallStatementOperation(GeneratedMethod methodCall,Activation a) throws StandardException  {
 		super(a);

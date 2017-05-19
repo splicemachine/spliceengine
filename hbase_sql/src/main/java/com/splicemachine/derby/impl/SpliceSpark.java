@@ -60,8 +60,7 @@ public class SpliceSpark {
     // Sets both ctx and session
     public static synchronized SparkSession getSession() {
         String threadName = Thread.currentThread().getName();
-        if (!SpliceClient.isClient && !threadName.startsWith("olap-worker-")
-                && !threadName.startsWith("DRDAConnThread_")) { // stat collection job
+        if (!SpliceClient.isClient && !threadName.startsWith("olap-worker-")) { // stat collection job
              // Not running on the Olap Server... raise exception. Use getSessionUnsafe() if you know what you are doing.
             throw new RuntimeException("Trying to get a SparkSession from outside the OlapServer");
         }

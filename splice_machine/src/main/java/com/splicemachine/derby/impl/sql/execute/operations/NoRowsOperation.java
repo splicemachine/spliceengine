@@ -30,7 +30,9 @@ import org.spark_project.guava.base.Strings;
 
 public abstract class NoRowsOperation extends SpliceBaseOperation {
 	private static Logger LOG = Logger.getLogger(NoRowsOperation.class);
-	final Activation activation;
+
+	public NoRowsOperation() {
+	}
 
 	public NoRowsOperation(Activation activation)  throws StandardException {
 		super(activation,-1,0d,0d);
