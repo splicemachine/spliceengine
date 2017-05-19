@@ -293,7 +293,7 @@ public class ActivationSerializer {
         @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
         public ArrayFieldStorage(Class arrayType,FieldStorage[] fields) {
             this.data = fields;
-            this.arrayType = arrayType.isArray()?arrayType.getComponentType(): arrayType;
+            this.arrayType = arrayType;
         }
 
         @Override
