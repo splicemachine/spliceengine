@@ -110,6 +110,14 @@ public class SQLConfiguration implements ConfigurationDefault {
     private static final int DEFAULT_BROADCAST_REGION_ROW_THRESHOLD = 1000000;
 
     /**
+     * Threshold in cost for the broadcast Dataset implementation.  Default is 1000 (~ 1s, more than that and the subtree
+     * is executed in parallel in Spark)
+     *
+     */
+    public static final String BROADCAST_DATASET_COST_THRESHOLD = "splice.optimizer.broadcastDatasetCostThreshold";
+    private static final int DEFAULT_BROADCAST_DATASET_COST_THRESHOLD = 1000;
+
+    /**
      * Minimum fixed duration (in millisecomds) that should be allowed to lapse
      * before the optimizer can determine that it should stop trying to find
      * the best plan due to plan time taking longer than the expected
@@ -227,6 +235,7 @@ public class SQLConfiguration implements ConfigurationDefault {
         builder.optimizerPlanMinimumTimeout = configurationSource.getLong(OPTIMIZER_PLAN_MINIMUM_TIMEOUT, DEFAULT_OPTIMIZER_PLAN_MINIMUM_TIMEOUT);
         builder.broadcastRegionMbThreshold = configurationSource.getLong(BROADCAST_REGION_MB_THRESHOLD, DEFAULT_BROADCAST_REGION_MB_THRESHOLD);
         builder.broadcastRegionRowThreshold = configurationSource.getLong(BROADCAST_REGION_ROW_THRESHOLD, DEFAULT_BROADCAST_REGION_ROW_THRESHOLD);
+        builder.broadcastDatasetCostThreshold = configurationSource.getLong(BROADCAST_DATASET_COST_THRESHOLD, DEFAULT_BROADCAST_DATASET_COST_THRESHOLD);
 
         //always disable debug statements by default
         builder.debugLogStatementContext = configurationSource.getBoolean(DEBUG_LOG_STATEMENT_CONTEXT, DEFAULT_LOG_STATEMENT_CONTEXT);
