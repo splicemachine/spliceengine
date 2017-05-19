@@ -18,6 +18,8 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.db.impl.jdbc.EmbedConnectionContext;
+import com.splicemachine.derby.utils.StatisticsOperation;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.Maps;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -70,9 +72,14 @@ public class ActivationHolder implements Externalizable {
     public ActivationHolder(Activation activation, SpliceOperation operation) {
         this.activation = activation;
         this.initialized = true;
+        addSubOperations(operationsMap, operation);
         addSubOperations(operationsMap, (SpliceOperation) activation.getResultSet());
         if(activation.getResultSet()!=null){
             operationsList.add((SpliceOperation) activation.getResultSet());
+        }
+        if (operation instanceof StatisticsOperation) {
+            // special case for StatisticsOperation
+            operationsList.add(operation);
         }
 
         for (Field field : activation.getClass().getDeclaredFields()) {
