@@ -111,6 +111,7 @@ public class ConfigurationBuilder {
     public int partitionserverPort;
     public long broadcastRegionMbThreshold;
     public long broadcastRegionRowThreshold;
+    public long broadcastDatasetCostThreshold;
     public long optimizerPlanMaximumTimeout;
     public long optimizerPlanMinimumTimeout;
     public String networkBindAddress;

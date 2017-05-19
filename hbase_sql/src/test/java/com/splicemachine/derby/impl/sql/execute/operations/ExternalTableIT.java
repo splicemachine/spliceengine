@@ -408,6 +408,7 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     @Test
     // SPLICE-1219
+    @Ignore("SPLICE-1514")
     public void testLocalBroadcastColumnar() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table left_side_bcast (col1 int, col2 int)" +
                 " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"left_side_bcast"));

@@ -205,6 +205,8 @@ public interface SConfiguration {
 
     long getBroadcastRegionRowThreshold();
 
+    long getBroadcastDatasetCostThreshold();
+
     long getOptimizerPlanMaximumTimeout();
 
     long getOptimizerPlanMinimumTimeout();
