@@ -102,6 +102,11 @@ public class IndexToBaseRowNode extends FromTable{
     }
 
     @Override
+    public double getMemoryUsage4BroadcastJoin(){
+        return source.getMemoryUsage4BroadcastJoin();
+    }
+
+    @Override
     public CostEstimate getCostEstimate(){
         return source.getTrulyTheBestAccessPath().getCostEstimate();
     }

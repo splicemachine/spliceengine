@@ -1110,9 +1110,13 @@ public class OptimizerImpl implements Optimizer{
         AccessPath ap=optimizable.getBestAccessPath();
         CostEstimate bestCostEstimate=ap.getCostEstimate();
 
-        if((bestCostEstimate==null)||bestCostEstimate.isUninitialized()||(estimatedCost.compare(bestCostEstimate)<=0)){
-            ap.setCostEstimate(estimatedCost);
-            optimizable.rememberJoinStrategyAsBest(ap);
+        boolean memoryOK = checkPathMemoryUsage(optimizable, false);
+
+        if (memoryOK) {
+            if ((bestCostEstimate == null) || bestCostEstimate.isUninitialized() || (estimatedCost.compare(bestCostEstimate) <= 0)) {
+                ap.setCostEstimate(estimatedCost);
+                optimizable.rememberJoinStrategyAsBest(ap);
+            }
         }
 
 		/*
@@ -1135,18 +1139,21 @@ public class OptimizerImpl implements Optimizer{
                     ap=optimizable.getBestSortAvoidancePath();
                     bestCostEstimate=ap.getCostEstimate();
 
+                    memoryOK = checkPathMemoryUsage(optimizable, true);
 					/* Is this the cheapest sort-avoidance path? */
-                    if((bestCostEstimate==null) ||
-                            bestCostEstimate.isUninitialized() ||
-                            (estimatedCost.compare(bestCostEstimate)<0)){
-                        ap.setCostEstimate(estimatedCost);
-                        optimizable.rememberJoinStrategyAsBest(ap);
-                        optimizable.rememberSortAvoidancePath();
+					if (memoryOK) {
+                        if ((bestCostEstimate == null) ||
+                                bestCostEstimate.isUninitialized() ||
+                                (estimatedCost.compare(bestCostEstimate) < 0)) {
+                            ap.setCostEstimate(estimatedCost);
+                            optimizable.rememberJoinStrategyAsBest(ap);
+                            optimizable.rememberSortAvoidancePath();
 
 						/*
 						** Remember the current row ordering as best
 						*/
-                        currentRowOrdering.copy(bestRowOrdering);
+                            currentRowOrdering.copy(bestRowOrdering);
+                        }
                     }
                 }
             }
@@ -2429,7 +2436,8 @@ public class OptimizerImpl implements Optimizer{
             return true;
 
         double memoryAlreadyConsumed = 0;
-        for (int i=joinPosition-1; i>=0; i--) {
+        int i=joinPosition-1;
+        while (i>=0) {
             AccessPath ap;
 
             if (checkSortAvoidancePlan)
@@ -2440,6 +2448,13 @@ public class OptimizerImpl implements Optimizer{
             if (ap == null || ap.getJoinStrategy().getJoinStrategyType() != JoinStrategy.JoinStrategyType.BROADCAST)
                 break;
             memoryAlreadyConsumed += ap.getCostEstimate().getBase().getEstimatedHeapSize();
+            i--;
+        }
+
+        // if we have broadcast join all along the join path, need to check if the sequence
+        // is a continuation from the outer block
+        if (i<0) {
+            memoryAlreadyConsumed += outermostCostEstimate.getAccumulatedMemory();
         }
 
         if (memoryAlreadyConsumed > 0 && !currentAp.isJoinPathMemoryUsageUnderLimit(memoryAlreadyConsumed))
@@ -2448,4 +2463,27 @@ public class OptimizerImpl implements Optimizer{
         return true;
     }
 
+    @Override
+    public double getAccumulatedMemory() {
+        if (optimizableList.size() == 0)
+            return 0.0d;
+
+        double memoryAlreadyConsumed = 0;
+        int i = optimizableList.size()-1;
+
+        while (i>=0) {
+            double memoryUsedByOneOptimizable = optimizableList.getOptimizable(bestJoinOrder[i]).getMemoryUsage4BroadcastJoin();
+            // broadcast join is not picked
+            if (memoryUsedByOneOptimizable < 1.0)
+                break;
+            memoryAlreadyConsumed += memoryUsedByOneOptimizable;
+            i--;
+        }
+
+        // if we have broadcast join all along the join path, need to check if the sequence
+        // is a continuation from the outer block
+        if (i<0)
+            memoryAlreadyConsumed += outermostCostEstimate.getAccumulatedMemory();
+        return memoryAlreadyConsumed;
+    }
 }
