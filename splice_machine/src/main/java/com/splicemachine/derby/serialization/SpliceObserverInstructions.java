@@ -18,7 +18,6 @@ package com.splicemachine.derby.serialization;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import com.splicemachine.EngineDriver;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -28,15 +27,12 @@ import com.splicemachine.db.iapi.sql.ParameterValueSet;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.impl.jdbc.EmbedConnection;
-import com.splicemachine.db.impl.jdbc.EmbedConnectionContext;
 import com.splicemachine.db.impl.sql.GenericActivationHolder;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionStack;
 import com.splicemachine.derby.iapi.sql.execute.ConvertedResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.ActivationHolder;
-import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
@@ -257,12 +253,6 @@ public class SpliceObserverInstructions implements Externalizable{
                 StatementContext statementContext = activation.getLanguageConnectionContext().pushStatementContext(statementAtomic,
                         statementReadOnly,stmtText,pvs,stmtRollBackParentContext,stmtTimeout);
                 statementContext.setSQLAllowed(RoutineAliasInfo.MODIFIES_SQL_DATA, false);
-
-                //EmbedConnection internalConnection=(EmbedConnection) new EmbedConnectionMaker().createNew(new Properties());
-                EmbedConnection internalConnection=(EmbedConnection)EngineDriver.driver().getInternalConnection();
-                Context connectionContext = new EmbedConnectionContext(activation.getLanguageConnectionContext().getContextManager(),
-                        (EmbedConnection)internalConnection);
-                internalConnection.getContextManager().pushContext(statementContext);
 
                 return activation;
             }catch(Exception e){

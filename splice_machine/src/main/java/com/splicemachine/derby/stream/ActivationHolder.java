@@ -15,7 +15,9 @@
 
 package com.splicemachine.derby.stream;
 
-import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
+import com.splicemachine.EngineDriver;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.db.impl.jdbc.EmbedConnectionContext;
 import org.apache.log4j.Logger;
 import org.sparkproject.guava.collect.Maps;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -196,6 +198,10 @@ public class ActivationHolder implements Externalizable {
             impl = new SpliceTransactionResourceImpl();
             prepared =  impl.marshallTransaction(txnView);
             activation = soi.getActivation(this, impl.getLcc());
+
+            // Push internal connection to the current context manager
+            EmbedConnection internalConnection = (EmbedConnection)EngineDriver.driver().getInternalConnection();
+            new EmbedConnectionContext(impl.getLcc().getContextManager(), internalConnection);
 
             if (reinit) {
                 SpliceOperationContext context = SpliceOperationContext.newContext(activation);

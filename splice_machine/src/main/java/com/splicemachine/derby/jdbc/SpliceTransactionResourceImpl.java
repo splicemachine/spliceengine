@@ -15,25 +15,20 @@
 
 package com.splicemachine.derby.jdbc;
 
-import com.splicemachine.EngineDriver;
 import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Attribute;
 import com.splicemachine.db.iapi.reference.Property;
-import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.util.IdUtil;
-import com.splicemachine.db.impl.jdbc.EmbedConnection;
-import com.splicemachine.db.impl.jdbc.EmbedConnectionContext;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
@@ -49,8 +44,6 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
     private String drdaID;
     protected SpliceDatabase database;
     protected LanguageConnectionContext lcc;
-    private boolean generateLcc=true;
-    private ContextManager oldCm;
 
     public SpliceTransactionResourceImpl() throws SQLException{
         this("jdbc:splice:"+ SQLConfiguration.SPLICE_DB+";create=true", new Properties());
@@ -79,11 +72,13 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
     }
 
     public boolean marshallTransaction(TxnView txn) throws StandardException, SQLException{
-        if(LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG,"marshallTransaction with transactionID %s",txn);
+        if (LOG.isDebugEnabled()) {
+            SpliceLogUtils.debug(LOG, "marshallTransaction with transactionID %s", txn);
+        }
 
-        oldCm=csf.getCurrentContextManager();
         cm=csf.newContextManager();
+        csf.setCurrentContextManager(cm);
+
         lcc=database.generateLanguageConnectionContext(txn, cm, username, drdaID, dbname, CompilerContext.DataSetProcessorType.DEFAULT_CONTROL);
 
         return true;
@@ -91,18 +86,11 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
 
 
     public void close(){
-        if(generateLcc){
-            while(!cm.isEmpty()){
-                cm.popContext();
-            }
-            csf.resetCurrentContextManager(cm);
-            csf.removeContext(cm);
-            if(oldCm!=null){
-                csf.forceRemoveContext(cm);
-                oldCm.setActiveThread();
-                csf.setCurrentContextManager(oldCm);
-            }
+        while(!cm.isEmpty()){
+            cm.popContext();
         }
+        csf.resetCurrentContextManager(cm);
+        csf.removeContext(cm);
     }
 
     public LanguageConnectionContext getLcc(){

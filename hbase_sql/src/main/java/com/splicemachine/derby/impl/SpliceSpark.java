@@ -16,6 +16,10 @@
 package com.splicemachine.derby.impl;
 
 import java.io.IOException;
+
+import com.splicemachine.db.catalog.types.RoutineAliasInfo;
+import com.splicemachine.db.iapi.sql.conn.StatementContext;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -87,6 +91,12 @@ public class SpliceSpark {
 
                 EngineDriver engineDriver = EngineDriver.driver();
                 assert engineDriver!=null: "Not booted yet!";
+
+                // Create a static statement context to enable nested connections
+                EmbedConnection internalConnection = (EmbedConnection)engineDriver.getInternalConnection();
+                StatementContext statementContext = internalConnection.getLanguageConnection()
+                        .pushStatementContext(true, true, "", null, false, 0);
+                statementContext.setSQLAllowed(RoutineAliasInfo.MODIFIES_SQL_DATA, false);
 
                 //boot the pipeline components
                 final Clock clock = driver.getClock();
