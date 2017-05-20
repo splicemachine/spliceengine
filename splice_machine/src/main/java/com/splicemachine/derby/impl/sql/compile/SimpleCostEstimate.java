@@ -51,6 +51,8 @@ public class SimpleCostEstimate implements CostEstimate{
     protected double projectionCost =-1.0d;
     protected double projectionRows =-1.0d;
     private double localCostPerPartition;
+    /* consecutive broadcast joins memory used in bytes */
+    private double accumulatedMemory = 0.0d;
 
     public SimpleCostEstimate(){ }
 
@@ -114,6 +116,7 @@ public class SimpleCostEstimate implements CostEstimate{
         this.projectionCost = other.getProjectionCost();
         this.projectionRows = other.getProjectionRows();
         this.localCostPerPartition = other.localCostPerPartition();
+        this.accumulatedMemory = other.getAccumulatedMemory();
     }
 
     @Override
@@ -476,5 +479,15 @@ public class SimpleCostEstimate implements CostEstimate{
     @Override
     public void setLocalCostPerPartition(double localCostPerPartition) {
         this.localCostPerPartition = localCostPerPartition;
+    }
+
+    @Override
+    public double getAccumulatedMemory() {
+        return accumulatedMemory;
+    }
+
+    @Override
+    public void setAccumulatedMemory(double memorySize) {
+        accumulatedMemory = memorySize;
     }
 }

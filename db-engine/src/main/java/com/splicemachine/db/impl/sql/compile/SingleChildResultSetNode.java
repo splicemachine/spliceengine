@@ -92,6 +92,18 @@ public abstract class SingleChildResultSetNode extends FromTable{
         return super.getTrulyTheBestAccessPath();
     }
 
+    @Override
+    public double getMemoryUsage4BroadcastJoin(){
+        if(hasTrulyTheBestAccessPath){
+            return super.getMemoryUsage4BroadcastJoin();
+        }
+
+        if(childResult instanceof Optimizable)
+            return ((Optimizable)childResult).getMemoryUsage4BroadcastJoin();
+
+        return super.getMemoryUsage4BroadcastJoin();
+    }
+
     /**
      * Return the childResult from this node.
      *
