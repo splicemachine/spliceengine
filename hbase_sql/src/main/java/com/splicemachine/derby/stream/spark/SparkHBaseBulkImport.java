@@ -514,10 +514,12 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter{
         Dataset partitionAndSorted =  rowAndIndexesDataFrame
                 .sortWithinPartitions(new Column("key"));
 
+        String compressionAlgorithm = HConfiguration.getConfiguration().getCompressionAlgorithm();
+
         // Write to HFile
         HFileGenerationFunction writer =
                 new HFileGenerationFunction(operationContext, txn.getTxnId(),
-                        heapConglom, bulkImportPartitions);
+                        heapConglom, compressionAlgorithm, bulkImportPartitions);
 
         Dataset<String> hFileSet = partitionAndSorted.mapPartitions(writer, Encoders.STRING());
 
