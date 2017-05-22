@@ -702,6 +702,11 @@
                 <configuration>
                     <excludes>
                         <exclude>**/com/splicemachine/backup/*</exclude>
+                        <exclude>**/core-site.xml</exclude>
+                        <exclude>**/hbase-site.xml</exclude>
+                        <exclude>**/splice-site.xml</exclude>
+                        <exclude>**/yarn-site.xml</exclude>
+                        <exclude>**/fairscheduler.xml</exclude>
                     </excludes>
                 </configuration>
                 <executions>
