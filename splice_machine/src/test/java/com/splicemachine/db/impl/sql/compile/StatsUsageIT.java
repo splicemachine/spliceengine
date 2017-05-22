@@ -74,33 +74,6 @@ public class StatsUsageIT extends SpliceUnitTest {
                 "CALL SYSCS_UTIL.DISABLE_COLUMN_STATISTICS('%s','t1','b1')",
                 schemaName));
 
-        new TableCreator(conn)
-                .withCreate("create table t2 (a2 int, b2 int, c2 int)")
-                .withInsert("insert into t2 values(?,?,?)")
-                .withRows(rows(
-                        row(1,1,1),
-                        row(1,1,1),
-                        row(1,1,1),
-                        row(1,1,1),
-                        row(1,1,1),
-                        row(2,2,2),
-                        row(2,2,2),
-                        row(2,2,2),
-                        row(2,2,2),
-                        row(2,2,2)))
-                .create();
-
-        int factor = 10;
-        for (int i = 1; i <= 9; i++) {
-            spliceClassWatcher.executeUpdate(format("insert into t2 select a2+%d, b2,c2 from t2", factor));
-            factor = factor * 2;
-        }
-
-        /*
-        conn.createStatement().executeUpdate(format("CALL SYSCS_UTIL.SYSCS_SPLIT_TABLE('%s', '%s')",
-                spliceSchemaWatcher.toString(), "T2"));
-        */
-
         conn.createStatement().executeQuery(format(
                 "call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s',false)",
                 schemaName));
@@ -136,34 +109,5 @@ public class StatsUsageIT extends SpliceUnitTest {
         rowContainsQuery(3,"explain select * from --SPLICE-PROPERTIES joinOrder=fixed\n" +
                 "        t1 as X, t1 as Y --splice-properties joinStrategy=BROADCAST\n " +
                 "        where X.c1=Y.c1 and Y.c1=1","outputRows=2,",methodWatcher);
-    }
-
-    @Ignore("test case does not have deterministic behavior")
-    @Test
-    public void testCardinalityAfterTableSplit() throws Exception {
-        String sqlText = "explain select * from --splice-properties joinOrder=fixed \n" +
-                "t1, t2 --splice-properties joinStrategy=NESTEDLOOP \n" +
-                "where c1=c2";
-        rowContainsQuery(4, sqlText,"outputRows=2560,",methodWatcher);
-
-        // there should be 2 partitions for t2
-        rowContainsQuery(3,"explain select * from t2","partitions=2",methodWatcher);
-
-        methodWatcher.executeUpdate(format("CALL SYSCS_UTIL.SYSCS_SPLIT_TABLE_AT_POINTS('%s', '%s', '%s')",
-                spliceSchemaWatcher.toString(), "T2", "somewhere"));
-
-        // there should be 3 partitions for t2
-        rowContainsQuery(3,"explain select * from t2","partitions=3",methodWatcher);
-
-        /**The two newly split partitions do not have stats. Ideally, we should re-collect stats,
-         * but if we haven't, explain should reflect the stats from the remaining 1 partition.
-         * For current test case, t2 has some partition stats missing, without the fix of SPLICE-1452,
-         * its cardinality estimation assumes unique for all non-null rows, which is too conservative,
-         * so we end up estimating 1 output row from t2 for each outer table row from t1.
-         * With SPLICE-1452's fix, we should see a higher number for the output row from t2.
-         */
-        Assert.assertNotEquals(1.0d,
-                parseOutputRows(getExplainMessage(4,sqlText, methodWatcher)),1.0d);
-
     }
 }
