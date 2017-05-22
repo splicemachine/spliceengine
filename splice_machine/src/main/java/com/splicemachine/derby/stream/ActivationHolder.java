@@ -15,9 +15,8 @@
 package com.splicemachine.derby.stream;
 
 import com.splicemachine.EngineDriver;
-import com.splicemachine.db.iapi.services.context.Context;
-import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.db.impl.jdbc.EmbedConnectionContext;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.Maps;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -199,12 +198,9 @@ public class ActivationHolder implements Externalizable {
             prepared =  impl.marshallTransaction(txnView);
             activation = soi.getActivation(this, impl.getLcc());
 
-            Context statementContext = activation.getLanguageConnectionContext().getStatementContext();
+            // Push internal connection to the current context manager
             EmbedConnection internalConnection = (EmbedConnection)EngineDriver.driver().getInternalConnection();
-            ContextManager cm = internalConnection.getContextManager();
-            synchronized (cm) {
-                cm.pushContext(statementContext);
-            }
+            new EmbedConnectionContext(impl.getLcc().getContextManager(), internalConnection);
 
             if (reinit) {
                 SpliceOperationContext context = SpliceOperationContext.newContext(activation);
@@ -221,13 +217,6 @@ public class ActivationHolder implements Externalizable {
         if (prepared) {
             impl.close();
             prepared = false;
-        }
-
-        Context statementContext = activation.getLanguageConnectionContext().getStatementContext();
-        EmbedConnection internalConnection=(EmbedConnection)EngineDriver.driver().getInternalConnection();
-        ContextManager cm = internalConnection.getContextManager();
-        synchronized (cm) {
-            cm.popContext(statementContext);
         }
     }
 }
