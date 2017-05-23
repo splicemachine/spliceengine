@@ -22,6 +22,7 @@ import java.sql.SQLException;
 
 import com.carrotsearch.hppc.LongOpenHashSet;
 
+import com.google.common.collect.Iterables;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
@@ -40,6 +41,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
+import org.apache.log4j.Logger;
 
 /**
  * Utility for Vacuuming Splice.
@@ -48,6 +50,7 @@ import com.splicemachine.stream.StreamException;
  *         Date: 3/19/14
  */
 public class Vacuum{
+    private static final Logger LOG = Logger.getLogger(Vacuum.class);
 
     private final Connection connection;
     private final PartitionAdmin partitionAdmin;
@@ -84,27 +87,45 @@ public class Vacuum{
             if(ps!=null)
                 ps.close();
         }
+        LOG.info("Found " + activeConglomerates.size() + " active conglomerates.");
 
         //get all the tables from HBaseAdmin
         try {
             Iterable<TableDescriptor> hTableDescriptors = partitionAdmin.listTables();
 
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Found " + Iterables.size(hTableDescriptors) + " HBase tables.");
+            }
+
             for(TableDescriptor table:hTableDescriptors){
                 try{
                     String[] tableName = parseTableName(table.getTableName());
-                    if (tableName.length < 2) return;
+                    if (tableName.length < 2) {
+                        LOG.warn("Table name doesn't have two components (namespace : name) ignoring: " + table.getTableName());
+                        return;
+                    }
                     long tableConglom = Long.parseLong(tableName[1]);
-                    if(tableConglom < DataDictionary.FIRST_USER_TABLE_NUMBER) continue; //ignore system tables
+                    if(tableConglom < DataDictionary.FIRST_USER_TABLE_NUMBER) {
+                        if (LOG.isTraceEnabled()) {
+                            LOG.trace("Ignoring system table: " + table.getTableName());
+                        }
+                        continue; //ignore system tables
+                    }
                     if(!activeConglomerates.contains(tableConglom)){
+                        LOG.info("Deleting inactive table: " + table.getTableName());
                         partitionAdmin.deleteTable(tableName[1]);
+                    } else if(LOG.isTraceEnabled()) {
+                        LOG.trace("Skipping still active table: " + table.getTableName());
                     }
                 }catch(NumberFormatException nfe){
                     /*This is either TEMP, TRANSACTIONS, SEQUENCES, or something
 					 * that's not managed by splice. Ignore it
 					 */
+                    LOG.info("Ignoring non-numeric table name: " + table.getTableName());
                 }
             }
         } catch (IOException e) {
+            LOG.error("Unexpected exception", e);
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }
     }
