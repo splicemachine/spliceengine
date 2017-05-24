@@ -91,7 +91,7 @@ public class RegionServerLifecycleObserver extends BaseRegionServerObserver{
             ManagerLoader.load().getEncryptionManager();
             HBaseConnectionFactory connFactory = HBaseConnectionFactory.getInstance(driver.getConfiguration());
             RegionServerLifecycle distributedStartupSequence=new RegionServerLifecycle(driver.getClock(),connFactory);
-            manager.registerEngineService(new MonitoredLifecycleService(distributedStartupSequence,config));
+            manager.registerEngineService(new MonitoredLifecycleService(distributedStartupSequence,config,false));
 
             //register the pipeline driver environment load service
             manager.registerGeneralService(new PipelineEnvironmentLoadService() {

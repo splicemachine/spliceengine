@@ -183,7 +183,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
             long            conglomid,
             Conglomerate    new_conglom)
             throws StandardException {
-            if (database!=null) {
+            if (database!=null && database.getDataDictionary() != null) {
                 database.getDataDictionary().getDataDictionaryCache().conglomerateCacheRemove(conglomid);
                 database.getDataDictionary().getDataDictionaryCache().conglomerateCacheAdd(conglomid, new_conglom);
             }

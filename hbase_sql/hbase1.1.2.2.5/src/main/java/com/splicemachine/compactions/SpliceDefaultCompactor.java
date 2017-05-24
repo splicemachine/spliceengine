@@ -21,6 +21,7 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.derby.stream.compaction.SparkCompactionFunction;
 import com.splicemachine.hbase.SICompactionScanner;
+import com.splicemachine.hbase.SpliceCompactionUtils;
 import com.splicemachine.olap.DistributedCompaction;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.constants.SIConstants;
@@ -99,7 +100,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         String regionLocation = getRegionLocation(store);
         SConfiguration config = HConfiguration.getConfiguration();
         DistributedCompaction jobRequest=new DistributedCompaction(
-                getCompactionFunction(),
+                getCompactionFunction(request.isMajor()),
                 files,
                 getJobDetails(request),
                 getJobGroup(request,regionLocation),
@@ -155,13 +156,14 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         return paths;
     }
 
-    private SparkCompactionFunction getCompactionFunction() {
+    private SparkCompactionFunction getCompactionFunction(boolean isMajor) {
         return new SparkCompactionFunction(
-            smallestReadPoint,
-            store.getTableName().getNamespace(),
-            store.getTableName().getQualifier(),
-            store.getRegionInfo(),
-            store.getFamily().getName());
+                smallestReadPoint,
+                store.getTableName().getNamespace(),
+                store.getTableName().getQualifier(),
+                store.getRegionInfo(),
+                store.getFamily().getName(),
+                isMajor);
     }
 
     private String getScope(CompactionRequest request) {
@@ -262,7 +264,8 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                     SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                             driver.getRollForward(),
                             driver.getConfiguration().getActiveTransactionCacheSize());
-                    scanner = new SICompactionScanner(state,scanner);
+                    boolean purgeDeletedRows = request.isMajor() ? SpliceCompactionUtils.shouldPurge(store) : false;
+                    scanner = new SICompactionScanner(state,scanner,purgeDeletedRows);
                 }
                 if (scanner == null) {
                     // NULL scanner returned from coprocessor hooks means skip normal processing.
