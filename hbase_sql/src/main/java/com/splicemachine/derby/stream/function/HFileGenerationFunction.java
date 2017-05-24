@@ -62,6 +62,7 @@ public class HFileGenerationFunction implements MapPartitionsFunction<Row, Strin
     private Configuration conf;
     private OperationContext operationContext;
     private Long heapConglom;
+    private String compressionAlgorithm;
     private List<BulkImportPartition> partitionList;
 
     private StoreFile.Writer writer;
@@ -72,10 +73,12 @@ public class HFileGenerationFunction implements MapPartitionsFunction<Row, Strin
     public HFileGenerationFunction(OperationContext operationContext,
                                    long txnId,
                                    Long heapConglom,
+                                   String compressionAlgorithm,
                                    List<BulkImportPartition> partitionList) {
         this.txnId = txnId;
         this.operationContext = operationContext;
         this.heapConglom = heapConglom;
+        this.compressionAlgorithm = compressionAlgorithm;
         this.partitionList = partitionList;
     }
 
@@ -137,7 +140,7 @@ public class HFileGenerationFunction implements MapPartitionsFunction<Row, Strin
 
     private StoreFile.Writer getNewWriter(Configuration conf, Path familyPath)
             throws IOException {
-        Compression.Algorithm compression = Compression.Algorithm.NONE;
+        Compression.Algorithm compression = Compression.getCompressionAlgorithmByName(compressionAlgorithm);
         BloomType bloomType = BloomType.ROW;
         Integer blockSize = HConstants.DEFAULT_BLOCKSIZE;
         DataBlockEncoding encoding = DataBlockEncoding.NONE;
@@ -185,6 +188,7 @@ public class HFileGenerationFunction implements MapPartitionsFunction<Row, Strin
         out.writeObject(operationContext);
         out.writeLong(txnId);
         out.writeLong(heapConglom);
+        out.writeUTF(compressionAlgorithm);
         out.writeInt(partitionList.size());
         for (int i = 0; i < partitionList.size(); ++i) {
             BulkImportPartition partition = partitionList.get(i);
@@ -197,6 +201,7 @@ public class HFileGenerationFunction implements MapPartitionsFunction<Row, Strin
         operationContext = (OperationContext) in.readObject();
         txnId = in.readLong();
         heapConglom = in.readLong();
+        compressionAlgorithm = in.readUTF();
         int n = in.readInt();
         partitionList = new ArrayList<>(n);
         for (int i = 0; i < n; ++i) {

@@ -298,11 +298,8 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter{
      * @throws StandardException
      */
     private void bulkLoad(List<BulkImportPartition> bulkImportPartitions) throws StandardException{
-        List<StandardException> exceptions = SpliceSpark.getContext().parallelize(bulkImportPartitions, bulkImportPartitions.size())
-                .flatMap(new BulkImportFunction(bulkImportDirectory)).collect();
-        if (!exceptions.isEmpty()) {
-            throw  exceptions.get(0);
-        }
+        SpliceSpark.getContext().parallelize(bulkImportPartitions, bulkImportPartitions.size())
+                .foreach(new BulkImportFunction(bulkImportDirectory));
     }
 
     /**
@@ -514,10 +511,12 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter{
         Dataset partitionAndSorted =  rowAndIndexesDataFrame
                 .sortWithinPartitions(new Column("key"));
 
+        String compressionAlgorithm = HConfiguration.getConfiguration().getCompressionAlgorithm();
+
         // Write to HFile
         HFileGenerationFunction writer =
                 new HFileGenerationFunction(operationContext, txn.getTxnId(),
-                        heapConglom, bulkImportPartitions);
+                        heapConglom, compressionAlgorithm, bulkImportPartitions);
 
         Dataset<String> hFileSet = partitionAndSorted.mapPartitions(writer, Encoders.STRING());
 
