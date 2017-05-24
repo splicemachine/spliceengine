@@ -102,7 +102,7 @@ public class Vacuum{
                     String[] tableName = parseTableName(table.getTableName());
                     if (tableName.length < 2) {
                         LOG.warn("Table name doesn't have two components (namespace : name) ignoring: " + table.getTableName());
-                        return;
+                        continue;
                     }
                     long tableConglom = Long.parseLong(tableName[1]);
                     if(tableConglom < DataDictionary.FIRST_USER_TABLE_NUMBER) {
