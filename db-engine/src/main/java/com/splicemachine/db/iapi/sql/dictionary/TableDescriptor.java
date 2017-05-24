@@ -163,7 +163,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     // NOT USED ANYMORE, for backward compatibility only
     @Deprecated
     private boolean isPinned;
-
+    private boolean purgeDeletedRows;
 
     /**
      * <p>
@@ -235,7 +235,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                            int tableType,
                            boolean onCommitDeleteRows,
                            boolean onRollbackDeleteRows, int numberOfColumns){
-        this(dataDictionary,tableName,schema,tableType,'\0',numberOfColumns,null,null,null,null,null,null,false);
+        this(dataDictionary,tableName,schema,tableType,'\0',numberOfColumns,null,null,null,null,null,null,false,false);
         this.onCommitDeleteRows=onCommitDeleteRows;
         this.onRollbackDeleteRows=onRollbackDeleteRows;
     }
@@ -262,7 +262,8 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                            String storedAs,
                            String location,
                            String compression,
-                           boolean isPinned
+                           boolean isPinned,
+                           boolean purgeDeletedRows
     ){
         super(dataDictionary);
 
@@ -283,7 +284,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         this.compression = compression;
         // NOT USED ANYMORE, for backward compatibility only
         this.isPinned = isPinned;
-
+        this.purgeDeletedRows = purgeDeletedRows;
     }
 
     //
@@ -385,6 +386,14 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     @Deprecated
     public void setPinned(boolean pinned) {
         isPinned = pinned;
+    }
+
+    public boolean purgeDeletedRows() {
+        return purgeDeletedRows;
+    }
+
+    public void setPurgeDeletedRows(boolean purgeDeletedRows) {
+        this.purgeDeletedRows = purgeDeletedRows;
     }
 
     /**

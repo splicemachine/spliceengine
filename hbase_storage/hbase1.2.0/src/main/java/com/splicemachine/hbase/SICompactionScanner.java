@@ -31,11 +31,14 @@ public class SICompactionScanner implements InternalScanner {
     private final SICompactionState compactionState;
     private final InternalScanner delegate;
     private List<Cell> rawList =new ArrayList<>();
+    private boolean purgeDeletedRows;
 
     public SICompactionScanner(SICompactionState compactionState,
-                               InternalScanner scanner) {
+                               InternalScanner scanner,
+                               boolean purgeDeletedRows) {
         this.compactionState = compactionState;
         this.delegate = scanner;
+        this.purgeDeletedRows = purgeDeletedRows;
     }
 
     @Override
@@ -45,7 +48,7 @@ public class SICompactionScanner implements InternalScanner {
          */
         rawList.clear();
         final boolean more = delegate.next(rawList);
-        compactionState.mutate(rawList, list);
+        compactionState.mutate(rawList, list, purgeDeletedRows);
         return more;
     }
 

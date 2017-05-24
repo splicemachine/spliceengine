@@ -53,11 +53,13 @@ import com.splicemachine.uuid.UUIDService;
  */
 public class EngineLifecycleService implements DatabaseLifecycleService{
     public static final ThreadLocal<Boolean> isCreate = new ThreadLocal<>();
+    public static final ThreadLocal<Boolean> toUpgrade = new ThreadLocal<>();
 
     private static final Logger LOG=Logger.getLogger(EngineLifecycleService.class);
     private final DistributedDerbyStartup startup;
     private final SConfiguration configuration;
     private final Properties dbProperties = new Properties();
+    private final boolean isMaster;
 
     private Snowflake snowflake;
     private Connection internalConnection;
@@ -65,10 +67,10 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
     private ManifestReader manifestReader;
     private Logging logging;
 
-    public EngineLifecycleService(DistributedDerbyStartup startup,SConfiguration configuration){
+    public EngineLifecycleService(DistributedDerbyStartup startup,SConfiguration configuration,boolean isMaster){
         this.startup=startup;
         this.configuration=configuration;
-
+        this.isMaster = isMaster;
         dbProperties.put(EmbedConnection.INTERNAL_CONNECTION,"true");
     }
 
@@ -88,6 +90,7 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
         // Create an embedded connection to Derby.  This essentially boots up Derby by creating an internal connection to it.
         // External connections to Derby are created later when the Derby network server is started.
         EmbedConnectionMaker maker = new EmbedConnectionMaker();
+        toUpgrade.set(isMaster);
         if(startup.connectAsFirstTime()){
             isCreate.set(Boolean.TRUE);
             internalConnection=maker.createFirstNew(configuration,dbProperties);
@@ -95,7 +98,6 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
             isCreate.set(Boolean.FALSE);
             internalConnection=maker.createNew(dbProperties);
         }
-
         startup.markBootFinished();
         isCreate.remove();
 

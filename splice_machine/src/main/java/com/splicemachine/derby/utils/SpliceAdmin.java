@@ -16,6 +16,7 @@ package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -908,17 +909,34 @@ public class SpliceAdmin extends BaseAdminProcedures{
      * @param sourceCode source text of the code object (or null to request deletion of the code object)
      * @throws SQLException Error saving the sourcecode
      */
-    public static void SYSCS_SAVE_SOURCECODE(String schemaName, String objectName, String objectType, String objectForm, String definerName, Blob sourceCode) throws SQLException{
+    public static void SYSCS_SAVE_SOURCECODE(String schemaName, String objectName, String objectType, String objectForm, String definerName, Blob sourceCode) throws SQLException {
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         TransactionController tc = lcc.getTransactionExecute();
-        try{
+        try {
             tc.elevate("sourceCode");
             DataDictionary dd = lcc.getDataDictionary();
             SourceCodeDescriptor descriptor = new SourceCodeDescriptor(schemaName, objectName, objectType, objectForm, definerName, DateTime.now(), sourceCode);
             dd.saveSourceCode(descriptor, tc);
 
-        }catch(StandardException se){
+        } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
         }
+    }
+
+    public static void SET_PURGE_DELETED_ROWS (String schemaName, String tableName, String enable) throws Exception{
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        TransactionController tc  = lcc.getTransactionExecute();
+        tc.elevate("purgeDeleteRows");
+        DataDictionary dd = lcc.getDataDictionary();
+        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        TableDescriptor td = dd.getTableDescriptor(tableName, sd, tc);
+        DDLMessage.DDLChange ddlChange = ProtoUtil.createAlterTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
+                (BasicUUID) td.getUUID());
+        // Run Remotely
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+        boolean b = "TRUE".compareToIgnoreCase(enable) == 0 ? true : false;
+        td.setPurgeDeletedRows(b);
+        dd.dropTableDescriptor(td, sd, tc);
+        dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc);
     }
 }

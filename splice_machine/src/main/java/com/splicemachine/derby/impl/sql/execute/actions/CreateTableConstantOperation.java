@@ -281,6 +281,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                     storedAs,
                     location,
                     compression,
+                    false,
                     false
                     );
         } else {

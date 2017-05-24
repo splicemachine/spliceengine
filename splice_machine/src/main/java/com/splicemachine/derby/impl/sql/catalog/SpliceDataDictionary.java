@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.catalog;
 
+import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
@@ -23,6 +24,9 @@ import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.impl.sql.catalog.SYSSOURCECODERowFactory;
+import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.impl.sql.catalog.*;
+import com.splicemachine.derby.lifecycle.EngineLifecycleService;
 import com.splicemachine.management.Manager;
 import org.apache.log4j.Logger;
 
@@ -43,26 +47,6 @@ import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.NumberDataValue;
-import com.splicemachine.db.iapi.types.Orderable;
-import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.db.impl.sql.catalog.BaseDataDictionary;
-import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
-import com.splicemachine.db.impl.sql.catalog.SYSBACKUPFILESETRowFactory;
-import com.splicemachine.db.impl.sql.catalog.SYSBACKUPITEMSRowFactory;
-import com.splicemachine.db.impl.sql.catalog.SYSBACKUPJOBSRowFactory;
-import com.splicemachine.db.impl.sql.catalog.SYSBACKUPRowFactory;
-import com.splicemachine.db.impl.sql.catalog.SYSCOLUMNSTATISTICSRowFactory;
-import com.splicemachine.db.impl.sql.catalog.SYSCONSTRAINTSRowFactory;
-import com.splicemachine.db.impl.sql.catalog.SYSFOREIGNKEYSRowFactory;
-import com.splicemachine.db.impl.sql.catalog.SYSKEYSRowFactory;
-import com.splicemachine.db.impl.sql.catalog.SYSPHYSICALSTATISTICSRowFactory;
-import com.splicemachine.db.impl.sql.catalog.SYSPRIMARYKEYSRowFactory;
-import com.splicemachine.db.impl.sql.catalog.SYSTABLESTATISTICSRowFactory;
-import com.splicemachine.db.impl.sql.catalog.SystemAggregateGenerator;
-import com.splicemachine.db.impl.sql.catalog.SystemProcedureGenerator;
-import com.splicemachine.db.impl.sql.catalog.TabInfoImpl;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.derby.ddl.DDLWatcher;
@@ -353,7 +337,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                                         Properties startParams) throws StandardException{
         super.loadDictionaryTables(tc,startParams);
 
-        // Check splice data dictionary verion to decide if upgrade is necessary
+        // Check splice data dictionary version to decide if upgrade is necessary
         upgradeIfNecessary(tc);
     }
 
@@ -532,6 +516,12 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     private void upgradeIfNecessary(TransactionController tc) throws StandardException{
 
+        boolean toUpgrade = Boolean.TRUE.equals(EngineLifecycleService.toUpgrade.get());
+        // Only master can upgrade
+        if (!toUpgrade) {
+            return;
+        }
+
         Splice_DD_Version catalogVersion=(Splice_DD_Version)tc.getProperty(SPLICE_DATA_DICTIONARY_VERSION);
         if(needToUpgrade(catalogVersion)){
             tc.elevate("dictionary");
@@ -540,8 +530,51 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             tc.setProperty(SPLICE_DATA_DICTIONARY_VERSION,spliceSoftwareVersion,true);
             tc.commit();
         }
+        // TODO - include the following in an upgrade script
+        if (spliceSoftwareVersion.toLong() >= 2005000) {
+            upgradeSystables(tc);
+        }
     }
 
+    private void upgradeSystables(TransactionController tc) throws StandardException {
+        SchemaDescriptor sd = getSystemSchemaDescriptor();
+        TableDescriptor td = getTableDescriptor("SYSTABLES", sd, tc);
+        ColumnDescriptor cd = td.getColumnDescriptor(SYSTABLESRowFactory.PURGE_DELETED_ROWS);
+        if (cd == null) {
+            tc.elevate("dictionary");
+            dropTableDescriptor(td, sd, tc);
+            td.setColumnSequence(td.getColumnSequence()+1);
+            // add the table descriptor with new name
+            addDescriptor(td,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc);
+
+            DataValueDescriptor storableDV = getDataValueFactory().getNullBoolean(null);
+            int colNumber = td.getNumberOfColumns()+1;
+            DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor((Types.BOOLEAN));
+            tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
+            UUID uuid = getUUIDFactory().createUUID();
+            ColumnDescriptor columnDescriptor =  new ColumnDescriptor(
+                    SYSTABLESRowFactory.PURGE_DELETED_ROWS,
+                    colNumber,
+                    colNumber,
+                    dtd,
+                    new SQLBoolean(false),
+                    null,
+                    td,
+                    uuid,
+                    0,
+                    0,
+                    td.getColumnSequence());
+
+            addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+
+            // now add the column to the tables column descriptor list.
+            td.getColumnDescriptorList().add(columnDescriptor);
+
+            updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
+            createOrUpdateAllSystemProcedures(tc);
+            SpliceLogUtils.info(LOG, "SYS.SYSTABLES upgraded: added a new column %s.", SYSTABLESRowFactory.PURGE_DELETED_ROWS);
+        }
+    }
     private boolean needToUpgrade(Splice_DD_Version catalogVersion){
 
         LOG.info(String.format("Splice Software Version = %s",(spliceSoftwareVersion==null?"null":spliceSoftwareVersion.toString())));
@@ -591,7 +624,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         DataDescriptorGenerator ddg=getDataDescriptorGenerator();
         TableDescriptor view=ddg.newTableDescriptor("SYSTABLESTATISTICS",
-                sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false);
+                sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
         addDescriptor(view,sysSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc);
         UUID viewId=view.getUUID();
         ColumnDescriptor[] tableViewCds=SYSTABLESTATISTICSRowFactory.getViewColumns(view,viewId);
@@ -612,7 +645,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         DataDescriptorGenerator ddg=getDataDescriptorGenerator();
         TableDescriptor view=ddg.newTableDescriptor("SYSCOLUMNSTATISTICS",
-                sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false);
+                sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
         addDescriptor(view,sysSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc);
         UUID viewId=view.getUUID();
         ColumnDescriptor[] tableViewCds=SYSCOLUMNSTATISTICSRowFactory.getViewColumns(view,viewId);
