@@ -32,13 +32,13 @@ public class KryoDecoder extends ByteToMessageDecoder {
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
 //        LOG.warn("Decoding");
         
-        if (in.readableBytes() < 2)
+        if (in.readableBytes() < 4)
             return;
 
 
         in.markReaderIndex();
 
-        int len = in.readUnsignedShort();
+        int len = in.readInt();
 //        LOG.warn("Read lenght " + len);
 
         if (in.readableBytes() < len) {
