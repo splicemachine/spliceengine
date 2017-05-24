@@ -58,18 +58,20 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
     private byte[] tableName;
     private byte[] storeColumn;
     private HRegionInfo hri;
+    private boolean isMajor;
 
     public SparkCompactionFunction() {
 
     }
 
     public SparkCompactionFunction(long smallestReadPoint, byte[] namespace,
-                                   byte[] tableName, HRegionInfo hri, byte[] storeColumn) {
+                                   byte[] tableName, HRegionInfo hri, byte[] storeColumn, boolean isMajor) {
         this.smallestReadPoint = smallestReadPoint;
         this.namespace = namespace;
         this.tableName = tableName;
         this.hri = hri;
         this.storeColumn = storeColumn;
+        this.isMajor = isMajor;
     }
 
     @Override
@@ -85,6 +87,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         out.write(hriBytes);
         out.writeInt(storeColumn.length);
         out.write(storeColumn);
+        out.writeBoolean(isMajor);
     }
 
     @Override
@@ -104,6 +107,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         }
         storeColumn = new byte[in.readInt()];
         in.readFully(storeColumn);
+        isMajor = in.readBoolean();
         SpliceSpark.setupSpliceStaticComponents();
     }
 
@@ -147,7 +151,9 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         }
 
         SpliceDefaultCompactor sdc = new SpliceDefaultCompactor(conf, store, smallestReadPoint);
-        List<Path> paths = sdc.sparkCompact(new CompactionRequest(readersToClose));
+        CompactionRequest compactionRequest = new CompactionRequest(readersToClose);
+        compactionRequest.setIsMajor(isMajor, isMajor);
+        List<Path> paths = sdc.sparkCompact(compactionRequest);
 
         if (LOG.isTraceEnabled()) {
             StringBuilder sb = new StringBuilder(100);

@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.sql.catalog;
 
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Function;
 import com.google.common.base.Optional;
 import com.splicemachine.db.catalog.AliasInfo;
@@ -90,6 +91,7 @@ import java.util.concurrent.TimeUnit;
  * See SpliceDataDictionary in spliceengine repo.
  */
 public abstract class DataDictionaryImpl extends BaseDataDictionary{
+    private static final Logger LOG = Logger.getLogger(DataDictionaryImpl.class);
 
     /**
      * Runtime definition of the functions from SYSFUN_FUNCTIONS.
@@ -1350,7 +1352,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         if(SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME.equals(
                 sd.getSchemaName())){
             TableDescriptor td=new TableDescriptor(this,tableName,sd,TableDescriptor.VTI_TYPE,TableDescriptor.DEFAULT_LOCK_GRANULARITY,-1,
-                    null,null,null,null,null,null, false);
+                    null,null,null,null,null,null, false,false);
 
             // ensure a vti class exists
             if(getVTIClass(td,false)!=null)
@@ -6751,7 +6753,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         columnCount=columnList.length;
         td=ddg.newTableDescriptor(name,sd,TableDescriptor.SYSTEM_TABLE_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,
-                null,null,null,null,null,null, false);
+                null,null,null,null,null,null,false,false);
         td.setUUID(crf.getCanonicalTableUUID());
         addDescriptor(td,sd,SYSTABLES_CATALOG_NUM,false,tc);
         toid=td.getUUID();

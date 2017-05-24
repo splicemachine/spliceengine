@@ -770,6 +770,18 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .arg("sourceCode", DataTypeDescriptor.getCatalogType(Types.BLOB,64*1024*1024))
                             .build());
 
+                    /*
+        			 * Procedure to perform major compaction on a table in a schema
+        			 */
+                    Procedure purgeDeletedRows = Procedure.newBuilder().name("SET_PURGE_DELETED_ROWS")
+                            .varchar("schemaName", 128)
+                            .varchar("tableName", 128)
+                            .varchar("enable", 5)
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(purgeDeletedRows);
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)

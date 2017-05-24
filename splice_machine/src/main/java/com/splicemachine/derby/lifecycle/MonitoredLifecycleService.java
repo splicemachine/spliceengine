@@ -31,8 +31,9 @@ public class MonitoredLifecycleService extends EngineLifecycleService{
     private MetricsRegistry metricsRegistry = new MetricsRegistry();
 
     public MonitoredLifecycleService(DistributedDerbyStartup startup,
-                                     SConfiguration configuration){
-        super(startup, configuration);
+                                     SConfiguration configuration,
+                                     boolean isMaster){
+        super(startup, configuration, isMaster);
     }
 
     @Override
