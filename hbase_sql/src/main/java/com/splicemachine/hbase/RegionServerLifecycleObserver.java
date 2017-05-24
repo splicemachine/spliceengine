@@ -17,7 +17,11 @@ package com.splicemachine.hbase;
 
 import java.io.IOException;
 
+import com.splicemachine.derby.hbase.HBasePipelineEnvironment;
 import com.splicemachine.derby.lifecycle.ManagerLoader;
+import com.splicemachine.lifecycle.PipelineEnvironmentLoadService;
+import com.splicemachine.pipeline.PipelineEnvironment;
+import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionServerObserver;
@@ -89,8 +93,17 @@ public class RegionServerLifecycleObserver extends BaseRegionServerObserver{
             RegionServerLifecycle distributedStartupSequence=new RegionServerLifecycle(driver.getClock(),connFactory);
             manager.registerEngineService(new MonitoredLifecycleService(distributedStartupSequence,config));
 
+            //register the pipeline driver environment load service
+            manager.registerGeneralService(new PipelineEnvironmentLoadService() {
+                @Override
+                protected PipelineEnvironment loadPipelineEnvironment(ContextFactoryDriver cfDriver) throws IOException {
+                    return HBasePipelineEnvironment.loadEnvironment(new SystemClock(),cfDriver);
+                }
+            });
+
             //register the network boot service
             manager.registerNetworkService(new NetworkLifecycleService(config));
+
             manager.start();
             return manager;
         }catch(Exception e1){
