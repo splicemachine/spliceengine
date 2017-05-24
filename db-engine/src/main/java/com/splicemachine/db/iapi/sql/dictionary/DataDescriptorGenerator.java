@@ -120,13 +120,13 @@ public class DataDescriptorGenerator
 		String 				storedAs,
 		String 				location,
 		String 				compression,
-		boolean 			isPinned
-
+		boolean 			isPinned,
+		boolean             purgeDeletedRows
     )
 	{
 		return new TableDescriptor
 			(dataDictionary, tableName, schema, tableType, lockGranularity,columnSequence,
-					delimited,escaped,lines,storedAs,location, compression, isPinned);
+					delimited,escaped,lines,storedAs,location, compression, isPinned, purgeDeletedRows);
 	}
 
 	/**

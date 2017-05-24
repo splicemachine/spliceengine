@@ -169,7 +169,7 @@ public class SIObserver extends BaseRegionObserver{
             SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                     driver.getRollForward(),
                     driver.getConfiguration().getActiveTransactionCacheSize());
-            return new SICompactionScanner(state,scanner);
+            return new SICompactionScanner(state,scanner,false);
         }else{
             return super.preCompact(e,store,scanner,scanType,compactionRequest);
         }

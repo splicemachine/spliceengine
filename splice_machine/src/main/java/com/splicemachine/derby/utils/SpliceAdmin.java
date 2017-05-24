@@ -16,6 +16,7 @@ package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -894,5 +895,22 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 throw StandardException.newException(SQLState.DBO_ONLY);
             }
         }
+    }
+
+    public static void SET_PURGE_DELETED_ROWS (String schemaName, String tableName, String enable) throws Exception{
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        TransactionController tc  = lcc.getTransactionExecute();
+        tc.elevate("purgeDeleteRows");
+        DataDictionary dd = lcc.getDataDictionary();
+        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        TableDescriptor td = dd.getTableDescriptor(tableName, sd, tc);
+        DDLMessage.DDLChange ddlChange = ProtoUtil.createAlterTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
+                (BasicUUID) td.getUUID());
+        // Run Remotely
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+        boolean b = "TRUE".compareToIgnoreCase(enable) == 0 ? true : false;
+        td.setPurgeDeletedRows(b);
+        dd.dropTableDescriptor(td, sd, tc);
+        dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc);
     }
 }

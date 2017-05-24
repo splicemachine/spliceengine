@@ -116,7 +116,7 @@ public class SpliceSpark {
                     @Override public void distributedStart() throws IOException{ }
                     @Override public void markBootFinished() throws IOException{ }
                     @Override public boolean connectAsFirstTime(){ return false; }
-                },config).start();
+                },config,false).start();
 
                 EngineDriver engineDriver = EngineDriver.driver();
                 assert engineDriver!=null: "Not booted yet!";

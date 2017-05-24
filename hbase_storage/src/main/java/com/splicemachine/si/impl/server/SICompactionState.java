@@ -61,18 +61,34 @@ public class SICompactionState {
      * @param rawList - the input of key values to process
      * @param results - the output key values
      */
-    public void mutate(List<Cell> rawList, List<Cell> results) throws IOException {
+    public void mutate(List<Cell> rawList, List<Cell> results, boolean purgeDeletedRows) throws IOException {
         dataToReturn.clear();
+        long maxTombstone = 0;
         for (Cell aRawList : rawList) {
-            mutate(aRawList);
+            long t = mutate(aRawList);
+            if (t > maxTombstone) {
+                maxTombstone = t;
+            }
+        }
+        if (purgeDeletedRows && maxTombstone > 0) {
+            removeTombStone(maxTombstone);
         }
         results.addAll(dataToReturn);
     }
 
+    private void removeTombStone(long maxTombstone) {
+        SortedSet<Cell> cp = (SortedSet<Cell>)((TreeSet<Cell>)dataToReturn).clone();
+        for (Cell element : cp) {
+            long timestamp = element.getTimestamp();
+            if (timestamp <= maxTombstone) {
+                dataToReturn.remove(element);
+            }
+        }
+    }
     /**
      * Apply SI mutation logic to an individual key-value. Return the "new" key-value.
      */
-    private void mutate(Cell element) throws IOException {
+    private long mutate(Cell element) throws IOException {
         final CellType cellType= getKeyValueType(element);
         long timestamp = element.getTimestamp();
         switch (cellType) {
@@ -85,13 +101,18 @@ public class SICompactionState {
                  */
                 ensureTransactionCached(timestamp,element);
                 dataToReturn.add(element);
-                return;
+                return 0;
             case TOMBSTONE:
             case ANTI_TOMBSTONE:
             case USER_DATA:
                 if(mutateCommitTimestamp(timestamp,element))
                     dataToReturn.add(element);
-                return;
+                if (cellType == CellType.TOMBSTONE) {
+                    return timestamp;
+                }
+                else {
+                    return 0;
+                }
             default:
                 if(LOG.isDebugEnabled()){
                     String famString = Bytes.toString(element.getFamilyArray(),element.getFamilyOffset(),element.getFamilyLength());
@@ -100,6 +121,7 @@ public class SICompactionState {
                                famString,qualString);
                 }
                 dataToReturn.add(element);
+                return 0;
         }
     }
 

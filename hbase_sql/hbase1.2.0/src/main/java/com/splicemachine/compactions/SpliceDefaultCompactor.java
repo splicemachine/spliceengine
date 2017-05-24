@@ -19,10 +19,23 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.constants.EnvUtils;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stream.compaction.SparkCompactionFunction;
 import com.splicemachine.hbase.SICompactionScanner;
+import com.splicemachine.hbase.SpliceCompactionUtils;
 import com.splicemachine.olap.DistributedCompaction;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.hbase.coprocessor.TableType;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -42,6 +55,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
+import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -96,10 +110,11 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         for (StoreFile sf : request.getFiles()) {
             files.add(sf.getPath().toString());
         }
+
         String regionLocation = getRegionLocation(store);
         SConfiguration config = HConfiguration.getConfiguration();
         DistributedCompaction jobRequest=new DistributedCompaction(
-                getCompactionFunction(),
+                getCompactionFunction(request.isMajor()),
                 files,
                 getJobDetails(request),
                 getJobGroup(request,regionLocation),
@@ -157,13 +172,14 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         return paths;
     }
 
-    private SparkCompactionFunction getCompactionFunction() {
+    private SparkCompactionFunction getCompactionFunction(boolean isMajor) {
         return new SparkCompactionFunction(
-            smallestReadPoint,
-            store.getTableName().getNamespace(),
-            store.getTableName().getQualifier(),
-            store.getRegionInfo(),
-            store.getFamily().getName());
+                smallestReadPoint,
+                store.getTableName().getNamespace(),
+                store.getTableName().getQualifier(),
+                store.getRegionInfo(),
+                store.getFamily().getName(),
+                isMajor);
     }
 
     private String getScope(CompactionRequest request) {
@@ -267,7 +283,9 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                     SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                             driver.getRollForward(),
                             driver.getConfiguration().getActiveTransactionCacheSize());
-                    scanner = new SICompactionScanner(state,scanner);
+                    boolean purgeDeletedRows = request.isMajor() ? SpliceCompactionUtils.shouldPurge(store) : false;
+
+                    scanner = new SICompactionScanner(state,scanner,purgeDeletedRows);
                 }
                 if (scanner == null) {
                     // NULL scanner returned from coprocessor hooks means skip normal processing.
@@ -282,7 +300,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
 
                 writer = createTmpWriter(fd, dropBehind);
                 boolean finished = performCompaction(fd, scanner,  writer, smallestReadPoint, cleanSeqId,
-                        new NoLimitCompactionThroughputController(), request.isAllFiles());
+                        new NoLimitCompactionThroughputController(), request.isMajor());
                 if (!finished) {
                     writer.close();
                     store.getFileSystem().delete(writer.getPath(), false);

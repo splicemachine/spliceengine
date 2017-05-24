@@ -60,7 +60,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 {
 	private static final String		TABLENAME_STRING = "SYSTABLES";
 
-	protected static final int		SYSTABLES_COLUMN_COUNT = 7;
+	protected static final int		SYSTABLES_COLUMN_COUNT = 15;
 	/* Column #s for systables (1 based) */
 	protected static final int		SYSTABLES_TABLEID = 1;
 	protected static final int		SYSTABLES_TABLENAME = 2;
@@ -78,6 +78,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 	protected static final int		SYSTABLES_LOCATION = 12;
 	protected static final int		SYSTABLES_COMPRESSION = 13;
 	protected static final int 		SYSTABLES_IS_PINNED = 14;
+	protected static final int      SYSTABLES_PURGE_DELETED_ROWS = 15;
 	/* End External Tables Columns	*/
 	protected static final int		SYSTABLES_INDEX1_ID = 0;
 	protected static final int		SYSTABLES_INDEX1_TABLENAME = 1;
@@ -86,6 +87,8 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 	protected static final int		SYSTABLES_INDEX2_ID = 1;
 	protected static final int		SYSTABLES_INDEX2_TABLEID = 1;
 
+
+    public static final String      PURGE_DELETED_ROWS = "PURGE_DELETED_ROWS";
 	/*
 	 * The first version of any tables. Use this for System tables and
 	 * any time that you don't know what the version is.
@@ -156,6 +159,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		String 					location = null;
 		String 					compression = null;
 		boolean 				isPinned = false;
+		boolean                 purgeDeletedRows = false;
 
 		if (td != null)
 		{
@@ -231,6 +235,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 			location = descriptor.getLocation();
 			compression = descriptor.getCompression();
 			isPinned = descriptor.isPinned();
+            purgeDeletedRows = descriptor.purgeDeletedRows();
 		}
 
 		/* Insert info into systables */
@@ -269,7 +274,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		row.setColumn(SYSTABLES_LOCATION,new SQLVarchar(location));
 		row.setColumn(SYSTABLES_COMPRESSION,new SQLVarchar(compression));
 		row.setColumn(SYSTABLES_IS_PINNED,new SQLBoolean(isPinned));
-
+		row.setColumn(SYSTABLES_PURGE_DELETED_ROWS, new SQLBoolean(purgeDeletedRows));
 		return row;
 	}
 
@@ -391,14 +396,6 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		UUID		schemaUUID;
 		SchemaDescriptor	schema;
 		TableDescriptor		tabDesc;
-		String delimited;
-		String escaped;
-		String lines;
-		String storedAs;
-		String location;
-		String compression;
-		boolean isPinned;
-
 
 		/* 1st column is TABLEID (UUID - char(36)) */
 		col = row.getColumn(SYSTABLES_TABLEID);
@@ -473,8 +470,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		DataValueDescriptor locationDVD = row.getColumn(SYSTABLES_LOCATION);
 		DataValueDescriptor compressionDVD = row.getColumn(SYSTABLES_COMPRESSION);
 		DataValueDescriptor isPinnedDVD = row.getColumn(SYSTABLES_IS_PINNED);
-
-
+        DataValueDescriptor purgeDeletedRowsDVD = row.getColumn(SYSTABLES_PURGE_DELETED_ROWS);
 
 		// RESOLVE - Deal with lock granularity
 		tabDesc = ddg.newTableDescriptor(tableName, schema, tableTypeEnum, lockGranularity.charAt(0),
@@ -485,7 +481,8 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 				storedDVD!=null?storedDVD.getString():null,
 				locationDVD!=null?locationDVD.getString():null,
 				compressionDVD!=null?compressionDVD.getString():null,
-				isPinnedDVD.getBoolean()
+				isPinnedDVD.getBoolean(),
+                purgeDeletedRowsDVD.getBoolean()
 				);
 		tabDesc.setUUID(tableUUID);
 
@@ -525,20 +522,21 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
         throws StandardException
 	{
         return new SystemColumn[] {
-            SystemColumnImpl.getUUIDColumn("TABLEID", false),
-            SystemColumnImpl.getIdentifierColumn("TABLENAME", false),
-            SystemColumnImpl.getIndicatorColumn("TABLETYPE"),
-            SystemColumnImpl.getUUIDColumn("SCHEMAID", false),
-            SystemColumnImpl.getIndicatorColumn("LOCKGRANULARITY"),
-            SystemColumnImpl.getIdentifierColumn("VERSION",true),
-			SystemColumnImpl.getColumn("COLSEQUENCE", Types.INTEGER, false),
-            SystemColumnImpl.getColumn("DELIMITED", Types.VARCHAR,  true),
-			SystemColumnImpl.getColumn("ESCAPED", Types.VARCHAR, true),
-			SystemColumnImpl.getColumn("LINES", Types.VARCHAR, true),
-			SystemColumnImpl.getColumn("STORED", Types.VARCHAR, true),
-			SystemColumnImpl.getColumn("LOCATION", Types.VARCHAR, true),
-			SystemColumnImpl.getColumn("COMPRESSION", Types.VARCHAR, true),
-			SystemColumnImpl.getColumn("IS_PINNED", Types.BOOLEAN, false)
+                SystemColumnImpl.getUUIDColumn("TABLEID", false),
+                SystemColumnImpl.getIdentifierColumn("TABLENAME", false),
+                SystemColumnImpl.getIndicatorColumn("TABLETYPE"),
+                SystemColumnImpl.getUUIDColumn("SCHEMAID", false),
+                SystemColumnImpl.getIndicatorColumn("LOCKGRANULARITY"),
+                SystemColumnImpl.getIdentifierColumn("VERSION",true),
+                SystemColumnImpl.getColumn("COLSEQUENCE", Types.INTEGER, false),
+                SystemColumnImpl.getColumn("DELIMITED", Types.VARCHAR,  true),
+                SystemColumnImpl.getColumn("ESCAPED", Types.VARCHAR, true),
+                SystemColumnImpl.getColumn("LINES", Types.VARCHAR, true),
+                SystemColumnImpl.getColumn("STORED", Types.VARCHAR, true),
+                SystemColumnImpl.getColumn("LOCATION", Types.VARCHAR, true),
+                SystemColumnImpl.getColumn("COMPRESSION", Types.VARCHAR, true),
+                SystemColumnImpl.getColumn("IS_PINNED", Types.BOOLEAN, false),
+                SystemColumnImpl.getColumn(PURGE_DELETED_ROWS, Types.BOOLEAN, false),
         };
 	}
 
