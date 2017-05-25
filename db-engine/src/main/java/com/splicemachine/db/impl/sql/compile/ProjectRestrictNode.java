@@ -431,6 +431,18 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
     }
 
     @Override
+    public double getMemoryUsage4BroadcastJoin(){
+        if(hasTrulyTheBestAccessPath){
+            return super.getMemoryUsage4BroadcastJoin();
+        }
+
+        if(childResult instanceof Optimizable)
+            return ((Optimizable)childResult).getMemoryUsage4BroadcastJoin();
+
+        return super.getMemoryUsage4BroadcastJoin();
+    }
+
+    @Override
     public void rememberSortAvoidancePath(){
         if(childResult instanceof Optimizable)
             ((Optimizable)childResult).rememberSortAvoidancePath();

@@ -386,4 +386,10 @@ public interface Optimizer{
      * loops, and therefore prevent infinite loops from occurring.
      */
     void verifyBestPlanFound() throws StandardException;
+
+    /**
+     * Given the best join sequence planned the current optimizer, if the join sequence ends with consecutive broadcast
+     * joins, return the accumulated memory usage by these broadcast joins
+     */
+    double getAccumulatedMemory();
 }

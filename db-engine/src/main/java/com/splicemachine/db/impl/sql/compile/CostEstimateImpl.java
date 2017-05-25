@@ -564,4 +564,12 @@ public class CostEstimateImpl implements CostEstimate {
 
     @Override
     public double localCostPerPartition(){ return 0;}
+
+    @Override
+    public double getAccumulatedMemory() {
+        return 0.0d;
+    }
+
+    @Override
+    public void setAccumulatedMemory(double memorySize) { }
 }

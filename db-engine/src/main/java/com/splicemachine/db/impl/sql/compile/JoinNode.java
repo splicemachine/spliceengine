@@ -241,8 +241,11 @@ public class JoinNode extends TableOperatorNode{
 
         CostEstimate lrsCE = leftResultSet.getCostEstimate();
         lrsCE.setOuterJoin(true);
+        double savedAccumulatedMemory = lrsCE.getAccumulatedMemory();
+        lrsCE.setAccumulatedMemory(leftOptimizer.getAccumulatedMemory());
         rightResultSet=optimizeSource(optimizer,rightResultSet,getRightPredicateList(),lrsCE);
         lrsCE.setOuterJoin(false);
+        lrsCE.setAccumulatedMemory(savedAccumulatedMemory);
         costEstimate=getCostEstimate(optimizer);
 
 		/*
@@ -1908,4 +1911,61 @@ public class JoinNode extends TableOperatorNode{
         return sb.toString();
     }
 
+    @Override
+    public double getMemoryUsage4BroadcastJoin(){
+        double memoryAccumulated = 0.0d;
+
+        // Add the memory usage if the right table is joined with left through broadcast join.
+        // There should only be one element in the right child of the JoinNode, which
+        // could be a base table or some intermediate join result.
+        Optimizable rightOptimizable = rightOptimizer.getOptimizableList().getOptimizable(0);
+        assert rightOptimizable == null;
+
+        AccessPath rightAP = rightOptimizable.getTrulyTheBestAccessPath();
+        if (rightAP == null || rightAP.getJoinStrategy() == null ||
+                rightAP.getJoinStrategy().getJoinStrategyType() != JoinStrategy.JoinStrategyType.BROADCAST)
+            return memoryAccumulated;
+
+        memoryAccumulated += rightAP.getCostEstimate().getBase().getEstimatedHeapSize();
+
+        // Left table of the join could be a base table or another JoinNode. Unlike the right table,
+        // if left table is another JoinNode, we need to drill down the JoinNode to continue accumulating
+        // the memory consumption if they are done through consecutive broadcast joins
+        // for example, given the following query, and assume both joins pick broadcast join:
+        //    select 1 from t1 left join t2 on t1.a1=t2.a2 left join t3 on t1.a1=t3.a3;
+        // the join nodes are organized as follows:
+        //                          JoinNode
+        //                             |
+        //                    |---------------------|
+        //                    |                     |
+        //                   JoinNode               |
+        //                    |                     |
+        //           |---------------------|        |
+        //           |                     |        t3
+        //           t1                    t2
+        // After collecting the memory usage for the broadcast join with t3, we should continue to look inside the
+        // JoinNode on the left and accumulate the memory for the broadcast join with t2.
+        //
+        // In contrast, we should not walk recursively down the right branch. For example, given the following query,
+        // and assume both joins pick broadcast joins:
+        //   select 1 from --splice-properties joinOrder=fixed
+        //   t1 left join (t2 left join t3 on t2.a2=t3.a3) on t1.a1=t3.a3;
+        // the join nodes are organized as follows:
+        //                          JoinNode
+        //                             |
+        //                    |---------------------|
+        //                    |                     |
+        //                    t1                JoinNode
+        //                                          |
+        //                                |---------------------|
+        //                                |                     |
+        //                                t2                    t3
+        // In this case, even if we pick two broadcast joins, they should not be treated as consecutive,
+        // and the two joins cannot be pipelined as the first case, as we have to wait for the whole join result
+        // of (t2+=t3) to be available to start the broadcast join with t1.
+        // The memory usage we pick here should be just from the broadcast join that joins the join result of t2,t3.
+        memoryAccumulated += leftOptimizer.getAccumulatedMemory();
+
+        return memoryAccumulated;
+    }
 }

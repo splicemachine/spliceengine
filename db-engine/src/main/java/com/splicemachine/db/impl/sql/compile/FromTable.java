@@ -1144,4 +1144,15 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
     public void setDataSetProcessorType(CompilerContext.DataSetProcessorType dataSetProcessorType) {
         this.dataSetProcessorType = dataSetProcessorType;
     }
+
+    @Override
+    public double getMemoryUsage4BroadcastJoin(){
+        if (trulyTheBestAccessPath == null || trulyTheBestAccessPath.getCostEstimate() == null)
+            return 0.0d;
+
+        if (trulyTheBestAccessPath.getJoinStrategy().getJoinStrategyType() == JoinStrategy.JoinStrategyType.BROADCAST)
+            return trulyTheBestAccessPath.getCostEstimate().getBase().getEstimatedHeapSize();
+
+        return 0.0d;
+    }
 }
