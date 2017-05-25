@@ -1919,7 +1919,7 @@ public class JoinNode extends TableOperatorNode{
         // There should only be one element in the right child of the JoinNode, which
         // could be a base table or some intermediate join result.
         Optimizable rightOptimizable = rightOptimizer.getOptimizableList().getOptimizable(0);
-        assert rightOptimizable == null;
+        assert rightOptimizable != null : "Right optimizable of a join is not expected to be null";
 
         AccessPath rightAP = rightOptimizable.getTrulyTheBestAccessPath();
         if (rightAP == null || rightAP.getJoinStrategy() == null ||
