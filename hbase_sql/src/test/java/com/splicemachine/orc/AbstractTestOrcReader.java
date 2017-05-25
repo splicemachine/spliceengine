@@ -149,7 +149,7 @@ public abstract class AbstractTestOrcReader
                 .map(Number::longValue)
                 .collect(toList());
         tester.testRoundTrip(
-                javaByteObjectInspector,
+                javaLongObjectInspector,
                 writeValues.stream()
                         .map(value -> (long) value.byteValue()) // truncate values to byte range
                         .collect(toList()),

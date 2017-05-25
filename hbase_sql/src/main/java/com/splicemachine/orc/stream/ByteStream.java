@@ -126,7 +126,7 @@ public class ByteStream
                 columnVector.appendNull();
                 j++;
             }
-            columnVector.appendLong(next());
+            columnVector.appendByte(next());
         }
     }
 
@@ -142,7 +142,7 @@ public class ByteStream
                 columnVector.appendNull();
             }
             else {
-                columnVector.appendLong(next());
+                columnVector.appendByte(next());
             }
         }
     }
