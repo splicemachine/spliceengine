@@ -84,6 +84,8 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 		String operationContextAsString = config.get(MRConstants.SPLICE_OPERATION_CONTEXT);
         if (tableScannerAsString == null)
 			throw new IOException("splice scan info was not serialized to task, failing");
+		byte[] scanStartKey = null;
+		byte[] scanStopKey = null;
 		try {
 			builder = TableScannerBuilder.getTableScannerBuilderFromBase64String(tableScannerAsString);
 			SparkOperationContext operationContext = null;
@@ -91,28 +93,33 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 				operationContext = (SparkOperationContext) SerializationUtils.deserialize(Base64.decodeBase64(operationContextAsString));
 			}
 			if (LOG.isTraceEnabled())
-				SpliceLogUtils.trace(LOG, "config loaded builder=%s",builder);
-			TableSplit tSplit = ((SMSplit)split).getSplit();
+				SpliceLogUtils.trace(LOG, "config loaded builder=%s", builder);
+			TableSplit tSplit = ((SMSplit) split).getSplit();
 			DataScan scan = builder.getScan();
-			if (Bytes.startComparator.compare(scan.getStartKey(), tSplit.getStartRow()) < 0) {
+			scanStartKey = scan.getStartKey();
+			scanStopKey = scan.getStopKey();
+			if (Bytes.startComparator.compare(scanStartKey, tSplit.getStartRow()) < 0) {
 				// the split itself is more restrictive
 				scan.startKey(tSplit.getStartRow());
 			}
-			if (Bytes.endComparator.compare(scan.getStopKey(), tSplit.getEndRow()) > 0) {
+			if (Bytes.endComparator.compare(scanStopKey, tSplit.getEndRow()) > 0) {
 				// the split itself is more restrictive
 				scan.stopKey(tSplit.getEndRow());
 			}
-            setScan(((HScan)scan).unwrapDelegate());
-            // TODO (wjk): this seems weird (added with DB-4483)
-            this.statisticsRun = AbstractSMInputFormat.oneSplitPerRegion(config);
-	    restart(scan.getStartKey());
+			setScan(((HScan) scan).unwrapDelegate());
+			// TODO (wjk): this seems weird (added with DB-4483)
+			this.statisticsRun = AbstractSMInputFormat.oneSplitPerRegion(config);
+			restart(scan.getStartKey());
 
-            if (operationContext != null) {
-                activationHolder = operationContext.getActivationHolder();
-                if (activationHolder != null)
-                    activationHolder.reinitialize(null);
-            }
-
+			if (operationContext != null) {
+				activationHolder = operationContext.getActivationHolder();
+				if (activationHolder != null)
+					activationHolder.reinitialize(null);
+			}
+		} catch (IOException ioe) {
+			LOG.error(String.format("Received exception with scan %s, original start key %s, original stop key %s, split %s",
+					scan, Bytes.toStringBinary(scanStartKey), Bytes.toStringBinary(scanStopKey), split), ioe);
+			throw ioe;
         } catch (StandardException e) {
 			throw new IOException(e);
 		}
