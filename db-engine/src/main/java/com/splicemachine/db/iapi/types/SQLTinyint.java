@@ -854,4 +854,20 @@ public final class SQLTinyint
 		updateSketch.update(value);
 	}
 
+	@Override
+	public void setSparkObject(Object sparkObject) throws StandardException {
+		if (sparkObject == null)
+			setToNull();
+		else {
+			value = (Byte) sparkObject; // Autobox, must be something better.
+			setIsNull(false);
+		}
+	}
+
+	@Override
+	public Object getSparkObject() throws StandardException {
+		if (isNull())
+			return null;
+		return value;
+	}
 }

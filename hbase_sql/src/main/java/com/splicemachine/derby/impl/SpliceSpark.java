@@ -19,6 +19,7 @@ import java.io.IOException;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.client.SpliceClient;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -56,6 +57,18 @@ public class SpliceSpark {
 
     // Sets both ctx and session
     public static synchronized SparkSession getSession() {
+        String threadName = Thread.currentThread().getName();
+        if (!SpliceClient.isClient && !threadName.startsWith("olap-worker-")) {
+             // Not running on the Olap Server... raise exception. Use getSessionUnsafe() if you know what you are doing.
+            throw new RuntimeException("Trying to get a SparkSession from outside the OlapServer");
+        }
+        return getSessionUnsafe();
+    }
+
+    /** This method is unsafe, it should only be used on tests are as a convenience when trying to
+     * get a local Spark Context, it should never be used when implementing Splice operations or functions
+     */
+    public static synchronized SparkSession getSessionUnsafe() {
         if (!initialized) {
             session = initializeSparkSession();
             ctx =  new JavaSparkContext(session.sparkContext());
@@ -68,10 +81,16 @@ public class SpliceSpark {
         return session;
     }
 
-
-
     public static synchronized JavaSparkContext getContext() {
         SparkSession s = getSession();
+        return ctx;
+    }
+
+    /** This method is unsafe, it should only be used on tests are as a convenience when trying to
+     * get a local Spark Context, it should never be used when implementing Splice operations or functions
+     */
+    public static synchronized JavaSparkContext getContextUnsafe() {
+        SparkSession s = getSessionUnsafe();
         return ctx;
     }
 

@@ -1413,4 +1413,16 @@ public final class SQLDate extends DataType
 	public void updateThetaSketch(UpdateSketch updateSketch) {
 		updateSketch.update(encodedDate);
 	}
+
+	@Override
+	public void setSparkObject(Object sparkObject) throws StandardException {
+		if (sparkObject == null)
+			setToNull();
+		else {
+			java.time.LocalDate localeDate = ((Date)sparkObject).toLocalDate();
+			encodedDate = computeEncodedDate(localeDate.getYear(),localeDate.getMonthValue(),localeDate.getDayOfMonth());
+			setIsNull(false);
+		}
+
+	}
 }

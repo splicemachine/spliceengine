@@ -2282,7 +2282,7 @@ public class OptimizerImpl implements Optimizer{
 			** predicate list, or nothing in the predicate list is useful
 			** for limiting the scan.
 			*/
-                ap.setNonMatchingIndexScan((predList==null) || (!(predList.useful(optimizable,cd))));
+                ap.setNonMatchingIndexScan((cd == null) || (predList == null) || (!(predList.useful(optimizable, cd))));
                 ap.setLockMode(optimizable.getCurrentAccessPath().getLockMode());
                 optimizable.rememberJoinStrategyAsBest(ap);
 

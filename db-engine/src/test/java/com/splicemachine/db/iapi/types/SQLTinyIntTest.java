@@ -33,10 +33,12 @@ package com.splicemachine.db.iapi.types;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Order;
 import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.hadoop.hbase.util.SimplePositionedMutableByteRange;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
@@ -122,5 +124,15 @@ public class SQLTinyIntTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(2392.0d,(double) stats.rangeSelectivity(new SQLTinyint((byte)'T'),new SQLTinyint(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
         }
 
-
+        @Test
+        public void testExecRowSparkRowConversion() throws StandardException {
+                ValueRow execRow = new ValueRow(1);
+                execRow.setRowArray(new DataValueDescriptor[]{new SQLTinyint((byte) 1)});
+                Row row = execRow.getSparkRow();
+                Assert.assertEquals( (byte) 1,row.getByte(0));
+                ValueRow execRow2 = new ValueRow(1);
+                execRow2.setRowArray(new DataValueDescriptor[]{new SQLTinyint()});
+                execRow2.getColumn(1).setSparkObject(row.get(0));
+                Assert.assertEquals("ExecRow Mismatch",execRow,execRow2);
+        }
 }

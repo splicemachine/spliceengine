@@ -1168,4 +1168,14 @@ public final class SQLBoolean
 	public void updateThetaSketch(UpdateSketch updateSketch) {
 		updateSketch.update(value?new byte[]{T}:new byte[]{F});
 	}
+
+	@Override
+	public void setSparkObject(Object sparkObject) throws StandardException {
+		if (sparkObject == null)
+			setToNull();
+		else {
+			value = (Boolean) sparkObject; // Autobox, must be something better.
+			setIsNull(false);
+		}
+	}
 }

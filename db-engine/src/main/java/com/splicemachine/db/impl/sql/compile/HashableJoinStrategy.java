@@ -103,6 +103,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 		 * Note: do not perform this check if innerTable is a FromBaseTable
 		 * because a base table does not have a "subtree" to speak of.
 		 */
+        /*
         if ((predList != null) && (predList.size() > 0) && !(innerTable instanceof FromBaseTable)) {
             FromTable ft = (FromTable)innerTable;
             // First get a list of all of the base tables in the subtree
@@ -131,7 +132,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
                 return false;
             }
         }
-
+        */
         if (innerTable.isBaseTable()) {
 			/* Must have an equijoin on a column in the conglomerate */
             cd = innerTable.getCurrentAccessPath().getConglomerateDescriptor();

@@ -1197,4 +1197,9 @@ public class XML
         if (!isNull())
             xmlStringValue.updateThetaSketch(updateSketch);
     }
+
+    @Override
+    public void setSparkObject(Object sparkObject) throws StandardException {
+
+    }
 }

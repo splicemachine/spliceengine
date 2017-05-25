@@ -675,7 +675,7 @@ public class SparkDataSet<V> implements DataSet<V> {
      */
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    DataSet<V> toSpliceLocatedRow(Dataset<Row> dataSet, OperationContext context) throws StandardException {
+    public static DataSet toSpliceLocatedRow(Dataset<Row> dataSet, OperationContext context) throws StandardException {
         return new SparkDataSet(dataSet.javaRDD()
                 .map(new RowToLocatedRowFunction(context)));
     }

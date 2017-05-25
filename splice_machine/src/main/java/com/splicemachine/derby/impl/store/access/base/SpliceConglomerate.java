@@ -248,4 +248,13 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
         throw new UnsupportedOperationException("Not Implemented");
     }
 
+    @Override
+    public Object getSparkObject() throws StandardException {
+        throw new UnsupportedOperationException("Not Implemented");
+    }
+
+    @Override
+    public void setSparkObject(Object sparkObject) throws StandardException {
+        throw new UnsupportedOperationException("Not Implemented");
+    }
 }

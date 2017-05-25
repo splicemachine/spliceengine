@@ -97,7 +97,8 @@ public class TimeTypeCompiler extends BaseTypeCompiler
 
 		if (otherJDBCTypeId == Types.TIME ||
 			(otherJDBCTypeId == Types.CHAR) ||
-			(otherJDBCTypeId == Types.VARCHAR))
+			(otherJDBCTypeId == Types.VARCHAR) ||
+		(otherJDBCTypeId == Types.TIMESTAMP))
 		{
 			return true;
 		}

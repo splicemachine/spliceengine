@@ -24,7 +24,7 @@ import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.impl.store.ExecRowAccumulator;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;

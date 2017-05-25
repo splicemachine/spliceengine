@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Properties;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.management.Manager;
@@ -637,6 +638,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     @Override
     public boolean canUseCache(TransactionController xactMgr) throws StandardException {
+        if (SpliceClient.isClient)
+            return false;
         DDLDriver driver=DDLDriver.driver();
         if(driver==null) return false;
         DDLWatcher ddlWatcher=driver.ddlWatcher();
