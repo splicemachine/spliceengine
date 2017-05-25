@@ -321,6 +321,13 @@ public abstract class ClientBaseDataSource implements Serializable, Referenceabl
      */
     public static short getSecurityMechanism(Properties properties) {
         short secmec;
+        String principalString =
+                properties.getProperty(Attribute.CLIENT_KERBEROS_PRINCIPAL);
+        if (principalString != null) {
+            // We are using Kerberos
+            return (short) NetConfiguration.SECMEC_KERSEC;
+        }
+
         String securityMechanismString =
             properties.getProperty(Attribute.CLIENT_SECURITY_MECHANISM);
 
@@ -1206,5 +1213,13 @@ public abstract class ClientBaseDataSource implements Serializable, Referenceabl
             sb.append(connectionAttributes);
         }
         return sb.toString();
+    }
+
+    public static String getClientPrincipal(Properties properties) {
+        return properties.getProperty(Attribute.CLIENT_KERBEROS_PRINCIPAL);
+    }
+
+    public static String getClientKeytab(Properties properties) {
+        return properties.getProperty(Attribute.CLIENT_KERBEROS_KEYTAB);
     }
 }

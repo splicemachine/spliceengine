@@ -10,15 +10,16 @@
  * See the GNU Affero General Public License for more details.
  * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
  * If not, see <http://www.gnu.org/licenses/>.
+ *
  */
 
-package com.splicemachine.derby.impl.db;
+package com.splicemachine.db.client.net;
 
-/**
- * @author Scott Fines
- *         Date: 1/11/16
- */
-public enum AuthenticationType {
-    NONE,LDAP,NATIVE,CUSTOM,KERBEROS
+class KerberosUtil {
+  /* Return the Kerberos login module name */
+  public static String getKrb5LoginModuleName() {
+    return System.getProperty("java.vendor").contains("IBM")
+            ? "com.ibm.security.auth.module.Krb5LoginModule"
+            : "com.sun.security.auth.module.Krb5LoginModule";
+  }
 }
-

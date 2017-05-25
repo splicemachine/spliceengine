@@ -87,12 +87,14 @@ public class SpecificAuthenticationServiceImpl
 					properties,
 					Property.AUTHENTICATION_PROVIDER_PARAMETER);
 		return ((specificAuthenticationScheme != null) &&
-				(specificAuthenticationScheme.length() != 0) &&
+			  (specificAuthenticationScheme.length() != 0) &&
 
-				(!((StringUtil.SQLEqualsIgnoreCase(specificAuthenticationScheme,
-						Property.AUTHENTICATION_PROVIDER_BUILTIN)) ||
-						(specificAuthenticationScheme.equalsIgnoreCase(
-								Property.AUTHENTICATION_PROVIDER_LDAP)))));
+			  (!((StringUtil.SQLEqualsIgnoreCase(specificAuthenticationScheme,
+					  Property.AUTHENTICATION_PROVIDER_BUILTIN)) ||
+			  (specificAuthenticationScheme.equalsIgnoreCase(Property.AUTHENTICATION_PROVIDER_LDAP))     ||
+					  (specificAuthenticationScheme.equalsIgnoreCase(Property.AUTHENTICATION_PROVIDER_KERBEROS))
+
+			  )));
 	}
 
 	/**
