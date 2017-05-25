@@ -292,4 +292,11 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
     public BitSet getBloomInMemoryCheck(boolean hasConstraintChecker,Pair<KVPair, Lock>[] dataAndLocks) throws IOException {
         return null;
     }
+
+    @Override
+    public String toString() {
+        return "ClientPartition{" +
+                "tableName=" + tableName +
+                '}';
+    }
 }
