@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.DerbyOperationInformation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.stream.function.StatisticsFlatMapFunction;
@@ -46,6 +47,9 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.List;
 
@@ -58,7 +62,11 @@ public class StatisticsOperation extends SpliceBaseOperation {
     protected ScanSetBuilder scanSetBuilder;
     protected String scope;
 
-    public StatisticsOperation(ScanSetBuilder scanSetBuilder, String scope, Activation activation) {
+    // serialization
+    public StatisticsOperation(){}
+
+    public StatisticsOperation(ScanSetBuilder scanSetBuilder, String scope, Activation activation) throws StandardException {
+        super(new DerbyOperationInformation(activation, 0, 0, 0));
         this.scanSetBuilder = scanSetBuilder;
         this.scope = scope;
         this.activation = activation;
@@ -120,8 +128,8 @@ public class StatisticsOperation extends SpliceBaseOperation {
 
     @Override
     public void openCore() throws StandardException{
-        DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation,this);
-        if (dsp.getType() == DataSetProcessor.Type.SPARK && !isOlapServer()) {
+        DataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
+        if (!isOlapServer()) {
             remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
             remoteQueryClient.submit();
             // Does Not Open Iterator by design, we want statistics
@@ -152,4 +160,17 @@ public class StatisticsOperation extends SpliceBaseOperation {
         }
     }
 
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeObject(scope);
+        out.writeObject(scanSetBuilder);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        scope = (String) in.readObject();
+        scanSetBuilder = (ScanSetBuilder) in.readObject();
+    }
 }

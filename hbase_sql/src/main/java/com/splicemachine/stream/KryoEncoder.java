@@ -52,7 +52,7 @@ public class KryoEncoder extends MessageToByteEncoder<Object> {
 
         output.flush();
         byte[] outArray = outStream.toByteArray();
-        out.writeShort(outArray.length);
+        out.writeInt(outArray.length);
         out.writeBytes(outArray);
     }
 
