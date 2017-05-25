@@ -428,4 +428,9 @@ public interface Optimizable {
 	 * @exception StandardException		Thrown on error
 	 */
 	double uniqueJoin(OptimizablePredicateList predList) throws StandardException;
+
+	/**
+	 * get the current optimizable's memory usage if its best join plan is a broadcast join
+	 */
+	double getMemoryUsage4BroadcastJoin();
 }
