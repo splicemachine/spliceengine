@@ -1084,4 +1084,16 @@ public class ExternalTableIT extends SpliceUnitTest{
         rs.close();
 
     }
+
+    @Test
+    public void testTinyIntOrcReader() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"/tinyIntOrc";
+        methodWatcher.executeUpdate(String.format("create external table t (c1 tinyint, c2 int array) " +
+                "STORED AS ORC LOCATION '%s'",tablePath));
+        methodWatcher.executeUpdate("insert into t values(1, [1,1,1])");
+        ResultSet rs = methodWatcher.executeQuery("select * from t where c1=1");
+        rs.next();
+        int i = rs.getInt(1);
+        Assert.assertTrue(i == 1);
+    }
 }
