@@ -59,6 +59,9 @@ class SplicemachineContext(url: String) extends Serializable {
     maker.createNew(dbProperties)
   }
 
+  def getConnection(): Connection = {
+    internalConnection;
+  }
 
   def tableExists(schemaTableName: String): Boolean = {
     val spliceOptions = Map(

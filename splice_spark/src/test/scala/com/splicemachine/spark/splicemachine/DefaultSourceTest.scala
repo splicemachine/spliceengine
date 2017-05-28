@@ -23,6 +23,7 @@ import org.junit.Assert._
 import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
 import org.scalatest.junit.JUnitRunner
 import org.apache.spark.sql.functions._
+import java.sql.Connection
 
 @RunWith(classOf[JUnitRunner])
 class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter with Matchers {
@@ -55,6 +56,31 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     val newDF = sqlContext.read.options(internalOptions).splicemachine
     assert(newDF.count == 20)
   }
+
+  test("commit insertion") {
+    val conn : Connection = splicemachineContext.getConnection()
+    conn.setAutoCommit(false);
+    val df = sqlContext.read.options(internalOptions).splicemachine
+    val changedDF = df.withColumn("C6_INT", when(col("C6_INT").leq(10), col("C6_INT").plus(10)) )
+    splicemachineContext.insert(changedDF, internalTN)
+    conn.commit();
+    val newDF = sqlContext.read.options(internalOptions).splicemachine
+    conn.setAutoCommit(true);
+    assert(newDF.count == 20)
+  }
+
+  test("rollback  insertion") {
+    val conn : Connection = splicemachineContext.getConnection()
+    conn.setAutoCommit(false);
+    val df = sqlContext.read.options(internalOptions).splicemachine
+    val changedDF = df.withColumn("C6_INT", when(col("C6_INT").leq(10), col("C6_INT").plus(10)) )
+    splicemachineContext.insert(changedDF, internalTN)
+    conn.rollback();
+    val newDF = sqlContext.read.options(internalOptions).splicemachine
+    conn.setAutoCommit(true);
+    assert(newDF.count == 10)
+  }
+
 
   test("bulkImportHFile") {
     val bulkImportOptions = scala.collection.mutable.Map(
