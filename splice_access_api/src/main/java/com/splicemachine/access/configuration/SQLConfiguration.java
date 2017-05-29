@@ -210,6 +210,9 @@ public class SQLConfiguration implements ConfigurationDefault {
     public static final String NESTEDLOOPJOIN_BATCH_SIZE = "splice.nestedLoopJoin.batchSize";
     private static final int DEFAULT_NESTEDLOOPJOIN_BATCH_SIZE = 10;
 
+    public static final String CONTROL_EXECUTION_ROWS_LIMIT = "splice.controlExecution.rowsLimit";
+    private static final int DEFAULT_CONTROL_EXECUTION_ROWS_LIMIT = 2000000;
+
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         // FIXME: JC - some of these are not referenced anywhere outside. Do we need them?
@@ -223,6 +226,7 @@ public class SQLConfiguration implements ConfigurationDefault {
         builder.partitionserverJmxPort = configurationSource.getInt(PARTITIONSERVER_JMX_PORT, DEFAULT_PARTITIONSERVER_JMX_PORT);
         builder.partitionserverPort = configurationSource.getInt(PARTITIONSERVER_PORT, DEFAULT_PARTITIONSERVER_PORT);
         builder.nestedLoopJoinBatchSize = configurationSource.getInt(NESTEDLOOPJOIN_BATCH_SIZE, DEFAULT_NESTEDLOOPJOIN_BATCH_SIZE);
+        builder.controlExecutionRowLimit = configurationSource.getLong(CONTROL_EXECUTION_ROWS_LIMIT, DEFAULT_CONTROL_EXECUTION_ROWS_LIMIT);
 
         // Where to place jar files...
         String defaultStorageFactoryHome;
