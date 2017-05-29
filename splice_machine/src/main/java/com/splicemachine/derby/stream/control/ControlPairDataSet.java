@@ -14,7 +14,8 @@
 
 package com.splicemachine.derby.stream.control;
 
-import org.apache.spark.api.java.Optional;
+import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiter;
+import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import org.spark_project.guava.base.Function;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -45,6 +46,7 @@ import javax.annotation.Nullable;
 import java.util.*;
 
 import static com.splicemachine.derby.stream.control.ControlUtils.entryToTuple;
+import static com.splicemachine.derby.stream.control.ControlUtils.limit;
 import static com.splicemachine.derby.stream.control.ControlUtils.multimapFromIterator;
 import static org.spark_project.guava.collect.Maps.*;
 
@@ -61,8 +63,6 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     public ControlPairDataSet(Iterator<Tuple2<K,V>> source) {
         this.source = source;
     }
-
-
 
     @Override
     public DataSet<V> values() {
@@ -99,7 +99,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public <Op extends SpliceOperation> PairDataSet<K, V> reduceByKey(final SpliceFunction2<Op,V, V, V> function2) {
-        Multimap<K,V> newMap = multimapFromIterator(source);
+        Multimap<K,V> newMap = multimapFromIterator(limit(source, function2.operationContext));
         return new ControlPairDataSet<>(entryToTuple(Multimaps.<K,V>forMap(transformValues(newMap.asMap(),
                 new Function<Collection<V>, V>() {
             @Override
@@ -128,7 +128,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
-    public PairDataSet<K, V> sortByKey(final Comparator<K> comparator) {
+    public PairDataSet<K, V> sortByKey(final Comparator<K> comparator, OperationContext operationContext) {
         /*
          * -sf- this is done a bit goofily, so that we can support multiple versions of guava.
          *
@@ -140,24 +140,24 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
             public int compare(Tuple2<K, V> o1, Tuple2<K, V> o2) {
                 return comparator.compare(o1._1(), o2._1());
             }
-        }).immutableSortedCopy(() -> source).iterator());
+        }).immutableSortedCopy(() -> limit(source, operationContext)).iterator());
     }
 
     @Override
-    public PairDataSet<K, V> sortByKey(final Comparator<K> comparator, String name) {
+    public PairDataSet<K, V> sortByKey(final Comparator<K> comparator, String name, OperationContext operationContext) {
         // 'name' is not used on control side
-        return sortByKey(comparator);
+        return sortByKey(comparator, operationContext);
     }
 
     @Override
-    public PairDataSet<K, V> partitionBy(Partitioner<K> partitioner, Comparator<K> comparator) {
+    public PairDataSet<K, V> partitionBy(Partitioner<K> partitioner, Comparator<K> comparator, OperationContext<JoinOperation> operationContext) {
         // we don't need to partition
-        return sortByKey(comparator);
+        return sortByKey(comparator, operationContext);
     }
 
     @Override
-    public PairDataSet<K, Iterable<V>> groupByKey() {
-        Multimap<K,V> newMap = multimapFromIterator(source);
+    public PairDataSet<K, Iterable<V>> groupByKey(OperationContext context) {
+        Multimap<K,V> newMap = multimapFromIterator(limit(source, context));
         return new ControlPairDataSet<>(FluentIterable.from(newMap.asMap().entrySet()).transform(new Function<Map.Entry<K, Collection<V>>, Tuple2<K, Iterable<V>>>() {
             @Nullable
             @Override
@@ -169,61 +169,14 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
-    public PairDataSet<K, Iterable<V>> groupByKey(String name) {
-        return groupByKey();
+    public PairDataSet<K, Iterable<V>> groupByKey(String name, OperationContext context) {
+        return groupByKey(context);
     }
 
     @Override
-    public <W> PairDataSet< K, Tuple2<V, Optional<W>>> hashLeftOuterJoin(final PairDataSet< K, W> rightDataSet) {
+    public <W> PairDataSet< K, Tuple2<V, W>> hashJoin(PairDataSet<K, W> rightDataSet, OperationContext operationContext) {
         // Materializes the right side
-        final Multimap<K,W> rightSide = multimapFromIterator(((ControlPairDataSet) rightDataSet).source);
-        return new ControlPairDataSet(Iterators.concat(Iterators.transform(source,new Function<Tuple2<K, V>, Iterable<Tuple2<K, Tuple2<V, Optional<W>>>>>() {
-            @Nullable
-            @Override
-            public Iterable<Tuple2<K, Tuple2<V, Optional<W>>>> apply(@Nullable Tuple2<K, V> t) {
-                assert t!=null: "T cannot be null";
-                List<Tuple2<K,Tuple2<V,Optional<W>>>> result = new ArrayList<>();
-                K key = t._1();
-                V value = t._2();
-                if (rightSide.containsKey(key)) {
-                    for (W rightValue : rightSide.get(key)) {
-                        result.add(new Tuple2<>(key,new Tuple2<>(value,Optional.of(rightValue))));
-                    }
-                } else
-                    result.add(new Tuple2<>(key,new Tuple2<>(value,Optional.<W>empty())));
-                return result;
-            }
-        })));
-
-    }
-
-    @Override
-    public <W> PairDataSet< K, Tuple2<Optional<V>, W>> hashRightOuterJoin(PairDataSet< K, W> rightDataSet) {
-        // Materializes the left side
-        final Multimap<K, V> leftSide = multimapFromIterator(source);
-        return new ControlPairDataSet(Iterators.transform( ( (ControlPairDataSet<K,W>) rightDataSet).source, new Function<Tuple2<K, W>, Iterator<Tuple2<K, Tuple2<Optional<V>, W>>>>() {
-            @Nullable
-            @Override
-            public Iterator<Tuple2<K, Tuple2<Optional<V>, W>>> apply(@Nullable Tuple2<K, W> t) {
-                assert t!=null: "t cannot be null!";
-                List<Tuple2<K,Tuple2<Optional<V>,W>>> result = new ArrayList<>();
-                K key = t._1();
-                W value = t._2();
-                if (leftSide.containsKey(key)) {
-                    for (V leftValue: leftSide.get(key)) {
-                        result.add(new Tuple2<>(key,new Tuple2<>(Optional.of(leftValue),value)));
-                    }
-                } else
-                    result.add(new Tuple2<>(key,new Tuple2<>(Optional.<V>absent(),value)));
-                return result.iterator();
-            }
-        }));
-    }
-
-    @Override
-    public <W> PairDataSet< K, Tuple2<V, W>> hashJoin(PairDataSet< K, W> rightDataSet) {
-        // Materializes the right side
-        final Multimap<K,W> rightSide = multimapFromIterator(((ControlPairDataSet<K,W>) rightDataSet).source);
+        final Multimap<K,W> rightSide = multimapFromIterator(limit(((ControlPairDataSet<K,W>) rightDataSet).source, operationContext));
         return new ControlPairDataSet(Iterators.concat(Iterators.transform(source,new Function<Tuple2<K, V>, Iterator<Tuple2<K, Tuple2<V, W>>>>() {
             @Nullable
             @Override
@@ -241,15 +194,15 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
-    public <W> PairDataSet< K, Tuple2<V, W>> hashJoin(PairDataSet< K, W> rightDataSet, String name) {
+    public <W> PairDataSet< K, Tuple2<V, W>> hashJoin(PairDataSet<K, W> rightDataSet, String name, OperationContext operationContext) {
         // Ignore name on control side
-        return hashJoin(rightDataSet);
+        return hashJoin(rightDataSet, operationContext);
     }
     
     @Override
-    public <W> PairDataSet< K, V> subtractByKey(PairDataSet< K, W> rightDataSet) {
+    public <W> PairDataSet< K, V> subtractByKey(PairDataSet<K, W> rightDataSet, OperationContext operationContext) {
         // Materializes the right side
-        final Multimap<K,W> rightSide = multimapFromIterator(((ControlPairDataSet<K,W>) rightDataSet).source);
+        final Multimap<K,W> rightSide = multimapFromIterator(limit(((ControlPairDataSet<K,W>) rightDataSet).source, operationContext));
         return new ControlPairDataSet<>(Iterators.filter(source, new Predicate<Tuple2<K, V>>() {
             @Override
             public boolean apply(@Nullable Tuple2<K, V> t) {
@@ -260,21 +213,15 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
-    public <W> PairDataSet< K, V> subtractByKey(PairDataSet< K, W> rightDataSet, String name) {
+    public <W> PairDataSet< K, V> subtractByKey(PairDataSet<K, W> rightDataSet, String name, OperationContext operationContext) {
         // Ignore name on control side
-        return subtractByKey(rightDataSet);
+        return subtractByKey(rightDataSet, operationContext);
     }
 
     @Override
     public String toString() {
+        // We can't consume the iterator since it's a streaming iterator
         StringBuilder sb = new StringBuilder("ControlPairDataSet [");
-        int i = 0;
-        while (source.hasNext()) {
-            Tuple2<K,V> entry = source.next();
-            if (i++ != 0)
-                sb.append(",");
-            sb.append(entry);
-        }
         sb.append("]");
         return sb.toString();
     }
@@ -314,9 +261,9 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
     
     @Override
-    public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet) {
-        Multimap<K, V> left = multimapFromIterator(source);
-        Multimap<K, W> right = multimapFromIterator( ((ControlPairDataSet<K, W>) rightDataSet).source);
+    public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet, OperationContext operationContext) {
+        Multimap<K, V> left = multimapFromIterator(limit(source, operationContext));
+        Multimap<K, W> right = multimapFromIterator(limit(((ControlPairDataSet<K, W>) rightDataSet).source, operationContext));
 
         List<Tuple2<K, Tuple2<Iterable<V>, Iterable<W>>>> result = new ArrayList<>();
         for (K key: Sets.union(left.keySet(),right.keySet())){
@@ -328,9 +275,9 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
-    public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet, String name) {
+    public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet, String name, OperationContext operationContext) {
         // Ignore name on control side
-        return cogroup(rightDataSet);
+        return cogroup(rightDataSet, operationContext);
     }
 
     @Override

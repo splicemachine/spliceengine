@@ -41,6 +41,7 @@ IN_MEM_PROFILE="mem"
 RUN_DIR="${BASE_DIR}/hbase_sql"
 
 BUILD="1"
+CLEAN="1"
 CHAOS="false"
 
 MEMBERS=2
@@ -56,6 +57,7 @@ usage() {
     echo "Usage: $0 -p [<hbase_profile>] [-s <n>] [-c] [-k] -h[elp]"
     echo "Where: "
     echo "  -b is an optional argument specifying to NOT ${MVN} clean install -DskipTest -Dspark-prepare first. The default is to build first."
+    echo "  -l is an optional argument specifying to NOT run clean the environment."
     echo "  -s <n> is an optional number of additional cluster RegionServer members to start. The default is 1 master and 2 region servers."
     echo "  -c is an optional flag determining random task failures. Default is that the chaos monkey NOT run. To see if you have the chaos monkey running, execute: grep 'task fail' <hbase_profile>/splice_machine_test/splice-derby.log"
     echo "  -p <hbase_profile> is the optional splice hbase platform to run. Default is ${DEFAULT_PROFILE}. (available options are in the top level pom.xml file)"
@@ -63,7 +65,7 @@ usage() {
     echo "  -h => print this message"
 }
 
-while getopts "chkp:s:bd:" flag ; do
+while getopts "chkp:s:bld:" flag ; do
     case $flag in
         h* | \?)
             usage
@@ -76,6 +78,10 @@ while getopts "chkp:s:bd:" flag ; do
         b)
         # DO NOT clean build first
             BUILD="0"
+        ;;
+        l)
+        # DO NOT clean first
+            CLEAN="0"
         ;;
         p)
         # the hbase profile
@@ -118,7 +124,11 @@ echo "   ${RUN_DIR}"
 if [[ "${BUILD}" == "1" ]]; then
   echo "Building first..."
   pushd "${BASE_DIR}" > /dev/null
-  (${MVN} clean install -Pcore,${PROFILE} -DskipTests )
+  if [[ "${CLEAN}" == "1" ]]; then
+    (${MVN} clean install -Pcore,${PROFILE} -DskipTests )
+  else
+    (${MVN} install -Pcore,${PROFILE} -DskipTests )
+  fi
   popd > /dev/null
   echo "Running Splice $PROFILE master and ${MEMBERS} regionservers with CHAOS = $CHAOS in:"
   echo "   ${RUN_DIR}"
