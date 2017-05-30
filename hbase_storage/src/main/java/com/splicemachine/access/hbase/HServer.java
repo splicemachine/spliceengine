@@ -82,4 +82,11 @@ public class HServer implements PartitionServer{
     public int hashCode(){
         return serverName.hashCode();
     }
+
+    @Override
+    public String toString() {
+        return "HServer{" +
+                "serverName=" + serverName +
+                '}';
+    }
 }

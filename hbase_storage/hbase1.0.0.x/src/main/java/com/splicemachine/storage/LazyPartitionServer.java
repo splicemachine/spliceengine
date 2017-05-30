@@ -110,4 +110,12 @@ public class LazyPartitionServer implements PartitionServer{
         else if(!(obj instanceof PartitionServer)) return false;
         return compareTo((PartitionServer)obj)==0;
     }
+
+    @Override
+    public String toString() {
+        return "LazyPartitionServer{" +
+                "tableName=" + tableName +
+                ", regionInfo=" + regionInfo +
+                '}';
+    }
 }
