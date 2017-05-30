@@ -27,11 +27,13 @@ import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -89,6 +91,12 @@ public class HBaseSubregionSplitter implements SubregionSplitter{
                                 byte[] first = it.next().toByteArray();
                                 while (it.hasNext()) {
                                     byte[] end = it.next().toByteArray();
+                                    if (Arrays.equals(first, end) && first != null && first.length > 0) {
+                                        // We have two cutpoints that are the same, that's only OK when the whole table fits into
+                                        // a single partition: ([], [])
+                                        LOG.warn(String.format("Two cutpoints are equal: %s for split: %s", Bytes.toStringBinary(first), split));
+                                        continue; // skip this cutpoint
+                                    }
                                     result.add(new SMSplit(
                                             new TableSplit(
                                                     infoFactory.getTableInfo(split.getTableName()),
