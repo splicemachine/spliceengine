@@ -470,4 +470,11 @@ public class RegionPartition implements Partition{
     public BitSet getBloomInMemoryCheck(boolean hasConstraintChecker,Pair<KVPair, Lock>[] dataAndLocks) throws IOException {
         return HRegionUtil.keyExists(hasConstraintChecker,region.getStore(SIConstants.DEFAULT_FAMILY_BYTES),dataAndLocks);
     }
+
+    @Override
+    public String toString() {
+        return "RegionPartition{" +
+                "region=" + region +
+                '}';
+    }
 }
