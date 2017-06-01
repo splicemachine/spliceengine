@@ -15,6 +15,8 @@
 package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
@@ -60,9 +62,22 @@ public class DistinctAggregateKeyCreation<Op extends SpliceOperation> extends Sp
     @Override
      public ExecRow call(LocatedRow row) throws Exception {
         ValueRow valueRow = new ValueRow(groupByColumns.length+2);
-        int position = 3;
-        for (int keyColumn : groupByColumns) {
-            valueRow.setColumn(position++, row.getRow().getColumn((keyColumn + 1)));
+        int position = 1;
+
+        // copy the first N columns which are grouByColumns + distinct column position + distinct column
+        // should we put the more distinct columns first instead? Is there performance difference for hashing?
+        for (; position<=groupByColumns.length+1; position++) {
+            valueRow.setColumn(position, row.getRow().getColumn(position));
+        }
+        //read the distinct column id
+        DataValueDescriptor dvd = row.getRow().getColumn(position);
+        valueRow.setColumn(position++, dvd);
+        if (dvd == null) {
+            // this is a row for non-distinct aggregates, put null value here
+            valueRow.setColumn(position, new SQLInteger());
+        } else {
+            // this is a row corresponding to a distinct aggregate
+            valueRow.setColumn(position, row.getRow().getColumn(groupByColumns.length+3));
         }
         return valueRow;
     }

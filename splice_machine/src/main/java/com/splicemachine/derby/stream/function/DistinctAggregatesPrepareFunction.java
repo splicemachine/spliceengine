@@ -14,18 +14,15 @@
 
 package com.splicemachine.derby.stream.function;
 
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.GroupedAggregateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.impl.sql.execute.operations.NormalizeOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.GroupedAggregateContext;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import org.apache.commons.collections.iterators.SingletonIterator;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 
 /**
@@ -50,9 +47,13 @@ import java.util.Iterator;
 public class DistinctAggregatesPrepareFunction extends SpliceFlatMapFunction<GroupedAggregateOperation, LocatedRow, LocatedRow> {
     private static final long serialVersionUID = 7780564699906451370L;
     private boolean initialized = false;
+    private GroupedAggregateOperation groupedAggregateOperation;
     private GroupedAggregateContext groupedAggregateContext;
     private int[] groupingKeys;
     private int[] uniqueColumns;
+    private int distinctRowLength;
+    private int nonDistinctRowLength;
+    private boolean hasNonDistinctAggregate;
 
     public DistinctAggregatesPrepareFunction() {
     }
@@ -64,52 +65,62 @@ public class DistinctAggregatesPrepareFunction extends SpliceFlatMapFunction<Gro
     @Override
     public Iterator<LocatedRow> call(LocatedRow sourceRow) throws Exception {
         if (!initialized) {
-            GroupedAggregateOperation groupedAggregateOperation = operationContext.getOperation();
+            initialized = true;
+            groupedAggregateOperation = operationContext.getOperation();
             groupedAggregateContext = groupedAggregateOperation.groupedAggregateContext;
             groupingKeys = groupedAggregateContext.getGroupingKeys();
             uniqueColumns = groupedAggregateContext.getNonGroupedUniqueColumns();
+            distinctRowLength = groupingKeys.length + 4;
+            nonDistinctRowLength = groupingKeys.length + 1
+                    + (groupedAggregateOperation.aggregates.length - uniqueColumns.length)*3;
+            hasNonDistinctAggregate = (groupedAggregateOperation.aggregates.length - uniqueColumns.length != 0);
         }
-        ArrayList<LocatedRow> list = new ArrayList<>(uniqueColumns.length+1);
-        for (int i = 0; i < uniqueColumns.length; i++) {
-            ValueRow valueRow = new ValueRow(2);
-            valueRow.setColumn(1,sourceRow.getRow().getColumn(uniqueColumns[i]));
-            valueRow.setColumn(2,sourceRow.getRow().getColumn(uniqueColumns[i+1]));
+        ArrayList<LocatedRow> list = new ArrayList<>(hasNonDistinctAggregate?uniqueColumns.length+1:uniqueColumns.length);
+        ValueRow valueRow;
+
+        for (SpliceGenericAggregator aggregator : groupedAggregateOperation.aggregates) {
+            if (!aggregator.isDistinct())
+                continue;
+            valueRow = new ValueRow(distinctRowLength);
+            // copy grouping key values
+            // note, column position is 1-based, while the columnid in groupingKeys and
+            // uniqueColumns are 0-based
+            int j=1;
+            for (; j<=groupingKeys.length; j++) {
+                valueRow.setColumn(j, sourceRow.getRow().getColumn(groupingKeys[j-1]+1));
+            }
+            // add distinct column id
+            valueRow.setColumn(j++, new SQLInteger(aggregator.getInputColumnId()));
+            // add aggr result field
+            valueRow.setColumn(j++, aggregator.getResultColumnValue(sourceRow.getRow()));
+            // add aggr input filed
+            valueRow.setColumn(j++, aggregator.getInputColumnValue(sourceRow.getRow()));
+            // add aggr function field
+            valueRow.setColumn(j++, sourceRow.getRow().getColumn(aggregator.getAggregatorColumnId()));
+            list.add(new LocatedRow(valueRow));
+        }
+        // add the row for the non-distinct aggregates
+        if (hasNonDistinctAggregate) {
+            valueRow = new ValueRow(nonDistinctRowLength);
+            //copy grouping key values
+            int j = 1;
+            for (; j <= groupingKeys.length; j++) {
+                valueRow.setColumn(j, sourceRow.getRow().getColumn(groupingKeys[j - 1] + 1));
+            }
+            // add distinct column id
+            valueRow.setColumn(j++, new SQLInteger());
+            for (SpliceGenericAggregator aggregator : groupedAggregateOperation.aggregates) {
+                if (aggregator.isDistinct())
+                    continue;
+                valueRow.setColumn(j++, aggregator.getResultColumnValue(sourceRow.getRow()));
+                valueRow.setColumn(j++, aggregator.getInputColumnValue(sourceRow.getRow()));
+                // aggregator columnId is 1-based
+                valueRow.setColumn(j++, sourceRow.getRow().getColumn(aggregator.getAggregatorColumnId()));
+            }
             list.add(new LocatedRow(valueRow));
         }
 
-
-/*
-
-        [distinct2 aggregate columns (value, compute)],[distinct position 1],[distinct value],[group by columns]
-
-
-
-        * emit N records corresponding to number of distincts + non distinct aggregates
-        * [distinct1 aggregate columns (value, compute)],[distinct position 0],[distinct value],[group by columns]
-        * [distinct2 aggregate columns (value, compute)],[distinct position 1],[distinct value],[group by columns]
-        * [non distinct aggregate columns],[null],[null],[group by columns]
-
-
-
-
-        normalize.source.setCurrentLocatedRow(sourceRow);
-        if (sourceRow != null) {
-            ExecRow normalized = null;
-            try {
-                normalized = normalize.normalizeRow(sourceRow.getRow(), true);
-            } catch (StandardException e) {
-                if (operationContext!=null && operationContext.isPermissive()) {
-                    operationContext.recordBadRecord(e.getLocalizedMessage() + sourceRow.toString(), e);
-                    return Collections.<LocatedRow>emptyList().iterator();
-                }
-                throw e;
-            }
-            getActivation().setCurrentRow(normalized, normalize.getResultSetNumber());
-            return new SingletonIterator(new LocatedRow(sourceRow.getRowLocation(), normalized.getClone()));
-        }else return Collections.<LocatedRow>emptyList().iterator();
-    }
-*/
-        return null;
+        return list.iterator();
     }
 
 }

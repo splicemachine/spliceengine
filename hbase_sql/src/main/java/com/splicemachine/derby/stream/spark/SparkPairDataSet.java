@@ -52,7 +52,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
 
     public SparkPairDataSet(JavaPairRDD<K, V> rdd,String rddName){
         this.rdd=rdd;
-        rdd.flatMapValues()
+     //   rdd.flatMapValues()
         if(rdd!=null && rddName!=null) this.rdd.setName(rddName);
     }
 
