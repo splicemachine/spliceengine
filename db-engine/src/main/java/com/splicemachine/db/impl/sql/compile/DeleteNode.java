@@ -968,7 +968,11 @@ public class DeleteNode extends DMLModStatementNode
 		** Adding indexes also takes care of the replication 
 		** requirement of having the primary key.
 		*/
-		DMLModStatementNode.getXAffectedIndexes(baseTable,  null, columnMap, conglomVector );
+
+		// Not Required for dynamic deletes.  It will be required if we attempt to do bulk
+		// deletes from a file (JUN)
+
+		//DMLModStatementNode.getXAffectedIndexes(baseTable,  null, columnMap, conglomVector );
 
 		/*
 	 	** If we have any DELETE triggers, then do one of the following
