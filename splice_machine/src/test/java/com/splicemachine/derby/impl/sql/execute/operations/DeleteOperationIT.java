@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
@@ -32,7 +33,7 @@ import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
 
-public class DeleteOperationIT {
+public class DeleteOperationIT extends SpliceUnitTest {
 
     private static final String SCHEMA = DeleteOperationIT.class.getSimpleName().toUpperCase();
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
@@ -77,6 +78,12 @@ public class DeleteOperationIT {
             cs.setString(1,spliceSchemaWatcher.schemaName);
             cs.execute();
         }
+        // Deliberately after statistics for the use case required for SPLICE-1660
+        new TableCreator(connection)
+                .withCreate("create table tableB (col1 int, col2 int, col3 date, col4 varchar(56), col5 int, col6 int, col7 int, col8 int, col9 int, primary key (col2,col3))")
+                .withIndex("create index ix_b on tableB(col4,col3)")
+                .withIndex("create index ix_c on tableB(col7)").create();
+
 
     }
 
@@ -158,4 +165,11 @@ public class DeleteOperationIT {
             assertEquals("Incorrect SQL state!", SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, se.getSQLState());
         }
     }
+
+    @Test
+    public void deleteUsesIndexScan() throws Exception {
+        fourthRowContainsQuery("explain delete from tableb where col3='01-01-1976' and col4 in ('dfsfd','sdfsdfsdf','sdfsdfdsfs','sdf')","MultiProbeIndexScan",methodWatcher);
+    }
+
+
 }
