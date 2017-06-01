@@ -53,7 +53,7 @@ public class BroadcastJoinCache{
     public BroadcastJoinCache(JoinTableLoader tableLoader){
         this.tableLoader = tableLoader;
         this.cache =CacheBuilder.newBuilder()
-                .maximumSize(30)
+                .maximumSize(10)
                 .expireAfterAccess(2,TimeUnit.SECONDS)
                 .softValues()
                 .build();
