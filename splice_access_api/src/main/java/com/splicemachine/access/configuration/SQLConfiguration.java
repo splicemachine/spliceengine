@@ -100,7 +100,7 @@ public class SQLConfiguration implements ConfigurationDefault {
      *
      */
     public static final String BROADCAST_REGION_MB_THRESHOLD = "splice.optimizer.broadcastRegionMBThreshold";
-    private static final int DEFAULT_BROADCAST_REGION_MB_THRESHOLD = (int) (Runtime.getRuntime().maxMemory() / (1024l * 1024l * 100l));
+    private static final int DEFAULT_BROADCAST_REGION_MB_THRESHOLD = 100;
 
     /**
      * Threshold in rows for the broadcast join region size.  Default is 1 Million Rows
@@ -110,12 +110,12 @@ public class SQLConfiguration implements ConfigurationDefault {
     private static final int DEFAULT_BROADCAST_REGION_ROW_THRESHOLD = 1000000;
 
     /**
-     * Threshold in cost for the broadcast Dataset implementation.  Default is 1000 (~ 1s, more than that and the subtree
+     * Threshold in cost for the broadcast Dataset implementation.  Default is 10000 (~ 10s, more than that and the subtree
      * is executed in parallel in Spark)
      *
      */
     public static final String BROADCAST_DATASET_COST_THRESHOLD = "splice.optimizer.broadcastDatasetCostThreshold";
-    private static final int DEFAULT_BROADCAST_DATASET_COST_THRESHOLD = 1000;
+    private static final int DEFAULT_BROADCAST_DATASET_COST_THRESHOLD = 10000;
 
     /**
      * Minimum fixed duration (in millisecomds) that should be allowed to lapse
