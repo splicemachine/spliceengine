@@ -186,10 +186,10 @@ public abstract class BaseJoinStrategy implements JoinStrategy{
 
         mb.push(
                 innerTable.getTrulyTheBestAccessPath().
-                        getCostEstimate().rowCount());
+                        getCostEstimate().getBase().rowCount());
         mb.push(
                 innerTable.getTrulyTheBestAccessPath().
-                        getCostEstimate().getEstimatedCost());
+                        getCostEstimate().getBase().getEstimatedCost());
         mb.push(tableVersion);
         mb.push(innerTable instanceof ResultSetNode ? ((ResultSetNode)innerTable).printExplainInformationForActivation() : "");
         mb.push(pin);
