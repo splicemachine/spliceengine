@@ -104,6 +104,7 @@ public class SplitRegionScanner implements RegionScanner {
                             Bytes.compareTo(regionStopKey, stopRow) <= 0) && regionStopKey.length > 0 ? regionStopKey : stopRow;
                     newScan.setStartRow(splitStart);
                     newScan.setStopRow(splitStop);
+                    newScan.setCacheBlocks(false);
                     if (LOG.isDebugEnabled())
                         SpliceLogUtils.debug(LOG, "adding Split Region Scanner for startKey='%s', endKey='%s' on partition ['%s', '%s']",
                                 CellUtils.toHex(splitStart), CellUtils.toHex(splitStop),
