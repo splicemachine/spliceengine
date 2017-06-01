@@ -17,6 +17,7 @@ package com.splicemachine.hbase;
 
 import java.io.IOException;
 
+import com.splicemachine.client.SpliceClient;
 import com.splicemachine.derby.hbase.HBasePipelineEnvironment;
 import com.splicemachine.derby.lifecycle.ManagerLoader;
 import com.splicemachine.lifecycle.PipelineEnvironmentLoadService;
@@ -61,6 +62,7 @@ public class RegionServerLifecycleObserver extends BaseRegionServerObserver{
     public void start(CoprocessorEnvironment e) throws IOException{
         isHbaseJVM= true;
         lifecycleManager = startEngine(e);
+        SpliceClient.isRegionServer = true;
     }
 
     @Override
