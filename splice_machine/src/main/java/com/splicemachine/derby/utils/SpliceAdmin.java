@@ -16,6 +16,7 @@ package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
@@ -928,13 +929,23 @@ public class SpliceAdmin extends BaseAdminProcedures{
     public static void SET_PURGE_DELETED_ROWS (String schemaName, String tableName, String enable) throws Exception{
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         TransactionController tc  = lcc.getTransactionExecute();
-        tc.elevate("purgeDeleteRows");
         DataDictionary dd = lcc.getDataDictionary();
+        dd.startWriting(lcc);
         SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        if (sd == null)
+        {
+            throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);
+        }
         TableDescriptor td = dd.getTableDescriptor(tableName, sd, tc);
+        if (td == null)
+        {
+            throw StandardException.newException(SQLState.TABLE_NOT_FOUND, tableName);
+        }
         DDLMessage.DDLChange ddlChange = ProtoUtil.createAlterTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
                 (BasicUUID) td.getUUID());
-        // Run Remotely
+        DependencyManager dm = dd.getDependencyManager();
+        dm.invalidateFor(td, DependencyManager.ALTER_TABLE, lcc);
+
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
         boolean b = "TRUE".compareToIgnoreCase(enable) == 0 ? true : false;
         td.setPurgeDeletedRows(b);

@@ -689,8 +689,12 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     @Override
     public boolean canUseCache(TransactionController xactMgr) throws StandardException {
-        if (SpliceClient.isClient)
+        // Only enable dictionary cache for region server.
+        // TODO - enable it for master and spark executor
+        if (!SpliceClient.isRegionServer) {
+            SpliceLogUtils.debug(LOG, "Cannot use dictionary cache.");
             return false;
+        }
         DDLDriver driver=DDLDriver.driver();
         if(driver==null) return false;
         DDLWatcher ddlWatcher=driver.ddlWatcher();
