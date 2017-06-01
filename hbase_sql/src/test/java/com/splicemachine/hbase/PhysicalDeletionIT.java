@@ -71,13 +71,6 @@ public class PhysicalDeletionIT extends SpliceUnitTest {
         boolean purgeDeletedRows = rs.getBoolean(1);
         Assert.assertTrue(!purgeDeletedRows);
 
-        methodWatcher.execute("call syscs_util.SET_PURGE_DELETED_ROWS('PHYSICALDELETIONIT','A',true)");
-
-        rs = methodWatcher.executeQuery(sql);
-        assert rs.next();
-        purgeDeletedRows = rs.getBoolean(1);
-        Assert.assertTrue(purgeDeletedRows);
-
         methodWatcher.executeUpdate("delete from A");
         methodWatcher.executeUpdate("insert into a values(1,1), (2,2)");
 
@@ -85,19 +78,36 @@ public class PhysicalDeletionIT extends SpliceUnitTest {
         HBaseAdmin admin = new HBaseAdmin(config);
         long[] conglomId = SpliceAdmin.getConglomNumbers(conn, SCHEMA, "A");
         String hTableName = "splice:" + Long.toString(conglomId[0]);
-        admin.flush(TableName.valueOf(hTableName));
-        Thread.sleep(10000);
-        methodWatcher.execute("call syscs_util.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE('PHYSICALDELETIONIT','A')");
+        methodWatcher.execute("CALL SYSCS_UTIL.SYSCS_FLUSH_TABLE('PHYSICALDELETIONIT','A')");
+        methodWatcher.execute("CALL SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE('PHYSICALDELETIONIT','A')");
 
         HTable table = new HTable(config, hTableName);
 
         Scan s = new Scan();
-        // Let scanner know which columns we are interested in
         ResultScanner scanner = table.getScanner(s);
         int count = 0;
         for (Result rr = scanner.next(); rr != null; rr = scanner.next()) {
             count++;
         }
+        Assert.assertTrue(count == 4); // rows were not physically deleted from HFile
+
+
+        // Make sure rows are physically deleted from storage
+        methodWatcher.execute("CALL SYSCS_UTIL.SET_PURGE_DELETED_ROWS('PHYSICALDELETIONIT','A',true)");
+
+        rs = methodWatcher.executeQuery(sql);
+        assert rs.next();
+        purgeDeletedRows = rs.getBoolean(1);
+        Assert.assertTrue(purgeDeletedRows);
+
+        methodWatcher.execute("CALL SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE('PHYSICALDELETIONIT','A')");
+
+        scanner = table.getScanner(s);
+        count = 0;
+        for (Result rr = scanner.next(); rr != null; rr = scanner.next()) {
+            count++;
+        }
         Assert.assertTrue(count == 2);
+
     }
 }
