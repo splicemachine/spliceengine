@@ -113,6 +113,7 @@ public class BroadcastJoinCache{
     private static class ReferenceCountedJoinTable implements JoinTable{
         private final JoinTable delegate;
         private ReferenceCountingFactory refFactory;
+        private boolean closed = false;
 
         public ReferenceCountedJoinTable(JoinTable delegate,ReferenceCountingFactory refFactory){
             this.delegate=delegate;
@@ -126,6 +127,9 @@ public class BroadcastJoinCache{
 
         @Override
         public void close(){
+            if (closed)
+                return;
+            closed = true;
             refFactory.markClosed();
             delegate.close();
         }

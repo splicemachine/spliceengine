@@ -56,7 +56,24 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
     @Override
     public final Iterator<Out> call(Iterator<In> locatedRows) throws Exception {
         init();
-        return call(locatedRows, joinTable.get()).iterator();
+        JoinTable table = joinTable.get();
+        Iterator<Out> it = call(locatedRows, table).iterator();
+        return new Iterator<Out>() {
+            @Override
+            public boolean hasNext() {
+                boolean result = it.hasNext();
+                if (!result) {
+                    table.close();
+                    joinTable = null; // delete reference for gc
+                }
+                return result;
+            }
+
+            @Override
+            public Out next() {
+                return it.next();
+            }
+        };
     }
 
     protected abstract Iterable<Out> call(Iterator<In> locatedRows, JoinTable joinTable);
@@ -64,7 +81,7 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
-//        init();
+        init();
     }
 
     private synchronized void init() {
