@@ -81,7 +81,7 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
-//        init();
+        init();
     }
 
     private synchronized void init() {
