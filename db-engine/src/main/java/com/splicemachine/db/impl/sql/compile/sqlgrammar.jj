@@ -2986,6 +2986,7 @@ TOKEN [IGNORE_CASE] :
 |	<DOCUMENT: "document">
 |	<EACH: "each">
 |	<EMPTY: "empty">
+|   <ESTIMATE: "estimate">
 |	<EXCLUSIVE: "exclusive">
 |	<FN: "fn">
 |	<INDEX: "index">
@@ -3007,6 +3008,7 @@ TOKEN [IGNORE_CASE] :
 |   <OUT: "out">
 |	<PARAMETER: "parameter">
 |	<PASSING: "passing">
+|   <PERCENTWORD: "percent">
 |	<PROPERTIES: "properties">
 |	<PURGE: "purge">
 |	<READS: "reads">
@@ -3019,7 +3021,7 @@ TOKEN [IGNORE_CASE] :
 |	<RETURNING: "returning">
 |   <RR: "rr">
 |   <RS: "rs">
-|	<STATISTICS: "statistics">
+|   <SAMPLE: "sample">
 |	<SEQUENCE: "sequence">
 |	<SEQUENTIAL: "sequential">
 |	<SETS: "sets">
@@ -3028,6 +3030,7 @@ TOKEN [IGNORE_CASE] :
 |	<SPECIFIC: "specific">
 |   <SQRT: "sqrt">
 |       <STABILITY: "stability">
+|	<STATISTICS: "statistics">
 |   <STRIP: "strip">
 |   <STYLE: "style">
 |	<TRIGGER: "trigger">
@@ -3513,14 +3516,16 @@ analyzeTableStatement() throws StandardException :
   StatementNode       callStatement;
   BooleanConstantNode b;
   ConstantNode        schema;
+  ValueNode           samplePercent = null;
 }
 {
   <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+  [<ESTIMATE> <STATISTICS> <SAMPLE> samplePercent = literal() <PERCENTWORD>]
   {
     routineName = (TableName)nodeFactory.getNode(
              C_NodeTypes.TABLE_NAME,
              "SYSCS_UTIL",
-             "COLLECT_TABLE_STATISTICS",
+             (samplePercent==null)?"COLLECT_TABLE_STATISTICS" : "COLLECT_TABLE_SAMPLE_STATISTICS",
              getContextManager());
 
     Vector  parameterList = new Vector();
@@ -3542,6 +3547,10 @@ analyzeTableStatement() throws StandardException :
                                    tableName.getTableName(),
                                    getContextManager());
     parameterList.addElement(table);
+
+    if (samplePercent != null) {
+        parameterList.addElement(samplePercent);
+    }
 
     b =(BooleanConstantNode)getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
                     Boolean.FALSE,
@@ -16426,6 +16435,7 @@ nonReservedKeyword()  :
 	|	tok = <DOCUMENT>
 	|	tok = <EACH>
 	|	tok = <EMPTY>
+	|   tok = <ESTIMATE>
 	|	tok = <EXCLUSIVE>
 	|	tok = <EXTRACT>
 	|	tok = <FIRSTVALUE>
@@ -16503,6 +16513,7 @@ nonReservedKeyword()  :
 	|	tok = <OVER>
 	|	tok = <PASCAL>
 	|	tok = <PASSING>
+	|   tok = <PERCENTWORD>
 	|	tok = <PLI>
 	|	tok = <PRECISION>
 	|	tok = <PROPERTIES>
@@ -16530,6 +16541,7 @@ nonReservedKeyword()  :
 	|	tok = <ROWNUMBER>
 	|   tok = <RR>
 	|   tok = <RS>
+	|   tok = <SAMPLE>
 	|	tok = <SCALE>
 	|	tok = <SAVEPOINT>
 	|	tok = <SECURITY>

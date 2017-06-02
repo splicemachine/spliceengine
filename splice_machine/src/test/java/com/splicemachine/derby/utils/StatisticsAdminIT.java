@@ -15,6 +15,7 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test.SerialTest;
@@ -26,6 +27,7 @@ import org.junit.rules.TestRule;
 
 import java.sql.*;
 
+import static com.splicemachine.derby.test.framework.SpliceUnitTest.format;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 
@@ -38,6 +40,7 @@ public class StatisticsAdminIT{
     private static final String SCHEMA=StatisticsAdminIT.class.getSimpleName().toUpperCase();
     private static final String SCHEMA2=SCHEMA+"2";
     private static final String SCHEMA3=SCHEMA+"3";
+    private static final String SCHEMA4=SCHEMA+"4";
 
     private static final SpliceWatcher spliceClassWatcher=new SpliceWatcher(SCHEMA);
     private static final SpliceSchemaWatcher spliceSchemaWatcher=new SpliceSchemaWatcher(SCHEMA);
@@ -45,6 +48,8 @@ public class StatisticsAdminIT{
     private static final SpliceSchemaWatcher spliceSchemaWatcher2=new SpliceSchemaWatcher(SCHEMA2);
     private static final SpliceWatcher spliceClassWatcher3=new SpliceWatcher(SCHEMA3);
     private static final SpliceSchemaWatcher spliceSchemaWatcher3=new SpliceSchemaWatcher(SCHEMA3);
+    private static final SpliceWatcher spliceClassWatcher4=new SpliceWatcher(SCHEMA4);
+    private static final SpliceSchemaWatcher spliceSchemaWatcher4=new SpliceSchemaWatcher(SCHEMA4);
 
     private static final String TABLE_EMPTY="EMPTY";
     private static final String TABLE_OCCUPIED="OCCUPIED";
@@ -66,6 +71,10 @@ public class StatisticsAdminIT{
     public static TestRule chain3=RuleChain.outerRule(spliceClassWatcher3)
             .around(spliceSchemaWatcher3);
 
+    @ClassRule
+    public static TestRule chain4=RuleChain.outerRule(spliceClassWatcher4)
+            .around(spliceSchemaWatcher4);
+
     @Rule
     public final SpliceWatcher methodWatcher=new SpliceWatcher(SCHEMA);
 
@@ -74,6 +83,9 @@ public class StatisticsAdminIT{
 
     @Rule
     public final SpliceWatcher methodWatcher3=new SpliceWatcher(SCHEMA3);
+
+    @Rule
+    public final SpliceWatcher methodWatcher4=new SpliceWatcher(SCHEMA4);
 
     @BeforeClass
     public static void createSharedTables() throws Exception{
@@ -98,7 +110,49 @@ public class StatisticsAdminIT{
                         "mysmallint SMALLINT)")
                 .create();
 
+        Connection conn4=spliceClassWatcher4.getOrCreateConnection();
 
+        new TableCreator(conn4)
+                .withCreate("create table t1(a1 int, b1 int, c1 int)")
+                .withInsert("insert into t1 values(?,?,?)")
+                .withRows(rows(
+                        row(1,1,1),
+                        row(2,2,2),
+                        row(3,3,3),
+                        row(4,4,4),
+                        row(5,5,5),
+                        row(6,6,6),
+                        row(7,7,7),
+                        row(8,8,8),
+                        row(9,9,9),
+                        row(10,10,10)))
+                .create();
+
+        for (int i = 0; i < 2; i++) {
+            spliceClassWatcher4.executeUpdate("insert into t1 select * from t1");
+        }
+
+        new TableCreator(conn4)
+                .withCreate("create table t2 (a2 int, b2 int, c2 int, constraint con1 primary key (a2))")
+                .withInsert("insert into t2 values(?,?,?)")
+                .withRows(rows(
+                        row(1,1,1),
+                        row(2,1,1),
+                        row(3,1,1),
+                        row(4,1,1),
+                        row(5,1,1),
+                        row(6,2,2),
+                        row(7,2,2),
+                        row(8,2,2),
+                        row(9,2,2),
+                        row(10,2,2)))
+                .create();
+
+        int factor = 10;
+        for (int i = 1; i <= 12; i++) {
+            spliceClassWatcher4.executeUpdate(format("insert into t2 select a2+%d, b2,c2 from t2", factor));
+            factor = factor * 2;
+        }
     }
 
     private static void doCreateSharedTables(Connection conn) throws Exception{
@@ -473,6 +527,176 @@ public class StatisticsAdminIT{
         }finally{
             conn.rollback();
         }
+
+    }
+
+    @Test
+    public void testCollectSampleStats() throws Exception{
+        TestConnection conn4=methodWatcher4.getOrCreateConnection();
+
+        // test regular stats
+        conn4.createStatement().executeQuery(format(
+                "call SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','t1', false)",
+                spliceSchemaWatcher4));
+        //check the statsType and sample fraction in sys.systablestats by querying the system view systablestatistics
+        ResultSet resultSet = conn4.createStatement().
+                executeQuery(format("select * from sys.systablestatistics where schemaName='%s' and tablename='T1'", spliceSchemaWatcher4));
+        long rowCount = 0;
+        while (resultSet.next()) {
+            //stats type should be 0 (which represents regular stats
+            Assert.assertEquals(0, resultSet.getInt(10));
+            //stats fraction should be 0.0
+            Assert.assertTrue("sampleFraction does not match",
+                    Math.abs(resultSet.getDouble(11)) < 1e-9);
+            rowCount += resultSet.getLong(4);
+        }
+        //check if the number of rows is correct
+        Assert.assertTrue("rowcount does not match the actual, exepct 40, actual is" + rowCount, rowCount == 40);
+        resultSet.close();
+
+        // test sample stats
+        conn4.createStatement().executeQuery(format(
+                "call SYSCS_UTIL.COLLECT_TABLE_SAMPLE_STATISTICS('%s','t2', 50, false)",
+                spliceSchemaWatcher4));
+        //check the statsType and sample fraction in sys.systablestats by querying the system view systablestatistics
+        resultSet = conn4.createStatement().
+                executeQuery(format("select * from sys.systablestatistics where schemaName='%s' and tablename='T2'", spliceSchemaWatcher4));
+        rowCount = 0;
+        boolean firstRow = true;
+        int statsType = 0;
+        double sampleFraction = 0.0d;
+        while (resultSet.next()) {
+            if (firstRow) {
+                statsType = resultSet.getInt(10);
+                sampleFraction = resultSet.getDouble(11);
+                // mem platform does not support sample stats, so statsType will be 0 (which represents regular stats)
+                // for all other platforms, statsType should be 1 (which represents sample stats)
+                if (statsType == 1)
+                    Assert.assertTrue("sampleFraction should be 0.5",
+                            Math.abs(sampleFraction - 0.5) < 1e-9);
+                else
+                    Assert.assertTrue("sampleFraction should be 0.0",
+                            Math.abs(sampleFraction) < 1e-9);
+
+                firstRow = false;
+            } else {
+                //stats type and sample fraction should be consistent across all partitions
+                Assert.assertEquals(statsType, resultSet.getInt(10));
+                //stats fraction should be 0.5
+                Assert.assertTrue("sampleFraction does not match",
+                        Math.abs(resultSet.getDouble(11) - sampleFraction) < 1e-9);
+            }
+            rowCount += resultSet.getLong(4);
+        }
+        //check if the number of rows sampled is proportional to the sample ratio
+        if (statsType == 1)
+            Assert.assertTrue("sampled rowcount does not match the specified sample fraciton", Math.abs((double)rowCount/sampleFraction - 40960 )/40960 < 0.02);
+        else
+            Assert.assertTrue("sampled rowcount does not match the specified sample fraciton", Math.abs((double)rowCount - 40960 )/40960 < 0.02);
+        resultSet.close();
+
+        // test estimations under sample stats
+        // case 1: test row count
+        String sqlText = "explain select * from t2";
+        double outputRows = SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(3, sqlText, methodWatcher4));
+        Assert.assertTrue(format("OutputRows is expected to be around 40960, actual is %s", outputRows), Math.abs(outputRows - 40960)/40960 < 0.02);
+
+        // case 2: test selectivity (with matches)
+        sqlText = "explain select * from t2 where b2=1";
+        outputRows = SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(3, sqlText, methodWatcher4));
+        Assert.assertTrue(format("OutputRows is expected to be around 20480, actual is %s", outputRows), Math.abs(outputRows - 20480)/20480 < 0.02);
+
+        // case 3: test selectivity (without matches)
+        sqlText = "explain select * from t2 where b2=3";
+        outputRows = SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(3, sqlText, methodWatcher4));
+        Assert.assertTrue(format("OutputRows is expected to be 1, actual is %s", outputRows), Math.abs(outputRows - 1) < 0.02);
+
+        //case 4: test range selectivity
+        sqlText = "explain select * from t2 where a2 > 20480";
+        outputRows = SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(3, sqlText, methodWatcher4));
+        Assert.assertTrue(format("OutputRows is expected to be around 20480, actual is %s", outputRows), Math.abs(outputRows - 20480)/20480 < 0.02);
+
+        //case 5:  test cardinality
+        sqlText = "explain select * from --splice-properties joinOrder=fixed \n" +
+                "t1, t2 --splice-properties joinStrategy=NESTEDLOOP \n" +
+                "where c1=c2";
+        outputRows = SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(4, sqlText, methodWatcher4));
+        Assert.assertTrue(format("OutputRows is expected to be around 20480, actual is %s", outputRows),Math.abs(outputRows - 20480)/20480 < 0.02);
+
+    }
+
+    @Test
+    public void testCollectSampleStatsViaAnalyze() throws Exception{
+        TestConnection conn4=methodWatcher4.getOrCreateConnection();
+
+        // test sample stats
+        conn4.createStatement().executeQuery(format(
+                "analyze table %s.t2 estimate statistics sample 50 percent",
+                spliceSchemaWatcher4));
+        //check the statsType and sample fraction in sys.systablestats by querying the system view systablestatistics
+        ResultSet resultSet = conn4.createStatement().
+                executeQuery(format("select * from sys.systablestatistics where schemaName='%s' and tablename='T2'", spliceSchemaWatcher4));
+        long rowCount = 0;
+        boolean firstRow = true;
+        int statsType = 0;
+        double sampleFraction = 0.0d;
+        while (resultSet.next()) {
+            if (firstRow) {
+                statsType = resultSet.getInt(10);
+                sampleFraction = resultSet.getDouble(11);
+                // mem platform does not support sample stats, so statsType will be 0 (which represents regular stats)
+                // for all other platforms, statsType should be 1 (which represents sample stats)
+                if (statsType == 1)
+                    Assert.assertTrue("sampleFraction should be 0.5",
+                            Math.abs(sampleFraction - 0.5) < 1e-9);
+                else
+                    Assert.assertTrue("sampleFraction should be 0.0",
+                            Math.abs(sampleFraction) < 1e-9);
+
+                firstRow = false;
+            } else {
+                //stats type and sample fraction should be consistent across all partitions
+                Assert.assertEquals(statsType, resultSet.getInt(10));
+                //stats fraction should be 0.5
+                Assert.assertTrue("sampleFraction does not match",
+                        Math.abs(resultSet.getDouble(11) - sampleFraction) < 1e-9);
+            }
+            rowCount += resultSet.getLong(4);
+        }
+        //check if the number of rows sampled is proportional to the sample ratio
+        if (statsType == 1)
+            Assert.assertTrue("sampled rowcount does not match the specified sample fraciton", Math.abs((double)rowCount/sampleFraction - 40960 )/40960 < 0.02);
+        else
+            Assert.assertTrue("sampled rowcount does not match the specified sample fraciton", Math.abs((double)rowCount - 40960 )/40960 < 0.02);
+        resultSet.close();
+
+        // test estimations under sample stats
+        // case 1: test row count
+        String sqlText = "explain select * from t2";
+        double outputRows = SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(3, sqlText, methodWatcher4));
+        Assert.assertTrue(format("OutputRows is expected to be around 40960, actual is %s", outputRows), Math.abs(outputRows - 40960)/40960 < 0.02);
+
+        // case 2: test selectivity (with matches)
+        sqlText = "explain select * from t2 where b2=1";
+        outputRows = SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(3, sqlText, methodWatcher4));
+        Assert.assertTrue(format("OutputRows is expected to be around 20480, actual is %s", outputRows), Math.abs(outputRows - 20480)/20480 < 0.02);
+
+        // case 3: test selectivity (without matches)
+        sqlText = "explain select * from t2 where b2=3";
+        outputRows = SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(3, sqlText, methodWatcher4));
+        Assert.assertTrue(format("OutputRows is expected to be 1, actual is %s", outputRows), Math.abs(outputRows - 1) < 0.02);
+
+        //case 4: test range selectivity
+        sqlText = "explain select * from t2 where a2 > 20480";
+        outputRows = SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(3, sqlText, methodWatcher4));
+        Assert.assertTrue(format("OutputRows is expected to be around 20480, actual is %s", outputRows), Math.abs(outputRows - 20480)/20480 < 0.02);
+
+        //case 5:  test cardinality
+        sqlText = "explain select * from --splice-properties joinOrder=fixed \n" +
+                "t1, t2 --splice-properties joinStrategy=NESTEDLOOP \n" +
+                "where c1=c2";
+        outputRows = SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(4, sqlText, methodWatcher4));
+        Assert.assertTrue(format("OutputRows is expected to be around 20480, actual is %s", outputRows),Math.abs(outputRows - 20480)/20480 < 0.02);
 
     }
 

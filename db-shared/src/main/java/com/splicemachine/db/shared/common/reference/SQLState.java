@@ -726,6 +726,7 @@ public interface SQLState {
 	String LANG_DATE_RANGE_EXCEPTION                                   = "22007.S.180";
 	String LANG_DATE_SYNTAX_EXCEPTION                                  = "22007.S.181";
     String LANG_INVALID_FUNCTION_ARGUMENT                              = "22008.S";
+	String LANG_INVALID_VALUE_RANGE                              	   = "22008.S.1";
     String LANG_SEQUENCE_GENERATOR_EXHAUSTED                              = "2200H.S";
 	String LANG_SUBSTR_START_OR_LEN_OUT_OF_RANGE                        = "22011";
 	String LANG_SUBSTR_START_ADDING_LEN_OUT_OF_RANGE                        = "22011.S.1";

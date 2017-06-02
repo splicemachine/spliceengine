@@ -15,6 +15,7 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.iapi.stats.ItemStatistics;
+import com.splicemachine.derby.stream.iapi.*;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.collect.FluentIterable;
 import org.spark_project.guava.collect.Lists;
@@ -43,10 +44,6 @@ import com.splicemachine.ddl.DDLMessage.DDLChange;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
-import com.splicemachine.derby.stream.iapi.DataSet;
-import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
-import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
@@ -139,7 +136,10 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         new GenericColumnDescriptor("tableName", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
         new GenericColumnDescriptor("partition", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
         new GenericColumnDescriptor("rowsCollected", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
-        new GenericColumnDescriptor("partitionSize", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
+        new GenericColumnDescriptor("partitionSize", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+        new GenericColumnDescriptor("partitionCount", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+        new GenericColumnDescriptor("statsType", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+        new GenericColumnDescriptor("sampleFraction", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE))
     };
 
     @SuppressWarnings("unused")
@@ -181,7 +181,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             List<StatisticsOperation> futures = new ArrayList(tds.size());
             for (TableDescriptor td : tds) {
                 display.put(td.getHeapConglomerateId(),Pair.newPair(schema,td.getName()));
-                futures.add(collectTableStatistics(td, txn, conn));
+                futures.add(collectTableStatistics(td, false, 0, txn, conn));
             }
             IteratorNoPutResultSet resultsToWrap = wrapResults(conn,
             displayTableStatistics(futures,dd,transactionExecute,display));
@@ -239,33 +239,15 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                                 String table,
                                                 boolean staleOnly,
                                                 ResultSet[] outputResults) throws SQLException {
-        EmbedConnection conn = (EmbedConnection) SpliceAdmin.getDefaultConn();
-        try {
-            schema = EngineUtils.validateSchema(schema);
-            table = EngineUtils.validateTable(table);
-            TableDescriptor tableDesc = verifyTableExists(conn, schema, table);
-            List<TableDescriptor> tds = Collections.singletonList(tableDesc);
-            authorize(tds);
-            DataDictionary dd = conn.getLanguageConnection().getDataDictionary();
-            dd.startWriting(conn.getLanguageConnection());
-            TransactionController tc = conn.getLanguageConnection().getTransactionExecute();
-            dropTableStatistics(tds,dd,tc);
-            ddlNotification(tc, tds);
-            TxnView txn = ((SpliceTransactionManager) tc).getRawTransaction().getActiveStateTxn();
-            HashMap<Long,Pair<String,String>> display = new HashMap<>();
-            display.put(tableDesc.getHeapConglomerateId(),Pair.newPair(schema,table));
-            IteratorNoPutResultSet resultsToWrap = wrapResults(
-                conn,
-                displayTableStatistics(Lists.newArrayList(
-                    collectTableStatistics(tableDesc, txn, conn)
-                ),
-                dd, tc, display));
-            outputResults[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
-        } catch (StandardException se) {
-            throw PublicAPI.wrapStandardException(se);
-        } catch (ExecutionException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e.getCause()));
-        }
+        doStatsCollectionForTables(schema, table, false, 0.0, staleOnly, outputResults);
+    }
+
+    public static void COLLECT_TABLE_SAMPLE_STATISTICS(String schema,
+                                                       String table,
+                                                       double sample,
+                                                       boolean staleOnly,
+                                                       ResultSet[] outputResults) throws SQLException {
+        doStatsCollectionForTables(schema, table, true, sample, staleOnly, outputResults);
     }
 
     public static void DROP_SCHEMA_STATISTICS(String schema) throws SQLException {
@@ -318,14 +300,58 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
+    private static void doStatsCollectionForTables(String schema,
+                                                   String table,
+                                                   boolean useSample,
+                                                   double samplePercent,
+                                                   boolean staleOnly,
+                                                   ResultSet[] outputResults) throws SQLException {
+        EmbedConnection conn = (EmbedConnection) SpliceAdmin.getDefaultConn();
+        try {
+            schema = EngineUtils.validateSchema(schema);
+            table = EngineUtils.validateTable(table);
+            TableDescriptor tableDesc = verifyTableExists(conn, schema, table);
+            List<TableDescriptor> tds = Collections.singletonList(tableDesc);
+            authorize(tds);
+            //check if sample fraction is in the valid range
+            if (useSample) {
+                if (samplePercent<0.0 || samplePercent>100.0)
+                    throw ErrorState.LANG_INVALID_VALUE_RANGE.newException("samplePercent value " + samplePercent, "[0,100]");
+            }
+            DataDictionary dd = conn.getLanguageConnection().getDataDictionary();
+            dd.startWriting(conn.getLanguageConnection());
+            TransactionController tc = conn.getLanguageConnection().getTransactionExecute();
+            dropTableStatistics(tds,dd,tc);
+            ddlNotification(tc, tds);
+            TxnView txn = ((SpliceTransactionManager) tc).getRawTransaction().getActiveStateTxn();
+            HashMap<Long,Pair<String,String>> display = new HashMap<>();
+            display.put(tableDesc.getHeapConglomerateId(),Pair.newPair(schema,table));
+            IteratorNoPutResultSet resultsToWrap = wrapResults(
+                    conn,
+                    displayTableStatistics(Lists.newArrayList(
+                            collectTableStatistics(tableDesc, useSample, samplePercent/100, txn, conn)
+                            ),
+                            dd, tc, display));
+            outputResults[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        } catch (ExecutionException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e.getCause()));
+        }
+    }
+
     private static StatisticsOperation collectTableStatistics(TableDescriptor table,
+                                                             boolean useSample,
+                                                             double sampleFraction,
                                                              TxnView txn,
                                                              EmbedConnection conn) throws StandardException, ExecutionException {
 
-       return collectBaseTableStatistics(table, txn, conn);
+       return collectBaseTableStatistics(table, useSample, sampleFraction, txn, conn);
     }
 
     private static StatisticsOperation collectBaseTableStatistics(TableDescriptor table,
+                                                                 boolean useSample,
+                                                                 double sampleFraction,
                                                                  TxnView txn,
                                                                  EmbedConnection conn) throws StandardException, ExecutionException {
         long heapConglomerateId = table.getHeapConglomerateId();
@@ -335,7 +361,12 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         ScanSetBuilder ssb = dsp.newScanSet(null,Long.toString(heapConglomerateId));
         ScanSetBuilder scanSetBuilder = createTableScanner(ssb,conn,table,txn);
         String scope = getScopeName(table);
-        StatisticsOperation op = new StatisticsOperation(scanSetBuilder,scope,activation);
+        // no sample stats support on mem platform
+        if (dsp.getType() != DataSetProcessor.Type.SPARK) {
+            useSample = false;
+            sampleFraction = 0.0d;
+        }
+        StatisticsOperation op = new StatisticsOperation(scanSetBuilder,useSample, sampleFraction, scope,activation);
         op.openCore();
         return op;
     }
@@ -573,7 +604,14 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         }
     }
 
-    public static ExecRow generateRowFromStats(long conglomId, String partitionId, long rowCount, long partitionSize, int meanRowWidth, long numberOfPartitions) throws StandardException {
+    public static ExecRow generateRowFromStats(long conglomId,
+                                               String partitionId,
+                                               long rowCount,
+                                               long partitionSize,
+                                               int meanRowWidth,
+                                               long numberOfPartitions,
+                                               int statsType,
+                                               double sampleFraction) throws StandardException {
         ExecRow row = new ValueRow(SYSTABLESTATISTICSRowFactory.SYSTABLESTATISTICS_COLUMN_COUNT);
         row.setColumn(SYSTABLESTATISTICSRowFactory.CONGLOMID,new SQLLongint(conglomId));
         row.setColumn(SYSTABLESTATISTICSRowFactory.PARTITIONID,new SQLVarchar(partitionId));
@@ -584,6 +622,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         row.setColumn(SYSTABLESTATISTICSRowFactory.PARTITION_SIZE,new SQLLongint(partitionSize));
         row.setColumn(SYSTABLESTATISTICSRowFactory.MEANROWWIDTH,new SQLInteger(meanRowWidth));
         row.setColumn(SYSTABLESTATISTICSRowFactory.NUMBEROFPARTITIONS,new SQLLongint(numberOfPartitions));
+        row.setColumn(SYSTABLESTATISTICSRowFactory.STATSTYPE,new SQLInteger(statsType));
+        row.setColumn(SYSTABLESTATISTICSRowFactory.SAMPLEFRACTION, new SQLDouble(sampleFraction));
         return row;
     }
 
@@ -597,13 +637,15 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     }
 
     public static ExecRow generateOutputRow(String schemaName, String tableName, ExecRow partitionRow) throws StandardException {
-        ExecRow row = new ValueRow(5);
+        ExecRow row = new ValueRow(8);
         row.setColumn(1,new SQLVarchar(schemaName));
         row.setColumn(2,new SQLVarchar(tableName));
         row.setColumn(3,partitionRow.getColumn(SYSTABLESTATISTICSRowFactory.PARTITIONID));
         row.setColumn(4,partitionRow.getColumn(SYSTABLESTATISTICSRowFactory.ROWCOUNT));
         row.setColumn(5,partitionRow.getColumn(SYSTABLESTATISTICSRowFactory.PARTITION_SIZE));
         row.setColumn(6,partitionRow.getColumn(SYSTABLESTATISTICSRowFactory.NUMBEROFPARTITIONS));
+        row.setColumn(7,partitionRow.getColumn(SYSTABLESTATISTICSRowFactory.STATSTYPE));
+        row.setColumn(8,partitionRow.getColumn(SYSTABLESTATISTICSRowFactory.SAMPLEFRACTION));
         return row;
     }
 

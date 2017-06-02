@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.stream.utils;
 
-import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -24,6 +23,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.stream.iapi.*;
+
 import java.io.InputStream;
 import java.util.Iterator;
 
@@ -149,18 +149,21 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <V> DataSet<V> readParquetFile(int[] baseColumnMap,int[] partitionColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,ExecRow execRow) throws StandardException {
-        return delegate.readParquetFile(baseColumnMap, partitionColumnMap,location, context,qualifiers,probeValue,execRow);
+    public <V> DataSet<V> readParquetFile(int[] baseColumnMap,int[] partitionColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,ExecRow execRow,
+                                          boolean useSample, double sampleFraction) throws StandardException {
+        return delegate.readParquetFile(baseColumnMap, partitionColumnMap,location, context,qualifiers,probeValue,execRow, useSample, sampleFraction);
     }
 
     @Override
-    public <V> DataSet<V> readORCFile(int[] baseColumnMap,int[] partitionColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,ExecRow execRow) throws StandardException {
-        return delegate.readORCFile(baseColumnMap, partitionColumnMap, location, context,qualifiers,probeValue,execRow);
+    public <V> DataSet<V> readORCFile(int[] baseColumnMap,int[] partitionColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,ExecRow execRow,
+                                      boolean useSample, double sampleFraction) throws StandardException {
+        return delegate.readORCFile(baseColumnMap, partitionColumnMap, location, context,qualifiers,probeValue,execRow, useSample, sampleFraction);
     }
 
     @Override
-    public <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,ExecRow execRow) throws StandardException {
-        return delegate.readTextFile(op, location, characterDelimiter, columnDelimiter, baseColumnMap, context,  qualifiers, probeValue, execRow);
+    public <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,ExecRow execRow,
+                                                boolean useSample, double sampleFraction) throws StandardException {
+        return delegate.readTextFile(op, location, characterDelimiter, columnDelimiter, baseColumnMap, context,  qualifiers, probeValue, execRow, useSample, sampleFraction);
     }
 
     @Override
