@@ -4698,7 +4698,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
                         statement_.section_.getPositionedUpdateSection()); // update section
     }
 
-    private final void resetUpdatedColumnsForInsert() {
+    private void resetUpdatedColumnsForInsert() {
         // initialize updateColumns with nulls for all columns
         for (int i = 0; i < resultSetMetaData_.columns_; i++) {
             updateColumn(i+1, null);
@@ -4706,7 +4706,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
         }
     }
 
-    private final void resetUpdatedColumns() {
+    private void resetUpdatedColumns() {
         if (updatedColumns_ != null) {
             Arrays.fill(updatedColumns_, null);
         }
@@ -4715,19 +4715,19 @@ public abstract class ResultSet implements java.sql.ResultSet,
         }
     }
 
-    private final long getRowUncast() {
+    private long getRowUncast() {
         return firstRowInRowset_ + currentRowInRowset_;
     }
 
-    private final void checkGetterPreconditions(int column, String operation)
+    private void checkGetterPreconditions(int column, String operation)
             throws SqlException {
         checkForClosedResultSet(operation);
         checkForValidColumnIndex(column);
         checkForValidCursorPosition();
     }
 
-    private final void checkUpdatePreconditions(int column, 
-						String operation)
+    private void checkUpdatePreconditions(int column,
+                                          String operation)
 	throws SqlException {
 
         checkForClosedResultSet(operation);
@@ -4769,7 +4769,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
         }
     }
 
-    private final void checkForUpdatableResultSet(String operation) 
+    private void checkForUpdatableResultSet(String operation)
         throws SqlException {
         if (resultSetConcurrency_ == java.sql.ResultSet.CONCUR_READ_ONLY) {
             throw new SqlException(agent_.logWriter_, 
@@ -4778,7 +4778,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
         }
     }
     
-    private final void checkForValidCursorPosition() throws SqlException {
+    private void checkForValidCursorPosition() throws SqlException {
         if (!isValidCursorPosition_) {
             throw new SqlException(agent_.logWriter_, 
                 new ClientMessageId(SQLState.CURSOR_INVALID_OPERATION_AT_CURRENT_POSITION));
@@ -4786,7 +4786,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
     }
 
 
-    private final void checkPositionedOnPlainRow() throws SqlException {
+    private void checkPositionedOnPlainRow() throws SqlException {
         if (isOnInsertRow_ || !isValidCursorPosition_) {
             throw new SqlException
                 (agent_.logWriter_, 
@@ -4795,14 +4795,14 @@ public abstract class ResultSet implements java.sql.ResultSet,
     }
 
 
-    private final void checkThatResultSetTypeIsScrollable() throws SqlException {
+    private void checkThatResultSetTypeIsScrollable() throws SqlException {
         if (resultSetType_ == java.sql.ResultSet.TYPE_FORWARD_ONLY) {
             throw new SqlException(agent_.logWriter_, 
                 new ClientMessageId(SQLState.CURSOR_MUST_BE_SCROLLABLE));
         }
     }
 
-    private final void checkThatResultSetIsNotDynamic() throws SqlException {
+    private void checkThatResultSetIsNotDynamic() throws SqlException {
         if (sensitivity_ == sensitivity_sensitive_dynamic__) {
             throw new SqlException(agent_.logWriter_, 
                 new ClientMessageId(SQLState.CURSOR_INVALID_FOR_SENSITIVE_DYNAMIC));
@@ -5407,11 +5407,11 @@ public abstract class ResultSet implements java.sql.ResultSet,
         }
     }
 
-    private final int checkRowsetSqlca() throws SqlException {
+    private int checkRowsetSqlca() throws SqlException {
         return checkRowsetSqlca((int) currentRowInRowset_ + 1);
     }
 
-    private final int checkRowsetSqlca(int row) throws SqlException {
+    private int checkRowsetSqlca(int row) throws SqlException {
         int sqlcode = 0;
         if (!isRowsetCursor_ || rowsetSqlca_ == null || rowsetSqlca_[row] == null) {
             warnings_ = null;    // clear any previous warnings

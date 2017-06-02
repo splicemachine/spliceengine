@@ -762,7 +762,7 @@ final class CrossConverters {
     }
 
     // create a String by reading all of the bytes from reader
-    private final String setStringFromReader(java.io.Reader r, int length) throws SqlException {
+    private String setStringFromReader(java.io.Reader r, int length) throws SqlException {
         java.io.StringWriter sw = new java.io.StringWriter();
         try {
             int read = r.read();
@@ -810,7 +810,7 @@ final class CrossConverters {
 
 
     // create a String by reading all of the bytes from inputStream, applying encoding
-    private final String setStringFromStream(java.io.InputStream is, String encoding, int length) throws SqlException {
+    private String setStringFromStream(java.io.InputStream is, String encoding, int length) throws SqlException {
         try {
             java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
             int totalRead = 0;
@@ -876,7 +876,7 @@ final class CrossConverters {
     }
 
     // create a byte[] by reading all of the bytes from inputStream
-    private final byte[] setBytesFromStream(java.io.InputStream is, int length) throws SqlException {
+    private byte[] setBytesFromStream(java.io.InputStream is, int length) throws SqlException {
         java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
         int totalRead = 0;
 
@@ -1566,7 +1566,7 @@ final class CrossConverters {
         return ts;
     }
 
-    private final byte parseByte(String s) throws NumberFormatException {
+    private byte parseByte(String s) throws NumberFormatException {
         int i = parseInt(s);
         if (i < Byte.MIN_VALUE || i > Byte.MAX_VALUE) {
             throw new NumberFormatException();
@@ -1574,7 +1574,7 @@ final class CrossConverters {
         return (byte) i;
     }
 
-    private final short parseShort(String s) throws NumberFormatException {
+    private short parseShort(String s) throws NumberFormatException {
         int i = parseInt(s);
         if (i < Short.MIN_VALUE || i > Short.MAX_VALUE) {
             throw new NumberFormatException();
@@ -1583,7 +1583,7 @@ final class CrossConverters {
     }
 
     // Custom version of java.lang.parseInt() that allows for space padding of char fields.
-    private final int parseInt(String s) throws NumberFormatException {
+    private int parseInt(String s) throws NumberFormatException {
         if (s == null) {
             throw new NumberFormatException("null");
         }
@@ -1649,7 +1649,7 @@ final class CrossConverters {
         }
     }
 
-    private final long parseLong(String s) throws NumberFormatException {
+    private long parseLong(String s) throws NumberFormatException {
         if (s == null) {
             throw new NumberFormatException("null");
         }
@@ -1712,7 +1712,7 @@ final class CrossConverters {
         }
     }
 
-    private final void skipPadding(String s, int i, int length) throws NumberFormatException {
+    private void skipPadding(String s, int i, int length) throws NumberFormatException {
         while (i < length) {
             if (s.charAt(i++) != ' ') {
                 throw new NumberFormatException(s);

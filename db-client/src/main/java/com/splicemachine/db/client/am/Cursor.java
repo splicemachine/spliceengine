@@ -325,7 +325,7 @@ public abstract class Cursor {
     // Direct conversions only, cross conversions are handled by another set of getters.
 
     // Build a Java boolean from a 1-byte signed binary representation.
-    private final boolean get_BOOLEAN(int column) {
+    private boolean get_BOOLEAN(int column) {
         if ( com.splicemachine.db.client.am.SignedBinary.getByte
              ( dataBuffer_, columnDataPosition_[column - 1] ) == 0 )
         { return false; }
@@ -333,7 +333,7 @@ public abstract class Cursor {
     }
 
     // Build a Java short from a 2-byte signed binary representation.
-    private final short get_SMALLINT(int column) {
+    private short get_SMALLINT(int column) {
         return com.splicemachine.db.client.am.SignedBinary.getShort(dataBuffer_,
                 columnDataPosition_[column - 1]);
     }
@@ -345,25 +345,25 @@ public abstract class Cursor {
     }
 
     // Build a Java long from an 8-byte signed binary representation.
-    private final long get_BIGINT(int column) {
+    private long get_BIGINT(int column) {
         return com.splicemachine.db.client.am.SignedBinary.getLong(dataBuffer_,
                 columnDataPosition_[column - 1]);
     }
 
     // Build a Java float from a 4-byte floating point representation.
-    private final float get_FLOAT(int column) {
+    private float get_FLOAT(int column) {
         return com.splicemachine.db.client.am.FloatingPoint.getFloat(dataBuffer_,
                 columnDataPosition_[column - 1]);
     }
 
     // Build a Java double from an 8-byte floating point representation.
-    private final double get_DOUBLE(int column) {
+    private double get_DOUBLE(int column) {
         return com.splicemachine.db.client.am.FloatingPoint.getDouble(dataBuffer_,
                 columnDataPosition_[column - 1]);
     }
 
     // Build a java.math.BigDecimal from a fixed point decimal byte representation.
-    private final java.math.BigDecimal get_DECIMAL(int column) throws SqlException {
+    private java.math.BigDecimal get_DECIMAL(int column) throws SqlException {
         try {
             return com.splicemachine.db.client.am.Decimal.getBigDecimal(dataBuffer_,
                     columnDataPosition_[column - 1],
@@ -378,7 +378,7 @@ public abstract class Cursor {
 
 
     // Build a Java double from a fixed point decimal byte representation.
-    private final double getDoubleFromDECIMAL(int column) throws SqlException {
+    private double getDoubleFromDECIMAL(int column) throws SqlException {
         try {
             return com.splicemachine.db.client.am.Decimal.getDouble(dataBuffer_,
                     columnDataPosition_[column - 1],
@@ -396,7 +396,7 @@ public abstract class Cursor {
     }
 
     // Build a Java long from a fixed point decimal byte representation.
-    private final long getLongFromDECIMAL(int column, String targetType) 
+    private long getLongFromDECIMAL(int column, String targetType)
             throws SqlException {
         try {
             return com.splicemachine.db.client.am.Decimal.getLong(dataBuffer_,
@@ -424,7 +424,7 @@ public abstract class Cursor {
     // For 2-byte character ccsids, length is the number of characters,
     // for all other cases length is the number of bytes.
     // The length does not include the null terminator.
-    private final String getVARCHAR(int column) throws SqlException {
+    private String getVARCHAR(int column) throws SqlException {
         String tempString = null;
         try {
             if (ccsid_[column - 1] == 1200) {
@@ -455,7 +455,7 @@ public abstract class Cursor {
     }
 
     // Build a Java String from a database CHAR field.
-    private final String getCHAR(int column) throws SqlException {
+    private String getCHAR(int column) throws SqlException {
         String tempString = null;
         if (ccsid_[column - 1] == 1200) {
             return getStringWithoutConvert(columnDataPosition_[column - 1], columnDataComputedLength_[column - 1]);
@@ -486,7 +486,7 @@ public abstract class Cursor {
     }
 
     // Build a JDBC Date object from the DERBY ISO DATE field.
-    private final Date getDATE(int column, Calendar cal) throws SqlException {
+    private Date getDATE(int column, Calendar cal) throws SqlException {
         try {
             return com.splicemachine.db.client.am.DateTime.dateBytesToDate(dataBuffer_,
                 columnDataPosition_[column - 1],
@@ -502,7 +502,7 @@ public abstract class Cursor {
     }
 
     // Build a JDBC Time object from the DERBY ISO TIME field.
-    private final Time getTIME(int column, Calendar cal) throws SqlException {
+    private Time getTIME(int column, Calendar cal) throws SqlException {
         try {
             return com.splicemachine.db.client.am.DateTime.timeBytesToTime(dataBuffer_,
                     columnDataPosition_[column - 1],
@@ -516,7 +516,7 @@ public abstract class Cursor {
     }
 
     // Build a JDBC Timestamp object from the DERBY ISO TIMESTAMP field.
-    private final java.sql.Timestamp getTIMESTAMP(int column, Calendar cal)
+    private java.sql.Timestamp getTIMESTAMP(int column, Calendar cal)
             throws SqlException {
 
         try {
@@ -534,7 +534,7 @@ public abstract class Cursor {
     }
 
     // Build a JDBC Timestamp object from the DERBY ISO DATE field.
-    private final java.sql.Timestamp getTimestampFromDATE(
+    private java.sql.Timestamp getTimestampFromDATE(
             int column, Calendar cal) throws SqlException {
         try {
             return com.splicemachine.db.client.am.DateTime.dateBytesToTimestamp(dataBuffer_,
@@ -549,7 +549,7 @@ public abstract class Cursor {
     }
 
     // Build a JDBC Timestamp object from the DERBY ISO TIME field.
-    private final java.sql.Timestamp getTimestampFromTIME(
+    private java.sql.Timestamp getTimestampFromTIME(
             int column, Calendar cal) throws SqlException {
         try {
             return com.splicemachine.db.client.am.DateTime.timeBytesToTimestamp(dataBuffer_,
@@ -564,7 +564,7 @@ public abstract class Cursor {
     }
 
     // Build a JDBC Date object from the DERBY ISO TIMESTAMP field.
-    private final java.sql.Date getDateFromTIMESTAMP(int column, Calendar cal)
+    private java.sql.Date getDateFromTIMESTAMP(int column, Calendar cal)
             throws SqlException {
         try {
             return com.splicemachine.db.client.am.DateTime.timestampBytesToDate(dataBuffer_,
@@ -579,7 +579,7 @@ public abstract class Cursor {
     }
 
     // Build a JDBC Time object from the DERBY ISO TIMESTAMP field.
-    private final java.sql.Time getTimeFromTIMESTAMP(int column, Calendar cal)
+    private java.sql.Time getTimeFromTIMESTAMP(int column, Calendar cal)
             throws SqlException {
         try {
             return com.splicemachine.db.client.am.DateTime.timestampBytesToTime(dataBuffer_,
@@ -593,23 +593,23 @@ public abstract class Cursor {
         }
     }
 
-    private final String getStringFromDATE(int column) throws SqlException {
+    private String getStringFromDATE(int column) throws SqlException {
         return getDATE(column, getRecyclableCalendar()).toString();
     }
 
     // Build a string object from the DERBY byte TIME representation.
-    private final String getStringFromTIME(int column) throws SqlException {
+    private String getStringFromTIME(int column) throws SqlException {
         return getTIME(column, getRecyclableCalendar()).toString();
     }
 
     // Build a string object from the DERBY byte TIMESTAMP representation.
-    private final String getStringFromTIMESTAMP(int column) throws SqlException {
+    private String getStringFromTIMESTAMP(int column) throws SqlException {
         return getTIMESTAMP(column, getRecyclableCalendar()).toString();
     }
 
     // Extract bytes from a database java.sql.Types.BINARY field.
     // This is the DERBY type CHAR(n) FOR BIT DATA.
-    private final byte[] get_CHAR_FOR_BIT_DATA(int column) throws SqlException {
+    private byte[] get_CHAR_FOR_BIT_DATA(int column) throws SqlException {
         // There is no limit to the size of a column if maxFieldSize is zero.
         // Otherwise, use the smaller of maxFieldSize and the actual column length.
         int columnLength = (maxFieldSize_ == 0) ? columnDataComputedLength_[column - 1] :
@@ -624,7 +624,7 @@ public abstract class Cursor {
     // This includes the DERBY types:
     //   VARCHAR(n) FOR BIT DATA
     //   LONG VARCHAR(n) FOR BIT DATA
-    private final byte[] get_VARCHAR_FOR_BIT_DATA(int column) throws SqlException {
+    private byte[] get_VARCHAR_FOR_BIT_DATA(int column) throws SqlException {
         byte[] bytes;
         int columnLength = 0;
         columnLength = (maxFieldSize_ == 0) ? columnDataComputedLength_[column - 1] - 2 :
@@ -636,7 +636,7 @@ public abstract class Cursor {
 
     // Deserialize a UDT from a database java.sql.Types.JAVA_OBJECT field.
     // This is used for user defined types.
-    private final Object get_UDT(int column) throws SqlException {
+    private Object get_UDT(int column) throws SqlException {
         byte[] bytes;
         int columnLength = 0;
         columnLength = (maxFieldSize_ == 0) ? columnDataComputedLength_[column - 1] - 2 :
@@ -1370,7 +1370,7 @@ public abstract class Cursor {
         charBuffer_ = new char[maxCharLength];
     }
 
-    private final String getStringWithoutConvert(int position, int actualLength) {
+    private String getStringWithoutConvert(int position, int actualLength) {
         int start = position;
         int end = position + actualLength;
 
@@ -1408,11 +1408,11 @@ public abstract class Cursor {
         charBuffer_ = null;
     }
 
-    private final int getColumnPrecision(int column) {
+    private int getColumnPrecision(int column) {
         return ((fdocaLength_[column] >> 8) & 0xff);
     }
 
-    private final int getColumnScale(int column) {
+    private int getColumnScale(int column) {
         return (fdocaLength_[column] & 0xff);
     }
 }

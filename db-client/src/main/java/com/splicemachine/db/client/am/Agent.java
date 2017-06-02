@@ -147,7 +147,7 @@ public abstract class Agent {
 
     abstract public void checkForChainBreakingException_() throws SqlException;
 
-    private final void enableBatchedExceptionTracking(int batchSize) {
+    private void enableBatchedExceptionTracking(int batchSize) {
         enableBatchedExceptionTracking_ = true;
         batchedExceptionGenerated_ = new boolean[batchSize];
         batchedExceptionLabelIndex_ = 0;
@@ -161,7 +161,7 @@ public abstract class Agent {
         batchedExceptionLabelIndex_ = index;
     }
 
-    private final SqlException labelAsBatchedException(SqlException e, int index) {
+    private SqlException labelAsBatchedException(SqlException e, int index) {
         SqlException firstInChain = e;
         while (e != null) {
             e.setBatchPositionLabel(index);

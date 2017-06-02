@@ -100,7 +100,7 @@ public class Reply {
     // wherever they are in the current buffer to the beginning of
     // different buffer (note these buffers could be the same).
     // State information is updated as needed after the shift.
-    private final void shiftBuffer(byte[] destinationBuffer) {
+    private void shiftBuffer(byte[] destinationBuffer) {
         // calculate the size of the data in the current buffer.
         int sz = count_ - pos_;
 
@@ -239,7 +239,7 @@ public class Reply {
     // big stuff returned from the server (qrydta's for example) by
     // copying out the data into some other storage.  any extended dss header
     // info will be removed in the copying process.
-    private final void compressBLayerData(int continueDssHeaderCount) throws DisconnectException {
+    private void compressBLayerData(int continueDssHeaderCount) throws DisconnectException {
         int tempPos = 0;
 
         // jump to the last continuation header.
@@ -403,7 +403,7 @@ public class Reply {
     }
 
 
-    private final void decryptData(int gdsFormatter, int oldDssLength) throws DisconnectException {
+    private void decryptData(int gdsFormatter, int oldDssLength) throws DisconnectException {
         boolean readHeader;
 
         if (dssLength_ == 32761) {
@@ -1116,7 +1116,7 @@ public class Reply {
         return codePoint;
     }
 
-    private final void readExtendedLength() throws DisconnectException {
+    private void readExtendedLength() throws DisconnectException {
         int numberOfExtendedLenBytes = (ddmScalarLen_ - 0x8000); // fix scroll problem was - 4
         int adjustSize = 0;
         switch (numberOfExtendedLenBytes) {
@@ -1148,7 +1148,7 @@ public class Reply {
         */
     }
 
-    private final void adjustCollectionAndDssLengths(int length) {
+    private void adjustCollectionAndDssLengths(int length) {
         // adjust the lengths here.  this is a special case since the
         // extended length bytes do not include their own length.
         for (int i = 0; i <= topDdmCollectionStack_; i++) {
@@ -1201,7 +1201,7 @@ public class Reply {
         return columnCount;
     }
 
-    private final void peekExtendedLength() throws DisconnectException {
+    private void peekExtendedLength() throws DisconnectException {
         peekedNumOfExtendedLenBytes_ = (peekedLength_ - 0x8004);
         switch (peekedNumOfExtendedLenBytes_) {
         case 4:
@@ -1414,7 +1414,7 @@ public class Reply {
         return (nullInd == CodePoint.NULLDATA);
     }
 
-    private final int skipSQLDHROW(int offset) {
+    private int skipSQLDHROW(int offset) {
         int sqldhrowgrpNullInd = buffer_[pos_ + offset++] & 0xff;
         if (sqldhrowgrpNullInd == CodePoint.NULLDATA) {
             return offset;

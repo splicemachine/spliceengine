@@ -43,7 +43,7 @@ public class FloatingPoint {
     /**
      * Convert the byte array to an int.
      */
-    private static final int convertFromByteToInt(byte[] buffer, int offset) {
+    private static int convertFromByteToInt(byte[] buffer, int offset) {
         return (buffer[offset] << 24) |
                 ((buffer[offset + 1] & 0xFF) << 16) |
                 ((buffer[offset + 2] & 0xFF) << 8) |
@@ -53,7 +53,7 @@ public class FloatingPoint {
     /**
      * Convert the byte array to a long.
      */
-    private static final long convertFromByteToLong(byte[] buffer, int offset) {
+    private static long convertFromByteToLong(byte[] buffer, int offset) {
         return ((buffer[offset] & 0xFFL) << 56) |
                 ((buffer[offset + 1] & 0xFFL) << 48) |
                 ((buffer[offset + 2] & 0xFFL) << 40) |
