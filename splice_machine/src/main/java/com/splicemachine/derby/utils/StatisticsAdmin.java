@@ -433,6 +433,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 .delimited(table.getDelimited())
                 .lines(table.getLines())
                 .escaped(table.getEscaped())
+                .partitionByColumns(table.getPartitionBy())
                 ;
     }
 
