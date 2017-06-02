@@ -48,7 +48,7 @@ import java.sql.Types;
  */
 public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
     public static final String TABLENAME_STRING = "SYSTABLESTATS";
-    public static final int SYSTABLESTATISTICS_COLUMN_COUNT= 9;
+    public static final int SYSTABLESTATISTICS_COLUMN_COUNT= 11;
     public static final int CONGLOMID = 1;
     public static final int PARTITIONID = 2; // GLOBAL
     public static final int TIMESTAMP = 3;
@@ -58,6 +58,8 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
     public static final int PARTITION_SIZE = 7;
     public static final int MEANROWWIDTH= 8;
     public static final int NUMBEROFPARTITIONS = 9;
+    public static final int STATSTYPE = 10;
+    public static final int SAMPLEFRACTION = 11;
 
     protected static final int		SYSTABLESTATISTICS_INDEX1_ID = 0;
     protected static final int		SYSTABLESTATISTICS_INDEX2_ID = 1;
@@ -100,6 +102,8 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
         long partitionSize = 0;
         int meanRowWidth=0;
         long numberOfPartitions = 1L;
+        int statsType = 0;
+        double sampleFraction = 0.0d;
 
         if(td!=null){
             PartitionStatisticsDescriptor tsd = (PartitionStatisticsDescriptor)td;
@@ -112,6 +116,8 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
             partitionSize = tsd.getPartitionSize();
             meanRowWidth = tsd.getMeanRowWidth();
             numberOfPartitions = tsd.getNumberOfPartitions();
+            statsType = tsd.getStatsType();
+            sampleFraction = tsd.getSampleFraction();
         }
 
         ExecRow row = getExecutionFactory().getValueRow(SYSTABLESTATISTICS_COLUMN_COUNT);
@@ -124,6 +130,8 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
         row.setColumn(PARTITION_SIZE,new SQLLongint(partitionSize));
         row.setColumn(MEANROWWIDTH,new SQLInteger(meanRowWidth));
         row.setColumn(NUMBEROFPARTITIONS,new SQLLongint(numberOfPartitions));
+        row.setColumn(STATSTYPE, new SQLInteger(statsType));
+        row.setColumn(SAMPLEFRACTION, new SQLDouble(sampleFraction));
         return row;
     }
 
@@ -152,6 +160,10 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
         int rowWidth = col.getInt();
         col = row.getColumn(NUMBEROFPARTITIONS);
         long numberOfPartitions = col.getLong();
+        col = row.getColumn(STATSTYPE);
+        int statsType = col.getInt();
+        col = row.getColumn(SAMPLEFRACTION);
+        double sampleFaction = col.getDouble();
 
         return new PartitionStatisticsDescriptor(conglomId,
                 partitionId,
@@ -161,7 +173,9 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
                 rowCount,
                 partitionSize,
                 rowWidth,
-                numberOfPartitions);
+                numberOfPartitions,
+                statsType,
+                sampleFaction);
     }
 
     @Override
@@ -175,14 +189,18 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getColumn("ROWCOUNT",Types.BIGINT,true),
                 SystemColumnImpl.getColumn("PARTITION_SIZE",Types.BIGINT,true),
                 SystemColumnImpl.getColumn("MEANROWWIDTH",Types.INTEGER,true),
-                SystemColumnImpl.getColumn("NUMPARTITIONS",Types.BIGINT,true)
-
+                SystemColumnImpl.getColumn("NUMPARTITIONS",Types.BIGINT,true),
+                SystemColumnImpl.getColumn("STATSTYPE", Types.INTEGER, true),
+                SystemColumnImpl.getColumn("SAMPLEFRACTION",Types.DOUBLE, true)
         };
     }
 
     public static ColumnDescriptor[] getViewColumns(TableDescriptor view,UUID viewId) throws StandardException {
         DataTypeDescriptor varcharType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR);
         DataTypeDescriptor longType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT);
+        DataTypeDescriptor intType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER);
+        DataTypeDescriptor doubleType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE);
+
         return new ColumnDescriptor[]{
                 new ColumnDescriptor("SCHEMANAME"               ,1,1,varcharType,null,null,view,viewId,0,0,0),
                 new ColumnDescriptor("TABLENAME"                ,2,2,varcharType,null,null,view,viewId,0,0,1),
@@ -192,7 +210,9 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
                 new ColumnDescriptor("TOTAL_SIZE"               ,6,6,longType,null,null,view,viewId,0,0,5),
                 new ColumnDescriptor("NUM_PARTITIONS"           ,7,7,longType,null,null,view,viewId,0,0,6),
                 new ColumnDescriptor("AVG_PARTITION_SIZE"       ,8,8,longType,null,null,view,viewId,0,0,7),
-                new ColumnDescriptor("ROW_WIDTH"                ,9,9,longType,null,null,view,viewId,0,0,8)
+                new ColumnDescriptor("ROW_WIDTH"                ,9,9,longType,null,null,view,viewId,0,0,8),
+                new ColumnDescriptor("STATS_TYPE"               ,10,10,intType,null,null,view,viewId,0,0,9),
+                new ColumnDescriptor("SAMPLE_FRACTION"          ,11,11,doubleType,null,null,view,viewId,0,0,10)
         };
     }
 
@@ -206,6 +226,8 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
             ",count(ts.rowCount) as NUM_PARTITIONS" + //6
             ",avg(ts.partition_size) as AVG_PARTITION_SIZE" + //7
             ",max(ts.meanrowWidth) as ROW_WIDTH" + //8
+            ",max(ts.statsType) as STATS_TYPE" + //9
+            ",min(ts.sampleFraction) as SAMPLE_FRACTION" + //10
             " from " +
             "sys.systables t" +
             ",sys.sysschemas s" +

@@ -47,6 +47,13 @@ public class PartitionStatisticsDescriptor extends TupleDescriptor {
     private long rowCount;
     private boolean inProgress;
     private long numberOfPartitions;
+    /**
+     * statsType: currently it only has two possible values:
+     * 0: regular stats
+     * 1: sample stats
+     */
+    private int statsType;
+    private double sampleFraction;
     private List<ColumnStatisticsDescriptor> columnStatsDescriptors;
 
 
@@ -57,7 +64,10 @@ public class PartitionStatisticsDescriptor extends TupleDescriptor {
                                          boolean inProgress,
                                          long rowCount,
                                          long partitionSize,
-                                         int meanRowWidth, long numberOfPartitions) {
+                                         int meanRowWidth,
+                                         long numberOfPartitions,
+                                         int statsType,
+                                         double sampleFraction) {
         this.conglomerateId = conglomerateId;
         this.partitionId = partitionId;
         this.timestamp = timestamp;
@@ -67,6 +77,8 @@ public class PartitionStatisticsDescriptor extends TupleDescriptor {
         this.rowCount = rowCount;
         this.inProgress = inProgress;
         this.numberOfPartitions = numberOfPartitions;
+        this.statsType = statsType;
+        this.sampleFraction = sampleFraction;
     }
 
     public long getConglomerateId() { return conglomerateId; }
@@ -80,6 +92,12 @@ public class PartitionStatisticsDescriptor extends TupleDescriptor {
 
     public long getNumberOfPartitions() {
         return this.numberOfPartitions;
+    }
+    public double getSampleFraction() {
+        return sampleFraction;
+    }
+    public int getStatsType() {
+        return statsType;
     }
 
     public List<ColumnStatisticsDescriptor> getColumnStatsDescriptors() {

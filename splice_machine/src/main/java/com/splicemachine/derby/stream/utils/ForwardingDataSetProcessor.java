@@ -148,18 +148,21 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <V> DataSet<V> readParquetFile(int[] baseColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,ExecRow execRow) throws StandardException {
-        return delegate.readParquetFile(baseColumnMap, location, context,qualifiers,probeValue,execRow);
+    public <V> DataSet<V> readParquetFile(int[] baseColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,ExecRow execRow,
+                                          boolean useSample, double sampleFraction) throws StandardException {
+        return delegate.readParquetFile(baseColumnMap, location, context,qualifiers,probeValue,execRow, useSample, sampleFraction);
     }
 
     @Override
-    public <V> DataSet<V> readORCFile(int[] baseColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,ExecRow execRow) throws StandardException {
-        return delegate.readORCFile(baseColumnMap, location, context,qualifiers,probeValue,execRow);
+    public <V> DataSet<V> readORCFile(int[] baseColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,ExecRow execRow,
+                                      boolean useSample, double sampleFraction) throws StandardException {
+        return delegate.readORCFile(baseColumnMap, location, context,qualifiers,probeValue,execRow, useSample, sampleFraction);
     }
 
     @Override
-    public <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,ExecRow execRow) throws StandardException {
-        return delegate.readTextFile(op, location, characterDelimiter, columnDelimiter, baseColumnMap, context,  qualifiers, probeValue, execRow);
+    public <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,ExecRow execRow,
+                                                boolean useSample, double sampleFraction) throws StandardException {
+        return delegate.readTextFile(op, location, characterDelimiter, columnDelimiter, baseColumnMap, context,  qualifiers, probeValue, execRow, useSample, sampleFraction);
     }
 
     @Override

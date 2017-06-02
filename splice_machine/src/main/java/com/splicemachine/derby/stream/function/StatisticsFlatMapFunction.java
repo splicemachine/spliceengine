@@ -20,9 +20,11 @@ import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.impl.sql.execute.StatisticsRow;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.impl.sql.execute.operations.ScalarAggregateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.StatisticsAdmin;
+import com.splicemachine.derby.utils.StatisticsOperation;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -31,22 +33,27 @@ import java.util.Iterator;
 import java.util.List;
 
 public class StatisticsFlatMapFunction
-    extends SpliceFlatMapFunction<ScalarAggregateOperation, Iterator<LocatedRow>, LocatedRow> {
+    extends SpliceFlatMapFunction<StatisticsOperation, Iterator<LocatedRow>, LocatedRow> {
     private static final long serialVersionUID = 844136943916989111L;
     protected boolean initialized;
     protected StatisticsRow statisticsRow;
     protected long conglomId;
     protected int[] columnPositionMap;
     protected ExecRow template;
+    boolean useSample;
+    double sampleFraction;
 
     public StatisticsFlatMapFunction() {
     }
 
-    public StatisticsFlatMapFunction(long conglomId, int[] columnPositionMap, ExecRow template) {
+    public StatisticsFlatMapFunction(OperationContext<StatisticsOperation> operationContext,
+                                     long conglomId, int[] columnPositionMap, ExecRow template) {
         assert columnPositionMap != null:"columnPositionMap is null";
         this.conglomId = conglomId;
         this.columnPositionMap = columnPositionMap;
         this.template = template;
+        useSample = operationContext.getOperation().getUseSample();
+        sampleFraction = operationContext.getOperation().getSampleFraction();
     }
 
     @Override
@@ -54,6 +61,8 @@ public class StatisticsFlatMapFunction
         out.writeLong(conglomId);
         ArrayUtil.writeIntArray(out,columnPositionMap);
         out.writeObject(template);
+        out.writeBoolean(useSample);
+        out.writeDouble(sampleFraction);
     }
 
     @Override
@@ -62,6 +71,8 @@ public class StatisticsFlatMapFunction
         conglomId = in.readLong();
         columnPositionMap = ArrayUtil.readIntArray(in);
         template = (ExecRow) in.readObject();
+        useSample = in.readBoolean();
+        sampleFraction = in.readDouble();
     }
 
     @SuppressWarnings("unchecked")
@@ -89,7 +100,8 @@ public class StatisticsFlatMapFunction
                     continue;
                 rows.add(new LocatedRow(StatisticsAdmin.generateRowFromStats(conglomId,SITableScanner.regionId.get(),columnPositionMap[i],itemStatistics[i])));
             }
-            rows.add(new LocatedRow(StatisticsAdmin.generateRowFromStats(conglomId,SITableScanner.regionId.get(),rowCount,rowCount*((long)meanRowWidth),meanRowWidth,1l)));
+            rows.add(new LocatedRow(StatisticsAdmin.generateRowFromStats(conglomId,SITableScanner.regionId.get(),rowCount,rowCount*((long)meanRowWidth),meanRowWidth,1l,
+                    useSample?1:0, useSample?sampleFraction:0.0d)));
             return rows.iterator();
         } else {
             rows = new ArrayList<>(columnPositionMap.length);
@@ -98,7 +110,7 @@ public class StatisticsFlatMapFunction
                 rows.add(new LocatedRow(StatisticsAdmin.generateRowFromStats(conglomId, SITableScanner.regionId.get(), columnPositionMap[i], new ColumnStatisticsImpl(template.getColumn(columnPositionMap[i])) )));
             }
             rows.add(new LocatedRow(
-                    StatisticsAdmin.generateRowFromStats(conglomId,SITableScanner.regionId.get(),0,0,0,1L)));
+                    StatisticsAdmin.generateRowFromStats(conglomId,SITableScanner.regionId.get(),0,0,0,1L,useSample?1:0, useSample?sampleFraction:0.0d)));
             return rows.iterator();
         }
     }

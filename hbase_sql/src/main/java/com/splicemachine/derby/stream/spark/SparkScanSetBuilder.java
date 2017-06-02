@@ -14,29 +14,29 @@
 
 package com.splicemachine.derby.stream.spark;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-
-import com.splicemachine.db.iapi.store.access.Qualifier;
-import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
-import com.splicemachine.derby.stream.function.TableScanQualifierFunction;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaSparkContext;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
+import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.stream.function.TableScanQualifierFunction;
 import com.splicemachine.derby.stream.function.TableScanTupleFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.SMInputFormat;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 /**
  * @author Scott Fines
@@ -78,11 +78,11 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
             ExecRow execRow = operation==null?template:op.getExecRowDefinition();
             Qualifier[][] qualifiers = operation == null?null:operation.getScanInformation().getScanQualifiers();
             if (storedAs.equals("T"))
-                return dsp.readTextFile(op,location,escaped,delimited,baseColumnMap,operationContext,qualifiers,null,execRow).flatMap(new TableScanQualifierFunction(operationContext,null));
+                return dsp.readTextFile(op,location,escaped,delimited,baseColumnMap,operationContext,qualifiers,null,execRow,useSample,sampleFraction).flatMap(new TableScanQualifierFunction(operationContext,null));
             if (storedAs.equals("P"))
-                return dsp.readParquetFile(baseColumnMap,location,operationContext,qualifiers,null,execRow).flatMap(new TableScanQualifierFunction(operationContext,null));
+                return dsp.readParquetFile(baseColumnMap,location,operationContext,qualifiers,null,execRow,useSample,sampleFraction).flatMap(new TableScanQualifierFunction(operationContext,null));
             if (storedAs.equals("O"))
-                return dsp.readORCFile(baseColumnMap,location,operationContext,qualifiers,null,execRow).flatMap(new TableScanQualifierFunction(operationContext,null));
+                return dsp.readORCFile(baseColumnMap,location,operationContext,qualifiers,null,execRow,useSample,sampleFraction).flatMap(new TableScanQualifierFunction(operationContext,null));
             else {
                 throw new UnsupportedOperationException("storedAs Type not supported -> " + storedAs);
             }
@@ -111,7 +111,8 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         SparkFlatMapFunction f = new SparkFlatMapFunction(new TableScanTupleFunction<SpliceOperation>(operationContext,this.optionalProbeValue));
         SpliceSpark.pushScope(String.format("%s: Deserialize", scopePrefix));
         try {
-            return new SparkDataSet<>(rawRDD.flatMap(f), op != null ? op.getPrettyExplainPlan() : f.getPrettyFunctionName());
+            return new SparkDataSet<>(useSample?rawRDD.flatMap(f).sample(false, sampleFraction):rawRDD.flatMap(f),
+                                      op != null ? op.getPrettyExplainPlan() : f.getPrettyFunctionName());
         } finally {
             SpliceSpark.popScope();
         }
