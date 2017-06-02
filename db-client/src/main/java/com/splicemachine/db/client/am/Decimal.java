@@ -60,10 +60,10 @@ public class Decimal {
      * Convert a range of packed nybbles (up to 9 digits without overflow) to an int. Note that for performance purpose,
      * it does not do array-out-of-bound checking.
      */
-    private static final int packedNybblesToInt(byte[] buffer,
-                                                int offset,
-                                                int startNybble,
-                                                int numberOfNybbles) {
+    private static int packedNybblesToInt(byte[] buffer,
+                                          int offset,
+                                          int startNybble,
+                                          int numberOfNybbles) {
         int value = 0;
 
         int i = startNybble / 2;
@@ -91,10 +91,10 @@ public class Decimal {
      * Convert a range of packed nybbles (up to 18 digits without overflow) to a long. Note that for performance
      * purpose, it does not do array-out-of-bound checking.
      */
-    private static final long packedNybblesToLong(byte[] buffer,
-                                                  int offset,
-                                                  int startNybble,
-                                                  int numberOfNybbles) {
+    private static long packedNybblesToLong(byte[] buffer,
+                                            int offset,
+                                            int startNybble,
+                                            int numberOfNybbles) {
         long value = 0;
 
         int i = startNybble / 2;
@@ -121,7 +121,7 @@ public class Decimal {
     /**
      * Compute the int array of magnitude from input value segments.
      */
-    private static final int[] computeMagnitude(int[] input) {
+    private static int[] computeMagnitude(int[] input) {
         int length = input.length;
         int[] mag = new int[length];
 

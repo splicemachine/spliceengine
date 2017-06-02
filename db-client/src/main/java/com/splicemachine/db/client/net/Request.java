@@ -164,12 +164,12 @@ public class Request {
 
     // experimental lob section
 
-    private final void buildDss(boolean dssHasSameCorrelator,
-                                boolean chainedToNextStructure,
-                                boolean nextHasSameCorrelator,
-                                int dssType,
-                                int corrId,
-                                boolean simpleFinalizeBuildingNextDss) {
+    private void buildDss(boolean dssHasSameCorrelator,
+                          boolean chainedToNextStructure,
+                          boolean nextHasSameCorrelator,
+                          int dssType,
+                          int corrId,
+                          boolean simpleFinalizeBuildingNextDss) {
         if (doesRequestContainData()) {
             if (simpleDssFinalize) {
                 finalizeDssLength();
@@ -278,7 +278,7 @@ public class Request {
      * @throws DisconnectException if a severe error condition is encountered,
      *      causing the connection to be broken
      */
-	final private void writePlainScalarStream(boolean chained,
+	private void writePlainScalarStream(boolean chained,
                                               boolean chainedWithSameCorrelator,
                                               int codePoint,
                                               long length,
@@ -404,7 +404,7 @@ public class Request {
      * @throws DisconnectException if a severe error condition is encountered,
      *      causing the connection to be broken
      */
-	final private void writePlainScalarStream(boolean chained,
+	private void writePlainScalarStream(boolean chained,
                                               boolean chainedWithSameCorrelator,
                                               int codePoint,
                                               java.io.InputStream in,
@@ -670,7 +670,7 @@ public class Request {
         }
     }
 
-    private final void writeExtendedLengthBytes(int extendedLengthByteCount, long length) {
+    private void writeExtendedLengthBytes(int extendedLengthByteCount, long length) {
         int shiftSize = (extendedLengthByteCount - 1) * 8;
         for (int i = 0; i < extendedLengthByteCount; i++) {
             buffer.put((byte) (length >>> shiftSize));
@@ -818,12 +818,12 @@ public class Request {
 
     // mark an offest into the buffer by placing the current offset value on
     // a stack.
-    private final void mark() {
+    private void mark() {
         markStack_[top_++] = buffer.position();
     }
 
     // remove and return the top offset value from mark stack.
-    private final int popMark() {
+    private int popMark() {
         return markStack_[--top_];
     }
 
@@ -893,7 +893,7 @@ public class Request {
 
     // helper method to calculate the minimum number of extended length bytes needed
     // for a ddm.  a return value of 0 indicates no extended length needed.
-    private final int calculateExtendedLengthByteCount(long ddmSize) //throws SqlException
+    private int calculateExtendedLengthByteCount(long ddmSize) //throws SqlException
     {
         // according to Jim and some tests perfomred on Lob data,
         // the extended length bytes are signed.  Assume that
@@ -1412,12 +1412,12 @@ public class Request {
     // added for code reuse and helps perf by reducing ensureLength calls.
     // ldSize and bytes.length may not be the same.  this is true
     // when writing graphic ld strings.
-    private final void writeLDBytesX(int ldSize, byte[] bytes) {
+    private void writeLDBytesX(int ldSize, byte[] bytes) {
         writeLDBytesXSubset( ldSize, bytes.length, bytes );
     }
 
     // private helper method for writing just a subset of a byte array
-    private final void writeLDBytesXSubset( int ldSize, int bytesToCopy, byte[] bytes )
+    private void writeLDBytesXSubset(int ldSize, int bytesToCopy, byte[] bytes )
     {
         writeShort((short) ldSize);
         writeBytes(bytes, bytesToCopy);
