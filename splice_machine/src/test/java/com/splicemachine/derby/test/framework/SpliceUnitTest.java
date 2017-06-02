@@ -14,6 +14,11 @@
 
 package com.splicemachine.derby.test.framework;
 
+import com.splicemachine.utils.Pair;
+import org.junit.Assert;
+import org.junit.runner.Description;
+import org.spark_project.guava.base.Joiner;
+
 import java.io.*;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -24,11 +29,6 @@ import java.sql.*;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.spark_project.guava.base.Joiner;
-import org.junit.Assert;
-import org.junit.runner.Description;
-import com.splicemachine.utils.Pair;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.*;
@@ -236,7 +236,7 @@ public class SpliceUnitTest {
         }
     }
 
-    protected String getExplainMessage(int level, String query,SpliceWatcher methodWatcher) throws Exception {
+    public static String getExplainMessage(int level, String query,SpliceWatcher methodWatcher) throws Exception {
         try(ResultSet resultSet = methodWatcher.executeQuery(query)){
             int i=0;
             int k=0;

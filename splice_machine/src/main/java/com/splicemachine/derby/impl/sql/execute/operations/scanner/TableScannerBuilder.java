@@ -79,6 +79,8 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     protected String storedAs;
     protected String location;
     protected String compression;
+    protected boolean useSample = false;
+    protected double sampleFraction = 0;
 
     @Override
     public ScanSetBuilder<V> metricFactory(MetricFactory metricFactory){
@@ -364,6 +366,16 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
         return this;
     }
 
+    public ScanSetBuilder<V> useSample(boolean useSample){
+        this.useSample=useSample;
+        return this;
+    }
+
+    public ScanSetBuilder<V> sampleFraction(double sampleFraction){
+        this.sampleFraction=sampleFraction;
+        return this;
+    }
+
     public SITableScanner build(){
             return new SITableScanner(
                     scanner,
@@ -446,6 +458,8 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
             writeNullableString(lines,out);
             writeNullableString(storedAs,out);
             writeNullableString(location,out);
+            out.writeBoolean(useSample);
+            out.writeDouble(sampleFraction);
     }
     private void writeNullableString (String nullableString,ObjectOutput out) throws IOException {
         out.writeBoolean(nullableString!=null);
@@ -516,8 +530,10 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                 lines = in.readUTF();
             if (in.readBoolean())
                 storedAs = in.readUTF();
-        if (in.readBoolean())
-            location = in.readUTF();
+            if (in.readBoolean())
+                location = in.readUTF();
+            useSample = in.readBoolean();
+            sampleFraction = in.readDouble();
     }
 
     protected TxnView readTxn(ObjectInput in) throws IOException{
@@ -556,14 +572,15 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     public String toString(){
         return String.format("template=%s, scan=%s, rowColumnMap=%s, txn=%s, "
                         +"keyColumnEncodingOrder=%s, keyColumnSortOrder=%s, keyColumnTypes=%s, keyDecodingMap=%s, "
-                        +"accessedKeys=%s, indexName=%s, tableVerson=%s",
+                        +"accessedKeys=%s, indexName=%s, tableVerson=%s, useSample=%b, sampleFraction=%.5f",
                 template,scan,rowColumnMap!=null?Arrays.toString(rowColumnMap):"NULL",
                 txn,
                 keyColumnEncodingOrder!=null?Arrays.toString(keyColumnEncodingOrder):"NULL",
                 keyColumnSortOrder!=null?Arrays.toString(keyColumnSortOrder):"NULL",
                 keyColumnTypes!=null?Arrays.toString(keyColumnTypes):"NULL",
                 keyDecodingMap!=null?Arrays.toString(keyDecodingMap):"NULL",
-                accessedKeys,indexName,tableVersion);
+                accessedKeys,indexName,tableVersion,
+                useSample, sampleFraction);
     }
 
     public DataSet<V> buildDataSet(Object caller) throws StandardException {
@@ -630,5 +647,15 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     @Override
     public String getLocation() {
         return location;
+    }
+
+    @Override
+    public boolean getUseSample() {
+        return useSample;
+    }
+
+    @Override
+    public double getSampleFraction() {
+        return sampleFraction;
     }
 }

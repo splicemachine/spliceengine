@@ -14,44 +14,20 @@
 
 package com.splicemachine.derby.stream.spark;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Serializable;
-import java.util.*;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.Lists;
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.store.access.Qualifier;
-import com.splicemachine.db.iapi.types.DataType;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
-import com.splicemachine.derby.vti.SpliceFileVTI;
-import com.splicemachine.si.impl.driver.SIDriver;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hive.serde2.objectinspector.StructField;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
-import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.function.Function;
-import org.apache.spark.sql.AnalysisException;
-import org.apache.spark.sql.Column;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SaveMode;
-import org.apache.spark.sql.types.StructType;
-import scala.Tuple2;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
+import com.splicemachine.db.iapi.types.DataType;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.load.ImportUtils;
@@ -59,16 +35,28 @@ import com.splicemachine.derby.impl.spark.WholeTextInputFormat;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.function.Partitioner;
-import com.splicemachine.derby.stream.iapi.DataSet;
-import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
-import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.iapi.PairDataSet;
-import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
+import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
+import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.mrio.api.core.SMTextInputFormat;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
-import scala.collection.JavaConverters;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.function.Function;
+import org.apache.spark.sql.*;
+import org.apache.spark.sql.types.StructType;
+import scala.Tuple2;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Serializable;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Spark-based DataSetProcessor.
@@ -301,7 +289,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public <V> DataSet<V> readParquetFile(int[] baseColumnMap, String location,
                                           OperationContext context, Qualifier[][] qualifiers,
-                                          DataValueDescriptor probeValue,  ExecRow execRow) throws StandardException {
+                                          DataValueDescriptor probeValue,  ExecRow execRow,
+                                          boolean useSample, double sampleFraction) throws StandardException {
         try {
             Dataset<Row> table = null;
             try {
@@ -310,9 +299,17 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 return handleExceptionInCaseOfEmptySet(e,location);
             }
             table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
-            return new SparkDataSet(table
-                    .rdd().toJavaRDD()
-                    .map(new RowToLocatedRowFunction(context,execRow)));
+
+            if (useSample) {
+                return new SparkDataSet(table
+                        .rdd().toJavaRDD()
+                        .sample(false, sampleFraction)
+                        .map(new RowToLocatedRowFunction(context, execRow)));
+            } else {
+                return new SparkDataSet(table
+                        .rdd().toJavaRDD()
+                        .map(new RowToLocatedRowFunction(context, execRow)));
+            }
         } catch (Exception e) {
             throw StandardException.newException(
                     SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
@@ -448,7 +445,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public <V> DataSet<V> readORCFile(int[] baseColumnMap, String location,
                                           OperationContext context, Qualifier[][] qualifiers,
-                                      DataValueDescriptor probeValue, ExecRow execRow) throws StandardException {
+                                      DataValueDescriptor probeValue, ExecRow execRow,
+                                      boolean useSample, double sampleFraction) throws StandardException {
         try {
             Dataset<Row> table = null;
             try {
@@ -457,9 +455,17 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 return handleExceptionInCaseOfEmptySet(e,location);
             }
             table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
-            return new SparkDataSet(table
-                    .rdd().toJavaRDD()
-                    .map(new RowToLocatedRowFunction(context,execRow)));
+
+            if (useSample) {
+                return new SparkDataSet(table
+                        .rdd().toJavaRDD()
+                        .sample(false, sampleFraction)
+                        .map(new RowToLocatedRowFunction(context, execRow)));
+            } else {
+                return new SparkDataSet(table
+                        .rdd().toJavaRDD()
+                        .map(new RowToLocatedRowFunction(context, execRow)));
+            }
         } catch (Exception e) {
             throw StandardException.newException(
                     SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
@@ -468,7 +474,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
-                                      OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow) throws StandardException {
+                                      OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow,
+                                                boolean useSample, double sampleFraction) throws StandardException {
         try {
             Dataset<Row> table = null;
             try {
@@ -486,9 +493,17 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 return handleExceptionInCaseOfEmptySet(e,location);
             }
             table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
-            return new SparkDataSet(table
-                    .rdd().toJavaRDD()
-                    .map(new RowToLocatedRowFunction(context,execRow)));
+
+            if (useSample) {
+                return new SparkDataSet(table
+                        .rdd().toJavaRDD()
+                        .sample(false, sampleFraction)
+                        .map(new RowToLocatedRowFunction(context, execRow)));
+            } else {
+                return new SparkDataSet(table
+                        .rdd().toJavaRDD()
+                        .map(new RowToLocatedRowFunction(context, execRow)));
+            }
         } catch (Exception e) {
             throw StandardException.newException(
                     SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());

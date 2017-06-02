@@ -137,7 +137,8 @@ public interface DataSetProcessor {
      * @throws StandardException
      */
     public <V> DataSet<V> readParquetFile(int[] baseColumnMap, String location,
-                                          OperationContext context, Qualifier[][] qualifiers,DataValueDescriptor probeValue, ExecRow execRow) throws StandardException ;
+                                          OperationContext context, Qualifier[][] qualifiers,DataValueDescriptor probeValue, ExecRow execRow,
+                                          boolean useSample, double sampleFraction) throws StandardException ;
 
     /**
      *  Create a empty external file based on the storage format specified in the method
@@ -205,7 +206,8 @@ public interface DataSetProcessor {
      * @throws StandardException
      */
     public <V> DataSet<V> readORCFile(int[] baseColumnMap, String location,
-                                      OperationContext context, Qualifier[][] qualifiers,DataValueDescriptor probeValue,  ExecRow execRow) throws StandardException;
+                                      OperationContext context, Qualifier[][] qualifiers,DataValueDescriptor probeValue,  ExecRow execRow,
+                                      boolean useSample, double sampleFraction) throws StandardException;
 
     /**
      *
@@ -224,7 +226,8 @@ public interface DataSetProcessor {
      * @throws StandardException
      */
     public <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
-                                                OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,  ExecRow execRow) throws StandardException;
+                                                OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,  ExecRow execRow,
+                                                boolean useSample, double sampleFraction) throws StandardException;
 
     /**
      *

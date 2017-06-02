@@ -14,11 +14,6 @@
 
 package com.splicemachine.derby.impl.sql.catalog;
 
-import java.sql.Types;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
-
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -28,7 +23,6 @@ import com.splicemachine.db.impl.sql.catalog.*;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
 import com.splicemachine.management.Manager;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.PartitionFactory;
@@ -53,18 +47,17 @@ import com.splicemachine.derby.impl.sql.catalog.upgrade.SpliceCatalogUpgradeScri
 import com.splicemachine.derby.impl.sql.depend.SpliceDependencyManager;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
-import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionView;
+import com.splicemachine.derby.impl.store.access.*;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.tools.version.ManifestReader;
 import com.splicemachine.utils.SpliceLogUtils;
-import scala.tools.cmd.gen.AnyVals;
+import java.sql.Types;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
 
 /**
  * @author Scott Fines
@@ -547,6 +540,9 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             createSnapshotTable(tc);
             SpliceLogUtils.info(LOG, "Catalog upgraded: added SYS.SYSSNAPSHOTS table.");
         }
+
+        upgradeSysStatsTable(tc);
+
         createOrUpdateAllSystemProcedures(tc);
     }
 
@@ -588,6 +584,99 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
             SpliceLogUtils.info(LOG, "SYS.SYSTABLES upgraded: added a new column %s.", SYSTABLESRowFactory.PURGE_DELETED_ROWS);
         }
+    }
+
+    private void upgradeSysStatsTable(TransactionController tc) throws StandardException {
+        SchemaDescriptor sd = getSystemSchemaDescriptor();
+        TableDescriptor td = getTableDescriptor(SYSTABLESTATISTICSRowFactory.TABLENAME_STRING, sd, tc);
+        ColumnDescriptor cd = td.getColumnDescriptor("SAMPLEFRACTION");
+        if (cd == null) {
+            tc.elevate("dictionary");
+            dropTableDescriptor(td, sd, tc);
+            td.setColumnSequence(td.getColumnSequence()+1);
+            // add the table descriptor with new name
+            addDescriptor(td,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc);
+
+            DataValueDescriptor storableDV;
+            int colNumber;
+            DataTypeDescriptor dtd;
+            ColumnDescriptor columnDescriptor;
+            UUID uuid = getUUIDFactory().createUUID();
+
+            /**
+             *  Add the column NUMPARTITIONS
+             */
+            if (td.getColumnDescriptor("NUMPARTITIONS") == null) {
+                storableDV = getDataValueFactory().getNullLong(null);
+                colNumber = SYSTABLESTATISTICSRowFactory.NUMBEROFPARTITIONS;
+                dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor((Types.BIGINT));
+                tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
+
+                columnDescriptor = new ColumnDescriptor("NUMPARTITIONS",9,9,dtd,new SQLLongint(1),null,td,uuid,0,0,8);
+
+                addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+                // now add the column to the tables column descriptor list.
+                td.getColumnDescriptorList().add(columnDescriptor);
+                updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
+            }
+            /**
+             * Add the column STATSTYPE
+             */
+            storableDV = getDataValueFactory().getNullInteger(null);
+            colNumber = SYSTABLESTATISTICSRowFactory.STATSTYPE;
+            dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor((Types.INTEGER));
+            tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
+
+            columnDescriptor =  new ColumnDescriptor("STATSTYPE",10,10,dtd,new SQLInteger(0),null,td,uuid,0,0, 9);
+
+            addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+            td.getColumnDescriptorList().add(columnDescriptor);
+            updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
+
+            /**
+             * Add the column SAMPLEFRACTION
+             */
+            storableDV = getDataValueFactory().getNullDouble(null);
+            colNumber = SYSTABLESTATISTICSRowFactory.SAMPLEFRACTION;
+            dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor((Types.DOUBLE));
+            tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
+
+            columnDescriptor =  new ColumnDescriptor("SAMPLEFRACTION",11,11,dtd,new SQLDouble(0),null,td,uuid,0,0,10);
+            addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+            td.getColumnDescriptorList().add(columnDescriptor);
+
+            updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
+            SpliceLogUtils.info(LOG, "SYS.SYSTABLESTATS upgraded: added columns: NUMPARTITIONS, STATSTYPE, SAMPLEFRACTION.");
+
+            updateSysTableStatsView(tc);
+        }
+    }
+
+    private void updateSysTableStatsView(TransactionController tc) throws StandardException{
+        //drop table descriptor corresponding to the tablestats view and add
+        SchemaDescriptor sd=getSystemSchemaDescriptor();
+        TableDescriptor td = getTableDescriptor("SYSTABLESTATISTICS", sd, tc);
+        dropTableDescriptor(td, sd, tc);
+        td.setColumnSequence(td.getColumnSequence()+1);
+        // add the table descriptor with new name
+        addDescriptor(td,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc);
+
+        // add the two newly added columns statType and sampleFraction
+        ColumnDescriptor columnDescriptor = new ColumnDescriptor("STATS_TYPE",10,10,DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER),null,null,td,td.getUUID(),0,0,9);
+        addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+        td.getColumnDescriptorList().add(columnDescriptor);
+
+        columnDescriptor = new ColumnDescriptor("SAMPLE_FRACTION",11,11,DataTypeDescriptor.getBuiltInDataTypeDescriptor((Types.DOUBLE)),null,null,td,td.getUUID(),0,0,10);
+        addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+        td.getColumnDescriptorList().add(columnDescriptor);
+
+        ViewDescriptor vd=getViewDescriptor(td);
+        dropViewDescriptor(vd, tc);
+        DataDescriptorGenerator ddg=getDataDescriptorGenerator();
+        vd=ddg.newViewDescriptor(td.getUUID(),"SYSTABLESTATISTICS",
+                SYSTABLESTATISTICSRowFactory.STATS_VIEW_SQL,0,sd.getUUID());
+        addDescriptor(vd,sd,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc);
+        SpliceLogUtils.info(LOG, "SYS.SYSVIEWS upgraded: updated view SYSTABLESTATISTICS with two more columns: STATSTYPE, SAMPLEFRACTION.");
     }
 
     private boolean needToUpgrade(Splice_DD_Version catalogVersion){
