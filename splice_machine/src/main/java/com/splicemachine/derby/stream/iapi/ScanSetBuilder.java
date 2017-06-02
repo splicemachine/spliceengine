@@ -106,6 +106,10 @@ public interface ScanSetBuilder<V>{
 
     ScanSetBuilder<V> oneSplitPerRegion(boolean oneSplitPerRegion);
 
+    ScanSetBuilder<V> useSample(boolean useSample);
+
+    ScanSetBuilder<V> sampleFraction(double sampleFraction);
+
     DataSet<V> buildDataSet() throws StandardException;
 
     DataSet<V> buildDataSet(Object caller) throws StandardException;
@@ -241,4 +245,15 @@ public interface ScanSetBuilder<V>{
      */
     String getLocation();
 
+    /**
+     * Whether to retrieve a sample
+     * @return
+     */
+    boolean getUseSample();
+
+    /**
+     * If we retrieve a sample (useSample=true), what is the fraction of data to retrieve
+     * @return
+     */
+    double getSampleFraction();
 }

@@ -76,6 +76,8 @@ public class StoreCostControllerImpl implements StoreCostController {
     private final ExecRow baseTableRow;
     private final int conglomerateColumns;
     private boolean noStats;
+    private boolean isSampleStats;
+    private double sampleFraction;
 
 
     public StoreCostControllerImpl(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, List<PartitionStatisticsDescriptor> partitionStatistics) throws StandardException {
@@ -126,6 +128,13 @@ public class StoreCostControllerImpl implements StoreCostController {
             }
         }
 
+        isSampleStats = false;
+        sampleFraction = 0.0d;
+        if (partitionStatistics.size() > 0) {
+            isSampleStats = partitionStatistics.get(0).getStatsType() == 1;
+            if (isSampleStats)
+                sampleFraction = partitionStatistics.get(0).getSampleFraction();
+        }
         /*
          * We cannot have *zero* completely populated items unless we have no column statistics, but in that case
          * we have no table information either, so just return an empty list and let the caller figure out
@@ -200,21 +209,27 @@ public class StoreCostControllerImpl implements StoreCostController {
 
     @Override
     public double rowCount() {
+        double rowCnt = tableStatistics.rowCount();
+        if (isSampleStats)
+            rowCnt = rowCnt/sampleFraction;
         if (missingPartitions > 0) {
             assert tableStatistics.numPartitions() > 0: "Number of partitions cannot be 0 ";
-            return tableStatistics.rowCount() + tableStatistics.rowCount() * (missingPartitions / tableStatistics.numPartitions());
+            return rowCnt + rowCnt * (missingPartitions / tableStatistics.numPartitions());
         }
         else
-            return tableStatistics.rowCount();
+            return rowCnt;
     }
 
     @Override
     public double nonNullCount(int columnNumber) {
+        double notNullCount = tableStatistics.notNullCount(columnNumber - 1);
+        if (isSampleStats)
+            notNullCount = notNullCount/sampleFraction;
         if (missingPartitions > 0) {
             assert tableStatistics.numPartitions() > 0: "Number of partitions cannot be 0";
-            return tableStatistics.notNullCount(columnNumber - 1) + tableStatistics.notNullCount(columnNumber - 1) * (missingPartitions / tableStatistics.numPartitions());
+            return notNullCount + notNullCount * (missingPartitions / tableStatistics.numPartitions());
         } else
-            return tableStatistics.notNullCount(columnNumber-1);
+            return notNullCount;
     }
 
     @Override
@@ -239,6 +254,11 @@ public class StoreCostControllerImpl implements StoreCostController {
             assert tableStatistics.numPartitions() > 0: "Number of partitions cannot be 0";
         /** Even when there are partitions with missing stats, we can still assume that these partitions
          *  do not contribute more unique values, thus have the same cardinality as the rest partitions
+         */
+        /** Currently, we assume naively that with sample stats, we also see all the distinct values, so there is no
+         * need to scale based on sample fraction.
+         * Possible enhancement is to take into consideration the property of columns (e.g., is it distinct, is it boolean)
+         * to determine the extrapolation logic.
          */
         return tableStatistics.cardinality(columnNumber-1);
     }

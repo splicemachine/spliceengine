@@ -14,39 +14,18 @@
 
 package com.splicemachine.derby.stream.control;
 
-import javax.annotation.Nonnull;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.SequenceInputStream;
-import java.net.URISyntaxException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.OpenOption;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Scanner;
-import java.util.zip.GZIPInputStream;
-
 import com.splicemachine.EngineDriver;
-import com.splicemachine.db.iapi.store.access.Qualifier;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.derby.stream.iapi.*;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.commons.collections.iterators.SingletonIterator;
-import org.apache.log4j.Logger;
-import org.apache.spark.sql.types.StructType;
-import org.spark_project.guava.base.Charsets;
-import scala.Tuple2;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.function.Partitioner;
+import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.iterator.TableScannerIterator;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
@@ -57,6 +36,24 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.storage.Partition;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.commons.collections.iterators.SingletonIterator;
+import org.apache.log4j.Logger;
+import org.apache.spark.sql.types.StructType;
+import org.spark_project.guava.base.Charsets;
+import scala.Tuple2;
+
+import javax.annotation.Nonnull;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.SequenceInputStream;
+import java.net.URISyntaxException;
+import java.nio.file.OpenOption;
+import java.nio.file.StandardOpenOption;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Scanner;
+import java.util.zip.GZIPInputStream;
 
 /**
  * Local control side DataSetProcessor.
@@ -314,22 +311,25 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <V> DataSet<V> readParquetFile(int[] baseColumnMap, int[] partitionColumnMap,String location, OperationContext context,Qualifier[][] qualifiers,DataValueDescriptor probeValue, ExecRow execRow) throws StandardException {
+    public <V> DataSet<V> readParquetFile(int[] baseColumnMap, int[] partitionColumnMap,String location, OperationContext context,Qualifier[][] qualifiers,DataValueDescriptor probeValue, ExecRow execRow,
+                                          boolean useSample, double sampleFraction) throws StandardException {
             DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
-            return new ControlDataSet(proc.readParquetFile(baseColumnMap,partitionColumnMap, location, context, qualifiers, probeValue,execRow).toLocalIterator());
+            return new ControlDataSet(proc.readParquetFile(baseColumnMap,partitionColumnMap, location, context, qualifiers, probeValue,execRow, useSample, sampleFraction).toLocalIterator());
    }
 
     @Override
-    public <V> DataSet<V> readORCFile(int[] baseColumnMap,int[] partitionColumnMap, String location, OperationContext context,Qualifier[][] qualifiers,DataValueDescriptor probeValue, ExecRow execRow) throws StandardException {
+    public <V> DataSet<V> readORCFile(int[] baseColumnMap,int[] partitionColumnMap, String location, OperationContext context,Qualifier[][] qualifiers,DataValueDescriptor probeValue, ExecRow execRow,
+                                      boolean useSample, double sampleFraction) throws StandardException {
         DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
-        return new ControlDataSet(proc.readORCFile(baseColumnMap,partitionColumnMap,location,context,qualifiers,probeValue,execRow).toLocalIterator());
+        return new ControlDataSet(proc.readORCFile(baseColumnMap,partitionColumnMap,location,context,qualifiers,probeValue,execRow, useSample, sampleFraction).toLocalIterator());
     }
 
     @Override
     public <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
-                                                OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow) throws StandardException{
+                                                OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow,
+                                                boolean useSample, double sampleFraction) throws StandardException{
         DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
-        return new ControlDataSet(proc.readTextFile(op,location,characterDelimiter,columnDelimiter,baseColumnMap, context, qualifiers, probeValue, execRow).toLocalIterator());
+        return new ControlDataSet(proc.readTextFile(op,location,characterDelimiter,columnDelimiter,baseColumnMap, context, qualifiers, probeValue, execRow, useSample, sampleFraction).toLocalIterator());
     }
 
     @Override

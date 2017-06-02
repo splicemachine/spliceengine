@@ -731,6 +731,13 @@ Guide.
             </msg>
 
             <msg>
+                <name>22008.S.1</name>
+                <text>'{0}' is not in the valid range '{1}'.</text>
+                <arg>argument</arg>
+                <arg>functionName</arg>
+            </msg>
+
+            <msg>
                 <name>2200H.S</name>
                 <text>Sequence generator '{0}.{1}' does not cycle. No more values can be obtained from this sequence generator.</text>
                 <arg>schemaName</arg>

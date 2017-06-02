@@ -42,6 +42,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.stream.function.StatisticsFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -61,15 +62,22 @@ public class StatisticsOperation extends SpliceBaseOperation {
 
     protected ScanSetBuilder scanSetBuilder;
     protected String scope;
+    protected boolean useSample;
+    protected double sampleFraction;
 
     // serialization
     public StatisticsOperation(){}
 
-    public StatisticsOperation(ScanSetBuilder scanSetBuilder, String scope, Activation activation) throws StandardException {
+    public StatisticsOperation(ScanSetBuilder scanSetBuilder, boolean useSample, double sampleFraction, String scope, Activation activation) throws StandardException {
         super(new DerbyOperationInformation(activation, 0, 0, 0));
         this.scanSetBuilder = scanSetBuilder;
         this.scope = scope;
         this.activation = activation;
+        this.useSample = useSample;
+        this.sampleFraction = sampleFraction;
+        if (useSample) {
+            scanSetBuilder.useSample(useSample).sampleFraction(sampleFraction);
+        }
     }
 
     @Override
@@ -77,15 +85,16 @@ public class StatisticsOperation extends SpliceBaseOperation {
         dsp.setSchedulerPool("admin");
         try {
             DataSet statsDataSet;
+            OperationContext<StatisticsOperation> operationContext = dsp.createOperationContext(this);
             if (scanSetBuilder.getStoredAs() != null) {
                 ScanSetBuilder builder = scanSetBuilder;
                 String storedAs = scanSetBuilder.getStoredAs();
                 if (storedAs.equals("T"))
-                    statsDataSet = dsp.readTextFile(null, builder.getLocation(), builder.getDelimited(), null, builder.getColumnPositionMap(), null, null, null, builder.getTemplate());
+                    statsDataSet = dsp.readTextFile(null, builder.getLocation(), builder.getDelimited(), null, builder.getColumnPositionMap(), null, null, null, builder.getTemplate(), useSample, sampleFraction);
                 else if (storedAs.equals("P"))
-                    statsDataSet = dsp.readParquetFile(builder.getColumnPositionMap(), builder.getPartitionByColumnMap() , builder.getLocation(), null, null, null, builder.getTemplate());
+                    statsDataSet = dsp.readParquetFile(builder.getColumnPositionMap(), builder.getPartitionByColumnMap() , builder.getLocation(), null, null, null, builder.getTemplate(), useSample, sampleFraction);
                 else if (storedAs.equals("O"))
-                    statsDataSet = dsp.readORCFile(builder.getColumnPositionMap(), builder.getPartitionByColumnMap(), builder.getLocation(), null, null, null, builder.getTemplate());
+                    statsDataSet = dsp.readORCFile(builder.getColumnPositionMap(), builder.getPartitionByColumnMap(), builder.getLocation(), null, null, null, builder.getTemplate(), useSample, sampleFraction);
                 else {
                     throw new UnsupportedOperationException("storedAs Type not supported -> " + storedAs);
                 }
@@ -94,7 +103,7 @@ public class StatisticsOperation extends SpliceBaseOperation {
             }
             return statsDataSet
                     .mapPartitions(
-                            new StatisticsFlatMapFunction(scanSetBuilder.getBaseTableConglomId(), scanSetBuilder.getColumnPositionMap(), scanSetBuilder.getTemplate()));
+                            new StatisticsFlatMapFunction(operationContext, scanSetBuilder.getBaseTableConglomId(), scanSetBuilder.getColumnPositionMap(), scanSetBuilder.getTemplate()));
         } catch (StandardException se) {
             throw se;
         }
@@ -165,6 +174,8 @@ public class StatisticsOperation extends SpliceBaseOperation {
         super.writeExternal(out);
         out.writeObject(scope);
         out.writeObject(scanSetBuilder);
+        out.writeBoolean(useSample);
+        out.writeDouble(sampleFraction);
     }
 
     @Override
@@ -172,5 +183,15 @@ public class StatisticsOperation extends SpliceBaseOperation {
         super.readExternal(in);
         scope = (String) in.readObject();
         scanSetBuilder = (ScanSetBuilder) in.readObject();
+        useSample = in.readBoolean();
+        sampleFraction = in.readDouble();
+    }
+
+    public double getSampleFraction() {
+        return sampleFraction;
+    }
+
+    public boolean getUseSample() {
+        return useSample;
     }
 }

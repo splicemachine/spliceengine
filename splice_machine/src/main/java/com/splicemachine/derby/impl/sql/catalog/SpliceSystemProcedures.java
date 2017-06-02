@@ -14,25 +14,28 @@
 
 package com.splicemachine.derby.impl.sql.catalog;
 
-import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
-import com.splicemachine.db.impl.sql.catalog.SystemColumnImpl;
-import com.splicemachine.derby.impl.load.HdfsImport;
-import com.splicemachine.derby.impl.storage.TableSplit;
-import java.sql.Types;
-import java.util.*;
-
 import com.splicemachine.backup.BackupSystemProcedures;
-import com.splicemachine.derby.utils.*;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.catalog.DefaultSystemProcedureGenerator;
 import com.splicemachine.db.impl.sql.catalog.Procedure;
+import com.splicemachine.db.impl.sql.catalog.SystemColumnImpl;
+import com.splicemachine.derby.impl.load.HdfsImport;
+import com.splicemachine.derby.impl.storage.TableSplit;
+import com.splicemachine.derby.utils.*;
 import com.splicemachine.procedures.external.ExternalTableSystemProcedures;
+
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 /**
  * System procedure generator implementation class that extends
@@ -304,6 +307,16 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(collectStatsForTable);
 
+                    Procedure collectSampleStatsForTable = Procedure.newBuilder().name("COLLECT_TABLE_SAMPLE_STATISTICS")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .varchar("schema",128)
+                            .varchar("table",1024)
+                            .arg("samplePercentage", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE).getCatalogType())
+                            .arg("staleOnly", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                            .ownerClass(StatisticsAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(collectSampleStatsForTable);
 
                     Procedure importWithBadRecords = Procedure.newBuilder().name("IMPORT_DATA")
                             .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
