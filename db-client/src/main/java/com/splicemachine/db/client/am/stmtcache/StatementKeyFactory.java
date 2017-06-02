@@ -41,7 +41,7 @@ public final class StatementKeyFactory {
     private static final boolean PREPARED = false;
 
     /** Instantiation not allowed. */
-    private StatementKeyFactory() {};
+    private StatementKeyFactory() {}
 
     /**
      * Creates a key for a query with default settings.

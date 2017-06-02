@@ -2432,7 +2432,7 @@ public class NetConnectionReply extends Reply
             return null;
         }
         return readString();
-    };
+    }
 
     // Code Point Data Representation specifies the data representation
     // of a dictionary codepoint.  Code points are hexadecimal aliases for DDM
@@ -2473,8 +2473,7 @@ public class NetConnectionReply extends Reply
             return null;
         }
         return readString();
-    };
-
+    }
 
 
     protected int parseXIDCNT() throws DisconnectException {

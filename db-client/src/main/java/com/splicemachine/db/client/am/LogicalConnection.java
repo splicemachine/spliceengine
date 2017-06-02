@@ -127,7 +127,7 @@ public class LogicalConnection implements java.sql.Connection {
                 throw new SqlException(null, 
                     new ClientMessageId(SQLState.NO_CURRENT_CONNECTION)); // no call to informListeners()
             } else {
-                ; // no call to recycleConnection()
+                // no call to recycleConnection()
             }
         } finally {
             physicalConnection_.closeForReuse(
