@@ -452,7 +452,6 @@ public class ExternalTableIT extends SpliceUnitTest{
 
         //Make sure empty file is created
         Assert.assertTrue(String.format("Table %s hasn't been created",tablePath), new File(tablePath).exists());
-
     }
 
     @Test
@@ -1096,4 +1095,101 @@ public class ExternalTableIT extends SpliceUnitTest{
         int i = rs.getInt(1);
         Assert.assertTrue(i == 1);
     }
+
+    /**
+     *
+     *
+     *
+     Elapsedtime on;
+     --select user_id, data_date, clicks
+     select *
+     from RFUEL.impressions
+     where data_date between 20160915 and 20160925
+     and ad_info[2] =‘80831’
+     {limit 10};
+
+     [centos@ip-10-250-0-12 rfuel]$ more /tmp/t4_b.sql
+     Elapsedtime on;
+
+     --select user_id, server_timestamp
+     select *
+     from rfuel.impressions
+     where data_date = 20160915
+     and clicks >0
+     {limit 10};
+
+     Elapsedtime on;
+     select user_id, data_date, clicks
+     from RFUEL.impressions
+     where data_date between 20160915 and 20160925
+     and ad_info[2] =‘80831’
+     {limit 10};
+
+     select
+
+     [centos@ip-10-250-0-12 rfuel]$ more t4.sql
+     Elapsedtime on;
+     select user_id, server_timestamp
+     from rfuel.impressions
+     where data_date = 20160915
+     and clicks >0
+     {limit 10};
+
+
+     user_id, server_timestamp, data_date, clicks, ad_info[2]
+
+     user_id BIGINT,
+     server_timestamp BIGINT,
+     clicks INT,
+     user_agent                            VARCHAR(1000),
+     user_accept_language                  VARCHAR(1000),
+     url                                   VARCHAR(1000),
+     referrer_url                          VARCHAR(1000),
+     page_id                               VARCHAR(1000),
+     page_category_csv                     VARCHAR(1000),
+     page_tags_csv                         VARCHAR(1000),
+     ad_info                               VARCHAR(1000) ARRAY,
+     data_date                             INTEGER)
+     ,
+     PARTITIONED BY (
+     data_date
+     )
+
+
+
+     */
+    @Test
+    public void testPartitionPruning() throws Exception {
+        String tablePath =  getExternalResourceDirectory()+"partition_prune_orc";
+        methodWatcher.executeUpdate(String.format("create external table partition_prune_orc ( user_id BIGINT,\n" +
+                "     server_timestamp BIGINT,\n" +
+                "     clicks INT,\n" +
+                "     user_agent                            VARCHAR(1000),\n" +
+                "     user_accept_language                  VARCHAR(1000),\n" +
+                "     url                                   VARCHAR(1000),\n" +
+                "     referrer_url                          VARCHAR(1000),\n" +
+                "     page_id                               VARCHAR(1000),\n" +
+                "     page_category_csv                     VARCHAR(1000),\n" +
+                "     page_tags_csv                         VARCHAR(1000),\n" +
+                "     ad_info                               VARCHAR(1000) ARRAY,\n" +
+                "     data_date                             INTEGER)"+
+                "partitioned by (data_date) STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"partition_prune_orc"));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into partition_prune_orc values "+
+                "(100,100, 100, 'x','x','x','x','x','x','x',['100','100'], 20160915)," +
+                "(200,200, 200, 'x','x','x','x','x','x','x',['100','100'], 20160916)," +
+                "(300,300, 300, 'x','x','x','x','x','x','x',['100','100'], 20160917)"));
+        Assert.assertEquals("insertCount is wrong",3,insertCount);
+        ResultSet rs = methodWatcher.executeQuery("select * from partition_prune_orc");
+        Assert.assertEquals("USER_ID |SERVER_TIMESTAMP |CLICKS |USER_AGENT |USER_ACCEPT_LANGUAGE | URL |REFERRER_URL | PAGE_ID | PAGE_CATEGORY_CSV | PAGE_TAGS_CSV |  AD_INFO  | DATA_DATE |\n" +
+                "----------------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
+                "   100   |       100       |  100  |     x     |          x          |  x  |      x      |    x    |         x         |       x       |[100, 100] | 20160915  |\n" +
+                "   200   |       200       |  200  |     x     |          x          |  x  |      x      |    x    |         x         |       x       |[100, 100] | 20160916  |\n" +
+                "   300   |       300       |  300  |     x     |          x          |  x  |      x      |    x    |         x         |       x       |[100, 100] | 20160917  |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+        //Make sure empty file is created
+        Assert.assertTrue(String.format("Table %s hasn't been created",tablePath), new File(tablePath).exists());
+    }
+
+
+
 }
