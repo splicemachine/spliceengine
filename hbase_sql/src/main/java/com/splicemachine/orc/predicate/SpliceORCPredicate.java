@@ -205,26 +205,27 @@ public class SpliceORCPredicate implements OrcPredicate, Externalizable {
             Map<Integer, ColumnStatistics> partitionStatistics = new HashMap<>(partitionColumns.size());
 
             for (int i = 0; i< partitionColumns.size(); i++) {
-                int j = baseColumnMap.indexOf(partitionColumns.get(0));
+                int storagePos = partitionColumns.get(i);
+                int j = baseColumnMap.get((partitionColumns.get(i)));
                 if (j==-1) // Partition Column Not In List...
                     continue;
                 DataType dataType = rowStruct.fields()[j].dataType();
                 if (dataType instanceof BooleanType) {
-                    partitionStatistics.put(j, BooleanStatistics.getPartitionColumnStatistics(values[i]));
+                    partitionStatistics.put(storagePos, BooleanStatistics.getPartitionColumnStatistics(values[i]));
                 } else if (dataType instanceof DecimalType) {
-                    partitionStatistics.put(j, DecimalStatistics.getPartitionColumnStatistics(values[i]));
+                    partitionStatistics.put(storagePos, DecimalStatistics.getPartitionColumnStatistics(values[i]));
                 } else if (dataType instanceof StringType) {
-                    partitionStatistics.put(j, StringStatistics.getPartitionColumnStatistics(values[i]));
+                    partitionStatistics.put(storagePos, StringStatistics.getPartitionColumnStatistics(values[i]));
                 } else if (dataType instanceof DateType) {
-                    partitionStatistics.put(j, DateStatistics.getPartitionColumnStatistics(values[i]));
+                    partitionStatistics.put(storagePos, DateStatistics.getPartitionColumnStatistics(values[i]));
                 } else if (dataType instanceof IntegerType) {
-                    partitionStatistics.put(j, IntegerStatistics.getPartitionColumnStatistics(values[i]));
+                    partitionStatistics.put(storagePos, IntegerStatistics.getPartitionColumnStatistics(values[i]));
                 } else if (dataType instanceof LongType) {
-                    partitionStatistics.put(j, IntegerStatistics.getPartitionColumnStatistics(values[i]));
+                    partitionStatistics.put(storagePos, IntegerStatistics.getPartitionColumnStatistics(values[i]));
                 } else if (dataType instanceof DoubleType) {
-                    partitionStatistics.put(j, DoubleStatistics.getPartitionColumnStatistics(values[i]));
+                    partitionStatistics.put(storagePos, DoubleStatistics.getPartitionColumnStatistics(values[i]));
                 } else if (dataType instanceof FloatType) {
-                    partitionStatistics.put(j, DoubleStatistics.getPartitionColumnStatistics(values[i]));
+                    partitionStatistics.put(storagePos, DoubleStatistics.getPartitionColumnStatistics(values[i]));
                 } else {
                 }
             }
