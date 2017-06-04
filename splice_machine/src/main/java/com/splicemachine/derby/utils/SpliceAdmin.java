@@ -862,7 +862,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             checkCurrentUserIsDatabaseOwnerAccess();
             EmbedConnection defaultConn = (EmbedConnection)getDefaultConn();
             LanguageConnectionContext lcc = defaultConn.getLanguageConnection();
-            TransactionController tc = lcc.getTransactionExecute();
+            SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute();
             DataDictionary dd = lcc.getDataDictionary();
             dd.startWriting(lcc);
             dd.getSchemaDescriptor(schemaName, tc, /* raiseError= */true);
@@ -870,6 +870,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 throw StandardException.newException(String.format("User '%s' does not exist.", ownerName));
             }
             ((DataDictionaryImpl)dd).updateSchemaAuth(schemaName, ownerName, tc);
+            DDLMessage.DDLChange ddlChange = ProtoUtil.createDropSchema(tc.getActiveStateTxn().getTxnId(), schemaName);
+            tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
         } catch (Exception e) {
