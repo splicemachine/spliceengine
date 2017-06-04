@@ -14,7 +14,9 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUserWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -24,6 +26,7 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
@@ -36,11 +39,16 @@ public class CreateSchemaIT {
 
     protected static SpliceSchemaWatcher sullivan1SchemaWatcher = new SpliceSchemaWatcher("SULLIVAN1");
     protected static SpliceSchemaWatcher sullivanSchemaWatcher = new SpliceSchemaWatcher("SULLIVAN");
+    protected static SpliceSchemaWatcher cmprod = new SpliceSchemaWatcher("cmprod");
+    protected static SpliceUserWatcher cmprodUser = new SpliceUserWatcher("cmprod","bigdata4u");
+
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(sullivan1SchemaWatcher)
-            .around(sullivanSchemaWatcher);
+            .around(sullivanSchemaWatcher)
+            .around(cmprod)
+            .around(cmprodUser);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -54,6 +62,23 @@ public class CreateSchemaIT {
             count++;
         }
         Assert.assertEquals("Incorrect row count", 2, count);
+    }
+
+    @Test
+    // DB-5988
+    public void testSchemaAuthorizationCreation() throws Exception {
+        Connection connection = null;
+        try {
+            methodWatcher.execute("call SYSCS_UTIL.SYSCS_UPDATE_SCHEMA_OWNER('cmprod','cmprod')");
+            methodWatcher.execute("create table cmprod.table1 (col1 int)");
+            connection = SpliceNetConnection.getConnectionAs("cmprod", "bigdata4u");
+            ResultSet rs = connection.createStatement().executeQuery("select * from cmprod.table1");
+            rs.next();
+            rs.close();
+        } finally {
+            if (connection != null)
+                connection.close();
+        }
     }
 
 }
