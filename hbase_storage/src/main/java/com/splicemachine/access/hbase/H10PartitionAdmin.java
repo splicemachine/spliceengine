@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Function;
+import org.apache.hadoop.hbase.exceptions.ConnectionClosingException;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
@@ -116,7 +117,7 @@ public class H10PartitionAdmin implements PartitionAdmin{
                     admin.split(tableInfo);
                 }
                 done = true;
-            } catch (NotServingRegionException e) {
+            } catch (NotServingRegionException | ConnectionClosingException e) {
                 
                 done = false;
                 try {

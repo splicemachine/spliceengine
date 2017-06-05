@@ -74,4 +74,11 @@ public class DefaultWriteConfigurationTest {
 		DefaultWriteConfiguration configuration = new DefaultWriteConfiguration(null,exceptionFactory);
 		Assert.assertEquals(WriteResponse.RETRY, configuration.globalError(exceptionFactory.notServingPartition("Some remote region not serving exception occurred")));
 	}
+
+	@Test
+	public void testConnectionClosedException() throws ExecutionException {
+		DefaultWriteConfiguration configuration = new DefaultWriteConfiguration(null,exceptionFactory);
+		Assert.assertEquals(WriteResponse.RETRY, configuration.globalError(exceptionFactory.connectionClosingException()));
+	}
+
 }

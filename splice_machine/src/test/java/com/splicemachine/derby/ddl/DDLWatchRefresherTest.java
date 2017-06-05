@@ -66,6 +66,7 @@ public class DDLWatchRefresherTest{
         @Override public IOException callerDisconnected(String message){ throw new UnsupportedOperationException("Should not happen"); }
         @Override public IOException failedServer(String message){ throw new UnsupportedOperationException("Should not happen"); }
         @Override public IOException notServingPartition(String s){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public IOException connectionClosingException() { throw new UnsupportedOperationException("Should not happen"); }
         @Override public boolean allowsRetry(Throwable error){ throw new UnsupportedOperationException("Should not happen"); }
     };
 
