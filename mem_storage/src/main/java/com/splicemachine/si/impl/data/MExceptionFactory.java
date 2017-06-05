@@ -84,6 +84,11 @@ public class MExceptionFactory implements ExceptionFactory{
     }
 
     @Override
+    public IOException connectionClosingException(){
+        return new MNotServingPartition("Mem Not Serving Partition");
+    }
+
+    @Override
     public IOException additiveWriteConflict(){
         return new MAdditiveWriteConflict();
     }
