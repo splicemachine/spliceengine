@@ -206,7 +206,9 @@ public class SpliceORCPredicate implements OrcPredicate, Externalizable {
 
             for (int i = 0; i< partitionColumns.size(); i++) {
                 int storagePos = partitionColumns.get(i);
-                int j = baseColumnMap.get((partitionColumns.get(i)));
+                if (storagePos >= baseColumnMap.size())
+                    continue;
+                int j = baseColumnMap.get(storagePos);
                 if (j==-1) // Partition Column Not In List...
                     continue;
                 DataType dataType = rowStruct.fields()[j].dataType();
