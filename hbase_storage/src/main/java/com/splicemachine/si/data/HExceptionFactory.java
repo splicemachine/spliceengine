@@ -26,6 +26,7 @@ import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
+import org.apache.hadoop.hbase.exceptions.ConnectionClosingException;
 import org.apache.hadoop.hbase.ipc.CallTimeoutException;
 import org.apache.hadoop.hbase.regionserver.NoSuchColumnFamilyException;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
@@ -102,6 +103,9 @@ public class HExceptionFactory implements ExceptionFactory{
     }
 
     @Override
+    public IOException connectionClosingException() { return new HNotServingRegion("Not Serving Region"); }
+
+    @Override
     public IOException additiveWriteConflict(){
         return new AdditiveWriteConflict();
     }
@@ -136,7 +140,7 @@ public class HExceptionFactory implements ExceptionFactory{
             }
             e=t;
         }
-        if(e instanceof NotServingRegionException){
+        if(e instanceof NotServingRegionException || e instanceof ConnectionClosingException){
             return new HNotServingRegion(e.getMessage());
         }else if(e instanceof RegionTooBusyException){
             return new HRegionTooBusy(e.getMessage());
