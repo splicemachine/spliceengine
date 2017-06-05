@@ -42,5 +42,7 @@ public interface ExceptionFactory{
 
     IOException notServingPartition(String s);
 
+    IOException connectionClosingException();
+
     boolean allowsRetry(Throwable error);
 }

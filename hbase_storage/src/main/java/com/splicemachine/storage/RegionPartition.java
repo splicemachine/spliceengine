@@ -14,6 +14,7 @@
 
 package com.splicemachine.storage;
 
+import org.apache.hadoop.hbase.exceptions.ConnectionClosingException;
 import org.spark_project.guava.base.Function;
 import com.splicemachine.si.impl.HRegionTooBusy;
 
@@ -84,7 +85,7 @@ public class RegionPartition implements Partition{
                 }
                 results.add(region.get(g));
             }
-        }catch(NotServingRegionException nsre){
+        }catch(NotServingRegionException | ConnectionClosingException nsre){
             throw new HNotServingRegion(nsre.getMessage());
         }catch(WrongRegionException wre){
             throw new HWrongRegion(wre.getMessage());
@@ -141,7 +142,7 @@ public class RegionPartition implements Partition{
                 previous=new HResult();
             ((HResult)previous).set(result);
             return previous;
-        }catch(NotServingRegionException nsre){
+        }catch(NotServingRegionException | ConnectionClosingException nsre){
             throw new HNotServingRegion(nsre.getMessage());
         }catch(WrongRegionException wre){
             throw new HWrongRegion(wre.getMessage());
@@ -161,7 +162,7 @@ public class RegionPartition implements Partition{
                 ((HResult)previous).set(r);
             }
             return previous;
-        }catch(NotServingRegionException nsre){
+        }catch(NotServingRegionException | ConnectionClosingException nsre){
             throw new HNotServingRegion(nsre.getMessage());
         }catch(WrongRegionException wre){
             throw new HWrongRegion(wre.getMessage());
@@ -181,7 +182,7 @@ public class RegionPartition implements Partition{
                 ((HResult)previous).set(result);
             }
             return previous;
-        }catch(NotServingRegionException | AssertionError | NullPointerException nsre){
+        }catch(NotServingRegionException | ConnectionClosingException | AssertionError | NullPointerException nsre){
             throw new HNotServingRegion(nsre.getMessage());
         }catch(WrongRegionException wre){
             throw new HWrongRegion(wre.getMessage());
@@ -202,7 +203,7 @@ public class RegionPartition implements Partition{
                 ((HResult)previous).set(result);
             }
             return previous;
-        }catch(NotServingRegionException nsre){
+        }catch(NotServingRegionException| ConnectionClosingException nsre){
             throw new HNotServingRegion(nsre.getMessage());
         }catch(WrongRegionException wre){
             throw new HWrongRegion(wre.getMessage());
@@ -224,7 +225,7 @@ public class RegionPartition implements Partition{
             RegionScanner scanner=region.getScanner(s);
 
             return new RegionDataScanner(this,scanner,metricFactory);
-        }catch(NotServingRegionException nsre){
+        }catch(NotServingRegionException | ConnectionClosingException nsre){
             throw new HNotServingRegion(nsre.getMessage());
         }catch(WrongRegionException wre){
             throw new HWrongRegion(wre.getMessage());
@@ -246,7 +247,7 @@ public class RegionPartition implements Partition{
 
             //TODO -sf- massage the batch size properly
             return new RegionResultScanner(s.getBatch(),new MeasuredListScanner(scanner,metricFactory));
-        }catch(NotServingRegionException nsre){
+        }catch(NotServingRegionException | ConnectionClosingException nsre){
             throw new HNotServingRegion(nsre.getMessage());
         }catch(WrongRegionException wre){
             throw new HWrongRegion(wre.getMessage());
@@ -262,7 +263,7 @@ public class RegionPartition implements Partition{
 
         try{
             region.put(p);
-        }catch(NotServingRegionException nsre){
+        }catch(NotServingRegionException | ConnectionClosingException nsre){
             throw new HNotServingRegion(nsre.getMessage());
         }catch(WrongRegionException wre){
             throw new HWrongRegion(wre.getMessage());
@@ -287,7 +288,7 @@ public class RegionPartition implements Partition{
                     return resultStatus;
                 }
             });
-        }catch(NotServingRegionException nsre){
+        }catch(NotServingRegionException | ConnectionClosingException nsre){
             //convert HBase NSRE to Partition-level
             throw new HNotServingRegion(nsre.getMessage());
         }catch(WrongRegionException wre){
@@ -305,7 +306,7 @@ public class RegionPartition implements Partition{
         try{
             Result increment=region.increment(incr);
             return Bytes.toLong(increment.value()); //TODO -sf- is this correct?
-        }catch(NotServingRegionException nsre){
+        }catch(NotServingRegionException| ConnectionClosingException nsre){
             throw new HNotServingRegion(nsre.getMessage());
         }catch(WrongRegionException wre){
             throw new HWrongRegion(wre.getMessage());
@@ -318,7 +319,7 @@ public class RegionPartition implements Partition{
 
         try{
             region.delete(d);
-        }catch(NotServingRegionException nsre){
+        }catch(NotServingRegionException | ConnectionClosingException nsre){
             throw new HNotServingRegion(nsre.getMessage());
         }catch(WrongRegionException wre){
             throw new HWrongRegion(wre.getMessage());
@@ -332,7 +333,7 @@ public class RegionPartition implements Partition{
                 region.put(((HPut)put).unwrapDelegate());
             else
                 region.delete(((HDelete)put).unwrapDelegate());
-        }catch(NotServingRegionException nsre){
+        }catch(NotServingRegionException | ConnectionClosingException nsre){
             throw new HNotServingRegion(nsre.getMessage());
         }catch(WrongRegionException wre){
             throw new HWrongRegion(wre.getMessage());
