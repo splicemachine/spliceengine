@@ -104,6 +104,11 @@ public class HSqlExceptionFactory implements SqlExceptionFactory{
     }
 
     @Override
+    public IOException connectionClosingException(){
+        return delegate.connectionClosingException();
+    }
+
+    @Override
     public boolean allowsRetry(Throwable error){
         return delegate.allowsRetry(error);
     }
