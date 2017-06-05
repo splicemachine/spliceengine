@@ -27,6 +27,7 @@ import com.splicemachine.storage.PartitionInfoCache;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.exceptions.ConnectionClosingException;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
@@ -107,6 +108,7 @@ public class BulkWriteChannelInvoker {
                 e instanceof NotServingRegionException ||
                 e instanceof NotServingPartitionException ||
                 e instanceof ConnectException ||
+                e instanceof ConnectionClosingException ||
             isFailedServerException(e)) {
             /*
              * We sent it to the wrong place, so we need to resubmit it. But since we

@@ -32,6 +32,7 @@ import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.exceptions.ConnectionClosingException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
@@ -141,7 +142,8 @@ public class SynchronousReadResolver implements KeyedReadResolver{
         try{
             ((RegionPartition)region).unwrapDelegate().put(put);
         }catch(IOException e){
-            if(!(e instanceof RegionTooBusyException) && !(e instanceof NotServingRegionException)){
+            if(!(e instanceof RegionTooBusyException) && !(e instanceof NotServingRegionException)
+                    &&  !(e instanceof ConnectionClosingException)){
                 LOG.info("Exception encountered when attempting to resolve a row as committed",e);
                 if(failOnError)
                     throw new RuntimeException(e);
