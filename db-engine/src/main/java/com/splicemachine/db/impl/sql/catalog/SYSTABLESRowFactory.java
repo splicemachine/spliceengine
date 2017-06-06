@@ -58,7 +58,7 @@ import java.sql.Types;
 
 public class SYSTABLESRowFactory extends CatalogRowFactory
 {
-	private static final String		TABLENAME_STRING = "SYSTABLES";
+	public static final String		TABLENAME_STRING = "SYSTABLES";
 
 	protected static final int		SYSTABLES_COLUMN_COUNT = 15;
 	/* Column #s for systables (1 based) */

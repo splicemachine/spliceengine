@@ -48,4 +48,14 @@ public interface PartitionAdmin extends AutoCloseable{
     void move(String partition,String server) throws IOException;
 
     TableDescriptor getTableDescriptor(String table) throws IOException;
+
+    void snapshot(String snapshotName, String tableName) throws IOException;
+
+    void deleteSnapshot(String snapshotName) throws IOException;
+
+    void restoreSnapshot(String snapshotName) throws IOException;
+
+    void disableTable(String tableName) throws IOException;
+
+    void enableTable(String tableName) throws IOException;
 }

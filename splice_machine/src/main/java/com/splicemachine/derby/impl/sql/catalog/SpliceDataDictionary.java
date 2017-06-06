@@ -76,6 +76,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     private volatile TabInfoImpl columnStatsTable=null;
     private volatile TabInfoImpl physicalStatsTable=null;
     private volatile TabInfoImpl sourceCodeTable=null;
+    private volatile TabInfoImpl snapshotTable = null;
     private Splice_DD_Version spliceSoftwareVersion;
 
     public static final String SPLICE_DATA_DICTIONARY_VERSION="SpliceDataDictionaryVersion";
@@ -169,6 +170,20 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         // insert row into catalog and all its indices
         ti.insertRow(row,tc);
+    }
+
+    public void createSnapshotTable(TransactionController tc) throws StandardException {
+        SchemaDescriptor systemSchema=getSystemSchemaDescriptor();
+        TabInfoImpl snapshotTableInfo=getSnapshotTable();
+        addTableIfAbsent(tc,systemSchema,snapshotTableInfo,null);
+    }
+
+    private TabInfoImpl getSnapshotTable() throws StandardException{
+        if(snapshotTable==null){
+            snapshotTable=new TabInfoImpl(new SYSSNAPSHOTSRowFactory(uuidFactory,exFactory,dvf));
+        }
+        initSystemIndexVariables(snapshotTable);
+        return snapshotTable;
     }
 
     public void createStatisticsTables(TransactionController tc) throws StandardException{
@@ -319,6 +334,9 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createStatisticsTables(tc);
 
         createSourceCodeTable(tc);
+
+        // TODO - this needs to be included into an upgrade script (JY)
+        createSnapshotTable(tc);
     }
 
     @Override
@@ -533,22 +551,36 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     private void upgradeSystables(TransactionController tc) throws StandardException {
+        addNewColumToSystables(tc);
         SchemaDescriptor sd = getSystemSchemaDescriptor();
-        TableDescriptor td = getTableDescriptor("SYSTABLES", sd, tc);
+        TableDescriptor td = getTableDescriptor(SYSSNAPSHOTSRowFactory.TABLENAME_STRING, sd, tc);
+        if (td == null)
+        {
+            tc.elevate("dictionary");
+            createSnapshotTable(tc);
+            SpliceLogUtils.info(LOG, "Catalog upgraded: added SYS.SYSSNAPSHOTS table.");
+        }
+        createOrUpdateAllSystemProcedures(tc);
+    }
+
+    private void addNewColumToSystables(TransactionController tc) throws StandardException {
+        SchemaDescriptor sd = getSystemSchemaDescriptor();
+        TableDescriptor td = getTableDescriptor(SYSTABLESRowFactory.TABLENAME_STRING, sd, tc);
         ColumnDescriptor cd = td.getColumnDescriptor(SYSTABLESRowFactory.PURGE_DELETED_ROWS);
-        if (cd == null) {
+        if (cd == null)
+        {
             tc.elevate("dictionary");
             dropTableDescriptor(td, sd, tc);
-            td.setColumnSequence(td.getColumnSequence()+1);
+            td.setColumnSequence(td.getColumnSequence() + 1);
             // add the table descriptor with new name
-            addDescriptor(td,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc);
+            addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc);
 
             DataValueDescriptor storableDV = getDataValueFactory().getNullBoolean(null);
-            int colNumber = td.getNumberOfColumns()+1;
+            int colNumber = td.getNumberOfColumns() + 1;
             DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor((Types.BOOLEAN));
             tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
             UUID uuid = getUUIDFactory().createUUID();
-            ColumnDescriptor columnDescriptor =  new ColumnDescriptor(
+            ColumnDescriptor columnDescriptor = new ColumnDescriptor(
                     SYSTABLESRowFactory.PURGE_DELETED_ROWS,
                     colNumber,
                     colNumber,
@@ -567,7 +599,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             td.getColumnDescriptorList().add(columnDescriptor);
 
             updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
-            createOrUpdateAllSystemProcedures(tc);
             SpliceLogUtils.info(LOG, "SYS.SYSTABLES upgraded: added a new column %s.", SYSTABLESRowFactory.PURGE_DELETED_ROWS);
         }
     }
@@ -666,7 +697,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         addDescriptor(vd,sd,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc);
         SpliceLogUtils.info(LOG, "SYS.SYSVIEWS upgraded: updated view SYSTABLESTATISTICS with two more columns: STATSTYPE, SAMPLEFRACTION.");
     }
-
 
     private boolean needToUpgrade(Splice_DD_Version catalogVersion){
 
