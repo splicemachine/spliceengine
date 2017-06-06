@@ -157,5 +157,26 @@ public class MPartitionFactory implements PartitionFactory<Object>{
         public TableDescriptor getTableDescriptor(String table) throws IOException{
             throw new UnsupportedOperationException("Cannot get table descriptors in an in-memory storage engine!");
         }
+
+        @Override
+        public void snapshot(String snapshotName, String tableName) throws IOException {
+            throw new UnsupportedOperationException("Cannot take a snapshot in an in-memory storage engine!");
+        }
+
+        @Override
+        public void deleteSnapshot(String snapshotName) throws IOException {
+            throw new UnsupportedOperationException("Cannot delete a snapshot in an in-memory storage engine!");
+        }
+
+        @Override
+        public void restoreSnapshot(String snapshotName) throws IOException {
+            throw new UnsupportedOperationException("Cannot restore a snapshot in an in-memory storage engine!");
+        }
+
+        @Override
+        public void disableTable(String tableName) throws IOException {}
+
+        @Override
+        public void enableTable(String tableName) throws IOException {}
     }
 }

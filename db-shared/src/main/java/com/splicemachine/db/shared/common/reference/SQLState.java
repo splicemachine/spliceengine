@@ -1988,6 +1988,8 @@ public interface SQLState {
 	String TABLE_NOT_PINNED				    						= "EXT32";
 	String DIRECTORY_REQUIRED			    						= "EXT33";
 	String ACCESSING_S3_EXCEPTION                                   = "EXT34";
+	String SNAPSHOT_EXISTS											= "SNA01";
+	String SNAPSHOT_NOT_EXISTS										= "SNA02";
 
 }
 
