@@ -54,7 +54,7 @@ import com.splicemachine.db.iapi.types.SQLChar;
 
 public class SYSTABLEPERMSRowFactory extends PermissionsCatalogRowFactory
 {
-	static final String TABLENAME_STRING = "SYSTABLEPERMS";
+	private static final String TABLENAME_STRING = "SYSTABLEPERMS";
 
     // Column numbers for the SYSTABLEPERMS table. 1 based
 	private static final int TABLEPERMSID_COL_NUM = 1;

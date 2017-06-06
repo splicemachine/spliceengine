@@ -22,6 +22,8 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.joda.time.DateTime;
 import org.spark_project.guava.collect.Lists;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DatabaseVersion;
@@ -925,5 +927,284 @@ public class SpliceAdmin extends BaseAdminProcedures{
         td.setPurgeDeletedRows(b);
         dd.dropTableDescriptor(td, sd, tc);
         dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc);
+    }
+
+    /**
+     * Take a snapshot of a schema
+     * @param schemaName
+     * @param snapshotName
+     * @throws Exception
+     */
+    public static void SNAPSHOT_SCHEMA(String schemaName, String snapshotName) throws Exception
+    {
+        String sql1 =
+                "select tablename,conglomeratenumber " +
+                        "from sys.sysschemas s, sys.systables t, sys.sysconglomerates c " +
+                        "where s.schemaid=t.schemaid and " +
+                        "c.tableid = t.tableid and " +
+                        "c.schemaid=s.schemaid and " +
+                        "s.schemaname=? and " +
+                        "(s.schemaname<>'SYS' or t.tablename<>'SYSSNAPSHOTS') and " +
+                        "isindex=false and " +
+                        "isconstraint=false";
+
+        String sql2 =
+                "select conglomeratename, conglomeratenumber " +
+                        "from sys.sysschemas s, sys.systables t, sys.sysconglomerates c " +
+                        "where s.schemaid=t.schemaid and " +
+                        "c.schemaid=s.schemaid and " +
+                        "c.tableid = t.tableid and " +
+                        "s.schemaname=? and " +
+                        "(s.schemaname<>'SYS' or t.tablename<>'SYSSNAPSHOTS') and " +
+                        "(isconstraint=true or isindex=true)";
+
+        ensureSnapshot(snapshotName, false);
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        TransactionController tc  = lcc.getTransactionExecute();
+        DataDictionary dd = lcc.getDataDictionary();
+        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        if (sd == null)
+        {
+            throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);
+        }
+
+        dd.startWriting(lcc);
+
+
+        List<String> snapshotList = Lists.newArrayList();
+        try
+        {
+            ResultSet rs = getResultSet(sql1, schemaName, null);
+            snapshot(rs, snapshotName, schemaName, dd, tc, snapshotList);
+
+            rs = getResultSet(sql2, schemaName, null);
+            snapshot(rs, snapshotName, schemaName, dd, tc, snapshotList);
+        }
+        catch (Exception e)
+        {
+            deleteSnapshots(snapshotList);
+            throw e;
+        }
+    }
+
+    public static void SNAPSHOT_TABLE(String schemaName, String tableName, String snapshotName) throws Exception
+    {
+        String sql1 =
+                "select tablename,conglomeratenumber " +
+                        "from sys.sysschemas s, sys.systables t, sys.sysconglomerates c " +
+                        "where s.schemaid=t.schemaid and " +
+                        "c.tableid = t.tableid and " +
+                        "c.schemaid=s.schemaid and " +
+                        "s.schemaname=? and " +
+                        "isindex=false and " +
+                        "isconstraint=false and " +
+                        "(s.schemaname<>'SYS' or t.tablename<>'SYSSNAPSHOTS') and " +
+                        "t.tablename=?";
+
+        String sql2 =
+                "select conglomeratename, conglomeratenumber " +
+                        "from sys.sysschemas s, sys.systables t, sys.sysconglomerates c " +
+                        "where s.schemaid=t.schemaid and " +
+                        "c.schemaid=s.schemaid and " +
+                        "s.schemaname=? and " +
+                        "(s.schemaname<>'SYS' or t.tablename<>'SYSSNAPSHOTS') and " +
+                        "t.tablename=? and" +
+                        "(isconstraint=true or isindex=true)";
+
+        ensureSnapshot(snapshotName, false);
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        TransactionController tc  = lcc.getTransactionExecute();
+        DataDictionary dd = lcc.getDataDictionary();
+        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        if (sd == null)
+        {
+            throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);
+        }
+
+        TableDescriptor td = dd.getTableDescriptor(tableName, sd, tc);
+        if (td == null)
+        {
+            throw StandardException.newException(SQLState.TABLE_NOT_FOUND, tableName);
+        }
+
+        List<String> snapshotList = Lists.newArrayList();
+        try {
+            dd.startWriting(lcc);
+
+            ResultSet rs = getResultSet(sql1, schemaName, tableName);
+            snapshot(rs, snapshotName, schemaName, dd, tc, snapshotList);
+
+            rs = getResultSet(sql2, schemaName, tableName);
+            snapshot(rs, snapshotName, schemaName, dd, tc, snapshotList);
+        }
+        catch (Exception e)
+        {
+            deleteSnapshots(snapshotList);
+            throw e;
+        }
+    }
+
+
+    /**
+     * delete a snapshot
+     * @param snapshotName
+     * @throws Exception
+     */
+    public static void DELETE_SNAPSHOT(String snapshotName) throws Exception
+    {
+        ensureSnapshot(snapshotName, true);
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        TransactionController tc  = lcc.getTransactionExecute();
+        DataDictionary dd = lcc.getDataDictionary();
+        dd.startWriting(lcc);
+
+        PartitionAdmin admin=SIDriver.driver().getTableFactory().getAdmin();
+        String sql = "select conglomeratenumber from sys.syssnapshots where snapshotname=?";
+        Connection connection = getDefaultConn();
+        PreparedStatement ps = connection.prepareStatement(sql);
+        ps.setString(1, snapshotName);
+        ResultSet rs = ps.executeQuery();
+        while (rs.next())
+        {
+            long conglomerateNumber = rs.getLong(1);
+            String sname = snapshotName + "_" + conglomerateNumber;
+            if (LOG.isDebugEnabled())
+            {
+                SpliceLogUtils.debug(LOG, "deleting snapshot %s for table %d", sname, conglomerateNumber);
+            }
+            admin.deleteSnapshot(sname);
+            dd.deleteSnapshot(snapshotName, conglomerateNumber, tc);
+
+            if (LOG.isDebugEnabled())
+            {
+                SpliceLogUtils.debug(LOG, "deleted snapshot %s for table %d", sname, conglomerateNumber);
+            }
+        }
+    }
+
+    /**
+     * restore a snapshot
+     * @param snapshotName
+     * @throws Exception
+     */
+    public static void RESTORE_SNAPSHOT(String snapshotName) throws Exception
+    {
+        ensureSnapshot(snapshotName, true);
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        TransactionController tc  = lcc.getTransactionExecute();
+        DataDictionary dd = lcc.getDataDictionary();
+        dd.startWriting(lcc);
+
+        PartitionAdmin admin=SIDriver.driver().getTableFactory().getAdmin();
+        String sql =
+                "select schemaName, objectName, conglomeratenumber, creationTime " +
+                "from sys.syssnapshots " +
+                "where snapshotname=?";
+
+        Connection connection = getDefaultConn();
+        PreparedStatement ps = connection.prepareStatement(sql);
+        ps.setString(1, snapshotName);
+        ResultSet rs = ps.executeQuery();
+        while (rs.next())
+        {
+            String schemaName = rs.getString(1);
+            String objectName = rs.getString(2);
+            long conglomerateNumber = rs.getLong(3);
+            DateTime creationTime = new DateTime(rs.getTimestamp(4));
+            DateTime lastRestoreTime = new DateTime(System.currentTimeMillis());
+            String sname = snapshotName + "_" + conglomerateNumber;
+
+            if (LOG.isDebugEnabled())
+            {
+                SpliceLogUtils.debug(LOG, "restoring snapshot %s for table %d", sname, conglomerateNumber);
+            }
+
+            admin.disableTable("splice:" + conglomerateNumber);
+            admin.restoreSnapshot(sname);
+            admin.enableTable("splice:" + conglomerateNumber);
+            dd.deleteSnapshot(snapshotName, conglomerateNumber, tc);
+            SnapshotDescriptor descriptor = new SnapshotDescriptor(snapshotName, schemaName, objectName,
+                    conglomerateNumber, creationTime, lastRestoreTime);
+            dd.addSnapshot(descriptor, tc);
+            if (LOG.isDebugEnabled())
+            {
+                SpliceLogUtils.debug(LOG, "restored snapshot %s for table %d", sname, conglomerateNumber);
+            }
+        }
+    }
+
+    private static ResultSet getResultSet(String sql, String schemaName, String tableName) throws Exception
+    {
+        Connection connection = getDefaultConn();
+        PreparedStatement ps = connection.prepareStatement(sql);
+        ps.setString(1, schemaName);
+        if (tableName != null)
+        {
+            ps.setString(2, tableName);
+        }
+        ResultSet rs = ps.executeQuery();
+        return rs;
+    }
+
+    private static void snapshot(ResultSet rs, String snapshotName, String schemaName,
+                                 DataDictionary dd, TransactionController tc, List<String> snapshotList) throws Exception
+    {
+        PartitionAdmin admin=SIDriver.driver().getTableFactory().getAdmin();
+        while(rs.next())
+        {
+            String objectName = rs.getString(1);
+            long conglomerateNumber = rs.getLong(2);
+            String sname = snapshotName + "_" + conglomerateNumber;
+            snapshotList.add(sname);
+            DateTime creationTime = new DateTime(System.currentTimeMillis());
+            if (LOG.isDebugEnabled())
+            {
+                SpliceLogUtils.debug(LOG, "creating snapshot %s", sname);
+            }
+            SnapshotDescriptor descriptor =
+                    new SnapshotDescriptor(snapshotName, schemaName, objectName, conglomerateNumber,creationTime, null);
+            admin.snapshot(sname, "splice:" + conglomerateNumber);
+            dd.addSnapshot(descriptor, tc);
+            if (LOG.isDebugEnabled())
+            {
+                SpliceLogUtils.debug(LOG, "created snapshot %s", sname);
+            }
+        }
+    }
+
+    private static void ensureSnapshot(String snapshotName, boolean exists) throws StandardException
+    {
+        int count = 0;
+        try {
+            String sql = "select count(*) from sys.syssnapshots where snapshotname=?";
+            Connection connection = getDefaultConn();
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setString(1, snapshotName);
+            ResultSet rs = ps.executeQuery();
+            rs.next();
+            count = rs.getInt(1);
+        }
+        catch (SQLException e)
+        {
+            throw StandardException.plainWrapException(e);
+        }
+
+        if (exists && count == 0)
+        {
+            throw StandardException.newException(SQLState.SNAPSHOT_NOT_EXISTS, snapshotName);
+        }
+        else if (!exists && count > 0)
+        {
+            throw StandardException.newException(SQLState.SNAPSHOT_EXISTS, snapshotName);
+        }
+    }
+
+    private static void deleteSnapshots(List<String> snapshotList) throws IOException
+    {
+        PartitionAdmin admin=SIDriver.driver().getTableFactory().getAdmin();
+        for (String snapshot : snapshotList)
+        {
+            admin.deleteSnapshot(snapshot);
+        }
     }
 }
