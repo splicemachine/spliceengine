@@ -513,19 +513,27 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
                                       OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow) throws StandardException {
+        assert baseColumnMap != null:"baseColumnMap Null";
         try {
             Dataset<Row> table = null;
             try {
                 table = SpliceSpark.getSession().read().csv(location);
 
-
-                for( int index = 0; index< baseColumnMap.length; index++){
-                    if(baseColumnMap[index]!=-1){
+                if (op == null && baseColumnMap[0] == 1) {
+                    // stats collection scan
+                    for(int index = 0; index< baseColumnMap.length; index++) {
                         StructField ft = table.schema().fields()[index];
-                        Column cl = new Column(ft.name()).cast(execRow.schema().fields()[baseColumnMap[index]].dataType());
-                        table = table.withColumn(ft.name(),cl);
+                        Column cl = new Column(ft.name()).cast(execRow.schema().fields()[index].dataType());
+                        table = table.withColumn(ft.name(), cl);
                     }
-
+                } else {
+                    for( int index = 0; index< baseColumnMap.length; index++) {
+                        if (baseColumnMap[index] != -1) {
+                            StructField ft = table.schema().fields()[index];
+                            Column cl = new Column(ft.name()).cast(execRow.schema().fields()[baseColumnMap[index]].dataType());
+                            table = table.withColumn(ft.name(), cl);
+                        }
+                    }
                 }
 
 
