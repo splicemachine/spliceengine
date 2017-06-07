@@ -519,9 +519,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             try {
                 table = SpliceSpark.getSession().read().csv(location);
 
-                if (op == null && baseColumnMap[0] == 1) {
+                if (op == null) {
                     // stats collection scan
-                    for(int index = 0; index< baseColumnMap.length; index++) {
+                    for(int index = 0; index < execRow.schema().fields().length; index++) {
                         StructField ft = table.schema().fields()[index];
                         Column cl = new Column(ft.name()).cast(execRow.schema().fields()[index].dataType());
                         table = table.withColumn(ft.name(), cl);
