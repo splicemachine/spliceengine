@@ -78,12 +78,6 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
 
     protected abstract Iterable<Out> call(Iterator<In> locatedRows, JoinTable joinTable);
 
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        init();
-    }
-
     private synchronized void init() {
         if (init)
             return;
