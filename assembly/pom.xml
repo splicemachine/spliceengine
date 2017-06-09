@@ -204,7 +204,7 @@
                                             <fileset dir="target/classes/bin" includes="**/*"/>
                                         </copy>
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts">
-                                            <fileset dir="target/classes/scripts" includes="**/*"/>
+                                            <fileset dir="target/classes/scripts" includes="**/*" excludes="**/flatten.sh,**/restart.sh" />
                                         </copy>
                                         <!-- el6 -->
                                         <replace token="FULL_VERSION" value="${project.version}.${envClassifier}.${parcel.patch}-el6" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta">
@@ -304,7 +304,7 @@
                                             <fileset dir="target/classes/conf" includes="**/*"/>
                                         </copy>
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts">
-                                            <fileset dir="target/classes/scripts" includes="**/*"/>
+                                            <fileset dir="target/classes/scripts" includes="**/*" excludes="**/flatten.sh,**/restart.sh"/>
                                         </copy>
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib">
                                             <fileset dir="target/dependency" includes="**/*"/>
