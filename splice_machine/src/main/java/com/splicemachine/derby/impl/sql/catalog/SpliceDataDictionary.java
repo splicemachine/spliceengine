@@ -404,6 +404,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     @Override
     public void startWriting(LanguageConnectionContext lcc,boolean setDDMode) throws StandardException{
+        lcc.setDataDictionaryWriteMode();
         elevateTxnForDictionaryOperations(lcc);
     }
 

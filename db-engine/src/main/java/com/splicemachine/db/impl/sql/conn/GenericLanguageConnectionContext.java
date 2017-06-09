@@ -116,6 +116,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      */
     private int maxActsSize;
     protected int bindCount;
+    private boolean ddWriteMode;
 
     //all the temporary tables declared for this connection
     private ArrayList<TempTableInfo> allDeclaredGlobalTempTables;
@@ -2559,6 +2560,18 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         return bindCount;
     }
 
+    @Override
+    public final void setDataDictionaryWriteMode()
+    {
+        ddWriteMode = true;
+    }
+
+    @Override
+    public final boolean dataDictionaryInWriteMode()
+    {
+        return ddWriteMode;
+    }
+
     /**
      * Reports how many statement levels deep we are.
      *
@@ -2870,7 +2883,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                     (activationResultSet!=null) && activationResultSet.returnsRows();
 
             if(forRollback){
-                if(resultsetReturnsRows)
+                if(resultsetReturnsRows) {
                     //Since we are dealing with rollback, we need to reset 
                     //the activation no matter what the holdability might 
                     //be provided that resultset returns rows. An example
@@ -2881,11 +2894,14 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                     //the call to java procedure because that activation
                     //is still being used.
                     a.reset();
-                    // Only invalidate statements if we performed DDL. // TODOJL
-                    ExecPreparedStatement ps=a.getPreparedStatement();
-                    if(ps!=null){
-                        ps.makeInvalid(DependencyManager.ROLLBACK,this);
+                }
+                // Only invalidate statements if we performed DDL.
+                if (dataDictionaryInWriteMode()) {
+                    ExecPreparedStatement ps = a.getPreparedStatement();
+                    if (ps != null) {
+                        ps.makeInvalid(DependencyManager.ROLLBACK, this);
                     }
+                }
             }else{
                 //We are dealing with commit here. 
                 if(resultsetReturnsRows){
@@ -2907,6 +2923,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                 }
                 a.clearHeapConglomerateController();
             }
+
+            /*  Commit or rollback, the transaction modifying DataDictionary is complete */
+            ddWriteMode = false;
         }
     }
 

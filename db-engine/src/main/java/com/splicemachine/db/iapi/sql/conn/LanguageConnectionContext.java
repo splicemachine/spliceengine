@@ -770,6 +770,19 @@ public interface LanguageConnectionContext extends Context {
 	 */
 	int getBindCount();
 
+	/**
+	 * Remember that the DataDictionary is in write mode, so we can take
+	 * it out of write mode at the end of the transaction.
+	 */
+	void setDataDictionaryWriteMode();
+
+	/**
+	 * Return true if the data dictionary is in write mode (that is, this
+	 * context was informed that is is in write mode by the method call
+	 * setDataDictionaryWriteMode().
+	 */
+	boolean dataDictionaryInWriteMode();
+
     /**
 	  *	Reports how many statement levels deep we are.
 	  *
