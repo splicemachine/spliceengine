@@ -62,24 +62,23 @@ public class StitchMixedRowFunction<Op extends SpliceOperation> extends SpliceFu
             initialized = true;
         }
         operationContext.recordRead();
-        ExecRow r1;
-        ExecRow r2;
-        if (locatedRow1 == null) {
+        ExecRow valueRow;
+        LocatedRow resultRow;
+        if (locatedRow1 == null || locatedRow1.size() < groupingKeys.length + aggregates.length*3) {
             // compose a row with all the aggregates together
-            ValueRow valueRow = new ValueRow(groupingKeys.length + aggregates.length*3);
+            valueRow = new ValueRow(groupingKeys.length + aggregates.length*3);
 
-            // copy value of row2 to valueRow
-            r2 = locatedRow2.getRow();
-            copyRow(valueRow, r2);
-            return new LocatedRow(locatedRow2.getRowLocation(), valueRow);
+            if (locatedRow1 != null)
+                copyRow(valueRow, locatedRow1.getRow());
+            resultRow = new LocatedRow(valueRow);
+        } else {
+            valueRow = locatedRow1.getRow();
+            resultRow = locatedRow1;
         }
-        if (locatedRow2 == null) return locatedRow1;
+        if (locatedRow2 == null) return resultRow;
 
-        r1 = locatedRow1.getRow();
-        r2 = locatedRow2.getRow();
-
-        copyRow(r1, r2);
-        return new LocatedRow(locatedRow1.getRowLocation(), r1);
+        copyRow(valueRow, locatedRow2.getRow());
+        return resultRow;
     }
 
     private void copyRow(ExecRow valueRow, ExecRow src) throws Exception {
