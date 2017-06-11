@@ -318,6 +318,27 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(collectSampleStatsForTable);
 
+                    Procedure collectNonMergedStatsForTable = Procedure.newBuilder().name("COLLECT_NONMERGED_TABLE_STATISTICS")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .varchar("schema",128)
+                            .varchar("table",1024)
+                            .arg("staleOnly", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                            .ownerClass(StatisticsAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(collectNonMergedStatsForTable);
+
+                    Procedure collectNonMergedSampleStatsForTable = Procedure.newBuilder().name("COLLECT_NONMERGED_TABLE_SAMPLE_STATISTICS")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .varchar("schema",128)
+                            .varchar("table",1024)
+                            .arg("samplePercentage", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE).getCatalogType())
+                            .arg("staleOnly", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                            .ownerClass(StatisticsAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(collectNonMergedSampleStatsForTable);
+
                     Procedure importWithBadRecords = Procedure.newBuilder().name("IMPORT_DATA")
                             .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
                             .catalog("schemaName")

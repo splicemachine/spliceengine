@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.db.impl.sql.catalog.SYSTABLESTATISTICSRowFactory;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -234,11 +235,12 @@ public class StatisticsAdminIT{
         TestConnection conn=methodWatcher.getOrCreateConnection();
         conn.setAutoCommit(false);
 
-        CallableStatement callableStatement=conn.prepareCall("call SYSCS_UTIL.COLLECT_TABLE_STATISTICS(?,?,?)");
-        callableStatement.setString(1,SCHEMA);
-        callableStatement.setString(2,TABLE_EMPTY);
-        callableStatement.setBoolean(3,false);
-        callableStatement.execute();
+        try (CallableStatement callableStatement=conn.prepareCall("call SYSCS_UTIL.COLLECT_TABLE_STATISTICS(?,?,?)")) {
+            callableStatement.setString(1, SCHEMA);
+            callableStatement.setString(2, TABLE_EMPTY);
+            callableStatement.setBoolean(3, false);
+            callableStatement.execute();
+        }
 
         /*
          * Now we need to make sure that the statistics were properly recorded.
@@ -248,13 +250,14 @@ public class StatisticsAdminIT{
          * values.
          */
         long conglomId=conn.getConglomNumbers(SCHEMA,TABLE_EMPTY)[0];
-        PreparedStatement check=conn.prepareStatement("select * from sys.systablestats where conglomerateId = ?");
-        check.setLong(1,conglomId);
-        ResultSet resultSet=check.executeQuery();
-        Assert.assertTrue("Unable to find statistics for table!",resultSet.next());
-        Assert.assertEquals("Incorrect row count!",0l,resultSet.getLong(6));
-        Assert.assertEquals("Incorrect partition size!",0l,resultSet.getLong(7));
-        Assert.assertEquals("Incorrect row width!",0l,resultSet.getInt(8));
+        try (PreparedStatement check=conn.prepareStatement("select * from sys.systablestats where conglomerateId = ?")) {
+            check.setLong(1, conglomId);
+            ResultSet resultSet = check.executeQuery();
+            Assert.assertTrue("Unable to find statistics for table!", resultSet.next());
+            Assert.assertEquals("Incorrect row count!", 0l, resultSet.getLong(6));
+            Assert.assertEquals("Incorrect partition size!", 0l, resultSet.getLong(7));
+            Assert.assertEquals("Incorrect row width!", 0l, resultSet.getInt(8));
+        }
 
         conn.rollback();
         conn.reset();
@@ -538,32 +541,33 @@ public class StatisticsAdminIT{
     }
 
     @Test
-    public void testCollectSampleStats() throws Exception{
+    public void testCollectNonMergedSampleStats() throws Exception{
         TestConnection conn4=methodWatcher4.getOrCreateConnection();
 
         // test regular stats
         conn4.createStatement().executeQuery(format(
-                "call SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','t1', false)",
+                "call SYSCS_UTIL.COLLECT_NONMERGED_TABLE_STATISTICS('%s','t1', false)",
                 spliceSchemaWatcher4));
         //check the statsType and sample fraction in sys.systablestats by querying the system view systablestatistics
         ResultSet resultSet = conn4.createStatement().
                 executeQuery(format("select * from sys.systablestatistics where schemaName='%s' and tablename='T1'", spliceSchemaWatcher4));
         long rowCount = 0;
         while (resultSet.next()) {
-            //stats type should be 0 (which represents regular stats
-            Assert.assertEquals(0, resultSet.getInt(10));
+            //stats type should be 0 (which represents regular non-merged stats)
+            Assert.assertTrue("statsType is expected to be 0(REGULAR_NONMERGED_STATS)",
+                    resultSet.getInt(10)== SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS);
             //stats fraction should be 0.0
             Assert.assertTrue("sampleFraction does not match",
                     Math.abs(resultSet.getDouble(11)) < 1e-9);
             rowCount += resultSet.getLong(4);
         }
         //check if the number of rows is correct
-        Assert.assertTrue("rowcount does not match the actual, exepct 40, actual is" + rowCount, rowCount == 40);
+        Assert.assertTrue("rowcount does not match the actual, expect 40, actual is" + rowCount, rowCount == 40);
         resultSet.close();
 
         // test sample stats
         conn4.createStatement().executeQuery(format(
-                "call SYSCS_UTIL.COLLECT_TABLE_SAMPLE_STATISTICS('%s','t2', 50, false)",
+                "call SYSCS_UTIL.COLLECT_NONMERGED_TABLE_SAMPLE_STATISTICS('%s','t2', 50, false)",
                 spliceSchemaWatcher4));
         //check the statsType and sample fraction in sys.systablestats by querying the system view systablestatistics
         resultSet = conn4.createStatement().
@@ -578,12 +582,14 @@ public class StatisticsAdminIT{
                 sampleFraction = resultSet.getDouble(11);
                 // mem platform does not support sample stats, so statsType will be 0 (which represents regular stats)
                 // for all other platforms, statsType should be 1 (which represents sample stats)
-                if (statsType == 1)
+                if (statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_NONMERGED_STATS)
                     Assert.assertTrue("sampleFraction should be 0.5",
                             Math.abs(sampleFraction - 0.5) < 1e-9);
-                else
+                else if(statsType == SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS)
                     Assert.assertTrue("sampleFraction should be 0.0",
                             Math.abs(sampleFraction) < 1e-9);
+                else
+                    Assert.fail("statsType should be either 0(REGULAR_NONMERGED_STATS) or 1(SAMPLE_NONMERGED_STATS), but is " + statsType);
 
                 firstRow = false;
             } else {
@@ -596,9 +602,108 @@ public class StatisticsAdminIT{
             rowCount += resultSet.getLong(4);
         }
         //check if the number of rows sampled is proportional to the sample ratio
-        if (statsType == 1)
+        if (statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_NONMERGED_STATS)
             Assert.assertTrue("sampled rowcount does not match the specified sample fraciton", Math.abs((double)rowCount/sampleFraction - 40960 )/40960 < 0.2);
-        else
+        else // if (statsType == SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS)
+            Assert.assertTrue("sampled rowcount does not match the specified sample fraciton", Math.abs((double)rowCount - 40960 )/40960 < 0.02);
+        resultSet.close();
+
+        // test estimations under sample stats
+        // case 1: test row count
+        String sqlText = "explain select * from t2";
+        double outputRows = SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(3, sqlText, methodWatcher4));
+        Assert.assertTrue(format("OutputRows is expected to be around 40960, actual is %s", outputRows), Math.abs(outputRows - 40960)/40960 < 0.2);
+
+        // case 2: test selectivity (with matches)
+        sqlText = "explain select * from t2 where b2=1";
+        outputRows = SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(3, sqlText, methodWatcher4));
+        Assert.assertTrue(format("OutputRows is expected to be around 20480, actual is %s", outputRows), Math.abs(outputRows - 20480)/20480 < 0.2);
+
+        // case 3: test selectivity (without matches)
+        sqlText = "explain select * from t2 where b2=3";
+        outputRows = SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(3, sqlText, methodWatcher4));
+        Assert.assertTrue(format("OutputRows is expected to be 1, actual is %s", outputRows), Math.abs(outputRows - 1) < 0.2);
+
+        //case 4: test range selectivity
+        sqlText = "explain select * from t2 where a2 > 20480";
+        outputRows = SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(3, sqlText, methodWatcher4));
+        Assert.assertTrue(format("OutputRows is expected to be around 20480, actual is %s", outputRows), Math.abs(outputRows - 20480)/20480 < 0.2);
+
+        //case 5:  test cardinality
+        sqlText = "explain select * from --splice-properties joinOrder=fixed \n" +
+                "t1, t2 --splice-properties joinStrategy=NESTEDLOOP \n" +
+                "where c1=c2";
+        outputRows = SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(4, sqlText, methodWatcher4));
+        Assert.assertTrue(format("OutputRows is expected to be around 20480, actual is %s", outputRows),Math.abs(outputRows - 20480)/20480 < 0.2);
+
+    }
+
+    @Test
+
+    public void testCollectMergedSampleStats() throws Exception{
+        TestConnection conn4=methodWatcher4.getOrCreateConnection();
+
+        // test regular stats
+        conn4.createStatement().executeQuery(format(
+                "call SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','t1', false)",
+                spliceSchemaWatcher4));
+        //check the statsType and sample fraction in sys.systablestats by querying the system view systablestatistics
+        ResultSet resultSet = conn4.createStatement().
+                executeQuery(format("select * from sys.systablestatistics where schemaName='%s' and tablename='T1'", spliceSchemaWatcher4));
+        long rowCount = 0;
+        while (resultSet.next()) {
+            //stats type should be 2 (which represents regular merged stats)
+            Assert.assertTrue("statsType is expected to be 2(REGULAR_MERGED_STATS)",
+                    resultSet.getInt(10)==SYSTABLESTATISTICSRowFactory.REGULAR_MERGED_STATS);
+            //stats fraction should be 0.0
+            Assert.assertTrue("sampleFraction does not match",
+                    Math.abs(resultSet.getDouble(11)) < 1e-9);
+            rowCount += resultSet.getLong(4);
+        }
+        //check if the number of rows is correct
+        Assert.assertTrue("rowcount does not match the actual, expect 40, actual is" + rowCount, rowCount == 40);
+        resultSet.close();
+
+        // test sample stats
+        conn4.createStatement().executeQuery(format(
+                "call SYSCS_UTIL.COLLECT_TABLE_SAMPLE_STATISTICS('%s','t2', 50, false)",
+                spliceSchemaWatcher4));
+        //check the statsType and sample fraction in sys.systablestats by querying the system view systablestatistics
+        resultSet = conn4.createStatement().
+                executeQuery(format("select * from sys.systablestatistics where schemaName='%s' and tablename='T2'", spliceSchemaWatcher4));
+        rowCount = 0;
+        boolean firstRow = true;
+        int statsType = SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS;
+        double sampleFraction = 0.0d;
+        while (resultSet.next()) {
+            if (firstRow) {
+                statsType = resultSet.getInt(10);
+                sampleFraction = resultSet.getDouble(11);
+                // mem platform does not support sample stats, so statsType will be 2 (which represents regular merged stats)
+                // for all other platforms, statsType should be 3 (which represents sample merged stats)
+                if (statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS)
+                    Assert.assertTrue("sampleFraction should be 0.5",
+                            Math.abs(sampleFraction - 0.5) < 1e-9);
+                else if (statsType == SYSTABLESTATISTICSRowFactory.REGULAR_MERGED_STATS)
+                    Assert.assertTrue("sampleFraction should be 0.0",
+                            Math.abs(sampleFraction) < 1e-9);
+                else
+                    Assert.fail("statsType should be either 2(REGULAR_MERGED_STATS) or 3(SAMPLE_MERGED_STATS), but is " + statsType);
+
+                firstRow = false;
+            } else {
+                //stats type and sample fraction should be consistent across all partitions
+                Assert.assertEquals(statsType, resultSet.getInt(10));
+                //stats fraction should be 0.5
+                Assert.assertTrue("sampleFraction does not match",
+                        Math.abs(resultSet.getDouble(11) - sampleFraction) < 1e-9);
+            }
+            rowCount += resultSet.getLong(4);
+        }
+        //check if the number of rows sampled is proportional to the sample ratio
+        if (statsType ==SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS)
+            Assert.assertTrue("sampled rowcount does not match the specified sample fraciton", Math.abs((double)rowCount/sampleFraction - 40960 )/40960 < 0.2);
+        else // if (statsType == SYSTABLESTATISTICSRowFactory.REGULAR_MERGED_STATS
             Assert.assertTrue("sampled rowcount does not match the specified sample fraciton", Math.abs((double)rowCount - 40960 )/40960 < 0.02);
         resultSet.close();
 
@@ -645,20 +750,22 @@ public class StatisticsAdminIT{
                 executeQuery(format("select * from sys.systablestatistics where schemaName='%s' and tablename='T2'", spliceSchemaWatcher4));
         long rowCount = 0;
         boolean firstRow = true;
-        int statsType = 0;
+        int statsType = SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS;
         double sampleFraction = 0.0d;
         while (resultSet.next()) {
             if (firstRow) {
                 statsType = resultSet.getInt(10);
                 sampleFraction = resultSet.getDouble(11);
-                // mem platform does not support sample stats, so statsType will be 0 (which represents regular stats)
-                // for all other platforms, statsType should be 1 (which represents sample stats)
-                if (statsType == 1)
+                // mem platform does not support sample stats, so statsType will be 2 (which represents regular merged stats)
+                // for all other platforms, statsType should be 3 (which represents sample merged stats)
+                if (statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS)
                     Assert.assertTrue("sampleFraction should be 0.5",
                             Math.abs(sampleFraction - 0.5) < 1e-9);
-                else
+                else if (statsType == SYSTABLESTATISTICSRowFactory.REGULAR_MERGED_STATS)
                     Assert.assertTrue("sampleFraction should be 0.0",
                             Math.abs(sampleFraction) < 1e-9);
+                else
+                    Assert.fail("statsType should be either 2(REGULAR_MERGED_STATS) or 3(SAMPLE_MERGED_STATS), but is " + statsType);
 
                 firstRow = false;
             } else {
@@ -671,9 +778,9 @@ public class StatisticsAdminIT{
             rowCount += resultSet.getLong(4);
         }
         //check if the number of rows sampled is proportional to the sample ratio
-        if (statsType == 1)
+        if (statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS)
             Assert.assertTrue("sampled rowcount does not match the specified sample fraciton", Math.abs((double) rowCount / sampleFraction - 40960) / 40960 < 0.2);
-        else
+        else // if (statsType == SYSTABLESTATISTICSRowFactory.REGULAR_MERGED_STATS
             Assert.assertTrue("sampled rowcount does not match the specified sample fraciton", Math.abs((double) rowCount - 40960) / 40960 < 0.02);
         resultSet.close();
 

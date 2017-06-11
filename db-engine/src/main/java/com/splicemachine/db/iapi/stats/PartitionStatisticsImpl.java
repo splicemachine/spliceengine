@@ -110,6 +110,11 @@ public class PartitionStatisticsImpl implements PartitionStatistics {
     }
 
     @Override
+    public PartitionStatisticsDescriptor getPartitionStatistics() {
+        return partitionStatistics;
+    }
+
+    @Override
     public <T extends Comparator<T>> T minValue(int positionNumber) {
         ItemStatistics stats = positionNumber >= itemStatistics.size()?null:itemStatistics.get(positionNumber);
         return (T) (stats == null? null:stats.minValue());
@@ -141,12 +146,14 @@ public class PartitionStatisticsImpl implements PartitionStatistics {
 
     @Override
     public long cardinality(int positionNumber) {
-        return positionNumber >= itemStatistics.size()?0:itemStatistics.get(positionNumber).cardinality();
+        ItemStatistics stats = positionNumber >= itemStatistics.size()?null:itemStatistics.get(positionNumber);
+        return stats==null?rowCount():stats.cardinality();
     }
 
     @Override
     public <T extends Comparator<T>> long selectivity(T element, int positionNumber) {
-        return positionNumber >= itemStatistics.size()?0L:itemStatistics.get(positionNumber).selectivity((T) element);
+        ItemStatistics stats = positionNumber >= itemStatistics.size()?null:itemStatistics.get(positionNumber);
+        return stats==null?(long) (( (double) rowCount()) * extraQualifierMultiplier ):stats.selectivity((T) element);
     }
 
     @Override

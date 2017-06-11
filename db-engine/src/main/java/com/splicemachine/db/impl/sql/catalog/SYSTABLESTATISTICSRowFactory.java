@@ -61,9 +61,17 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
     public static final int STATSTYPE = 10;
     public static final int SAMPLEFRACTION = 11;
 
+    /* Following are values supported in statsType */
+    public static final int REGULAR_NONMERGED_STATS = 0;
+    public static final int SAMPLE_NONMERGED_STATS = 1;
+    public static final int REGULAR_MERGED_STATS = 2;
+    public static final int SAMPLE_MERGED_STATS = 3;
+
+
     protected static final int		SYSTABLESTATISTICS_INDEX1_ID = 0;
     protected static final int		SYSTABLESTATISTICS_INDEX2_ID = 1;
     protected static final int		SYSTABLESTATISTICS_INDEX3_ID = 2;
+
 
 
     private String[] uuids = {
@@ -102,7 +110,7 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
         long partitionSize = 0;
         int meanRowWidth=0;
         long numberOfPartitions = 1L;
-        int statsType = 0;
+        int statsType = REGULAR_NONMERGED_STATS;
         double sampleFraction = 0.0d;
 
         if(td!=null){
@@ -221,12 +229,12 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
             ",t.tablename" + // 1
             ",c.conglomeratename" + //2
             ",sum(ts.rowCount) as TOTAL_ROW_COUNT" +  //3
-            ",avg(ts.rowCount) as AVG_ROW_COUNT" +      //4
+            ",sum(ts.rowCount)/sum(ts.numPartitions) as AVG_ROW_COUNT" +      //4
             ",sum(ts.partition_size) as TOTAL_SIZE" + //5
-            ",count(ts.rowCount) as NUM_PARTITIONS" + //6
-            ",avg(ts.partition_size) as AVG_PARTITION_SIZE" + //7
+            ",sum(ts.numPartitions) as NUM_PARTITIONS" + //6
+            ",sum(ts.partition_size)/sum(ts.numPartitions) as AVG_PARTITION_SIZE" + //7
             ",max(ts.meanrowWidth) as ROW_WIDTH" + //8
-            ",max(ts.statsType) as STATS_TYPE" + //9
+            ",ts.statsType as STATS_TYPE" + //9
             ",min(ts.sampleFraction) as SAMPLE_FRACTION" + //10
             " from " +
             "sys.systables t" +
@@ -240,7 +248,8 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
             " group by " +
             "s.schemaname" +
             ",t.tablename"+
-            ",c.conglomeratename";
+            ",c.conglomeratename" +
+            ",ts.statsType";
 
     public static void main(String...args) {
         System.out.println(STATS_VIEW_SQL);

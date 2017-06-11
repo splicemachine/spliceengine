@@ -30,6 +30,8 @@
  */
 package com.splicemachine.db.iapi.stats;
 
+import com.splicemachine.db.iapi.sql.dictionary.PartitionStatisticsDescriptor;
+
 import java.util.Comparator;
 import java.util.List;
 
@@ -106,6 +108,8 @@ public interface PartitionStatistics {
      * no statistics are available for that column.
      */
     ItemStatistics getColumnStatistics(int columnId);
+
+    PartitionStatisticsDescriptor getPartitionStatistics();
 
 }
 
