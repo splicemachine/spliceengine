@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.iapi.stats;
 
+import com.splicemachine.db.iapi.sql.dictionary.PartitionStatisticsDescriptor;
+
 import java.util.Comparator;
 import java.util.List;
 
@@ -148,6 +150,11 @@ public class EffectivePartitionStatisticsImpl implements PartitionStatistics {
     @Override
     public ItemStatistics getColumnStatistics(int columnId) {
         return columnId >= itemStatistics.length?null:itemStatistics[columnId];
+    }
+
+    @Override
+    public PartitionStatisticsDescriptor getPartitionStatistics() {
+        return null;
     }
 
     /**

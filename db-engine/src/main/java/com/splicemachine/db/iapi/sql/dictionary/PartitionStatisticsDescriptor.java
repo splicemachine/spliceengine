@@ -48,9 +48,11 @@ public class PartitionStatisticsDescriptor extends TupleDescriptor {
     private boolean inProgress;
     private long numberOfPartitions;
     /**
-     * statsType: currently it only has two possible values:
-     * 0: regular stats
-     * 1: sample stats
+     * statsType: currently it only support four possible values:
+     * 0: regular non-merged stats (SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS)
+     * 1: sample non-merged stats (SYSTABLESTATISTICSRowFactory.SAMPLE_NONMERGED_STATS)
+     * 2: regular merged stats (SYSTABLESTATISTICSRowFactory.REGULAR_MERGED_STATS)
+     * 3: sample merged stats (SYSTABLESTATISTICSRowFactory.SAMPLE_NONMERGED_STATS)
      */
     private int statsType;
     private double sampleFraction;

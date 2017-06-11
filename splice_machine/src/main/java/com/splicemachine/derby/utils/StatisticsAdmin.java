@@ -14,11 +14,6 @@
 
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.db.iapi.stats.ItemStatistics;
-import com.splicemachine.derby.stream.iapi.*;
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.collect.FluentIterable;
-import org.spark_project.guava.collect.Lists;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -30,6 +25,9 @@ import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
+import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
+import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
@@ -44,6 +42,7 @@ import com.splicemachine.ddl.DDLMessage.DDLChange;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
+import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
@@ -54,6 +53,10 @@ import com.splicemachine.storage.DataScan;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+import org.spark_project.guava.base.Function;
+import org.spark_project.guava.collect.FluentIterable;
+import org.spark_project.guava.collect.Lists;
+
 import javax.annotation.Nullable;
 import java.sql.*;
 import java.util.*;
@@ -191,7 +194,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 futures.add(collectTableStatistics(td, false, 0, txn, conn));
             }
             IteratorNoPutResultSet resultsToWrap = wrapResults(conn,
-            displayTableStatistics(futures,dd,transactionExecute,display));
+            displayTableStatistics(futures,true,dd,transactionExecute,display));
             outputResults[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
@@ -246,7 +249,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                                 String table,
                                                 boolean staleOnly,
                                                 ResultSet[] outputResults) throws SQLException {
-        doStatsCollectionForTables(schema, table, false, 0.0, staleOnly, outputResults);
+        doStatsCollectionForTables(schema, table, false, 0.0, staleOnly, true, outputResults);
     }
 
     public static void COLLECT_TABLE_SAMPLE_STATISTICS(String schema,
@@ -254,7 +257,23 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                                        double sample,
                                                        boolean staleOnly,
                                                        ResultSet[] outputResults) throws SQLException {
-        doStatsCollectionForTables(schema, table, true, sample, staleOnly, outputResults);
+        doStatsCollectionForTables(schema, table, true, sample, staleOnly, true, outputResults);
+    }
+
+    @SuppressWarnings({"unchecked"})
+    public static void COLLECT_NONMERGED_TABLE_STATISTICS(String schema,
+                                                String table,
+                                                boolean staleOnly,
+                                                ResultSet[] outputResults) throws SQLException {
+        doStatsCollectionForTables(schema, table, false, 0.0, staleOnly, false, outputResults);
+    }
+
+    public static void COLLECT_NONMERGED_TABLE_SAMPLE_STATISTICS(String schema,
+                                                       String table,
+                                                       double sample,
+                                                       boolean staleOnly,
+                                                       ResultSet[] outputResults) throws SQLException {
+        doStatsCollectionForTables(schema, table, true, sample, staleOnly, false, outputResults);
     }
 
     public static void DROP_SCHEMA_STATISTICS(String schema) throws SQLException {
@@ -312,6 +331,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                                    boolean useSample,
                                                    double samplePercent,
                                                    boolean staleOnly,
+                                                   boolean mergeStats,
                                                    ResultSet[] outputResults) throws SQLException {
         EmbedConnection conn = (EmbedConnection) SpliceAdmin.getDefaultConn();
         try {
@@ -338,6 +358,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                     displayTableStatistics(Lists.newArrayList(
                             collectTableStatistics(tableDesc, useSample, samplePercent/100, txn, conn)
                             ),
+                            mergeStats,
                             dd, tc, display));
             outputResults[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
         } catch (StandardException se) {
@@ -663,55 +684,155 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     }
 
 
-    public static Iterable displayTableStatistics(List<StatisticsOperation> futures, final DataDictionary dataDictionary, final TransactionController tc, final HashMap<Long,Pair<String,String>> displayPair) {
-        return FluentIterable.from(futures).transformAndConcat(new Function<StatisticsOperation, Iterable<ExecRow>>() {
-            @Nullable
-            @Override
-            public Iterable<ExecRow> apply(@Nullable StatisticsOperation input) {
-                try {
-                    final Iterator iterator = new Iterator<ExecRow>() {
-                        private ExecRow nextRow;
-                        private boolean fetched = false;
-                        @Override
-                        public boolean hasNext() {
-                            try {
-                                if (!fetched) {
-                                    nextRow = input.getNextRowCore();
-                                    while (nextRow != null && nextRow.nColumns() == SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_COLUMN_COUNT) {
-                                        dataDictionary.addColumnStatistics(nextRow, tc);
-                                        nextRow = input.getNextRowCore();
-                                    }
-                                    fetched = true;
-                                }
-                                return nextRow != null;
-                            } catch (Exception e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
+    public static Iterable displayTableStatistics(List<StatisticsOperation> futures, boolean mergeStats, final DataDictionary dataDictionary, final TransactionController tc, final HashMap<Long,Pair<String,String>> displayPair) {
+        if (mergeStats) {
+            return FluentIterable.from(futures).transformAndConcat(new Function<StatisticsOperation, Iterable<ExecRow>>() {
+                @Nullable
+                @Override
+                public Iterable<ExecRow> apply(@Nullable StatisticsOperation input) {
+                    try {
+                        final Iterator iterator = new Iterator<ExecRow>() {
+                            private ExecRow nextRow;
+                            private boolean fetched = false;
+                            // data structures to accumulate the partition stats
+                            Map<Integer, ColumnStatisticsMerge> itemStatisticsBuilder = null;
+                            private long conglomId = 0;
+                            private long rowCount = 0L;
+                            private long totalSize = 0;
+                            private long avgRowWidth = 0;
+                            private long numberOfPartitions = 0;
+                            private int statsType = SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS;
+                            private double sampleFraction = 0.0d;
 
-                        @Override
-                        public ExecRow next() {
-                            try {
-                                fetched = false;
-                                dataDictionary.addTableStatistics(nextRow, tc);
-                                Pair<String,String> pair = displayPair.get(nextRow.getColumn(SYSTABLESTATISTICSRowFactory.CONGLOMID).getLong());
-                                return generateOutputRow(pair.getFirst(),pair.getSecond(),nextRow);
-                            } catch (Exception e) {
-                                throw new RuntimeException(e);
+                            @Override
+                            public boolean hasNext() {
+                                try {
+                                    if (!fetched) {
+                                        nextRow = input.getNextRowCore();
+                                        while (nextRow != null) {
+                                            fetched = true;
+                                            if (nextRow.nColumns() == SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_COLUMN_COUNT) {
+                                                // process columnstats row
+                                                conglomId = nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.CONGLOMID).getLong();
+                                                ItemStatistics itemStatistics = (ItemStatistics) nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.DATA).getObject();
+                                                Integer columnId = new Integer(nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.COLUMNID).getInt());
+                                                if (itemStatisticsBuilder == null)
+                                                    itemStatisticsBuilder = new HashMap<>();
+                                                ColumnStatisticsMerge builder = itemStatisticsBuilder.get(columnId);
+                                                if (builder == null) {
+                                                    builder = ColumnStatisticsMerge.instance();
+                                                    itemStatisticsBuilder.put(columnId, builder);
+                                                }
+                                                builder.accumulate((ColumnStatisticsImpl) itemStatistics);
+                                            } else {
+                                                // process tablestats row
+                                                // in case no columns stats is collected, we need to set it conglomId here
+                                                conglomId = nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.CONGLOMID).getLong();
+                                                long partitionRowCount = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.ROWCOUNT).getLong();
+                                                rowCount += partitionRowCount;
+                                                totalSize += nextRow.getColumn(SYSTABLESTATISTICSRowFactory.PARTITION_SIZE).getLong();
+                                                avgRowWidth += nextRow.getColumn(SYSTABLESTATISTICSRowFactory.MEANROWWIDTH).getInt() * partitionRowCount;
+                                                numberOfPartitions++;
+                                                statsType = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.STATSTYPE).getInt();
+                                                sampleFraction = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.SAMPLEFRACTION).getDouble();
+                                            }
+                                            nextRow = input.getNextRowCore();
+                                        }
+                                    }
+                                    return fetched;
+                                } catch (Exception e) {
+                                    throw new RuntimeException(e);
+                                }
                             }
-                        }
-                    };
-                    return new Iterable<ExecRow>() {
-                        @Override
-                        public Iterator<ExecRow> iterator() {
-                            return iterator;
-                        }
-                    };
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
+
+                            @Override
+                            public ExecRow next() {
+                                try {
+                                    fetched = false;
+                                    // insert rows to dictionary tables, and return
+                                    ExecRow statsRow;
+                                    if (itemStatisticsBuilder != null) {
+                                        for (Map.Entry<Integer, ColumnStatisticsMerge> builder : itemStatisticsBuilder.entrySet()) {
+                                            // compose the entry for a given column
+                                            statsRow = StatisticsAdmin.generateRowFromStats(conglomId, "-All-", builder.getKey(), builder.getValue().terminate());
+                                            dataDictionary.addColumnStatistics(statsRow, tc);
+                                        }
+                                    }
+                                    //change statsType to 2: merged full stats or 3: merged sample stats
+                                    if (statsType == SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS)
+                                        statsType = SYSTABLESTATISTICSRowFactory.REGULAR_MERGED_STATS;
+                                    else if (statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_NONMERGED_STATS)
+                                        statsType = SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS;
+                                    statsRow = StatisticsAdmin.generateRowFromStats(conglomId, "-All-", rowCount, totalSize, (int) ((double) avgRowWidth / rowCount), numberOfPartitions, statsType, sampleFraction);
+                                    dataDictionary.addTableStatistics(statsRow, tc);
+                                    Pair<String, String> pair = displayPair.get(conglomId);
+                                    return generateOutputRow(pair.getFirst(), pair.getSecond(), statsRow);
+                                } catch (Exception e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }
+                        };
+                        return new Iterable<ExecRow>() {
+                            @Override
+                            public Iterator<ExecRow> iterator() {
+                                return iterator;
+                            }
+                        };
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
                 }
-            }
-        });
+            });
+        } else {
+            return FluentIterable.from(futures).transformAndConcat(new Function<StatisticsOperation, Iterable<ExecRow>>() {
+                @Nullable
+                @Override
+                public Iterable<ExecRow> apply(@Nullable StatisticsOperation input) {
+                    try {
+                        final Iterator iterator = new Iterator<ExecRow>() {
+                            private ExecRow nextRow;
+                            private boolean fetched = false;
+                            @Override
+                            public boolean hasNext() {
+                                try {
+                                    if (!fetched) {
+                                        nextRow = input.getNextRowCore();
+                                        while (nextRow != null && nextRow.nColumns() == SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_COLUMN_COUNT) {
+                                            dataDictionary.addColumnStatistics(nextRow, tc);
+                                            nextRow = input.getNextRowCore();
+                                        }
+                                        fetched = true;
+                                    }
+                                    return nextRow != null;
+                                } catch (Exception e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }
+
+                            @Override
+                            public ExecRow next() {
+                                try {
+                                    fetched = false;
+                                    dataDictionary.addTableStatistics(nextRow, tc);
+                                    Pair<String,String> pair = displayPair.get(nextRow.getColumn(SYSTABLESTATISTICSRowFactory.CONGLOMID).getLong());
+                                    return generateOutputRow(pair.getFirst(),pair.getSecond(),nextRow);
+                                } catch (Exception e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }
+                        };
+                        return new Iterable<ExecRow>() {
+                            @Override
+                            public Iterator<ExecRow> iterator() {
+                                return iterator;
+                            }
+                        };
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
+        }
     }
 
     private static void dropTableStatistics(TableDescriptor td, DataDictionary dd, TransactionController tc) throws StandardException {
