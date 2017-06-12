@@ -49,6 +49,7 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.*;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
 
@@ -481,13 +482,22 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             try {
                 table = SpliceSpark.getSession().read().csv(location);
 
-                //1. spark cvs assume all the columns to be string by default
-                //   we know the schema, no need to use infer schema which is doing a full scan
-                //   so 2 scan , not cheap.
-                //2. There is a annoying underscore with csv in columns names
-                List<Column> correctSchemaSelection = Arrays.stream(execRow.schema().fields())
-                        .map( field -> new Column("_"+field.name()).cast(field.dataType())).collect(Collectors.toList());
-                table = table.select(correctSchemaSelection.toArray(new Column[correctSchemaSelection.size()]));
+                if (op == null) {
+                    // stats collection scan
+                    for (int index = 0; index < execRow.schema().fields().length; index++) {
+                            StructField ft = table.schema().fields()[index];
+                            Column cl = new Column(ft.name()).cast(execRow.schema().fields()[index].dataType());
+                            table = table.withColumn(ft.name(), cl);
+                    }
+                } else {
+                    for (int index = 0; index < baseColumnMap.length; index++) {
+                        if (baseColumnMap[index] != -1) {
+                            StructField ft = table.schema().fields()[index];
+                            Column cl = new Column(ft.name()).cast(execRow.schema().fields()[baseColumnMap[index]].dataType());
+                            table = table.withColumn(ft.name(), cl);
+                        }
+                    }
+                }
 
             } catch (Exception e) {
                 return handleExceptionInCaseOfEmptySet(e,location);
