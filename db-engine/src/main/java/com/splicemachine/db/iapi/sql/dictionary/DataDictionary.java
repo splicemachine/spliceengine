@@ -68,7 +68,7 @@ public interface DataDictionary{
     /** The conglomerate id of the first user table */
     // NOTE: JC - this constant is also defined in (splice) EnvUtils. When adding a new sys table, this
     // number will need to be increased in BOTH places.
-    long FIRST_USER_TABLE_NUMBER = 1458;
+    long FIRST_USER_TABLE_NUMBER = 1568;
 
     /**
      * Special version indicating the database must be upgraded to or created at the current engine level
@@ -239,7 +239,7 @@ public interface DataDictionary{
     int SYSDUMMY1_CATALOG_NUM=29;
     int SYSSCHEMAPERMS_CATALOG_NUM=30;
     int SYSSOURCECODE_CATALOG_NUM=31;
-
+    int SYSSNAPSHOT_NUM=32;
     /* static finals for constraints
      * (Here because they are needed by parser, compilation and execution.)
 	 */
@@ -2111,4 +2111,8 @@ public interface DataDictionary{
     void deleteBackupJob(long jobId, TransactionController tc) throws StandardException;
 
     void saveSourceCode(SourceCodeDescriptor descriptor, TransactionController tc) throws StandardException;
+
+    void addSnapshot(TupleDescriptor descriptor, TransactionController tc) throws StandardException;
+
+    void deleteSnapshot(String snapshotName, long conglomeratenumber, TransactionController tc) throws StandardException;
 }

@@ -1991,6 +1991,7 @@ public interface SQLState {
 	String ACCESSING_S3_EXCEPTION                                   = "EXT34";
 	String EXISTING_PIN_VIOLATION									= "EXT35";
 
-
+	String SNAPSHOT_EXISTS											= "SNA01";
+	String SNAPSHOT_NOT_EXISTS										= "SNA02";
 }
 

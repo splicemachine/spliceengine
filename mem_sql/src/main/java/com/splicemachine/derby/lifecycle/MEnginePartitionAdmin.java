@@ -89,4 +89,34 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
     public TableDescriptor getTableDescriptor(String table) throws IOException{
         return admin.getTableDescriptor(table);
     }
+
+    @Override
+    public void snapshot(String snapshotName, String tableName) throws IOException
+    {
+        admin.snapshot(snapshotName, tableName);
+    }
+
+    @Override
+    public void deleteSnapshot(String snapshotName) throws IOException
+    {
+        admin.deleteSnapshot(snapshotName);
+    }
+
+    @Override
+    public void restoreSnapshot(String snapshotName) throws IOException
+    {
+        admin.restoreSnapshot(snapshotName);
+    }
+
+    @Override
+    public void disableTable(String tableName) throws IOException
+    {
+        admin.disableTable(tableName);
+    }
+
+    @Override
+    public void enableTable(String tableName) throws IOException
+    {
+        admin.enableTable(tableName);
+    }
 }

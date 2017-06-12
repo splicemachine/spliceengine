@@ -7333,6 +7333,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 case SYSDUMMY1_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSDUMMY1RowFactory(luuidFactory,exFactory,dvf));
                     break;
+                case SYSSNAPSHOT_NUM:
+                    retval=new TabInfoImpl(new SYSSNAPSHOTSRowFactory(luuidFactory,exFactory,dvf));
+                    break;
             }
             initSystemIndexVariables(retval);
             noncoreInfo[nonCoreNum]=retval;
@@ -10194,6 +10197,24 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         ExecIndexRow keyRow=exFactory.getIndexableRow(1);
         keyRow.setColumn(1, new SQLLongint(jobId));
         ti.deleteRow(tc, keyRow, SYSBACKUPJOBSRowFactory.SYSBACKUPJOBS_INDEX1_ID);
+}
+
+    @Override
+    public void addSnapshot(TupleDescriptor descriptor, TransactionController tc) throws StandardException
+    {
+        TabInfoImpl ti=getNonCoreTI(SYSSNAPSHOT_NUM);
+        ExecRow row = ti.getCatalogRowFactory().makeRow(descriptor, null);
+        int insertRetCode=ti.insertRow(row,tc);
+    }
+
+    @Override
+    public void deleteSnapshot(String snapshotName, long conglomeratenumber, TransactionController tc) throws StandardException
+    {
+        TabInfoImpl ti=getNonCoreTI(SYSSNAPSHOT_NUM);
+        ExecIndexRow keyRow = exFactory.getIndexableRow(2);
+        keyRow.setColumn(1, new SQLVarchar(snapshotName));
+        keyRow.setColumn(2, new SQLLongint(conglomeratenumber));
+        ti.deleteRow(tc, keyRow, SYSSNAPSHOTSRowFactory.SYSSNAPSHOTS_INDEX1_ID);
     }
 
     @Override

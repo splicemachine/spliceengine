@@ -9084,7 +9084,17 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <arg>tableName</arg>
            </msg>
 
+           <msg>
+            <name>SNA01</name>
+               <text>Snapshot '{0}' already exists </text>
+               <arg>snapshotName</arg>
+           </msg>
 
+           <msg>
+               <name>SNA02</name>
+               <text>Snapshot '{0}' does not exist </text>
+               <arg>snapshotName</arg>
+           </msg>
        </family>
     </section>
 
