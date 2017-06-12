@@ -900,7 +900,7 @@ public class ExternalTableIT extends SpliceUnitTest{
         Assert.assertEquals("Error with COLLECT_TABLE_STATISTICS for external table","EXTERNALTABLEIT",  rs.getString(1));
         rs.close();
 
-        ResultSet rs2 = methodWatcher.executeQuery("select total_row_count from sys.systablestatistics where schemaname = 'EXTERNALTABLEIT' ");
+        ResultSet rs2 = methodWatcher.executeQuery("select total_row_count from sys.systablestatistics where schemaname = 'EXTERNALTABLEIT' and tablename = 'T1_ORC'");
         String expected = "TOTAL_ROW_COUNT |\n" +
                 "------------------\n" +
                 "        3        |";
@@ -911,7 +911,7 @@ public class ExternalTableIT extends SpliceUnitTest{
         spliceClassWatcher.executeUpdate("CALL  SYSCS_UTIL.DROP_TABLE_STATISTICS ('EXTERNALTABLEIT', 'T1_ORC')");
 
         // make sure it is clean
-        rs2 = methodWatcher.executeQuery("select total_row_count from sys.systablestatistics where schemaname = 'EXTERNALTABLEIT' ");
+        rs2 = methodWatcher.executeQuery("select total_row_count from sys.systablestatistics where schemaname = 'EXTERNALTABLEIT' and tablename = 'T1_ORC' ");
         Assert.assertEquals("", TestUtils.FormattedResult.ResultFactory.toString(rs2));
         rs2.close();
 
@@ -925,7 +925,7 @@ public class ExternalTableIT extends SpliceUnitTest{
         rs.close();
 
         // check the stats again
-        rs2 = methodWatcher.executeQuery("select total_row_count from sys.systablestatistics where schemaname = 'EXTERNALTABLEIT' ");
+        rs2 = methodWatcher.executeQuery("select total_row_count from sys.systablestatistics where schemaname = 'EXTERNALTABLEIT' and tablename = 'T1_ORC'");
         Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));
         rs2.close();
 
@@ -933,11 +933,67 @@ public class ExternalTableIT extends SpliceUnitTest{
         spliceClassWatcher.executeUpdate("CALL  SYSCS_UTIL.DROP_SCHEMA_STATISTICS ('EXTERNALTABLEIT')");
 
         // make sure it is clean
-        rs2 = methodWatcher.executeQuery("select total_row_count from sys.systablestatistics where schemaname = 'EXTERNALTABLEIT' ");
+        rs2 = methodWatcher.executeQuery("select total_row_count from sys.systablestatistics where schemaname = 'EXTERNALTABLEIT' and tablename = 'T1_ORC'");
         Assert.assertEquals("", TestUtils.FormattedResult.ResultFactory.toString(rs2));
         rs2.close();
     }
-    
+
+    @Test
+    public void testCollectStatsText() throws Exception {
+        methodWatcher.executeUpdate(String.format("create external table t1_csv (col1 int, col2 char(24))" +
+                " STORED AS TEXTFILE LOCATION '%s'", getExternalResourceDirectory()+"t1_csv_test"));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into t1_csv values (1,'XXXX')," +
+                "(2,'YYYY')," +
+                "(3,'ZZZZ')"));
+        Assert.assertEquals("insertCount is wrong",3,insertCount);
+
+        ResultSet rs;
+        // collect table level stats
+        PreparedStatement ps = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.COLLECT_TABLE_STATISTICS(?,?,?) ");
+        ps.setString(1, "EXTERNALTABLEIT");
+        ps.setString(2, "T1_CSV");
+        ps.setBoolean(3, true);
+        rs = ps.executeQuery();
+        rs.next();
+        Assert.assertEquals("Error with COLLECT_TABLE_STATISTICS for external table","EXTERNALTABLEIT",  rs.getString(1));
+        rs.close();
+
+        ResultSet rs2 = methodWatcher.executeQuery("select total_row_count from sys.systablestatistics where schemaname = 'EXTERNALTABLEIT' and tablename = 'T1_CSV'");
+        String expected = "TOTAL_ROW_COUNT |\n" +
+                "------------------\n" +
+                "        3        |";
+        Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));
+        rs2.close();
+    }
+
+    @Test
+    public void testCollectStatsParquet() throws Exception {
+        methodWatcher.executeUpdate(String.format("create external table t1_parq (col1 int, col2 char(24))" +
+                " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"t1_parq_test"));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into t1_parq values (1,'XXXX')," +
+                "(2,'YYYY')," +
+                "(3,'ZZZZ')"));
+        Assert.assertEquals("insertCount is wrong",3,insertCount);
+
+        ResultSet rs;
+        // collect table level stats
+        PreparedStatement ps = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.COLLECT_TABLE_STATISTICS(?,?,?) ");
+        ps.setString(1, "EXTERNALTABLEIT");
+        ps.setString(2, "T1_PARQ");
+        ps.setBoolean(3, true);
+        rs = ps.executeQuery();
+        rs.next();
+        Assert.assertEquals("Error with COLLECT_TABLE_STATISTICS for external table","EXTERNALTABLEIT",  rs.getString(1));
+        rs.close();
+
+        ResultSet rs2 = methodWatcher.executeQuery("select total_row_count from sys.systablestatistics where schemaname = 'EXTERNALTABLEIT' and tablename = 'T1_PARQ'");
+        String expected = "TOTAL_ROW_COUNT |\n" +
+                "------------------\n" +
+                "        3        |";
+        Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));
+        rs2.close();
+    }
+
     @Test
     public void testUsingExsitingCsvFile() throws Exception {
 
@@ -968,4 +1024,35 @@ public class ExternalTableIT extends SpliceUnitTest{
         Assert.assertEquals(after, before, after);
 
     }
+
+    @Test
+    public void testBuildInFunctionText()  throws Exception {
+        //
+        String tablePath = getExternalResourceDirectory()+ "EXT_FUNCTION_TEXT";
+        methodWatcher.executeUpdate(String.format("CREATE EXTERNAL TABLE EXT_FUNCTION_TEXT (id INT, c_vchar varchar(30), c_date DATE,  c_num NUMERIC, c_bool BOOLEAN) \n" +
+                "ROW FORMAT DELIMITED \n" +
+                "FIELDS TERMINATED BY ','\n" +
+                "STORED AS TEXTFILE\n" +
+                "location '%s'", tablePath));
+
+
+
+        methodWatcher.execute("insert into EXT_FUNCTION_TEXT (id, c_vchar, c_date, c_num, c_bool) values (1, 'nR-trkDr#,`9DSUbCw C+U8QctPUBy', '7958-05-18', 13691,  true)," +
+                "(2, '$c\">0n`w6b-$O7F`Q6#QWNnivV=6v?', '3450-03-06', 35317, false)," +
+                "(3, 'Q=-DoLR#Bd|(M/![FaN6q Jn>\"CEIW', '4736-03-12', 2877, true)," +
+                "(4, 'eo}+Eyd~%MwIbheQ>aHz;h~Wb{T%5y', '2871-11-07', 71800, true), " +
+                "(5, '@SEulog}9|{]46m~cYDYspt%Z4tZ_4', '2833-03-03', 67859, false)");
+
+        ResultSet rs = methodWatcher.executeQuery("select  DAY(c_date) from EXT_FUNCTION_TEXT  order by 1");
+        Assert.assertEquals("1 |\n" +
+                "----\n" +
+                "12 |\n" +
+                "18 |\n" +
+                " 3 |\n" +
+                " 6 |\n" +
+                " 7 |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+    }
+
 }
