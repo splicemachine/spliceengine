@@ -34,6 +34,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.error.StandardException;
 
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
@@ -96,6 +97,9 @@ public class DeleteNode extends DMLModStatementNode
 	// Splice fork: changed this to public, like it is in UpdateNode.
 	public static final String COLUMNNAME = "###RowLocationToDelete";
 
+	public static final String BULK_DELETE_DIRECTORY = "bulkDeleteDirectory";
+    private CompilerContext.DataSetProcessorType dataSetProcessorType = CompilerContext.DataSetProcessorType.DEFAULT_CONTROL;
+
 	/* Filled in by bind. */
 	protected boolean				deferred;
 	protected ExecRow				emptyHeapRow;
@@ -107,6 +111,9 @@ public class DeleteNode extends DMLModStatementNode
 	private boolean cascadeDelete;
 	private StatementNode[] dependentNodes;
 
+    private Properties targetProperties;
+    private String 	bulkDeleteDirectory;
+	private int[] colMap;
 	/**
 	 * Initializer for a DeleteNode.
 	 *
@@ -116,10 +123,12 @@ public class DeleteNode extends DMLModStatementNode
 	 */
 
 	public void init(Object targetTableName,
-					  Object queryExpression)
+                     Object queryExpression,
+                     Object targetProperties)
 	{
 		super.init(queryExpression);
 		this.targetTableName = (TableName) targetTableName;
+        this.targetProperties = (Properties) targetProperties;
 	}
 
 	public String statementToString()
@@ -217,6 +226,10 @@ public class DeleteNode extends DMLModStatementNode
 		
 			// descriptor must exist, tables already bound.
 			verifyTargetTable();
+
+            // Check the validity of the targetProperties, if they exist
+            if (targetProperties != null)
+                verifyTargetProperties(dataDictionary);
 
 			/* Generate a select list for the ResultSetNode - CurrentRowLocation(). */
 			if (SanityManager.DEBUG)
@@ -403,6 +416,16 @@ public class DeleteNode extends DMLModStatementNode
 		}
 	} // end of bind
 
+    private void verifyTargetProperties(DataDictionary dd)
+            throws StandardException
+    {
+        bulkDeleteDirectory = targetProperties.getProperty(BULK_DELETE_DIRECTORY);
+		if (bulkDeleteDirectory != null) {
+            dataSetProcessorType = CompilerContext.DataSetProcessorType.FORCED_SPARK;
+
+        }
+    }
+
 	int getPrivType()
 	{
 		return Authorizer.DELETE_PRIV;
@@ -526,6 +549,10 @@ public class DeleteNode extends DMLModStatementNode
 								MethodBuilder mb)
 							throws StandardException
 	{
+
+        // Set Spark
+        if (dataSetProcessorType != CompilerContext.DataSetProcessorType.DEFAULT_CONTROL)
+            acb.setDataSetProcessorType(dataSetProcessorType);
 
 		// If the DML is on the temporary table, generate the code to
 		// mark temporary table as modified in the current UOW. After
@@ -657,9 +684,15 @@ public class DeleteNode extends DMLModStatementNode
         mb.push(this.resultSet.getFinalCostEstimate().getEstimatedCost());
         mb.push(targetTableDescriptor.getVersion());
         if ("getDeleteResultSet".equals(resultSetGetter)) {
-            mb.push(this.printExplainInformationForActivation());
-            argCount++;
-        }
+			mb.push(this.printExplainInformationForActivation());
+			BaseJoinStrategy.pushNullableString(mb, bulkDeleteDirectory);
+			if (colMap != null && colMap.length > 0) {
+				mb.push(acb.addItem(colMap));
+			} else {
+				mb.push(-1);
+			}
+			argCount += 3;
+		}
         mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, resultSetGetter, ClassName.ResultSet, argCount+3);
 
 		if(!isDependentTable && cascadeDelete)
@@ -724,8 +757,9 @@ public class DeleteNode extends DMLModStatementNode
 		Vector		conglomVector = new Vector();
 		relevantTriggers = new GenericDescriptorList();
 
-		FormatableBitSet	columnMap = DeleteNode.getDeleteReadMap(baseTable,conglomVector, relevantTriggers, needsDeferredProcessing);
-		
+		FormatableBitSet columnMap = DeleteNode.getDeleteReadMap(baseTable,conglomVector, relevantTriggers, needsDeferredProcessing, bulkDeleteDirectory!=null);
+
+		colMap = getColMap(columnMap);
 		markAffectedIndexes( conglomVector );
 
 		adjustDeferredFlag( needsDeferredProcessing[0] );
@@ -733,6 +767,17 @@ public class DeleteNode extends DMLModStatementNode
 		return	columnMap;
 	}
 
+	int[] getColMap(FormatableBitSet columnMap) {
+		int[] colMap = new int[columnMap.getNumBitsSet()];
+		int index = 0;
+		for (int i = 0; i < columnMap.getLength(); i++)
+		{
+			if (columnMap.isSet(i)) {
+				colMap[index++] = i;
+			}
+		}
+		return colMap;
+	}
 	/**
 	 * In case of referential actions, we require to perform
 	 * DML (UPDATE or DELETE) on the dependent tables. 
@@ -946,7 +991,8 @@ public class DeleteNode extends DMLModStatementNode
 		TableDescriptor				baseTable,
 		Vector						conglomVector,
 		GenericDescriptorList		relevantTriggers,
-		boolean[]					needsDeferredProcessing
+		boolean[]					needsDeferredProcessing,
+		boolean                     isBulkDelete
 	)
 		throws StandardException
 	{
@@ -972,7 +1018,9 @@ public class DeleteNode extends DMLModStatementNode
 		// Not Required for dynamic deletes.  It will be required if we attempt to do bulk
 		// deletes from a file (JUN)
 
-		//DMLModStatementNode.getXAffectedIndexes(baseTable,  null, columnMap, conglomVector );
+		if (isBulkDelete) {
+			DMLModStatementNode.getXAffectedIndexes(baseTable, null, columnMap, conglomVector, true);
+		}
 
 		/*
 	 	** If we have any DELETE triggers, then do one of the following

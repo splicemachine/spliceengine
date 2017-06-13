@@ -1480,7 +1480,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
 	{
 		Vector		conglomVector = new Vector();
 
-		DMLModStatementNode.getXAffectedIndexes(td, updatedColumns, colBitSet, conglomVector );
+		DMLModStatementNode.getXAffectedIndexes(td, updatedColumns, colBitSet, conglomVector, false);
 
 		markAffectedIndexes( conglomVector );
 	}
@@ -1505,8 +1505,9 @@ abstract class DMLModStatementNode extends DMLStatementNode
 	(
 		TableDescriptor		baseTable,
 		ResultColumnList	updatedColumns,
-		FormatableBitSet				colBitSet,
-		Vector				conglomVector
+		FormatableBitSet	colBitSet,
+		Vector				conglomVector,
+        boolean             isBulkDelete
 	)
 		throws StandardException
 	{
@@ -1558,7 +1559,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
 			{
 				for (int i = 0; i < cols.length; i++) {
                     // Do not Add Primary Keys, we have them in the rowKey (BaseTable) or in the RowLocation (IndexTable)
-                    if (!ArrayUtils.contains(primaryKeyColumns,cols[i]))
+                    if (!ArrayUtils.contains(primaryKeyColumns,cols[i]) || isBulkDelete)
     					colBitSet.set(cols[i]);
 				}
 			}	// end IF

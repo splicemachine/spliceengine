@@ -1183,11 +1183,15 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              double optimizerEstimatedRowCount,
                                              double optimizerEstimatedCost,
                                              String tableVersion,
-                                             String explainPlan)
+                                             String explainPlan,
+                                             String bulkDeleteDirectory,
+                                             int colMapRefItem)
             throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
-            SpliceOperation top = new DeleteOperation(below.getOperation(), source.getActivation(),optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
+            SpliceOperation top =
+                    new DeleteOperation(below.getOperation(), source.getActivation(), optimizerEstimatedRowCount,
+                            optimizerEstimatedCost, tableVersion, bulkDeleteDirectory, colMapRefItem);
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();
             top.setExplainPlan(explainPlan);

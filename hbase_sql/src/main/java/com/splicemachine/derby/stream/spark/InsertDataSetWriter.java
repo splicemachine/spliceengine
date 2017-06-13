@@ -32,9 +32,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.output.DataSetWriter;
-import com.splicemachine.derby.stream.output.insert.InsertPipelineWriter;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
@@ -109,12 +107,6 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
     @Override
     public void setTxn(TxnView childTxn){
         this.txn = childTxn;
-    }
-
-    @Override
-    public TableWriter getTableWriter() throws StandardException{
-        return new InsertPipelineWriter(pkCols,tableVersion,execRowDefinition,autoIncRowArray,sequences,heapConglom,
-                txn,opContext,isUpsert);
     }
 
     @Override
