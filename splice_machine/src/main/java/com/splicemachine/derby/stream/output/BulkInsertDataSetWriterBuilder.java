@@ -20,33 +20,17 @@ import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.api.txn.TxnView;
 
-public interface HBaseBulkImporterBuilder {
+public interface BulkInsertDataSetWriterBuilder extends InsertDataSetWriterBuilder {
 
-    HBaseBulkImporterBuilder tableVersion(String tableVersion);
 
-    HBaseBulkImporterBuilder pkCols(int[] pkCols);
+    BulkInsertDataSetWriterBuilder bulkImportDirectory(String bulkImportDirectory);
 
-    HBaseBulkImporterBuilder autoIncrementRowLocationArray(RowLocation[] autoIncrementRowLocationArray);
+    BulkInsertDataSetWriterBuilder samplingOnly(boolean samplingOnly);
 
-    HBaseBulkImporterBuilder heapConglom(long heapConglom);
+    BulkInsertDataSetWriterBuilder outputKeysOnly(boolean outputKeysOnly);
 
-    HBaseBulkImporterBuilder execRow(ExecRow execRow);
+    BulkInsertDataSetWriterBuilder skipSampling(boolean skipSampling);
 
-    HBaseBulkImporterBuilder sequences(SpliceSequence[] spliceSequences);
+    BulkInsertDataSetWriterBuilder indexName(String indexName);
 
-    HBaseBulkImporterBuilder operationContext(OperationContext operationContext);
-
-    HBaseBulkImporterBuilder txn(TxnView txn);
-
-    HBaseBulkImporterBuilder bulkImportDirectory(String bulkImportDirectory);
-
-    HBaseBulkImporterBuilder samplingOnly(boolean samplingOnly);
-
-    HBaseBulkImporterBuilder outputKeysOnly(boolean outputKeysOnly);
-
-    HBaseBulkImporterBuilder skipSampling(boolean skipSampling);
-
-    HBaseBulkImporterBuilder indexName(String indexName);
-
-    HBaseBulkImporter build();
 }

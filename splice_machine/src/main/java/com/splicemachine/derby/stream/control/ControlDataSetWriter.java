@@ -24,7 +24,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.output.AbstractPipelineWriter;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.pipeline.ErrorState;
@@ -133,11 +132,6 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
     @Override
     public void setTxn(TxnView childTxn){
         pipelineWriter.setTxn(childTxn);
-    }
-
-    @Override
-    public TableWriter getTableWriter(){
-        return pipelineWriter;
     }
 
     @Override

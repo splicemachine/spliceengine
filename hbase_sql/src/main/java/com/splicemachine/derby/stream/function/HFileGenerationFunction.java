@@ -17,7 +17,6 @@ package com.splicemachine.derby.stream.function;
 import com.clearspring.analytics.util.Lists;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -51,21 +50,21 @@ import java.util.List;
 /**
  * Created by jyuan on 3/21/17.
  */
-public class HFileGenerationFunction implements MapPartitionsFunction<Row, String>, Externalizable {
+public abstract class HFileGenerationFunction implements MapPartitionsFunction<Row, String>, Externalizable {
 
     private static final Logger LOG=Logger.getLogger(HFileGenerationFunction.class);
+
+    protected StoreFile.Writer writer;
+    protected long txnId;
 
     private List<String> hFiles = Lists.newArrayList();
     private boolean initialized;
     private FileSystem fs;
-    private long txnId;
     private Configuration conf;
     private OperationContext operationContext;
     private Long heapConglom;
     private String compressionAlgorithm;
     private List<BulkImportPartition> partitionList;
-
-    private StoreFile.Writer writer;
 
     public HFileGenerationFunction() {
     }
@@ -119,12 +118,7 @@ public class HFileGenerationFunction implements MapPartitionsFunction<Row, Strin
         }
     }
 
-    private void writeToHFile (byte[] rowKey, byte[] value) throws Exception {
-        KeyValue kv = new KeyValue(rowKey, SIConstants.DEFAULT_FAMILY_BYTES,
-                SIConstants.PACKED_COLUMN_BYTES, txnId, value);
-        writer.append(kv);
-
-    }
+    protected abstract void writeToHFile (byte[] rowKey, byte[] value) throws Exception;
 
     private void init(Long conglomerateId, byte[] key) throws IOException{
         conf = HConfiguration.unwrapDelegate();

@@ -34,7 +34,6 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.io.Serializable;
 import java.net.URI;
 
 /**
@@ -63,6 +62,7 @@ public class BulkImportFunction implements VoidFunction<BulkImportPartition>, Ex
             Path path = new Path(importPartition.getFilePath()).getParent();
             if (fs.exists(path)) {
                 loader.doBulkLoad(path,(HTable) ((ClientPartition)partition).unwrapDelegate());
+                fs.delete(path, true);
             } else {
                 LOG.warn("Path doesn't exist, nothing to load into this partition? " + path);
             }

@@ -40,85 +40,86 @@ import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.iapi.PairDataSet;
-import com.splicemachine.derby.stream.output.HBaseBulkImporter;
+import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.yahoo.sketches.quantiles.ItemsSketch;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles;
 import org.apache.log4j.Logger;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.sql.*;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.StructField;
-import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
 
 import java.io.*;
 import java.net.URI;
 import java.util.*;
 
-public class SparkHBaseBulkImport implements HBaseBulkImporter{
+public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSetWriter {
 
-    private static final Logger LOG=Logger.getLogger(SparkHBaseBulkImport.class);
+    private static final Logger LOG=Logger.getLogger(BulkInsertDataSetWriter.class);
 
-    private DataSet dataSet;
     private String tableVersion;
     private int[] pkCols;
     private RowLocation[] autoIncrementRowLocationArray;
-    private long heapConglom;
     private ExecRow execRow;
     private SpliceSequence[] spliceSequences;
-    private OperationContext operationContext;
-    private TxnView txn;
     private String bulkImportDirectory;
     private boolean samplingOnly;
     private boolean outputKeysOnly;
     private boolean skipSampling;
     private String indexName;
 
-    public SparkHBaseBulkImport(){
+    public BulkInsertDataSetWriter(){
     }
 
-    public SparkHBaseBulkImport(DataSet dataSet,
-                                String tableVersion,
-                                int[] pkCols,
-                                RowLocation[] autoIncrementRowLocationArray,
-                                long heapConglom,
-                                ExecRow execRow,
-                                SpliceSequence[] spliceSequences,
-                                OperationContext operationContext,
-                                TxnView txn,
-                                String bulkImportDirectory,
-                                boolean samplingOnly,
-                                boolean outputKeysOnly,
-                                boolean skipSampling,
-                                String indexName) {
-        this.dataSet = dataSet;
+    public BulkInsertDataSetWriter(DataSet dataSet,
+                                   String tableVersion,
+                                   int[] pkCols,
+                                   RowLocation[] autoIncrementRowLocationArray,
+                                   long heapConglom,
+                                   ExecRow execRow,
+                                   SpliceSequence[] spliceSequences,
+                                   OperationContext operationContext,
+                                   TxnView txn,
+                                   String bulkImportDirectory,
+                                   boolean samplingOnly,
+                                   boolean outputKeysOnly,
+                                   boolean skipSampling,
+                                   String indexName) {
+        super(dataSet, operationContext, heapConglom, txn);
         this.tableVersion = tableVersion;
         this.autoIncrementRowLocationArray = autoIncrementRowLocationArray;
         this.pkCols = pkCols;
-        this.heapConglom = heapConglom;
         this.execRow = execRow;
         this.spliceSequences = spliceSequences;
-        this.operationContext = operationContext;
-        this.txn = txn;
         this.bulkImportDirectory = bulkImportDirectory;
         this.samplingOnly = samplingOnly;
         this.outputKeysOnly = outputKeysOnly;
         this.skipSampling = skipSampling;
         this.indexName = indexName;
+    }
+
+    @Override
+    public void setTxn(TxnView childTxn){
+        this.txn = childTxn;
+    }
+
+    @Override
+    public TxnView getTxn(){
+        if(txn==null)
+            return operationContext.getTxn();
+        else
+            return txn;
+    }
+
+    @Override
+    public byte[] getDestinationTable(){
+        return Bytes.toBytes(heapConglom);
     }
 
     /**
@@ -130,6 +131,7 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter{
      * @return
      * @throws StandardException
      */
+    @Override
     public DataSet<LocatedRow> write() throws StandardException {
 
         // collect index information for the table
@@ -160,7 +162,7 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter{
                 }
             }
             RowAndIndexGenerator rowAndIndexGenerator =
-                    new RowAndIndexGenerator(pkCols, tableVersion, execRow, autoIncrementRowLocationArray,
+                    new BulkInsertRowIndexGenerationFunction(pkCols, tableVersion, execRow, autoIncrementRowLocationArray,
                             spliceSequences, heapConglom, txn, operationContext, tentativeIndexList);
             DataSet rowAndIndexes = dataSet.flatMap(rowAndIndexGenerator);
             DataSet keys = rowAndIndexes.mapPartitions(new RowKeyGenerator(bulkImportDirectory, heapConglom, indexConglom));
@@ -185,7 +187,7 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter{
 
                 // encode key/vale pairs for table and indexes
                 RowAndIndexGenerator rowAndIndexGenerator =
-                        new RowAndIndexGenerator(pkCols, tableVersion, execRow, autoIncrementRowLocationArray,
+                        new BulkInsertRowIndexGenerationFunction(pkCols, tableVersion, execRow, autoIncrementRowLocationArray,
                                 spliceSequences, heapConglom, txn, operationContext, tentativeIndexList);
                 DataSet sampleRowAndIndexes = sampledDataSet.flatMap(rowAndIndexGenerator);
 
@@ -213,9 +215,20 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter{
                 final List<BulkImportPartition> bulkImportPartitions =
                         getBulkImportPartitions(allCongloms, bulkImportDirectory);
 
-                partitionUsingRDDSortUsingDataFrame(bulkImportPartitions, tentativeIndexList);
+                RowAndIndexGenerator rowAndIndexGenerator = new BulkInsertRowIndexGenerationFunction(pkCols, tableVersion, execRow,
+                        autoIncrementRowLocationArray, spliceSequences, heapConglom, txn,
+                        operationContext, tentativeIndexList);
 
-                bulkLoad(bulkImportPartitions);
+                String compressionAlgorithm = HConfiguration.getConfiguration().getCompressionAlgorithm();
+
+                // Write to HFile
+                HFileGenerationFunction hfileGenerationFunction =
+                        new BulkInsertHFileGenerationFunction(operationContext, txn.getTxnId(),
+                                heapConglom, compressionAlgorithm, bulkImportPartitions);
+
+                partitionUsingRDDSortUsingDataFrame(bulkImportPartitions, rowAndIndexGenerator, hfileGenerationFunction);
+
+                bulkLoad(bulkImportPartitions, bulkImportDirectory);
             }
         }
         ValueRow valueRow = new ValueRow(3);
@@ -236,22 +249,6 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter{
         }
 
         return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(new LocatedRow(valueRow)), 1));
-    }
-
-    private StructType createSchema() {
-        List<StructField> fields = new ArrayList<>();
-        StructField field = DataTypes.createStructField("conglomerateId", DataTypes.LongType, true);
-        fields.add(field);
-
-        field = DataTypes.createStructField("key", DataTypes.StringType, true);
-        fields.add(field);
-
-        field = DataTypes.createStructField("value", DataTypes.BinaryType, true);
-        fields.add(field);
-
-        StructType schema = DataTypes.createStructType(fields);
-
-        return schema;
     }
 
     /**
@@ -292,76 +289,8 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter{
         }
     }
 
-    /**
-     *
-     * @param bulkImportPartitions
-     * @throws StandardException
-     */
-    private void bulkLoad(List<BulkImportPartition> bulkImportPartitions) throws StandardException{
-        SpliceSpark.getContext().parallelize(bulkImportPartitions, bulkImportPartitions.size())
-                .foreach(new BulkImportFunction(bulkImportDirectory));
-    }
 
-    /**
-     * Generate a file name
-     * @param dir
-     * @return
-     * @throws IOException
-     */
 
-    public static Path getRandomFilename(final Path dir)
-            throws IOException{
-        return new Path(dir, java.util.UUID.randomUUID().toString().replaceAll("-",""));
-    }
-
-    /**
-     * Get actual partition boundaries for each table and index
-     * @param congloms
-     * @return
-     */
-    private List<BulkImportPartition> getBulkImportPartitions(
-            List<Long> congloms,
-            String bulkImportDirectory) throws StandardException {
-
-        try {
-            // Create bulk import directory if it does not exist
-            Path bulkImportPath = new Path(bulkImportDirectory);
-
-            List<BulkImportPartition> bulkImportPartitions = Lists.newArrayList();
-            for (Long conglom : congloms) {
-                Path tablePath = new Path(bulkImportPath, conglom.toString());
-                SIDriver driver = SIDriver.driver();
-                try (PartitionAdmin pa = driver.getTableFactory().getAdmin()) {
-                    Iterable<? extends Partition> partitions = pa.allPartitions(conglom.toString());
-
-                    if (LOG.isDebugEnabled()) {
-                        SpliceLogUtils.debug(LOG, "partition information for table %d", conglom);
-                    }
-                    int count = 0;
-                    for (Partition partition : partitions) {
-                        byte[] startKey = partition.getStartKey();
-                        byte[] endKey = partition.getEndKey();
-                        Path regionPath = getRandomFilename(tablePath);
-                        Path familyPath = new Path(regionPath, "V");
-                        bulkImportPartitions.add(new BulkImportPartition(conglom, startKey, endKey, familyPath.toString()));
-                        count++;
-                        if (LOG.isDebugEnabled()) {
-                            SpliceLogUtils.debug(LOG, "start key: %s", Bytes.toHex(startKey));
-                            SpliceLogUtils.debug(LOG, "end key: %s", Bytes.toHex(endKey));
-                            SpliceLogUtils.debug(LOG, "path = %s");
-                        }
-                    }
-                    if (LOG.isDebugEnabled()) {
-                        SpliceLogUtils.debug(LOG, "number of partition: %d", count);
-                    }
-                }
-            }
-            Collections.sort(bulkImportPartitions, BulkImportUtils.getSortComparator());
-            return bulkImportPartitions;
-        } catch (IOException e) {
-            throw StandardException.plainWrapException(e);
-        }
-    }
     /**
      * Calculate cut points according to statistics. Number of cut points is decided by max region size.
      * @param statistics
@@ -483,43 +412,5 @@ public class SparkHBaseBulkImport implements HBaseBulkImporter{
         }
 
         return statisticsMap;
-    }
-
-    private void partitionUsingRDDSortUsingDataFrame(List<BulkImportPartition> bulkImportPartitions,
-                                                      ArrayList<DDLMessage.TentativeIndex> tentativeIndexList) {
-        RowAndIndexGenerator rowAndIndexGenerator = new RowAndIndexGenerator(pkCols, tableVersion, execRow,
-                autoIncrementRowLocationArray, spliceSequences, heapConglom, txn,
-                operationContext, tentativeIndexList);
-        DataSet rowAndIndexes = dataSet.flatMap(rowAndIndexGenerator);
-        assert rowAndIndexes instanceof SparkDataSet;
-
-        // Create a data frame for main table and index key/values, and sort data
-        PairDataSet pairDataSet = rowAndIndexes.keyBy(new BulkImportKeyerFunction());
-        int taskPerRegion = HConfiguration.getConfiguration().getBulkImportTasksPerRegion();
-        JavaRDD partitionedJavaRDD =
-                ((SparkPairDataSet)pairDataSet).rdd
-                        .partitionBy(new BulkImportPartitioner(bulkImportPartitions, taskPerRegion)).values();
-
-        JavaRDD<Row> javaRowRdd = partitionedJavaRDD.map(new HBaseBulkImportRowToSparkRowFunction());
-
-        SparkSession sparkSession = SpliceSpark.getSession();
-        StructType schema = createSchema();
-        Dataset<Row> rowAndIndexesDataFrame =
-                sparkSession.createDataFrame(javaRowRdd, schema);
-
-        // Sort with each partition using row key
-        Dataset partitionAndSorted =  rowAndIndexesDataFrame
-                .sortWithinPartitions(new Column("key"));
-
-        String compressionAlgorithm = HConfiguration.getConfiguration().getCompressionAlgorithm();
-
-        // Write to HFile
-        HFileGenerationFunction writer =
-                new HFileGenerationFunction(operationContext, txn.getTxnId(),
-                        heapConglom, compressionAlgorithm, bulkImportPartitions);
-
-        Dataset<String> hFileSet = partitionAndSorted.mapPartitions(writer, Encoders.STRING());
-
-        Object files = hFileSet.collect();
     }
 }
