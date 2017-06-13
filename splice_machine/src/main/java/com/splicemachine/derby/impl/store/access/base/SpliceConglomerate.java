@@ -203,6 +203,10 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
 
     public abstract int getTypeFormatId();
 
+    public int getConglomerateFormatId() {
+        return conglom_format_id;
+    }
+
     @Override
     public boolean equals(Object o){
         if(this==o) return true;

@@ -22,6 +22,7 @@ import java.util.Properties;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.management.Manager;
 import org.apache.log4j.Logger;
 
@@ -383,7 +384,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         DatabaseVersion databaseVersion=(new ManifestReader()).createVersion();
         if(!databaseVersion.isUnknown()){
             spliceSoftwareVersion=new Splice_DD_Version(this,databaseVersion.getMajorVersionNumber(),
-                    databaseVersion.getMinorVersionNumber(),databaseVersion.getPatchVersionNumber());
+                    databaseVersion.getMinorVersionNumber(),databaseVersion.getPatchVersionNumber()+1);
         }
         if(create){
             SpliceAccessManager af=(SpliceAccessManager)Monitor.findServiceModule(this,AccessFactory.MODULE);
@@ -514,7 +515,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     private void upgradeIfNecessary(TransactionController tc) throws StandardException{
-
         Splice_DD_Version catalogVersion=(Splice_DD_Version)tc.getProperty(SPLICE_DATA_DICTIONARY_VERSION);
         if(needToUpgrade(catalogVersion)){
             tc.elevate("dictionary");

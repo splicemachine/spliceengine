@@ -345,7 +345,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
      * @see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
      **/
     public int getTypeFormatId(){
-        return StoredFormatIds.ACCESS_HEAP_V3_ID;
+        return StoredFormatIds.ACCESS_HEAP_V4_ID;
     }
 
     /**
@@ -357,9 +357,8 @@ public class HBaseConglomerate extends SpliceConglomerate{
      * <p/>
      **/
     public void writeExternal(ObjectOutput out) throws IOException{
-        FormatIdUtil.writeFormatIdInteger(out,conglom_format_id);
+        FormatIdUtil.writeFormatIdInteger(out,getTypeFormatId());
         FormatIdUtil.writeFormatIdInteger(out,tmpFlag);
-        out.writeInt((int)id.getSegmentId());
         out.writeLong(id.getContainerId());
         out.writeInt(format_ids.length);
         ConglomerateUtil.writeFormatIdArray(format_ids,out);
@@ -384,14 +383,16 @@ public class HBaseConglomerate extends SpliceConglomerate{
         // read the format id of this conglomerate.
         conglom_format_id=FormatIdUtil.readFormatIdInteger(in);
         tmpFlag=FormatIdUtil.readFormatIdInteger(in);
-        int segmentid=in.readInt();
+        int segmentid = 0;
+        if (conglom_format_id == StoredFormatIds.ACCESS_HEAP_V3_ID) {
+            segmentid=in.readInt();
+        }
         long containerid=in.readLong();
         id=new ContainerKey(segmentid,containerid);
         // read the number of columns in the heap.
         int num_columns=in.readInt();
         // read the array of format ids.
         format_ids=ConglomerateUtil.readFormatIdArray(num_columns,in);
-        this.conglom_format_id=getTypeFormatId();
         num_columns=in.readInt();
         collation_ids=ConglomerateUtil.readFormatIdArray(num_columns,in);
         num_columns=in.readInt();

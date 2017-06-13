@@ -23,9 +23,15 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Iterator;
+import java.util.List;
 import java.util.ServiceLoader;
 
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
+import com.splicemachine.storage.DataCell;
+import com.splicemachine.storage.DataScan;
+import com.splicemachine.storage.DataScanner;
 import org.apache.log4j.Logger;
 import org.sparkproject.guava.base.Preconditions;
 
@@ -77,7 +83,6 @@ public class ConglomerateUtils{
         SIDriver driver=SIDriver.driver();
         try(Partition partition=driver.getTableFactory().getTable(SQLConfiguration.CONGLOMERATE_TABLE_NAME_BYTES)){
             DataGet get=driver.getOperationFactory().newDataGet(txn,Bytes.toBytes(conglomId),null);
-            get.returnAllVersions();
             get.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES);
             EntryPredicateFilter predicateFilter=EntryPredicateFilter.emptyPredicate();
             get.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
@@ -352,6 +357,102 @@ public class ConglomerateUtils{
         if(position!=initialArray.length)
             System.arraycopy(initialArray,position+1,droppedArray,position,initialArray.length-1-position);
         return droppedArray;
+    }
+
+    public static <T> T upgradeConglomerates(TxnView txn) throws StandardException{
+        SpliceLogUtils.info(LOG,"Upgrading conglomerates");
+        Preconditions.checkNotNull(txn);
+        SIDriver driver=SIDriver.driver();
+        long upgraded = 0;
+        long skipped = 0;
+        try(Partition partition=driver.getTableFactory().getTable(SQLConfiguration.CONGLOMERATE_TABLE_NAME_BYTES)){
+            DataScan scan=driver.getOperationFactory().newDataScan(txn);
+
+            DataScanner scanner=partition.openScanner(scan);
+
+
+            while (true) {
+                List<DataCell> cells = scanner.next(0);
+                if (cells == null || cells.isEmpty())
+                    break;
+                for (DataCell dc : cells) {
+                    if (dc.matchesQualifier(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES)) {
+                        byte[] data = dc.value();
+
+                        EntryDecoder entryDecoder = new EntryDecoder();
+                        EntryEncoder entryEncoder = null;
+                        try {
+                            if (data != null) {
+                                entryDecoder.set(data);
+                                MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
+                                byte[] nextRaw = decoder.decodeNextBytesUnsorted();
+
+                                SpliceConglomerate sc = DerbyBytesUtil.fromBytesUnsafe(nextRaw);
+
+                                if (sc.getConglomerateFormatId() == StoredFormatIds.ACCESS_HEAP_V4_ID
+                                        || sc.getConglomerateFormatId() == StoredFormatIds.ACCESS_B2I_V6_ID) {
+                                    SpliceLogUtils.trace(LOG, "Conglomerates don't have to be upgraded");
+                                    // it's updated, skip it
+                                    skipped++;
+                                    if (skipped % 25 == 0) {
+                                        LOG.info(String.format("Skipped %d conglomerates so far", skipped));
+                                    }
+                                    break;
+                                }
+
+                                long conglomId = sc.getId().getContainerId();
+
+                                DataPut put = driver.getOperationFactory().newDataPut(txn, Bytes.toBytes(conglomId));
+                                BitSet fields = new BitSet();
+                                fields.set(0);
+                                entryEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(), 1, fields, null, null, null);
+                                entryEncoder.getEntryEncoder().encodeNextUnsorted(DerbyBytesUtil.toBytes(sc));
+                                put.addCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES, entryEncoder.encode());
+                                partition.put(put);
+                                upgraded++;
+                                if (upgraded % 25 == 0) {
+                                    LOG.info(String.format("Upgraded %d conglomerates so far", upgraded));
+                                }
+                            }
+                        } finally {
+                            entryDecoder.close();
+                            if (entryEncoder != null) {
+                                entryEncoder.close();
+                            }
+                        }
+                    }
+                }
+            }
+
+        }catch(Exception e){
+            SpliceLogUtils.logAndThrow(LOG,"readConglomerateException",Exceptions.parseException(e));
+        }
+        if (upgraded > 0) {
+            LOG.info(String.format("Conglomerates upgrade complete. Upgraded: %d Skipped: %d", upgraded, skipped));
+        }
+        return null;
+    }
+
+    private static volatile UpgradeK2 UPGRADE_K2;
+
+    public static UpgradeK2 upgradeK2(){
+        UpgradeK2 u= UPGRADE_K2;
+        if(u==null){
+            u= loadUpgradeK2();
+        }
+        return u;
+    }
+
+    private static synchronized UpgradeK2 loadUpgradeK2(){
+        UpgradeK2 u= UPGRADE_K2;
+        if(u==null){
+            ServiceLoader<UpgradeK2> loader=ServiceLoader.load(UpgradeK2.class);
+            Iterator<UpgradeK2> iter=loader.iterator();
+            if(!iter.hasNext())
+                throw new IllegalStateException("No UpgradeK2 found!");
+            u= UPGRADE_K2 =iter.next();
+        }
+        return u;
     }
 
 }

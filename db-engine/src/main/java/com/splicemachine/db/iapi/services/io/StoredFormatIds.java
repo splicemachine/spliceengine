@@ -1497,8 +1497,13 @@ public interface StoredFormatIds {
     public static final int ACCESS_HEAP_V3_ID =
             (MIN_ID_2 + 467);
 
-    public static final int ACCESS_B2I_V5_ID = 
+    public static final int ACCESS_HEAP_V4_ID =
+            (MIN_ID_2 + 478);
+
+    public static final int ACCESS_B2I_V5_ID =
             (MIN_ID_2 + 470);
+    public static final int ACCESS_B2I_V6_ID =
+            (MIN_ID_2 + 479);
     /******************************************************************
     **
     ** PropertyConglomerate
@@ -1736,7 +1741,7 @@ public interface StoredFormatIds {
      * Make sure this is updated when a new module is added
      */
     public static final int MAX_ID_2 =
-    		(MIN_ID_2 + 477);
+    		(MIN_ID_2 + 479);
 
     // DO NOT USE 4 BYTE IDS ANYMORE
     static public final int MAX_ID_4 =
