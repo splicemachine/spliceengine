@@ -509,7 +509,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     private void upgradeIfNecessary(TransactionController tc) throws StandardException{
-
         boolean toUpgrade = Boolean.TRUE.equals(EngineLifecycleService.toUpgrade.get());
         // Only master can upgrade
         if (!toUpgrade) {

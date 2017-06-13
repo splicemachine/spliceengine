@@ -16,6 +16,8 @@ package com.splicemachine.hbase;
 
 import java.io.IOException;
 
+import com.splicemachine.si.data.hbase.ZkUpgradeK2;
+import com.splicemachine.timestamp.impl.TimestampOracle;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -76,6 +78,17 @@ public class SpliceMasterObserver extends BaseMasterObserver {
         this.timestampServer =new TimestampServer(timestampPort,tbm,timestampBlockSize);
 
         this.timestampServer.startServer();
+
+        // Check upgrade from 2.0
+        ZkUpgradeK2 upgradeK2 = new ZkUpgradeK2(configuration.getSpliceRootPath());
+        if (upgradeK2.upgrading()) {
+            LOG.info("We are upgrading from K2");
+            TimestampOracle to = TimestampOracle.getInstance(tbm,timestampBlockSize);
+            long threshold = to.getNextTimestamp();
+            LOG.info("Setting old transactions threshold to " + threshold);
+            upgradeK2.upgrade(threshold);
+        }
+        env.txnStore().setOldTransactions(upgradeK2.getOldTransactions());
 
         int olapPort=configuration.getOlapServerBindPort();
         this.olapServer = new OlapServer(olapPort,env.systemClock());

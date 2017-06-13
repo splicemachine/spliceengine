@@ -390,4 +390,9 @@ public class TestingTxnStore implements TxnStore{
     public void setCache(TxnSupplier cache){
         // no op
     }
+
+    @Override
+    public void setOldTransactions(long oldTransactions) {
+        // no op
+    }
 }

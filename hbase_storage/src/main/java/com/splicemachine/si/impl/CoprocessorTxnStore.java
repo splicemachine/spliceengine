@@ -52,6 +52,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @ThreadSafe
 public class CoprocessorTxnStore implements TxnStore {
     private final TxnNetworkLayerFactory tableFactory;
+    private volatile long oldTransactions;
     private TxnSupplier cache; //a transaction store which uses a global cache for us
     @ThreadSafe
     private final TimestampSource timestampSource;
@@ -238,15 +239,25 @@ public class CoprocessorTxnStore implements TxnStore {
     @Override
     public TxnView getTransaction(long txnId,boolean getDestinationTables) throws IOException{
         lookups.incrementAndGet(); //we are performing a lookup, so increment the counter
+        if (txnId < oldTransactions) {
+            return getOldTransaction(txnId, getDestinationTables);
+        }
         byte[] rowKey=getTransactionRowKey(txnId );
         TxnMessage.TxnRequest request=TxnMessage.TxnRequest.newBuilder().setTxnId(txnId).build();
 
         try (TxnNetworkLayer table = tableFactory.accessTxnNetwork()){
-//            TxnMessage.TxnLifecycleService service=getLifecycleService(table,rowKey);
-//            SpliceRpcController controller=new SpliceRpcController();
-//            BlockingRpcCallback<TxnMessage.Txn> done=new BlockingRpcCallback<>();
-//            service.getTransaction(controller,request,done);
-//            dealWithError(controller);
+            TxnMessage.Txn messageTxn=table.getTxn(rowKey,request);
+            return decode(messageTxn);
+        } catch(Throwable throwable){
+            throw new IOException(throwable);
+        }
+    }
+
+    public TxnView getOldTransaction(long txnId, boolean getDestinationTables) throws IOException {
+        byte[] rowKey=getOldTransactionRowKey(txnId);
+        TxnMessage.TxnRequest request=TxnMessage.TxnRequest.newBuilder().setTxnId(txnId).setIsOld(true).build();
+
+        try (TxnNetworkLayer table = tableFactory.accessTxnNetwork()){
             TxnMessage.Txn messageTxn=table.getTxn(rowKey,request);
             return decode(messageTxn);
         } catch(Throwable throwable){
@@ -279,6 +290,11 @@ public class CoprocessorTxnStore implements TxnStore {
      */
     public void setCache(TxnSupplier cacheStore){
         this.cache=cacheStore;
+    }
+
+    @Override
+    public void setOldTransactions(long oldTransactions) {
+        this.oldTransactions = oldTransactions;
     }
 
     /*monitoring methods*/
@@ -413,6 +429,10 @@ public class CoprocessorTxnStore implements TxnStore {
 
     private static byte[] getTransactionRowKey(long txnId){
         return TxnUtils.getRowKey(txnId);
+    }
+
+    private static byte[] getOldTransactionRowKey(long txnId){
+        return TxnUtils.getOldRowKey(txnId);
     }
 
     private void dealWithError(ServerRpcController controller) throws IOException{

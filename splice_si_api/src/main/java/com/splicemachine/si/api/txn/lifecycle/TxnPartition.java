@@ -61,6 +61,15 @@ public interface TxnPartition{
     TxnMessage.Txn getTransaction(long txnId) throws IOException;
 
     /**
+     * Fetch all information about an old transaction.
+     *
+     * @param txnId the transaction id to fetch
+     * @return all recorded transaction information for the specified transaction.
+     * @throws IOException if something goes wrong when fetching transactions
+     */
+    TxnMessage.Txn getTransactionV1(long txnId) throws IOException;
+
+    /**
      * Get a list of transaction ids which are considered ACTIVE <em>at the time that they are visited</em>.
      * <p/>
      * This call does not require explicit synchronization, but it will <em>not</em> return a perfect view

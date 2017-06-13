@@ -316,7 +316,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
      * @see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
      **/
     public int getTypeFormatId(){
-        return StoredFormatIds.ACCESS_HEAP_V3_ID;
+        return StoredFormatIds.ACCESS_HEAP_V4_ID;
     }
 
     /**
@@ -328,7 +328,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
      * <p/>
      **/
     public void writeExternal(ObjectOutput out) throws IOException{
-        FormatIdUtil.writeFormatIdInteger(out,conglom_format_id);
+        FormatIdUtil.writeFormatIdInteger(out,getTypeFormatId());
         FormatIdUtil.writeFormatIdInteger(out,tmpFlag);
         out.writeLong(containerId);
         out.writeInt(format_ids.length);
@@ -359,7 +359,6 @@ public class HBaseConglomerate extends SpliceConglomerate{
         int num_columns=in.readInt();
         // read the array of format ids.
         format_ids=ConglomerateUtil.readFormatIdArray(num_columns,in);
-        this.conglom_format_id=getTypeFormatId();
         num_columns=in.readInt();
         collation_ids=ConglomerateUtil.readFormatIdArray(num_columns,in);
         num_columns=in.readInt();

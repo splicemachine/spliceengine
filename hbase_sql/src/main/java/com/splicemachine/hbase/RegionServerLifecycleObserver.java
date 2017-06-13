@@ -23,6 +23,7 @@ import com.splicemachine.derby.lifecycle.ManagerLoader;
 import com.splicemachine.lifecycle.PipelineEnvironmentLoadService;
 import com.splicemachine.pipeline.PipelineEnvironment;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
+import com.splicemachine.si.data.hbase.ZkUpgradeK2;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionServerObserver;
@@ -94,6 +95,10 @@ public class RegionServerLifecycleObserver extends BaseRegionServerObserver{
             HBaseConnectionFactory connFactory = HBaseConnectionFactory.getInstance(driver.getConfiguration());
             RegionServerLifecycle distributedStartupSequence=new RegionServerLifecycle(driver.getClock(),connFactory);
             manager.registerEngineService(new MonitoredLifecycleService(distributedStartupSequence,config,false));
+
+            // Check upgrade from 2.0
+            ZkUpgradeK2 upgrade20 = new ZkUpgradeK2(config.getSpliceRootPath());
+            env.txnStore().setOldTransactions(upgrade20.getOldTransactions());
 
             //register the pipeline driver environment load service
             manager.registerGeneralService(new PipelineEnvironmentLoadService() {

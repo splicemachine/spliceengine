@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.store.access;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
+
 import org.spark_project.guava.base.Preconditions;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.utils.ConglomerateUtils;
@@ -628,6 +629,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 
         if(create)
             ((SpliceTransaction)tc.getRawTransaction()).elevate(Bytes.toBytes("boot"));
+
         // set up the transaction properties.  On J9, over NFS, runing on a
         // power PC coprossor, the directories were created fine, but create
         // db would fail when trying to create this first file in seg0.
