@@ -158,5 +158,10 @@ public class AsyncReadResolver{
                 ringBuffer.publish(sequence);
             }
         }
+
+        @Override
+        public boolean enabled() {
+            return true;
+        }
     }
 }

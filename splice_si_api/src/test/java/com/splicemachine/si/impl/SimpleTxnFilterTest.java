@@ -276,6 +276,7 @@ public class SimpleTxnFilterTest{
     /*private helper methods*/
     private ReadResolver getRollBackReadResolver(final Pair<ByteSlice, Long> rolledBackTs){
         ReadResolver resolver=mock(ReadResolver.class);
+        when(resolver.enabled()).thenReturn(true);
 
         doAnswer(new Answer<Void>(){
             @Override
@@ -291,6 +292,7 @@ public class SimpleTxnFilterTest{
 
     private ReadResolver getCommitReadResolver(final Pair<ByteSlice, Pair<Long, Long>> committedTs,final TxnSupplier txnStore){
         ReadResolver resolver=mock(ReadResolver.class);
+        when(resolver.enabled()).thenReturn(true);
 
         doAnswer(new Answer<Void>(){
             @Override
