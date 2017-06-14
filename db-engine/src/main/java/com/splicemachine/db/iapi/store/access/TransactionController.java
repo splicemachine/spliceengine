@@ -31,17 +31,17 @@
 
 package com.splicemachine.db.iapi.store.access;
 
-import java.util.Properties;
-
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.io.Storable;
 import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
 import com.splicemachine.db.iapi.services.property.PersistentSet;
-import com.splicemachine.db.iapi.services.io.Storable;
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+
+import java.util.Properties;
 
 /**
 
@@ -1236,7 +1236,7 @@ public interface TransactionController
      *
      * @see StoreCostController
      **/
-    StoreCostController openStoreCost(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor) throws StandardException;
+    StoreCostController openStoreCost(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, boolean skipDictionaryStats) throws StandardException;
 
     /**
      * Return a string with debug information about opened congloms/scans/sorts.

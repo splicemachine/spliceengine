@@ -2587,6 +2587,12 @@ Guide.
             </msg>
 
             <msg>
+                <name>42Y52</name>
+                <text>Invalid Properties list in FROM list.  The hint skipStats needs (true/false) and does not support '{0}'.</text>
+                <arg>tableName</arg>
+            </msg>
+
+            <msg>
                 <name>42Y55</name>
                 <text>'{0}' cannot be performed on '{1}' because it does not exist.</text>
                 <arg>value</arg>
