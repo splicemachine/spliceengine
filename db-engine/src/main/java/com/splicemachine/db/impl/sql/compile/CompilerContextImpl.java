@@ -31,13 +31,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import java.sql.SQLWarning;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Stack;
-import java.util.Vector;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -64,6 +57,10 @@ import com.splicemachine.db.iapi.store.access.SortCostController;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.ReuseFactory;
+import com.splicemachine.utils.Pair;
+
+import java.sql.SQLWarning;
+import java.util.*;
 
 /**
  *
@@ -139,6 +136,7 @@ public class CompilerContextImpl extends ContextImpl
 		defaultSchemaStack = null;
         referencedSequences = null;
         dataSetProcessorType = DataSetProcessorType.DEFAULT_CONTROL;
+        skipStatsTableList.clear();
 	}
 
 	//
@@ -442,30 +440,24 @@ public class CompilerContextImpl extends ContextImpl
 	 * @exception StandardException		Thrown on error
 	 */
 	@Override
-	public StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor cd) throws StandardException {
-      long conglomerateNumber = cd.getConglomerateNumber();
+	public StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor cd, boolean skipStats) throws StandardException {
+      	long conglomerateNumber = cd.getConglomerateNumber();
 		/*
 		** Try to find the given conglomerate number in the array of
 		** conglom ids.
 		*/
-
-
-      for (int i = 0; i < storeCostConglomIds.size(); i++) {
-          Long conglomId = (Long) storeCostConglomIds.get(i);
-          if (conglomId.longValue() == conglomerateNumber)
-              return (StoreCostController) storeCostControllers.get(i);
-      }
+		Pair<Long, Boolean> pairedKey = Pair.newPair(new Long(conglomerateNumber), new Boolean(skipStats));
+		StoreCostController scc = storeCostControllers.get(pairedKey);
+		if (scc != null)
+			return scc;
 
 		/*
 		** Not found, so get a StoreCostController from the store.
 		*/
-      StoreCostController retval = 		lcc.getTransactionCompile().openStoreCost(td,cd);
+		StoreCostController retval = lcc.getTransactionCompile().openStoreCost(td,cd,skipStats);
 
 		/* Put it in the array */
-      storeCostControllers.add(storeCostControllers.size(), retval);
-
-		/* Put the conglomerate number in its array */
-      storeCostConglomIds.add(storeCostConglomIds.size(), conglomerateNumber);
+		storeCostControllers.put(pairedKey, retval);
 
 		return retval;
 	}
@@ -475,10 +467,8 @@ public class CompilerContextImpl extends ContextImpl
 	 */
 	private void closeStoreCostControllers()
 	{
-		for (int i = 0; i < storeCostControllers.size(); i++)
-		{
-			StoreCostController scc =
-				(StoreCostController) storeCostControllers.get(i);
+		for (Map.Entry<Pair<Long, Boolean>, StoreCostController> entry: storeCostControllers.entrySet()) {
+			StoreCostController scc = entry.getValue();
 			try {
 				scc.close();
 			} catch (StandardException se) {
@@ -486,7 +476,7 @@ public class CompilerContextImpl extends ContextImpl
 		}
 
 		storeCostControllers.clear();
-		storeCostConglomIds.clear();
+		skipStatsTableList.clear();
 	}
 
 	/**
@@ -1043,8 +1033,8 @@ public class CompilerContextImpl extends ContextImpl
 	private ProviderList		currentAPL;
 	private boolean returnParameterFlag;
 
-	private Vector				storeCostControllers = new Vector();
-	private Vector				storeCostConglomIds = new Vector();
+	private HashMap<Pair<Long, Boolean>, StoreCostController> storeCostControllers = new HashMap<>();
+	private Vector<Integer> skipStatsTableList = new Vector<>();
 
 	private SortCostController	sortCostController;
 
@@ -1077,4 +1067,14 @@ public class CompilerContextImpl extends ContextImpl
     public DataSetProcessorType getDataSetProcessorType() {
         return dataSetProcessorType;
     }
+
+    @Override
+    public boolean skipStats(int tableNumber) {
+    	return skipStatsTableList.contains(tableNumber);
+	}
+
+	@Override
+	public Vector<Integer> getSkipStatsTableList() {
+    	return skipStatsTableList;
+	}
 } // end of class CompilerContextImpl
