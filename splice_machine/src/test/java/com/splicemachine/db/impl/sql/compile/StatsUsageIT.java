@@ -78,6 +78,44 @@ public class StatsUsageIT extends SpliceUnitTest {
                 "call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s',false)",
                 schemaName));
 
+        new TableCreator(conn)
+                .withCreate("create table t2 (a2 int, b2 int, c2 int, constraint con1 primary key (a2))")
+                .withInsert("insert into t2 values(?,?,?)")
+                .withRows(rows(
+                        row(1,1,1),
+                        row(2,1,1),
+                        row(3,1,1),
+                        row(4,1,1),
+                        row(5,1,1),
+                        row(6,2,2),
+                        row(7,2,2),
+                        row(8,2,2),
+                        row(9,2,2),
+                        row(10,2,2)))
+                .create();
+
+        int factor = 10;
+        for (int i = 1; i <= 12; i++) {
+            spliceClassWatcher.executeUpdate(format("insert into t2 select a2+%d, b2,c2 from t2", factor));
+            factor = factor * 2;
+        }
+
+        new TableCreator(conn)
+                .withCreate("create table t3(a3 int, b3 int, c3 int)")
+                .withInsert("insert into t3 values(?,?,?)")
+                .withRows(rows(
+                        row(1,1,1),
+                        row(2,2,2),
+                        row(3,3,3),
+                        row(4,4,4),
+                        row(5,5,5),
+                        row(6,6,6),
+                        row(7,7,7),
+                        row(8,8,8),
+                        row(9,9,9),
+                        row(10,10,10)))
+                .create();
+
         conn.commit();
     }
 
@@ -109,5 +147,100 @@ public class StatsUsageIT extends SpliceUnitTest {
         rowContainsQuery(3,"explain select * from --SPLICE-PROPERTIES joinOrder=fixed\n" +
                 "        t1 as X, t1 as Y --splice-properties joinStrategy=BROADCAST\n " +
                 "        where X.c1=Y.c1 and Y.c1=1","outputRows=2,",methodWatcher);
+    }
+
+    @Test
+    public void testSkipStatsHint1() throws Exception {
+        //compare the plan with hint on t2 and that with no stats, they should behave the same
+        methodWatcher.executeQuery(format(
+                "call SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','T3', false)",
+                spliceSchemaWatcher.toString()));
+
+        /* case 1: single table */
+        String explainWithoutStats = getExplainText("explain select * from t2 where b2=1", methodWatcher);
+        methodWatcher.executeQuery(format(
+                "call SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','T2', false)",
+                spliceSchemaWatcher.toString()));
+        String explainWithHint = getExplainText("explain select * from t2  --splice-properties skipStats=true\n where b2=1", methodWatcher);
+        Assert.assertEquals("Explain does not match!", explainWithoutStats, explainWithHint);
+
+        /* case 2: table participates in join*/
+        methodWatcher.executeUpdate(format(
+                "call SYSCS_UTIL.DROP_TABLE_STATISTICS('%s','T2')", spliceSchemaWatcher.toString()));
+        explainWithoutStats = getExplainText("explain select * from --splice-properties joinOrder=fixed\n" +
+                "t3, t2 --splice-properties joinStrategy=NESTEDLOOP\n" +
+                "where c3=c2", methodWatcher);
+        methodWatcher.executeQuery(format(
+                "call SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','T2', false)",
+                spliceSchemaWatcher.toString()));
+        explainWithHint = getExplainText("explain select * from --splice-properties joinOrder=fixed\n" +
+                "t3, t2 --splice-properties joinStrategy=NESTEDLOOP,skipStats=true\n" +
+                "where c3=c2", methodWatcher);
+        Assert.assertEquals("Explain does not match!", explainWithoutStats, explainWithHint);
+
+        /* case 3: table in derived table */
+        methodWatcher.executeUpdate(format(
+                "call SYSCS_UTIL.DROP_TABLE_STATISTICS('%s','T2')", spliceSchemaWatcher.toString()));
+        explainWithoutStats = getExplainText("explain select * from t3, (select a2 from t2, t1 where a2=a1) dt where a3=dt.a2", methodWatcher);
+        methodWatcher.executeQuery(format(
+                "call SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','T2', false)",
+                spliceSchemaWatcher.toString()));
+        explainWithHint = getExplainText("explain select * from t3, (select a2 from t2 --splice-properties skipStats=true\n" +
+                ", t1 where a2=a1) dt where a3=dt.a2", methodWatcher);
+        Assert.assertEquals("Explain does not match!", explainWithoutStats, explainWithHint);
+
+        /* case 4: table in correlated subquery */
+        methodWatcher.executeUpdate(format(
+                "call SYSCS_UTIL.DROP_TABLE_STATISTICS('%s','T2')", spliceSchemaWatcher.toString()));
+        explainWithoutStats = getExplainText("explain select * from t3 where a3 not in (select a2 from t2 where b3=b2)", methodWatcher);
+        methodWatcher.executeQuery(format(
+                "call SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','T2', false)",
+                spliceSchemaWatcher.toString()));
+        explainWithHint = getExplainText("explain select * from t3 where a3 not in (select a2 from t2 --splice-properties skipStats=true\n" +
+                " where b3=b2)", methodWatcher);
+        Assert.assertEquals("Explain does not match!", explainWithoutStats, explainWithHint);
+    }
+
+    @Test
+    public void testSkipStatsHint2() throws Exception {
+        methodWatcher.executeQuery(format(
+                "call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s', false)",
+                spliceSchemaWatcher.toString()));
+
+        /* test multiple instance of the same table in the same query, one use stats and one skip stats
+           row estimation should be different
+         */
+        String query = "explain select * from --splice-properties joinOrder=fixed\n" +
+                "t2 as X --splice-properties skipStats=true\n" +
+                ",t2 as Y --splice-properties joinStrategy=BROADCAST,skipStats=false\n" +
+                "where X.a2=Y.a2";
+
+        try(ResultSet resultSet = methodWatcher.executeQuery(query)){
+            int i = 1;
+            double outputRowWithStats = 0;
+            double outputRowWithoutStats = 0;
+            while(resultSet.next()){
+                if (i == 4) {
+                    /* line 4 scan table Y, which uses real stats, so outputRows should be 40960 */
+                    outputRowWithStats = parseOutputRows(resultSet.getString(1));
+                    Assert.assertEquals(outputRowWithStats, 40960, 10);
+                } else if (i == 5) {
+                    /* line 5 scan table X, which skip dictionary stats, so outputRows should be different from 40960*/
+                    outputRowWithoutStats = parseOutputRows(resultSet.getString(1));
+                    Assert.assertNotEquals(outputRowWithStats, outputRowWithoutStats, 10);
+                }
+            }
+        }
+    }
+
+    // worker functions
+    public static String getExplainText(String query,SpliceWatcher methodWatcher) throws Exception {
+        String explain = "";
+        try(ResultSet resultSet = methodWatcher.executeQuery(query)){
+            while(resultSet.next()){
+                explain += resultSet.getString(1);
+            }
+        }
+        return explain;
     }
 }
