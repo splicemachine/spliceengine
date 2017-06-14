@@ -1180,7 +1180,6 @@ public class SpliceAdmin extends BaseAdminProcedures{
             String objectName = rs.getString(1);
             long conglomerateNumber = rs.getLong(2);
             String sname = snapshotName + "_" + conglomerateNumber;
-            snapshotList.add(sname);
             DateTime creationTime = new DateTime(System.currentTimeMillis());
             if (LOG.isDebugEnabled())
             {
@@ -1190,6 +1189,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                     new SnapshotDescriptor(snapshotName, schemaName, objectName, conglomerateNumber,creationTime, null);
             admin.snapshot(sname, "splice:" + conglomerateNumber);
             dd.addSnapshot(descriptor, tc);
+            snapshotList.add(sname);
             if (LOG.isDebugEnabled())
             {
                 SpliceLogUtils.debug(LOG, "created snapshot %s", sname);
