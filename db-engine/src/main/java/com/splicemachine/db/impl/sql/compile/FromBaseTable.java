@@ -58,11 +58,10 @@ import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.catalog.SYSUSERSRowFactory;
-import org.spark_project.guava.base.Joiner;
-import org.spark_project.guava.collect.Lists;
-
 import java.lang.reflect.Modifier;
 import java.util.*;
+import org.spark_project.guava.base.Joiner;
+import org.spark_project.guava.collect.Lists;
 
 // Temporary until user override for disposable stats has been removed.
 
@@ -109,7 +108,6 @@ public class FromBaseTable extends FromTable {
     ConglomerateDescriptor[] conglomDescs;
     private boolean pin;
     int updateOrDelete;
-    boolean skipStats;
 
     /*
     ** The number of rows to bulkFetch.
@@ -633,16 +631,11 @@ public class FromBaseTable extends FromTable {
                     throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK,value); // TODO Fix Error message - JL
                 }
             }
-            else if (key.equals("skipStats")) {
-                try {
-                    skipStats = Boolean.parseBoolean(StringUtil.SQLToUpperCase(value));
-                } catch (Exception skipStatsE) {
-                    throw StandardException.newException(SQLState.LANG_INVALIDE_FORCED_SKIPSTATS,value);
-                }
-            } else{
+
+            else{
                 // No other "legal" values at this time
                 throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key,
-                        "index, constraint, joinStrategy, useSpark, pin, skipStats");
+                        "index, constraint, joinStrategy, useSpark, pin");
             }
 
 
@@ -3118,15 +3111,7 @@ public class FromBaseTable extends FromTable {
     ** like the optimizer or the data dictionary.
     */
     private StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor cd) throws StandardException{
-        if (skipStats) {
-            if (!getCompilerContext().skipStats(this.getTableNumber()))
-                getCompilerContext().getSkipStatsTableList().add(new Integer(this.getTableNumber()));
-            return getCompilerContext().getStoreCostController(td, cd, true);
-        }
-        else {
-            return getCompilerContext().getStoreCostController(td, cd,
-                    getCompilerContext().skipStats(this.getTableNumber()));
-        }
+        return getCompilerContext().getStoreCostController(td,cd);
     }
 
     private StoreCostController getBaseCostController() throws StandardException{

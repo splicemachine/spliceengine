@@ -1426,7 +1426,7 @@ public class ColumnReference extends ValueNode {
 		// TODO THROW EXCEPTION HERE JL
 		if (cd != null) {
 			ConglomerateDescriptor outercCD = cd.getTableDescriptor().getConglomerateDescriptorList().getBaseConglomerateDescriptor();
-			storeCostController = getCompilerContext().getStoreCostController(cd.getTableDescriptor(), outercCD, getCompilerContext().skipStats(getTableNumber()));
+			storeCostController = getCompilerContext().getStoreCostController(cd.getTableDescriptor(),outercCD);
 		}
 		return storeCostController;
 	}

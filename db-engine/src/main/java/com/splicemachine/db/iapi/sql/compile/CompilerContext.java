@@ -458,13 +458,12 @@ public interface CompilerContext extends Context
 	 * Get a StoreCostController for the given conglomerate.
 	 *
 	 * @param conglomerateDescriptor	The conglomerate for which to get a StoreCostController.
-	 * @param skipStats do not fetch the stats from dictionary if true
 	 *
 	 * @return	The appropriate StoreCostController.
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, boolean skipStats) throws StandardException;
+	public StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor) throws StandardException;
 
 	/**
 	 * Get a SortCostController.
@@ -628,9 +627,5 @@ public interface CompilerContext extends Context
     public void setDataSetProcessorType(DataSetProcessorType type);
 
     public DataSetProcessorType getDataSetProcessorType();
-
-	public boolean skipStats(int tableNumber);
-
-	public Vector<Integer> getSkipStatsTableList();
 
 }
