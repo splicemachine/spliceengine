@@ -365,6 +365,8 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
 
                 if (storedAs.toLowerCase().equals("p"))
                     return set.writeParquetFile(IntArrays.count(execRowTypeFormatIds.length),partitionBy,location, compression, operationContext);
+                if (storedAs.toLowerCase().equals("a"))
+                    return set.writeAvroFile(IntArrays.count(execRowTypeFormatIds.length),partitionBy,location, compression, operationContext);
                 if (storedAs.toLowerCase().equals("o"))
                     return set.writeORCFile(IntArrays.count(execRowTypeFormatIds.length),partitionBy,location, compression, operationContext);
                 if (storedAs.toLowerCase().equals("t"))

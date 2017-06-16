@@ -9091,6 +9091,11 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
            </msg>
 
            <msg>
+               <name>EXT36</name>
+               <text>row format specification not allowed with 'stored as avro' </text>
+           </msg>
+
+           <msg>
             <name>SNA01</name>
                <text>Snapshot '{0}' already exists </text>
                <arg>snapshotName</arg>

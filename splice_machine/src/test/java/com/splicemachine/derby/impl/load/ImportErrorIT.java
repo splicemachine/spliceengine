@@ -326,7 +326,7 @@ public class ImportErrorIT extends SpliceUnitTest {
         });
     }
 
-    @Test
+    @Test @Ignore
     public void testImportFromS3Error() throws Exception {
         try {
             String sqlText =

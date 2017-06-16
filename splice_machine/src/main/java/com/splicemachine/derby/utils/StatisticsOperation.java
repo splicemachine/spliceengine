@@ -100,6 +100,8 @@ public class StatisticsOperation extends SpliceBaseOperation {
                     statsDataSet = dsp.readTextFile(null, builder.getLocation(), builder.getDelimited(), null, builder.getColumnPositionMap(), null, null, null, builder.getTemplate(), useSample, sampleFraction);
                 else if (storedAs.equals("P"))
                     statsDataSet = dsp.readParquetFile(builder.getColumnPositionMap(), builder.getPartitionByColumnMap() , builder.getLocation(), null, null, null, builder.getTemplate(), useSample, sampleFraction);
+                else if (storedAs.equals("A"))
+                    statsDataSet = dsp.readAvroFile(builder.getColumnPositionMap(), builder.getPartitionByColumnMap() , builder.getLocation(), null, null, null, builder.getTemplate(), useSample, sampleFraction);
                 else if (storedAs.equals("O"))
                     statsDataSet = dsp.readORCFile(builder.getColumnPositionMap(), builder.getPartitionByColumnMap(), builder.getLocation(), null, null, null, builder.getTemplate(), useSample, sampleFraction, true);
                 else {
