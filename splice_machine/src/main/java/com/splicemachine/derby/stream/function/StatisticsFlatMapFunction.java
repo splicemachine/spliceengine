@@ -106,8 +106,10 @@ public class StatisticsFlatMapFunction
         } else {
             rows = new ArrayList<>(columnPositionMap.length);
             for (int i = 0; i<columnPositionMap.length;i++) {
-                if (columnPositionMap[i] != -1 && template.getColumn(columnPositionMap[i]) !=null)
-                rows.add(new LocatedRow(StatisticsAdmin.generateRowFromStats(conglomId, SITableScanner.regionId.get(), columnPositionMap[i], new ColumnStatisticsImpl(template.getColumn(columnPositionMap[i])) )));
+                if (columnPositionMap[i] == -1)
+                    break;
+                if (template.getColumn(i+1) !=null)
+                    rows.add(new LocatedRow(StatisticsAdmin.generateRowFromStats(conglomId, SITableScanner.regionId.get(), columnPositionMap[i], new ColumnStatisticsImpl(template.getColumn(i+1)) )));
             }
             rows.add(new LocatedRow(
                     StatisticsAdmin.generateRowFromStats(conglomId,SITableScanner.regionId.get(),0,0,0,1L,useSample?1:0, useSample?sampleFraction:0.0d)));
