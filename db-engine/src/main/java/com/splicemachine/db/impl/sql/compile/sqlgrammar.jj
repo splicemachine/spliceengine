@@ -2880,6 +2880,7 @@ TOKEN [IGNORE_CASE] :
 |	<UNPIN: "unpin">
 |	<TEXTFILE: "textfile">
 |	<PARQUET: "parquet">
+|   <AVRO: "avro">
 |	<ORC: "orc">
 |	<SAVEPOINT: "savepoint">
 |	<SCALE: "scale">
@@ -11231,6 +11232,11 @@ storedAs() :
 		return "P";
 	}
 |
+    <AVRO>
+	{
+		return "A";
+	}
+|
 	<ORC>
 	{
 		return "O";
@@ -11895,12 +11901,18 @@ validateParameters(boolean isExternal, String storageFormat, ValueNode terminati
 			           throw StandardException.newException(SQLState.COMPRESSION_NOT_ALLOWED_WITH_TEXT_FILE);
 			    }
 
-			    // PARQUET ERRRORS
+			    // PARQUET ERRORS
 	            if (storageFormat != null && storageFormat.equals("P")) {
 	                if (terminationChar !=null || escapedByChar !=null || linesTerminatedByChar != null)
                         throw StandardException.newException(
                         						SQLState.ROW_FORMAT_NOT_ALLOWED_WITH_PARQUET);
 	             }
+	             // AVRO ERRORS
+                if (storageFormat != null && storageFormat.equals("A")) {
+                    if (terminationChar !=null || escapedByChar !=null || linesTerminatedByChar != null)
+                         throw StandardException.newException(
+                                                SQLState.ROW_FORMAT_NOT_ALLOWED_WITH_PARQUET);
+                 }
 	             // ORC Errors
 	            if (storageFormat != null && storageFormat.equals("O")) {
 	                if (terminationChar !=null || escapedByChar !=null || linesTerminatedByChar != null)
@@ -16483,6 +16495,7 @@ nonReservedKeyword()  :
     |   tok = <TEXTFILE>
     |   tok = <PIN>
     |   tok = <PARQUET>
+    |   tok = <AVRO>
     |   tok = <ORC>
     |   tok = <LOCATE>
 	|	tok = <LOCK>
