@@ -919,7 +919,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         try {
             tc.elevate("sourceCode");
             DataDictionary dd = lcc.getDataDictionary();
-            SourceCodeDescriptor descriptor = new SourceCodeDescriptor(schemaName, objectName, objectType, objectForm, definerName, DateTime.now(), sourceCode);
+            SourceCodeDescriptor descriptor = new SourceCodeDescriptor(schemaName, objectName, objectType, objectForm, definerName, new DateTime(), sourceCode);
             dd.saveSourceCode(descriptor, tc);
 
         } catch (StandardException se) {
