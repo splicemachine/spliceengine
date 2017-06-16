@@ -58,6 +58,7 @@ public class StatisticsAdminIT{
     private static final String MIXED_CASE_SCHEMA="MixedCaseSchema";
     private static final String UPDATE="UP_TABLE";
     private static final String WITH_NULLS_NUMERIC = "WITH_NULLS_NUMERIC";
+    private static final String TABLE_EMPTY1="EMPTY1";
 
     @ClassRule
     public static TestRule chain=RuleChain.outerRule(spliceClassWatcher)
@@ -153,6 +154,12 @@ public class StatisticsAdminIT{
             spliceClassWatcher4.executeUpdate(format("insert into t2 select a2+%d, b2,c2 from t2", factor));
             factor = factor * 2;
         }
+
+        new TableCreator(conn4)
+                .withCreate("create table "+TABLE_EMPTY1+" (a1 int, b1 int, c1 int, d1 int, e1 int, f1 int)")
+                .create();
+
+
     }
 
     private static void doCreateSharedTables(Connection conn) throws Exception{
@@ -697,7 +704,26 @@ public class StatisticsAdminIT{
                 "where c1=c2";
         outputRows = SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(4, sqlText, methodWatcher4));
         Assert.assertTrue(format("OutputRows is expected to be around 20480, actual is %s", outputRows),Math.abs(outputRows - 20480)/20480 < 0.02);
+    }
 
+    @Test
+    public void testTableStatisticsAreCorrectForEmptyTable1() throws Exception{
+        //TestConnection conn=methodWatcher.getOrCreateConnection();
+        /* disable stats for c1, d1, e1 */
+        methodWatcher4.executeUpdate(String.format("call SYSCS_UTIL.DISABLE_COLUMN_STATISTICS('%s','%s','c1')", SCHEMA4, TABLE_EMPTY1));
+        methodWatcher4.executeUpdate(String.format("call SYSCS_UTIL.DISABLE_COLUMN_STATISTICS('%s','%s','d1')", SCHEMA4, TABLE_EMPTY1));
+        methodWatcher4.executeUpdate(String.format("call SYSCS_UTIL.DISABLE_COLUMN_STATISTICS('%s','%s','e1')", SCHEMA4, TABLE_EMPTY1));
+
+        /* only collects stats on a1, b1, f1 */
+        methodWatcher4.executeQuery(String.format("call SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','%s',false)", SCHEMA4, TABLE_EMPTY1));
+
+        /* With empty table, we should expect 3 entries in the syscolumnstats table corresponding to a1, b1, f1 respectively */
+        ResultSet rs = methodWatcher4.executeQuery(String.format("select partition_id, count(*)\n" +
+                "from sys.syscolumnstats cs, sys.sysschemas s, sys.systables t, sys.sysconglomerates c\n" +
+                "where t.tablename='%s' and s.schemaname='%s' and t.schemaid=s.schemaid and t.tableid=c.tableid and c.conglomeratenumber = cs.conglom_id\n" +
+                "group by cs.partition_id", TABLE_EMPTY1, SCHEMA4));
+        Assert.assertTrue("Unable to find column statistics for table!", rs.next());
+        Assert.assertEquals("Incorrect row count!", 3, rs.getLong(2));
     }
 
     /* ****************************************************************************************************************/
