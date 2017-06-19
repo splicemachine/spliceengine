@@ -690,7 +690,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                             private long conglomId = 0;
                             private long rowCount = 0L;
                             private long totalSize = 0;
-                            private long avgRowWidth = 0;
+                            private int avgRowWidth = 0;
                             private long numberOfPartitions = 0;
                             private int statsType = SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS;
                             private double sampleFraction = 0.0d;
@@ -714,7 +714,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                                 long partitionRowCount = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.ROWCOUNT).getLong();
                                                 rowCount = partitionRowCount;
                                                 totalSize = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.PARTITION_SIZE).getLong();
-                                                avgRowWidth = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.MEANROWWIDTH).getLong();
+                                                avgRowWidth = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.MEANROWWIDTH).getInt();
                                                 numberOfPartitions = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.NUMBEROFPARTITIONS).getInt();
                                                 statsType = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.STATSTYPE).getInt();
                                                 sampleFraction = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.SAMPLEFRACTION).getDouble();
@@ -746,7 +746,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                         statsType = SYSTABLESTATISTICSRowFactory.REGULAR_MERGED_STATS;
                                     else if (statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_NONMERGED_STATS)
                                         statsType = SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS;
-                                    statsRow = StatisticsAdmin.generateRowFromStats(conglomId, "-All-", rowCount, totalSize, (int) ((double) avgRowWidth / rowCount), numberOfPartitions, statsType, sampleFraction);
+                                    statsRow = StatisticsAdmin.generateRowFromStats(conglomId, "-All-", rowCount, totalSize, avgRowWidth, numberOfPartitions, statsType, sampleFraction);
                                     dataDictionary.addTableStatistics(statsRow, tc);
                                     Pair<String, String> pair = displayPair.get(conglomId);
                                     return generateOutputRow(pair.getFirst(), pair.getSecond(), statsRow);
