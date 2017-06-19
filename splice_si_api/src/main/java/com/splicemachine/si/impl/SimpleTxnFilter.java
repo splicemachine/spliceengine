@@ -194,7 +194,7 @@ public class SimpleTxnFilter implements TxnFilter{
         int tombstoneSize=tombstonedTxnRows.size();
         for(int i=0;i<tombstoneSize;i++){
             long tombstone=tombstones[i];
-            if(isVisible(tombstone) && timestamp<=tombstone)
+            if(timestamp<=tombstone)
                 return DataFilter.ReturnCode.NEXT_ROW;
         }
 
@@ -202,7 +202,7 @@ public class SimpleTxnFilter implements TxnFilter{
         int antiTombstoneSize=antiTombstonedTxnRows.size();
         for(int i=0;i<antiTombstoneSize;i++){
             long antiTombstone=antiTombstones[i];
-            if(isVisible(antiTombstone) && timestamp<antiTombstone)
+            if(timestamp<antiTombstone)
                 return DataFilter.ReturnCode.NEXT_ROW;
         }
 
@@ -227,25 +227,22 @@ public class SimpleTxnFilter implements TxnFilter{
 
     private void addToAntiTombstoneCache(DataCell data) throws IOException{
         long txnId=data.version();
-        if(isVisible(txnId)){
-			/*
-			 * We can see this anti-tombstone, hooray!
-			 */
-            if(!tombstonedTxnRows.contains(txnId))
-                antiTombstonedTxnRows.add(txnId);
+        /*
+         * Check if we can see this anti-tombstone
+         */
+        if(antiTombstonedTxnRows.isEmpty() && !tombstonedTxnRows.contains(txnId) && isVisible(txnId)){
+            antiTombstonedTxnRows.add(txnId);
         }
     }
 
     private void addToTombstoneCache(DataCell data) throws IOException{
-        long txnId=data.version();//this.dataStore.getOpFactory().getTimestamp(data);
+        long txnId=data.version();
 		/*
 		 * Only add a tombstone to our list if it's actually visible,
 		 * otherwise there's no point, since we can't see it anyway.
 		 */
-        if(isVisible(txnId)){
-            if(!antiTombstonedTxnRows.contains(txnId))
-                tombstonedTxnRows.add(txnId);
-        }
+        if(tombstonedTxnRows.isEmpty() && !antiTombstonedTxnRows.contains(txnId) && isVisible(txnId))
+            tombstonedTxnRows.add(txnId);
     }
 
     private void ensureTransactionIsCached(DataCell data) throws IOException{
