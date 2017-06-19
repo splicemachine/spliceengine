@@ -58,6 +58,8 @@ import org.spark_project.guava.collect.FluentIterable;
 import org.spark_project.guava.collect.Lists;
 
 import javax.annotation.Nullable;
+import java.io.ByteArrayInputStream;
+import java.io.ObjectInputStream;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -695,7 +697,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                             private ExecRow nextRow;
                             private boolean fetched = false;
                             // data structures to accumulate the partition stats
-                            Map<Integer, ColumnStatisticsMerge> itemStatisticsBuilder = null;
+                            Map<Integer, ColumnStatisticsImpl> columnStatisticsMap = new HashMap<Integer, ColumnStatisticsImpl>();
                             private long conglomId = 0;
                             private long rowCount = 0L;
                             private long totalSize = 0;
@@ -711,28 +713,20 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                         nextRow = input.getNextRowCore();
                                         while (nextRow != null) {
                                             fetched = true;
-                                            if (nextRow.nColumns() == SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_COLUMN_COUNT) {
-                                                // process columnstats row
-                                                conglomId = nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.CONGLOMID).getLong();
-                                                ItemStatistics itemStatistics = (ItemStatistics) nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.DATA).getObject();
-                                                Integer columnId = new Integer(nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.COLUMNID).getInt());
-                                                if (itemStatisticsBuilder == null)
-                                                    itemStatisticsBuilder = new HashMap<>();
-                                                ColumnStatisticsMerge builder = itemStatisticsBuilder.get(columnId);
-                                                if (builder == null) {
-                                                    builder = ColumnStatisticsMerge.instance();
-                                                    itemStatisticsBuilder.put(columnId, builder);
-                                                }
-                                                builder.accumulate((ColumnStatisticsImpl) itemStatistics);
+                                            if (nextRow.nColumns() == 2) {
+                                                int columnId = nextRow.getColumn(1).getInt();
+                                                ByteArrayInputStream bais = new ByteArrayInputStream(nextRow.getColumn(2).getBytes());
+                                                ObjectInputStream ois = new ObjectInputStream(bais);
+                                                columnStatisticsMap.put(columnId, (ColumnStatisticsImpl) ois.readObject());
+                                                bais.close();
                                             } else {
                                                 // process tablestats row
-                                                // in case no columns stats is collected, we need to set it conglomId here
                                                 conglomId = nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.CONGLOMID).getLong();
                                                 long partitionRowCount = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.ROWCOUNT).getLong();
-                                                rowCount += partitionRowCount;
-                                                totalSize += nextRow.getColumn(SYSTABLESTATISTICSRowFactory.PARTITION_SIZE).getLong();
-                                                avgRowWidth += nextRow.getColumn(SYSTABLESTATISTICSRowFactory.MEANROWWIDTH).getInt() * partitionRowCount;
-                                                numberOfPartitions++;
+                                                rowCount = partitionRowCount;
+                                                totalSize = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.PARTITION_SIZE).getLong();
+                                                avgRowWidth = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.MEANROWWIDTH).getLong();
+                                                numberOfPartitions = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.NUMBEROFPARTITIONS).getInt();
                                                 statsType = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.STATSTYPE).getInt();
                                                 sampleFraction = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.SAMPLEFRACTION).getDouble();
                                             }
@@ -751,10 +745,10 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                     fetched = false;
                                     // insert rows to dictionary tables, and return
                                     ExecRow statsRow;
-                                    if (itemStatisticsBuilder != null) {
-                                        for (Map.Entry<Integer, ColumnStatisticsMerge> builder : itemStatisticsBuilder.entrySet()) {
+                                    if (columnStatisticsMap != null) {
+                                        for (Map.Entry<Integer, ColumnStatisticsImpl> entry : columnStatisticsMap.entrySet()) {
                                             // compose the entry for a given column
-                                            statsRow = StatisticsAdmin.generateRowFromStats(conglomId, "-All-", builder.getKey(), builder.getValue().terminate());
+                                            statsRow = StatisticsAdmin.generateRowFromStats(conglomId, "-All-", entry.getKey(), entry.getValue());
                                             dataDictionary.addColumnStatistics(statsRow, tc);
                                         }
                                     }

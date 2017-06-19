@@ -32,14 +32,21 @@ package com.splicemachine.db.iapi.stats;
 
 import com.splicemachine.db.agg.Aggregator;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLBlob;
+import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.yahoo.sketches.quantiles.ItemsUnion;
 import com.yahoo.sketches.theta.Sketches;
 import com.yahoo.sketches.theta.Union;
+
+import java.io.ByteArrayOutputStream;
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.io.ObjectOutputStream;
 
 /**
  *
@@ -141,5 +148,20 @@ public class ColumnStatisticsMerge implements Aggregator<ColumnStatisticsImpl, C
             throw new IOException(se);
         }
 
+    }
+
+    public ExecRow toExecRow(Integer columnId) {
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(baos);
+            oos.writeObject(terminate());
+            baos.close();
+            ExecRow result = new ValueRow(2);
+            result.setColumn(1, new SQLInteger(columnId));
+            result.setColumn(2, new SQLBlob(baos.toByteArray()));
+            return result;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
