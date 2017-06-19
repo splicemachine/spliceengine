@@ -69,17 +69,19 @@ public class StatisticsOperation extends SpliceBaseOperation {
     protected String scope;
     protected boolean useSample;
     protected double sampleFraction;
+    private boolean mergeStats;
 
     // serialization
     public StatisticsOperation(){}
 
-    public StatisticsOperation(ScanSetBuilder scanSetBuilder, boolean useSample, double sampleFraction, String scope, Activation activation) throws StandardException {
+    public StatisticsOperation(ScanSetBuilder scanSetBuilder, boolean useSample, double sampleFraction, boolean mergeStats, String scope, Activation activation) throws StandardException {
         super(new DerbyOperationInformation(activation, 0, 0, 0));
         this.scanSetBuilder = scanSetBuilder;
         this.scope = scope;
         this.activation = activation;
         this.useSample = useSample;
         this.sampleFraction = sampleFraction;
+        this.mergeStats = mergeStats;
         if (useSample) {
             scanSetBuilder.useSample(useSample).sampleFraction(sampleFraction);
         }
@@ -108,8 +110,11 @@ public class StatisticsOperation extends SpliceBaseOperation {
             }
             DataSet stats = statsDataSet
                     .mapPartitions(
-                            new StatisticsFlatMapFunction(operationContext, scanSetBuilder.getBaseTableConglomId(), scanSetBuilder.getColumnPositionMap(), scanSetBuilder.getTemplate()))
-                    .mapPartitions(new MergeStatisticsFlatMapFunction());
+                            new StatisticsFlatMapFunction(operationContext, scanSetBuilder.getBaseTableConglomId(), scanSetBuilder.getColumnPositionMap(), scanSetBuilder.getTemplate()));
+            if (!mergeStats) {
+                return stats;
+            }
+            stats = stats.mapPartitions(new MergeStatisticsFlatMapFunction());
             int partitions = stats.partitions() / 4;
             while (partitions > 1) {
                 stats = stats.coalesce(partitions, true).mapPartitions(new MergeStatisticsHolderFlatMapFunction());
@@ -188,6 +193,7 @@ public class StatisticsOperation extends SpliceBaseOperation {
         out.writeObject(scanSetBuilder);
         out.writeBoolean(useSample);
         out.writeDouble(sampleFraction);
+        out.writeBoolean(mergeStats);
     }
 
     @Override
@@ -197,6 +203,7 @@ public class StatisticsOperation extends SpliceBaseOperation {
         scanSetBuilder = (ScanSetBuilder) in.readObject();
         useSample = in.readBoolean();
         sampleFraction = in.readDouble();
+        mergeStats = in.readBoolean();
     }
 
     public double getSampleFraction() {

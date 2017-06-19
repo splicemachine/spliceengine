@@ -193,7 +193,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             List<StatisticsOperation> futures = new ArrayList(tds.size());
             for (TableDescriptor td : tds) {
                 display.put(td.getHeapConglomerateId(),Pair.newPair(schema,td.getName()));
-                futures.add(collectTableStatistics(td, false, 0, txn, conn));
+                futures.add(collectTableStatistics(td, false, 0, true, txn, conn));
             }
             IteratorNoPutResultSet resultsToWrap = wrapResults(conn,
             displayTableStatistics(futures,true,dd,transactionExecute,display));
@@ -358,7 +358,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             IteratorNoPutResultSet resultsToWrap = wrapResults(
                     conn,
                     displayTableStatistics(Lists.newArrayList(
-                            collectTableStatistics(tableDesc, useSample, samplePercent/100, txn, conn)
+                            collectTableStatistics(tableDesc, useSample, samplePercent/100, mergeStats, txn, conn)
                             ),
                             mergeStats,
                             dd, tc, display));
@@ -373,15 +373,17 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     private static StatisticsOperation collectTableStatistics(TableDescriptor table,
                                                              boolean useSample,
                                                              double sampleFraction,
+                                                              boolean mergeStats,
                                                              TxnView txn,
                                                              EmbedConnection conn) throws StandardException, ExecutionException {
 
-       return collectBaseTableStatistics(table, useSample, sampleFraction, txn, conn);
+       return collectBaseTableStatistics(table, useSample, sampleFraction, mergeStats, txn, conn);
     }
 
     private static StatisticsOperation collectBaseTableStatistics(TableDescriptor table,
                                                                  boolean useSample,
                                                                  double sampleFraction,
+                                                                  boolean mergeStats,
                                                                  TxnView txn,
                                                                  EmbedConnection conn) throws StandardException, ExecutionException {
         long heapConglomerateId = table.getHeapConglomerateId();
@@ -396,7 +398,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             useSample = false;
             sampleFraction = 0.0d;
         }
-        StatisticsOperation op = new StatisticsOperation(scanSetBuilder,useSample, sampleFraction, scope,activation);
+        StatisticsOperation op = new StatisticsOperation(scanSetBuilder,useSample, sampleFraction, mergeStats, scope,activation);
         op.openCore();
         return op;
     }
