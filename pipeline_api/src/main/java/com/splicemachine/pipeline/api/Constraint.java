@@ -22,7 +22,7 @@ import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.ByteSlice;
 import java.io.IOException;
-import java.util.Set;
+import java.util.Map;
 
 /**
  * A Constraint on a Table.
@@ -92,7 +92,7 @@ public interface Constraint {
      * context of a given BatchWrite -- used to validate the mutations within that batch do not violate the constraint.
      * BatchConstraintChecker is then used to fully validate the constraint.
      */
-    Result validate(KVPair mutation, TxnView txn, ServerControl rce, Set<ByteSlice> priorValues) throws IOException;
+    Result validate(KVPair mutation, TxnView txn, ServerControl rce, Map<ByteSlice, ByteSlice> priorValues) throws IOException;
 
     ConstraintContext getConstraintContext();
 
