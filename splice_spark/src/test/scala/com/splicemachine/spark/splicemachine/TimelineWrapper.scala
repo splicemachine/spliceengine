@@ -41,8 +41,6 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
   val DF_ET = 2
   val DF_VAL = 3
 
-
-
   val appID = new Date().toString + math.floor(math.random * 10E4).toLong.toString
 
   val defaultJDBCURL = "jdbc:splice://localhost:1527/splicedb;user=splice;password=admin"
@@ -97,6 +95,7 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
     sc = new SparkContext(conf)
     splicemachineContext = new SplicemachineContext(defaultJDBCURL)
     createTimeline(internalTN)
+    dropAndCreateTable(TOTable,TOColumnsWithPrimaryKey,TOIndex1,TOIndex1Columns,TOIndex2,TOIndex2Columns)
   }
 
   override def afterAll() {
@@ -144,6 +143,96 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
       conn.close()
     }
   }
+
+
+  /**
+    *
+    * DropAndCreateTable
+    *
+    * @param table table name of timeline
+    * @param columns columns and types for table
+    * @return
+    */
+  def dropAndCreateTable(table: String,
+                         columns: String,
+                         index1: String,
+                         index1Columns: String,
+                         index2: String,
+                         index2Columns: String
+                        ): Unit = {
+    val optionMap = Map(
+      JDBCOptions.JDBC_TABLE_NAME -> table,
+      JDBCOptions.JDBC_URL -> defaultJDBCURL
+    )
+    val JDBCOps = new JDBCOptions(optionMap)
+    val conn = JdbcUtils.createConnectionFactory(JDBCOps)()
+    if (splicemachineContext.tableExists(table)){
+      conn.createStatement().execute("drop table " + table)
+      if (index1.nonEmpty) {
+        conn.createStatement().execute("drop index " + index1)
+      }
+      if (index2.nonEmpty) {
+        conn.createStatement().execute("drop index " + index2)
+      }
+    }
+    conn.createStatement().execute("create table " + table + columns)
+    if (index1.nonEmpty) {
+      conn.createStatement().execute("create index " + index1 + " on " + table +  index1Columns)
+    }
+    if (index2.nonEmpty) {
+      conn.createStatement().execute("create index " + index2 + " on " + table + index2Columns)
+    }
+  }
+
+  val TOTable = schema + "." + "TransferOrders"
+
+  val TOColumnsWithPrimaryKey = "(" +
+    "TO_Id bigint, " +
+    "Supplier_Id bigint, " +
+    "ASN bigint, " +
+    "ContainerSerial bigint, " +
+    "TransportMode bigint, " +
+    "Carrier bigint, " +
+    "Weather smallint, " +
+    "Lat double, " +
+    "Long double, " +
+    "ShipFrom bigint, " +
+    "ShipTo bigint, " +
+    "PO_Id bigint, " +
+    "Id bigint, " +
+    "ShipDateTime timestamp, " +
+    "DeliveryDateTime timestamp, " +
+    "primary key (ID)" +
+    ")"
+
+  val TOIndex1 = schema + "." + "TOSTIDX"
+  val TOIndex2 = schema + "." + "TOETIDX"
+
+  val TOIndex1Columns = "(" +
+    "ShipDateTime, " +
+    "TO_Id" +
+  ")"
+
+  val TOIndex2Columns = "(" +
+    "DeliveryDateTime, " +
+    "TO_Id" +
+    ")"
+
+
+  case class City(name: String, Lat: Double, Long: Double, state: String)
+
+  val cities: Array[City] = Array(
+    City("New York", 40.7127837, -74.0059413, "New York"),
+    City("Los Angeles", 34.0522342, -118.2436849, "California"),
+    City("Chicago", 41.8781136, -87.6297982, "Illinois"),
+    City("Houston", 29.7604267, -95.3698028, "Texas"),
+    City("Philadelphia", 39.9525839, -75.1652215, "Pennsylvania"),
+    City("Phoenix", 33.4483771, -112.0740373, "Arizona"),
+    City("San Antonio", 29.4241219, -98.49362819999999, "Texas"),
+    City("San Diego", 32.715738, -117.1610838, "California"),
+    City("Dallas", 32.7766642, -96.79698789999999, "Texas"),
+    City("San Jose", 37.3382082, -121.8863286, "California")
+  )
 
 
 }
