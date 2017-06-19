@@ -597,7 +597,7 @@ public class StatisticsAdminIT{
         }
         //check if the number of rows sampled is proportional to the sample ratio
         if (statsType == 1)
-            Assert.assertTrue("sampled rowcount does not match the specified sample fraciton", Math.abs((double)rowCount/sampleFraction - 40960 )/40960 < 0.02);
+            Assert.assertTrue("sampled rowcount does not match the specified sample fraciton", Math.abs((double)rowCount/sampleFraction - 40960 )/40960 < 0.2);
         else
             Assert.assertTrue("sampled rowcount does not match the specified sample fraciton", Math.abs((double)rowCount - 40960 )/40960 < 0.02);
         resultSet.close();
@@ -606,35 +606,35 @@ public class StatisticsAdminIT{
         // case 1: test row count
         String sqlText = "explain select * from t2";
         double outputRows = SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(3, sqlText, methodWatcher4));
-        Assert.assertTrue(format("OutputRows is expected to be around 40960, actual is %s", outputRows), Math.abs(outputRows - 40960)/40960 < 0.02);
+        Assert.assertTrue(format("OutputRows is expected to be around 40960, actual is %s", outputRows), Math.abs(outputRows - 40960)/40960 < 0.2);
 
         // case 2: test selectivity (with matches)
         sqlText = "explain select * from t2 where b2=1";
         outputRows = SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(3, sqlText, methodWatcher4));
-        Assert.assertTrue(format("OutputRows is expected to be around 20480, actual is %s", outputRows), Math.abs(outputRows - 20480)/20480 < 0.02);
+        Assert.assertTrue(format("OutputRows is expected to be around 20480, actual is %s", outputRows), Math.abs(outputRows - 20480)/20480 < 0.2);
 
         // case 3: test selectivity (without matches)
         sqlText = "explain select * from t2 where b2=3";
         outputRows = SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(3, sqlText, methodWatcher4));
-        Assert.assertTrue(format("OutputRows is expected to be 1, actual is %s", outputRows), Math.abs(outputRows - 1) < 0.02);
+        Assert.assertTrue(format("OutputRows is expected to be 1, actual is %s", outputRows), Math.abs(outputRows - 1) < 0.2);
 
         //case 4: test range selectivity
         sqlText = "explain select * from t2 where a2 > 20480";
         outputRows = SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(3, sqlText, methodWatcher4));
-        Assert.assertTrue(format("OutputRows is expected to be around 20480, actual is %s", outputRows), Math.abs(outputRows - 20480)/20480 < 0.02);
+        Assert.assertTrue(format("OutputRows is expected to be around 20480, actual is %s", outputRows), Math.abs(outputRows - 20480)/20480 < 0.2);
 
         //case 5:  test cardinality
         sqlText = "explain select * from --splice-properties joinOrder=fixed \n" +
                 "t1, t2 --splice-properties joinStrategy=NESTEDLOOP \n" +
                 "where c1=c2";
         outputRows = SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(4, sqlText, methodWatcher4));
-        Assert.assertTrue(format("OutputRows is expected to be around 20480, actual is %s", outputRows),Math.abs(outputRows - 20480)/20480 < 0.02);
+        Assert.assertTrue(format("OutputRows is expected to be around 20480, actual is %s", outputRows),Math.abs(outputRows - 20480)/20480 < 0.2);
 
     }
 
     @Test
-    public void testCollectSampleStatsViaAnalyze() throws Exception{
-        TestConnection conn4=methodWatcher4.getOrCreateConnection();
+    public void testCollectSampleStatsViaAnalyze() throws Exception {
+        TestConnection conn4 = methodWatcher4.getOrCreateConnection();
 
         // test sample stats
         conn4.createStatement().executeQuery(format(
@@ -672,38 +672,39 @@ public class StatisticsAdminIT{
         }
         //check if the number of rows sampled is proportional to the sample ratio
         if (statsType == 1)
-            Assert.assertTrue("sampled rowcount does not match the specified sample fraciton", Math.abs((double)rowCount/sampleFraction - 40960 )/40960 < 0.02);
+            Assert.assertTrue("sampled rowcount does not match the specified sample fraciton", Math.abs((double) rowCount / sampleFraction - 40960) / 40960 < 0.2);
         else
-            Assert.assertTrue("sampled rowcount does not match the specified sample fraciton", Math.abs((double)rowCount - 40960 )/40960 < 0.02);
+            Assert.assertTrue("sampled rowcount does not match the specified sample fraciton", Math.abs((double) rowCount - 40960) / 40960 < 0.02);
         resultSet.close();
 
         // test estimations under sample stats
         // case 1: test row count
         String sqlText = "explain select * from t2";
         double outputRows = SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(3, sqlText, methodWatcher4));
-        Assert.assertTrue(format("OutputRows is expected to be around 40960, actual is %s", outputRows), Math.abs(outputRows - 40960)/40960 < 0.02);
+        Assert.assertTrue(format("OutputRows is expected to be around 40960, actual is %s", outputRows), Math.abs(outputRows - 40960) / 40960 < 0.2);
 
         // case 2: test selectivity (with matches)
         sqlText = "explain select * from t2 where b2=1";
         outputRows = SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(3, sqlText, methodWatcher4));
-        Assert.assertTrue(format("OutputRows is expected to be around 20480, actual is %s", outputRows), Math.abs(outputRows - 20480)/20480 < 0.02);
+        Assert.assertTrue(format("OutputRows is expected to be around 20480, actual is %s", outputRows), Math.abs(outputRows - 20480) / 20480 < 0.2);
 
         // case 3: test selectivity (without matches)
         sqlText = "explain select * from t2 where b2=3";
         outputRows = SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(3, sqlText, methodWatcher4));
-        Assert.assertTrue(format("OutputRows is expected to be 1, actual is %s", outputRows), Math.abs(outputRows - 1) < 0.02);
+        Assert.assertTrue(format("OutputRows is expected to be 1, actual is %s", outputRows), Math.abs(outputRows - 1) < 0.2);
 
         //case 4: test range selectivity
         sqlText = "explain select * from t2 where a2 > 20480";
         outputRows = SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(3, sqlText, methodWatcher4));
-        Assert.assertTrue(format("OutputRows is expected to be around 20480, actual is %s", outputRows), Math.abs(outputRows - 20480)/20480 < 0.02);
+        Assert.assertTrue(format("OutputRows is expected to be around 20480, actual is %s", outputRows), Math.abs(outputRows - 20480) / 20480 < 0.2);
 
         //case 5:  test cardinality
         sqlText = "explain select * from --splice-properties joinOrder=fixed \n" +
                 "t1, t2 --splice-properties joinStrategy=NESTEDLOOP \n" +
                 "where c1=c2";
         outputRows = SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(4, sqlText, methodWatcher4));
-        Assert.assertTrue(format("OutputRows is expected to be around 20480, actual is %s", outputRows),Math.abs(outputRows - 20480)/20480 < 0.02);
+
+        Assert.assertTrue(format("OutputRows is expected to be around 20480, actual is %s", outputRows), Math.abs(outputRows - 20480) / 20480 < 0.2);
     }
 
     @Test

@@ -31,9 +31,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import java.util.Collections;
-import java.util.List;
-
 import com.carrotsearch.hppc.LongArrayList;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
@@ -48,13 +45,12 @@ import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.DataValueFactory;
-import com.splicemachine.db.iapi.types.StringDataValue;
-import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.StringUtil;
 import org.apache.spark.sql.types.StructField;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  * A ResultColumn represents a result column in a SELECT, INSERT, or UPDATE
@@ -1979,7 +1975,7 @@ public class ResultColumn extends ValueNode
             return 0;
         ConglomerateDescriptor cd = this.getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
         int leftPosition = getColumnPosition();
-        return getCompilerContext().getStoreCostController(this.getTableColumnDescriptor().getTableDescriptor(),cd).cardinality(leftPosition);
+        return getCompilerContext().getStoreCostController(this.getTableColumnDescriptor().getTableDescriptor(),cd, false).cardinality(leftPosition);
     }
     /**
      *
