@@ -39,6 +39,10 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DerbyOperationInformation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
+import com.splicemachine.derby.stream.function.MergeStatisticsFlatMapFunction;
+import com.splicemachine.derby.stream.function.MergeStatisticsHolder;
+import com.splicemachine.derby.stream.function.MergeStatisticsHolderFlatMapFunction;
+import com.splicemachine.derby.stream.function.ReturnStatisticsFlatMapFunction;
 import com.splicemachine.derby.stream.function.StatisticsFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -51,6 +55,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -101,9 +106,16 @@ public class StatisticsOperation extends SpliceBaseOperation {
             } else {
                 statsDataSet = scanSetBuilder.buildDataSet(scope);
             }
-            return statsDataSet
+            DataSet stats = statsDataSet
                     .mapPartitions(
-                            new StatisticsFlatMapFunction(operationContext, scanSetBuilder.getBaseTableConglomId(), scanSetBuilder.getColumnPositionMap(), scanSetBuilder.getTemplate()));
+                            new StatisticsFlatMapFunction(operationContext, scanSetBuilder.getBaseTableConglomId(), scanSetBuilder.getColumnPositionMap(), scanSetBuilder.getTemplate()))
+                    .mapPartitions(new MergeStatisticsFlatMapFunction());
+            int partitions = stats.partitions() / 4;
+            while (partitions > 1) {
+                stats = stats.coalesce(partitions, true).mapPartitions(new MergeStatisticsHolderFlatMapFunction());
+                partitions /= 4;
+            }
+            return stats.coalesce(1, true).mapPartitions(new MergeStatisticsHolderFlatMapFunction()).mapPartitions(new ReturnStatisticsFlatMapFunction());
         } catch (StandardException se) {
             throw se;
         }
