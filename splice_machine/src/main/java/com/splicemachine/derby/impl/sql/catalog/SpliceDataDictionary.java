@@ -379,7 +379,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         DatabaseVersion databaseVersion=(new ManifestReader()).createVersion();
         if(!databaseVersion.isUnknown()){
             spliceSoftwareVersion=new Splice_DD_Version(this,databaseVersion.getMajorVersionNumber(),
-                    databaseVersion.getMinorVersionNumber(),databaseVersion.getPatchVersionNumber());
+                    databaseVersion.getMinorVersionNumber(),databaseVersion.getPatchVersionNumber(),
+                    databaseVersion.getSprintVersionNumber());
         }
         if(create){
             SpliceAccessManager af=(SpliceAccessManager)Monitor.findServiceModule(this,AccessFactory.MODULE);

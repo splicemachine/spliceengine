@@ -14,9 +14,11 @@
 
 package com.splicemachine.derby.impl.sql.catalog;
 
+import com.esotericsoftware.kryo.KryoException;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.sql.catalog.DD_Version;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -26,25 +28,32 @@ import java.io.ObjectOutput;
  * Created by jyuan on 10/13/14.
  */
 public class Splice_DD_Version extends DD_Version {
+    private static final Logger LOG = Logger.getLogger(Splice_DD_Version.class);
 
     private int patchVersionNumber;
+    private int sprintVersionNumber;
 
     public Splice_DD_Version() {
 
     }
 
     public Splice_DD_Version (DataDictionaryImpl bootingDictionary, int major, int minor, int patch) {
+        this(bootingDictionary, major, minor, patch, 0);
+    }
+    public Splice_DD_Version (DataDictionaryImpl bootingDictionary, int major, int minor, int patch, int sprint) {
         this.bootingDictionary = bootingDictionary;
         this.majorVersionNumber = major;
         this.minorVersionNumber = minor;
         this.patchVersionNumber = patch;
+        this.sprintVersionNumber = sprint;
     }
 
     public Splice_DD_Version (DataDictionaryImpl bootingDictionary, String versionString) throws StandardException {
-    	if (versionString.matches("\\d(\\.\\d)?(\\.\\d)?")) {
+    	if (versionString.matches("\\d(\\.\\d)?(\\.\\d)?(\\.\\d)?")) {
             this.majorVersionNumber = 0;
             this.minorVersionNumber = 0;
             this.patchVersionNumber = 0;
+            this.sprintVersionNumber = 0;
     		String[] versionArray = versionString.split("\\.");
     		if (versionArray.length > 0) {
     			this.majorVersionNumber = Integer.parseInt(versionArray[0]);
@@ -52,6 +61,9 @@ public class Splice_DD_Version extends DD_Version {
     				this.minorVersionNumber = Integer.parseInt(versionArray[1]);
     				if (versionArray.length > 2) {
     					this.patchVersionNumber = Integer.parseInt(versionArray[2]);
+                        if (versionArray.length > 3) {
+                            this.sprintVersionNumber = Integer.parseInt(versionArray[3]);
+                        }
     				}
     			}
     		}
@@ -77,6 +89,9 @@ public class Splice_DD_Version extends DD_Version {
     public String toString() {
         StringBuffer sb = new StringBuffer();
         sb.append(majorVersionNumber).append(".").append(minorVersionNumber).append(".").append(patchVersionNumber);
+        if (sprintVersionNumber > 0) {
+            sb.append('.').append(sprintVersionNumber);
+        }
         return sb.toString();
     }
 
@@ -84,6 +99,12 @@ public class Splice_DD_Version extends DD_Version {
     public void readExternal( ObjectInput in ) throws IOException {
         super.readExternal(in);
         patchVersionNumber = in.readInt();
+        try {
+            sprintVersionNumber = in.readInt();
+        } catch (KryoException ke) {
+            // we didn't have a sprint version number, leave it at 0
+            LOG.warn("Couldn't read sprintVersionNumber field, must be and old format");
+        }
     }
 
     @Override
@@ -91,10 +112,11 @@ public class Splice_DD_Version extends DD_Version {
     {
         super.writeExternal(out);
         out.writeInt(patchVersionNumber);
+        out.writeInt(sprintVersionNumber);
     }
 
     public long toLong() {
-        return majorVersionNumber * 1000000 + minorVersionNumber * 1000 + patchVersionNumber;
+        return majorVersionNumber * 10000000000l + minorVersionNumber * 10000000l + patchVersionNumber * 10000l + sprintVersionNumber;
     }
 
 }

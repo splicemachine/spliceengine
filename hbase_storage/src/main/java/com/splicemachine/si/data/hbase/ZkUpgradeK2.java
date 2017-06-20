@@ -29,8 +29,8 @@ import java.io.IOException;
 
 public class ZkUpgradeK2 {
     private static final Logger LOG = Logger.getLogger(ZkUpgradeK2.class);
-    private static final String K2_NODE = "isK2";
-    private static final String OLD_TRANSACTIONS_NODE = "oldTxns";
+    private static final String K2_NODE = "/isK2";
+    private static final String OLD_TRANSACTIONS_NODE = "/transactions/v1transactions";
     private final String path;
     private long oldTxns;
     private boolean init = false;
@@ -38,7 +38,7 @@ public class ZkUpgradeK2 {
 
     public ZkUpgradeK2(String spliceRootPath){
         this.spliceRootPath = spliceRootPath;
-        path = spliceRootPath+"/"+K2_NODE;
+        path = spliceRootPath+K2_NODE;
     }
 
     public boolean upgrading() throws IOException {
@@ -58,7 +58,7 @@ public class ZkUpgradeK2 {
     public void upgrade(long timestamp) throws IOException {
         oldTxns = timestamp;
         try {
-            ZkUtils.create(spliceRootPath+"/"+OLD_TRANSACTIONS_NODE, Bytes.toBytes(oldTxns), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+            ZkUtils.create(spliceRootPath+OLD_TRANSACTIONS_NODE, Bytes.toBytes(oldTxns), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
             ZkUtils.delete(path);
         } catch (Exception e) {
             throw new IOException(e);
@@ -70,7 +70,7 @@ public class ZkUpgradeK2 {
             return oldTxns;
         init = true;
         try {
-            oldTxns = Bytes.toLong(ZkUtils.getData(spliceRootPath+"/"+OLD_TRANSACTIONS_NODE));
+            oldTxns = Bytes.toLong(ZkUtils.getData(spliceRootPath+OLD_TRANSACTIONS_NODE));
 
             LOG.info("Read old transactions threshold: " + oldTxns);
         } catch (IOException e) {

@@ -58,6 +58,11 @@ public interface DatabaseVersion{
     int getPatchVersionNumber();
 
     /**
+     * @return the Splice sprint number
+     */
+    int getSprintVersionNumber();
+
+    /**
      * @return true if we were unable to determine the version
      */
     boolean isUnknown();
