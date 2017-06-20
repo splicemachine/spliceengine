@@ -55,7 +55,7 @@ public class ImportBinaryValueIT extends SpliceUnitTest {
         BADDIR = SpliceUnitTest.createBadLogDirectory(schema.schemaName);
     }
 
-    @Test
+    @Test @Ignore
     public void testCannotInsertValueOutOfConstraint() throws Exception{
 
         String table = blobTale.tableName;

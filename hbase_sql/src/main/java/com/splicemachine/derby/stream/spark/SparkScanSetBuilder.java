@@ -82,6 +82,8 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
                 locatedRows = dsp.readTextFile(op,location,escaped,delimited,baseColumnMap,operationContext,qualifiers,null,execRow, useSample, sampleFraction);
             else if (storedAs.equals("P"))
                 locatedRows = dsp.readParquetFile(baseColumnMap,partitionByColumns,location,operationContext,qualifiers,null,execRow, useSample, sampleFraction);
+            else if (storedAs.equals("A"))
+                locatedRows = dsp.readAvroFile(baseColumnMap,partitionByColumns,location,operationContext,qualifiers,null,execRow, useSample, sampleFraction);
             else if (storedAs.equals("O"))
                 locatedRows = dsp.readORCFile(baseColumnMap,partitionByColumns,location,operationContext,qualifiers,null,execRow, useSample, sampleFraction);
             else {
