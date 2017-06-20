@@ -16,6 +16,7 @@ package com.splicemachine.spark.splicemachine
 import java.sql.{Connection, Timestamp}
 
 import com.splicemachine.si.api.txn.WriteConflict
+import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, SQLContext}
 import org.junit.runner.RunWith
@@ -43,7 +44,7 @@ class Timeline extends FunSuite with TimeLineWrapper with BeforeAndAfter with Ma
   }
 
 
-  test("timeline is initialized") {
+  ignore("timeline is initialized") {
     val df = sqlContext.read.options(internalOptions).splicemachine
     assert(splicemachineContext.tableExists(internalTN))
     assert(df.count === 1)
@@ -56,7 +57,7 @@ class Timeline extends FunSuite with TimeLineWrapper with BeforeAndAfter with Ma
     df
   }
 
-  test("initial timeline should overlap [12/1/2010 12/2/2010] with one interval") {
+  ignore("initial timeline should overlap [12/1/2010 12/2/2010] with one interval") {
     val testST = Timestamp.valueOf("2010-12-01 00:00:00")
     val testET = Timestamp.valueOf("2010-12-10 00:00:00")
     val df = intersection(firstId, testST, testET)
@@ -121,7 +122,7 @@ class Timeline extends FunSuite with TimeLineWrapper with BeforeAndAfter with Ma
     }
   }
 
-  test("split initial timeline with [12/1/2010 12/10/2010] CHANGE_AT_ET") {
+  ignore("split initial timeline with [12/1/2010 12/10/2010] CHANGE_AT_ET") {
     val testST = Timestamp.valueOf("2010-12-01 00:00:00")
     val testET = Timestamp.valueOf("2010-12-10 00:00:00")
     splitMiddle(0, testST, testET, 10, CHANGE_AT_ET);
@@ -131,7 +132,7 @@ class Timeline extends FunSuite with TimeLineWrapper with BeforeAndAfter with Ma
     assertEquals("[[0], [0], [0]]", vals);
   }
 
-  test("split initial timeline with [12/1/2010 12/10/2010] CHANGE_AT_ST") {
+  ignore("split initial timeline with [12/1/2010 12/10/2010] CHANGE_AT_ST") {
     val testST = Timestamp.valueOf("2010-12-01 00:00:00")
     val testET = Timestamp.valueOf("2010-12-10 00:00:00")
     splitMiddle(0, testST, testET, 10, CHANGE_AT_ST);
@@ -141,7 +142,7 @@ class Timeline extends FunSuite with TimeLineWrapper with BeforeAndAfter with Ma
     assertEquals("[[0], [10], [0]]", vals);
   }
 
-  test("split initial timeline with [12/1/2010 12/10/2010] CHANGE_BETWEEN_ST_ET ") {
+  ignore("split initial timeline with [12/1/2010 12/10/2010] CHANGE_BETWEEN_ST_ET ") {
     val testST = Timestamp.valueOf("2010-12-01 00:00:00")
     val testET = Timestamp.valueOf("2010-12-10 00:00:00")
     splitMiddle(0, testST, testET, 10, CHANGE_BETWEEN_ST_ET);
@@ -206,7 +207,7 @@ class Timeline extends FunSuite with TimeLineWrapper with BeforeAndAfter with Ma
     }
   }
 
-  test("split at 12/1-12/10 and then from 11/1-12/5 - CHANGE_AT_ET") {
+  ignore("split at 12/1-12/10 and then from 11/1-12/5 - CHANGE_AT_ET") {
     val ST1 = Timestamp.valueOf("2010-12-01 00:00:00")
     val ET1 = Timestamp.valueOf("2010-12-10 00:00:00")
     val ST2 = Timestamp.valueOf("2010-11-01 00:00:00")
@@ -221,7 +222,7 @@ class Timeline extends FunSuite with TimeLineWrapper with BeforeAndAfter with Ma
     assertEquals("[[0], [0], [0], [0]]", vals);
   }
 
-  test("split at 12/1-12/10 and then from 11/1-12/5 - CHANGE_AT_ST") {
+  ignore("split at 12/1-12/10 and then from 11/1-12/5 - CHANGE_AT_ST") {
     val ST1 = Timestamp.valueOf("2010-12-01 00:00:00")
     val ET1 = Timestamp.valueOf("2010-12-10 00:00:00")
     val ST2 = Timestamp.valueOf("2010-11-01 00:00:00")
@@ -236,7 +237,7 @@ class Timeline extends FunSuite with TimeLineWrapper with BeforeAndAfter with Ma
     assertEquals("[[0], [20], [10], [0]]", vals);
   }
 
-  test("split at 12/1-12/10 and then from 11/1-12/5 - CHANGE_BETWEEN_ST_ET") {
+  ignore("split at 12/1-12/10 and then from 11/1-12/5 - CHANGE_BETWEEN_ST_ET") {
     val ST1 = Timestamp.valueOf("2010-12-01 00:00:00")
     val ET1 = Timestamp.valueOf("2010-12-10 00:00:00")
     val ST2 = Timestamp.valueOf("2010-11-01 00:00:00")
@@ -301,7 +302,7 @@ class Timeline extends FunSuite with TimeLineWrapper with BeforeAndAfter with Ma
     }
   }
 
-  test("split at 12/1-12/10 and then from 12/5-12/13 - CHANGE_AT_ET") {
+  ignore("split at 12/1-12/10 and then from 12/5-12/13 - CHANGE_AT_ET") {
     val ST1 = Timestamp.valueOf("2010-12-01 00:00:00")
     val ET1 = Timestamp.valueOf("2010-12-10 00:00:00")
     val ST2 = Timestamp.valueOf("2010-12-05 00:00:00")
@@ -411,7 +412,7 @@ class Timeline extends FunSuite with TimeLineWrapper with BeforeAndAfter with Ma
     persistAfter(id, t1, t2, delta, persistence)
   }
 
-  test("updates") {
+  ignore("updates") {
     val ST1 = Timestamp.valueOf("2010-12-01 00:00:00")
     val ET1 = Timestamp.valueOf("2010-12-10 00:00:00")
     val ST2 = Timestamp.valueOf("2010-12-05 00:00:00")
@@ -727,7 +728,9 @@ class Timeline extends FunSuite with TimeLineWrapper with BeforeAndAfter with Ma
 
     object TransferOrder {
 
-      def create(source: Integer,
+      var idCounter = 0;
+
+      def createNoSave(source: Integer,
                  destination: Integer,
                  shippingDate: String,
                  deliveryDate: String,
@@ -746,7 +749,7 @@ class Timeline extends FunSuite with TimeLineWrapper with BeforeAndAfter with Ma
             conn.setAutoCommit(true)
             if (retryCount < MAX_RETRIES) {
               println("Retrying create TO" + source + " " + destination + " " + shippingDate + " " + deliveryDate + " " + qty + " " + retryCount + 1)
-              create(source, destination, shippingDate, deliveryDate, qty, retryCount + 1)
+              createNoSave(source, destination, shippingDate, deliveryDate, qty, retryCount + 1)
             }
             else {
               // put code here to handle too many retries
@@ -756,6 +759,107 @@ class Timeline extends FunSuite with TimeLineWrapper with BeforeAndAfter with Ma
         }
         finally {
           conn.setAutoCommit(true)
+        }
+      }
+
+      def create(source: Integer,
+                 destination: Integer,
+                 shippingDate: String,
+                 deliveryDate: String,
+                 qty: Long,
+                 retryCount: Integer = 0,
+                 TO_Id: Integer,
+                 supplier: String,
+                 ASN: String,
+                 container: String,
+                 modeOfTransport: Integer,
+                 carrier: Integer,
+                 weather: Integer,
+                 latitude: Double,
+                 longitude: Double,
+                 sourceCity: Integer,
+                 destinationCity: Integer,
+                 PO_Id: Integer): Unit = {
+        val conn: Connection = splicemachineContext.getConnection()
+        try {
+          conn.setAutoCommit(true) //TBD - Need to set to false when DBAAS-570 is resolved
+          update(internalTN, source, Timestamp.valueOf(shippingDate), Timestamp.valueOf(deliveryDate), -qty, CHANGE_AT_ST)
+          update(internalTN, destination, Timestamp.valueOf(shippingDate), Timestamp.valueOf(deliveryDate), qty, CHANGE_AT_ET)
+          save(source,destination,Timestamp.valueOf(shippingDate),Timestamp.valueOf(deliveryDate),qty,TO_Id,supplier,ASN,container,modeOfTransport,carrier,weather,latitude,longitude,sourceCity,destinationCity,PO_Id)
+          conn.commit()
+        }
+        catch {
+          case exp: WriteConflict => {
+            conn.rollback()
+            conn.setAutoCommit(true)
+            if (retryCount < MAX_RETRIES) {
+              println("Retrying create TO" + source + " " + destination + " " + shippingDate + " " + deliveryDate + " " + qty + " " + retryCount + 1)
+              create(source, destination, shippingDate, deliveryDate, qty, retryCount + 1, TO_Id,
+                supplier,ASN,container,modeOfTransport,carrier,weather,latitude,longitude, sourceCity, destinationCity,PO_Id)
+            }
+            else {
+              // put code here to handle too many retries
+            }
+          }
+          case _: Throwable => println("Got some other kind of exception")
+        }
+        finally {
+          conn.setAutoCommit(true)
+        }
+      }
+
+
+      /**
+        *
+        * initialize (id startOfTime endOfTime value)
+        * @return
+        */
+      def save(source: Integer,
+               destination: Integer,
+               shippingDate: Timestamp,
+               deliveryDate: Timestamp,
+               qty: Long,
+               TO_Id: Integer,
+               supplier: String,
+               ASN: String,
+               container: String,
+               modeOfTransport: Integer,
+               carrier: Integer,
+               weather: Integer,
+               latitude: Double,
+               longitude: Double,
+               sourceCity: Integer,
+               destinationCity: Integer,
+               PO_Id: Integer): Unit = {
+
+        val optionMap = Map(
+          JDBCOptions.JDBC_TABLE_NAME -> TOTable,
+          JDBCOptions.JDBC_URL -> defaultJDBCURL
+        )
+        val JDBCOps = new JDBCOptions(optionMap)
+        val conn = JdbcUtils.createConnectionFactory(JDBCOps)()
+        try {
+          var ps = conn.prepareStatement("insert into " + TOTable + TOColumnsInsertString + TOColumnsInsertStringValues)
+          ps.setLong(TO_TO_ID, TO_Id.toLong)
+          ps.setLong(TO_PO_Id, PO_Id.toLong)
+          ps.setLong(TO_ShipFrom, sourceCity.toLong)
+          ps.setLong(TO_ShipTo, destinationCity.toLong)
+          ps.setTimestamp(TO_ShipDate, shippingDate)
+          ps.setTimestamp(TO_DeliveryDate, deliveryDate)
+          ps.setLong(TO_SourceInventory, source.toLong)
+          ps.setLong(TO_DestinationInventory, destination.toLong)
+          ps.setLong(TO_Qty, qty)
+          ps.setString(TO_Supplier, supplier)
+          ps.setString(TO_ASN, ASN)
+          ps.setString(TO_Container, container)
+          ps.setShort(TO_TransportMode, modeOfTransport.toShort)
+          ps.setLong(TO_Carrier, carrier.toLong)
+          ps.setShort(TO_Weather, weather.toShort)
+          ps.setDouble(TO_Latitude,latitude)
+          ps.setDouble(TO_Longitude,longitude)
+          ps.execute()
+        } finally {
+          conn.close()
         }
       }
 
@@ -898,7 +1002,8 @@ class Timeline extends FunSuite with TimeLineWrapper with BeforeAndAfter with Ma
       vals = df.collectAsList().toString
       assertEquals("[[17]]", vals)
 
-      TransferOrder.create(umbrellasAtDC1, umbrellasAtDC2, "2010-7-10 00:00:00", "2010-7-15 00:00:00", 5)
+      TransferOrder.create(umbrellasAtDC1, umbrellasAtDC2, "2010-7-10 00:00:00", "2010-7-15 00:00:00", 5, 2,
+        100,"Supplier1","ASN100","Container100",1,1,1, cities(1).Latitude, cities(1).Longitude, 1, 2, 100)
 
       df = sqlContext.read.options(internalOptions).splicemachine
         .filter(s"TIMELINE_ID = $umbrellasAtDC2 AND ST = to_utc_timestamp('2010-7-15 00:00:00','GMT')")
@@ -911,6 +1016,18 @@ class Timeline extends FunSuite with TimeLineWrapper with BeforeAndAfter with Ma
         .select("VAL")
       vals = df.collectAsList().toString
       assertEquals("[[3]]", vals)
+
+
+      val optionMap = Map(
+        JDBCOptions.JDBC_TABLE_NAME -> TOTable,
+        JDBCOptions.JDBC_URL -> defaultJDBCURL
+      )
+
+      df = sqlContext.read.options(optionMap).splicemachine
+        .filter(s"TO_ID = 100")
+        .select("weather")
+      vals = df.collectAsList().toString
+      assertEquals("[[1]]", vals)
 
 
     }

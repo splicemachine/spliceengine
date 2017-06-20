@@ -217,7 +217,7 @@ class SupplyChainSimulator extends Timeline  {
 	class TOCreateEvent (srcPart: Int, destPart: Int, orderDate: String, deliveryDate: String, qty: Long ) extends Event(srcPart, orderDate, deliveryDate, qty) {
 		def processEvent {
 			println( this.toString )
-			TransferOrder.create(srcPart, destPart, orderDate, deliveryDate, qty)
+			TransferOrder.createNoSave(srcPart, destPart, orderDate, deliveryDate, qty)
 
 		}
 
@@ -225,7 +225,7 @@ class SupplyChainSimulator extends Timeline  {
 	}
 
 	/**Event to Change Transfer Order Delivery Date
-		*
+		*\
 		* @srcPart : Original Part ID of the order
 		* @destPart : New Part ID of the order
 		* @orderDate : Shipping Date as a string

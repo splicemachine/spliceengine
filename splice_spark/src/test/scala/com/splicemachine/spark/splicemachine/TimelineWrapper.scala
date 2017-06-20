@@ -41,6 +41,26 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
   val DF_ET = 2
   val DF_VAL = 3
 
+  val TO_TO_ID = 1
+  val TO_PO_Id = 2
+  val TO_ShipFrom = 3
+  val TO_ShipTo = 4
+  val TO_ShipDate = 5
+  val TO_DeliveryDate = 6
+  val TO_SourceInventory = 7
+  val TO_DestinationInventory = 8
+  val TO_Qty = 9
+  val TO_Supplier = 10
+  val TO_ASN = 11
+  val TO_Container = 12
+  val TO_TransportMode = 13
+  val TO_Carrier = 14
+  val TO_Weather = 15
+  val TO_Latitude = 16
+  val TO_Longitude = 17
+
+
+
   val appID = new Date().toString + math.floor(math.random * 10E4).toLong.toString
 
   val defaultJDBCURL = "jdbc:splice://localhost:1527/splicedb;user=splice;password=admin"
@@ -168,12 +188,6 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
     val conn = JdbcUtils.createConnectionFactory(JDBCOps)()
     if (splicemachineContext.tableExists(table)){
       conn.createStatement().execute("drop table " + table)
-      if (index1.nonEmpty) {
-        conn.createStatement().execute("drop index " + index1)
-      }
-      if (index2.nonEmpty) {
-        conn.createStatement().execute("drop index " + index2)
-      }
     }
     conn.createStatement().execute("create table " + table + columns)
     if (index1.nonEmpty) {
@@ -188,38 +202,80 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
 
   val TOColumnsWithPrimaryKey = "(" +
     "TO_Id bigint, " +
-    "Supplier_Id bigint, " +
-    "ASN bigint, " +
-    "ContainerSerial bigint, " +
-    "TransportMode bigint, " +
-    "Carrier bigint, " +
-    "Weather smallint, " +
-    "Lat double, " +
-    "Long double, " +
+    "PO_Id bigint, " +
     "ShipFrom bigint, " +
     "ShipTo bigint, " +
-    "PO_Id bigint, " +
-    "Id bigint, " +
-    "ShipDateTime timestamp, " +
-    "DeliveryDateTime timestamp, " +
-    "primary key (ID)" +
+    "ShipDate timestamp, " +
+    "DeliveryDate timestamp, " +
+    "SourceInventory bigint, " +
+    "DestinationInventory bigint, " +
+    "Qty bigint, " +
+    "Supplier varchar(100), " +
+    "ASN varchar(100), " +
+    "Container varchar(100), " +
+    "TransportMode smallint, " +
+    "Carrier bigint, " +
+    "Weather smallint, " +
+    "Latitude double, " +
+    "Longitude double, " +
+    "primary key (TO_ID)" +
     ")"
 
   val TOIndex1 = schema + "." + "TOSTIDX"
   val TOIndex2 = schema + "." + "TOETIDX"
 
   val TOIndex1Columns = "(" +
-    "ShipDateTime, " +
+    "ShipDate, " +
     "TO_Id" +
   ")"
 
   val TOIndex2Columns = "(" +
-    "DeliveryDateTime, " +
+    "DeliveryDate, " +
     "TO_Id" +
     ")"
 
+  val TOColumnsInsertString = "(" +
+    "TO_Id, " +
+    "PO_Id, " +
+    "ShipFrom, " +
+    "ShipTo, " +
+    "ShipDate, " +
+    "DeliveryDate, " +
+    "SourceInventory, " +
+    "DestinationInventory, " +
+    "Qty, " +
+    "Supplier, " +
+    "ASN, " +
+    "Container, " +
+    "TransportMode, " +
+    "Carrier, " +
+    "Weather, " +
+    "Latitude, " +
+    "Longitude " +
+    ") "
 
-  case class City(name: String, Lat: Double, Long: Double, state: String)
+  val TOColumnsSelectString = "TO_Id, " +
+    "PO_Id, " +
+    "ShipFrom, " +
+    "ShipTo, " +
+    "ShipDate, " +
+    "DeliveryDate, " +
+    "SourceInventory, " +
+    "DestinationInventory, " +
+    "Qty, " +
+    "Supplier, " +
+    "ASN, " +
+    "Container, " +
+    "TransportMode, " +
+    "Carrier, " +
+    "Weather, " +
+    "Latitude, " +
+    "Longitude "
+
+  val TOColumnsInsertStringValues = "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+
+
+  case class City(name: String, Latitude: Double, Longitude: Double, state: String)
 
   val cities: Array[City] = Array(
     City("New York", 40.7127837, -74.0059413, "New York"),
@@ -233,6 +289,8 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
     City("Dallas", 32.7766642, -96.79698789999999, "Texas"),
     City("San Jose", 37.3382082, -121.8863286, "California")
   )
+
+
 
 
 }
