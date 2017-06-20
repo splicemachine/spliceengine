@@ -23,8 +23,8 @@ import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.utils.ByteSlice;
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author Scott Fines
@@ -36,7 +36,7 @@ public class ConstraintWriteHandler implements WriteHandler {
 
     private final Constraint localConstraint;
     private boolean failed;
-    private Set<ByteSlice> visitedRows;
+    private Map<ByteSlice, ByteSlice> visitedRows;
     private final WriteResult invalidResult;
     private int expectedWrites;
     private final PipelineExceptionFactory exceptionFactory;
@@ -52,8 +52,7 @@ public class ConstraintWriteHandler implements WriteHandler {
     public void next(KVPair mutation, WriteContext ctx) {
         if (visitedRows == null) {
             int initialCapacity = (int) Math.ceil(2*expectedWrites/0.9f);
-//            visitedRows = new TreeSet<>();
-            visitedRows = new HashSet<>(initialCapacity,0.9f);
+            visitedRows = new HashMap<>(initialCapacity,0.9f);
         }
         if (failed) {
             ctx.notRun(mutation);
@@ -78,7 +77,7 @@ public class ConstraintWriteHandler implements WriteHandler {
             }
             // We don't need deletes in this set. delete -> insert/upsert to same rowkey is inefficient but valid
             if (mutation.getType() != KVPair.Type.DELETE) {
-                visitedRows.add(mutation.rowKeySlice());
+                visitedRows.put(mutation.rowKeySlice(), mutation.valueSlice());
             }
         } catch (IOException nsre) {
             failed = true;
