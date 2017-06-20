@@ -46,4 +46,6 @@ public interface ReadResolver {
      * @param txnId the transaction id (version) of the row to resolve.
      */
     void resolve(ByteSlice rowKey, long txnId);
+
+    boolean enabled();
 }

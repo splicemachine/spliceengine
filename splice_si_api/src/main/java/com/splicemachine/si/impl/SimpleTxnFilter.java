@@ -131,6 +131,9 @@ public class SimpleTxnFilter implements TxnFilter{
 
 
     private void readResolve(DataCell element) throws IOException{
+        if (!readResolver.enabled())
+            return;
+
         /*
 		 * We want to resolve the transaction related
 		 * to this version of the data.
