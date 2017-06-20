@@ -412,7 +412,6 @@ public class RegionTxnStore implements TxnPartition{
 
     private TxnMessage.Txn decodeV1(long txnId,Result result) throws IOException{
         TxnMessage.Txn txn=newTransactionDecoder.decodeV1(this,txnId,result);
-        resolveTxn(txn);
         return txn;
 
     }
