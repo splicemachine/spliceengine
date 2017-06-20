@@ -1654,6 +1654,48 @@ public class HdfsImportIT extends SpliceUnitTest {
         assertContains(badLines, containsString("SAL_CK"));
     }
 
+    @Test
+    public void testPartialQuotedRecord() throws Exception {
+        String tableName = "NEWLINE_TEST";
+        TableDAO td = new TableDAO(methodWatcher.getOrCreateConnection());
+        td.drop(spliceSchemaWatcher.schemaName, tableName);
+
+        methodWatcher.getOrCreateConnection().createStatement().executeUpdate(
+                format("create table %s ",spliceSchemaWatcher.schemaName+"."+tableName)+
+                        "(field1 CHAR(2) NOT NULL, field2 char(10), field3 char(10), CONSTRAINT TEST_PAI PRIMARY KEY(field1))");
+
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
+                        "'%s'," +  // schema name
+                        "'%s'," +  // table name
+                        "null," +  // insert column list
+                        "'%s'," +  // file path
+                        "'|'," +   // column delimiter
+                        "null," +  // character delimiter
+                        "null," +  // timestamp format
+                        "null," +  // date format
+                        "null," +  // time format
+                        "10," +    // max bad records
+                        "'%s'," +  // bad record dir
+                        "true," +  // has one line records
+                        "null)",   // char set
+                spliceSchemaWatcher.schemaName, tableName,
+                getResourceDirectory() + "partial_record.csv",
+                BADDIR.getCanonicalPath()));
+
+        try {
+            ps.execute();
+        } catch (SQLException e) {
+            // expected to fail
+        }
+
+        boolean exists = existsBadFile(BADDIR, "partial_record.csv.bad");
+        String badFile = getBadFile(BADDIR, "partial_record.csv.bad");
+        assertTrue("Bad file " +badFile+" does not exist.",exists);
+
+        List<String> badLines = Files.readAllLines((new File(BADDIR, badFile)).toPath(), Charset.defaultCharset());
+        assertContains(badLines, containsString("partial record found [bbb"));
+    }
+
     private static void assertContains(List<String> collection, Matcher<String> target) {
         for (String source : collection) {
             if (target.matches(source)) {
