@@ -76,6 +76,20 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
     @Test
+    public void testInvalidSyntaxAvro() throws Exception {
+        try {
+            String tablePath = getExternalResourceDirectory()+"/foobar/foobar";
+            // Row Format not supported for Parquet
+            methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int) partitioned by (col1) " +
+                    "row format delimited fields terminated by ',' escaped by '\\' " +
+                    "lines terminated by '\\n' STORED AS AVRO LOCATION '%s'",tablePath));
+            Assert.fail("Exception not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception","EXT36",e.getSQLState());
+        }
+    }
+
+    @Test
     public void testInvalidSyntaxORC() throws Exception {
         try {
             String tablePath = getExternalResourceDirectory()+"/foobar/foobar";

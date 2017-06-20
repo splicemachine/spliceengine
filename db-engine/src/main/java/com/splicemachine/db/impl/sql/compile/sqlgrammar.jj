@@ -11911,7 +11911,7 @@ validateParameters(boolean isExternal, String storageFormat, ValueNode terminati
                 if (storageFormat != null && storageFormat.equals("A")) {
                     if (terminationChar !=null || escapedByChar !=null || linesTerminatedByChar != null)
                          throw StandardException.newException(
-                                                SQLState.ROW_FORMAT_NOT_ALLOWED_WITH_PARQUET);
+                                                SQLState.ROW_FORMAT_NOT_ALLOWED_WITH_AVRO);
                  }
 	             // ORC Errors
 	            if (storageFormat != null && storageFormat.equals("O")) {

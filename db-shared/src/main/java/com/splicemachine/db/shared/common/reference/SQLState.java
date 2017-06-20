@@ -1991,6 +1991,7 @@ public interface SQLState {
 	String DIRECTORY_REQUIRED			    						= "EXT33";
 	String ACCESSING_S3_EXCEPTION                                   = "EXT34";
 	String EXISTING_PIN_VIOLATION									= "EXT35";
+	String ROW_FORMAT_NOT_ALLOWED_WITH_AVRO						   	= "EXT36";
 
 	String SNAPSHOT_EXISTS											= "SNA01";
 	String SNAPSHOT_NOT_EXISTS										= "SNA02";
