@@ -68,6 +68,11 @@ public class MSynchronousReadResolver implements KeyedReadResolver{
             public void resolve(ByteSlice rowKey,long txnId){
                 MSynchronousReadResolver.INSTANCE.resolve(region,rowKey,txnId,txnSupplier,status,failOnError,trafficControl);
             }
+
+            @Override
+            public boolean enabled() {
+                return true;
+            }
         };
     }
 
