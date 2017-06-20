@@ -307,14 +307,37 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                             isCountStar);
                     //noinspection unchecked
                     return new PackedTxnFilter(txnFilter, hRowAccumulator) {
+                        private boolean keyIncluded = false;
+
+                        @Override
+                        public ReturnCode filterCell(DataCell keyValue) throws IOException {
+                            /**
+                             * This logic tries to avoid performing transactional resolution when we are not actually interested
+                             * in the value anyway. In some cases we read a column which the accumulator is not interested in
+                             * but we have to transactionally resolve anyway, for instance if the field we are actually interested
+                             * in is on the rowkey.
+                             */
+                            if (keyValue.dataType() == CellType.USER_DATA  && (!accumulator.isInteresting(keyValue) || accumulator.isFinished()) && keyIncluded){
+                                return ReturnCode.INCLUDE;
+                            }
+                            return super.filterCell(keyValue);
+                        }
+
+                        @Override
+                        public void nextRow() {
+                            super.nextRow();
+                            keyIncluded = false;
+                        }
+
                         @Override
                         public ReturnCode accumulate(DataCell data) throws IOException{
                             if (!accumulator.isFinished() && accumulator.isInteresting(data)) {
                                 if (!accumulator.accumulateCell(data)) {
                                     return DataFilter.ReturnCode.NEXT_ROW;
                                 }
-                                return DataFilter.ReturnCode.INCLUDE;
-                            } else return DataFilter.ReturnCode.INCLUDE;
+                            }
+                            keyIncluded = true;
+                            return DataFilter.ReturnCode.INCLUDE;
                         }
                     };
                 }

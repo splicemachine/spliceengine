@@ -75,6 +75,11 @@ public class SynchronousReadResolver implements KeyedReadResolver{
             public void resolve(ByteSlice rowKey,long txnId){
                 SynchronousReadResolver.INSTANCE.resolve(region,rowKey,txnId,txnSupplier,status,failOnError,trafficControl);
             }
+
+            @Override
+            public boolean enabled() {
+                return true;
+            }
         };
     }
 
