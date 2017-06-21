@@ -371,6 +371,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(SchemaDescriptor.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ProjectRestrictOperation.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(TableScanOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(ScanOperation.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(GroupedAggregateOperation.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(DistinctScanOperation.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(DistinctScalarAggregateOperation.class, EXTERNALIZABLE_SERIALIZER);
@@ -685,6 +686,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(TxnViewDecoderFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(CountWriteFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(SQLArray.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SpliceBaseOperation.class,EXTERNALIZABLE_SERIALIZER);
 
 
 
