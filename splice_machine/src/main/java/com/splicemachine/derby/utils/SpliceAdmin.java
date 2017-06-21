@@ -1009,7 +1009,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         "s.schemaname=? and " +
                         "(s.schemaname<>'SYS' or t.tablename<>'SYSSNAPSHOTS') and " +
                         "t.tablename=? and" +
-                        "(isconstraint=true or isindex=true)";
+                        "(isconstraint=true or isindex=true) and " +
+                        "t.tableid=c.tableid";
 
         ensureSnapshot(snapshotName, false);
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
