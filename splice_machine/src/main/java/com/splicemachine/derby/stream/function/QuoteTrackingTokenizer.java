@@ -159,8 +159,8 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer{
                     }else if((line=readLine())==null){
                         throw new SuperCsvException(
                                 String.format(
-                                                "unexpected end of file while reading quoted column beginning on line %d and ending on line %d",
-                                                quoteScopeStartingLine,getLineNumber()));
+                                                "partial record found [%s] while reading quoted column beginning on line %d and ending on line %d",
+                                                this.currentColumn, quoteScopeStartingLine,getLineNumber()));
                     }
 
                     currentRow.append(line); // update untokenized CSV row
