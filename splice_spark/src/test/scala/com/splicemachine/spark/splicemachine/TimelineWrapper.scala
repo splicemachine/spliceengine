@@ -199,6 +199,7 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
   }
 
   val TOTable = schema + "." + "TransferOrders"
+  val TOETable = schema + "." + "TOEvents"
 
   val TOColumnsWithPrimaryKey = "(" +
     "TO_Id bigint, " +
@@ -271,6 +272,16 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
     "Weather, " +
     "Latitude, " +
     "Longitude "
+
+  val TOEventColumnsSelectString = "TOE_Id, " +
+    "TO_Id, " +
+    "SourceWeather, " +
+    "DestinationWeather" +
+    "OriginalDeliveryDate, " +
+    "NewDeliveryDate, "
+
+
+
 
   val TOColumnsInsertStringValues = "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 

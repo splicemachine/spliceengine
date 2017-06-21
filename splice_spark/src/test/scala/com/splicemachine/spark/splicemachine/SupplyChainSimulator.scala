@@ -13,20 +13,16 @@
  */
 package com.splicemachine.spark.splicemachine
 
-import java.sql.{Connection, Timestamp}
-import com.splicemachine.si.api.txn.WriteConflict
-import org.apache.spark.sql.functions._
-import org.apache.spark.sql.{DataFrame, SQLContext}
+import org.apache.spark.ml.classification.LogisticRegression
+import org.apache.spark.ml.feature.VectorAssembler
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.execution.datasources.jdbc.{JdbcUtils, JDBCOptions}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
-import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
-import org.junit.Assert._
 
-import com.splicemachine.spark.splicemachine.Timeline
 import scala.util.Random
-import scala.collection.mutable.Queue
-import org.joda.time.format.DateTimeFormat
-import org.joda.time.format.DateTimeFormatter
+
+
 
 
 @RunWith(classOf[JUnitRunner])
@@ -226,6 +222,7 @@ class SupplyChainSimulator extends Timeline  {
 
 	/**Event to Change Transfer Order Delivery Date
 		*\
+		*
 		* @srcPart : Original Part ID of the order
 		* @destPart : New Part ID of the order
 		* @orderDate : Shipping Date as a string
@@ -454,6 +451,56 @@ class SupplyChainSimulator extends Timeline  {
 		def scheduleEvent(newEvent: Event) { theSimulation.scheduleEvent(newEvent) }
 	}
 
+
+	def learnModel(transferOrders: DataFrame, transferOrderEvents: DataFrame): Unit = {
+
+    // Add a label to the transfer order events which is how late it is and
+    // grab every transferOrder that did not have an event and insert to the events with a 0 lateness
+		val df = assembleFeatures()
+
+    //assemble feature vector from dataframe
+    val assembler = new VectorAssembler()
+      .setInputCols(Array("ShipFrom", "ShipTo", "SourceInventory", "DestinationInventory", "Supplier", "TransportMode", "Carrier", "Weather"))
+      .setOutputCol("features")
+
+    val output = assembler.transform(df)
+    println("Assembled columns ShipFrom, ShipTo, SourceInventory, DestinationInventory, Supplier, TransportMode, Carrier to vector column 'features'")
+    output.select("features", "lateness").show(false)
+
+    // Set parameters for the algorithm.
+		// Here, we limit the number of iterations to 10.
+		val lr = new LogisticRegression().setMaxIter(10)
+
+		// Fit the model to the data.
+		val model = lr.fit(output)
+
+		// Given a dataset, predict each point's label, and show the results.
+		model.transform(output).show()
+
+	}
+
+  def assembleFeatures(): DataFrame = {
+    val optionMap = Map(
+      JDBCOptions.JDBC_TABLE_NAME -> TOTable,
+      JDBCOptions.JDBC_URL -> defaultJDBCURL
+    )
+    val JDBCOps = new JDBCOptions(optionMap)
+    val conn = JdbcUtils.createConnectionFactory(JDBCOps)()
+    val joinCollumns =
+      TOTable + ".*, " +
+      s"case $TOETable" + s".toe_id is Null then $TOTable" + s".weather else $TOETable" + ".weather, " +
+      s"case $TOETable" + s".toe_id is Null then $TOTable" + s".newdeliverydate else $TOETable" + ".newdeliverydate, "
+    val stmt = s"create table features as select $joinCollumns from $TOTable Left Outer Join $TOTable " +
+      TOTable + ".TO_ID = " + TOETable + ".TO_ID"
+    println("query=" + stmt)
+    conn.createStatement().execute(stmt)
+    val features = Map(
+      JDBCOptions.JDBC_TABLE_NAME -> "features",
+      JDBCOptions.JDBC_URL -> defaultJDBCURL
+    )
+    val df = sqlContext.read.options(features).splicemachine
+    df
+  }
 
 	test("Supply Chain Simulator  ") {
 
