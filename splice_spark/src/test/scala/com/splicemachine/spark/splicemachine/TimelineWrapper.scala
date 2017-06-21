@@ -47,17 +47,19 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
   val TO_ShipTo = 4
   val TO_ShipDate = 5
   val TO_DeliveryDate = 6
-  val TO_SourceInventory = 7
-  val TO_DestinationInventory = 8
-  val TO_Qty = 9
-  val TO_Supplier = 10
-  val TO_ASN = 11
-  val TO_Container = 12
-  val TO_TransportMode = 13
-  val TO_Carrier = 14
-  val TO_Weather = 15
-  val TO_Latitude = 16
-  val TO_Longitude = 17
+  val TO_ModDeliveryDate = 7
+  val TO_SourceInventory = 8
+  val TO_DestinationInventory = 9
+  val TO_Qty = 10
+  val TO_Supplier = 11
+  val TO_ASN = 12
+  val TO_Container = 13
+  val TO_TransportMode = 14
+  val TO_Carrier = 15
+  val TO_FromWeather = 16
+  val TO_ToWeather = 17
+  val TO_Latitude = 18
+  val TO_Longitude = 19
 
 
 
@@ -102,6 +104,7 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
     JDBCOptions.JDBC_TABLE_NAME -> internalTN,
     JDBCOptions.JDBC_URL -> defaultJDBCURL
   )
+
 
   val internalJDBCOptions = new JDBCOptions(internalOptions)
 
@@ -208,6 +211,7 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
     "ShipTo bigint, " +
     "ShipDate timestamp, " +
     "DeliveryDate timestamp, " +
+    "ModDeliveryDate timestamp, " +
     "SourceInventory bigint, " +
     "DestinationInventory bigint, " +
     "Qty bigint, " +
@@ -216,7 +220,8 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
     "Container varchar(100), " +
     "TransportMode smallint, " +
     "Carrier bigint, " +
-    "Weather smallint, " +
+    "FromWeather smallint, " +
+    "ToWeather smallint, " +
     "Latitude double, " +
     "Longitude double, " +
     "primary key (TO_ID)" +
@@ -242,6 +247,7 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
     "ShipTo, " +
     "ShipDate, " +
     "DeliveryDate, " +
+    "ModDeliveryDate, " +
     "SourceInventory, " +
     "DestinationInventory, " +
     "Qty, " +
@@ -250,7 +256,8 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
     "Container, " +
     "TransportMode, " +
     "Carrier, " +
-    "Weather, " +
+    "FromWeather, " +
+    "ToWeather, " +
     "Latitude, " +
     "Longitude " +
     ") "
@@ -283,8 +290,21 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
 
 
 
-  val TOColumnsInsertStringValues = "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+  val TOColumnsInsertStringValues = "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
+
+  /**
+    *
+    * @param table table name of timeline
+    * @return
+    */
+  def createtransferOrderTable(table: String): Unit = {
+    val conn = JdbcUtils.createConnectionFactory(internalJDBCOptions)()
+    if (splicemachineContext.tableExists(table)){
+      conn.createStatement().execute("drop table " + table)
+    }
+    conn.createStatement().execute("create table " + table + TOColumnsWithPrimaryKey)
+  }
 
   case class City(name: String, Latitude: Double, Longitude: Double, state: String)
 
