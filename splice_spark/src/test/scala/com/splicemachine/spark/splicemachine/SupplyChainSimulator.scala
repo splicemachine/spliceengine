@@ -15,6 +15,7 @@ package com.splicemachine.spark.splicemachine
 
 import java.sql.{Connection, Timestamp}
 import com.splicemachine.si.api.txn.WriteConflict
+import org.apache.spark.sql.execution.datasources.jdbc.JDBCOptions
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, SQLContext}
 import org.junit.runner.RunWith
@@ -31,6 +32,7 @@ import org.joda.time.format.DateTimeFormatter
 
 @RunWith(classOf[JUnitRunner])
 class SupplyChainSimulator extends Timeline  {
+
 
 	//Utility Class for Random Number generation
 	object RandomGen {
@@ -81,7 +83,7 @@ class SupplyChainSimulator extends Timeline  {
 		}
 		//  method for simulation of events
 		final def run {
-			println("START SIMULATE RUN ")
+			//println("START SIMULATE RUN ")
 			while (!eventQueue.isEmpty) {        // while more events to process
 			val nextEvent = eventQueue.dequeue //   get  event
 				nextEvent.processEvent             //   execute the event
@@ -271,17 +273,19 @@ class SupplyChainSimulator extends Timeline  {
 													 container: String,
 													 modeOfTransport: Integer,
 													 carrier: Integer,
-													 weather: Integer,
+														 fromWeather: Integer,
+														 toWeather: Integer,
 													 latitude: Double,
 													 longitude: Double,
 													 sourceCity: Integer,
 													 destinationCity: Integer,
-													 PO_Id: Integer  ) extends Event(source, shippingDate, deliveryDate, qty) {
+													 PO_Id: Integer,
+														 modDeliveryDate: String) extends Event(source, shippingDate, deliveryDate, qty) {
 		def processEvent {
-			println("START TOObj Create Event")
+			//println("START TOObj Create Event")
 			println( this.toString )
-			TransferOrder.create(source, destination, shippingDate, deliveryDate, qty,0,
-				TO_Id, supplier, ASN, container, modeOfTransport, carrier,weather, latitude,longitude,sourceCity,destinationCity, PO_Id)
+			TransferOrder.create(source, destination, shippingDate, deliveryDate, modDeliveryDate, qty,0,
+				TO_Id, supplier, ASN, container, modeOfTransport, carrier,fromWeather, toWeather, latitude,longitude,sourceCity,destinationCity, PO_Id)
 
 		}
 
@@ -349,7 +353,7 @@ class SupplyChainSimulator extends Timeline  {
 		val theSimulation = new Simulation()
 
 		def simulate (pTotalTicks :Int, pEventTypes :String, pInit :String) {
-			println("START SIMULATE")
+			//println("START SIMULATE")
 			var totalTicks = pTotalTicks
 			if(totalTicks == 0)
 				totalTicks = TOTAL_TICKS
@@ -358,13 +362,13 @@ class SupplyChainSimulator extends Timeline  {
 			if(eventTypesStr.length ==0 )
 				eventTypesStr= "1,2,3"
 
-			println("EVENT TYPES :" + eventTypesStr)
+			//println("EVENT TYPES :" + eventTypesStr)
 			var eventTypesList = eventTypesStr.split(",")
 
 
 			//First load intial Inventory
 			if(pInit.equals("1")) {
-				println("CLEAR DB")
+				//println("CLEAR DB")
 				createTimeline(internalTN)
 				createtransferOrderTable(TOTable)
 				for (part <- parts) {
@@ -376,7 +380,7 @@ class SupplyChainSimulator extends Timeline  {
 			var t = 0
 			var curOrderDate = org.joda.time.DateTime.parse(BEGIN_ORDER_DATE, fmt)
 
-			println("START Creating events")
+			//println("START Creating events")
 			while (t < totalTicks) {
 				//Purchase Order Create Events
 				if( eventTypesList contains "1"){
@@ -495,9 +499,9 @@ class SupplyChainSimulator extends Timeline  {
 
 				//Transfer ORder Create Events
 				if( eventTypesList contains "10"){
-					println("Creating TOObjectCreate")
+					//println("Creating TOObjectCreate")
 					for (part <- parts) {
-						if ( RandomGen.rand(100) >50) {
+						if ( RandomGen.rand(100) >25) {
 							var destination = parts(RandomGen.randBetween(0,partsCnt-1))
 							if(part !=destination ) {
 								theSimulation.scheduleEvent(
@@ -522,7 +526,7 @@ class SupplyChainSimulator extends Timeline  {
 
 		def generateTOObject (part : Int, destination :Int, curOrderDate : org.joda.time.DateTime) :TOObjectCreateEvent = {
 
-			println("START GEN")
+			//println("START GEN")
 			var shippingDate = curOrderDate.toString(fmt)
 			var deliveryDate = (curOrderDate.plusDays(RandomGen.randBetween(MIN_ENDDAYS,MAX_ENDDAYS))).toString(fmt)
 			var qty = RandomGen.randBetween(MIN_QTY,MAX_QTY)
@@ -541,8 +545,8 @@ class SupplyChainSimulator extends Timeline  {
 			var latitude = cities(srcCity).Latitude
 			var longitude = cities(srcCity).Latitude
 			var modeOfTransport = modesOfTransport(RandomGen.randBetween(0,modesOfTransport.length-1))
-			var weather = weatherList(RandomGen.randBetween(0,weatherList.length-1))
-
+			var fromWeather = weatherList(RandomGen.randBetween(0,weatherList.length-1))
+			var toWeather = weatherList(RandomGen.randBetween(0,weatherList.length-1))
 			/*source: Int, destination: Int, shippingDate: String, deliveryDate: String, qty: Long,
 													 TO_Id: Integer,
 													 supplier: String,
@@ -559,7 +563,7 @@ class SupplyChainSimulator extends Timeline  {
 													 */
 
 				new TOObjectCreateEvent(part, destination,shippingDate, deliveryDate, qty, toId, supplier, asn, container,
-					modeOfTransport, carrier,weather, latitude,longitude, srcCity,destCity, poId)
+					modeOfTransport, carrier,fromWeather, toWeather, latitude,longitude, srcCity,destCity, poId, deliveryDate )
 		}
 	}
 
@@ -567,13 +571,18 @@ class SupplyChainSimulator extends Timeline  {
 
 
 		//Generate Purchase Orders for 1 day, after clearing database
-		var noOfDays = 1
+		var noOfDays = 365
 		var eventTypes = "10"
-		var clearDB = "1"
+		var clearDB = "2"
 
-		println("RUN TEST TO")
+
+		//println("RUN TEST TO")
 		SupplyChain.simulate(noOfDays,eventTypes ,clearDB )
-		var df = sqlContext.read.options(internalOptions).splicemachine
+		val optionMap = Map(
+			JDBCOptions.JDBC_TABLE_NAME -> TOTable,
+			JDBCOptions.JDBC_URL -> defaultJDBCURL
+		)
+		var df = sqlContext.read.options(optionMap).splicemachine
 		assert(df.count > 0)
 	}
 
