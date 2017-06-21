@@ -50,10 +50,10 @@ class SupplyChainSimulator extends Timeline  {
 		*Baseclass for all Order Events
 		* The behaviors of specific Event subtypes must be defined implementation for method processEvent.
 		*
-		* @epart : Part ID of the order event
-		* @eorderDate : Shipping Date as a string
-		* @edeliveryDate : Delivery Date as a String
-		* @eqty : Quantity of the order event
+		* @param epart : Part ID of the order event
+		* @param eorderDate : Shipping Date as a string
+		* @param edeliveryDate : Delivery Date as a String
+		* @param eqty : Quantity of the order event
 		*/
 
 	abstract class Event(epart: Integer,
@@ -81,6 +81,7 @@ class SupplyChainSimulator extends Timeline  {
 		}
 		//  method for simulation of events
 		final def run {
+			println("START SIMULATE RUN ")
 			while (!eventQueue.isEmpty) {        // while more events to process
 			val nextEvent = eventQueue.dequeue //   get  event
 				nextEvent.processEvent             //   execute the event
@@ -95,10 +96,10 @@ class SupplyChainSimulator extends Timeline  {
 
 	/** Event to Create Purchase Order
 		*
-		* @part : Part ID of the order
-		* @orderDate : Shipping Date as a string
-		* @deliveryDate : Delivery Date as a String
-		* @qty : Quantity of the order
+		* @param part : Part ID of the order
+		* @param orderDate : Shipping Date as a string
+		* @param deliveryDate : Delivery Date as a String
+		* @param qty : Quantity of the order
 		*/
 
 	class POCreateEvent(part: Int, orderDate: String, deliveryDate: String, qty: Long ) extends Event(part, orderDate, deliveryDate, qty) {
@@ -112,11 +113,11 @@ class SupplyChainSimulator extends Timeline  {
 
 	/** Event  to Change Purchase Order Quantity
 		*
-		* @part : Part ID of the order
-		* @orderDate : Shipping Date as a string
-		* @deliveryDate : Delivery Date as a String
-		* @qty : Original Quantity of the order
-		* @newQty : New Quantity to set
+		* @param part : Part ID of the order
+		* @param orderDate : Shipping Date as a string
+		* @param deliveryDate : Delivery Date as a String
+		* @param qty : Original Quantity of the order
+		* @param newQty : New Quantity to set
 		*/
 	class POChangeQtyEvent(part: Int, orderDate: String, deliveryDate: String, qty: Long, newQty: Long )  extends Event(part, orderDate, deliveryDate, qty) {
 		def processEvent {
@@ -130,11 +131,11 @@ class SupplyChainSimulator extends Timeline  {
 
 	/** Event  to Change Purchase Order Delivery Date
 		*
-		* @part : Part ID of the order
-		* @orderDate : Shipping Date as a string
-		* @deliveryDate : Original Delivery Date as a String
-		* @newDeliveryDate: New Delivery Date as a String
-		* @qty :  Quantity of the order
+		* @param part : Part ID of the order
+		* @param orderDate : Shipping Date as a string
+		* @param deliveryDate : Original Delivery Date as a String
+		* @param newDeliveryDate: New Delivery Date as a String
+		* @param qty :  Quantity of the order
 		*
 		*/
 	class POChangeDeliveryEvent(part: Int, orderDate: String, deliveryDate: String, newDeliveryDate: String,  qty: Long )  extends Event(part, orderDate, deliveryDate, qty) {
@@ -154,10 +155,10 @@ class SupplyChainSimulator extends Timeline  {
 		********/
 	/** Event to Create Sales Order
 		*
-		* @part : Part ID of the order
-		* @orderDate : Shipping Date as a string
-		* @deliveryDate : Delivery Date as a String
-		* @qty : Quantity of the order
+		* @param part : Part ID of the order
+		* @param orderDate : Shipping Date as a string
+		* @param deliveryDate : Delivery Date as a String
+		* @param qty : Quantity of the order
 		*/
 	class SOCreateEvent(part: Int, orderDate: String, deliveryDate: String, qty: Long ) extends Event(part, orderDate, deliveryDate, qty) {
 		def processEvent {
@@ -170,11 +171,11 @@ class SupplyChainSimulator extends Timeline  {
 
 	/** Event to Change Sales Order Quantity
 		*
-		* @part : Part ID of the order
-		* @orderDate : Shipping Date as a string
-		* @deliveryDate : Delivery Date as a String
-		* @qty : Original Quantity of the order
-		* @newQty : New Quantity to set
+		* @param part : Part ID of the order
+		* @param orderDate : Shipping Date as a string
+		* @param deliveryDate : Delivery Date as a String
+		* @param qty : Original Quantity of the order
+		* @param newQty : New Quantity to set
 		*/
 	class SOChangeQtyEvent(part: Int, orderDate: String, deliveryDate: String, qty: Long, newQty: Long )  extends Event(part, orderDate, deliveryDate, qty) {
 		def processEvent {
@@ -187,11 +188,11 @@ class SupplyChainSimulator extends Timeline  {
 
 	/** Event  to Change Sales Order Delivery Date
 		*
-		* @part : Part ID of the order
-		* @orderDate : Shipping Date as a string
-		* @deliveryDate : Original Delivery Date as a String
-		* @newDeliveryDate: New Delivery Date as a String
-		* @qty :  Quantity of the order
+		* @param part : Part ID of the order
+		* @param orderDate : Shipping Date as a string
+		* @param deliveryDate : Original Delivery Date as a String
+		* @param newDeliveryDate: New Delivery Date as a String
+		* @param qty :  Quantity of the order
 		*
 		*/
 	class SOChangeDeliveryEvent(part: Int, orderDate: String, deliveryDate: String, newDeliveryDate: String,  qty: Long )  extends Event(part, orderDate, deliveryDate, qty) {
@@ -208,11 +209,11 @@ class SupplyChainSimulator extends Timeline  {
 		********/
 	/** Event to Create Tranfer Order
 		*
-		* @srcPart : Original Part ID of the order
-		* @destPart : New Part ID of the order
-		* @orderDate : Shipping Date as a string
-		* @deliveryDate : Delivery Date as a String
-		* @qty : Quantity of the order
+		* @param srcPart : Original Part ID of the order
+		* @param destPart : New Part ID of the order
+		* @param orderDate : Shipping Date as a string
+		* @param deliveryDate : Delivery Date as a String
+		* @param qty : Quantity of the order
 		*/
 	class TOCreateEvent (srcPart: Int, destPart: Int, orderDate: String, deliveryDate: String, qty: Long ) extends Event(srcPart, orderDate, deliveryDate, qty) {
 		def processEvent {
@@ -226,12 +227,13 @@ class SupplyChainSimulator extends Timeline  {
 
 	/**Event to Change Transfer Order Delivery Date
 		*\
-		* @srcPart : Original Part ID of the order
-		* @destPart : New Part ID of the order
-		* @orderDate : Shipping Date as a string
-		* @deliveryDate : Delivery Date as a String
-		* @newDeliveryDate: New Delivery Date as a String
-		* @qty : Quantity of the order
+		*
+		* @param srcPart : Original Part ID of the order
+		* @param destPart : New Part ID of the order
+		* @param orderDate : Shipping Date as a string
+		* @param deliveryDate : Delivery Date as a String
+		* @param newDeliveryDate: New Delivery Date as a String
+		* @param qty : Quantity of the order
 		*
 		*/
 	class TOChangeDeliveryEvent(srcPart: Int, destPart: Int, orderDate: String, deliveryDate: String, newDeliveryDate: String,  qty: Long )  extends Event(srcPart, orderDate, deliveryDate, qty) {
@@ -244,12 +246,12 @@ class SupplyChainSimulator extends Timeline  {
 
 	/**Event to Change Transfer Order Quantity
 		*
-		* @srcPart : Original Part ID of the order
-		* @destPart : New Part ID of the order
-		* @orderDate : Shipping Date as a string
-		* @deliveryDate : Delivery Date as a String
-		* @qty : Quantity of the order
-		* @newQty : New Quantity of the order
+		* @param srcPart : Original Part ID of the order
+		* @param destPart : New Part ID of the order
+		* @param orderDate : Shipping Date as a string
+		* @param deliveryDate : Delivery Date as a String
+		* @param qty : Quantity of the order
+		* @param newQty : New Quantity of the order
 		*/
 	class TOChangeQtyEvent (srcPart: Int, destPart: Int, orderDate: String, deliveryDate: String,  qty: Long,  newQty: Long )  extends Event(srcPart, orderDate, deliveryDate, qty) {
 		def processEvent {
@@ -260,6 +262,31 @@ class SupplyChainSimulator extends Timeline  {
 		override def toString = "TOChangeQtyEvent(" +srcPart + "," + destPart + "," + orderDate  + "," + deliveryDate  + "," + qty  + "," + newQty +")"
 	}
 
+
+
+	class TOObjectCreateEvent (source: Int, destination: Int, shippingDate: String, deliveryDate: String, qty: Long,
+													 TO_Id: Integer,
+													 supplier: String,
+													 ASN: String,
+													 container: String,
+													 modeOfTransport: Integer,
+													 carrier: Integer,
+													 weather: Integer,
+													 latitude: Double,
+													 longitude: Double,
+													 sourceCity: Integer,
+													 destinationCity: Integer,
+													 PO_Id: Integer  ) extends Event(source, shippingDate, deliveryDate, qty) {
+		def processEvent {
+			println("START TOObj Create Event")
+			println( this.toString )
+			TransferOrder.create(source, destination, shippingDate, deliveryDate, qty,0,
+				TO_Id, supplier, ASN, container, modeOfTransport, carrier,weather, latitude,longitude,sourceCity,destinationCity, PO_Id)
+
+		}
+
+		override def toString = "TOObjectCreateEvent(" +source + "," + destination + "," + shippingDate  + "," + deliveryDate  + "," + qty  + ")"
+	}
 	/**Test Event
 		*
 		*/
@@ -274,12 +301,15 @@ class SupplyChainSimulator extends Timeline  {
 	}
 
 
+
 	/**Simulator of Order Events
 		*
 		*
 		*/
 
 	object SupplyChain {
+
+		val fmt   = org.joda.time.format.DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
 
 		val BEGIN_ORDER_DATE  ="2017-5-05 00:00:00"    // beginning of simulation
 		val TOTAL_TICKS     = 10  // Number of ticks in simulation
@@ -289,17 +319,37 @@ class SupplyChainSimulator extends Timeline  {
 		val MIN_ENDDAYS    = 1    // minimum delivery duration from orderdate
 		val MAX_ENDDAYS    = 7   // maximum delivery duration fro orderdate
 
+
+		val MIN_OID    = 1    // minimum order qty
+		val MAX_OID   = 999999999   // maximum order qty
+
+
 		val MIN_QTY    = 1    // minimum order qty
 		val MAX_QTY    = 1000   // maximum order qty
 
-		val fmt   = org.joda.time.format.DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
+		val MIN_ASN = 1
+		val MAX_ASN= 999999999
+
+		val MIN_CNT = 1
+		val MAX_CNT = 999999999
 
 		val parts = Array(100, 200, 300, 400, 500)
 		val partsCnt = parts.length
 
+		val suppliers = Array("A", "B", "C", "D", "E")
+		val suppliersCnt = suppliers.length
+
+		val modesOfTransport = Array (1,2,3) //Ground, Air, Sea
+		val carriers = Array(1,2,3,4)  // UPS, FEDEX, USPS, DHL
+		val weatherList = Array (1,2,3,4)  // Clear, Lt Precipitation, Heavy Rain, Heavy Snow
+
+
+
+
 		val theSimulation = new Simulation()
 
 		def simulate (pTotalTicks :Int, pEventTypes :String, pInit :String) {
+			println("START SIMULATE")
 			var totalTicks = pTotalTicks
 			if(totalTicks == 0)
 				totalTicks = TOTAL_TICKS
@@ -308,12 +358,15 @@ class SupplyChainSimulator extends Timeline  {
 			if(eventTypesStr.length ==0 )
 				eventTypesStr= "1,2,3"
 
+			println("EVENT TYPES :" + eventTypesStr)
 			var eventTypesList = eventTypesStr.split(",")
 
 
 			//First load intial Inventory
 			if(pInit.equals("1")) {
+				println("CLEAR DB")
 				createTimeline(internalTN)
+				createtransferOrderTable(TOTable)
 				for (part <- parts) {
 					Inventory.create(part)
 				}
@@ -323,6 +376,7 @@ class SupplyChainSimulator extends Timeline  {
 			var t = 0
 			var curOrderDate = org.joda.time.DateTime.parse(BEGIN_ORDER_DATE, fmt)
 
+			println("START Creating events")
 			while (t < totalTicks) {
 				//Purchase Order Create Events
 				if( eventTypesList contains "1"){
@@ -439,6 +493,19 @@ class SupplyChainSimulator extends Timeline  {
 					}
 				}
 
+				//Transfer ORder Create Events
+				if( eventTypesList contains "10"){
+					println("Creating TOObjectCreate")
+					for (part <- parts) {
+						if ( RandomGen.rand(100) >50) {
+							var destination = parts(RandomGen.randBetween(0,partsCnt-1))
+							if(part !=destination ) {
+								theSimulation.scheduleEvent(
+									generateTOObject(part,destination, curOrderDate ))
+							}
+						}
+					}
+				}
 
 
 
@@ -452,10 +519,65 @@ class SupplyChainSimulator extends Timeline  {
 
 		// convenience methods to delegate calls to the Simulation instance
 		def scheduleEvent(newEvent: Event) { theSimulation.scheduleEvent(newEvent) }
+
+		def generateTOObject (part : Int, destination :Int, curOrderDate : org.joda.time.DateTime) :TOObjectCreateEvent = {
+
+			println("START GEN")
+			var shippingDate = curOrderDate.toString(fmt)
+			var deliveryDate = (curOrderDate.plusDays(RandomGen.randBetween(MIN_ENDDAYS,MAX_ENDDAYS))).toString(fmt)
+			var qty = RandomGen.randBetween(MIN_QTY,MAX_QTY)
+			var toId = RandomGen.randBetween(MIN_OID, MAX_OID)
+			var poId = RandomGen.randBetween(MIN_OID, MAX_OID)
+
+			var supplier = suppliers(RandomGen.randBetween(0,suppliers.length-1))
+			var asn = RandomGen.randBetween(MIN_ASN,MAX_ASN).toString
+			var container = RandomGen.randBetween(MIN_CNT,MAX_CNT).toString
+
+			var carrier = carriers(RandomGen.randBetween(0,carriers.length-1))
+
+			var srcCity = RandomGen.randBetween(0,cities.length-1)
+			var destCity  = RandomGen.randBetween(0,cities.length-1)
+
+			var latitude = cities(srcCity).Latitude
+			var longitude = cities(srcCity).Latitude
+			var modeOfTransport = modesOfTransport(RandomGen.randBetween(0,modesOfTransport.length-1))
+			var weather = weatherList(RandomGen.randBetween(0,weatherList.length-1))
+
+			/*source: Int, destination: Int, shippingDate: String, deliveryDate: String, qty: Long,
+													 TO_Id: Integer,
+													 supplier: String,
+													 ASN: String,
+													 container: String,
+													 modeOfTransport: Integer,
+													 carrier: Integer,
+													 weather: Integer,
+													 latitude: Double,
+													 longitude: Double,
+													 sourceCity: Integer,
+													 destinationCity: Integer,
+													 PO_Id: Integer
+													 */
+
+				new TOObjectCreateEvent(part, destination,shippingDate, deliveryDate, qty, toId, supplier, asn, container,
+					modeOfTransport, carrier,weather, latitude,longitude, srcCity,destCity, poId)
+		}
 	}
 
+	test("Supply Chain Simulator TOObject ") {
 
-	test("Supply Chain Simulator  ") {
+
+		//Generate Purchase Orders for 1 day, after clearing database
+		var noOfDays = 1
+		var eventTypes = "10"
+		var clearDB = "1"
+
+		println("RUN TEST TO")
+		SupplyChain.simulate(noOfDays,eventTypes ,clearDB )
+		var df = sqlContext.read.options(internalOptions).splicemachine
+		assert(df.count > 0)
+	}
+
+	ignore("Supply Chain Simulator  ") {
 
 
 		//Generate Purchase Orders for 1 day, after clearing database

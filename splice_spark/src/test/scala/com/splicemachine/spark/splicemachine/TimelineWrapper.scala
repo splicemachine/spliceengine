@@ -274,6 +274,18 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
 
   val TOColumnsInsertStringValues = "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
+  /**
+    *
+    * @param table table name of timeline
+    * @return
+    */
+  def createtransferOrderTable(table: String): Unit = {
+    val conn = JdbcUtils.createConnectionFactory(internalJDBCOptions)()
+    if (splicemachineContext.tableExists(table)){
+      conn.createStatement().execute("drop table " + table)
+    }
+    conn.createStatement().execute("create table " + table + TOColumnsWithPrimaryKey)
+  }
 
   case class City(name: String, Latitude: Double, Longitude: Double, state: String)
 
