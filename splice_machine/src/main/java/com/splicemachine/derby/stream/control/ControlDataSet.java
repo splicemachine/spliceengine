@@ -445,6 +445,21 @@ public class ControlDataSet<V> implements DataSet<V> {
      * @return
      */
     @Override
+    public DataSet<LocatedRow> writeAvroFile(int[] baseColumnMap, int[] partitionBy, String location, String compression, OperationContext context) {
+        throw new UnsupportedOperationException("Cannot write avro files");
+    }
+
+    /**
+     *
+     * Not Supported
+     *
+     * @param baseColumnMap
+     * @param partitionBy
+     * @param location
+     * @param context
+     * @return
+     */
+    @Override
     public DataSet<LocatedRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location, String compression, OperationContext context) {
         throw new UnsupportedOperationException("Cannot write orc files");
     }

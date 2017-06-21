@@ -173,7 +173,7 @@ public interface ScanSetBuilder<V>{
 
     /**
      *
-     * Stored as type (PARQUET, ORC, TEXTFILE)
+     * Stored as type (PARQUET, AVRO, ORC, TEXTFILE)
      *
      * @param storedAs
      * @return
@@ -231,7 +231,7 @@ public interface ScanSetBuilder<V>{
 
     /**
      *
-     * Retrieve the stored as type (Parquet, ORC, Textfile)
+     * Retrieve the stored as type (Parquet, AVRO, ORC, Textfile)
      *
      * @return
      */
