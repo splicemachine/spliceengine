@@ -236,7 +236,7 @@ class SupplyChainSimulator extends Timeline  {
 	class TOChangeDeliveryEvent(srcPart: Int, destPart: Int, orderDate: String, deliveryDate: String, newDeliveryDate: String,  qty: Long )  extends Event(srcPart, orderDate, deliveryDate, qty) {
 		def processEvent {
 			println( this.toString )
-			TransferOrder.changeDelivery(srcPart, destPart, orderDate, deliveryDate, newDeliveryDate, qty)
+			TransferOrder.changeDeliveryNoSave(srcPart, destPart, orderDate, deliveryDate, newDeliveryDate, qty)
 		}
 		override def toString = "TOChangeDelivery(" + srcPart + "," + destPart + "," + orderDate  + "," + deliveryDate  + "," + newDeliveryDate + ","  + qty  + ")"
 	}
@@ -285,6 +285,27 @@ class SupplyChainSimulator extends Timeline  {
 		}
 
 		override def toString = "TOObjectCreateEvent(" +source + "," + destination + "," + shippingDate  + "," + deliveryDate  + "," + qty  + ")"
+	}
+
+	class TOObjectChangeDeliveryEvent (source: Int, destination: Int, shippingDate: String, deliveryDate: String, newDeliveryDate: String, qty: Long,
+														 TO_Id: Integer,
+														 supplier: String,
+														  modeOfTransport: Integer,
+														 carrier: Integer,
+														 fromWeather: Integer,
+														 toWeather: Integer,
+														 sourceCity: Integer,
+														 destinationCity: Integer,
+																		 TO_event_Id: Integer) extends Event(source, shippingDate, deliveryDate, qty) {
+		def processEvent {
+			println("START TOObj Change Event")
+			println( this.toString )
+			TransferOrder.changeDelivery(source, destination, shippingDate, deliveryDate, newDeliveryDate, qty, 0, TO_Id,
+			supplier, modeOfTransport, carrier, fromWeather, toWeather, sourceCity, destinationCity, TO_event_Id)
+
+		}
+
+		override def toString = "TOObjectChangeDeliveryEvent(" +source + "," + destination + "," + shippingDate  + "," + deliveryDate  + "," + qty  + ")"
 	}
 	/**Test Event
 		*
@@ -338,9 +359,9 @@ class SupplyChainSimulator extends Timeline  {
 		val suppliers = Array("A", "B", "C", "D", "E")
 		val suppliersCnt = suppliers.length
 
-		val modesOfTransport = Array (1,2,3) //Ground, Air, Sea
+		val modesOfTransport = Array (0,1,2) //Ground, Air, Sea
 		val carriers = Array(1,2,3,4)  // UPS, FEDEX, USPS, DHL
-		val weatherList = Array (1,2,3,4)  // Clear, Lt Precipitation, Heavy Rain, Heavy Snow
+		val weatherList = Array (0,1,2,3)  // Clear, Lt Precipitation, Heavy Rain, Heavy Snow
 
 
 
@@ -366,6 +387,7 @@ class SupplyChainSimulator extends Timeline  {
 				//println("CLEAR DB")
 				createTimeline(internalTN)
 				createtransferOrderTable(TOTable)
+				createTODeliveryChgEventTable(TODelviraryChgEventTable)
 				for (part <- parts) {
 					Inventory.create(part)
 				}
@@ -506,6 +528,20 @@ class SupplyChainSimulator extends Timeline  {
 					}
 				}
 
+				//Transfer ORder Change Delivery  Events
+				if( eventTypesList contains "11") {
+					println("Creating TOObjectChgDeliver")
+					for (part <- parts) {
+						if ( RandomGen.rand(100) >25) {
+							var destination = parts(RandomGen.randBetween(0,partsCnt-1))
+							if(part !=destination ) {
+								theSimulation.scheduleEvent(
+									generateTODeliveryChgEventObject(part,destination, curOrderDate ))
+							}
+						}
+					}
+				}
+
 
 
 				theSimulation.run
@@ -542,33 +578,94 @@ class SupplyChainSimulator extends Timeline  {
 			var modeOfTransport = modesOfTransport(RandomGen.randBetween(0,modesOfTransport.length-1))
 			var fromWeather = weatherList(RandomGen.randBetween(0,weatherList.length-1))
 			var toWeather = weatherList(RandomGen.randBetween(0,weatherList.length-1))
-			/*source: Int, destination: Int, shippingDate: String, deliveryDate: String, qty: Long,
-													 TO_Id: Integer,
-													 supplier: String,
-													 ASN: String,
-													 container: String,
-													 modeOfTransport: Integer,
-													 carrier: Integer,
-													 weather: Integer,
-													 latitude: Double,
-													 longitude: Double,
-													 sourceCity: Integer,
-													 destinationCity: Integer,
-													 PO_Id: Integer
-													 */
 
 				new TOObjectCreateEvent(part, destination,shippingDate, deliveryDate, qty, toId, supplier, asn, container,
 					modeOfTransport, carrier,fromWeather, toWeather, latitude,longitude, srcCity,destCity, poId, deliveryDate )
 		}
+
+
+
+	def generateTODeliveryChgEventObject (part : Int, destination :Int, curOrderDate : org.joda.time.DateTime) :TOObjectChangeDeliveryEvent = {
+
+		println("START GEN")
+		var shippingDate = curOrderDate.toString(fmt)
+		var deliveryDate = (curOrderDate.plusDays(RandomGen.randBetween(MIN_ENDDAYS,MAX_ENDDAYS))).toString(fmt)
+		var newDeliveryDate = (curOrderDate.plusDays(RandomGen.randBetween(MIN_ENDDAYS,MAX_ENDDAYS))).toString(fmt)
+		var qty = RandomGen.randBetween(MIN_QTY,MAX_QTY)
+		var toId = RandomGen.randBetween(MIN_OID, MAX_OID)
+		var TO_event_Id = RandomGen.randBetween(MIN_OID, MAX_OID)
+
+		var supplier = suppliers(RandomGen.randBetween(0,suppliers.length-1))
+		var asn = RandomGen.randBetween(MIN_ASN,MAX_ASN).toString
+		var container = RandomGen.randBetween(MIN_CNT,MAX_CNT).toString
+
+		var carrier = carriers(RandomGen.randBetween(0,carriers.length-1))
+
+		var srcCity = RandomGen.randBetween(0,cities.length-1)
+		var destCity  = RandomGen.randBetween(0,cities.length-1)
+
+		var latitude = cities(srcCity).Latitude
+		var longitude = cities(srcCity).Latitude
+		var modeOfTransport = modesOfTransport(RandomGen.randBetween(0,modesOfTransport.length-1))
+
+		//For Change Date Event, 90% of cases should have one of the weather as either
+		// heavy snow
+
+
+		var fromWeather = weatherList(RandomGen.randBetween(0,weatherList.length-1))
+		var toWeather = weatherList(RandomGen.randBetween(0,weatherList.length-1))
+
+
+		if(RandomGen.randBetween(0,100) >10 ) {
+		// change one of the weather
+			val snow = weatherList(weatherList.length-1)
+			val  prob = RandomGen.randBetween(0,100)
+			if (prob < 45)
+				fromWeather =snow
+			else if (prob >=45 && prob  < 90)
+				toWeather =snow
+			else {
+				toWeather =snow
+				fromWeather =snow
+			}
+
+		}
+
+
+
+
+		new TOObjectChangeDeliveryEvent(part, destination,shippingDate, deliveryDate, newDeliveryDate, qty,
+			toId, supplier, modeOfTransport, carrier,fromWeather, toWeather, srcCity,destCity, TO_event_Id )
 	}
+}
+
+test("Supply Chain Simulator TOObject Change Delivery ") {
+
+
+		//Generate Purchase Orders for 1 day, after clearing database
+		var noOfDays = 1
+		var eventTypes = "11"
+		var clearDB = "1"
+
+
+		//println("RUN TEST TO")
+		SupplyChain.simulate(noOfDays,eventTypes ,clearDB )
+		val optionMap = Map(
+			JDBCOptions.JDBC_TABLE_NAME -> TODelviraryChgEventTable,
+			JDBCOptions.JDBC_URL -> defaultJDBCURL
+		)
+		var df = sqlContext.read.options(optionMap).splicemachine
+		assert(df.count > 0)
+	}
+
 
 	ignore("Supply Chain Simulator TOObject ") {
 
 
 		//Generate Purchase Orders for 1 day, after clearing database
-		var noOfDays = 365
+		var noOfDays = 1
 		var eventTypes = "10"
-		var clearDB = "2"
+		var clearDB = "1"
 
 
 		//println("RUN TEST TO")
@@ -582,55 +679,6 @@ class SupplyChainSimulator extends Timeline  {
 	}
 
 
-	def learnModel(transferOrders: DataFrame, transferOrderEvents: DataFrame): Unit = {
-
-    // Add a label to the transfer order events which is how late it is and
-    // grab every transferOrder that did not have an event and insert to the events with a 0 lateness
-		val df = assembleFeatures()
-
-    //assemble feature vector from dataframe
-    val assembler = new VectorAssembler()
-      .setInputCols(Array("ShipFrom", "ShipTo", "SourceInventory", "DestinationInventory", "Supplier", "TransportMode", "Carrier", "Weather"))
-      .setOutputCol("features")
-
-    val output = assembler.transform(df)
-    println("Assembled columns ShipFrom, ShipTo, SourceInventory, DestinationInventory, Supplier, TransportMode, Carrier to vector column 'features'")
-    output.select("features", "lateness").show(false)
-
-    // Set parameters for the algorithm.
-		// Here, we limit the number of iterations to 10.
-		val lr = new LogisticRegression().setMaxIter(10)
-
-		// Fit the model to the data.
-		val model = lr.fit(output)
-
-		// Given a dataset, predict each point's label, and show the results.
-		model.transform(output).show()
-
-	}
-
-  def assembleFeatures(): DataFrame = {
-    val optionMap = Map(
-      JDBCOptions.JDBC_TABLE_NAME -> TOTable,
-      JDBCOptions.JDBC_URL -> defaultJDBCURL
-    )
-    val JDBCOps = new JDBCOptions(optionMap)
-    val conn = JdbcUtils.createConnectionFactory(JDBCOps)()
-    val joinCollumns =
-      TOTable + ".*, " +
-      s"case $TOETable" + s".toe_id is Null then $TOTable" + s".weather else $TOETable" + ".weather, " +
-      s"case $TOETable" + s".toe_id is Null then $TOTable" + s".newdeliverydate else $TOETable" + ".newdeliverydate, "
-    val stmt = s"create table features as select $joinCollumns from $TOTable Left Outer Join $TOTable " +
-      TOTable + ".TO_ID = " + TOETable + ".TO_ID"
-    println("query=" + stmt)
-    conn.createStatement().execute(stmt)
-    val features = Map(
-      JDBCOptions.JDBC_TABLE_NAME -> "features",
-      JDBCOptions.JDBC_URL -> defaultJDBCURL
-    )
-    val df = sqlContext.read.options(features).splicemachine
-    df
-  }
 
 	test("Supply Chain Simulator  ") {
 
@@ -672,6 +720,55 @@ class SupplyChainSimulator extends Timeline  {
 
 	}
 
+  def learnModel(transferOrders: DataFrame, transferOrderEvents: DataFrame): Unit = {
+
+  // Add a label to the transfer order events which is how late it is and
+  // grab every transferOrder that did not have an event and insert to the events with a 0 lateness
+  val df = assembleFeatures()
+
+  //assemble feature vector from dataframe
+  val assembler = new VectorAssembler()
+  .setInputCols(Array("ShipFrom", "ShipTo", "SourceInventory", "DestinationInventory", "Supplier", "TransportMode", "Carrier", "Weather"))
+  .setOutputCol("features")
+
+  val output = assembler.transform(df)
+  println("Assembled columns ShipFrom, ShipTo, SourceInventory, DestinationInventory, Supplier, TransportMode, Carrier to vector column 'features'")
+  output.select("features", "lateness").show(false)
+
+  // Set parameters for the algorithm.
+  // Here, we limit the number of iterations to 10.
+  val lr = new LogisticRegression().setMaxIter(10)
+
+  // Fit the model to the data.
+  val model = lr.fit(output)
+
+  // Given a dataset, predict each point's label, and show the results.
+  model.transform(output).show()
+
+}
+
+  def assembleFeatures(): DataFrame = {
+  val optionMap = Map(
+  JDBCOptions.JDBC_TABLE_NAME -> TOTable,
+  JDBCOptions.JDBC_URL -> defaultJDBCURL
+  )
+  val JDBCOps = new JDBCOptions(optionMap)
+  val conn = JdbcUtils.createConnectionFactory(JDBCOps)()
+  val joinCollumns =
+  TOTable + ".*, " +
+  s"case $TOETable" + s".toe_id is Null then $TOTable" + s".weather else $TOETable" + ".weather, " +
+  s"case $TOETable" + s".toe_id is Null then $TOTable" + s".newdeliverydate else $TOETable" + ".newdeliverydate, "
+  val stmt = s"create table features as select $joinCollumns from $TOTable Left Outer Join $TOTable " +
+  TOTable + ".TO_ID = " + TOETable + ".TO_ID"
+  println("query=" + stmt)
+  conn.createStatement().execute(stmt)
+  val features = Map(
+  JDBCOptions.JDBC_TABLE_NAME -> "features",
+  JDBCOptions.JDBC_URL -> defaultJDBCURL
+  )
+  val df = sqlContext.read.options(features).splicemachine
+  df
+}
 
 
 }
