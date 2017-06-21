@@ -75,6 +75,17 @@ public class SnapshotIT extends SpliceUnitTest
                 .withIndex("create index ti on t(i)")
                 .create();
 
+        new TableCreator(conn)
+                .withCreate("create table A (i int)")
+                .withInsert("insert into A values(?)")
+                .withRows(rows(
+                        row(1),
+                        row(2),
+                        row(3),
+                        row(4)))
+                .withIndex("create index ai on a(i)")
+                .create();
+
         conn.execute("call syscs_util.snapshot_table('SNAPSHOTIT', 'T', 'EXIST')");
     }
 
@@ -123,9 +134,9 @@ public class SnapshotIT extends SpliceUnitTest
     public void testSnapshotTable() throws Exception
     {
         methodWatcher.execute("call syscs_util.snapshot_table('SNAPSHOTIT', 'T', 'S1')");
-        ResultSet rs = methodWatcher.executeQuery("select count(*) from sys.syssnapshots");
+        ResultSet rs = methodWatcher.executeQuery("select count(*) from sys.syssnapshots where snapshotname='S1'");
         rs.next();
-        Assert.assertEquals(4, rs.getInt(1));
+        Assert.assertEquals(2, rs.getInt(1));
 
         methodWatcher.execute("insert into t select * from t");
         rs = methodWatcher.executeQuery("select count(*) from t");
@@ -138,16 +149,16 @@ public class SnapshotIT extends SpliceUnitTest
         Assert.assertEquals(4, rs.getInt(1));
 
         methodWatcher.execute("call syscs_util.delete_snapshot('S1')");
-        rs = methodWatcher.executeQuery("select count(*) from sys.syssnapshots");
+        rs = methodWatcher.executeQuery("select count(*) from sys.syssnapshots where snapshotname='S1'");
         rs.next();
-        Assert.assertEquals(2, rs.getInt(1));
+        Assert.assertEquals(0, rs.getInt(1));
     }
 
     @Test
     public void testSnapshotSchema() throws Exception
     {
         methodWatcher.execute("call syscs_util.snapshot_schema('SNAPSHOTIT', 'S2')");
-        ResultSet rs = methodWatcher.executeQuery("select count(*) from sys.syssnapshots");
+        ResultSet rs = methodWatcher.executeQuery("select count(*) from sys.syssnapshots where snapshotname='S2'");
         rs.next();
         Assert.assertEquals(4, rs.getInt(1));
 
@@ -162,8 +173,8 @@ public class SnapshotIT extends SpliceUnitTest
         Assert.assertEquals(4, rs.getInt(1));
 
         methodWatcher.execute("call syscs_util.delete_snapshot('S2')");
-        rs = methodWatcher.executeQuery("select count(*) from sys.syssnapshots");
+        rs = methodWatcher.executeQuery("select count(*) from sys.syssnapshots where snapshotname='S2'");
         rs.next();
-        Assert.assertEquals(2, rs.getInt(1));
+        Assert.assertEquals(0, rs.getInt(1));
     }
 }
