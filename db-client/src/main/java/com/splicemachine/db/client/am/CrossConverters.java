@@ -1289,7 +1289,7 @@ final class CrossConverters {
     }
 
     final String getStringFromBytes(byte[] bytes) throws SqlException {
-        StringBuffer stringBuffer = new StringBuffer(bytes.length * 2);
+        StringBuilder stringBuffer = new StringBuilder(bytes.length * 2);
         for (int i = 0; i < bytes.length; i++) {
             String hexForByte = Integer.toHexString(bytes[i] & 0xff);
             // If the byte is x0-F, prepend a "0" in front to ensure 2 char representation

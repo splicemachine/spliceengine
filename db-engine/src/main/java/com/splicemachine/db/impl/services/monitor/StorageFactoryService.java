@@ -830,7 +830,7 @@ final class StorageFactoryService implements PersistentService
 
     private String getDirectoryPath( String name)
     {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         if( home != null)
         {
             sb.append( home);

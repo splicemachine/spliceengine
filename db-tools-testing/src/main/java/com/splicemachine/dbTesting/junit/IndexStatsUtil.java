@@ -181,7 +181,7 @@ public class IndexStatsUtil {
      * @return A string representation of the statistics.
      */
     public static String buildStatString(IdxStats[] stats, String name) {
-        StringBuffer sb = new StringBuffer(
+        StringBuilder sb = new StringBuilder(
                 "Index statistics for " + name + SEP);
         for (int i=0; i < stats.length; i++) {
             sb.append(i+1).append(": ").append(stats[i].toString()).
@@ -580,7 +580,7 @@ public class IndexStatsUtil {
         public String toString() {
             // Note that not all available information is printed.
             // Add more if required for debugging.
-            StringBuffer sb = new StringBuffer(200);
+            StringBuilder sb = new StringBuilder(200);
             sb.append("{tableId=").append(tableId).
                     append(", tableName=").append(tableName).
                     append(", indexName=").append(indexName).

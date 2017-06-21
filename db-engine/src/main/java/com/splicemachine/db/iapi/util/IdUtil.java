@@ -99,7 +99,7 @@ public abstract class IdUtil
 	  */
 	public static String mkQualifiedName(String[] ids)
 	{
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		for (int ix=0; ix < ids.length; ix++)
 		{
 			if (ix!=0) sb.append(".");
@@ -295,7 +295,7 @@ public abstract class IdUtil
 	private static String parseUnQId(StringReader r, boolean normalize)
 		 throws IOException,StandardException
 	{
-		StringBuffer b = new StringBuffer();
+		StringBuilder b = new StringBuilder();
 		int c;
 		boolean first;
 		//
@@ -342,7 +342,7 @@ public abstract class IdUtil
 	private static String parseQId(StringReader r,boolean normalize)
 		 throws IOException,StandardException
 	{
-		StringBuffer b = new StringBuffer();
+		StringBuilder b = new StringBuilder();
 		int c = r.read();
 		if (c != '"') throw StandardException.newException(SQLState.ID_PARSE_ERROR);
 		while (true)
@@ -649,7 +649,7 @@ public abstract class IdUtil
 	  */
 	public static String mkIdList(String[] ids)
 	{
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		for (int ix=0;ix<ids.length; ix++)
 		{
 			if (ix != 0) sb.append(",");
@@ -663,7 +663,7 @@ public abstract class IdUtil
 	  */
 	private static String mkIdListAsEntered(String[] externalIds )
 	{
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		for (int ix=0;ix<externalIds.length; ix++)
 		{
 			if (ix != 0) sb.append(",");

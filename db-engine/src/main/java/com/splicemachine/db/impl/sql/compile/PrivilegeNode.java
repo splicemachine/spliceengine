@@ -303,7 +303,7 @@ public class PrivilegeNode extends QueryTreeNode
                 if( ! found)
                 {
                     // reconstruct the signature for the error message
-                    StringBuffer sb = new StringBuffer( objectName.getFullTableName());
+                    StringBuilder sb = new StringBuilder( objectName.getFullTableName());
                     sb.append( "(");
                     for( int i = 0; i < routineDesignator.paramTypeList.size(); i++)
                     {

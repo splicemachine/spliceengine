@@ -669,7 +669,7 @@ public final class dblook {
 		String description) throws SQLException
 	{
 
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		StringTokenizer tokenizer = new StringTokenizer(
 			description.substring(description.indexOf("(") + 1,
 				description.lastIndexOf(")")), " ,", true);

@@ -168,7 +168,7 @@ public class SMSQLUtil  {
     public String getConglomID(String tableName) throws SQLException{
         String[] schemaTableName = parseTableName(tableName);
         long[] conglomIds = SpliceAdmin.getConglomNumbers(connect, schemaTableName[0], schemaTableName[1]);
-        StringBuffer str = new StringBuffer();
+        StringBuilder str = new StringBuilder();
         str.append(conglomIds[0]);
         return str.toString();
     }

@@ -778,7 +778,7 @@ public abstract class BaseTestCase
 
                         String sysHome = getSystemProperty("derby.system.home");
 
-                        StringBuffer arbitraryRAFFileNameB = new StringBuffer();
+                        StringBuilder arbitraryRAFFileNameB = new StringBuilder();
 
                         arbitraryRAFFileNameB.append(sysHome);
                         arbitraryRAFFileNameB.append(File.separatorChar);

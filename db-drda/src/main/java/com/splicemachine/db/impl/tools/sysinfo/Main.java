@@ -705,7 +705,7 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
 	}
 
 	private static String found(String cn, String library, String loc) {
-		StringBuffer temp = new StringBuffer(crLf());
+		StringBuilder temp = new StringBuilder(crLf());
 		temp.append("   " + library);
 		temp.append(crLf());
                 if (loc != null)
@@ -715,7 +715,7 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
 	}
 	private static String notFound(String cn, String library) {
 
-		StringBuffer temp = new StringBuffer(crLf());
+		StringBuilder temp = new StringBuilder(crLf());
 		temp.append("   " + library);
 		temp.append(crLf());
 		temp.append("    " + Main.getTextMessage("SIF08.U", cn));

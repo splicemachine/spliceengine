@@ -986,7 +986,7 @@ nextMethod:	for (int i = 0; i < methods.length; i++) {
 		if (ambiguous)
 		{
 			/* Put the parameter type names into a single string */
-			StringBuffer parmTypesString = new StringBuffer();
+			StringBuilder parmTypesString = new StringBuilder();
 			for (int i = 0; i < paramClasses.length; i++)
 			{
 				if (i != 0)
@@ -1296,7 +1296,7 @@ nextMethod:	for (int i = 0; i < methods.length; i++) {
 			clazz = clazz.getComponentType();
 		} while (clazz.isArray());
 
-		StringBuffer sb = new StringBuffer(clazz.getName());
+		StringBuilder sb = new StringBuilder(clazz.getName());
 
 		for (int i = 0; i < arrayDepth; i++) {
 			sb.append("[]");

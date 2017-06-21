@@ -158,8 +158,8 @@ public class Triggers
 			return;
 		}
 
-		StringBuffer heading = new StringBuffer("\t ");
-		StringBuffer underline = new StringBuffer("\t ");
+		StringBuilder heading = new StringBuilder("\t ");
+		StringBuilder underline = new StringBuilder("\t ");
 
 		int len;
 		// Display column headings
@@ -182,7 +182,7 @@ public class Triggers
 		System.out.println(underline.toString());
 		
 	
-		StringBuffer row = new StringBuffer();
+		StringBuilder row = new StringBuilder();
 		// Display data, fetching until end of the result set
 		while (s.next()) 
 		{

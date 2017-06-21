@@ -58,7 +58,7 @@ public class GrantNode extends DDLStatementNode
 	{
 		if (SanityManager.DEBUG)
 		{
-			StringBuffer sb = new StringBuffer();
+			StringBuilder sb = new StringBuilder();
 			for( Iterator it = grantees.iterator(); it.hasNext();)
 			{
 				if( sb.length() > 0)

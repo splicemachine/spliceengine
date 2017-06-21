@@ -84,7 +84,7 @@ public class GrantRoleNode extends DDLStatementNode
     public String toString()
     {
         if (SanityManager.DEBUG) {
-                StringBuffer sb1 = new StringBuffer();
+                StringBuilder sb1 = new StringBuilder();
                 for( Iterator it = roles.iterator(); it.hasNext();) {
 					if( sb1.length() > 0) {
 						sb1.append( ", ");
@@ -92,7 +92,7 @@ public class GrantRoleNode extends DDLStatementNode
 					sb1.append( it.next().toString());
 				}
 
-                StringBuffer sb2 = new StringBuffer();
+                StringBuilder sb2 = new StringBuilder();
                 for( Iterator it = grantees.iterator(); it.hasNext();) {
 					if( sb2.length() > 0) {
 						sb2.append( ", ");

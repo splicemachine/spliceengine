@@ -527,7 +527,7 @@ public class EmbeddedDataSource extends ReferenceableDataSource implements
 
 	void update()
 	{
-		StringBuffer sb = new StringBuffer(64);
+		StringBuilder sb = new StringBuilder(64);
 
 		sb.append(Attribute.PROTOCOL);
 

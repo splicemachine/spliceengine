@@ -77,7 +77,7 @@ public class Utilities {
      * @return     formated string representing byte array
      */
     private static String convertToHexString(byte[] buf) {
-        StringBuffer str = new StringBuffer();
+        StringBuilder str = new StringBuilder();
         str.append("X'");
         String val;
         int byteVal;

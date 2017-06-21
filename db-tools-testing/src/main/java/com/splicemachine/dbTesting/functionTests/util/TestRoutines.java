@@ -144,7 +144,7 @@ public class TestRoutines {
     	InputStreamReader isr = new InputStreamReader(
     			new BufferedInputStream(fin, 32*1024), encoding);
     	    	
-    	StringBuffer sb = new StringBuffer();
+    	StringBuilder sb = new StringBuilder();
     	for (;;)
     	{
     		int ci = isr.read();

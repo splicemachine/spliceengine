@@ -183,7 +183,7 @@ public class SimpleCostEstimate implements CostEstimate{
         }
         String unit = displayHeapUnits[pos];
 
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append("totalCost=").append(df.format(cost/1000));
         sb.append(attrDelim).append("outputRows=").append(rows);
         sb.append(attrDelim).append("outputHeapSize=").append(df.format(eHeap)).append(unit);

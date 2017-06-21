@@ -728,7 +728,7 @@ public class TestUtil {
 
     private static String convertToHexString(byte [] buf)
     {
-        StringBuffer str = new StringBuffer();
+        StringBuilder str = new StringBuilder();
         str.append("X'");
         String val;
         int byteVal;

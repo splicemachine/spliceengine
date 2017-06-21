@@ -1180,7 +1180,7 @@ public class LogWriter {
     }
 
     private String escapePassword(String pw) {
-        StringBuffer sb = new StringBuffer(pw);
+        StringBuilder sb = new StringBuilder(pw);
         for (int j = 0; j < pw.length(); j++) {
             sb.setCharAt(j, '*');
         }

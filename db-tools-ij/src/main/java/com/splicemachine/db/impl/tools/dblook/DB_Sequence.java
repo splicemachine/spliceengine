@@ -144,7 +144,7 @@ public class DB_Sequence
          )
 		throws SQLException
 	{
-		StringBuffer buffer = new StringBuffer();
+		StringBuilder buffer = new StringBuilder();
 
         buffer.append( "CREATE SEQUENCE " + fullName + '\n' );
 

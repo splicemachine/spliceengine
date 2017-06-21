@@ -88,7 +88,7 @@ class BCMethodDescriptor {
 
 		int approxLength = (30 * (paramCount + 1));
 
-		StringBuffer methDesc = new StringBuffer(approxLength);
+		StringBuilder methDesc = new StringBuilder(approxLength);
 
 		methDesc.append(VMDescriptor.C_METHOD);
 

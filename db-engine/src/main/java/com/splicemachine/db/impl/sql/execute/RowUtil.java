@@ -238,7 +238,7 @@ public class RowUtil
 	{
 		if (SanityManager.DEBUG)
 		{
-			StringBuffer strbuf = new StringBuffer();
+			StringBuilder strbuf = new StringBuilder();
 
 			if (objs == null) 
 				return "null";
@@ -286,7 +286,7 @@ public class RowUtil
 	 */
 	public static String toString(Object[] objs, int startPoint, int endPoint)
 	{
-		StringBuffer strbuf = new StringBuffer();
+		StringBuilder strbuf = new StringBuilder();
 
 		if (SanityManager.DEBUG)
 		{
@@ -338,7 +338,7 @@ public class RowUtil
 			return (String) null;
 		}
 
-		StringBuffer strbuf = new StringBuffer();
+		StringBuilder strbuf = new StringBuilder();
 
 		strbuf.append("(");
 		for (int i = 0; i < positions.length; i++)
@@ -363,7 +363,7 @@ public class RowUtil
 	 */
 	public static String intArrayToString(int[] colMap)
 	{
-		StringBuffer strbuf = new StringBuffer();
+		StringBuilder strbuf = new StringBuilder();
 
 		strbuf.append("(");
 		for (int i = 0; i < colMap.length; i++)

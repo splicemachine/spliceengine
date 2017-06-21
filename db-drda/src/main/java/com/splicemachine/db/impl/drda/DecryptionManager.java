@@ -443,7 +443,7 @@ class DecryptionManager
     */
     protected static String toHexString(byte[] data, int offset, int length)
     {
-        StringBuffer s = new StringBuffer(length*2);
+        StringBuilder s = new StringBuilder(length*2);
         int end = offset+length;
 
         for (int i = offset; i < end; i++)

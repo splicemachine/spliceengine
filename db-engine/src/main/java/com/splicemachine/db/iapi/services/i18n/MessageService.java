@@ -276,7 +276,7 @@ public final class MessageService {
 			messageId = "UNKNOWN";
 
 		
-		StringBuffer sb = new StringBuffer(messageId);
+		StringBuilder sb = new StringBuilder(messageId);
 
 		int len = arguments.length;
 		if (len > 0)

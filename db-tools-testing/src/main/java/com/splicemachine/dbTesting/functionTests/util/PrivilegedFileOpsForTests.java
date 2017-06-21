@@ -462,7 +462,7 @@ public class PrivilegedFileOpsForTests {
                 if (!f.exists()) {
                     return "(non-existant)";
                 }
-                StringBuffer sb = new StringBuffer();
+                StringBuilder sb = new StringBuilder();
                 sb.append("(isDir=").append(f.isDirectory()).
                         append(", canRead=").append(f.canRead()).
                         append(", canWrite=").append(f.canWrite()).

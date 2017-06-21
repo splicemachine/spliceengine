@@ -134,11 +134,11 @@ public class Sed
         searchStrings.addElement("with class loader .*,");
         
         // Filter for constraint names - bug 5622 - our internal constraint names are too long. To be db2 compatible, we have reworked them.
-        StringBuffer constraintNameFilter = new StringBuffer(); 
+        StringBuilder constraintNameFilter = new StringBuilder();
         constraintNameFilter.append("SQL[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]");
         searchStrings.addElement(constraintNameFilter.toString());
         // Filter for uuids
-        StringBuffer uuidFilter = new StringBuffer();
+        StringBuilder uuidFilter = new StringBuilder();
         uuidFilter.append("[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]-");
         uuidFilter.append("[0-9a-f][0-9a-f][0-9a-f][0-9a-f]-");
         uuidFilter.append("[0-9a-f][0-9a-f][0-9a-f][0-9a-f]-");
@@ -480,7 +480,7 @@ public class Sed
 
                 if (hasNonAscii)
                 {
-                    StringBuffer sb = new StringBuffer();
+                    StringBuilder sb = new StringBuilder();
                     for (int si = 0; si < str.length(); si++)
                     {
                         char c = str.charAt(si);

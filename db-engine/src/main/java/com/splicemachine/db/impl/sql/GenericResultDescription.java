@@ -269,7 +269,7 @@ public final class GenericResultDescription
 	{
 		if (SanityManager.DEBUG)
 		{
-			StringBuffer colStr = new StringBuffer();
+			StringBuilder colStr = new StringBuilder();
 			for (int i = 0; i < columns.length; i++)
 			{
 				colStr.append("column[").append(i).append("]\n");

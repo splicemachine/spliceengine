@@ -524,7 +524,7 @@ public class NetAgent extends Agent {
     }
 
     public String convertToStringTcpIpAddress(int tcpIpAddress) {
-        StringBuffer ipAddrBytes = new StringBuffer();
+        StringBuilder ipAddrBytes = new StringBuilder();
         ipAddrBytes.append((tcpIpAddress >> 24) & 0xff);
         ipAddrBytes.append(".");
         ipAddrBytes.append((tcpIpAddress >> 16) & 0xff);

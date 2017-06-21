@@ -48,7 +48,7 @@ public class Formatters {
 		if (in == null)
 			return null;
 
-		StringBuffer out = new StringBuffer(in.length());
+		StringBuilder out = new StringBuilder(in.length());
 		char hexValue[] = new char[4];
 
 		for (int i = 0; i < in.length(); i++) {

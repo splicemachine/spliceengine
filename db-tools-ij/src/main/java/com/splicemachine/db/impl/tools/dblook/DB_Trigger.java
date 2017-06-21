@@ -114,7 +114,7 @@ public class DB_Trigger {
 		ResultSet aTrig) throws SQLException
 	{
 
-		StringBuffer sb = new StringBuffer ("CREATE TRIGGER ");
+		StringBuilder sb = new StringBuilder("CREATE TRIGGER ");
 		sb.append(trigName);
 
 		// Firing time.

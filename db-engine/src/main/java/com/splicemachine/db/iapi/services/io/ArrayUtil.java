@@ -253,7 +253,7 @@ public abstract class ArrayUtil
         }
         else
         {
-            StringBuffer ret_val = new StringBuffer();
+            StringBuilder ret_val = new StringBuilder();
             for (int i = 0; i < value.length; i++)
             {
                 ret_val.append("[").append(value[i]).append("],");

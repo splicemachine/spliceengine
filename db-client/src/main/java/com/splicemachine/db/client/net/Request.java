@@ -1240,7 +1240,7 @@ public class Request {
         try {
             String maskChar = "*";
             // construct a mask using the maskChar.
-            StringBuffer mask = new StringBuffer();
+            StringBuilder mask = new StringBuilder();
             for (int i = 0; i < passwordLength_; i++) {
                 mask.append(maskChar);
             }

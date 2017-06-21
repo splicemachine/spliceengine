@@ -151,7 +151,7 @@ class ImportLobFile
             new InputStreamReader(lobLimitIn, dataCodeset);    
 
         // read data from the file, and return it as string. 
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         char[] buf= new char[1024];
         int noChars = lobReader.read(buf , 0 , 1024);
         while (noChars != -1) {

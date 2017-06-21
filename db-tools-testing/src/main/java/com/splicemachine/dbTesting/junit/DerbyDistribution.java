@@ -286,7 +286,7 @@ public class DerbyDistribution
      */
     private static String constructJarClasspath(File[] jars)
             throws IOException {
-        StringBuffer sb = new StringBuffer(512);
+        StringBuilder sb = new StringBuilder(512);
         for (int i=0; i < jars.length; i++) {
             sb.append(jars[i].getCanonicalPath());
             sb.append(File.pathSeparatorChar);

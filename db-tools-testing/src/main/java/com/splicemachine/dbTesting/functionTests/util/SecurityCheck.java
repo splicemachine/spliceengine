@@ -214,7 +214,7 @@ public class SecurityCheck {
 		
 		allInspectedClasses.put(c.getName(), null);
 				
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		
 		sb.append("Class ");
 		sb.append(c.getName());

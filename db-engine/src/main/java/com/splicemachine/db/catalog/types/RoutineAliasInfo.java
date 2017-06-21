@@ -383,7 +383,7 @@ public class RoutineAliasInfo extends MethodAliasInfo
 	 */
 	public String toString() {
 
-		StringBuffer sb = new StringBuffer(100);
+		StringBuilder sb = new StringBuilder(100);
 		sb.append(getMethodName());
 		sb.append('(');
 		for (int i = 0; i < parameterCount; i++) {

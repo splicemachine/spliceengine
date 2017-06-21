@@ -316,7 +316,7 @@ public class MessageUtil
             message = "UNKNOWN";
         }
         
-        StringBuffer sb = new StringBuffer(message);
+        StringBuilder sb = new StringBuilder(message);
         
         if ( arguments == null )
         {

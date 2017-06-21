@@ -749,7 +749,7 @@ public class NetXAResource implements XAResource {
     }
 
     protected void throwXAException(int rc, boolean resetFlag) throws XAException { // ~~~
-        StringBuffer xaExceptionText = new StringBuffer(64);
+        StringBuilder xaExceptionText = new StringBuilder(64);
         if (resetFlag) {
             // reset the state of the failed connection
             NetXACallInfo callInfo = callInfoArray_[conn_.currXACallInfoOffset_];

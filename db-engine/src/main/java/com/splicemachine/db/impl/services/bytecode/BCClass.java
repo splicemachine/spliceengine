@@ -438,7 +438,7 @@ class BCClass extends GClass {
 	 */
 	void addLimitExceeded(BCMethod mb, String limitName, int limit, int value)
 	{
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		if (limitMsg != null)
 		{
 			sb.append(limitMsg);

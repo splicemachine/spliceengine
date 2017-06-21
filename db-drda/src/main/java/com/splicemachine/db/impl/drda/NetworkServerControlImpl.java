@@ -2051,7 +2051,7 @@ public final class NetworkServerControlImpl {
 	private void sendSQLMessage(DDMWriter writer, SQLException se, int type)
 		throws Exception
 	{
-		StringBuffer locMsg = new StringBuffer();
+		StringBuilder locMsg = new StringBuilder();
 		//localize message if necessary
 		while (se != null)
 		{
@@ -2080,7 +2080,7 @@ public final class NetworkServerControlImpl {
 	 */
 	private void sendSysInfo(DDMWriter writer) throws Exception
 	{
-		StringBuffer sysinfo = new StringBuffer();
+		StringBuilder sysinfo = new StringBuilder();
 		sysinfo.append(getNetSysInfo());
 		sysinfo.append(getCLSSysInfo());
 		try {
@@ -2148,7 +2148,7 @@ public final class NetworkServerControlImpl {
 	 */
 	private String getNetSysInfo() 
 	{
-		StringBuffer sysinfo = new StringBuffer();
+		StringBuilder sysinfo = new StringBuilder();
 		LocalizedResource localLangUtil = langUtil;
 		if (currentSession != null && currentSession.langUtil != null)
 		localLangUtil = currentSession.langUtil;

@@ -615,7 +615,7 @@ public class Like {
 		 *	"asdf%"			"asdg"
 		 */
 
-		StringBuffer upperLimit = new StringBuffer(maxWidth);
+		StringBuilder upperLimit = new StringBuilder(maxWidth);
 		// Extract the string leading up to the first wildcard.
 		for (int i = 0; i < pattern.length(); i++) {
 			char c = pattern.charAt(i);
@@ -711,7 +711,7 @@ public class Like {
 		if(string.length() >= len)
 			return string;
 
-		StringBuffer buf = new StringBuffer(len).append(string);
+		StringBuilder buf = new StringBuilder(len).append(string);
 		buf.setLength(len);
 		
 		return buf.toString();

@@ -354,7 +354,7 @@ public class RunList
 	    ManageSysProps.saveSysProps();
 
         // Build command string for RunTest()
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
 	    jvm = jvm.getJvm(jvmName);
 	    Vector jvmProps = new Vector();
 	    if ((javaCmd.length()>0) )
@@ -516,7 +516,7 @@ public class RunList
             // Create the command for RunTest
             // Create a string array from the vector
             String testCmd[] = new String[v.size() + 1];
-            StringBuffer verboseSb = new StringBuffer();
+            StringBuilder verboseSb = new StringBuilder();
             int i = 0;
             for (i = 0; i < v.size(); i++)
             {

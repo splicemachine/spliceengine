@@ -217,7 +217,7 @@ public class DB_Key {
 		throws SQLException
 	{
 
-		StringBuffer refClause = new StringBuffer();
+		StringBuilder refClause = new StringBuilder();
 
 		getReferenceCols.setString(1, constraintId);
 		ResultSet colsRS = getReferenceCols.executeQuery();

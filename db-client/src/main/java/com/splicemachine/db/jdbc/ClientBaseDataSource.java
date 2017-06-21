@@ -1199,7 +1199,7 @@ public abstract class ClientBaseDataSource implements Serializable, Referenceabl
      * @return The JDBC connection URL.
      */
     private String constructUrl() {
-        StringBuffer sb = new StringBuffer(64);
+        StringBuilder sb = new StringBuilder(64);
         // To support subSubProtocols, the protocol addition below must be
         // changed.
         sb.append(Attribute.DNC_PROTOCOL);

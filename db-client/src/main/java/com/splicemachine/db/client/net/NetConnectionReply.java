@@ -2959,8 +2959,8 @@ public class NetConnectionReply extends Reply
     }
 
     private void doMgrlvlrmSemantics(int[] nameList, int[] levelList) throws DisconnectException {
-        StringBuffer managerNames = new StringBuffer(100);
-        StringBuffer managerLevels = new StringBuffer(100);
+        StringBuilder managerNames = new StringBuilder(100);
+        StringBuilder managerLevels = new StringBuilder(100);
 
         int count = nameList.length;
         for (int i = 0; i < count; i++) {

@@ -75,7 +75,7 @@ public class Splice_DD_Version extends DD_Version {
     }
 
     public String toString() {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append(majorVersionNumber).append(".").append(minorVersionNumber).append(".").append(patchVersionNumber);
         return sb.toString();
     }

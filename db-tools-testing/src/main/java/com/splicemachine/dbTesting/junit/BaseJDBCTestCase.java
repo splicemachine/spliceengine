@@ -1528,7 +1528,7 @@ public abstract class BaseJDBCTestCase
 
         // If we failed to delete some of the files, list them and obtain some
         // information about each file.
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (int i=0; i < fl.length; i++) {
             File f = fl[i];
             sb.append(PrivilegedFileOpsForTests.getAbsolutePath(f)).append(' ').

@@ -48,7 +48,7 @@ public class ThreadDump {
      * @return A string representation of a full thread dump
      */
     public static String getStackDumpString() {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         Map<Thread, StackTraceElement[]> st = Thread.getAllStackTraces();
         for (Map.Entry<Thread, StackTraceElement[]> e : st.entrySet()) {
             StackTraceElement[] lines = e.getValue();

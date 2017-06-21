@@ -61,7 +61,7 @@ public class HandleResult
         InputStream stderr, PrintWriter printWriter, String encoding)
         throws IOException
     {
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 
 		// only used for debugging
 		sb.append("exitcode=");

@@ -250,7 +250,7 @@ public class BroadcastJoinOperation extends JoinOperation{
     }
 
     public String getPrettyExplainPlan() {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append(super.getPrettyExplainPlan());
         sb.append("\n\nBroadcast Join Right Side:\n\n");
         sb.append(getRightOperation() != null ? getRightOperation().getPrettyExplainPlan() : "");

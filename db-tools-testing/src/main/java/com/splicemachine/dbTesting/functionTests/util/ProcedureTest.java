@@ -538,7 +538,7 @@ public abstract class ProcedureTest extends SimpleProcedureTest implements Resul
 			e7[0] = cs1.getString(6);
 			e8[0] = cs1.getString(7);
 		} catch (SQLException sqle) {
-			StringBuffer sb = new StringBuffer(128);
+			StringBuilder sb = new StringBuilder(128);
 			sb.append("STATE");
 			do {
 				sb.append("-");
@@ -558,7 +558,7 @@ public abstract class ProcedureTest extends SimpleProcedureTest implements Resul
 	}
 	private static void executeStatement(Statement s, String sql, String[] result) {
 
-		StringBuffer sb = new StringBuffer(128);
+		StringBuilder sb = new StringBuilder(128);
 
 		int len = sql.length();
 		if (len > 15)
@@ -752,7 +752,7 @@ public abstract class ProcedureTest extends SimpleProcedureTest implements Resul
 		Connection conn = DriverManager.getConnection("jdbc:default:connection");
 		Statement st1 = conn.createStatement();
 
-		StringBuffer query = new StringBuffer("SELECT ");
+		StringBuilder query = new StringBuilder("SELECT ");
         for (int i = 0; i < 100; i++)
         {
             int cno = 1000 + (i * 10);

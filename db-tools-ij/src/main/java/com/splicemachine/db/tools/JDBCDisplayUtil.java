@@ -1162,7 +1162,7 @@ public class JDBCDisplayUtil {
 
 			if (s.length() < w) {
 				// build a string buffer to hold the whitespace
-				StringBuffer blanks = new StringBuffer(s);
+				StringBuilder blanks = new StringBuilder(s);
 				blanks.ensureCapacity(w);
 
 				// try to paste on big chunks of space at a time.
@@ -1254,7 +1254,7 @@ public class JDBCDisplayUtil {
 
 			int w = displayColumnWidths[i-1];
 			if (s.length() < w) {
-				StringBuffer fullS = new StringBuffer(s);
+				StringBuilder fullS = new StringBuilder(s);
 				fullS.ensureCapacity(w);
 				for (int k=s.length(); k<w; k++)
 					fullS.append(' ');

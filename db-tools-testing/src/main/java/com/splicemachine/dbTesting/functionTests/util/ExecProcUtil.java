@@ -67,7 +67,7 @@ public class ExecProcUtil {
         ProcessStreamResult prout = null;
         ProcessStreamResult prerr = null;
 
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
 
         for (int i = 0; i < args.length; i++) {
             sb.append(args[i] + " ");

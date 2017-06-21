@@ -874,7 +874,7 @@ public class ClassHolder {
 					return null;
 			}
 		else {
-			StringBuffer desc = new StringBuffer(arity+3);
+			StringBuilder desc = new StringBuilder(arity+3);
 
 			for (int i=0;i<arity;i++)
 				desc.append(VMDescriptor.C_ARRAY);
@@ -900,7 +900,7 @@ public class ClassHolder {
 			return className.replace('.','/');
 		}
 
-		StringBuffer desc = new StringBuffer(arity+2+className.length());
+		StringBuilder desc = new StringBuilder(arity+2+className.length());
 
 		for (int i=0;i<arity;i++)
 			desc.append(VMDescriptor.C_ARRAY);

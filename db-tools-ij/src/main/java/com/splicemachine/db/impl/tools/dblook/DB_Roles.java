@@ -114,7 +114,7 @@ public class DB_Roles {
     private static String roleDefinitionStatement(ResultSet rs, String roleName)
         throws SQLException
     {
-        StringBuffer createStmt = new StringBuffer("CREATE ROLE ");
+        StringBuilder createStmt = new StringBuilder("CREATE ROLE ");
 
         createStmt.append(roleName);
         return createStmt.toString();
@@ -168,7 +168,7 @@ public class DB_Roles {
                                              boolean isWithAdminOption)
         throws SQLException
     {
-        StringBuffer createStmt = new StringBuffer("GRANT ");
+        StringBuilder createStmt = new StringBuilder("GRANT ");
 
         createStmt.append(roleName);
         createStmt.append(" TO ");

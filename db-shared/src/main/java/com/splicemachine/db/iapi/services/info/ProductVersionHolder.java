@@ -438,7 +438,7 @@ public final class ProductVersionHolder implements java.security.PrivilegedActio
 	 */
 	public String toString()
 	{
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		sb.append(getProductVendorName());
 		sb.append(" - ");
 		sb.append(getProductName());
@@ -460,7 +460,7 @@ public final class ProductVersionHolder implements java.security.PrivilegedActio
 	*/
 	public static String simpleVersionString(int major, int minor, boolean isBeta) {
 
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 
 		sb.append(major);
 		sb.append('.');
@@ -473,7 +473,7 @@ public final class ProductVersionHolder implements java.security.PrivilegedActio
 		return sb.toString();
 	}
 	public static String fullVersionString(int major, int minor, int maint, boolean isBeta, String build) {
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		sb.append(major);
 		sb.append('.');
 		sb.append(minor);

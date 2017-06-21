@@ -170,7 +170,7 @@ final public class SystemPermission extends BasicPermission {
                 seenAction[validAction] = true;
         }
         
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (int sa = 0; sa < seenAction.length; sa++)
         {
             if (seenAction[sa]) {
