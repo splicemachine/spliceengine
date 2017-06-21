@@ -15,14 +15,11 @@
 package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
-import org.apache.hadoop.hbase.util.Bytes;
-import scala.Tuple2;
 
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Comparator;
 
 /**
  * Created by jyuan on 3/20/17.

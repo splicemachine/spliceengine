@@ -14,21 +14,17 @@
 
 package com.splicemachine.derby.impl.sql;
 
-import com.splicemachine.EngineDriver;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.si.impl.driver.SIDriver;
-import org.spark_project.guava.util.concurrent.Futures;
 import org.spark_project.guava.util.concurrent.ListenableFuture;
 import org.spark_project.guava.util.concurrent.SettableFuture;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeoutException;
 
 /**

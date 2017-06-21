@@ -14,12 +14,6 @@
 
 package com.splicemachine.derby.stream.output;
 
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
-import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.si.api.txn.TxnView;
-
 public interface BulkInsertDataSetWriterBuilder extends InsertDataSetWriterBuilder {
 
 

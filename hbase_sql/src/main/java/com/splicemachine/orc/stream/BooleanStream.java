@@ -16,7 +16,6 @@ package com.splicemachine.orc.stream;
 import com.splicemachine.orc.checkpoint.BooleanStreamCheckpoint;
 import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataType;
-import org.apache.spark.sql.types.StructType;
 
 import java.io.IOException;
 import static com.google.common.base.Preconditions.checkState;

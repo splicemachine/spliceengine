@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.batchonce;
 
-import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
 import org.spark_project.guava.base.Strings;
 import com.splicemachine.db.iapi.error.StandardException;

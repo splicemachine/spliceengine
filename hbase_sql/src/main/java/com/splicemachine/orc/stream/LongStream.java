@@ -16,7 +16,7 @@ package com.splicemachine.orc.stream;
 import com.splicemachine.orc.checkpoint.LongStreamCheckpoint;
 import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataType;
-import org.apache.spark.sql.types.StructType;
+
 import java.io.IOException;
 
 public interface LongStream

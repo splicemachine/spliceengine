@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.impl.sql;
 
-import java.sql.SQLException;
 import java.util.Properties;
 import com.splicemachine.backup.BackupManager;
 import com.splicemachine.colperms.ColPermsManager;

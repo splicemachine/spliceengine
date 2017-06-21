@@ -14,8 +14,6 @@
 package com.splicemachine.orc;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.store.access.Qualifier;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.orc.block.*;
 import com.splicemachine.orc.memory.AbstractAggregatedMemoryContext;
 import com.splicemachine.orc.memory.AggregatedMemoryContext;
@@ -28,7 +26,6 @@ import com.splicemachine.orc.stream.StreamSources;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;

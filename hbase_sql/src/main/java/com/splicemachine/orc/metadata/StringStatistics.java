@@ -16,10 +16,8 @@ package com.splicemachine.orc.metadata;
 import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
-import org.apache.avro.generic.GenericData;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 

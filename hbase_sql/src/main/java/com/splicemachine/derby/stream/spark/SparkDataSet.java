@@ -54,7 +54,6 @@ import org.apache.spark.sql.Column;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.storage.StorageLevel;
-import scala.collection.JavaConversions;
 
 import java.io.IOException;
 import java.io.OutputStream;

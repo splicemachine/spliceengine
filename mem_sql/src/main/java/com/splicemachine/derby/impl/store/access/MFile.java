@@ -15,7 +15,6 @@
 package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.io.StorageFactory;
 import com.splicemachine.db.io.StorageFile;
 import com.splicemachine.db.io.StorageRandomAccessFile;
 
@@ -24,7 +23,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.List;
 
 /**

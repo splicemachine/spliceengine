@@ -19,9 +19,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.GroupedAggregateOpera
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 
 /**
  * Created by jleach on 4/24/15.

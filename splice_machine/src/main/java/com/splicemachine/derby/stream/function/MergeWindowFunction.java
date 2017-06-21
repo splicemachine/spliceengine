@@ -24,9 +24,6 @@ import com.splicemachine.derby.stream.window.BaseFrameBuffer;
 import com.splicemachine.derby.stream.window.WindowFrameBuffer;
 import scala.Tuple2;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.io.Serializable;
 import java.util.*;
 

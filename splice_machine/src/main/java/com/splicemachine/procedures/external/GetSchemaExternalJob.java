@@ -15,18 +15,10 @@
 package com.splicemachine.procedures.external;
 
 import com.splicemachine.EngineDriver;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
-import com.splicemachine.derby.iapi.sql.olap.SuccessfulOlapResult;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
-import com.splicemachine.derby.stream.output.WriteReadUtils;
-import com.splicemachine.pipeline.ErrorState;
-import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.utils.IntArrays;
 import org.apache.spark.sql.types.StructType;
 
-import java.nio.file.Path;
-import java.sql.Struct;
 import java.util.concurrent.Callable;
 
 /**

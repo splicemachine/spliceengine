@@ -22,21 +22,10 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
-import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.impl.services.uuid.BasicUUID;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.sql.execute.pin.DistributedIsCachedJob;
-import com.splicemachine.derby.impl.sql.execute.pin.DistributedPopulatePinJob;
 import com.splicemachine.derby.impl.sql.execute.pin.GetIsCachedResult;
 import com.splicemachine.derby.impl.sql.execute.pin.RemoteDropPinJob;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
-import com.splicemachine.pipeline.ErrorState;
-import com.splicemachine.protobuf.ProtoUtil;
-import com.splicemachine.si.api.txn.TxnView;
 
 
 /**

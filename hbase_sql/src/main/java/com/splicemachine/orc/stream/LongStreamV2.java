@@ -18,7 +18,7 @@ import com.splicemachine.orc.checkpoint.LongStreamCheckpoint;
 import com.splicemachine.orc.checkpoint.LongStreamV2Checkpoint;
 import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataType;
-import org.apache.spark.sql.types.StructType;
+
 import java.io.IOException;
 import java.io.InputStream;
 import static com.splicemachine.orc.stream.OrcStreamUtils.MIN_REPEAT_SIZE;

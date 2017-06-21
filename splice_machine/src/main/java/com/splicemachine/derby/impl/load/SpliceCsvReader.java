@@ -17,7 +17,6 @@ package com.splicemachine.derby.impl.load;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.*;
-import java.util.List;
 
 import com.splicemachine.derby.stream.function.QuoteTrackingTokenizer;
 import com.splicemachine.derby.stream.utils.BooleanList;

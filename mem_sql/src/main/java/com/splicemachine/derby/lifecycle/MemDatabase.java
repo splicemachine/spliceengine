@@ -25,7 +25,6 @@ import com.splicemachine.access.configuration.ConfigurationSource;
 import com.splicemachine.access.configuration.HConfigurationDefaultsList;
 import com.splicemachine.access.util.ReflectingConfigurationSource;
 import com.splicemachine.concurrent.ConcurrentTicker;
-import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.si.MemSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;

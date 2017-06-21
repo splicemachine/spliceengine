@@ -78,8 +78,6 @@ import org.ietf.jgss.GSSException;
 import org.ietf.jgss.GSSManager;
 import org.ietf.jgss.Oid;
 
-import javax.security.auth.Subject;
-
 /**
  * This class translates DRDA protocol from an application requester to JDBC
  * for Derby and then translates the results from Derby to DRDA

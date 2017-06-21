@@ -17,8 +17,6 @@ import com.splicemachine.orc.OrcCorruptionException;
 import com.splicemachine.orc.StreamDescriptor;
 import com.splicemachine.orc.metadata.ColumnEncoding;
 import com.splicemachine.orc.stream.*;
-import io.airlift.slice.Slice;
-import io.airlift.slice.Slices;
 import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataType;
 import javax.annotation.Nonnull;

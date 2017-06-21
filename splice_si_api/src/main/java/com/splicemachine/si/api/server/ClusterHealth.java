@@ -17,8 +17,6 @@
 
 package com.splicemachine.si.api.server;
 
-import com.splicemachine.utils.ByteSlice;
-
 /**
  * Interface to check cluster health.
  */

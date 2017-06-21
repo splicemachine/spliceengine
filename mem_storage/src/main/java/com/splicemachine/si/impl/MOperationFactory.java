@@ -18,7 +18,6 @@ import com.splicemachine.access.util.ByteComparisons;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.ByteComparator;
-import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;

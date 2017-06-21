@@ -17,7 +17,7 @@ import com.splicemachine.orc.OrcCorruptionException;
 import com.splicemachine.orc.checkpoint.ByteStreamCheckpoint;
 import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataType;
-import org.apache.spark.sql.types.StructType;
+
 import java.io.IOException;
 import java.util.Arrays;
 import static com.splicemachine.orc.stream.OrcStreamUtils.MIN_REPEAT_SIZE;

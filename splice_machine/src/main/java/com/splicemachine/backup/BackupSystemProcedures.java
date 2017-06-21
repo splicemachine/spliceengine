@@ -39,7 +39,6 @@ import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.shared.common.reference.SQLState;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.utils.SpliceLogUtils;
 

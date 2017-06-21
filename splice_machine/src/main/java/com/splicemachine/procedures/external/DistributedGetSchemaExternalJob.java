@@ -15,10 +15,8 @@
 package com.splicemachine.procedures.external;
 
 import com.splicemachine.concurrent.Clock;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
-import org.apache.spark.sql.types.StructType;
 
 import java.io.Externalizable;
 import java.io.IOException;
