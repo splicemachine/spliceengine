@@ -933,7 +933,7 @@ class Timeline extends FunSuite with TimeLineWrapper with BeforeAndAfter with Ma
         }
       }
 
-      def changeDelivery(source: Integer,
+      def changeDeliveryNoSave(source: Integer,
                          destination: Integer,
                          shippingDate: String,
                          originalDeliveryDate: String,
@@ -954,7 +954,7 @@ class Timeline extends FunSuite with TimeLineWrapper with BeforeAndAfter with Ma
             conn.rollback()
             conn.setAutoCommit(true)
             if (retryCount < MAX_RETRIES) {
-              changeDelivery(source, destination, shippingDate, originalDeliveryDate, newDeliveryDate, qty, retryCount + 1)
+              changeDeliveryNoSave(source, destination, shippingDate, originalDeliveryDate, newDeliveryDate, qty, retryCount + 1)
             }
             else {
               // put code here to too many re-tries
@@ -966,6 +966,105 @@ class Timeline extends FunSuite with TimeLineWrapper with BeforeAndAfter with Ma
           conn.setAutoCommit(true)
         }
       }
+
+      def changeDelivery(source: Integer,
+                         destination: Integer,
+                         shippingDate: String,
+                         originalDeliveryDate: String,
+                         newDeliveryDate: String,
+                         qty: Long,
+                         retryCount: Integer = 0,
+                         TO_Id: Integer,
+                         supplier: String,
+                         modeOfTransport: Integer,
+                         carrier: Integer,
+                         fromWeather: Integer,
+                         toWeather: Integer,
+                         sourceCity: Integer,
+                         destinationCity: Integer,
+                         TO_event_Id: Integer): Unit = {
+        val conn: Connection = splicemachineContext.getConnection()
+        try {
+          conn.setAutoCommit(true) //TBD - Need to set to false when DBAAS-570 is resolved
+          update(internalTN, source, Timestamp.valueOf(shippingDate), Timestamp.valueOf(originalDeliveryDate), qty, CHANGE_AT_ST)
+          update(internalTN, destination, Timestamp.valueOf(shippingDate), Timestamp.valueOf(originalDeliveryDate), -qty, CHANGE_AT_ET)
+          update(internalTN, source, Timestamp.valueOf(shippingDate), Timestamp.valueOf(newDeliveryDate), -qty, CHANGE_AT_ST)
+          update(internalTN, destination, Timestamp.valueOf(shippingDate), Timestamp.valueOf(newDeliveryDate), qty, CHANGE_AT_ET)
+          saveToDeliveryChgEvent(Timestamp.valueOf(originalDeliveryDate),Timestamp.valueOf(newDeliveryDate),TO_Id,supplier, modeOfTransport, carrier,fromWeather, toWeather, sourceCity, destinationCity, TO_event_Id)
+          //TODO UpdateTODeliveryDate();
+          conn.commit()
+        }
+        catch {
+          case exp: WriteConflict => {
+            conn.rollback()
+            conn.setAutoCommit(true)
+            if (retryCount < MAX_RETRIES) {
+              changeDelivery(source, destination, shippingDate, originalDeliveryDate, newDeliveryDate, qty, retryCount + 1,
+                TO_Id,
+                supplier,
+                modeOfTransport,
+                carrier,
+                fromWeather,
+                toWeather,
+                sourceCity: Integer,
+                destinationCity: Integer,
+                TO_event_Id)
+            }
+            else {
+              // put code here to too many re-tries
+            }
+          }
+          case _: Throwable => println("Got some other kind of exception")
+        }
+        finally {
+          conn.setAutoCommit(true)
+        }
+      }
+
+
+      /**
+        *
+        * initialize (id startOfTime endOfTime value)
+        * @return
+        */
+      def saveToDeliveryChgEvent(
+               deliveryDate: Timestamp,
+               modDeliveryDate: Timestamp,
+               TO_Id: Integer,
+               supplier: String,
+               modeOfTransport: Integer,
+               carrier: Integer,
+               fromWeather: Integer,
+               toWeather: Integer,
+               sourceCity: Integer,
+               destinationCity: Integer,
+               TO_event_Id: Integer): Unit = {
+
+        val optionMap = Map(
+          JDBCOptions.JDBC_TABLE_NAME -> TODelviraryChgEventTable,
+          JDBCOptions.JDBC_URL -> defaultJDBCURL
+        )
+        val JDBCOps = new JDBCOptions(optionMap)
+        val conn = JdbcUtils.createConnectionFactory(JDBCOps)()
+        try {
+          var ps = conn.prepareStatement("insert into " + TODelviraryChgEventTable + TODEColumnsInsertString + TODEColumnsInsertStringValues)
+          ps.setLong(TODE_TO_Event_ID, TO_event_Id.toLong)
+          ps.setLong(TODE_TO_Id, TO_Id.toLong)
+          ps.setLong(TODE_ShipFrom, sourceCity.toLong)
+          ps.setLong(TODE_ShipTo, destinationCity.toLong)
+           ps.setTimestamp(TODE_DeliveryDate, deliveryDate)
+          ps.setTimestamp(TODE_ModDeliveryDate, modDeliveryDate)
+          ps.setString(TODE_Supplier, supplier)
+          ps.setShort(TODE_TransportMode, modeOfTransport.toShort)
+          ps.setLong(TODE_Carrier, carrier.toLong)
+          ps.setShort(TODE_FromWeather, fromWeather.toShort)
+          ps.setShort(TODE_ToWeather, toWeather.toShort)
+          ps.execute()
+        } finally {
+          conn.close()
+        }
+      }
+
     }
 
 

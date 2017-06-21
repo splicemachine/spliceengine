@@ -63,6 +63,20 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
 
 
 
+
+  val TODE_TO_Event_ID = 1
+  val TODE_TO_Id = 2
+  val TODE_ShipFrom = 3
+  val TODE_ShipTo = 4
+  val TODE_DeliveryDate = 5
+  val TODE_ModDeliveryDate = 6
+  val TODE_Supplier = 7
+  val TODE_TransportMode = 8
+  val TODE_Carrier = 9
+  val TODE_FromWeather = 10
+  val TODE_ToWeather = 11
+
+
   val appID = new Date().toString + math.floor(math.random * 10E4).toLong.toString
 
   val defaultJDBCURL = "jdbc:splice://localhost:1527/splicedb;user=splice;password=admin"
@@ -275,7 +289,8 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
     "Container, " +
     "TransportMode, " +
     "Carrier, " +
-    "Weather, " +
+    "FromWeather, " +
+    "ToWeather, " +
     "Latitude, " +
     "Longitude "
 
@@ -293,6 +308,67 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
     }
     conn.createStatement().execute("create table " + table + TOColumnsWithPrimaryKey)
   }
+
+
+  val TODelviraryChgEventTable = schema + "." + "TO_DELIVERY_CHG_EVENT"
+
+
+  val TODEColumnsWithPrimaryKey = "(" +
+    "TO_event_Id bigint, " +
+    "TO_Id bigint, " +
+    "ShipFrom bigint, " +
+    "ShipTo bigint, " +
+    "DeliveryDate timestamp, " +
+    "ModDeliveryDate timestamp, " +
+    "Supplier varchar(100), " +
+    "TransportMode smallint, " +
+    "Carrier bigint, " +
+    "FromWeather smallint, " +
+    "ToWeather smallint, " +
+    "primary key (TO_event_Id)" +
+    ")"
+
+
+  val TODEColumnsInsertString = "(" +
+    "TO_event_Id, " +
+    "TO_Id, " +
+    "ShipFrom, " +
+    "ShipTo, " +
+    "DeliveryDate, " +
+    "ModDeliveryDate, " +
+    "Supplier, " +
+    "TransportMode, " +
+    "Carrier, " +
+    "FromWeather, " +
+    "ToWeather " +
+    ") "
+
+  val TODEColumnsSelectString = "TO_event_Id, " +
+    "TO_Id, " +
+    "ShipFrom, " +
+    "ShipTo, " +
+    "DeliveryDate, " +
+    "Supplier, " +
+    "TransportMode, " +
+    "Carrier, " +
+    "FromWeather," +
+    "ToWeather "
+
+  val TODEColumnsInsertStringValues = "values (?,?,?,?,?,?,?,?,?,?,?)"
+
+  /**
+    *
+    * @param table table name of timeline
+    * @return
+    */
+  def createTODeliveryChgEventTable(table: String): Unit = {
+    val conn = JdbcUtils.createConnectionFactory(internalJDBCOptions)()
+    if (splicemachineContext.tableExists(table)){
+      conn.createStatement().execute("drop table " + table)
+    }
+    conn.createStatement().execute("create table " + table + TODEColumnsWithPrimaryKey)
+  }
+
 
   case class City(name: String, Latitude: Double, Longitude: Double, state: String)
 
