@@ -3529,6 +3529,7 @@ analyzeTableStatement() throws StandardException :
         parameterList.addElement(samplePercent);
     }
 
+    // add parameter staleOnly
     b =(BooleanConstantNode)getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
                     Boolean.FALSE,
                     getContextManager());
@@ -3585,7 +3586,7 @@ analyzeSchemaStatement() throws StandardException :
                 getContextManager());
     parameterList.addElement(schema);
 
-
+    //add parameter staleOnly
     b =(BooleanConstantNode)getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
                 Boolean.FALSE,
                 getContextManager());

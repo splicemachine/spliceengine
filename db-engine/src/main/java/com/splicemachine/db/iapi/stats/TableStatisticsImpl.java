@@ -29,6 +29,8 @@
  * and are licensed to you under the GNU Affero General Public License.
  */
 package com.splicemachine.db.iapi.stats;
+import com.splicemachine.db.impl.sql.catalog.SYSTABLESTATISTICSRowFactory;
+
 import java.util.Comparator;
 import java.util.List;
 
@@ -46,6 +48,7 @@ public class TableStatisticsImpl implements TableStatistics {
     private int avgRowWidth = 0;
     private double fallbackNullFraction;
     private double extraQualifierMultiplier;
+    private boolean isMergedStats;
 
     public TableStatisticsImpl() {
 
@@ -69,6 +72,13 @@ public class TableStatisticsImpl implements TableStatistics {
         assert partitionStatistics.size() > 0:"Partition statistics are 0";
         this.fallbackNullFraction = fallbackNullFraction;
         this.extraQualifierMultiplier = extraQualifierMultiplier;
+        isMergedStats = false;
+        if (partitionStatistics.size() > 0) {
+            if (partitionStatistics.get(0).getPartitionStatistics() != null) {
+                int statsType = partitionStatistics.get(0).getPartitionStatistics().getStatsType();
+                isMergedStats = statsType == SYSTABLESTATISTICSRowFactory.REGULAR_MERGED_STATS || statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS;
+            }
+        }
     }
 
     /**
@@ -122,6 +132,11 @@ public class TableStatisticsImpl implements TableStatistics {
      */
     @Override
     public PartitionStatistics getEffectivePartitionStatistics()  {
+        // if stats has already been merged, directly use it
+        if (isMergedStats) {
+            return partitionStatistics.size() == 0 ? null : partitionStatistics.get(0);
+        }
+
         try {
             ColumnStatisticsMerge[] itemStatisticsBuilder = null;
             boolean fake = false;
@@ -265,7 +280,10 @@ public class TableStatisticsImpl implements TableStatistics {
      */
     @Override
     public int numPartitions() {
-        return partitionStatistics.size();
+        if (isMergedStats)
+            return (partitionStatistics.size()==0) ? 0:(int)(partitionStatistics.get(0).getPartitionStatistics().getNumberOfPartitions());
+        else
+            return partitionStatistics.size();
     }
 
 
