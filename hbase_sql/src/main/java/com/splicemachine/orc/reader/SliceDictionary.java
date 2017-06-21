@@ -17,9 +17,6 @@ import io.airlift.slice.Slice;
 import org.apache.parquet.column.Dictionary;
 import org.apache.parquet.column.Encoding;
 import org.apache.parquet.io.api.Binary;
-import org.apache.spark.memory.MemoryMode;
-import org.apache.spark.sql.execution.vectorized.ColumnVector;
-import org.apache.spark.sql.types.DataTypes;
 
 import java.util.Arrays;
 

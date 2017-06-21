@@ -31,8 +31,6 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.Streams;
 import javax.annotation.Nullable;
-import java.io.IOException;
-import java.io.ObjectInput;
 import java.util.Iterator;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;

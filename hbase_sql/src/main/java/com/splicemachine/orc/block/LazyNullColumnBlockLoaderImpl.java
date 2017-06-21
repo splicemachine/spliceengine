@@ -14,7 +14,7 @@
 package com.splicemachine.orc.block;
 
 import org.apache.spark.sql.types.DataType;
-import java.io.IOException;
+
 import static java.util.Objects.requireNonNull;
 
 /**

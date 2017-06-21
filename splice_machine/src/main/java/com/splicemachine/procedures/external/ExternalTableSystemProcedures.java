@@ -15,7 +15,6 @@
 package com.splicemachine.procedures.external;
 
 import com.splicemachine.EngineDriver;
-import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -26,12 +25,9 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.derby.utils.SpliceAdmin;
 
-import com.splicemachine.procedures.ProcedureUtils;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /**

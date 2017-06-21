@@ -16,14 +16,12 @@ package com.splicemachine.derby.lifecycle;
 
 import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.backup.BackupManager;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.impl.sql.*;
 import com.splicemachine.access.api.DatabaseVersion;
-import com.splicemachine.derby.impl.sql.NoOpManager;
 import com.splicemachine.management.DatabaseAdministrator;
 import com.splicemachine.management.DirectDatabaseAdministrator;
 import com.splicemachine.management.Manager;

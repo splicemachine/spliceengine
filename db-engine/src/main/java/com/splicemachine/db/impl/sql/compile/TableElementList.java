@@ -69,7 +69,6 @@ import	com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 
 import com.splicemachine.db.catalog.UUID;
-import org.apache.commons.lang.ArrayUtils;
 
 import java.util.*;
 

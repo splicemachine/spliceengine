@@ -14,14 +14,10 @@
 
 package com.splicemachine.derby.impl.sql;
 
-import com.splicemachine.access.api.PartitionAdmin;
-import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.storage.MPartitionLoad;
 import com.splicemachine.storage.PartitionLoad;
-import com.splicemachine.storage.PartitionServer;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 

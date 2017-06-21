@@ -16,12 +16,7 @@ package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.SortCostController;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.impl.sql.compile.OrderByColumn;
-import com.splicemachine.db.impl.sql.compile.OrderByList;
-import com.splicemachine.db.impl.sql.compile.OrderedColumn;
 
 /**
  * CostController for a TEMP-table based algorithm for computing Grouped Aggregates.

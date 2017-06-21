@@ -35,8 +35,6 @@ import org.spark_project.guava.collect.PeekingIterator;
 import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;

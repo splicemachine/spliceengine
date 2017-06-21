@@ -14,7 +14,6 @@
 
 package com.splicemachine.si.impl.region;
 
-import com.google.common.primitives.Longs;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 

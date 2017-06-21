@@ -18,7 +18,7 @@ import com.splicemachine.orc.checkpoint.LongStreamDwrfCheckpoint;
 import com.splicemachine.orc.metadata.OrcType.OrcTypeKind;
 import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataType;
-import org.apache.spark.sql.types.StructType;
+
 import java.io.IOException;
 import static com.splicemachine.orc.stream.LongDecode.readDwrfLong;
 import static com.google.common.base.Preconditions.checkPositionIndex;

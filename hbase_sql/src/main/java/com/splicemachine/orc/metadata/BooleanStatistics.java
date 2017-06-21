@@ -14,7 +14,6 @@
 package com.splicemachine.orc.metadata;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLBoolean;
 import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
 

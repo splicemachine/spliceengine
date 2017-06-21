@@ -21,7 +21,6 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.impl.driver.SIDriver;
-import org.apache.commons.httpclient.URIException;
 
 import java.io.IOException;
 import java.net.URISyntaxException;

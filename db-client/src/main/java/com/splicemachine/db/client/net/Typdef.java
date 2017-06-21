@@ -31,8 +31,6 @@ import com.splicemachine.db.client.am.SignedBinary;
 import com.splicemachine.db.client.am.ClientMessageId;
 import com.splicemachine.db.shared.common.reference.SQLState;
 
-import java.sql.Types;
-
 //
 //  General Notes
 //  Descriptors are overriden using two distinct mechanisms

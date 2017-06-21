@@ -15,8 +15,6 @@
 package com.splicemachine.derby.stream.function;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Iterator;

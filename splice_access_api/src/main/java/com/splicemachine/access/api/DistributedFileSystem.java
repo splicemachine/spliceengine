@@ -19,7 +19,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
-import java.nio.file.spi.FileSystemProvider;
 
 /**
  * @author Scott Fines

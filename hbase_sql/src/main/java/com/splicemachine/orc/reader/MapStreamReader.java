@@ -20,11 +20,9 @@ import com.splicemachine.orc.stream.BooleanStream;
 import com.splicemachine.orc.stream.LongStream;
 import com.splicemachine.orc.stream.StreamSource;
 import com.splicemachine.orc.stream.StreamSources;
-import org.apache.spark.memory.MemoryMode;
 import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.MapType;
-import org.apache.spark.sql.types.StructType;
 import org.joda.time.DateTimeZone;
 
 import javax.annotation.Nonnull;

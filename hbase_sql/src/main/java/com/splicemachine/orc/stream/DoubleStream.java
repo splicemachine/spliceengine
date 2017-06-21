@@ -18,7 +18,7 @@ import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataType;
-import org.apache.spark.sql.types.StructType;
+
 import java.io.IOException;
 import static com.splicemachine.orc.stream.OrcStreamUtils.readFully;
 import static com.splicemachine.orc.stream.OrcStreamUtils.skipFully;

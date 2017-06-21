@@ -24,7 +24,6 @@ import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import io.airlift.units.DataSize;
 import org.apache.spark.sql.types.DataType;
-import org.apache.spark.sql.types.StructType;
 import org.joda.time.DateTimeZone;
 import java.io.IOException;
 import java.io.InputStream;

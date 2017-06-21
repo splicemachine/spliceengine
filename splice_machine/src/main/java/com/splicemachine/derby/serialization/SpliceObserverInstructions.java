@@ -20,7 +20,6 @@ import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ParameterValueSet;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;

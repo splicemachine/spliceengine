@@ -21,7 +21,6 @@ import com.splicemachine.orc.OrcPredicate;
 import com.splicemachine.orc.metadata.*;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
-import org.apache.parquet.column.statistics.LongStatistics;
 import org.apache.spark.sql.types.*;
 import org.apache.spark.sql.types.DataType;
 import java.io.*;

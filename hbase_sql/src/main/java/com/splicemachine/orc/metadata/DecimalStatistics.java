@@ -14,8 +14,6 @@
 package com.splicemachine.orc.metadata;
 
 import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
-import io.airlift.slice.Slice;
-import io.airlift.slice.Slices;
 
 import java.io.IOException;
 import java.math.BigDecimal;

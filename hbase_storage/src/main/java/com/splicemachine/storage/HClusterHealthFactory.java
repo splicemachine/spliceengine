@@ -17,17 +17,10 @@
 
 package com.splicemachine.storage;
 
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.derby.hbase.AllocatedFilter;
 import com.splicemachine.si.api.server.ClusterHealth;
-import org.apache.hadoop.hbase.filter.CompareFilter;
-import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
-
-import java.io.IOException;
 
 /**
  * @author Scott Fines

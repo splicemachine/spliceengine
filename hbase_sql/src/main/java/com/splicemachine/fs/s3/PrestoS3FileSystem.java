@@ -21,7 +21,6 @@ import splice.aws.com.amazonaws.auth.*;
 import splice.aws.com.amazonaws.event.ProgressEvent;
 import splice.aws.com.amazonaws.event.ProgressEventType;
 import splice.aws.com.amazonaws.event.ProgressListener;
-import splice.aws.com.amazonaws.internal.StaticCredentialsProvider;
 import splice.aws.com.amazonaws.regions.Region;
 import splice.aws.com.amazonaws.regions.Regions;
 import splice.aws.com.amazonaws.services.s3.AmazonS3;

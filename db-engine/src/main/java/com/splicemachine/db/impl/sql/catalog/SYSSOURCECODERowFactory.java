@@ -49,7 +49,6 @@ import com.splicemachine.db.iapi.types.SQLVarchar;
 import org.joda.time.DateTime;
 
 import java.sql.Blob;
-import java.sql.Timestamp;
 import java.sql.Types;
 
 public class SYSSOURCECODERowFactory extends CatalogRowFactory {

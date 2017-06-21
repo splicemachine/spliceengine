@@ -17,8 +17,6 @@ package com.splicemachine.derby.impl.sql.execute.pin;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 
 import java.io.Externalizable;
 import java.io.IOException;
