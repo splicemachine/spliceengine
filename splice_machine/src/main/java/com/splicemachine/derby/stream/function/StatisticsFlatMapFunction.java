@@ -18,6 +18,7 @@ import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
+import com.splicemachine.db.impl.sql.catalog.SYSTABLESTATISTICSRowFactory;
 import com.splicemachine.db.impl.sql.execute.StatisticsRow;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
@@ -101,7 +102,7 @@ public class StatisticsFlatMapFunction
                 rows.add(new LocatedRow(StatisticsAdmin.generateRowFromStats(conglomId,SITableScanner.regionId.get(),columnPositionMap[i],itemStatistics[i])));
             }
             rows.add(new LocatedRow(StatisticsAdmin.generateRowFromStats(conglomId,SITableScanner.regionId.get(),rowCount,rowCount*((long)meanRowWidth),meanRowWidth,1l,
-                    useSample?1:0, useSample?sampleFraction:0.0d)));
+                    useSample? SYSTABLESTATISTICSRowFactory.SAMPLE_NONMERGED_STATS:SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS, useSample?sampleFraction:0.0d)));
             return rows.iterator();
         } else {
             rows = new ArrayList<>(columnPositionMap.length);
@@ -112,7 +113,8 @@ public class StatisticsFlatMapFunction
                     rows.add(new LocatedRow(StatisticsAdmin.generateRowFromStats(conglomId, SITableScanner.regionId.get(), columnPositionMap[i], new ColumnStatisticsImpl(template.getColumn(i+1)) )));
             }
             rows.add(new LocatedRow(
-                    StatisticsAdmin.generateRowFromStats(conglomId,SITableScanner.regionId.get(),0,0,0,1L,useSample?1:0, useSample?sampleFraction:0.0d)));
+                    StatisticsAdmin.generateRowFromStats(conglomId,SITableScanner.regionId.get(),0,0,0,1L,
+                            useSample?SYSTABLESTATISTICSRowFactory.SAMPLE_NONMERGED_STATS:SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS, useSample?sampleFraction:0.0d)));
             return rows.iterator();
         }
     }

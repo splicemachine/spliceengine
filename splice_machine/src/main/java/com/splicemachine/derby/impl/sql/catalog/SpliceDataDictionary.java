@@ -58,6 +58,7 @@ import org.apache.log4j.Logger;
 import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Properties;
 
 /**
@@ -561,6 +562,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             SpliceLogUtils.info(LOG, "Catalog upgraded: added SYS.SYSSNAPSHOTS table.");
         }
         createOrUpdateAllSystemProcedures(tc);
+
+        updateSysTableStatsView1(tc);
     }
 
     private void addNewColumToSystables(TransactionController tc) throws StandardException {
@@ -729,6 +732,24 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             return true;
         }
         return false;
+    }
+
+
+    private void updateSysTableStatsView1(TransactionController tc) throws StandardException{
+        //drop table descriptor corresponding to the tablestats view and add
+        SchemaDescriptor sd=getSystemSchemaDescriptor();
+        TableDescriptor td = getTableDescriptor("SYSTABLESTATISTICS", sd, tc);
+
+        ViewDescriptor vd=getViewDescriptor(td);
+        // check if the view definition is the same or not
+        if (Objects.equals(vd.getViewText(), SYSTABLESTATISTICSRowFactory.STATS_VIEW_SQL))
+            return;
+        dropViewDescriptor(vd, tc);
+        DataDescriptorGenerator ddg=getDataDescriptorGenerator();
+        vd=ddg.newViewDescriptor(td.getUUID(),"SYSTABLESTATISTICS",
+                SYSTABLESTATISTICSRowFactory.STATS_VIEW_SQL,0,sd.getUUID());
+        addDescriptor(vd,sd,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc);
+        SpliceLogUtils.info(LOG, "SYS.SYSVIEWS upgraded: updated view SYSTABLESTATISTICS's definition");
     }
 
     private void addTableIfAbsent(TransactionController tc,SchemaDescriptor systemSchema,TabInfoImpl sysTableToAdd,

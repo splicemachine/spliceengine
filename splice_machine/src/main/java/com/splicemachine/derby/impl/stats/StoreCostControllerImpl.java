@@ -28,6 +28,7 @@ import com.splicemachine.db.iapi.stats.*;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.impl.sql.catalog.SYSTABLESTATISTICSRowFactory;
 import com.splicemachine.db.vti.VTICosting;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.primitives.Bytes;
@@ -78,6 +79,7 @@ public class StoreCostControllerImpl implements StoreCostController {
     private boolean noStats;
     private boolean isSampleStats;
     private double sampleFraction;
+    private boolean isMergedStats;
 
 
     public StoreCostControllerImpl(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, List<PartitionStatisticsDescriptor> partitionStatistics) throws StandardException {
@@ -96,9 +98,20 @@ public class StoreCostControllerImpl implements StoreCostController {
             conglomerateColumns = (conglomerateDescriptor.getColumnNames() == null) ? 2 : conglomerateDescriptor.getColumnNames().length;
         }
         byte[] table = Bytes.toBytes(tableId);
+
+        isSampleStats = false;
+        sampleFraction = 0.0d;
+        if (partitionStatistics.size() > 0) {
+            int statsType = partitionStatistics.get(0).getStatsType();
+            isSampleStats = statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_NONMERGED_STATS || statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS;
+            isMergedStats = statsType == SYSTABLESTATISTICSRowFactory.REGULAR_MERGED_STATS || statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS;
+            if (isSampleStats)
+                sampleFraction = partitionStatistics.get(0).getSampleFraction();
+        }
+
         List<Partition> partitions = new ArrayList<>();
         List<PartitionStatistics> partitionStats;
-        if (td.getTableType() != TableDescriptor.EXTERNAL_TYPE) {
+        if (td.getTableType() != TableDescriptor.EXTERNAL_TYPE && !isMergedStats) {
             getPartitions(table, partitions, false);
             assert partitions != null && !partitions.isEmpty() : "No Partitions returned";
             List<String> partitionNames = Lists.transform(partitions, partitionNameTransform);
@@ -128,13 +141,6 @@ public class StoreCostControllerImpl implements StoreCostController {
             }
         }
 
-        isSampleStats = false;
-        sampleFraction = 0.0d;
-        if (partitionStatistics.size() > 0) {
-            isSampleStats = partitionStatistics.get(0).getStatsType() == 1;
-            if (isSampleStats)
-                sampleFraction = partitionStatistics.get(0).getSampleFraction();
-        }
         /*
          * We cannot have *zero* completely populated items unless we have no column statistics, but in that case
          * we have no table information either, so just return an empty list and let the caller figure out
