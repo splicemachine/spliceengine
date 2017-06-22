@@ -681,7 +681,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             byte[] salt=null;
             int iterations=1;
 
-            if(algorithm.length()>0){
+            if(!algorithm.isEmpty()){
 
                 if(supportKeyStretching){
                     salt=generateRandomSalt(props);
@@ -4640,7 +4640,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 SYSCONSTRAINTSRowFactory.SYSCONSTRAINTS_INDEX1_ID,
                 SYSCONSTRAINTSRowFactory.SYSCONSTRAINTS_TABLEID);
 
-        if(slist.size()==0){
+        if(slist.isEmpty()){
             return null;
         }
 

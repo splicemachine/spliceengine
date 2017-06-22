@@ -87,7 +87,7 @@ public class SpecificAuthenticationServiceImpl
 					properties,
 					Property.AUTHENTICATION_PROVIDER_PARAMETER);
 		return ((specificAuthenticationScheme != null) &&
-			  (specificAuthenticationScheme.length() != 0) &&
+			  (!specificAuthenticationScheme.isEmpty()) &&
 
 			  (!((StringUtil.SQLEqualsIgnoreCase(specificAuthenticationScheme,
 					  Property.AUTHENTICATION_PROVIDER_BUILTIN)) ||

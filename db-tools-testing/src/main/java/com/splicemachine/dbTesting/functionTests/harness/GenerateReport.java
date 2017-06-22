@@ -179,7 +179,7 @@ public class GenerateReport {
 			else // it's a directory
 			{
 				String newDir;
-				if (relativeName.length()>0)
+				if (!relativeName.isEmpty())
 					newDir = relativeName+"/"+fileName;
 				else newDir = fileName;
 				CollectPassFailStats(file, newDir);

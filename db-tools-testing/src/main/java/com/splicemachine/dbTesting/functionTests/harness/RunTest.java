@@ -280,9 +280,9 @@ public class RunTest
 	    String startTime = CurrentTime.getTime();
 	    StringBuffer sb = new StringBuffer();
 	    sb.append("*** Start: " + testBase + " jdk" + javaVersion + " ");
-	    if ( (framework.length()>0) && (!framework.startsWith("embedded")) )
+	    if ( (!framework.isEmpty()) && (!framework.startsWith("embedded")) )
 	        sb.append(framework + " ");
-	    if ( (suiteName != null) && (suiteName.length()>0) )
+	    if ( (suiteName != null) && (!suiteName.isEmpty()) )
 	        sb.append(suiteName + " ");
 	    sb.append(startTime + " ***");
 	    System.out.println(sb.toString());
@@ -574,7 +574,7 @@ public class RunTest
 		}
 
         // Check for runDir
-        if ( (runningdir != null) && (runningdir.length()>0) )
+        if ( (runningdir != null) && (!runningdir.isEmpty()) )
         {
             if (File.separatorChar == '\\')
             {
@@ -592,7 +592,7 @@ public class RunTest
         File tmpoutDir;
         String userdirWin = null;
             
-        if ( (outputdir == null) || (outputdir.length()==0) )
+        if ( (outputdir == null) || (outputdir.isEmpty()) )
         {
         	if (File.separatorChar == '\\')
             {
@@ -635,7 +635,7 @@ public class RunTest
 		{
 		    outDir = tmpoutDir;
 		    outDir.mkdir();
-		    if ( (topsuitedir != null) && (topsuitedir.length()>0) )
+		    if ( (topsuitedir != null) && (!topsuitedir.isEmpty()) )
                     {
                         if (File.separatorChar == '\\')
                         {
@@ -653,7 +653,7 @@ public class RunTest
 		        tsuiteDir = outDir;
                     }
 		    tsuiteDir.mkdir();
-		    if ( (topreportdir != null) && (topreportdir.length()>0) )
+		    if ( (topreportdir != null) && (!topreportdir.isEmpty()) )
                     {
                         if (File.separatorChar == '\\')
                         {
@@ -679,7 +679,7 @@ public class RunTest
         // For multi tests, the user should have specified mtestdir (full path)
         // unless this is a Suite, in which case outDir is used for mtestdir
         if ( testType.equals("multi") )
-            if ( (mtestdir == null) || (mtestdir.length()==0) )
+            if ( (mtestdir == null) || (mtestdir.isEmpty()) )
                 // Use outDir for mtestdir
                 mtestdir = outDir.getPath();
 
@@ -768,7 +768,7 @@ public class RunTest
                 baseDir = new File(outDir, suite);
             }
         }
-        else if ( (usesystem != null) && (usesystem.length()>0) )
+        else if ( (usesystem != null) && (!usesystem.isEmpty()) )
         {
             if (File.separatorChar == '\\')
             {
@@ -908,7 +908,7 @@ public class RunTest
         
         // before doing anything else, get jvmflags, evaluate any -D 
         // see if there is anything useful to the test harness in jvmflags
-        if ((jvmflags != null) && (jvmflags.length() > 0))
+        if ((jvmflags != null) && (!jvmflags.isEmpty()))
         {
             StringTokenizer st = new StringTokenizer(jvmflags,"^");
             while (st.hasMoreTokens())
@@ -971,7 +971,7 @@ public class RunTest
 		jvmName = sp.getProperty("jvm");
 
 		//System.out.println("jvmName is: " + jvmName);
-		if ( (jvmName == null) || (jvmName.length()==0) || (jvmName.equals("jview")))
+		if ( (jvmName == null) || (jvmName.isEmpty()) || (jvmName.equals("jview")))
 		{
 		    javaVersion = System.getProperty("java.version");
 		    //System.out.println("javaVersion is: " + javaVersion);
@@ -1264,7 +1264,7 @@ public class RunTest
 		        tsuiteName = suiteName; 
 		    else
 		        tsuiteName = sp.getProperty("suitename");
-		    if ( (tsuiteName != null) && (tsuiteName.length()>0) )
+		    if ( (tsuiteName != null) && (!tsuiteName.isEmpty()) )
 		    {	                
 		        skipFile = framework + "Useprocess.exclude";
 		        if (!framework.equals(""))
@@ -1284,7 +1284,7 @@ public class RunTest
 		{
 		    if (useprocess)
 		    	suiteName = sp.getProperty("suitename");
-		    if ( (suiteName != null) && (suiteName.length()>0) )
+		    if ( (suiteName != null) && (!suiteName.isEmpty()) )
 		    {
 		        // This is a suite run
 		        isSuiteRun = true;		        
@@ -1338,7 +1338,7 @@ public class RunTest
         // into properties to be merged with app and/or db props
         Properties ijProps = new Properties();
         Properties srvProps = new Properties();
-		if ( (testSpecialProps != null) && (testSpecialProps.length()>0))
+		if ( (testSpecialProps != null) && (!testSpecialProps.isEmpty()))
 		{
 		    SpecialFlags.parse(testSpecialProps, ijProps, srvProps);
 		}
@@ -1400,7 +1400,7 @@ clp.list(System.out);
                         // but if the original property is null, just put the srvProp
                         if (cval != null)
                         {
-			                if (cval.length() != 0) {
+			                if (!cval.isEmpty()) {
                                 // debug property exists, so edit it
                                 value = value + "," + cval;
                             } else {
@@ -1607,14 +1607,14 @@ clp.list(System.out);
             String apppropsjvmflags = ap.getProperty("jvmflags");
             if (apppropsjvmflags != null)
             {
-                if (jvmflags != null && jvmflags.length() > 0)
+                if (jvmflags != null && !jvmflags.isEmpty())
                     jvmflags = apppropsjvmflags + "^" + jvmflags;
                 else
                     jvmflags = apppropsjvmflags;
             }
             // see if there is anything useful for the test harness in jvmflags
             // from commandline or suite properties
-            if ((jvmflags != null) && (jvmflags.length() > 0))
+            if ((jvmflags != null) && (!jvmflags.isEmpty()))
             {
                 StringTokenizer st = new StringTokenizer(jvmflags,"^");
                 while (st.hasMoreTokens())
@@ -1632,7 +1632,7 @@ clp.list(System.out);
             }
 
             // Depending on the framework, the app prop file may need editing
-            if ( (framework.length()>0) || (encryption) )
+            if ( (!framework.isEmpty()) || (encryption) )
             {
                 try
                 {
@@ -1761,7 +1761,7 @@ clp.list(System.out);
 	        
    		// Also check for supportfiles
     		String suppFiles = ap.getProperty("supportfiles");
-			boolean copySupportFiles = ((suppFiles != null) && (suppFiles.length()>0));
+			boolean copySupportFiles = ((suppFiles != null) && (!suppFiles.isEmpty()));
 			boolean createExtDirs= new Boolean(ap.getProperty("useextdirs","false")).booleanValue();
     		if (copySupportFiles || createExtDirs)
     		{
@@ -1769,7 +1769,7 @@ clp.list(System.out);
 
     		    if (testType.equals("sql2"))
     		    {
-    		        if ( (isSuiteRun) || (framework.length()>0) )
+    		        if ( (isSuiteRun) || (!framework.isEmpty()) )
 						copyOutDir = outDir;
     		        else if ( (runDir != null) && (runDir.exists()) )
 						copyOutDir = runDir;
@@ -1778,7 +1778,7 @@ clp.list(System.out);
     		    }
     		    else if ( testType.equals("multi") )
     		    {
-    		        if ( (isSuiteRun) || (mtestdir == null) || (mtestdir.length()==0) )
+    		        if ( (isSuiteRun) || (mtestdir == null) || (mtestdir.isEmpty()) )
     		        {
 						copyOutDir = outDir;
     		        }
@@ -1983,7 +1983,7 @@ clp.list(System.out);
         // Some tests rely on no cleanup being done on the baseDir
         boolean okToDelete = false;
 
-        if ( (usesystem == null) || (usesystem.length()==0) )
+        if ( (usesystem == null) || (usesystem.isEmpty()) )
             okToDelete = true;
         else if (usesystem.equals("nist"))
         {
@@ -2030,9 +2030,9 @@ clp.list(System.out);
 	    String endTime = CurrentTime.getTime();
 	    StringBuffer sbend = new StringBuffer();
 	    sbend.append("*** End:   " + testBase + " jdk" + javaVersion + " ");
-	    if ( (framework.length()>0) && (!framework.startsWith("embedded")) )
+	    if ( (!framework.isEmpty()) && (!framework.startsWith("embedded")) )
 	        sbend.append(framework + " ");
-	    if ( (suiteName != null) && (suiteName.length()>0) )
+	    if ( (suiteName != null) && (!suiteName.isEmpty()) )
 	        sbend.append(suiteName + " ");
 	    sbend.append(endTime + " ***");
 	    System.out.println(sbend.toString());
@@ -2246,7 +2246,7 @@ clp.list(System.out);
 	addStandardTestJvmProps(Vector testJvmProps,String derbySystemHome,
 							String userDirName, jvm jvm)
 	{
-		if (derbySystemHome==null || derbySystemHome.length() == 0)
+		if (derbySystemHome==null || derbySystemHome.isEmpty())
 			derbySystemHome = userDirName;
 		testJvmProps.addElement("derby.system.home=" + derbySystemHome);
 		testJvmProps.addElement("derby.infolog.append=true ");
@@ -2271,7 +2271,7 @@ clp.list(System.out);
         if (javaCmd != null)
             jvm.setJavaCmd(javaCmd);
 
-        if ( (classpath != null) && (classpath.length()>0) )
+        if ( (classpath != null) && (!classpath.isEmpty()) )
             jvm.setClasspath(classpath);
         else  { // gd
         	jvm.setClasspath(System.getProperty("java.class.path"));
@@ -2288,7 +2288,7 @@ clp.list(System.out);
 			addStandardTestJvmProps(jvmProps,systemHome,
 				outDir.getCanonicalPath(),jvm);
 		
-        if ( (testJavaFlags != null) && (testJavaFlags.length()>0) )
+        if ( (testJavaFlags != null) && (!testJavaFlags.isEmpty()) )
         {
 	    String parsedFlags = setTestJavaFlags(testJavaFlags);
             StringTokenizer st = new StringTokenizer(parsedFlags," ");
@@ -2331,7 +2331,7 @@ clp.list(System.out);
         if (upgradejarpath != null)
             jvmProps.addElement("derbyTesting.jar.path=" + upgradejarpath);
             
-        if ( (jvmflags != null) && (jvmflags.length()>0) )
+        if ( (jvmflags != null) && (!jvmflags.isEmpty()) )
         {
             // We now replace any '^' in jvmflags with ' '
             if (jvmflags.indexOf("^")>0)
@@ -2394,11 +2394,11 @@ clp.list(System.out);
         }
         else if ( testType.equals("java") )
         {
-            if (javaPath.length() > 0)
+            if (!javaPath.isEmpty())
                 v.addElement(javaPath + "." + testBase);
             else
                 v.addElement(testBase);
-            if (propString.length() > 0)
+            if (!propString.isEmpty())
             {
                 v.addElement("-p");
                 v.addElement(propString);
@@ -2413,7 +2413,7 @@ clp.list(System.out);
         else if (testType.equals("junit"))
         {
             v.addElement("junit.textui.TestRunner");
-            if (javaPath.length() > 0) {
+            if (!javaPath.isEmpty()) {
                 v.addElement(javaPath + "." + testBase);
             } else {
                 v.addElement(testBase);

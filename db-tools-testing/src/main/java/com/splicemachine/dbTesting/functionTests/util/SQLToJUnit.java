@@ -383,7 +383,7 @@ public class SQLToJUnit
         else
         {
             String str = lineToWrite.toString();
-            if (str.trim().length() > 0)
+            if (!str.trim().isEmpty())
             {
                 junit.write("[**:: UNCONVERTED ::**] ");
                 junit.write(str);
@@ -807,7 +807,7 @@ public class SQLToJUnit
 
     private String strip(String str, String toStrip)
     {
-        if ((toStrip == null) || (toStrip.length() == 0))
+        if ((toStrip == null) || (toStrip.isEmpty()))
             return str;
 
         if (!str.trim().startsWith(toStrip))
@@ -819,7 +819,7 @@ public class SQLToJUnit
 
     private StringBuffer strip(StringBuffer sBuf, String toStrip)
     {
-        if ((toStrip == null) || (toStrip.length() == 0))
+        if ((toStrip == null) || (toStrip.isEmpty()))
             return sBuf;
 
         if (sBuf.length() == 0)
@@ -852,7 +852,7 @@ public class SQLToJUnit
     private int getLineType(String str)
     {
         str = strip(str, IJ_PROMPT).toLowerCase().trim();
-        if (str.length() == 0)
+        if (str.isEmpty())
             return BLANK_LINE;
         else if (str.startsWith(IJ_WARNING))
             return IWARNING;
@@ -1187,7 +1187,7 @@ public class SQLToJUnit
             while (nextline != null)
             {
                 nextline = nextline.trim();
-                if (nextline.length() == 0)
+                if (nextline.isEmpty())
                     nextline = ijScript.readLine();	
                 else
                     break;

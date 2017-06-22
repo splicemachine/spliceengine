@@ -127,6 +127,6 @@ public class JAXPFinder {
         }
 
         // If we didn't find the JAXP parser URL, then return null.
-        return ((jaxpURLString.length() == 0) ? null : jaxpURLString);
+        return ((jaxpURLString.isEmpty()) ? null : jaxpURLString);
     }
 }

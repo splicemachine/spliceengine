@@ -526,7 +526,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         }
 
         // Convert the Vector into an int[], if there are hash key columns
-        if (hashKeyVector.size() > 0) {
+        if (!hashKeyVector.isEmpty()) {
             int[] keyCols = new int[hashKeyVector.size()];
             for (int index = 0; index < keyCols.length; index++) {
                 keyCols[index] = ((Integer) hashKeyVector.get(index)).intValue();

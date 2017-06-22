@@ -2044,7 +2044,7 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 	private static void validateColumnNamePattern(String columnNamePattern) throws StandardException {
 
 		// Invalid patterns: null, empty string, does not contain at least one valid character (Java valid variable names and % wild cards: [%a-zA-Z_0-9\$]+).
-		if (columnNamePattern == null || columnNamePattern.length() == 0 || !columnNamePattern.matches("[%a-zA-Z_0-9\\$]+")) {
+		if (columnNamePattern == null || columnNamePattern.isEmpty() || !columnNamePattern.matches("[%a-zA-Z_0-9\\$]+")) {
 			throw StandardException.newException(SQLState.LANG_INVALID_FUNCTION_ARGUMENT, columnNamePattern, "validateColumnNamePattern");
 		}
 	}

@@ -101,7 +101,7 @@ public class StoreCostControllerImpl implements StoreCostController {
 
         isSampleStats = false;
         sampleFraction = 0.0d;
-        if (partitionStatistics.size() > 0) {
+        if (!partitionStatistics.isEmpty()) {
             int statsType = partitionStatistics.get(0).getStatsType();
             isSampleStats = statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_NONMERGED_STATS || statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS;
             isMergedStats = statsType == SYSTABLESTATISTICSRowFactory.REGULAR_MERGED_STATS || statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS;
@@ -146,7 +146,7 @@ public class StoreCostControllerImpl implements StoreCostController {
          * we have no table information either, so just return an empty list and let the caller figure out
          * what to do
          */
-        if (partitionStats.size() == 0) {
+        if (partitionStats.isEmpty()) {
             missingPartitions = 0;
             noStats = true;
             if (td.getTableType() != TableDescriptor.EXTERNAL_TYPE)

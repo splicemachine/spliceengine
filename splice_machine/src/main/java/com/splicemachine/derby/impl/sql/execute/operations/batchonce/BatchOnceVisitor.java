@@ -64,7 +64,7 @@ public class BatchOnceVisitor extends AbstractSpliceVisitor {
                 subqueryCount++;
                 subqueryNode = (SubqueryNode) resultColumnExpression;
                 correlatedSubqueryColRefList = isApplicableSubqueryNode(subqueryNode);
-                if (correlatedSubqueryColRefList != null && correlatedSubqueryColRefList.size() > 0) {
+                if (correlatedSubqueryColRefList != null && !correlatedSubqueryColRefList.isEmpty()) {
                     subqueryResultColumn = resultColumn;
                 }
             }

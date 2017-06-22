@@ -376,7 +376,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         if(action==REMOVE_PLAN){
             if(bestPlanMap!=null){
                 bestPlanMap.remove(planKey);
-                if(bestPlanMap.size()==0)
+                if(bestPlanMap.isEmpty())
                     bestPlanMap=null;
             }
 

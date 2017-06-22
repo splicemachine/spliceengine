@@ -138,7 +138,7 @@ public class CachedOperation extends SpliceBaseOperation {
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
 
-        if (rows.size() > 0) {
+        if (!rows.isEmpty()) {
             DataSet dataSet = dsp.createDataSet(rows.iterator());
             ds = dataSet.map(new CacheFunction(dsp.createOperationContext(this)));
         }

@@ -321,7 +321,7 @@ public final class InsertNode extends DMLModStatementNode {
 
 		/* Verify that all underlying ResultSets reclaimed their FromList */
 		if (SanityManager.DEBUG) {
-			SanityManager.ASSERT(fromList.size() == 0,
+			SanityManager.ASSERT(fromList.isEmpty(),
 				"fromList.size() is expected to be 0, not " + 
 				fromList.size() +
 				" on return from RS.bindExpressions()");

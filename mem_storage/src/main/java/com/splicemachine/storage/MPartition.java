@@ -540,7 +540,7 @@ public class MPartition implements Partition{
                if(dc.matchesFamily(familyQuals.getKey())){
                    foundFamily = true;
                    Set<byte[]> quals = familyQuals.getValue();
-                   if(quals.size()>0){
+                   if(!quals.isEmpty()){
                        boolean foundQual = false;
                        for(byte[] qual:quals){
                            if(dc.matchesQualifier(familyQuals.getKey(),qual)){

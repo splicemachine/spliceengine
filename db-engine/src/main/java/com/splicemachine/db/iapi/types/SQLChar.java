@@ -2481,7 +2481,7 @@ public class SQLChar
                     startVal);
         }
         
-        if( mySearchFor.length() == 0 )
+        if(mySearchFor.isEmpty())
         {
             result.setValue( startVal );
             return result;

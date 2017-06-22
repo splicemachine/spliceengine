@@ -1828,12 +1828,12 @@ public final class NetworkServerControlImpl {
 		{
 			try {
 				// nobody waiting - go on with current session
-				if (runQueue.size() == 0)
+				if (runQueue.isEmpty())
 				{
 					// no current session - wait for some work
 					if (currentSession == null)
 					{
-						while (runQueue.size() == 0)
+						while (runQueue.isEmpty())
 						{
 							// This thread has nothing to do now so 
 							// we will add it to freeThreads
@@ -2371,7 +2371,7 @@ public final class NetworkServerControlImpl {
 			}
 					
 			// look up command
-			if (commandArgs.size() > 0)
+			if (!commandArgs.isEmpty())
 			{
 				for (i = 0; i < COMMANDS.length; i++)
 				{

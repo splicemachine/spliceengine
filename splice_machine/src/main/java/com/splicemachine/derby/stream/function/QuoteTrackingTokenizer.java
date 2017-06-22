@@ -104,7 +104,7 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer{
                 return false; // EOF
             }
         }
-        while(ignoreEmptyLines && line.length()==0 || (commentMatcher!=null && commentMatcher.isComment(line)));
+        while(ignoreEmptyLines && line.isEmpty() || (commentMatcher!=null && commentMatcher.isComment(line)));
 
         // update the untokenized CSV row
         currentRow.append(line);
@@ -165,7 +165,7 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer{
 
                     currentRow.append(line); // update untokenized CSV row
 
-                    if(line.length()==0){
+                    if(line.isEmpty()){
                         // consecutive newlines
                         continue;
                     }

@@ -88,7 +88,7 @@ public class IndexController extends SpliceController{
             }
         }
         try {
-            if (rows.size() ==0) {
+            if (rows.isEmpty()) {
                 return 0;
             }
             Partition htable = getTable();

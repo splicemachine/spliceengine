@@ -893,7 +893,7 @@ public abstract class DDLConstantAction implements ConstantAction
 
         // nothing to do if there are no changed columns of udt type
         // and this is not a DROP TABLE command
-        if ( (!dropWholeTable) && (addUdtMap.size() == 0) && (dropUdtMap.size() == 0) ) { return; }
+        if ( (!dropWholeTable) && (addUdtMap.isEmpty()) && (dropUdtMap.isEmpty()) ) { return; }
 
         //
         // Now prune from the add list all udt descriptors for which we already have dependencies.
@@ -953,7 +953,7 @@ public abstract class DDLConstantAction implements ConstantAction
         throws StandardException
     {
         // again, nothing to do if there are no columns of udt type
-        if ( (addUdtMap.size() == 0) && (dropUdtMap.size() == 0) ) { return; }
+        if ( (addUdtMap.isEmpty()) && (dropUdtMap.isEmpty()) ) { return; }
 
 		TransactionController tc = lcc.getTransactionExecute();
         DependencyManager     dm = dd.getDependencyManager();

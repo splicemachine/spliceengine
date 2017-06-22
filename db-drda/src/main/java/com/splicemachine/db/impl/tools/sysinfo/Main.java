@@ -848,7 +848,7 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
 						v.addElement(zip);
 					}
 				}
-				if (v.size() > 0)
+				if (!v.isEmpty())
 				{
 					ZipInfoProperties cpzips[] = new ZipInfoProperties[v.size()];
 					v.copyInto(cpzips);
@@ -911,7 +911,7 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
 			al.add(ze);
         }
 
-        if (al.size() == 0)
+        if (al.isEmpty())
         {
             return null;
         }

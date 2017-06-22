@@ -73,7 +73,7 @@ public class RegionDataScanner implements DataScanner{
         internalList.clear();
         readTimer.startTiming();
         delegate.next(internalList);
-        if(internalList.size()>0){
+        if(!internalList.isEmpty()){
             readTimer.tick(1);
             collectMetrics(internalList);
         }else

@@ -539,7 +539,7 @@ public class EmbeddedDataSource extends ReferenceableDataSource implements
 			dbName = dbName.trim();
 		}
 
-		if (dbName == null || dbName.length() == 0) {
+		if (dbName == null || dbName.isEmpty()) {
 			// need to put something in so that we do not allow the
 			// database name to be set from the request or from the
 			// connection attributes.
@@ -556,7 +556,7 @@ public class EmbeddedDataSource extends ReferenceableDataSource implements
 		String connAttrs = getConnectionAttributes();
 		if (connAttrs != null) {
 			connAttrs = connAttrs.trim();
-			if (connAttrs.length() != 0) {
+			if (!connAttrs.isEmpty()) {
 				sb.append(';');
 				sb.append(connectionAttributes);
 			}

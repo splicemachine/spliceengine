@@ -99,7 +99,7 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
         /**
          * Stop if there are no subqueries.
          */
-        if (topSelectNode.getWhereSubquerys() == null || topSelectNode.getWhereSubquerys().size() == 0) {
+        if (topSelectNode.getWhereSubquerys() == null || topSelectNode.getWhereSubquerys().isEmpty()) {
             return node;
         }
 

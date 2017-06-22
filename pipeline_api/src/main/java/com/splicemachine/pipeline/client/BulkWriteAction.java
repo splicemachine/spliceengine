@@ -229,7 +229,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
                 clock.sleep(PipelineUtils.getPauseTime(ctx.attemptCount,10),TimeUnit.MILLISECONDS);
             }if(ctx.directRetry)
                 writesToPerform.add(nextWrite);
-            else if(ctx.nextWriteSet!=null &&ctx.nextWriteSet.size()>0){
+            else if(ctx.nextWriteSet!=null && !ctx.nextWriteSet.isEmpty()){
                 ctx.failed();
                 //rebuild a new buffer to retry from any records that need retrying
                 addToRetryCallBuffer(ctx.nextWriteSet,bulkWrites.getTxn(),ctx.refreshCache);
@@ -239,7 +239,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
                 writesToPerform.addAll(retryPipingCallBuffer.getBulkWrites());
                 retryPipingCallBuffer=null;
             }
-        }while(writesToPerform.size()>0);
+        }while(!writesToPerform.isEmpty());
     }
 
     private void executeSingle(BulkWrites nextWrite,WriteAttemptContext ctx) throws Exception{
@@ -315,10 +315,10 @@ public class BulkWriteAction implements Callable<WriteStats>{
                                 }
 
                                 Collection<KVPair> writes=PipelineUtils.doPartialRetry(currentBulkWrite,bulkWriteResult,id);
-                                if(writes.size()>0){
+                                if(!writes.isEmpty()){
                                     ctx.addBulkWrites(writes);
                                     // only redo cache if you have a failure not a lock contention issue
-                                    boolean isFailure=bulkWriteResult.getFailedRows()!=null && bulkWriteResult.getFailedRows().size()>0;
+                                    boolean isFailure=bulkWriteResult.getFailedRows()!=null && !bulkWriteResult.getFailedRows().isEmpty();
                                     ctx.refreshCache=ctx.refreshCache || isFailure;
                                     ctx.sleep=true; //always sleep
                                 }
@@ -408,7 +408,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
      */
     private String getFailedRowsMessage(IntObjectOpenHashMap<WriteResult> failedRows){
 
-        if(failedRows!=null && failedRows.size()>0){
+        if(failedRows!=null && !failedRows.isEmpty()){
 
             // Aggregate the error counts by code.
             HashMap<Code, Integer> errorCodeToCountMap=new HashMap<>();

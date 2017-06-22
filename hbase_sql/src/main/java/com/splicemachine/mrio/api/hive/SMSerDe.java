@@ -341,7 +341,7 @@ public class SMSerDe implements SerDe {
     }
 
     private static String trim(String s) {
-        if (s == null || s.length() == 0)
+        if (s == null || s.isEmpty())
             return s;
 
         int index = s.indexOf("(");

@@ -130,7 +130,7 @@ public abstract class GClass implements ClassBuilder {
 	        // first remove all array-ness
 	        while (typeName.endsWith("[]")) typeName = typeName.substring(0,typeName.length()-2);
 
-            SanityManager.ASSERT(typeName.length() > 0);
+            SanityManager.ASSERT(!typeName.isEmpty());
 
 	        // then check for primitive types
 	        if ("boolean".equals(typeName)) return;

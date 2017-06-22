@@ -496,7 +496,7 @@ public class IndexTransformer {
         baseGet =SIDriver.driver().getOperationFactory().newDataGet(ctx.getTxn(),mutation.getRowKey(),baseGet);
 
         EntryPredicateFilter epf;
-        if(indexedColumns!=null && indexedColumns.size()>0){
+        if(indexedColumns!=null && !indexedColumns.isEmpty()){
             epf = new EntryPredicateFilter(indexedColumns);
         }else epf = EntryPredicateFilter.emptyPredicate();
 

@@ -82,7 +82,7 @@ public final class TriggerInfo implements Formatable {
 
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(triggers != null, "null trigger descriptor list");
-            SanityManager.ASSERT(triggers != null && triggers.size() > 0, "trigger descriptor list has no elements");
+            SanityManager.ASSERT(triggers != null && !triggers.isEmpty(), "trigger descriptor list has no elements");
         }
 
         /* Copy the trigger descriptors into an array of the right type */

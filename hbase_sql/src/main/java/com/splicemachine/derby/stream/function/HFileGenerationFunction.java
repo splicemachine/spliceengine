@@ -109,7 +109,7 @@ public abstract class HFileGenerationFunction implements MapPartitionsFunction<R
                 }
             }
             close(writer);
-            if (hFiles.size() == 0) {
+            if (hFiles.isEmpty()) {
                 hFiles.add("Empty");
             }
             return hFiles.iterator();

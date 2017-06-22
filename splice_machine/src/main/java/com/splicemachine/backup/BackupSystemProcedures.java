@@ -66,7 +66,7 @@ public class BackupSystemProcedures {
         LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
         try {
             // Check directory
-            if (directory == null || directory.length() == 0) {
+            if (directory == null || directory.isEmpty()) {
                 throw StandardException.newException(SQLState.INVALID_BACKUP_DIRECTORY, directory);
             }
 
@@ -169,7 +169,7 @@ public class BackupSystemProcedures {
                                                    ResultSet[] resultSets) throws StandardException, SQLException {
 
         try{
-            if (directory == null || directory.length() == 0) {
+            if (directory == null || directory.isEmpty()) {
                 throw StandardException.newException(SQLState.INVALID_BACKUP_DIRECTORY, directory);
             }
 

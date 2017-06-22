@@ -162,7 +162,7 @@ public final class MessageService {
 
 		String messageId = sqlState; 	//use sqlState if we don't have messageId
 		Object[] arguments = null;
-		if (sqlerrmc != null && sqlerrmc.length() > 0)
+		if (sqlerrmc != null && !sqlerrmc.isEmpty())
 		{
 			char [] sqlerrmc_chars = sqlerrmc.toCharArray();
 			int numArgs = 0, lastSepIdx = -1; // last separator index

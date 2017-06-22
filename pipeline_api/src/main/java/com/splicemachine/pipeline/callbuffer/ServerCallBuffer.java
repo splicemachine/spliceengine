@@ -158,7 +158,7 @@ class ServerCallBuffer implements CallBuffer<Pair<byte[], PartitionBuffer>> {
             bws.add(value.getBulkWrite());
             value.clear(); // zero out
         }
-        if(bws.size()==0) return null;
+        if(bws.isEmpty()) return null;
         else
             return new BulkWrites(bws, this.txn, this.buffers.lastKey());
     }

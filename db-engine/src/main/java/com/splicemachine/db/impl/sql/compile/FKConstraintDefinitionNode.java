@@ -116,7 +116,7 @@ public final class FKConstraintDefinitionNode extends ConstraintDefinitionNode
 		getCompilerContext().createDependency(td);
 
 		// If references clause doesn't have columnlist, get primary key info
-		if (refRcl.size()==0 && (td.getPrimaryKey() != null))
+		if (refRcl.isEmpty() && (td.getPrimaryKey() != null))
 		{
 			// Get the primary key columns
 			int[] refCols = td.getPrimaryKey().getReferencedColumns();

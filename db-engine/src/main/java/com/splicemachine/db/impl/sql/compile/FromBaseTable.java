@@ -742,7 +742,7 @@ public class FromBaseTable extends FromTable {
         BitSet indexLookupList = null;
         int[] baseColumnPositions = null;
         ResultColumnList rcl = templateColumns;
-        if(rcl!=null&&rcl.size()>0){
+        if(rcl!=null&& !rcl.isEmpty()){
             scanColumnList = new BitSet(rcl.size());
             for(ResultColumn rc:rcl){
                 int columnPosition=rc.getColumnPosition();
@@ -1760,7 +1760,7 @@ public class FromBaseTable extends FromTable {
         FormatableBitSet indexReferencedStorageCols=null;
 
         //FormatableBitSet heapReferencedCols;
-        if((bulkFetch==UNSET) && (requalificationRestrictionList==null || requalificationRestrictionList.size()==0)){
+        if((bulkFetch==UNSET) && (requalificationRestrictionList==null || requalificationRestrictionList.isEmpty())){
 			/* No BULK FETCH or requalification, XOR off the columns coming from the heap 
 			 * to get the columns coming from the index.
 			 */
@@ -2861,9 +2861,9 @@ public class FromBaseTable extends FromTable {
      */
     void doSpecialMaxScan(){
         if(SanityManager.DEBUG){
-            if((restrictionList.size()!=0) ||
-                    (storeRestrictionList.size()!=0) ||
-                    (nonStoreRestrictionList.size()!=0)){
+            if((!restrictionList.isEmpty()) ||
+                    (!storeRestrictionList.isEmpty()) ||
+                    (!nonStoreRestrictionList.isEmpty())){
                 SanityManager.THROWASSERT("shouldn't be setting max special scan because there is a restriction");
             }
         }
@@ -2878,7 +2878,7 @@ public class FromBaseTable extends FromTable {
      * @return Whether or not it is possible to do a distinct scan on this ResultSet tree.
      */
     boolean isPossibleDistinctScan(Set<BaseColumnNode> distinctColumns){
-        if((restrictionList!=null && restrictionList.size()!=0)){
+        if((restrictionList!=null && !restrictionList.isEmpty())){
             return false;
         }
 
@@ -3286,7 +3286,7 @@ public class FromBaseTable extends FromTable {
         if (indexName != null)
             sb.append(",baseTable=").append(getPrettyTableName());
         List<String> qualifiers =  Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
-        if(qualifiers!=null && qualifiers.size()>0) //add
+        if(qualifiers!=null && !qualifiers.isEmpty()) //add
             sb.append(",preds=[").append(Joiner.on(",").skipNulls().join(qualifiers)).append("]");
         sb.append(")");
         return sb.toString();
@@ -3303,7 +3303,7 @@ public class FromBaseTable extends FromTable {
         if (indexName != null)
             sb.append(attrDelim).append("baseTable=").append(getPrettyTableName());
         List<String> qualifiers = Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
-        if (qualifiers != null && qualifiers.size() > 0)
+        if (qualifiers != null && !qualifiers.isEmpty())
             sb.append(attrDelim).append("preds=[").append(Joiner.on(",").skipNulls().join(qualifiers)).append("]");
         sb.append(")");
         return sb.toString();

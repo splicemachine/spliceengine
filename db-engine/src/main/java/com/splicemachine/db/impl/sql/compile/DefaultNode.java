@@ -162,7 +162,7 @@ public  class DefaultNode extends ValueNode
 
 		if (SanityManager.DEBUG)
 		{
-			SanityManager.ASSERT(fromList.size() != 0,
+			SanityManager.ASSERT(!fromList.isEmpty(),
 				"fromList expected to be non-empty");
 			if (! (fromList.elementAt(0) instanceof FromBaseTable))
 			{

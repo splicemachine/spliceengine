@@ -141,7 +141,7 @@ public class TransactionImpl extends BaseTransaction {
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"commit, state="+state+" for transaction "+(txnStack.peekLast()==null?"null":txnStack.getLast().getSecond()));
 
-        while(txnStack.size()>0){
+        while(!txnStack.isEmpty()){
             Pair<String, Txn> userPair=txnStack.pop();
             doCommit(userPair);
         }
@@ -161,7 +161,7 @@ public class TransactionImpl extends BaseTransaction {
         SpliceLogUtils.debug(LOG,"abort");
         if(state!=ACTIVE)
             return;
-        while(txnStack.size()>0){
+        while(!txnStack.isEmpty()){
             txnStack.pop().getSecond().rollback();
         }
         state=IDLE;
@@ -172,7 +172,7 @@ public class TransactionImpl extends BaseTransaction {
     public String getActiveStateTxIdString(){
         SpliceLogUtils.debug(LOG,"getActiveStateTxIdString");
         setActiveState(false,false,null);
-        if(txnStack.size()>0)
+        if(!txnStack.isEmpty())
             return txnStack.peek().getSecond().toString();
         else
             return null;
@@ -180,7 +180,7 @@ public class TransactionImpl extends BaseTransaction {
 
     public Txn getActiveStateTxn(){
         setActiveState(false,false,null);
-        if(txnStack.size()>0)
+        if(!txnStack.isEmpty())
             return txnStack.peek().getSecond();
         else
             return null;
@@ -215,7 +215,7 @@ public class TransactionImpl extends BaseTransaction {
     }
 
     public Txn getTxn(){
-        if(txnStack.size()>0)
+        if(!txnStack.isEmpty())
             return txnStack.peek().getSecond();
         return null;
     }

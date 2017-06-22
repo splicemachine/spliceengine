@@ -987,7 +987,7 @@ public class BasicDependencyManager implements DependencyManager {
 
 		deps.remove(d);
 
-		if (deps.size() == 0)
+		if (deps.isEmpty())
 			providers.remove(p);
 	}
 

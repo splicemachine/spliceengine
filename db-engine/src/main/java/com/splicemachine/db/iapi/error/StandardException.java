@@ -608,7 +608,7 @@ public class StandardException extends Exception
 			}
 
 			// if no message, use the class name
-			if (detailMessage.length() == 0) {
+			if (detailMessage.isEmpty()) {
 				detailMessage = t.getClass().getName();
 			}
 			else {

@@ -429,7 +429,7 @@ public final class util implements java.security.PrivilegedAction {
 	// deprecate the non-ij prefix.  actually, we should defer to jdbc.drivers...
         driverName = util.getSystemProperty("driver");
         if (driverName == null) driverName = util.getSystemProperty("ij.driver");
-	if (driverName == null || driverName.length()==0) driverName = defaultDriver;
+	if (driverName == null || driverName.isEmpty()) driverName = defaultDriver;
         if (driverName != null && IS_AT_LEAST_JDBC2) {
 	    util.loadDriver(driverName);
 	}
@@ -444,7 +444,7 @@ public final class util implements java.security.PrivilegedAction {
 	// deprecate the non-ij prefix name
 	databaseURL = util.getSystemProperty("database");
 	if (databaseURL == null) databaseURL = util.getSystemProperty("ij.database");
-	if (databaseURL == null || databaseURL.length()==0) databaseURL = defaultURL;
+	if (databaseURL == null || databaseURL.isEmpty()) databaseURL = defaultURL;
 	if (databaseURL != null && IS_AT_LEAST_JDBC2) {
 	    // add protocol if might help find driver.
 		// if have full URL, load driver for it

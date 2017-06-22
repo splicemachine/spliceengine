@@ -362,7 +362,7 @@ public class JDBCDisplayUtil {
         ResultSetMetaData rsmd = null;
 
         //get metadata from the first ResultSet
-        if (resultSets != null && resultSets.size() > 0)
+        if (resultSets != null && !resultSets.isEmpty())
             rsmd = ((ResultSet)resultSets.get(0)).getMetaData();
 
         checkNotNull(rsmd, "ResultSetMetaData");

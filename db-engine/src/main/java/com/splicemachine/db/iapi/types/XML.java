@@ -1039,7 +1039,7 @@ public class XML
                 xmlReqCheck = "XPath 3.0";
         }
 
-        if (xmlReqCheck.length() != 0)
+        if (!xmlReqCheck.isEmpty())
         {
             throw StandardException.newException(
                 SQLState.LANG_MISSING_XML_CLASSES, xmlReqCheck);

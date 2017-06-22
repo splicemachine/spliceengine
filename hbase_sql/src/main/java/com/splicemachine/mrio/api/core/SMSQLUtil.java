@@ -120,7 +120,7 @@ public class SMSQLUtil  {
         }
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "getPrimaryKeys returns=%s", Arrays.toString(pkCols.toArray()));
-        return pkCols.size()!=0?pkCols:null;
+        return !pkCols.isEmpty() ?pkCols:null;
     }
 
 
@@ -310,7 +310,7 @@ public class SMSQLUtil  {
 
     private boolean isPrimaryKeyColumn(List<PKColumnNamePosition> primaryKeys, String name) {
         boolean isPkCol = false;
-        if (primaryKeys != null && primaryKeys.size() > 0) {
+        if (primaryKeys != null && !primaryKeys.isEmpty()) {
             for (PKColumnNamePosition namePosition: primaryKeys) {
                 if (namePosition.getName().compareToIgnoreCase(name) == 0) {
                     isPkCol = true;
@@ -323,7 +323,7 @@ public class SMSQLUtil  {
 
     public int[] getKeyColumnEncodingOrder(List<NameType> nameTypes, List<PKColumnNamePosition> primaryKeys) {
         int[] keyColumnEncodingOrder = new int[0];
-        if (primaryKeys!=null && primaryKeys.size() > 0) {
+        if (primaryKeys!=null && !primaryKeys.isEmpty()) {
             keyColumnEncodingOrder = IntArrays.count(primaryKeys.size());
             for (int i = 0; i < primaryKeys.size(); i++) {
                 keyColumnEncodingOrder[primaryKeys.get(i).getPosition()] = locationInNameTypes(nameTypes, primaryKeys.get(i).getName());

@@ -84,7 +84,7 @@ public class ByteArrayCombinerStream
         }
         this.specifiedLength = length;
         long tmpRemaining = length;
-        if (arraysIn != null && arraysIn.size() > 0) {
+        if (arraysIn != null && !arraysIn.isEmpty()) {
             // Copy references to the byte arrays to a new ArrayList.
             int arrayCount = arraysIn.size();
             byte[] tmpArray;

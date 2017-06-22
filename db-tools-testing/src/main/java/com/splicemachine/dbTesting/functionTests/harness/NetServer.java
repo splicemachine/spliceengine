@@ -175,10 +175,10 @@ public class NetServer
 		    jvm.setJavaCmd(javaCmd);
 		
 		Vector jvmProps = new Vector();
-		if ( (clPath != null) && (clPath.length()>0) )
+		if ( (clPath != null) && (!clPath.isEmpty()) )
 		    jvm.setClasspath(clPath);
 
-        if ( (jvmflags != null) && (jvmflags.length()>0) ) {
+        if ( (jvmflags != null) && (!jvmflags.isEmpty()) ) {
             jvm.setFlags(jvmflags);
             // Set no flags by default (DERBY-1614).
             // The jvmflags property can be used to set any kind of JVM option.

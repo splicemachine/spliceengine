@@ -470,7 +470,7 @@ public class FromSubquery extends FromTable
 		 * which could potentially be lost on the flattening.
 		 * RESOLVE - this is too restrictive.
 		 */
-		if ((gbl == null || gbl.size() == 0) &&
+		if ((gbl == null || gbl.isEmpty()) &&
 			tableProperties == null &&
 		    subquery.flattenableInFromSubquery(fromList))
 		{
@@ -576,12 +576,12 @@ public class FromSubquery extends FromTable
 
 			// selectNode.getResultColumns().setRedundant();
 
-			if (selectNode.getWherePredicates().size() > 0)
+			if (!selectNode.getWherePredicates().isEmpty())
 			{
 				outerPList.destructiveAppend(selectNode.getWherePredicates());
 			}
 
-			if (selectNode.getWhereSubquerys().size() > 0)
+			if (!selectNode.getWhereSubquerys().isEmpty())
 			{
 				sql.destructiveAppend(selectNode.getWhereSubquerys());
 			}

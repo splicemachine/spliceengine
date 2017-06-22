@@ -230,7 +230,7 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
         /*
          * Referenced keys (unique or pk) constraints only
          */
-        while (cdl.size() > 0) {
+        while (!cdl.isEmpty()) {
             /* The current element will be deleted underneath the loop. (HACK!) */
             cd = cdl.elementAt(0);
             if (SanityManager.DEBUG) {

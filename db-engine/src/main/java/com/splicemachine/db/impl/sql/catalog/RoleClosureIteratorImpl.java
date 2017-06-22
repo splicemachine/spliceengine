@@ -187,7 +187,7 @@ public class RoleClosureIteratorImpl implements RoleClosureIterator
 
                 currNodeIter = null;
 
-                while (lifo.size() > 0 && currNodeIter == null) {
+                while (!lifo.isEmpty() && currNodeIter == null) {
 
                     newNode = (RoleGrantDescriptor)lifo.remove(lifo.size() - 1);
 

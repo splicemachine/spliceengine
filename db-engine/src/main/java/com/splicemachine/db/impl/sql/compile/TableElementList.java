@@ -520,7 +520,7 @@ public class TableElementList extends QueryTreeNodeVector {
 			{
 				apl = coldef.getGenerationClauseNode().getAuxiliaryProviderList();
 			}
-            if (apl != null && apl.size() > 0)
+            if (apl != null && !apl.isEmpty())
             {
                 DependencyManager dm = getDataDictionary().getDependencyManager();
                 providerInfos = dm.getPersistentProviderInfos(apl);
@@ -657,7 +657,7 @@ public class TableElementList extends QueryTreeNodeVector {
 										 aggregateVector);
 
 				// no aggregates, please
-				if (aggregateVector.size() != 0)
+				if (!aggregateVector.isEmpty())
 				{
 					throw StandardException.newException(SQLState.LANG_INVALID_CHECK_CONSTRAINT, cdn.getConstraintText());
 				}
@@ -666,7 +666,7 @@ public class TableElementList extends QueryTreeNodeVector {
 				cdn.setCheckCondition(checkTree);
 
 				/* Save the APL off in the constraint node */
-				if (apl.size() > 0)
+				if (!apl.isEmpty())
 				{
 					cdn.setAuxiliaryProviderList(apl);
 				}
@@ -831,13 +831,13 @@ public class TableElementList extends QueryTreeNodeVector {
                 }
 
 				// no aggregates, please
-				if (aggregateVector.size() != 0)
+				if (!aggregateVector.isEmpty())
 				{
 					throw StandardException.newException( SQLState.LANG_AGGREGATE_IN_GENERATION_CLAUSE, cdn.getName());
 				}
 				
 				/* Save the APL off in the constraint node */
-				if (apl.size() > 0)
+				if (!apl.isEmpty())
 				{
 					generationClauseNode.setAuxiliaryProviderList(apl);
 				}
@@ -1156,7 +1156,7 @@ public class TableElementList extends QueryTreeNodeVector {
 				}				
 
 				/* Create the ProviderInfos, if the constraint is dependent on any Providers */
-				if (apl != null && apl.size() > 0)
+				if (apl != null && !apl.isEmpty())
 				{
 					/* Get all the dependencies for the current statement and transfer
 					 * them to this view.

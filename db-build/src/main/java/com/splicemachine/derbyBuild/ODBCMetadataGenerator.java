@@ -240,7 +240,7 @@ public class ODBCMetadataGenerator {
         for (line = reader.readLine(); line != null;
              line = reader.readLine()) {
 
-            if (line.length() == 0)
+            if (line.isEmpty())
                 // blank line; ignore
                 continue;
             else if (line.charAt(0) == '#') {
@@ -396,7 +396,7 @@ public class ODBCMetadataGenerator {
             // original query with the new column names.
             odbcMetaFile.write(queryText.toString());
 
-            if (orderBy.length() != 0) {
+            if (!orderBy.isEmpty()) {
                 // re-attach ORDER BY clause.
                 odbcMetaFile.write(orderBy);
             }
@@ -415,7 +415,7 @@ public class ODBCMetadataGenerator {
         else
             odbcMetaFile.write(" \\\n\\\n) ");
         odbcMetaFile.write(SUBQUERY_NAME);
-        if (orderBy.length() == 0)
+        if (orderBy.isEmpty())
             odbcMetaFile.write("\n");
         else {
             // re-attach ORDER BY clause.

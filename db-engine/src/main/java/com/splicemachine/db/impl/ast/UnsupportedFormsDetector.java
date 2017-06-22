@@ -64,7 +64,7 @@ public class UnsupportedFormsDetector extends AbstractSpliceVisitor {
 
     public static void checkForUnsupported(DMLStatementNode node) throws StandardException {
         List<ResultSetNode> sinks = Lists.newLinkedList(RSUtils.sinkingChildren(node.getResultSetNode()));
-        if (sinks.size() > 0){
+        if (!sinks.isEmpty()){
             throw StandardException.newException(MessageId.SPLICE_UNSUPPORTED_OPERATION,
                                                     unsupportedSinkingMsg(node, sinks));
         }

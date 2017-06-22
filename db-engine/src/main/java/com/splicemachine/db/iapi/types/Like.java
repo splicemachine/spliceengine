@@ -380,7 +380,7 @@ public class Like {
 			return false;
 		}
 
-        if (pattern.length() == 0) {
+        if (pattern.isEmpty()) {
             return true;
         }
 
@@ -430,7 +430,7 @@ public class Like {
 		// what is there, while stripping escapes
 		//
 
-		if ((escape != null) && (escape.length() != 0))
+		if ((escape != null) && (!escape.isEmpty()))
 		{
 			char escChar = escape.charAt(0);
 			if (pattern.indexOf(escChar) != -1)
@@ -592,7 +592,7 @@ public class Like {
 		char	newLastChar;
 		final int escChar;
 
-		if ((escape != null) && (escape.length() !=0))
+		if ((escape != null) && (!escape.isEmpty()))
 		{
 			escChar = escape.charAt(0);
 		}
@@ -677,7 +677,7 @@ public class Like {
 
 		if (SanityManager.DEBUG)
 		{
-			SanityManager.ASSERT(pattern.length() != 0,
+			SanityManager.ASSERT(!pattern.isEmpty(),
 				"pattern expected to be non-zero length");
 		}
 

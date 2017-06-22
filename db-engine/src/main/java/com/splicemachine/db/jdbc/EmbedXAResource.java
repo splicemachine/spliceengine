@@ -141,7 +141,7 @@ class EmbedXAResource implements XAResource {
                     throw new XAException(XAException.XAER_PROTO);
             }
             
-            if (tranState.suspendedList != null && tranState.suspendedList.size() != 0)
+            if (tranState.suspendedList != null && !tranState.suspendedList.isEmpty())
                 throw new XAException(XAException.XAER_PROTO);
             
             if (tranState.isPrepared == onePhase)
@@ -283,7 +283,7 @@ class EmbedXAResource implements XAResource {
             }
             
             if (tranState.suspendedList != null 
-                    && tranState.suspendedList.size() != 0)
+                    && !tranState.suspendedList.isEmpty())
                 throw new XAException(XAException.XAER_PROTO);
             
             if (tranState.isPrepared)
@@ -493,7 +493,7 @@ class EmbedXAResource implements XAResource {
             }
             
             if (tranState.suspendedList != null 
-                    && tranState.suspendedList.size() != 0)
+                    && !tranState.suspendedList.isEmpty())
                 throw new XAException(XAException.XAER_PROTO);
             
             checkUserCredentials(tranState.creatingResource);

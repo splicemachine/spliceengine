@@ -345,13 +345,13 @@ public class JoinNode extends TableOperatorNode{
 		 * down.
          */
         if(SanityManager.DEBUG){
-            if(getLeftPredicateList().size()!=0){
+            if(!getLeftPredicateList().isEmpty()){
                 SanityManager.THROWASSERT(
                         "getLeftPredicateList().size() expected to be 0, not "+
                                 getLeftPredicateList().size());
             }
 
-            if(getRightPredicateList().size()!=0){
+            if(!getRightPredicateList().isEmpty()){
                 SanityManager.THROWASSERT(
                         "getRightPredicateList().size() expected to be 0, not "+
                                 getRightPredicateList().size());
@@ -796,12 +796,12 @@ public class JoinNode extends TableOperatorNode{
 		 * down.
 		 */
         if(SanityManager.DEBUG){
-            if(getLeftPredicateList().size()!=0){
+            if(!getLeftPredicateList().isEmpty()){
                 SanityManager.THROWASSERT(
                         "getLeftPredicateList().size() expected to be 0, not "+
                                 getLeftPredicateList().size());
             }
-            if(getRightPredicateList().size()!=0){
+            if(!getRightPredicateList().isEmpty()){
                 SanityManager.THROWASSERT(
                         "getRightPredicateList().size() expected to be 0, not "+
                                 getRightPredicateList().size());
@@ -874,13 +874,13 @@ public class JoinNode extends TableOperatorNode{
         }
 
 
-        if(joinPredicates.size()>0){
+        if(!joinPredicates.isEmpty()){
             optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION,0,0,0.0,
                                      "JoinNode flattening join predicates to outer query.",joinPredicates);
             outerPList.destructiveAppend(joinPredicates);
         }
 
-        if(subqueryList!=null && subqueryList.size()>0){
+        if(subqueryList!=null && !subqueryList.isEmpty()){
             sql.destructiveAppend(subqueryList);
         }
 
@@ -1020,7 +1020,7 @@ public class JoinNode extends TableOperatorNode{
                 joinClause.treePrint(depth+1);
             }
 
-            if(joinPredicates.size()!=0){
+            if(!joinPredicates.isEmpty()){
                 printLabel(depth,"joinPredicates: ");
                 joinPredicates.treePrint(depth+1);
             }
@@ -1071,7 +1071,7 @@ public class JoinNode extends TableOperatorNode{
     @Override
     public void assignResultSetNumber() throws StandardException{
         super.assignResultSetNumber();
-        if(subqueryList!=null && subqueryList.size()>0){
+        if(subqueryList!=null && !subqueryList.isEmpty()){
             subqueryList.setPointOfAttachment(resultSetNumber);
         }
     }
@@ -1479,7 +1479,7 @@ public class JoinNode extends TableOperatorNode{
 			** to be able to pass the aggregateVector up
 			** the tree.
 			*/
-            if(aggregateVector.size()>0){
+            if(!aggregateVector.isEmpty()){
                 throw StandardException.newException(SQLState.LANG_NO_AGGREGATES_IN_ON_CLAUSE);
             }
         }
@@ -1904,7 +1904,7 @@ public class JoinNode extends TableOperatorNode{
                 .append(attrDelim).append(getFinalCostEstimate().prettyProcessingString(attrDelim));
         if (joinPredicates != null) {
             List<String> joinPreds = Lists.transform(PredicateUtils.PLtoList(joinPredicates), PredicateUtils.predToString);
-            if (joinPreds != null && joinPreds.size() > 0)
+            if (joinPreds != null && !joinPreds.isEmpty())
                 sb.append(attrDelim).append("preds=[").append(Joiner.on(",").skipNulls().join(joinPreds)).append("]");
         }
         sb.append(")");

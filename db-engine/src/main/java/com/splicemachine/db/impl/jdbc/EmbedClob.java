@@ -581,7 +581,7 @@ restartScan:
         	    SQLState.BLOB_NULL_PATTERN_OR_SEARCH_STR);
         }
         
-        if (str.length() == 0) {
+        if (str.isEmpty()) {
             return 0;
         }
         

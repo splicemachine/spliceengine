@@ -131,7 +131,7 @@ public class CursorNode extends DMLStatementNode{
 		*/
         if(SanityManager.DEBUG)
             SanityManager.ASSERT(this.updatableColumns==null ||
-                            this.updatableColumns.size()==0 || this.updateMode==UPDATE,
+                            this.updatableColumns.isEmpty() || this.updateMode==UPDATE,
                     "Can only have explicit updatable columns if update mode is UPDATE");
     }
 
@@ -233,7 +233,7 @@ public class CursorNode extends DMLStatementNode{
 
 			/* Verify that all underlying ResultSets reclaimed their FromList */
             if(SanityManager.DEBUG){
-                SanityManager.ASSERT(fromList.size()==0,
+                SanityManager.ASSERT(fromList.isEmpty(),
                         "fromList.size() is expected to be 0, not "
                                 +fromList.size()
                                 +" on return from RS.bindExpressions()");

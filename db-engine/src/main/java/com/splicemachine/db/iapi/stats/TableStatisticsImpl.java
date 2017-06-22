@@ -69,11 +69,11 @@ public class TableStatisticsImpl implements TableStatistics {
                                double extraQualifierMultiplier) {
         this.tableId = tableId;
         this.partitionStatistics = partitionStatistics;
-        assert partitionStatistics.size() > 0:"Partition statistics are 0";
+        assert !partitionStatistics.isEmpty() :"Partition statistics are 0";
         this.fallbackNullFraction = fallbackNullFraction;
         this.extraQualifierMultiplier = extraQualifierMultiplier;
         isMergedStats = false;
-        if (partitionStatistics.size() > 0) {
+        if (!partitionStatistics.isEmpty()) {
             if (partitionStatistics.get(0).getPartitionStatistics() != null) {
                 int statsType = partitionStatistics.get(0).getPartitionStatistics().getStatsType();
                 isMergedStats = statsType == SYSTABLESTATISTICSRowFactory.REGULAR_MERGED_STATS || statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS;
@@ -134,7 +134,7 @@ public class TableStatisticsImpl implements TableStatistics {
     public PartitionStatistics getEffectivePartitionStatistics()  {
         // if stats has already been merged, directly use it
         if (isMergedStats) {
-            return partitionStatistics.size() == 0 ? null : partitionStatistics.get(0);
+            return partitionStatistics.isEmpty() ? null : partitionStatistics.get(0);
         }
 
         try {
@@ -147,7 +147,7 @@ public class TableStatisticsImpl implements TableStatistics {
                     rowCount += partStats.rowCount();
                     totalSize += partStats.totalSize();
                     avgRowWidth += partStats.avgRowWidth(); // todo fix
-                    if (itemStatisticsList.size() ==0)
+                    if (itemStatisticsList.isEmpty())
                         fake = true;
                     if (itemStatisticsBuilder == null)
                         itemStatisticsBuilder = new ColumnStatisticsMerge[itemStatisticsList.size()];
@@ -281,7 +281,7 @@ public class TableStatisticsImpl implements TableStatistics {
     @Override
     public int numPartitions() {
         if (isMergedStats)
-            return (partitionStatistics.size()==0) ? 0:(int)(partitionStatistics.get(0).getPartitionStatistics().getNumberOfPartitions());
+            return (partitionStatistics.isEmpty()) ? 0:(int)(partitionStatistics.get(0).getPartitionStatistics().getNumberOfPartitions());
         else
             return partitionStatistics.size();
     }

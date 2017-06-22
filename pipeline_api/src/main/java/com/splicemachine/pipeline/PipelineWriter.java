@@ -142,10 +142,10 @@ public class PipelineWriter{
                 BulkWriteResult submitResult = writePipeline.submitBulkWrite(bulkWrites.getTxn(), bulkWrite,indexWriteBufferFactory, writePipeline.getRegionCoprocessorEnvironment());
                 if(LOG.isTraceEnabled()){
                     LOG.trace("Submission of "+bulkWrite.getSize()+" rows to region "+ bulkWrite.getEncodedStringName()+" has submission result "+ submitResult.getGlobalResult());
-                    if(submitResult.getFailedRows().size()>0){
+                    if(!submitResult.getFailedRows().isEmpty()){
                         LOG.trace("Detected "+ submitResult.getFailedRows().size()+" failed rows");
                     }
-                    if(submitResult.getNotRunRows().size()>0){
+                    if(!submitResult.getNotRunRows().isEmpty()){
                         LOG.trace("Detected "+ submitResult.getNotRunRows().size()+" not run rows");
                     }
                 }
@@ -165,10 +165,10 @@ public class PipelineWriter{
                 BulkWriteResult finishResult = writePipeline.finishWrite(writeResult, bulkWrite);
                 if(LOG.isTraceEnabled()){
                     LOG.trace("Finish of "+bulkWrite.getSize()+" rows to region "+ bulkWrite.getEncodedStringName()+" has finish result "+ finishResult.getGlobalResult());
-                    if(finishResult.getFailedRows().size()>0){
+                    if(!finishResult.getFailedRows().isEmpty()){
                         LOG.trace("Detected "+ finishResult.getFailedRows().size()+" failed rows");
                     }
-                    if(finishResult.getNotRunRows().size()>0){
+                    if(!finishResult.getNotRunRows().isEmpty()){
                         LOG.trace("Detected "+ finishResult.getNotRunRows().size()+" not run rows");
                     }
                 }

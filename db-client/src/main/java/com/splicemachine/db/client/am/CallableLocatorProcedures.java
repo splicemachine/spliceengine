@@ -944,7 +944,7 @@ class CallableLocatorProcedures
             }
            
             // If not able to read more, stop
-            if (result.length() == 0) break;
+            if (result.isEmpty()) break;
             
             retVal.append(result);
             gotSoFar += result.length();

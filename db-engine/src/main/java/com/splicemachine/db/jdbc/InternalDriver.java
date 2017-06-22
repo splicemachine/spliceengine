@@ -216,7 +216,7 @@ public abstract class InternalDriver implements ModuleControl {
 				// service to authenticate the user. If it is a system shutdown,
 				// then we ask the Driver to do the authentication.
 				//
-				if (InternalDriver.getDatabaseName(url, finfo).length() == 0) {
+				if (InternalDriver.getDatabaseName(url, finfo).isEmpty()) {
 					//
 					// We need to authenticate the user if authentication is
 					// ON. Note that this is a system shutdown.
@@ -484,7 +484,7 @@ public abstract class InternalDriver implements ModuleControl {
 		// it will end up, after the trim, as a zero-length string.
 		// See EmbeddedDataSource.update()
 
-		if (dbname.length() == 0) {
+		if (dbname.isEmpty()) {
 		    if (info != null)
 				dbname = info.getProperty(Attribute.DBNAME_ATTR, dbname);
 		}

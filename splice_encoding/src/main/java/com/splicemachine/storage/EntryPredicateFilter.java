@@ -106,7 +106,7 @@ public class EntryPredicateFilter {
 
     public byte[] toBytes() {
         //if we dont have any distinguishing information, just send over an empty byte array
-        if(fieldsToReturn.length()==0 && !returnIndex)
+        if(fieldsToReturn.isEmpty() && !returnIndex)
             return new byte[]{};
 
         /*

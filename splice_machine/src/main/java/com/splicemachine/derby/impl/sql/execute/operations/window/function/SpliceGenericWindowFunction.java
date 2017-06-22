@@ -79,7 +79,7 @@ public abstract class SpliceGenericWindowFunction implements WindowFunction {
         DataValueDescriptor[] dvd = first.remove();
         if (first.consumed()) {
             chunks.remove(first);
-            if (chunks.size() == 0) {
+            if (chunks.isEmpty()) {
                 first = last = null;
                 return null;
             }

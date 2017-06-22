@@ -155,7 +155,7 @@ public class ColumnOrdering{
      * Tell whether this ColumnOrdering has no elements.
      */
     boolean empty(){
-        return (tables.size()==0);
+        return (tables.isEmpty());
     }
 
     /**
@@ -177,7 +177,7 @@ public class ColumnOrdering{
      * Is the given table number in this ColumnOrdering?
      */
     boolean hasTable(int tableNumber){
-        if(tables.size()==0)
+        if(tables.isEmpty())
             return false;
 
         for(int i=0;i<tables.size();i++){
@@ -194,7 +194,7 @@ public class ColumnOrdering{
      * Is there any table other than the given one in this ColumnOrdering?
      */
     boolean hasAnyOtherTable(int tableNumber){
-        if(tables.size()==0)
+        if(tables.isEmpty())
             return false;
 
         for(int i=0;i<tables.size();i++){

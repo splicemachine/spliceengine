@@ -181,7 +181,7 @@ public class RunSuite
     {
 		// Get the suite properties if it exists
         Properties p;
-        if ( (suites == null) || (suites.length()==0) )
+        if ( (suites == null) || (suites.isEmpty()) )
         {
             // There is a single suite, not a list, just add it
             if (verbose) System.out.println("Suite to run: " + topparent+":"+topparent);
@@ -288,7 +288,7 @@ public class RunSuite
         {
 			String tmpjvmName=jvmName;	
             jvmName = p.getProperty("jvm");
-		    if ( (jvmName == null) || (jvmName.length()==0) )
+		    if ( (jvmName == null) || (jvmName.isEmpty()) )
 		    {
 		        javaVersion = System.getProperty("java.version");
 		    }
@@ -393,23 +393,23 @@ public class RunSuite
 		// when the time comes to have this converted into actual jvm flags
 		// the ones given at the command line will overwrite whatever's in the suite
 		String jflags = sp.getProperty("jvmflags");
-		if (jvmflags != null && jvmflags.length() > 0)
+		if (jvmflags != null && !jvmflags.isEmpty())
 		{
 		  //DERBY-4680 Make sure ^ does not get appended to jvmflags
-		    if (jflags != null && jflags.length() > 0)
+		    if (jflags != null && !jflags.isEmpty())
 		    		suiteProperties.put("jvmflags", (jvmflags + "^" + jflags));
 			else
 		    		suiteProperties.put("jvmflags", jvmflags);
 		}
 		else
 		{
-			if (jflags != null && jflags.length() >0)
+			if (jflags != null && !jflags.isEmpty())
 		    		suiteProperties.put("jvmflags", jflags);
 		}
 		String testflags = sp.getProperty("testJavaFlags");
 		if (testflags != null)
 		{
-		    if (testJavaFlags == null || testJavaFlags.length() == 0)
+		    if (testJavaFlags == null || testJavaFlags.isEmpty())
 		        testJavaFlags = testflags;
 		    else // add to testJavaFlags
 		        testJavaFlags = testJavaFlags + "^" + testflags;
@@ -418,7 +418,7 @@ public class RunSuite
 		String testprops = sp.getProperty("testSpecialProps");
 		if (testprops != null)
 		{
-		    if (testSpecialProps == null || testSpecialProps.length() == 0)
+		    if (testSpecialProps == null || testSpecialProps.isEmpty())
 		        testSpecialProps = testprops;
 		    else // add to testSpecialProps
 		        testSpecialProps = testSpecialProps + "^" + testprops;
@@ -565,7 +565,7 @@ public class RunSuite
         boolean status = false;
         // Use the defined output directory or user.dir by default
         File tmpoutDir;
-        if ( (outputdir == null) || (outputdir.length()==0) )
+        if ( (outputdir == null) || (outputdir.isEmpty()) )
         {
             tmpoutDir =
 		        new File((new File(userdir)).getCanonicalPath());

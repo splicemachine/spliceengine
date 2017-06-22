@@ -84,7 +84,7 @@ class SetScanner implements DataScanner{
             }
         }while(shouldContinue && currentRow.size()<=0);
 
-        if(currentRow.size()>0)
+        if(!currentRow.isEmpty())
             rowCounter.increment();
         return currentRow;
     }
@@ -111,7 +111,7 @@ class SetScanner implements DataScanner{
                     currentOffset=n.keyOffset();
                     currentLength=n.keyLength();
                 }else if(!Bytes.equals(currentKey,currentOffset,currentLength,n.keyArray(),n.keyOffset(),n.keyLength())){
-                    if(currentRow.size()>0){
+                    if(!currentRow.isEmpty()){
                         last=n;
                         return true;
                     }else{

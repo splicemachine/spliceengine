@@ -594,7 +594,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                 // table for this unit of work
                 allDeclaredGlobalTempTables.remove(allDeclaredGlobalTempTables.indexOf(tempTableInfo));
 
-                if(allDeclaredGlobalTempTables.size()==0)
+                if(allDeclaredGlobalTempTables.isEmpty())
                     allDeclaredGlobalTempTables=null;
             }else{
                 // since the table was not declared in this unit of work, the
@@ -996,7 +996,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             // unit/transaction and not modified
         }
 
-        if(allDeclaredGlobalTempTables.size()==0){
+        if(allDeclaredGlobalTempTables.isEmpty()){
             allDeclaredGlobalTempTables=null;
         }
     }
@@ -2530,7 +2530,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * trigger.
      */
     public TableDescriptor getTriggerTable(){
-        return triggerTables.size()==0?null:triggerTables.get(triggerTables.size()-1);
+        return triggerTables.isEmpty() ?null:triggerTables.get(triggerTables.size()-1);
     }
 
     @Override

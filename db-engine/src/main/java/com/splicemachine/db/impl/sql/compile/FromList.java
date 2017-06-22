@@ -668,7 +668,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
 		/* fix up dependency maps for exists base tables since they might have a
 		 * dependency on this join node
 		 */
-        if(flattenedTableNumbers.size()>0){
+        if(!flattenedTableNumbers.isEmpty()){
             for(int i=0;i<size();i++){
                 FromTable ft=(FromTable)elementAt(i);
                 if(ft instanceof ProjectRestrictNode){

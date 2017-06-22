@@ -241,7 +241,7 @@ public class GenericStatement implements Statement{
         }
 
         // Strip off all comments before keyword explain
-        while(s.length()>0 && s.startsWith("--")){
+        while(!s.isEmpty() && s.startsWith("--")){
             int index=s.indexOf('\n');
             if(index==-1){
                 index=s.length();

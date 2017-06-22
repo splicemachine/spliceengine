@@ -253,7 +253,7 @@ public class RunList
                 pwOut.println("**** Start SubSuite: " + fullsuiteName +
                     " jdk" + javaVersion +
                     " " + startTime + " ****");
-                if ( (framework != null) && (framework.length()>0) )
+                if ( (framework != null) && (!framework.isEmpty()) )
                 {
                     pwOut.println("Framework: " + framework);
                 }
@@ -357,12 +357,12 @@ public class RunList
         StringBuffer sb = new StringBuffer();
 	    jvm = jvm.getJvm(jvmName);
 	    Vector jvmProps = new Vector();
-	    if ((javaCmd.length()>0) )
+	    if ((!javaCmd.isEmpty()) )
 	    {
 	        jvm.setJavaCmd(javaCmd);
 	        jvmProps.addElement("javaCmd=" + javaCmd);
 	    }
-        if ( (testJavaFlags != null) && (testJavaFlags.length()>0) )
+        if ( (testJavaFlags != null) && (!testJavaFlags.isEmpty()) )
             jvmProps.addElement("testJavaFlags=" + testJavaFlags);
 	    if (classpath != null)
 	        jvmProps.addElement("classpath=" + classpath);
@@ -384,17 +384,17 @@ public class RunList
             jvmProps.addElement("useoutput=" + useoutput);
         if (verbose == true)
             jvmProps.addElement("verbose=true");
-        if ( (reportstderr != null) && (reportstderr.length()>0) )
+        if ( (reportstderr != null) && (!reportstderr.isEmpty()) )
             jvmProps.addElement("reportstderr=" + reportstderr);
 
-        if ( (jvmflags != null) && (jvmflags.length()>0) )
+        if ( (jvmflags != null) && (!jvmflags.isEmpty()) )
         {
             // We want to pass this down to RunTest so it will
             // run an individual test with jvmflags like -nojit
             jvmProps.addElement("jvmflags=" + jvmflags);
         }
 
-        if ( (timeout != null) && (timeout.length()>0) )
+        if ( (timeout != null) && (!timeout.isEmpty()) )
         {
             if (useprocess)
 			{
@@ -420,11 +420,11 @@ public class RunList
             jvmProps.addElement("jdk12exttest=" + jdk12exttest);
         if (keepfiles != null)
             jvmProps.addElement("keepfiles=" + keepfiles);
-        if ( (outputdir != null) && (outputdir.length()>0) )
+        if ( (outputdir != null) && (!outputdir.isEmpty()) )
         {
             jvmProps.addElement("outputdir=" + outputdir);
         }
-        if ( (topsuitedir != null) && (topsuitedir.length()>0) )
+        if ( (topsuitedir != null) && (!topsuitedir.isEmpty()) )
             jvmProps.addElement("topsuitedir=" + topsuitedir);
         else
             jvmProps.addElement("topsuitedir=" + outputdir);
@@ -434,17 +434,17 @@ public class RunList
             jvmProps.addElement("topreprtdir=" + topsuitedir);
         if ( (runDir != null) && (runDir.exists()) )
             jvmProps.addElement("rundir=" + runDir.getCanonicalPath());
-        if ( (bootcp != null) && (bootcp.length()>0) )
+        if ( (bootcp != null) && (!bootcp.isEmpty()) )
             jvmProps.addElement("bootcp=" + bootcp);
-        if ( (serverJvm != null) && (serverJvm.length()>0) )
+        if ( (serverJvm != null) && (!serverJvm.isEmpty()) )
             jvmProps.addElement("serverJvm=" + serverJvm);
-        if ( (serverJvmName != null) && (serverJvmName.length()>0) )
+        if ( (serverJvmName != null) && (!serverJvmName.isEmpty()) )
             jvmProps.addElement("serverJvmName=" + serverJvmName);
         if (testEncoding != null)
             jvmProps.addElement("derbyTesting.encoding=" + testEncoding);
         if (upgradejarpath != null)
             jvmProps.addElement("derbyTesting.jar.path=" + upgradejarpath);
-        if ( (hostName != null) && (hostName.length()>0) )
+        if ( (hostName != null) && (!hostName.isEmpty()) )
         	jvmProps.addElement("hostName=" + hostName);
         if ( useprocess == false )
             jvmProps.addElement("useprocess=false");
@@ -456,15 +456,15 @@ public class RunList
             jvmProps.addElement("ij.defaultResourcePackage=" + ijdefaultResourcePackage);
         if ( mtestdir != null )
             jvmProps.addElement("mtestdir=" + mtestdir);
-        if (topSpecialProps.length()>0)
+        if (!topSpecialProps.isEmpty())
         {
             jvmProps.addElement("testSpecialProps=" + topSpecialProps +
-            ((otherSpecialProps.length()>0)?
+            ((!otherSpecialProps.isEmpty())?
              ("^" + otherSpecialProps)
              :"")
             );
         }
-        else if (otherSpecialProps.length()>0)
+        else if (!otherSpecialProps.isEmpty())
             jvmProps.addElement("testSpecialProps=" + otherSpecialProps);
             
         if (derbyTestingXaSingle != null)
@@ -489,7 +489,7 @@ public class RunList
 
         jvmProps.addElement("suitename=" + suite);
 
-        if ( (topSuiteName != null) && (topSuiteName.length()>0) )
+        if ( (topSuiteName != null) && (!topSuiteName.isEmpty()) )
             jvmProps.addElement("topsuitename=" + topSuiteName);
 
         if (classpath != null)
@@ -871,7 +871,7 @@ public class RunList
         if ((subjvmflags != null) && (parentjvmflags != null) && (!subjvmflags.equals(parentjvmflags)))
         {
             //DERBY-4680 Make sure ^ does not get prepended to jvmflags
-            if (subjvmflags != null &&  subjvmflags.length() > 0)
+            if (subjvmflags != null && !subjvmflags.isEmpty())
                 totaljvmflags = subjvmflags + "^" + totaljvmflags;
         }
         if (totaljvmflags != null)
@@ -892,7 +892,7 @@ public class RunList
         if ( canondir != null )
             p.put("canondir", canondir);
 
-		if ( (outputdir == null) || (outputdir.length() == 0) )
+		if ( (outputdir == null) || (outputdir.isEmpty()) )
 		{
 		    outputdir = p.getProperty("outputdir");
 		    if (outputdir == null)
@@ -1137,7 +1137,7 @@ public class RunList
 	    return true;
 	}
 
-        if ( (framework != null) && (framework.length()>0) )
+        if ( (framework != null) && (!framework.isEmpty()) )
 	{
             if (framework.equals("DerbyNet"))
 	    {
@@ -1166,11 +1166,11 @@ public class RunList
 
 	if (result) return true; // stop looking once know should skip
 
-        if ( (encryption != null) && (encryption.length()>0) )
+        if ( (encryption != null) && (!encryption.isEmpty()) )
             if ("true".equalsIgnoreCase(encryption)) isEncryption = true;
-        if ( (jdk12test != null) && (jdk12test.length()>0) )
+        if ( (jdk12test != null) && (!jdk12test.isEmpty()) )
             if ("true".equalsIgnoreCase(jdk12test)) isJdk12Test = true;		
-        if ( (jdk12exttest != null) && (jdk12exttest.length()>0) )
+        if ( (jdk12exttest != null) && (!jdk12exttest.isEmpty()) )
             if ("true".equalsIgnoreCase(jdk12exttest)) isJdk12ExtTest = true;
         
         // Skip any suite if jvm is not jdk12 or higher for encryption, jdk12test or jdk12exttest
@@ -1257,7 +1257,7 @@ public class RunList
         if (isTop) // This is the very top suite for this RunList
         {
             // Here we want to set the topsuitedir
-		    if ( (topsuitedir == null) || (topsuitedir.length() == 0) )
+		    if ( (topsuitedir == null) || (topsuitedir.isEmpty()) )
 		    {
 		        topsuitedir = userdir;
 		        outputdir = topsuitedir;
@@ -1282,7 +1282,7 @@ public class RunList
             //System.out.println("RunList topreportdir: " + topreportdir);
 
             // Modify outputdir for special framework
-            if ( (framework != null) && (framework.length()>0) )
+            if ( (framework != null) && (!framework.isEmpty()) )
             {
                 File f = new File(outputdir, framework);
                 f.mkdir();
@@ -1305,7 +1305,7 @@ public class RunList
             // Modify outputdir for special framework (if not already set)
             if (!fw_set)
             {
-                if ( (framework != null) && (framework.length()>0) )
+                if ( (framework != null) && (!framework.isEmpty()) )
                 {
                     File f = new File(outputdir, framework);
                     f.mkdir();
@@ -1337,7 +1337,7 @@ public class RunList
 			// suites, useoutput, usesystem,keepfiles from these
 			tmp += key + "=" + p.getProperty(key) + "^";
 		}
-		if (tmp.length()>0)
+		if (!tmp.isEmpty())
 		{
 		    if ( isTop == true ) // This is the top level suite
 		        topSpecialProps = tmp.substring(0, tmp.lastIndexOf('^'));
@@ -1518,12 +1518,12 @@ public class RunList
 
             // If we have text, make sure it's a valid keyword
             // and then move past it.
-            if ((text.length() > 0) && !isClientExclusionKeyword(text))
+            if ((!text.isEmpty()) && !isClientExclusionKeyword(text))
                 throw new Exception(text);
 
             // Load the int.
             tok = tok.substring(pos);
-            if (tok.length() == 0) {
+            if (tok.isEmpty()) {
             // no integer found, so don't count this iteration.
                 i--;
                 continue;

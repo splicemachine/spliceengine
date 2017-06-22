@@ -165,7 +165,7 @@ public final class NativeAuthenticationServiceImpl
         {
             _credentialsDB = authenticationProvider.substring( dbNameStartIdx, dbNameEndIdx );
 
-            if ( _credentialsDB.length() == 0 ) { _credentialsDB = null; }
+            if (_credentialsDB.isEmpty()) { _credentialsDB = null; }
         }
 
         //

@@ -207,7 +207,7 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
             if (!samplingOnly && !outputKeysOnly) {
 
                 // split table and indexes using the calculated cutpoints
-                if (cutPoints != null && cutPoints.size() > 0) {
+                if (cutPoints != null && !cutPoints.isEmpty()) {
                     splitTables(cutPoints);
                 }
 

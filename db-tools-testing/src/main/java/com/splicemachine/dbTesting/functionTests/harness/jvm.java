@@ -188,7 +188,7 @@ public abstract class jvm {
         v.addElement(javaCmd);
         v.addElement("-Duser.language=en");
         v.addElement("-Duser.country=US");
-        if ( (flags != null) && (flags.length()>0) )
+        if ( (flags != null) && (!flags.isEmpty()) )
         {
             StringTokenizer st = new StringTokenizer(flags);
             while (st.hasMoreTokens())
@@ -240,7 +240,7 @@ public abstract class jvm {
 	public static jvm getCurrentJvm() throws Exception
 	{
 		String jvmName = System.getProperty("jvm");
-		if ( (jvmName == null) || (jvmName.length()==0) )
+		if ( (jvmName == null) || (jvmName.isEmpty()) )
 		{
 			String javaVersion = System.getProperty("java.version");
 		    if (javaVersion.startsWith("1.2"))
@@ -286,7 +286,7 @@ public abstract class jvm {
 		
 		String jvmName = System.getProperty("jvm");
 		
-		if ( (jvmName == null) || (jvmName.length()==0) )
+		if ( (jvmName == null) || (jvmName.isEmpty()) )
 		{
 		    if (iminor < 2)
 		        jvmName = "currentjvm";
