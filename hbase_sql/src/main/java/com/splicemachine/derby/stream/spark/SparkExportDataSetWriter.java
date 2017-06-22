@@ -21,8 +21,10 @@ import java.io.OutputStream;
 import java.util.Collections;
 import java.util.Iterator;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.derby.impl.SpliceSpark;
+import com.splicemachine.derby.stream.iapi.DataSet;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Job;
@@ -32,9 +34,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.SpliceFunction2;
-import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
 import com.splicemachine.si.api.txn.TxnView;
@@ -74,7 +74,7 @@ public class SparkExportDataSetWriter<V> implements DataSetWriter{
     }
 
     @Override
-    public DataSet<LocatedRow> write() throws StandardException{
+    public DataSet<ExecRow> write() throws StandardException{
         Configuration conf=new Configuration(HConfiguration.unwrapDelegate());
         ByteDataOutput bdo=new ByteDataOutput();
         Job job;
@@ -89,7 +89,7 @@ public class SparkExportDataSetWriter<V> implements DataSetWriter{
             throw new RuntimeException(e);
         }
         job.setOutputKeyClass(Void.class);
-        job.setOutputValueClass(LocatedRow.class);
+        job.setOutputValueClass(ExecRow.class);
         job.setOutputFormatClass(SparkDataSet.EOutputFormat.class);
         job.getConfiguration().set("mapred.output.dir",directory);
 
@@ -103,7 +103,7 @@ public class SparkExportDataSetWriter<V> implements DataSetWriter{
         ValueRow valueRow=new ValueRow(2);
         valueRow.setColumn(1,new SQLLongint(writtenRows));
         valueRow.setColumn(2,new SQLInteger(0));
-        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(new LocatedRow(valueRow)), 1));
+        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
     }
 
     @Override

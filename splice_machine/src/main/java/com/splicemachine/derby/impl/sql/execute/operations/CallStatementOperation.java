@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -197,7 +198,7 @@ public class CallStatementOperation extends NoRowsOperation {
     }
 
 	@Override
-	public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+	public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
 		OperationContext<CallStatementOperation> operationContext = dsp.createOperationContext(this);
 
         call();

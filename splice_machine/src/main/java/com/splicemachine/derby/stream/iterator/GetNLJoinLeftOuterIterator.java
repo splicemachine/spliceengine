@@ -15,9 +15,9 @@
 package com.splicemachine.derby.stream.iterator;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.StreamLogUtils;
 import com.splicemachine.utils.Pair;
@@ -32,25 +32,25 @@ public class GetNLJoinLeftOuterIterator extends GetNLJoinIterator {
 
     public GetNLJoinLeftOuterIterator() {}
 
-    public GetNLJoinLeftOuterIterator(OperationContext operationContext, LocatedRow locatedRow) {
+    public GetNLJoinLeftOuterIterator(OperationContext operationContext, ExecRow locatedRow) {
         super(operationContext, locatedRow);
     }
 
     @Override
-    public Pair<OperationContext, Iterator<LocatedRow>> call() throws Exception {
+    public Pair<OperationContext, Iterator<ExecRow>> call() throws Exception {
         JoinOperation op = (JoinOperation) this.operationContext.getOperation();
-        op.getLeftOperation().setCurrentLocatedRow(this.locatedRow);
+        op.getLeftOperation().setCurrentRow(this.locatedRow);
         SpliceOperation rightOperation=op.getRightOperation();
 
         rightOperation.openCore(EngineDriver.driver().processorFactory().localProcessor(op.getActivation(), op));
-        Iterator<LocatedRow> rightSideNLJIterator = rightOperation.getLocatedRowIterator();
+        Iterator<ExecRow> rightSideNLJIterator = rightOperation.getExecRowIterator();
         // Lets make sure we perform a call...
         boolean hasNext = rightSideNLJIterator.hasNext();
         if (!hasNext) {
             // For left outer join, if there is no match, return an empty row from right side
-            LocatedRow lr = new LocatedRow(locatedRow.getRowLocation(), op.getEmptyRow());
+            ExecRow lr = op.getEmptyRow();
             StreamLogUtils.logOperationRecordWithMessage(lr,operationContext,"outer - right side no rows");
-            op.setCurrentLocatedRow(lr);
+            op.setCurrentRow(lr);
             rightSideNLJIterator = new SingletonIterator(lr);
         }
 

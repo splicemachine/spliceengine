@@ -278,12 +278,12 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (alwaysFalse) {
             return dsp.getEmpty();
         }
         OperationContext operationContext = dsp.createOperationContext(this);
-        DataSet<LocatedRow> sourceSet = source.getDataSet(dsp);
+        DataSet<ExecRow> sourceSet = source.getDataSet(dsp);
         try {
             operationContext.pushScope();
             return sourceSet.flatMap(new ProjectRestrictFlatMapFunction<SpliceOperation>(operationContext), true);

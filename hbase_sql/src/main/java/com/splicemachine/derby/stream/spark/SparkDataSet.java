@@ -21,7 +21,6 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportExecRowWriter;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregator;
@@ -30,9 +29,7 @@ import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
-import com.splicemachine.derby.stream.output.BulkDeleteDataSetWriterBuilder;
-import com.splicemachine.derby.stream.output.BulkInsertDataSetWriterBuilder;
-import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
+import com.splicemachine.derby.stream.output.*;
 import com.splicemachine.utils.ByteDataInput;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
@@ -54,7 +51,7 @@ import org.apache.spark.sql.Column;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.storage.StorageLevel;
-
+import scala.Tuple2;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
@@ -376,7 +373,7 @@ public class SparkDataSet<V> implements DataSet<V> {
             //Do the intesect
             Dataset<Row> result = left.intersect(right);
 
-            //Convert back to RDD<LocatedRow>
+            //Convert back to RDD<ExecRow>
             return toSpliceLocatedRow(result,context);
 
         }
@@ -407,7 +404,7 @@ public class SparkDataSet<V> implements DataSet<V> {
             //Do the subtract
             Dataset<Row> result = left.except(right);
 
-            //Convert back to RDD<LocatedRow>
+            //Convert back to RDD<ExecRow>
             return toSpliceLocatedRow(result, context);
         }
         catch (Exception se){
@@ -455,7 +452,7 @@ public class SparkDataSet<V> implements DataSet<V> {
         return new SparkExportDataSetWriter.Builder(rdd);
     }
 
-    public static class EOutputFormat extends FileOutputFormat<Void, LocatedRow> {
+    public static class EOutputFormat extends FileOutputFormat<Void, ExecRow> {
 
         /**
          * Overridden to avoid throwing an exception if the specified directory
@@ -478,14 +475,14 @@ public class SparkDataSet<V> implements DataSet<V> {
         }
 
         @Override
-        public RecordWriter<Void, LocatedRow> getRecordWriter(TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
+        public RecordWriter<Void, ExecRow> getRecordWriter(TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
             Configuration conf = taskAttemptContext.getConfiguration();
             String encoded = conf.get("exportFunction");
             ByteDataInput bdi = new ByteDataInput(
             Base64.decodeBase64(encoded));
-            SpliceFunction2<ExportOperation, OutputStream, Iterator<LocatedRow>, Void> exportFunction;
+            SpliceFunction2<ExportOperation, OutputStream, Iterator<ExecRow>, Void> exportFunction;
             try {
-                exportFunction = (SpliceFunction2<ExportOperation, OutputStream, Iterator<LocatedRow>, Void>) bdi.readObject();
+                exportFunction = (SpliceFunction2<ExportOperation, OutputStream, Iterator<ExecRow>, Void>) bdi.readObject();
             } catch (ClassNotFoundException e) {
                 throw new IOException(e);
             }
@@ -508,11 +505,11 @@ public class SparkDataSet<V> implements DataSet<V> {
                 fileOut = new GZIPOutputStream(fileOut);
             }
             final ExportExecRowWriter rowWriter = ExportFunction.initializeRowWriter(fileOut, op.getExportParams());
-            return new RecordWriter<Void, LocatedRow>() {
+            return new RecordWriter<Void, ExecRow>() {
                 @Override
-                public void write(Void _, LocatedRow locatedRow) throws IOException, InterruptedException {
+                public void write(Void _, ExecRow locatedRow) throws IOException, InterruptedException {
                     try {
-                        rowWriter.writeRow(locatedRow.getRow(), op.getSourceResultColumnDescriptors());
+                        rowWriter.writeRow(locatedRow, op.getSourceResultColumnDescriptors());
                     } catch (StandardException e) {
                         throw new IOException(e);
                     }
@@ -684,7 +681,7 @@ public class SparkDataSet<V> implements DataSet<V> {
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public DataSet<LocatedRow> writeParquetFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
+    public DataSet<ExecRow> writeParquetFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
                                           OperationContext context) {
         try {
             Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
@@ -703,14 +700,14 @@ public class SparkDataSet<V> implements DataSet<V> {
                     .mode(SaveMode.Append).parquet(location);
             ValueRow valueRow=new ValueRow(1);
             valueRow.setColumn(1,new SQLLongint(context.getRecordsWritten()));
-            return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(new LocatedRow(valueRow)), 1));
+            return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public DataSet<LocatedRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
+    public DataSet<ExecRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
                                                     OperationContext context) {
         try {
             Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
@@ -729,14 +726,14 @@ public class SparkDataSet<V> implements DataSet<V> {
                     .mode(SaveMode.Append).orc(location);
             ValueRow valueRow=new ValueRow(1);
             valueRow.setColumn(1,new SQLLongint(context.getRecordsWritten()));
-            return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(new LocatedRow(valueRow)), 1));
+            return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public DataSet<LocatedRow> writeTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter,
+    public DataSet<ExecRow> writeTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter,
                                                 int[] baseColumnMap,
                                                 OperationContext context) {
 
@@ -752,7 +749,7 @@ public class SparkDataSet<V> implements DataSet<V> {
                     .mode(SaveMode.Append).csv(location);
             ValueRow valueRow=new ValueRow(1);
             valueRow.setColumn(1,new SQLLongint(context.getRecordsWritten()));
-            return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(new LocatedRow(valueRow)), 1));
+            return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -781,4 +778,23 @@ public class SparkDataSet<V> implements DataSet<V> {
     public BulkDeleteDataSetWriterBuilder bulkDeleteData(OperationContext operationContext) throws StandardException {
         return new SparkBulkDeleteTableWriterBuilder(this);
     }
+
+    @Override
+    public DataSetWriterBuilder deleteData(OperationContext operationContext) throws StandardException{
+        return new SparkDeleteTableWriterBuilder<>(((SparkPairDataSet) this.index(new EmptySparkPairDataSet<>()))
+                .wrapExceptions());
+    }
+
+    @Override
+    public InsertDataSetWriterBuilder insertData(OperationContext operationContext) throws StandardException{
+        return new SparkInsertTableWriterBuilder<>(((SparkPairDataSet) this.index(new EmptySparkPairDataSet<>()))
+                .wrapExceptions());
+    }
+
+    @Override
+    public UpdateDataSetWriterBuilder updateData(OperationContext operationContext) throws StandardException{
+        return new SparkUpdateTableWriterBuilder<>(((SparkPairDataSet) this.index(new EmptySparkPairDataSet<>()))
+                .wrapExceptions());
+    }
+
 }

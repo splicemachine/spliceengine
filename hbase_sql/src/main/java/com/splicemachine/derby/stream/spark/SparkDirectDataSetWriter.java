@@ -15,9 +15,9 @@
 package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.DataSetWriter;
@@ -27,7 +27,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import scala.util.Either;
-
 import java.util.Collections;
 
 /**
@@ -60,11 +59,11 @@ public class SparkDirectDataSetWriter<K,V> implements DataSetWriter{
     }
 
     @Override
-    public DataSet<LocatedRow> write() throws StandardException{
+    public DataSet<ExecRow> write() throws StandardException{
         rdd.saveAsNewAPIHadoopDataset(conf);
         ValueRow valueRow=new ValueRow(1);
         valueRow.setColumn(1,new SQLLongint(0));
-        return new SparkDataSet<>(context.parallelize(Collections.singletonList(new LocatedRow(valueRow)), 1));
+        return new SparkDataSet<>(context.parallelize(Collections.singletonList(valueRow), 1));
     }
 
     @Override

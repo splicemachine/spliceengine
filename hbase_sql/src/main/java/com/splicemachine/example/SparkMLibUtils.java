@@ -17,13 +17,11 @@ package com.splicemachine.example;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.stream.spark.SparkDataSet;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.mllib.linalg.DenseVector;
 import org.apache.spark.mllib.linalg.Vector;
-
 import com.splicemachine.db.iapi.sql.ResultSet;
 
 /**
@@ -33,11 +31,11 @@ import com.splicemachine.db.iapi.sql.ResultSet;
  */
 public class SparkMLibUtils {
 
-    public static JavaRDD<LocatedRow> resultSetToRDD(ResultSet rs) throws StandardException {
+    public static JavaRDD<ExecRow> resultSetToRDD(ResultSet rs) throws StandardException {
         return ((SparkDataSet) ( (SpliceBaseOperation) rs).getDataSet(EngineDriver.driver().processorFactory().distributedProcessor())).rdd;
     }
 
-    public static JavaRDD<Vector> locatedRowRDDToVectorRDD(JavaRDD<LocatedRow> locatedRowJavaRDD, int[] fieldsToConvert) throws StandardException {
+    public static JavaRDD<Vector> locatedRowRDDToVectorRDD(JavaRDD<ExecRow> locatedRowJavaRDD, int[] fieldsToConvert) throws StandardException {
         return locatedRowJavaRDD.map(new ExecRowToVectorFunction(fieldsToConvert));
     }
 

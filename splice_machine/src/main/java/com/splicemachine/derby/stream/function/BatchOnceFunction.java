@@ -22,6 +22,7 @@ import java.util.Queue;
 import java.util.Set;
 
 import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
@@ -39,7 +40,6 @@ import com.splicemachine.db.iapi.types.SQLRef;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 
@@ -48,7 +48,7 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
  * Created by jyuan on 10/7/15.
  */
 public class BatchOnceFunction<Op extends SpliceOperation>
-        extends SpliceFlatMapFunction<Op,Iterator<LocatedRow>, LocatedRow> implements Serializable {
+        extends SpliceFlatMapFunction<Op,Iterator<ExecRow>, ExecRow> implements Serializable {
 
     private boolean initialized;
     private BatchOnceOperation op;
@@ -64,7 +64,7 @@ public class BatchOnceFunction<Op extends SpliceOperation>
 
     /* Collection of ExecRows we have read from the source and updated with results from the subquery but
      * not yet returned to the operation above us. */
-    private Queue<LocatedRow> rowQueue;
+    private Queue<ExecRow> rowQueue;
 
     private final int batchSize;
 
@@ -83,7 +83,7 @@ public class BatchOnceFunction<Op extends SpliceOperation>
     }
 
     @Override
-    public Iterator<LocatedRow> call(Iterator<LocatedRow> locatedRows) throws Exception {
+    public Iterator<ExecRow> call(Iterator<ExecRow> locatedRows) throws Exception {
 
         if (!initialized) {
             init();
@@ -110,7 +110,7 @@ public class BatchOnceFunction<Op extends SpliceOperation>
         this.subqueryColumnPosition = getColumnPosition(subqueryExecRow, subqueryCorrelatedColumnPositions);
     }
 
-    private void loadNextBatch(Iterator<LocatedRow> locatedRows) throws StandardException, IOException {
+    private void loadNextBatch(Iterator<ExecRow> locatedRows) throws StandardException, IOException {
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         //
         // STEP 1: Read batchSize rows from the source
@@ -118,17 +118,17 @@ public class BatchOnceFunction<Op extends SpliceOperation>
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
         // for quickly finding source rows with a given key
-        Multimap<String, LocatedRow> sourceRowsMap = ArrayListMultimap.create(batchSize, 1);
+        Multimap<String, ExecRow> sourceRowsMap = ArrayListMultimap.create(batchSize, 1);
         DataValueDescriptor nullValue = op.getSource().getExecRowDefinition().cloneColumn(1).getNewNull();
 
-        LocatedRow sourceRow;
+        ExecRow sourceRow;
         ExecRow newRow;
         while (locatedRows.hasNext() && rowQueue.size() <batchSize) {
             sourceRow = locatedRows.next();
-            byte[] sourceKey = sourceKeyEncoder.getKey(sourceRow.getRow());
+            byte[] sourceKey = sourceKeyEncoder.getKey(sourceRow);
 
             newRow = new ValueRow(3);
-            DataValueDescriptor sourceOldValue = sourceRow.getRow().getColumn(sourceColumnPosition);
+            DataValueDescriptor sourceOldValue = sourceRow.getColumn(sourceColumnPosition);
             //
             // old value from source
             //
@@ -137,14 +137,12 @@ public class BatchOnceFunction<Op extends SpliceOperation>
             // new value will (possibly) come from subquery (subquery could return null, or return no row)
             //
             newRow.setColumn(NEW_COL, nullValue);
-
             //
             // row location
             //
-            newRow.setColumn(ROW_LOC_COL, new SQLRef(sourceRow.getRowLocation()));
+            newRow.setColumn(ROW_LOC_COL, new SQLRef(new HBaseRowLocation(sourceRow.getKey())));
 
-            LocatedRow newLocatedRow = new LocatedRow(sourceRow.getRowLocation(), newRow);
-            sourceRowsMap.put(Bytes.toHex(sourceKey), newLocatedRow);
+            sourceRowsMap.put(Bytes.toHex(sourceKey), newRow);
         }
 
         /* Don't execute the subquery again if there were no more source rows. */
@@ -162,15 +160,15 @@ public class BatchOnceFunction<Op extends SpliceOperation>
 
         try {
             subquerySource.openCore();
-            Iterator<LocatedRow> subqueryIterator = subquerySource.getLocatedRowIterator();
+            Iterator<ExecRow> subqueryIterator = subquerySource.getExecRowIterator();
             ExecRow nextRowCore;
             Set<String> uniqueKeySet = Sets.newHashSetWithExpectedSize(batchSize);
             while (subqueryIterator.hasNext()) {
-                nextRowCore = subqueryIterator.next().getRow();
+                nextRowCore = subqueryIterator.next();
                 byte[] keyColumn = subqueryKeyEncoder.getKey(nextRowCore);
-                Collection<LocatedRow> correspondingSourceRows = sourceRowsMap.get(Bytes.toHex(keyColumn));
-                for (LocatedRow correspondingSourceRow : correspondingSourceRows) {
-                    correspondingSourceRow.getRow().setColumn(NEW_COL, nextRowCore.getColumn(subqueryColumnPosition));
+                Collection<ExecRow> correspondingSourceRows = sourceRowsMap.get(Bytes.toHex(keyColumn));
+                for (ExecRow correspondingSourceRow : correspondingSourceRows) {
+                    correspondingSourceRow.setColumn(NEW_COL, nextRowCore.getColumn(subqueryColumnPosition));
                     rowQueue.add(correspondingSourceRow);
                 }
                 if (!uniqueKeySet.add(Bytes.toHex(keyColumn))) {

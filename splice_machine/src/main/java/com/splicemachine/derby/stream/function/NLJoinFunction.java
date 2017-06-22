@@ -21,7 +21,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.IterableJoinFunction;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iterator.GetNLJoinIterator;
@@ -47,18 +46,18 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
     protected JoinType joinType;
     protected boolean initialized;
     protected int batchSize;
-    protected Iterator<LocatedRow> leftSideIterator;
+    protected Iterator<ExecRow> leftSideIterator;
     protected List<OperationContext> operationContextList;
     protected int nLeftRows;
     protected OperationContext currentOperationContext;
-    protected Iterator<LocatedRow> rightSideNLJIterator;
+    protected Iterator<ExecRow> rightSideNLJIterator;
     protected ExecRow leftRow;
     protected RowLocation leftRowLocation;
     protected boolean isLeftOuterJoin;
     protected boolean isAntiJoin;
     protected boolean isOneRowInnerJoin;
 
-    protected ExecutorCompletionService<Pair<OperationContext, Iterator<LocatedRow>>> completionService;
+    protected ExecutorCompletionService<Pair<OperationContext, Iterator<ExecRow>>> completionService;
 
     public NLJoinFunction () {}
 
@@ -67,7 +66,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
     }
 
 
-    protected void init(Iterator<LocatedRow> from) throws StandardException {
+    protected void init(Iterator<ExecRow> from) throws StandardException {
         checkInit();
         SConfiguration configuration= EngineDriver.driver().getConfiguration();
         batchSize = configuration.getNestedLoopJoinBatchSize();
@@ -98,19 +97,19 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                 if (!leftSideIterator.hasNext())
                     break;
                 nLeftRows++;
-                LocatedRow locatedRow = leftSideIterator.next();
+                ExecRow execRow = leftSideIterator.next();
                 GetNLJoinIterator getNLJoinIterator =  GetNLJoinIterator.makeGetNLJoinIterator(joinType,
-                        operationContextList.remove(0), locatedRow);
+                        operationContextList.remove(0), execRow);
                 completionService.submit(getNLJoinIterator);
             }
             if (nLeftRows > 0) {
-                Future<Pair<OperationContext, Iterator<LocatedRow>>> future = completionService.take();
-                Pair<OperationContext, Iterator<LocatedRow>> result = future.get();
+                Future<Pair<OperationContext, Iterator<ExecRow>>> future = completionService.take();
+                Pair<OperationContext, Iterator<ExecRow>> result = future.get();
                 currentOperationContext = result.getFirst();
                 rightSideNLJIterator = result.getSecond();
                 leftRow = currentOperationContext.getOperation().getLeftOperation().getCurrentRow();
                 leftRowLocation = currentOperationContext.getOperation().getLeftOperation().getCurrentRowLocation();
-                operationContext.getOperation().getLeftOperation().setCurrentLocatedRow(getLeftLocatedRow());
+                operationContext.getOperation().getLeftOperation().setCurrentRow(getLeftLocatedRow());
                 nLeftRows--;
             }
         }
@@ -133,23 +132,23 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
 
                 if (leftSideIterator.hasNext()) {
                     // If we haven't consumed left side iterator, submit a task to scan righ side
-                    LocatedRow locatedRow = leftSideIterator.next();
+                    ExecRow execRow = leftSideIterator.next();
                     GetNLJoinIterator getNLJoinIterator = GetNLJoinIterator.makeGetNLJoinIterator(joinType,
-                            operationContextList.remove(0), locatedRow);
+                            operationContextList.remove(0), execRow);
                     completionService.submit(getNLJoinIterator);
                     nLeftRows++;
                 }
 
                 if(nLeftRows > 0) {
                     // If there are pending tasks, wait to get an iterator to righ side
-                    Future<Pair<OperationContext, Iterator<LocatedRow>>> future = completionService.take();
-                    Pair<OperationContext, Iterator<LocatedRow>> result = future.get();
+                    Future<Pair<OperationContext, Iterator<ExecRow>>> future = completionService.take();
+                    Pair<OperationContext, Iterator<ExecRow>> result = future.get();
                     nLeftRows--;
                     currentOperationContext = result.getFirst();
                     rightSideNLJIterator = result.getSecond();
                     leftRow = currentOperationContext.getOperation().getLeftOperation().getCurrentRow();
                     leftRowLocation = currentOperationContext.getOperation().getLeftOperation().getCurrentRowLocation();
-                    operationContext.getOperation().getLeftOperation().setCurrentLocatedRow(getLeftLocatedRow());
+                    operationContext.getOperation().getLeftOperation().setCurrentRow(getLeftLocatedRow());
                 }
             }
 
@@ -161,8 +160,8 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
     }
 
     @Override
-    public LocatedRow getLeftLocatedRow() {
-        return new LocatedRow(leftRowLocation, leftRow);
+    public ExecRow getLeftLocatedRow() {
+        return leftRow;
     }
 
     @Override
@@ -181,8 +180,8 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
     }
 
     @Override
-    public void setCurrentLocatedRow(LocatedRow locatedRow) {
-        op.setCurrentLocatedRow(locatedRow);
+    public void setCurrentLocatedRow(ExecRow locatedRow) {
+        op.setCurrentRow(locatedRow);
     }
 
     @Override
@@ -207,7 +206,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
 
     @Override
     public ExecRow getRightRow() {
-        ExecRow row = rightSideNLJIterator.next().getRow();
+        ExecRow row = rightSideNLJIterator.next();
         SpliceOperation from = currentOperationContext.getOperation().getRightOperation();
         SpliceOperation to = operationContext.getOperation().getRightOperation();
         setRightSideCurrentLocatedRow(from, to);

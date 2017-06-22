@@ -15,9 +15,9 @@
 package com.splicemachine.derby.stream.output.direct;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.control.ControlDataSet;
 import com.splicemachine.derby.stream.control.ControlPairDataSet;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -44,7 +44,7 @@ public class DirectDataSetWriter<K> implements DataSetWriter{
     }
 
     @Override
-    public DataSet<LocatedRow> write() throws StandardException{
+    public DataSet<ExecRow> write() throws StandardException{
         try{
             pipelineWriter.open();
             CountingIterator rows=new CountingIterator(dataSet.values().toLocalIterator());
@@ -53,7 +53,7 @@ public class DirectDataSetWriter<K> implements DataSetWriter{
 
             ValueRow valueRow=new ValueRow(1);
             valueRow.setColumn(1,new SQLLongint(rows.count));
-            return new ControlDataSet<>(new SingletonIterator(new LocatedRow(valueRow)));
+            return new ControlDataSet<>(new SingletonIterator(valueRow));
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
