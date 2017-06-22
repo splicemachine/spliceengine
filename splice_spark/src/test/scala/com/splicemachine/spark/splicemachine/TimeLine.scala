@@ -770,7 +770,7 @@ class Timeline extends FunSuite with TimeLineWrapper with BeforeAndAfter with Ma
                  qty: Long,
                  retryCount: Integer = 0,
                  TO_Id: Integer,
-                 supplier: String,
+                 supplier: Integer,
                  ASN: String,
                  container: String,
                  modeOfTransport: Integer,
@@ -823,7 +823,7 @@ class Timeline extends FunSuite with TimeLineWrapper with BeforeAndAfter with Ma
                modDeliveryDate: Timestamp,
                qty: Long,
                TO_Id: Integer,
-               supplier: String,
+               supplier: Integer,
                ASN: String,
                container: String,
                modeOfTransport: Integer,
@@ -854,7 +854,7 @@ class Timeline extends FunSuite with TimeLineWrapper with BeforeAndAfter with Ma
           ps.setLong(TO_SourceInventory, source.toLong)
           ps.setLong(TO_DestinationInventory, destination.toLong)
           ps.setLong(TO_Qty, qty)
-          ps.setString(TO_Supplier, supplier)
+          ps.setLong(TO_Supplier, supplier.toLong)
           ps.setString(TO_ASN, ASN)
           ps.setString(TO_Container, container)
           ps.setShort(TO_TransportMode, modeOfTransport.toShort)
@@ -975,7 +975,7 @@ class Timeline extends FunSuite with TimeLineWrapper with BeforeAndAfter with Ma
                          qty: Long,
                          retryCount: Integer = 0,
                          TO_Id: Integer,
-                         supplier: String,
+                         supplier: Integer,
                          modeOfTransport: Integer,
                          carrier: Integer,
                          fromWeather: Integer,
@@ -1031,7 +1031,7 @@ class Timeline extends FunSuite with TimeLineWrapper with BeforeAndAfter with Ma
                deliveryDate: Timestamp,
                modDeliveryDate: Timestamp,
                TO_Id: Integer,
-               supplier: String,
+               supplier: Integer,
                modeOfTransport: Integer,
                carrier: Integer,
                fromWeather: Integer,
@@ -1054,7 +1054,7 @@ class Timeline extends FunSuite with TimeLineWrapper with BeforeAndAfter with Ma
           ps.setLong(TODE_ShipTo, destinationCity.toLong)
            ps.setTimestamp(TODE_DeliveryDate, deliveryDate)
           ps.setTimestamp(TODE_ModDeliveryDate, modDeliveryDate)
-          ps.setString(TODE_Supplier, supplier)
+          ps.setLong(TODE_Supplier, supplier.toLong)
           ps.setShort(TODE_TransportMode, modeOfTransport.toShort)
           ps.setLong(TODE_Carrier, carrier.toLong)
           ps.setShort(TODE_FromWeather, fromWeather.toShort)
@@ -1109,7 +1109,7 @@ class Timeline extends FunSuite with TimeLineWrapper with BeforeAndAfter with Ma
 
 
       TransferOrder.create(umbrellasAtDC1, umbrellasAtDC2, "2010-7-10 00:00:00", "2010-7-15 00:00:00", "2010-7-15 00:00:00", 5, 2,
-        100,"Supplier1","ASN100","Container100",1,1,1,1, cities(1).Latitude, cities(1).Longitude, 1,  2, 100)
+        100,19999,"ASN100","Container100",1,1,1,1, cities(1).Latitude, cities(1).Longitude, 1,  2, 100)
 
       df = sqlContext.read.options(internalOptions).splicemachine
         .filter(s"TIMELINE_ID = $umbrellasAtDC2 AND ST = to_utc_timestamp('2010-7-15 00:00:00','GMT')")
