@@ -216,11 +216,13 @@ public class ActivationSerializer {
     }
 
     @SuppressWarnings("SimplifiableIfStatement")
-    private static boolean isQualifierType(Class clazz){
-        if(Qualifier.class.isAssignableFrom(clazz)) return true;
-        else if(clazz.isArray()){
-            return isQualifierType(clazz.getComponentType());
-        }else return false;
+    private static boolean isQualifierType(Class clazz) {
+        while (true) {
+            if (Qualifier.class.isAssignableFrom(clazz)) return true;
+            else if (clazz.isArray()) {
+                clazz = clazz.getComponentType();
+            } else return false;
+        }
     }
 
     private static FieldStorage getFieldStorage(Object o, Class<?> type) {
