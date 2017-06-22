@@ -11249,6 +11249,25 @@ storedAs() :
 }
 
 /*
+ * <A NAME="compressedAs">compressedAs</A>
+ */
+String
+compressedAs() :
+{
+}
+{
+	<ZLIB>
+	{
+		return "zlib";
+	}
+|
+    <SNAPPY>
+	{
+		return "snappy";
+	}
+}
+
+/*
  * <A NAME="charOrVarchar">charOrVarchar</A>
  */
 int
@@ -11775,7 +11794,7 @@ tableDefinition() throws StandardException :
 			tableElementList = tableElementList()
 			[ properties = propertyList(false)<CHECK_PROPERTIES>]
 			[<COMMA>]
-			[ <COMPRESSED> <WITH> [ <ZLIB> { compression ="zlib"; } | <SNAPPY> { compression ="snappy"; } ] ]
+			[ <COMPRESSED> <WITH> compression =compressedAs() ]
 			[<COMMA>]
             [ <PARTITIONED> <BY> <LEFT_PAREN> partitionedResultColumns = tableColumnList() <RIGHT_PAREN> ]
             [<COMMA>]
