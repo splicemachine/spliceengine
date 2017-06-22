@@ -189,7 +189,7 @@ public abstract class DatabaseClasses
 
 		// get the un-qualified name and add the extension
         int lastDot = fullyQualifiedName.lastIndexOf((int)'.');
-        String filename = fullyQualifiedName.substring(lastDot+1,fullyQualifiedName.length()).concat(".class");
+        String filename = fullyQualifiedName.substring(lastDot + 1, fullyQualifiedName.length()) + ".class";
 
 		Object env = Monitor.getMonitor().getEnvironment();
 		File dir = env instanceof File ? (File) env : null;

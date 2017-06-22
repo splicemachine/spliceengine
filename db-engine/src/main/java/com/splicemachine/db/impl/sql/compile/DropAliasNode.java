@@ -104,7 +104,7 @@ public class DropAliasNode extends DDLStatementNode
 
 	public String statementToString()
 	{
-		return "DROP ".concat(aliasTypeName(aliasType));
+		return "DROP " + aliasTypeName(aliasType);
 	}
 
 	/**

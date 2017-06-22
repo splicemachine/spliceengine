@@ -58,7 +58,7 @@ public class DropSequenceNode extends DDLStatementNode {
     }
 
     public String statementToString() {
-        return "DROP ".concat(dropItem.getTableName());
+        return "DROP " + dropItem.getTableName();
     }
 
     /**

@@ -385,7 +385,7 @@ public class ReferenceableDataSource implements
 				// setSomeProperty
 				// 01234
 
-				String propertyName = methodName.substring(3,4).toLowerCase(java.util.Locale.ENGLISH).concat(methodName.substring(4));
+				String propertyName = methodName.substring(3, 4).toLowerCase(java.util.Locale.ENGLISH) + methodName.substring(4);
 
 				try {
 					Object ov = m.invoke(this, null);

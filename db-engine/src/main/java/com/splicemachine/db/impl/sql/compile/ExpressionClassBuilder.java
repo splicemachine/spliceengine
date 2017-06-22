@@ -350,7 +350,7 @@ public abstract	class ExpressionClassBuilder implements ExpressionClassBuilderIn
 										 int modifiers,
 										 String[] params) {
 
-		String exprName = "g".concat(Integer.toString(nextNonFastExpr++));
+		String exprName = "g" + Integer.toString(nextNonFastExpr++);
 		return newGeneratedFun(exprName, returnType, modifiers,
 							   params);
 
@@ -409,7 +409,7 @@ public abstract	class ExpressionClassBuilder implements ExpressionClassBuilderIn
 	MethodBuilder newExprFun()
 	{
 		// get next generated function 
-		String exprName = "e".concat(Integer.toString(nextExprNum++));
+		String exprName = "e" + Integer.toString(nextExprNum++);
 
 		return newGeneratedFun(exprName, "java.lang.Object", Modifier.PUBLIC, (String[]) null);
 	}
@@ -448,7 +448,7 @@ public abstract	class ExpressionClassBuilder implements ExpressionClassBuilderIn
     MethodBuilder newUserExprToStringFun() {
 
         // get next generated function
-        String exprName = "e".concat(Integer.toString(nextExprNum-1)).concat("ToString");
+        String exprName = "e" + Integer.toString(nextExprNum - 1) + "ToString";
 
         MethodBuilder mb = newGeneratedFun(exprName, "java.lang.String", Modifier.PUBLIC, (String[]) null);
         mb.addThrownException("java.lang.Exception");
@@ -789,7 +789,7 @@ public abstract	class ExpressionClassBuilder implements ExpressionClassBuilderIn
 	 */
 	private String newFieldName()
 	{
-		return "e".concat(Integer.toString(nextFieldNum++));
+		return "e" + Integer.toString(nextFieldNum++);
 	}
 
 

@@ -235,7 +235,7 @@ public class CompilerContextImpl extends ContextImpl
 		{
     		SanityManager.ASSERT(nextClassName <= Long.MAX_VALUE);
     	}
-		return classPrefix.concat(Long.toHexString(nextClassName++));
+		return classPrefix + Long.toHexString(nextClassName++);
 	}
 
 	/**

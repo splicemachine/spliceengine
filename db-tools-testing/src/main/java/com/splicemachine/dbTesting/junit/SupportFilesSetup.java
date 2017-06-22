@@ -166,7 +166,7 @@ public class SupportFilesSetup extends TestSetup {
         for (int i = 0; i < resources.length; i++)
         {
             String name =
-                "org/apache/derbyTesting/".concat(resources[i]);
+                    "org/apache/derbyTesting/" + resources[i];
             
             String baseName;
 

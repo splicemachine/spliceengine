@@ -235,7 +235,7 @@ public final class MessageService {
 
 		try {
 			if (bundle != null)
-				return bundle.getString(messageId.concat(".").concat(propertyName));
+				return bundle.getString(messageId + "." + propertyName);
 		} catch (MissingResourceException mre) {
 		}
 		return null;

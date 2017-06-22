@@ -266,9 +266,9 @@ abstract class BaseStorageFactory implements StorageFactory
             return;
 
         if( tempDirPath != null)
-            tempDir = new DirFile( tempDirPath, TEMP_DIR_PREFIX.concat(uniqueName));
+            tempDir = new DirFile( tempDirPath, TEMP_DIR_PREFIX + uniqueName);
         else if( isReadOnlyDatabase())
-            tempDir = new DirFile( readOnlyTempRoot(), TEMP_DIR_PREFIX.concat(uniqueName));
+            tempDir = new DirFile( readOnlyTempRoot(), TEMP_DIR_PREFIX + uniqueName);
         else
             tempDir = new DirFile( canonicalName, DataFactory.TEMP_SEGMENT_NAME);
             

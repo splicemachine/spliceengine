@@ -87,7 +87,7 @@ public class SpliceStringFunctions {
     	if (arg1 == null || arg2 == null) {
     		return null;
     	}
-    	return arg1.concat(arg2);
+    	return arg1 + arg2;
     }
 
     /**

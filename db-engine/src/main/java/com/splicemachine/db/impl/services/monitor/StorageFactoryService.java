@@ -351,7 +351,7 @@ final class StorageFactoryService implements PersistentService
                     {
                         StorageFile backupFile = replace
                             ? storageFactory.newStorageFile(
-                                PersistentService.PROPERTIES_NAME.concat("old"))
+                                PersistentService.PROPERTIES_NAME + "old")
                             : null;
                         StorageFile servicePropertiesFile = storageFactory.newStorageFile( PersistentService.PROPERTIES_NAME);
                         FileOperationHelper foh = new FileOperationHelper();
@@ -508,7 +508,7 @@ final class StorageFactoryService implements PersistentService
     private void resolveServicePropertiesFiles(StorageFactory sf,
                                                StorageFile spf)
             throws StandardException {
-        StorageFile spfOld = sf.newStorageFile(PROPERTIES_NAME.concat("old"));
+        StorageFile spfOld = sf.newStorageFile(PROPERTIES_NAME + "old");
         FileOperationHelper foh = new FileOperationHelper();
         boolean hasCurrent = foh.exists(spf, true);
         boolean hasBackup = foh.exists(spfOld, true);

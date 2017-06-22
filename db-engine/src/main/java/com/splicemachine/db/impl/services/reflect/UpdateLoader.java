@@ -236,7 +236,7 @@ public final class UpdateLoader implements LockOwner {
                         throw new ClassNotFoundException(className);
                 }
 
-				String jvmClassName = className.replace('.', '/').concat(".class");
+				String jvmClassName = className.replace('.', '/') + ".class";
 
 				if (!initDone)
 					initLoaders();

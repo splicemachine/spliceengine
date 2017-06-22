@@ -323,7 +323,7 @@ class BCClass extends GClass {
 			String className, String superClassName,
 			BCJava factory) {
 
-		super(cf, packageName.concat(className));
+		super(cf, packageName + className);
 
 		if (SanityManager.DEBUG) {
 		  if (SanityManager.DEBUG_ON("ByteCodeGenInstr")) {
