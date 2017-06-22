@@ -104,6 +104,13 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             files.add(sf.getPath().toString());
         }
 
+        ScanType scanType =
+                request.isRetainDeleteMarkers()
+                        ? ScanType.COMPACT_RETAIN_DELETES
+                        : ScanType.COMPACT_DROP_DELETES;
+        // trigger MemstoreAwareObserver
+        postCreateCoprocScanner(request, scanType, null,user);
+
         String regionLocation = getRegionLocation(store);
         SConfiguration config = HConfiguration.getConfiguration();
         DistributedCompaction jobRequest=new DistributedCompaction(
@@ -148,12 +155,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             SpliceLogUtils.trace(LOG, "Paths Returned: %s", sPaths);
 
         this.progress.complete();
-        ScanType scanType =
-                request.isRetainDeleteMarkers()
-                        ? ScanType.COMPACT_RETAIN_DELETES
-                        : ScanType.COMPACT_DROP_DELETES;
-        // trigger MemstoreAwareObserver
-        postCreateCoprocScanner(request, scanType, null,user);
+
 
         SpliceCompactionRequest scr = (SpliceCompactionRequest) request;
         scr.preStorefilesRename();
