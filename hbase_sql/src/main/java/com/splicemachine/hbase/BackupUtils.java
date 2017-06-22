@@ -32,68 +32,6 @@ import java.sql.Timestamp;
 public class BackupUtils {
     private static final Logger LOG=Logger.getLogger(BackupUtils.class);
 
-
-    public static SpliceMessage.PrepareBackupResponse.Builder prepare(SpliceMessage.PrepareBackupRequest request,
-                                                                      HRegion region, boolean isSplitting,
-                                                                      boolean isCompacting, boolean isFlushing,
-                                                                      String tableName, String regionName, String path) throws Exception{
-
-            SpliceMessage.PrepareBackupResponse.Builder responseBuilder = SpliceMessage.PrepareBackupResponse.newBuilder();
-            responseBuilder.setReadyForBackup(false);
-
-            if (shouldIgnore(request, region)) {
-                return responseBuilder;
-            }
-
-            boolean canceled = false;
-
-            if (isSplitting) {
-                if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.debug(LOG, "%s:%s is being split before trying to prepare for backup", tableName, regionName);
-                }
-                // return false to client if the region is being split
-                responseBuilder.setReadyForBackup(false);
-            } else {
-                if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.debug(LOG, "%s:%s waits for flush and compaction to complete", tableName, regionName);
-                }
-
-                // A region might have been in backup. This is unlikely to happen unless the previous response ws lost
-                // and the client is retrying
-                if (!BackupUtils.regionIsBeingBackup(tableName, regionName, path)) {
-                    // Flush memsotore and Wait for flush and compaction to be done
-                    HBasePlatformUtils.flush(region);
-                    region.waitForFlushesAndCompactions();
-
-                    canceled = BackupUtils.backupCanceled();
-                    if (!canceled) {
-                        // Create a ZNode to indicate that the region is being copied
-                        ZkUtils.recursiveSafeCreate(path, HConfiguration.BACKUP_IN_PROGRESS, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
-                        if (LOG.isDebugEnabled()) {
-                            SpliceLogUtils.debug(LOG,"create node %s to mark backup in progress", path);
-                        }
-
-                        if (isFlushing || isCompacting || isSplitting) {
-                            if (LOG.isDebugEnabled()) {
-                                SpliceLogUtils.debug(LOG, "table %s region %s is not ready for backup: isSplitting=%s, isCompacting=%s, isFlushing=%s",
-                                        isSplitting, isCompacting, isFlushing);
-                            }
-                            ZkUtils.recursiveDelete(path);
-                        }
-                        else {
-                            responseBuilder.setReadyForBackup(true);
-                            if (LOG.isDebugEnabled()) {
-                                SpliceLogUtils.debug(LOG, "%s:%s is ready for backup", tableName, regionName);
-                            }
-                        }
-                    }
-                }
-                else
-                    responseBuilder.setReadyForBackup(true);
-            }
-            return responseBuilder;
-    }
-
     /**
      *
      * @param fs HBase file system
@@ -174,17 +112,23 @@ public class BackupUtils {
                 isBackup = false;
             }
             else {
-                byte[] status = ZkUtils.getData(path);
-                if (Bytes.compareTo(status, HConfiguration.BACKUP_IN_PROGRESS) == 0) {
-                    if (LOG.isDebugEnabled())
-                        SpliceLogUtils.debug(LOG, "Table %s region %s is in backup", tableName, regionName);
-                    isBackup = true;
-                } else if (Bytes.compareTo(status, HConfiguration.BACKUP_DONE) == 0) {
-                    if (LOG.isDebugEnabled())
-                        SpliceLogUtils.debug(LOG, "Table %s region %s is done with backup", tableName, regionName);
-                    isBackup = false;
-                } else {
-                    throw new RuntimeException("Unexpected data in node:" + path);
+                try {
+                    byte[] status = ZkUtils.getData(path);
+                    if (Bytes.compareTo(status, HConfiguration.BACKUP_IN_PROGRESS) == 0) {
+                        if (LOG.isDebugEnabled())
+                            SpliceLogUtils.debug(LOG, "Table %s region %s is in backup", tableName, regionName);
+                        isBackup = true;
+                    } else if (Bytes.compareTo(status, HConfiguration.BACKUP_DONE) == 0) {
+                        if (LOG.isDebugEnabled())
+                            SpliceLogUtils.debug(LOG, "Table %s region %s is done with backup", tableName, regionName);
+                        isBackup = false;
+                    } else {
+                        throw new RuntimeException("Unexpected data in node:" + path);
+                    }
+                } catch ( IOException e) {
+                    if (e.getCause() instanceof KeeperException)
+                        isBackup = false;
+                    else throw e;
                 }
             }
         } catch (Exception e) {
@@ -320,7 +264,7 @@ public class BackupUtils {
      * @param region
      * @return
      */
-    private static boolean shouldIgnore(SpliceMessage.PrepareBackupRequest request, HRegion region) {
+    public static boolean shouldIgnore(SpliceMessage.PrepareBackupRequest request, HRegion region) {
         byte[] endKey = request.hasEndKey() ? request.getEndKey().toByteArray() : null;
         byte[] regionStartKey = region.getRegionInfo().getStartKey();
         if (endKey != null && endKey.length > 0 && Bytes.compareTo(endKey, regionStartKey) == 0)
