@@ -258,30 +258,50 @@ class SupplyChainSimulator extends Timeline  {
 
 
 
-	class TOObjectCreateEvent (source: Int, destination: Int, shippingDate: String, deliveryDate: String, qty: Long,
-													 TO_Id: Integer,
-													 supplier: String,
-													 ASN: String,
-													 container: String,
-													 modeOfTransport: Integer,
-													 carrier: Integer,
-														 fromWeather: Integer,
-														 toWeather: Integer,
-													 latitude: Double,
-													 longitude: Double,
-													 sourceCity: Integer,
-													 destinationCity: Integer,
-													 PO_Id: Integer,
-														 modDeliveryDate: String) extends Event(source, shippingDate, deliveryDate, qty) {
+	class TOObjectCreateEvent (psource: Int, pdestination: Int, pshippingDate: String, pdeliveryDate: String, pqty: Long,
+														 pTO_Id: Integer,
+														 psupplier: String,
+														 pASN: String,
+														 pcontainer: String,
+														 pmodeOfTransport: Integer,
+														 pcarrier: Integer,
+														 pfromWeather: Integer,
+														 ptoWeather: Integer,
+														 platitude: Double,
+														 plongitude: Double,
+														 psourceCity: Integer,
+														 pdestinationCity: Integer,
+														 pPO_Id: Integer,
+														 pmodDeliveryDate: String) extends Event(psource, pshippingDate, pdeliveryDate, pqty) {
 		def processEvent {
 			//println("START TOObj Create Event")
 			println( this.toString )
-			TransferOrder.create(source, destination, shippingDate, deliveryDate, modDeliveryDate, qty,0,
+			TransferOrder.create(part, destination, orderDate, deliveryDate, modDeliveryDate, qty,0,
 				TO_Id, supplier, ASN, container, modeOfTransport, carrier,fromWeather, toWeather, latitude,longitude,sourceCity,destinationCity, PO_Id)
 
 		}
 
-		override def toString = "TOObjectCreateEvent(" +source + "," + destination + "," + shippingDate  + "," + deliveryDate  + "," + qty  + ")"
+		override def toString = "TOObjectCreateEvent(" +part + "," + destination + "," + orderDate  + "," + deliveryDate  + "," + qty  + ")"
+
+
+		def destination: Int = pdestination
+		def modDeliveryDate : String = pmodDeliveryDate
+		def TO_Id: Integer = pTO_Id
+		def supplier: String = psupplier
+		def ASN: String = pASN
+		def container: String = pcontainer
+		def modeOfTransport: Integer = pmodeOfTransport
+		def carrier: Integer = pcarrier
+		def fromWeather: Integer = pfromWeather
+		def toWeather: Integer = ptoWeather
+		def latitude: Double = platitude
+		def longitude: Double = plongitude
+		def sourceCity: Integer = psourceCity
+		def destinationCity: Integer = pdestinationCity
+		def PO_Id: Integer = pPO_Id
+
+
+
 	}
 
 	class TOObjectChangeDeliveryEvent (source: Int, destination: Int, shippingDate: String, deliveryDate: String, newDeliveryDate: String, qty: Long,
@@ -328,7 +348,7 @@ class SupplyChainSimulator extends Timeline  {
 
 		val fmt   = org.joda.time.format.DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
 
-		val BEGIN_ORDER_DATE  ="2017-5-05 00:00:00"    // beginning of simulation
+		val BEGIN_ORDER_DATE  ="2017-7-05 00:00:00"    // beginning of simulation
 		val TOTAL_TICKS     = 10  // Number of ticks in simulation
 		val TICK_LENGTH_DAYS  = 1 // Lenght in days between each Tick in realtime
 		val TICKINTERVAL  =10 // UI interval between ticks
@@ -518,12 +538,16 @@ class SupplyChainSimulator extends Timeline  {
 						if ( RandomGen.rand(100) >25) {
 							var destination = parts(RandomGen.randBetween(0,partsCnt-1))
 							if(part !=destination ) {
-								theSimulation.scheduleEvent(
-									generateTOObject(part,destination, curOrderDate ))
+								var snowevent = (RandomGen.randBetween(0,100) > 25 )
+								var toObject =generateTOObject(part,destination, curOrderDate,snowevent )
+									theSimulation.scheduleEvent(toObject)
+								 if(snowevent)
+									 theSimulation.scheduleEvent(generateTODeliveryChgEventObject(part,destination, curOrderDate,toObject ))
 							}
 						}
 					}
 				}
+				/*
 
 				//Transfer ORder Change Delivery  Events
 				if( eventTypesList contains "11") {
@@ -538,7 +562,7 @@ class SupplyChainSimulator extends Timeline  {
 						}
 					}
 				}
-
+			*/
 
 
 				theSimulation.run
@@ -552,7 +576,7 @@ class SupplyChainSimulator extends Timeline  {
 		// convenience methods to delegate calls to the Simulation instance
 		def scheduleEvent(newEvent: Event) { theSimulation.scheduleEvent(newEvent) }
 
-		def generateTOObject (part : Int, destination :Int, curOrderDate : org.joda.time.DateTime) :TOObjectCreateEvent = {
+		def generateTOObject (part : Int, destination :Int, curOrderDate : org.joda.time.DateTime, snowEvent : Boolean) :TOObjectCreateEvent = {
 
 			//println("START GEN")
 			var shippingDate = curOrderDate.toString(fmt)
@@ -576,11 +600,64 @@ class SupplyChainSimulator extends Timeline  {
 			var fromWeather = weatherList(RandomGen.randBetween(0,weatherList.length-1))
 			var toWeather = weatherList(RandomGen.randBetween(0,weatherList.length-1))
 
+
+			if(snowEvent && (RandomGen.randBetween(0, 100) > 10)) {
+				// change one of the weather
+				val snow = weatherList(weatherList.length - 1)
+				val prob = RandomGen.randBetween(0, 100)
+				if (prob < 45)
+					fromWeather = snow
+				else if (prob >= 45 && prob < 90)
+					toWeather = snow
+				else {
+					toWeather = snow
+					fromWeather = snow
+				}
+
+			}
+
+
 				new TOObjectCreateEvent(part, destination,shippingDate, deliveryDate, qty, toId, supplier, asn, container,
 					modeOfTransport, carrier,fromWeather, toWeather, latitude,longitude, srcCity,destCity, poId, deliveryDate )
 		}
 
 
+		def generateTODeliveryChgEventObject (part : Int, destination :Int, curOrderDate : org.joda.time.DateTime,
+																					toObject:TOObjectCreateEvent) :TOObjectChangeDeliveryEvent = {
+
+			println("START GEN")
+			var shippingDate = toObject.orderDate
+			var deliveryDate = toObject.deliveryDate
+
+			//Add 1 to 10 days to original delivery date
+			var newDeliveryDate = org.joda.time.DateTime.parse(deliveryDate, fmt).plusDays(RandomGen.randBetween(1,10)).toString(fmt)
+			var qty = toObject.qty
+			var toId = toObject.TO_Id
+			var TO_event_Id = RandomGen.randBetween(MIN_OID, MAX_OID)
+
+			var supplier = toObject.supplier
+
+			var carrier = toObject.carrier
+
+			var srcCity =toObject.sourceCity
+			var destCity  = toObject.destinationCity
+
+			//var latitude = cities(srcCity).Latitude
+			//var longitude = cities(srcCity).Latitude
+			var modeOfTransport = toObject.modeOfTransport
+
+			//For Change Date Event, 90% of cases should have one of the weather as either
+			// heavy snow
+
+			var fromWeather = toObject.fromWeather
+			var toWeather = toObject.toWeather
+
+
+			new TOObjectChangeDeliveryEvent(part, destination,shippingDate, deliveryDate, newDeliveryDate, qty,
+				toId, supplier, modeOfTransport, carrier,fromWeather, toWeather, srcCity,destCity, TO_event_Id )
+		}
+
+	/*
 
 	def generateTODeliveryChgEventObject (part : Int, destination :Int, curOrderDate : org.joda.time.DateTime) :TOObjectChangeDeliveryEvent = {
 
@@ -593,16 +670,14 @@ class SupplyChainSimulator extends Timeline  {
 		var TO_event_Id = RandomGen.randBetween(MIN_OID, MAX_OID)
 
 		var supplier = suppliers(RandomGen.randBetween(0,suppliers.length-1))
-		var asn = RandomGen.randBetween(MIN_ASN,MAX_ASN).toString
-		var container = RandomGen.randBetween(MIN_CNT,MAX_CNT).toString
 
 		var carrier = carriers(RandomGen.randBetween(0,carriers.length-1))
 
 		var srcCity = RandomGen.randBetween(0,cities.length-1)
 		var destCity  = RandomGen.randBetween(0,cities.length-1)
 
-		var latitude = cities(srcCity).Latitude
-		var longitude = cities(srcCity).Latitude
+		//var latitude = cities(srcCity).Latitude
+		//var longitude = cities(srcCity).Latitude
 		var modeOfTransport = modesOfTransport(RandomGen.randBetween(0,modesOfTransport.length-1))
 
 		//For Change Date Event, 90% of cases should have one of the weather as either
@@ -628,21 +703,19 @@ class SupplyChainSimulator extends Timeline  {
 
 		}
 
-
-
-
 		new TOObjectChangeDeliveryEvent(part, destination,shippingDate, deliveryDate, newDeliveryDate, qty,
 			toId, supplier, modeOfTransport, carrier,fromWeather, toWeather, srcCity,destCity, TO_event_Id )
 	}
+	*/
 }
 
 test("Supply Chain Simulator TOObject Change Delivery ") {
 
 
 		//Generate Purchase Orders for 1 day, after clearing database
-		var noOfDays = 1
-		var eventTypes = "11"
-		var clearDB = "1"
+		var noOfDays = 200
+		var eventTypes = "10"
+		var clearDB = "2"
 
 
 		//println("RUN TEST TO")
