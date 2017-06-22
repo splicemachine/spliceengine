@@ -161,7 +161,7 @@ class ConnectionEnv {
 	}
 
 	boolean haveSession(String name) {
-		return (name != null) && (sessions.size()>0) && (null != sessions.get(name));
+		return (name != null) && (!sessions.isEmpty()) && (null != sessions.get(name));
 	}
 
 	void removeCurrentSession() throws SQLException {
@@ -179,7 +179,7 @@ class ConnectionEnv {
 	}
 
 	void removeAllSessions() throws SQLException {
-		if (sessions == null || sessions.size() == 0)
+		if (sessions == null || sessions.isEmpty())
 			return;
 		else
 			for (Enumeration e = sessions.keys(); e.hasMoreElements(); ) {

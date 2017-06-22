@@ -90,7 +90,7 @@ public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner
     public boolean next(List<Cell> results) throws IOException{
         if(currentResult!=null){
             // If we already have results we have to sort after adding ours, see SPLICE-1463
-            boolean needsSorting = results.size() > 0;
+            boolean needsSorting = !results.isEmpty();
             results.addAll(currentResult.listCells());
             if (needsSorting) {
                 Collections.sort(results, SpliceKVComparator.INSTANCE);

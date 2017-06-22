@@ -183,7 +183,7 @@ public class SplitMessages {
         }
 
         for (int i = 0; i < 50; i++) {
-            if (c[i].size() == 0) {
+            if (c[i].isEmpty()) {
                 continue;
             }
             outputDir.mkdirs();

@@ -97,7 +97,7 @@ public class SecurityUtil {
         if (name == null) {
             throw new NullPointerException("name can't be null");
         }
-        if (name.length() == 0) {
+        if (name.isEmpty()) {
             throw new IllegalArgumentException("name can't be empty");
         }
         try {

@@ -525,7 +525,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                      * don't collect statistics for those views
                      */
 
-                    if (tableDescriptor != null && tableDescriptor.getConglomerateDescriptorList().size() > 0) {
+                    if (tableDescriptor != null && !tableDescriptor.getConglomerateDescriptorList().isEmpty()) {
                         tds.add(tableDescriptor);
                     }
                 }

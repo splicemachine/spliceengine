@@ -1492,7 +1492,7 @@ public class JDBC {
      */
     public static String identifierToCNF(String id)
     {
-        if (id == null || id.length() == 0) {
+        if (id == null || id.isEmpty()) {
             return id;
         }
 

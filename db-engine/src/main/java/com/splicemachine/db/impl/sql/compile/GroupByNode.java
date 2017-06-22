@@ -397,7 +397,7 @@ public class GroupByNode extends SingleChildResultSetNode{
     @Override
     public boolean isOneRowResultSet() throws StandardException{
         // Only consider scalar aggregates for now
-        return ((groupingList==null) || (groupingList.size()==0));
+        return ((groupingList==null) || (groupingList.isEmpty()));
     }
 
     /**
@@ -479,7 +479,7 @@ public class GroupByNode extends SingleChildResultSetNode{
         mb.push(resultSetNumber);
 
 		/* Generate a (Distinct)ScalarAggregateResultSet if scalar aggregates */
-        if((groupingList==null) || (groupingList.size()==0)){
+        if((groupingList==null) || (groupingList.isEmpty())){
             genScalarAggregateResultSet(mb);
         }
 		/* Generate a (Distinct)GroupedAggregateResultSet if grouped aggregates */

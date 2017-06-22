@@ -459,7 +459,7 @@ public class ColumnReference extends ValueNode {
 			SanityManager.ASSERT(fromList != null, "fromList is expected to be non-null");
 		}
 
-		if (fromList.size() == 0) {
+		if (fromList.isEmpty()) {
 			throw StandardException.newException(SQLState.LANG_ILLEGAL_COLUMN_REFERENCE, columnName);
 		}
 
@@ -824,7 +824,7 @@ public class ColumnReference extends ValueNode {
 			// 	"Trying to unremap a ColumnReference that was not remapped.");
 		}
 
-		if ((remaps == null) || (remaps.size() == 0))
+		if ((remaps == null) || (remaps.isEmpty()))
 		{
 			source = origSource;
 			origSource = null;
@@ -843,7 +843,7 @@ public class ColumnReference extends ValueNode {
 			tableNumber = rI.getTableNumber();
 			columnNumber = rI.getColumnNumber();
 			rI = null;
-			if (remaps.size() == 0)
+			if (remaps.isEmpty())
 				remaps = null;
 		}
 	}

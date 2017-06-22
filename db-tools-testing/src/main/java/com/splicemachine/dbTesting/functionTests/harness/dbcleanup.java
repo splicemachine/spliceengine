@@ -158,7 +158,7 @@ public class dbcleanup {
 				viewvec = findTables(conn, s, 'V', schema);
 				//for (list = viewvec.elements(); list.hasMoreElements();)
 				//	System.out.println("\t" + list.nextElement());
-				if (viewvec.size() > 0) {
+				if (!viewvec.isEmpty()) {
 					System.out.println("schema " + schema);
 					viewdependencyFound = dropTables(conn, s, viewvec, "view");
 				}
@@ -167,7 +167,7 @@ public class dbcleanup {
 			for (tabledependencyFound = true; tabledependencyFound;){
 				tabledependencyFound = false;
 				tablevec = findTables(conn, s, 'T', schema);
-				if (tablevec.size() > 0) {
+				if (!tablevec.isEmpty()) {
 					System.out.println("schema " + schema);
 					tabledependencyFound = 
 						dropTables(conn, s, tablevec, "table");

@@ -65,7 +65,7 @@ public class URLStorageFactory extends BaseStorageFactory
      */
     StorageFile newPersistentFile( String directoryName, String fileName)
     {
-        if( directoryName == null || directoryName.length() == 0)
+        if( directoryName == null || directoryName.isEmpty())
             return newPersistentFile( fileName);
         return new URLFile( this, directoryName, fileName);
     }

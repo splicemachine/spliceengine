@@ -144,7 +144,7 @@ public class CompactionJob implements Callable<Void>{
     }
 
     private boolean compactionRunning(List<Integer> jobIds) {
-        if (jobIds.size() == 0) {
+        if (jobIds.isEmpty()) {
             return false;
         }
         Integer jobId = jobIds.get(0);

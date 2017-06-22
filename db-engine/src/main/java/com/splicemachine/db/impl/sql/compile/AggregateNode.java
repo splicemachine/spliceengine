@@ -448,7 +448,7 @@ public class AggregateNode extends UnaryOperatorNode
 		List<AliasDescriptor> list = dd.getRoutineList
             ( sd.getUUID().toString(), rawName, AliasInfo.ALIAS_NAME_SPACE_AGGREGATE_AS_CHAR );
 
-        if ( list.size() > 0 ) { return list.get( 0 ); }
+        if (!list.isEmpty()) { return list.get( 0 ); }
 
         return null;
     }

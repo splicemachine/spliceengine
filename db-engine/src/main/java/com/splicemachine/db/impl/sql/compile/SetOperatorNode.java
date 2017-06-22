@@ -529,8 +529,8 @@ abstract class SetOperatorNode extends TableOperatorNode
 	{
 		// Check this node.
 		return
-			((leftOptPredicates != null) && (leftOptPredicates.size() > 0)) ||
-			((rightOptPredicates != null) && (rightOptPredicates.size() > 0));
+			((leftOptPredicates != null) && (!leftOptPredicates.isEmpty())) ||
+			((rightOptPredicates != null) && (!rightOptPredicates.isEmpty()));
 	}
 
 	/**

@@ -90,7 +90,7 @@ public class BatchOnceFunction<Op extends SpliceOperation>
             initialized = true;
         }
         //pull a batch of rows
-        if (rowQueue.size() == 0) {
+        if (rowQueue.isEmpty()) {
             loadNextBatch(locatedRows);
         }
         return rowQueue.iterator();

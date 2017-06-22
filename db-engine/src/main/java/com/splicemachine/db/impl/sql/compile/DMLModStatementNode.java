@@ -752,7 +752,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
             return false;
 		ConstraintDescriptorList ccCDL = cdl.getSubList(DataDictionary.CHECK_CONSTRAINT);
 
-		return (ccCDL.size() > 0);
+		return (!ccCDL.isEmpty());
 	}
 
 	/**
@@ -770,7 +770,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
 	{
 		ColumnDescriptorList list= td.getGeneratedColumns();
 
-		return (list.size() > 0);
+		return (!list.isEmpty());
 	}
 
 
@@ -869,7 +869,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
     )
 		throws StandardException
 	{	
-		if ((triggerList != null) && (triggerList.size() > 0))
+		if ((triggerList != null) && (!triggerList.isEmpty()))
 		{
 			triggerInfo = new TriggerInfo(td, changedCols, triggerList);
 		}
@@ -988,7 +988,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
 			return relevantTriggers;
 
 		td.getAllRelevantTriggers( statementType, changedColumnIds, relevantTriggers );
-		adjustDeferredFlag( relevantTriggers.size() > 0 );
+		adjustDeferredFlag(!relevantTriggers.isEmpty());
 		return relevantTriggers;
 	}
 

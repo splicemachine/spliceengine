@@ -173,11 +173,11 @@ public abstract class BaseWriteConfiguration implements WriteConfiguration {
             return WriteResponse.SUCCESS;
         else if (writeResult.isPartial()) {
             IntObjectOpenHashMap<WriteResult> failedRows = bulkWriteResult.getFailedRows();
-            if (failedRows != null && failedRows.size() > 0) {
+            if (failedRows != null && !failedRows.isEmpty()) {
                 return WriteResponse.PARTIAL;
             }
             IntOpenHashSet notRun = bulkWriteResult.getNotRunRows();
-            if(notRun!=null && notRun.size()>0)
+            if(notRun!=null && !notRun.isEmpty())
                 return WriteResponse.PARTIAL;
             /*
              * We got a partial result, but didn't specify which rows needed behavior.

@@ -1314,7 +1314,7 @@ public final class SQLTimestamp extends DataType
         catch( StandardException se)
         {
             String state = se.getSQLState();
-            if( state != null && state.length() > 0 && SQLState.LANG_DATE_RANGE_EXCEPTION.startsWith( state))
+            if( state != null && !state.isEmpty() && SQLState.LANG_DATE_RANGE_EXCEPTION.startsWith( state))
             {
                 throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, "TIMESTAMP");
             }

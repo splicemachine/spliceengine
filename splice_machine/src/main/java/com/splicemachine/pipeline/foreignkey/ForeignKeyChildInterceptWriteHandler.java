@@ -157,7 +157,7 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
 
     @Override
     public void close(WriteContext ctx) throws IOException {
-        if (mutations.size() > 0)
+        if (!mutations.isEmpty())
             flush(ctx);
     }
 

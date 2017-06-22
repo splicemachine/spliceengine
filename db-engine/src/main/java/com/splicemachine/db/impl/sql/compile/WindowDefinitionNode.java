@@ -94,7 +94,7 @@ public final class WindowDefinitionNode extends WindowNode
         }
 
         if (SanityManager.DEBUG) {
-            SanityManager.ASSERT(aggregates.size() == 0,
+            SanityManager.ASSERT(aggregates.isEmpty(),
                                  "A window function partition cannot contain an aggregate.");
         }
 

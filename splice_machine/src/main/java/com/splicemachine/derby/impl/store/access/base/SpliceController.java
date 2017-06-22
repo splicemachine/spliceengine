@@ -170,7 +170,7 @@ public abstract class SpliceController implements ConglomerateController{
     }
     @Override
     public boolean batchFetch(List<RowLocation> locations, List<ExecRow> destRows,FormatableBitSet validColumns,boolean waitForLock) throws StandardException{
-        if (locations.size() == 0)
+        if (locations.isEmpty())
             return false;
         Partition htable = getTable();
         KeyHashDecoder rowDecoder = null;

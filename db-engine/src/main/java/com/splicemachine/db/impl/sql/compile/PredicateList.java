@@ -595,7 +595,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             }
         }
 
-        if (predicateList.size() > 0) {
+        if (!predicateList.isEmpty()) {
             predicates = predicateList.toArray(new Predicate[predicateList.size()]);
         }
 
@@ -1367,7 +1367,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 			 * ColumnReference.  (We probably will always find
 			 * at least 1 CR, but just to be safe, ...)
 			 */
-            boolean state=colRefs.size()>0;
+            boolean state= !colRefs.isEmpty();
             if(state){
                 for(ColumnReference ref : colRefs){
                     if(!ref.pointsToColumnReference()){
@@ -3564,7 +3564,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             if(pwList==null)
                 return;
 
-            if(pwList.size()==0)
+            if(pwList.isEmpty())
                 return;
 
             if(elementAt(0).getIndexPosition()!=0){

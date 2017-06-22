@@ -291,7 +291,7 @@ public class RSUtils {
 
     public static boolean hasSinkingChildren(ResultSetNode node) throws StandardException {
         List<ResultSetNode> sinks = Lists.newLinkedList(sinkingChildren(node));
-        return (sinks != null && sinks.size() > 0);
+        return (sinks != null && !sinks.isEmpty());
     }
 
 }

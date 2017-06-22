@@ -169,7 +169,7 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
             HBaseRowLocation rl=(HBaseRowLocation)next.getRow().getColumn(next.getRow().nColumns());
             sourceRows.add(new LocatedRow(HBaseRowLocation.deepClone(rl), outputTemplate.getClone()));
         }
-        if(sourceRows.size()>0){
+        if(!sourceRows.isEmpty()){
             //submit to the background thread
             Lookup task=new Lookup(sourceRows);
             resultFutures.add(lookupService.submit(task));
@@ -178,7 +178,7 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
         //if there is only one submitted future, call this again to set off an additional background process
         if(resultFutures.size()<numBlocks && sourceRows.size()==batchSize)
             getMoreData();
-        else if(resultFutures.size()>0){
+        else if(!resultFutures.isEmpty()){
             waitForBlockCompletion();
         }
     }

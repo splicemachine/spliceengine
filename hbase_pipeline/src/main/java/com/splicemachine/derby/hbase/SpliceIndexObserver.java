@@ -170,7 +170,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
             byte[] row = put.getRow();
             List<Cell> data = put.get(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES);
             KVPair kv;
-            if(data!=null&&data.size()>0){
+            if(data!=null&& !data.isEmpty()){
                 byte[] value = CellUtil.cloneValue(data.get(0));
                 if(put.getAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)!=null){
                     kv = new KVPair(row,value, KVPair.Type.UPDATE);

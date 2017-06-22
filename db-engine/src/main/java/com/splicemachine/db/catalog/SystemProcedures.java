@@ -584,7 +584,7 @@ public class SystemProcedures{
 
         int[] types=null;
 
-        if(udtTypes!=null && udtTypes.length()>0){
+        if(udtTypes!=null && !udtTypes.isEmpty()){
             StringTokenizer tokenizer=new StringTokenizer(udtTypes," \t\n\t,");
             int udtTypeCount=tokenizer.countTokens();
             types=new int[udtTypeCount];
@@ -1178,7 +1178,7 @@ public class SystemProcedures{
             throws StandardException{
 
         // weed out a few special cases that cause problems.
-        if((sqlName.length()==0)
+        if((sqlName.isEmpty())
                 || (sqlName.indexOf(':')!=-1)
                 ){
 

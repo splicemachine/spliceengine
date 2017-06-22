@@ -2560,7 +2560,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 		** If there is no update column list, or the list is empty, then it means that
 		** all the columns which have a base table associated with them are updatable.
 		*/
-        if((updateColumns==null) || (updateColumns.size()==0)){
+        if((updateColumns==null) || (updateColumns.isEmpty())){
             markUpdatableByCursor();
         }else{
             ResultColumn resultColumn;

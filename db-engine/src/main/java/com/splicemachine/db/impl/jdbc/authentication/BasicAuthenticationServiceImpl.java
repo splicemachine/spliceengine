@@ -93,7 +93,7 @@ public final class BasicAuthenticationServiceImpl
 					Property.AUTHENTICATION_PROVIDER_PARAMETER);
 
         return !((authenticationProvider != null) &&
-                (authenticationProvider.length() != 0) &&
+                (!authenticationProvider.isEmpty()) &&
                 (!(StringUtil.SQLEqualsIgnoreCase(authenticationProvider,
                         Property.AUTHENTICATION_PROVIDER_BUILTIN))));
 	}

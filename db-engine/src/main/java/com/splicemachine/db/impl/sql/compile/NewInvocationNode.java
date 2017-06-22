@@ -276,7 +276,7 @@ public class NewInvocationNode extends MethodCallNode
 			{
 				if (i != 0)
 					parmTypes += ", ";
-				parmTypes += (parmTypeNames[i].length() != 0 ?
+				parmTypes += (!parmTypeNames[i].isEmpty() ?
 								parmTypeNames[i] :
 								MessageService.getTextMessage(
 									SQLState.LANG_UNTYPED)

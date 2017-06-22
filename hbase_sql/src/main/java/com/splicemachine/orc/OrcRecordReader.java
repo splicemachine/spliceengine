@@ -561,7 +561,7 @@ public class OrcRecordReader
 
         public static LinearProbeRangeFinder createTinyStripesRangeFinder(List<StripeInformation> stripes, DataSize maxMergeDistance, DataSize maxReadSize)
         {
-            if (stripes.size() == 0) {
+            if (stripes.isEmpty()) {
                 return new LinearProbeRangeFinder(ImmutableList.of());
             }
 

@@ -60,7 +60,7 @@ abstract class InputStreamFile implements StorageFile
     InputStreamFile( BaseStorageFactory storageFactory, String path)
     {
         this.storageFactory = storageFactory;
-        if( path == null || path.length() == 0)
+        if( path == null || path.isEmpty())
         {
             this.path = storageFactory.dataDirectory;
             nameStart = -1;

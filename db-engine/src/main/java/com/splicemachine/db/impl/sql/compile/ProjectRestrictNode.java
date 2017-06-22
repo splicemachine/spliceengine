@@ -566,7 +566,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 			/* Replace this PRN with a HRN if we are doing a hash join */
             if(trulyTheBestAccessPath.getJoinStrategy().isHashJoin()){
                 assert restrictionList!=null: "restrictionList expected to be non-null";
-                assert restrictionList.size()!=0: "restrictionList.size() expected to be non-zero";
+                assert !restrictionList.isEmpty() : "restrictionList.size() expected to be non-zero";
 				/* We're doing a hash join on an arbitary result set.
 				 * We need to get the table number from this node when
 				 * dividing up the restriction list for a hash join.
@@ -961,7 +961,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
         if(restrictionList==null){
             restrictionList=pushPList;
-        }else if(pushPList!=null && pushPList.size()!=0){
+        }else if(pushPList!=null && !pushPList.isEmpty()){
 			/* Concatenate the 2 PredicateLists */
             restrictionList.destructiveAppend(pushPList);
         }
@@ -1167,7 +1167,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 		 * (Remove any true and true predicates first, as they could be left
 		 * by the like transformation.)
 		 */
-        if(restrictionList!=null && restrictionList.size()>0){
+        if(restrictionList!=null && !restrictionList.isEmpty()){
             restrictionList.eliminateBooleanTrueAndBooleanTrue();
         }
 
@@ -1386,7 +1386,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 		** This ProjectRestrictNode is not a No-Op if it does any
 		** restriction.
 		*/
-        if((restriction!=null) || (constantRestriction!=null) || (restrictionList!=null && restrictionList.size()>0)){
+        if((restriction!=null) || (constantRestriction!=null) || (restrictionList!=null && !restrictionList.isEmpty())){
             return false;
         }
 
@@ -1441,7 +1441,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 			 *	   affect the result.)
 			 */
             ReferencedTablesVisitor rtv=new ReferencedTablesVisitor((JBitSet)childResult.getReferencedTableMap().clone());
-            boolean emptyRestrictionList=(restrictionList==null || restrictionList.size()==0);
+            boolean emptyRestrictionList=(restrictionList==null || restrictionList.isEmpty());
             if(!emptyRestrictionList){
                 restrictionList.accept(rtv);
             }
@@ -1547,7 +1547,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
      */
     @Override
     boolean isPossibleDistinctScan(Set<BaseColumnNode> distinctColumns){
-        if(restriction!=null || (restrictionList!=null && restrictionList.size()!=0)){
+        if(restriction!=null || (restrictionList!=null && !restrictionList.isEmpty())){
             return false;
         }
 
@@ -1638,10 +1638,10 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 		/* Set the point of attachment in all subqueries attached
 		 * to this node.
 		 */
-        if(projectSubquerys!=null && projectSubquerys.size()>0){
+        if(projectSubquerys!=null && !projectSubquerys.isEmpty()){
             projectSubquerys.setPointOfAttachment(resultSetNumber);
         }
-        if(restrictSubquerys!=null && restrictSubquerys.size()>0){
+        if(restrictSubquerys!=null && !restrictSubquerys.isEmpty()){
             restrictSubquerys.setPointOfAttachment(resultSetNumber);
         }
     }
@@ -1654,7 +1654,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
                 .append("n=").append(order)
                 .append(attrDelim).append(getFinalCostEstimate().prettyProjectionString(attrDelim));
         List<String> qualifiers =  Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
-        if(qualifiers!=null && qualifiers.size()>0) //add
+        if(qualifiers!=null && !qualifiers.isEmpty()) //add
             sb.append(attrDelim).append("preds=[").append(Joiner.on(",").skipNulls().join(qualifiers)).append("]");
         sb.append(")");
         return sb.toString();
@@ -1664,12 +1664,12 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         if (!nopProjectRestrict()) {
             setDepth(depth);
             tree.add(this);
-            if (projectSubquerys != null && projectSubquerys.size()>0) {
+            if (projectSubquerys != null && !projectSubquerys.isEmpty()) {
                 for (SubqueryNode node:projectSubquerys) {
                     node.buildTree(tree,depth+1);
                 }
             }
-            if (restrictSubquerys != null && restrictSubquerys.size()>0) {
+            if (restrictSubquerys != null && !restrictSubquerys.isEmpty()) {
                 for (SubqueryNode node:restrictSubquerys) {
                     node.buildTree(tree,depth+1);
                 }
@@ -1706,8 +1706,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
     }
 
     public boolean hasSubqueries() {
-        return (projectSubquerys != null && projectSubquerys.size()>0) ||
-                (restrictSubquerys != null && restrictSubquerys.size()>0);
+        return (projectSubquerys != null && !projectSubquerys.isEmpty()) ||
+                (restrictSubquerys != null && !restrictSubquerys.isEmpty());
     }
 
     @Override

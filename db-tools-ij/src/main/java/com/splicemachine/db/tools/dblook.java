@@ -212,7 +212,7 @@ public final class dblook {
 		sourceDBName = extractDBNameFromUrl(sourceDBUrl);
 
 		// Set up schema restriction.
-		if ((schemaParam != null) && (schemaParam.length() > 0) &&
+		if ((schemaParam != null) && (!schemaParam.isEmpty()) &&
 			(schemaParam.charAt(0) != '"'))
 		// not quoted, so upper case, then add quotes.
 		{
@@ -236,7 +236,7 @@ public final class dblook {
 
 	private int loadParam(String [] args, int start) {
 
-		if ((args[start].length() == 0) || args[start].charAt(0) != '-')
+		if ((args[start].isEmpty()) || args[start].charAt(0) != '-')
 		// starting argument should be a flag; if it's
 		// not, ignore it.
 			return start;
@@ -277,7 +277,7 @@ public final class dblook {
 			case 'o':
 				if (!haveVal)
 					return -1;
-				if ((args[start].length() == 2) && (args[start+1].length() > 0)) {
+				if ((args[start].length() == 2) && (!args[start + 1].isEmpty())) {
 					ddlFileName = args[++start];
 					return start;
 				}
@@ -444,12 +444,12 @@ public final class dblook {
 		tableList = new ArrayList();
 		while (argIndex < args.length) {
 
-			if (((args[argIndex].length() > 0) && (args[argIndex].charAt(0) == '-')) ||
+			if (((!args[argIndex].isEmpty()) && (args[argIndex].charAt(0) == '-')) ||
 				(++count > DB2_MAX_NUMBER_OF_TABLES))
 			// we're done with the table list.
 				break;
 
-			if ((args[argIndex].length() > 0) && (args[argIndex].charAt(0) == '"'))
+			if ((!args[argIndex].isEmpty()) && (args[argIndex].charAt(0) == '"'))
 			// it's quoted.
 				tableList.add(addQuotes(expandDoubleQuotes(
 					stripQuotes(args[argIndex++]))));
@@ -462,7 +462,7 @@ public final class dblook {
 
 		}
 
-		if (tableList.size() == 0)
+		if (tableList.isEmpty())
 			tableList = null;
 
 		return argIndex - 1;

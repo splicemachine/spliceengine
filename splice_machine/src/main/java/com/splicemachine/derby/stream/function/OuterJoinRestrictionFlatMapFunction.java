@@ -61,7 +61,7 @@ public class OuterJoinRestrictionFlatMapFunction<Op extends SpliceOperation> ext
             }
             operationContext.recordFilter();
         }
-        if (returnRows.size() ==0) {
+        if (returnRows.isEmpty()) {
             mergedRow = JoinUtils.getMergedRow(leftRow.getRow(),
                     op.getEmptyRow(), op.wasRightOuterJoin,
                     executionFactory.getValueRow(numberOfColumns));

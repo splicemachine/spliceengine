@@ -45,7 +45,7 @@ public class MeasuredListScanner implements AutoCloseable{
     public boolean next(List<Cell> list) throws IOException{
         timer.startTiming();
         boolean b=delegate.nextRaw(list);
-        timer.tick(list.size()>0?1l:0l);
+        timer.tick(!list.isEmpty() ?1l:0l);
 
         if(outputBytesCounter.isActive())
             countOutput(list);

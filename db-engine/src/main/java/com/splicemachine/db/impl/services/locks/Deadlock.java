@@ -485,7 +485,7 @@ inner:		for (;;) {
 			if (space instanceof List) {
 				List grants = (List) space;
 
-				if (grants.size() != 0) {
+				if (!grants.isEmpty()) {
 
 					sb.append("  Granted XID : ");
 

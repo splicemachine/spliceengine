@@ -253,7 +253,7 @@ public abstract class DMLStatementNode extends StatementNode {
 
 		/* Verify that all underlying ResultSets reclaimed their FromList */
         if (SanityManager.DEBUG)
-            SanityManager.ASSERT(fromList.size() == 0,
+            SanityManager.ASSERT(fromList.isEmpty(),
                     "fromList.size() is expected to be 0, not " + fromList.size() +
                             " on return from RS.bindExpressions()");
     }
@@ -275,7 +275,7 @@ public abstract class DMLStatementNode extends StatementNode {
 
 		/* Verify that all underlying ResultSets reclaimed their FromList */
         if (SanityManager.DEBUG)
-            SanityManager.ASSERT(fromList.size() == 0,
+            SanityManager.ASSERT(fromList.isEmpty(),
                     "fromList.size() is expected to be 0, not " + fromList.size() +
                             " on return from RS.bindExpressions()");
     }
@@ -296,7 +296,7 @@ public abstract class DMLStatementNode extends StatementNode {
 
 		/* Verify that all underlying ResultSets reclaimed their FromList */
         if (SanityManager.DEBUG)
-            SanityManager.ASSERT(fromList.size() == 0,
+            SanityManager.ASSERT(fromList.isEmpty(),
                     "fromList.size() is expected to be 0, not " + fromList.size() +
                             " on return from RS.bindExpressions()");
     }
@@ -340,7 +340,7 @@ public abstract class DMLStatementNode extends StatementNode {
 		** We need rows for all types of DML activations.  We need parameters
 		** only for those that have parameters.
 		*/
-        if (parameterList != null && parameterList.size() > 0) {
+        if (parameterList != null && !parameterList.isEmpty()) {
             return StatementNode.NEED_PARAM_ACTIVATION;
         } else {
             return StatementNode.NEED_ROW_ACTIVATION;

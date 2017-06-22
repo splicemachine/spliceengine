@@ -239,7 +239,7 @@ final public class DatabasePermission extends Permission {
         if (actions == null) {
             throw new NullPointerException("actions can't be null");
         }
-        if (actions.length() == 0) {
+        if (actions.isEmpty()) {
             throw new IllegalArgumentException("actions can't be empty");
         }
 
@@ -271,7 +271,7 @@ final public class DatabasePermission extends Permission {
         if (url == null) {
             throw new NullPointerException("URL can't be null");
         }
-        if (url.length() == 0) {
+        if (url.isEmpty()) {
             throw new IllegalArgumentException("URL can't be empty");
         }
 

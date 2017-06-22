@@ -381,7 +381,7 @@ abstract class MethodCallNode extends JavaValueNode
 			if (i != 0)
 				parmTypes.append(", ");
 			/* RESOLVE - shouldn't be using hard coded strings for output */
-			parmTypes.append( (parmTypeNames[i].length() != 0 ?
+			parmTypes.append( (!parmTypeNames[i].isEmpty() ?
 								parmTypeNames[i] :
 								"UNTYPED"));
 			if ((primParmTypeNames != null) &&
@@ -924,7 +924,7 @@ abstract class MethodCallNode extends JavaValueNode
            	}
            	else
            	{
-           		if (type.length() == 0)
+           		if (type.isEmpty())
            			throw StandardException.newException(SQLState.SQLJ_SIGNATURE_INVALID); // invalid
            		seenClass = true;
            		count++;

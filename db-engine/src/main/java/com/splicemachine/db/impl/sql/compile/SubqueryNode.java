@@ -629,7 +629,7 @@ public class SubqueryNode extends ValueNode{
 			 * the outer from list if the subquery itself contains
 			 * another subquery.  Otherwise, it just becomes a constant.
 			 */
-            if(rrsn.subquerys.size()!=0){
+            if(!rrsn.subquerys.isEmpty()){
                 fl.addElement(rrsn);
                 outerFromList.destructiveAppend(fl);
             }

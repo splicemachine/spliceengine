@@ -62,7 +62,7 @@ public class SysInfoLog
     		{
                 // Create the command line
                 //System.out.println("jvmName: " + jvmName);
-                if ( (jvmName == null) || (jvmName.length()==0) )
+                if ( (jvmName == null) || (jvmName.isEmpty()) )
                     jvmName = "jdk13";
                 else if (jvmName.startsWith("jdk13"))
                     jvmName = "jdk13";
@@ -74,7 +74,7 @@ public class SysInfoLog
                 if (javavm == null) System.out.println("WHOA, javavm is NULL");
                 if (javavm == null) pw.println("WHOA, javavm is NULL");
 
-                if ( (classpath != null) && (classpath.length()>0) )
+                if ( (classpath != null) && (!classpath.isEmpty()) )
                 {
                     javavm.setClasspath(classpath);
                 }
@@ -102,7 +102,7 @@ public class SysInfoLog
                     stdout.getData(), stderr.getData(), pw);
                 pw.flush();
 
-                if ( (framework != null) && (framework.length()>0) )
+                if ( (framework != null) && (!framework.isEmpty()) )
                 {
                     pw.println("Framework: " + framework);
                 }

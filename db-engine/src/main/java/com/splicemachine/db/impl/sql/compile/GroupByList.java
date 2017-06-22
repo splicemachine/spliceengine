@@ -113,7 +113,7 @@ public class GroupByList extends OrderedColumnList{
 
 		/* Verify that no subqueries got added to the dummy list */
         if(SanityManager.DEBUG){
-            SanityManager.ASSERT(dummySubqueryList.size()==0,
+            SanityManager.ASSERT(dummySubqueryList.isEmpty(),
                     "dummySubqueryList.size() is expected to be 0");
         }
     }

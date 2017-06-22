@@ -339,7 +339,7 @@ public class StringUtil{
      * @param id syntacically correct SQL identifier
      */
     public static String normalizeSQLIdentifier(String id){
-        if(id.length()==0){
+        if(id.isEmpty()){
             return id;
         }
 

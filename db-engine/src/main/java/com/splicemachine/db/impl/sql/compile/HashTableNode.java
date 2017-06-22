@@ -410,17 +410,17 @@ public class HashTableNode extends SingleChildResultSetNode
         /* Set the point of attachment in all subqueries attached
          * to this node.
 		 */
-        if (pSubqueryList != null && pSubqueryList.size() > 0) {
+        if (pSubqueryList != null && !pSubqueryList.isEmpty()) {
             pSubqueryList.setPointOfAttachment(resultSetNumber);
             if (SanityManager.DEBUG) {
-                SanityManager.ASSERT(pSubqueryList.size() == 0,
+                SanityManager.ASSERT(pSubqueryList.isEmpty(),
                         "pSubqueryList.size() expected to be 0");
             }
         }
-        if (rSubqueryList != null && rSubqueryList.size() > 0) {
+        if (rSubqueryList != null && !rSubqueryList.isEmpty()) {
             rSubqueryList.setPointOfAttachment(resultSetNumber);
             if (SanityManager.DEBUG) {
-                SanityManager.ASSERT(rSubqueryList.size() == 0,
+                SanityManager.ASSERT(rSubqueryList.isEmpty(),
                         "rSubqueryList.size() expected to be 0");
             }
         }

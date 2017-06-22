@@ -63,7 +63,7 @@ public class OperatorToString {
      * @return Return string representation of Derby Predicates in a predicate list
      */
     public static String toString(PredicateList predicateList) {
-        if (predicateList == null || predicateList.size() == 0) {
+        if (predicateList == null || predicateList.isEmpty()) {
             return null;
         }
         StringBuilder buf = new StringBuilder();

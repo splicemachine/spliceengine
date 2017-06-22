@@ -552,7 +552,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
             rcl.addResultColumn(rc);
 
             // copy columns that reference to the right result set
-            while(temp.size() > 0) {
+            while(!temp.isEmpty()) {
                 rcl.addResultColumn(temp.elementAt(0));
                 temp.removeElementAt(0);
             }

@@ -136,7 +136,7 @@ public class SpecialFlags
 	                 key.equals("derby.infolog.streams") )
 	            {
 	                String currval = srvProps.getProperty(key);
-	                if ( (currval != null) && (currval.length()>0) )
+	                if ( (currval != null) && (!currval.isEmpty()) )
 	                {
 	                    value = value + "," + currval;
 	                }

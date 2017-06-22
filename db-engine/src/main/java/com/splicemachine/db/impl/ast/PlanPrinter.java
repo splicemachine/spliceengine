@@ -134,7 +134,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         List<Object> toPrune = new LinkedList<>();
         for (Map.Entry e: (Set<Map.Entry<Object,Object>>)m.entrySet()){
             Object val = e.getValue();
-            if (val == null || (val instanceof List && ((List)val).size() == 0)){
+            if (val == null || (val instanceof List && ((List) val).isEmpty())){
                 toPrune.add(e.getKey());
             }
         }
@@ -256,7 +256,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
     public static List<Map<String, Object>> getResultColumnInfo(ResultSetNode rsn) throws StandardException {
         List<Map<String, Object>> resultColumns = new ArrayList<Map<String, Object>>();
         ResultColumnList resultColumnList = rsn.getResultColumns();
-        if (resultColumnList != null && resultColumnList.size() > 0) {
+        if (resultColumnList != null && !resultColumnList.isEmpty()) {
 
             for (ResultColumn resultColumn : resultColumnList) {
                 Map<String, Object> columnInfo = new LinkedHashMap<String, Object>();

@@ -282,7 +282,7 @@ public class PropertyConglomerate {
 			defaults.remove(key);
 		else
 			defaults.put(key,value);
-		if (defaults.size() == 0) defaults = null;
+		if (defaults.isEmpty()) defaults = null;
 		saveProperty(tc,AccessFactoryGlobals.DEFAULT_PROPERTY_NAME,(Serializable)defaults);
 	}
 

@@ -672,7 +672,7 @@ public class ColumnDefinitionNode extends TableElementNode
 			if (SanityManager.DEBUG)
 			{
 				/* Save the APL off in the constraint node */
-				if (apl.size() > 0)
+				if (!apl.isEmpty())
 				{
 
 					SanityManager.THROWASSERT("DEFAULT clause has unexpected dependencies");

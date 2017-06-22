@@ -325,7 +325,7 @@ public final class SQLInteger
 		{
 		    try {
 		    	String s = theValue.trim();
-		    	if (s.length() > 0 && s.charAt(0) == '+') s = s.substring(1);  // remove leading + if there
+		    	if (!s.isEmpty() && s.charAt(0) == '+') s = s.substring(1);  // remove leading + if there
 		        setValue(Integer.parseInt(s));
 			} catch (NumberFormatException nfe) {
 			    throw invalidFormat();

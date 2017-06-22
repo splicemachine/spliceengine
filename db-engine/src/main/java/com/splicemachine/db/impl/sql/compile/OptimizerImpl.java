@@ -1374,7 +1374,7 @@ public class OptimizerImpl implements Optimizer{
             if(action==FromTable.REMOVE_PLAN){
                 if(savedJoinOrders!=null){
                     savedJoinOrders.remove(planKey);
-                    if(savedJoinOrders.size()==0)
+                    if(savedJoinOrders.isEmpty())
                         savedJoinOrders=null;
                 }
             }else if(action==FromTable.ADD_PLAN){

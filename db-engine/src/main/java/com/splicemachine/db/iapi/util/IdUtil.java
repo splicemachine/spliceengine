@@ -419,7 +419,7 @@ public abstract class IdUtil
 		 throws StandardException
 	{
 		//As a special case we accept a zero length dbclasspath.
-		if (input.length() == 0)
+		if (input.isEmpty())
 			return new String[0][];
 
 		Vector v = new Vector();
@@ -524,7 +524,7 @@ public abstract class IdUtil
 				throw StandardException.newException(SQLState.ID_LIST_PARSE_ERROR,ioe);
 			}
 		}
-		if (v.size() == 0) return null;
+		if (v.isEmpty()) return null;
 		String[] result = new String[v.size()];
 		v.copyInto(result);
 		return result;
@@ -556,7 +556,7 @@ public abstract class IdUtil
 	  */
 	private static String vectorToIdList(Vector v,boolean normal)
 	{
-		if (v.size() == 0) return null;
+		if (v.isEmpty()) return null;
 		String[] a = new String[v.size()];
 		v.copyInto(a);
 		if (normal)
@@ -721,7 +721,7 @@ public abstract class IdUtil
 		for (int ix=0; ix < enteredList_a.length; ix++)
 			if (!id.equals(IdUtil.parseSQLIdentifier(enteredList_a[ix])))
 				v.add(enteredList_a[ix]);
-		if (v.size() == 0)
+		if (v.isEmpty())
 			return null;
 		else
 			return vectorToIdList(v,false);

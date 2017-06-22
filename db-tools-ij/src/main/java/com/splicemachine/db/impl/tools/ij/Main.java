@@ -140,7 +140,7 @@ public class Main {
                 }
 
 		final String outFile = util.getSystemProperty("ij.outfile");
-		if (outFile != null && outFile.length()>0) {
+		if (outFile != null && !outFile.isEmpty()) {
 			LocalizedOutput oldOut = out;
 			FileOutputStream fos = (FileOutputStream) AccessController.doPrivileged(new PrivilegedAction() {
 				public Object run() {
@@ -164,7 +164,7 @@ public class Main {
 		String maxDisplayWidth = util.getSystemProperty("maximumDisplayWidth");
 		if (maxDisplayWidth==null) 
 			maxDisplayWidth = util.getSystemProperty("ij.maximumDisplayWidth");
-		if (maxDisplayWidth != null && maxDisplayWidth.length() > 0) {
+		if (maxDisplayWidth != null && !maxDisplayWidth.isEmpty()) {
 			try {
 				int maxWidth = Integer.parseInt(maxDisplayWidth);
 				JDBCDisplayUtil.setMaxDisplayWidth(maxWidth);

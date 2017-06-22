@@ -123,7 +123,7 @@ public class FileCompare
         // But the master canon needs to be located
         // The user can set canondir (or it defaults to "master")
         String topdir = "";
-        if ( (canondir != null) && (canondir.length()>0) )
+        if ( (canondir != null) && (!canondir.isEmpty()) )
             topdir = canondir;
         else {
 			// if this is using product jars, use product_master first
@@ -152,12 +152,12 @@ public class FileCompare
         boolean searchDefault = true; // if no framework or special jvm
         boolean searchBoth = false;
         boolean searchJvm = false;
-        if ( (framework != null) && (framework.length()>0) )
+        if ( (framework != null) && (!framework.isEmpty()) )
         {
             searchFrame = true;
             subdir = framework;
         }
-        if ( (jvmName != null) && (jvmName.length()>0)
+        if ( (jvmName != null) && (!jvmName.isEmpty())
                 & (!jvmName.equals("currentjvm")) )
         {
             searchJvm = true;
@@ -175,7 +175,7 @@ public class FileCompare
             searchDefault = false;
        
         sb.append(topdir);
-        if (subdir.length()>0)
+        if (!subdir.isEmpty())
             sb.append(subdir + '/');
         sb.append(testBase + ".out");
         String masterfilename = sb.toString();

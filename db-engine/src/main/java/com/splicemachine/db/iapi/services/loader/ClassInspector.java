@@ -1025,7 +1025,7 @@ nextMethod:	for (int i = 0; i < methods.length; i++) {
 	public Class getClass(String className) throws ClassNotFoundException {
 
 		if ((className == null) || 
-			(className.length() == 0))
+			(className.isEmpty()))
 		{
 			return null;
 		}

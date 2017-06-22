@@ -537,7 +537,7 @@ final class StorageFactoryService implements PersistentService
                         new FileInputStream(spf.getPath()),"ISO-8859-1"));
                 String line;
                 while ((line = bin.readLine()) != null) {
-                    if (line.trim().length() != 0) {
+                    if (!line.trim().isEmpty()) {
                         lastLine = line;
                     }
                 }

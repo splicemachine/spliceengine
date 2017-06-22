@@ -206,7 +206,7 @@ public class RowResultSetNode extends FromTable {
 		 */
 
 		/* Set the nesting level in this node */
-		if (fromListParam.size() == 0) {
+		if (fromListParam.isEmpty()) {
 			nestingLevel = 0;
 		} else {
 			nestingLevel = ((FromTable) fromListParam.elementAt(0)).getLevel() + 1;
@@ -218,7 +218,7 @@ public class RowResultSetNode extends FromTable {
 		// Pop ourselves back out of the FROM list
 		fromListParam.removeElementAt(0);
 
-		if (aggregateVector.size() > 0) {
+		if (!aggregateVector.isEmpty()) {
 			throw StandardException.newException(SQLState.LANG_NO_AGGREGATES_IN_WHERE_CLAUSE);
 		}
 
@@ -369,7 +369,7 @@ public class RowResultSetNode extends FromTable {
 
 	public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException {
 
-		if (subquerys.size() > 0) {
+		if (!subquerys.isEmpty()) {
 			subquerys.preprocess(numTables,
 					(FromList) getNodeFactory().getNode( C_NodeTypes.FROM_LIST,
 							getNodeFactory().doJoinOrderOptimization(),
@@ -464,11 +464,11 @@ public class RowResultSetNode extends FromTable {
 	 * @return boolean	Whether or not the FromSubquery is flattenable.
 	 */
 	public boolean flattenableInFromSubquery(FromList fromList) {
-		if ((subquerys != null) && (subquerys.size() > 0)) {
+		if ((subquerys != null) && (!subquerys.isEmpty())) {
 			return false;
 		}
 
-		if ((aggregateVector != null) && (aggregateVector.size() > 0)) {
+		if ((aggregateVector != null) && (!aggregateVector.isEmpty())) {
 			return false;
 		}
 
@@ -885,7 +885,7 @@ public class RowResultSetNode extends FromTable {
     public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
         setDepth(depth);
         tree.add(this);
-        if (subquerys != null && subquerys.size()>0) {
+        if (subquerys != null && !subquerys.isEmpty()) {
             for (SubqueryNode node:subquerys) {
                 node.buildTree(tree,depth+1);
             }

@@ -1593,7 +1593,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
     protected void markUpdatableByCursor(Vector updateColumns) {
         super.markUpdatableByCursor(updateColumns);
         forUpdatePresent = true;
-        emptyForUpdate = ((updateColumns == null) || (updateColumns.size() == 0));
+        emptyForUpdate = ((updateColumns == null) || (updateColumns.isEmpty()));
     }
 
     private int[] getForUpdateColumnList() {

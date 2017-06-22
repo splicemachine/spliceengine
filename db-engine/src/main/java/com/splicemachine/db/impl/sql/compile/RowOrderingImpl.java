@@ -129,12 +129,12 @@ public class RowOrderingImpl implements RowOrdering{
 
     @Override
     public void addOrderedColumn(int direction, int tableNumber, int columnNumber){
-        if(unorderedOptimizables.size()>0)
+        if(!unorderedOptimizables.isEmpty())
             return;
 
         ColumnOrdering currentColumnOrdering;
 
-        if(ordering.size()==0){
+        if(ordering.isEmpty()){
             currentColumnOrdering=new ColumnOrdering(direction);
             ordering.add(currentColumnOrdering);
         }else{
@@ -154,7 +154,7 @@ public class RowOrderingImpl implements RowOrdering{
 
     @Override
     public void nextOrderPosition(int direction){
-        if(unorderedOptimizables.size()>0)
+        if(!unorderedOptimizables.isEmpty())
             return;
 
         currentColumnOrdering=new ColumnOrdering(direction);

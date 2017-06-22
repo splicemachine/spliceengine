@@ -211,7 +211,7 @@ public class ModifyColumnNode extends ColumnDefinitionNode
 				ConstraintDescriptorList 
 					refcdl = dd.getForeignKeys(existingConstraint.getUUID());
 				 
-				if (refcdl.size() > 0)
+				if (!refcdl.isEmpty())
 				{
 					throw StandardException.newException(
 						 SQLState.LANG_MODIFY_COLUMN_REFERENCED, 

@@ -227,7 +227,7 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
         resultSetConcurrency_ = java.sql.ResultSet.CONCUR_READ_ONLY;
         resultSetHoldability_ = 0;
         cursorAttributesToSendOnPrepare_ = null;
-        if (timeoutArrayList.size() == 0) {
+        if (timeoutArrayList.isEmpty()) {
             timeoutArrayList.add(null); // Make sure the list's length is 1
         }
 

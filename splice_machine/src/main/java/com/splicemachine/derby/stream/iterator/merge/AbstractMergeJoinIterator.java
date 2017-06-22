@@ -85,7 +85,7 @@ public abstract class AbstractMergeJoinIterator implements Iterator<LocatedRow>,
     }
 
     protected Iterator<ExecRow> rightsForLeft(ExecRow left) throws IOException, StandardException {
-        if (currentRights.size() > 0 // Check to see if we've already collected the right rows
+        if (!currentRights.isEmpty() // Check to see if we've already collected the right rows
                 && compare(left, currentRights.get(0)) == 0){ // that match this left
             return currentRights.iterator();
         }

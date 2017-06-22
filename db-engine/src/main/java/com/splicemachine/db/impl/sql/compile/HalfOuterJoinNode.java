@@ -355,10 +355,10 @@ public class HalfOuterJoinNode extends JoinNode{
                 // Push the current OJ into the next level For safety, check
                 // the JoinNode data members: they should null or empty list
                 // before we proceed.
-                if(super.subqueryList.size()!=0
-                        || ((JoinNode)logicalRightResultSet).subqueryList.size()!=0
-                        || super.joinPredicates.size()!=0
-                        || ((JoinNode)logicalRightResultSet).joinPredicates.size()!=0
+                if(!super.subqueryList.isEmpty()
+                        || !((JoinNode) logicalRightResultSet).subqueryList.isEmpty()
+                        || !super.joinPredicates.isEmpty()
+                        || !((JoinNode) logicalRightResultSet).joinPredicates.isEmpty()
                         || super.usingClause!=null
                         || ((JoinNode)logicalRightResultSet).usingClause!=null){
 

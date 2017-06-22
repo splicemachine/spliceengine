@@ -244,7 +244,7 @@ public class ClassInvestigator extends ClassHolder {
 					System.err.println("WARNING - Unknown Class File attribute " + name);
 			}
 
-			if (attribute_info.size() == 0)
+			if (attribute_info.isEmpty())
 				attribute_info = null;
 		}
 		attribute_info = null;
@@ -269,7 +269,7 @@ public class ClassInvestigator extends ClassHolder {
 						System.err.println("WARNING - Unknown Field attribute " + name);
 				}
 
-				if (attrs.size() == 0)
+				if (attrs.isEmpty())
 					member.attribute_info = null;
 			}
 
@@ -299,7 +299,7 @@ public class ClassInvestigator extends ClassHolder {
 						System.err.println("WARNING - Unknown method attribute " + name);
 				}
 
-				if (attrs.size() == 0)
+				if (attrs.isEmpty())
 					member.attribute_info = null;
 			}
 

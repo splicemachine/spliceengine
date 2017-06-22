@@ -818,7 +818,7 @@ public abstract class EmbedConnection implements EngineConnection
      */
     private boolean emptyCredential( String credential )
     {
-        return ( (credential == null) || (credential.length() == 0) );
+        return ( (credential == null) || (credential.isEmpty()) );
     }
 
     /**

@@ -147,14 +147,14 @@ public class SimpleDiff
 					|| f2.contains("SCDynamicStore")
 					|| f2.contains("Splice Beta")
 					|| f2.contains("RecoverableZooKeeper")
-					|| f2.length() == 0) {
+					|| f2.isEmpty()) {
 				debug(1,"Ignoring " + f2);
 				currentLine2++;
 				f2 = file2.lineAt(currentLine2);
 			}
 
 			// skip empty lines on source as well
-			while (f1.length() == 0) {
+			while (f1.isEmpty()) {
 				currentLine1++;
 				f1 = file1.lineAt(currentLine1);
 			}
@@ -286,7 +286,7 @@ public class SimpleDiff
 		file1.close();
 		file2.close();
 
-		if (returnVec.size() == 0)
+		if (returnVec.isEmpty())
 		{
 			return null;
 		}

@@ -1799,7 +1799,7 @@ class DRDAConnThread extends Thread {
 		}
 		sqlamLevel = appRequester.getManagerLevel(CodePoint.SQLAM);
 		// did we have any errors
-		if (errorManagers.size() > 0)
+		if (!errorManagers.isEmpty())
 		{
 			Object [] oa = new Object[errorManagers.size()*2];
 			int j = 0;
@@ -1830,7 +1830,7 @@ class DRDAConnThread extends Thread {
 		writer.startDdm(CodePoint.EXCSATRD);
 		writer.writeScalarString(CodePoint.EXTNAM, server.att_extnam);
 		//only reply with manager levels if we got sent some
-		if (knownManagers != null && knownManagers.size() > 0)
+		if (knownManagers != null && !knownManagers.isEmpty())
 			writeMGRLEVELS();
 		writer.writeScalarString(CodePoint.SRVCLSNM, server.att_srvclsnm);
 		writer.writeScalarString(CodePoint.SRVNAM, server.ATT_SRVNAM);
@@ -9102,7 +9102,7 @@ class DRDAConnThread extends Thread {
         // Derby always sets it as part of the EXCSAT message so if it is
         // not available, we stop here and inform the requester that
         // SECMEC_USRSSBPWD cannot be supported for this connection.
-        if ((srvrlslv == null) || (srvrlslv.length() == 0) ||
+        if ((srvrlslv == null) || (srvrlslv.isEmpty()) ||
             (srvrlslv.length() < CodePoint.PRDID_MAX) ||
             (srvrlslv.indexOf(DRDAConstants.DERBY_DRDA_CLIENT_ID)
                     == -1))
@@ -9134,7 +9134,7 @@ class DRDAConnThread extends Thread {
         // First we need to have the database name available and it should
         // have been set as part of the ACCSEC request (in the case of a Derby
         // 'DNC' client)
-        if ((dbName == null) || (dbName.length() == 0))
+        if ((dbName == null) || (dbName.isEmpty()))
         {
             // No database specified in the connection URL attributes
             //

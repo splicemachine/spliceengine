@@ -56,7 +56,7 @@ class JaasConfiguration extends javax.security.auth.login.Configuration {
     }
 
     public JaasConfiguration(String loginContextName, String principal, String keytabFile) {
-      this(loginContextName, principal, keytabFile, keytabFile == null || keytabFile.length() == 0);
+      this(loginContextName, principal, keytabFile, keytabFile == null || keytabFile.isEmpty());
     }
 
     private JaasConfiguration(String loginContextName, String principal,
