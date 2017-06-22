@@ -136,7 +136,7 @@ public class CachedOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
 
         if (rows.size() > 0) {
             DataSet dataSet = dsp.createDataSet(rows.iterator());
@@ -151,7 +151,7 @@ public class CachedOperation extends SpliceBaseOperation {
         }
     }
 
-    public static class CacheFunction extends SpliceFunction<CachedOperation, ExecRow, LocatedRow> {
+    public static class CacheFunction extends SpliceFunction<CachedOperation, ExecRow, ExecRow> {
 
         public CacheFunction() {
 
@@ -162,9 +162,9 @@ public class CachedOperation extends SpliceBaseOperation {
         }
 
         @Override
-        public LocatedRow call(ExecRow execRow) throws Exception {
+        public ExecRow call(ExecRow execRow) throws Exception {
             getOperation().source.setCurrentRow(execRow);
-            return new LocatedRow(execRow);
+            return execRow;
         }
     }
 

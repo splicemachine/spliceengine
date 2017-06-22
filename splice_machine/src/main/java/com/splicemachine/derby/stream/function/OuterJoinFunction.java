@@ -15,16 +15,16 @@
 package com.splicemachine.derby.stream.function;
 
 import com.google.common.base.Optional;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import scala.Tuple2;
 
 /**
  * Created by jleach on 4/22/15.
  */
-public class OuterJoinFunction<Op extends SpliceOperation> extends SpliceJoinFunction<Op, Tuple2<LocatedRow,Optional<LocatedRow>>, LocatedRow> {
+public class OuterJoinFunction<Op extends SpliceOperation> extends SpliceJoinFunction<Op, Tuple2<ExecRow,Optional<ExecRow>>, ExecRow> {
     private static final long serialVersionUID = 3988079974858059941L;
 
     public OuterJoinFunction() {
@@ -36,20 +36,20 @@ public class OuterJoinFunction<Op extends SpliceOperation> extends SpliceJoinFun
     }
 
     @Override
-    public LocatedRow call(Tuple2<LocatedRow, Optional<LocatedRow>> tuple) throws Exception {
+    public ExecRow call(Tuple2<ExecRow, Optional<ExecRow>> tuple) throws Exception {
         checkInit();
-        LocatedRow lr;
+        ExecRow lr;
         if (tuple._2.isPresent())
-            lr = new LocatedRow(JoinUtils.getMergedRow(tuple._1.getRow(),
-                    tuple._2.get().getRow(),op.wasRightOuterJoin,executionFactory.getValueRow(numberOfColumns)));
+            lr = JoinUtils.getMergedRow(tuple._1,
+                    tuple._2.get(),op.wasRightOuterJoin,executionFactory.getValueRow(numberOfColumns));
         else
-            lr = new LocatedRow(JoinUtils.getMergedRow(tuple._1.getRow(),
-                    op.getEmptyRow(),op.wasRightOuterJoin,executionFactory.getValueRow(numberOfColumns)));
-        op.setCurrentLocatedRow(lr);
-        if (!op.getRestriction().apply(lr.getRow())) {
-            lr = new LocatedRow(JoinUtils.getMergedRow(tuple._1.getRow(),
-                    op.getEmptyRow(), op.wasRightOuterJoin, executionFactory.getValueRow(numberOfColumns)));
-            op.setCurrentLocatedRow(lr);
+            lr = JoinUtils.getMergedRow(tuple._1,
+                    op.getEmptyRow(),op.wasRightOuterJoin,executionFactory.getValueRow(numberOfColumns));
+        op.setCurrentRow(lr);
+        if (!op.getRestriction().apply(lr)) {
+            lr = JoinUtils.getMergedRow(tuple._1,
+                    op.getEmptyRow(), op.wasRightOuterJoin, executionFactory.getValueRow(numberOfColumns));
+            op.setCurrentRow(lr);
             operationContext.recordFilter();
         }
         return lr;

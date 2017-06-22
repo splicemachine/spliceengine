@@ -175,22 +175,22 @@ public class MergeSortJoinOperation extends JoinOperation {
     }
 
     @Override
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext<JoinOperation> operationContext = dsp.<JoinOperation>createOperationContext(this);
 
         // Prepare Left
 
-        DataSet<LocatedRow> leftDataSet1 = leftResultSet.getDataSet(dsp);
+        DataSet<ExecRow> leftDataSet1 = leftResultSet.getDataSet(dsp);
 
        // operationContext.pushScopeForOp("Prepare Left Side");
-        DataSet<LocatedRow> leftDataSet2 =
+        DataSet<ExecRow> leftDataSet2 =
             leftDataSet1.map(new CountJoinedLeftFunction(operationContext));
         if (!isOuterJoin)
             leftDataSet2 = leftDataSet2.filter(new InnerJoinNullFilterFunction(operationContext,leftHashKeys));
 
         // Prepare Right
-        DataSet<LocatedRow> rightDataSet1 = rightResultSet.getDataSet(dsp);
-        DataSet<LocatedRow> rightDataSet2 =
+        DataSet<ExecRow> rightDataSet1 = rightResultSet.getDataSet(dsp);
+        DataSet<ExecRow> rightDataSet2 =
             rightDataSet1.map(new CountJoinedRightFunction(operationContext));
 //        if (!isOuterJoin) Remove all nulls from the right side...
             rightDataSet2 = rightDataSet2.filter(new InnerJoinNullFilterFunction(operationContext,rightHashKeys));
@@ -199,7 +199,7 @@ public class MergeSortJoinOperation extends JoinOperation {
             SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, hasRestriction=%s",
                     isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
                 rightDataSet1.map(new CountJoinedRightFunction(operationContext));
-        DataSet<LocatedRow> joined;
+        DataSet<ExecRow> joined;
         if (dsp.getType().equals(DataSetProcessor.Type.SPARK) && restriction == null) {
             if (isOuterJoin)
                 joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.LEFTOUTER,false);
@@ -208,11 +208,11 @@ public class MergeSortJoinOperation extends JoinOperation {
             else
                 joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.INNER,false);
         } else{
-            PairDataSet<ExecRow, LocatedRow> rightDataSet =
+            PairDataSet<ExecRow, ExecRow> rightDataSet =
                     rightDataSet2.keyBy(new KeyerFunction(operationContext, rightHashKeys));
 //            operationContext.popScope();
-            PairDataSet<ExecRow,LocatedRow> leftDataSet =
-                    leftDataSet2.keyBy(new KeyerFunction<LocatedRow,JoinOperation>(operationContext, leftHashKeys));
+            PairDataSet<ExecRow,ExecRow> leftDataSet =
+                    leftDataSet2.keyBy(new KeyerFunction<ExecRow,JoinOperation>(operationContext, leftHashKeys));
 
             if (LOG.isDebugEnabled())
                 SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, hasRestriction=%s",
@@ -223,10 +223,10 @@ public class MergeSortJoinOperation extends JoinOperation {
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    private DataSet<LocatedRow> getJoinedDataset(
+    private DataSet<ExecRow> getJoinedDataset(
         OperationContext operationContext,
-        PairDataSet<ExecRow, LocatedRow> leftDataSet,
-        PairDataSet<ExecRow, LocatedRow> rightDataSet) {
+        PairDataSet<ExecRow, ExecRow> leftDataSet,
+        PairDataSet<ExecRow, ExecRow> rightDataSet) {
 
         if (isOuterJoin) { // Outer Join
             return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right")

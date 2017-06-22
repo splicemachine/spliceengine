@@ -15,8 +15,8 @@
 package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iterator.NestedLoopJoinIterator;
 
@@ -25,7 +25,7 @@ import java.util.Iterator;
 /**
  * Created by jyuan on 10/10/16.
  */
-public class NLJOneRowInnerJoinFunction <Op extends SpliceOperation> extends NLJoinFunction<Op, Iterator<LocatedRow>, LocatedRow> {
+public class NLJOneRowInnerJoinFunction <Op extends SpliceOperation> extends NLJoinFunction<Op, Iterator<ExecRow>, ExecRow> {
 
     public NLJOneRowInnerJoinFunction() {}
 
@@ -34,7 +34,7 @@ public class NLJOneRowInnerJoinFunction <Op extends SpliceOperation> extends NLJ
     }
 
     @Override
-    public Iterator<LocatedRow> call(Iterator<LocatedRow> from) throws Exception {
+    public Iterator<ExecRow> call(Iterator<ExecRow> from) throws Exception {
         if (!initialized) {
             init(from);
             initialized = true;
@@ -44,7 +44,7 @@ public class NLJOneRowInnerJoinFunction <Op extends SpliceOperation> extends NLJ
     }
 
     @Override
-    protected void init(Iterator<LocatedRow> from) throws StandardException {
+    protected void init(Iterator<ExecRow> from) throws StandardException {
         joinType = JoinType.ONE_ROW_INNER;
         super.init(from);
     }

@@ -48,7 +48,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
-import com.splicemachine.derby.stream.function.InsertPairFunction;
 import com.splicemachine.derby.stream.output.insert.InsertPipelineWriter;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
@@ -332,7 +331,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
 
     @SuppressWarnings({ "unchecked" })
     @Override
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException{
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException{
         if(statusDirectory != null) {
             // if we have a status directory, we're an import and so permissive
             dsp.setPermissive(statusDirectory, getVTIFileName(), failBadRecordCount);
@@ -382,8 +381,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
             }
 
             if (writerBuilder == null) {
-                PairDataSet dataSet = set.index(new InsertPairFunction(operationContext), true);
-                writerBuilder = dataSet.insertData(operationContext);
+                writerBuilder = set.insertData(operationContext);
             }
             DataSetWriter writer = writerBuilder
                     .autoIncrementRowLocationArray(autoIncrementRowLocationArray)

@@ -37,7 +37,6 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DerbyOperationInformation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.stream.function.StatisticsFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -81,7 +80,7 @@ public class StatisticsOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         dsp.setSchedulerPool("admin");
         try {
             DataSet statsDataSet;
@@ -152,13 +151,13 @@ public class StatisticsOperation extends SpliceBaseOperation {
     @Override
     public ExecRow getNextRowCore() throws StandardException{
         try{
-            if (locatedRowIterator == null)
-                locatedRowIterator = remoteQueryClient.getIterator(); // Blocking Implementation
-            if(locatedRowIterator.hasNext()){
-                locatedRow=locatedRowIterator.next();
+            if (execRowIterator == null)
+                execRowIterator = remoteQueryClient.getIterator(); // Blocking Implementation
+            if(execRowIterator.hasNext()){
+                locatedRow= execRowIterator.next();
                 if(LOG.isTraceEnabled())
                     SpliceLogUtils.trace(LOG,"getNextRowCore %s locatedRow=%s",this,locatedRow);
-                return locatedRow.getRow();
+                return locatedRow;
             }
             locatedRow=null;
             if(LOG.isTraceEnabled())

@@ -15,7 +15,7 @@
 package com.splicemachine.derby.stream.output;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.si.api.txn.TxnView;
 
@@ -25,7 +25,7 @@ import com.splicemachine.si.api.txn.TxnView;
  */
 public interface DataSetWriter{
 
-    DataSet<LocatedRow> write() throws StandardException;
+    DataSet<ExecRow> write() throws StandardException;
 
     void setTxn(TxnView childTxn);
 

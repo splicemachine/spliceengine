@@ -18,7 +18,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.GroupedAggregateOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.util.Arrays;
@@ -30,7 +29,7 @@ import java.util.Iterator;
  *
  */
 @NotThreadSafe
-public class GroupedAggregateRollupFlatMapFunction<Op extends SpliceOperation> extends SpliceFlatMapFunction<Op,LocatedRow,LocatedRow> {
+public class GroupedAggregateRollupFlatMapFunction<Op extends SpliceOperation> extends SpliceFlatMapFunction<Op,ExecRow,ExecRow> {
     protected boolean initialized;
     protected GroupedAggregateOperation op;
     protected int[] groupColumns;
@@ -44,18 +43,18 @@ public class GroupedAggregateRollupFlatMapFunction<Op extends SpliceOperation> e
     }
 
     @Override
-    public Iterator<LocatedRow> call(LocatedRow from) throws Exception {
+    public Iterator<ExecRow> call(ExecRow from) throws Exception {
         if (!initialized) {
             initialized = true;
             op = (GroupedAggregateOperation) getOperation();
             groupColumns = op.groupedAggregateContext.getGroupingKeys();
         }
-        LocatedRow[] rollupRows = new LocatedRow[groupColumns.length + 1];
+        ExecRow[] rollupRows = new ExecRow[groupColumns.length + 1];
         int rollUpPos = groupColumns.length;
         int pos = 0;
-        ExecRow nextRow = from.getRow().getClone();
+        ExecRow nextRow = from.getClone();
         do {
-            rollupRows[pos] = new LocatedRow(nextRow);
+            rollupRows[pos] = nextRow;
             if (rollUpPos > 0) {
                 nextRow = nextRow.getClone();
                 DataValueDescriptor rollUpCol = nextRow.getColumn(groupColumns[rollUpPos - 1] + 1);

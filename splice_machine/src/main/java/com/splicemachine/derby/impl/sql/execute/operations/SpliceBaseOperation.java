@@ -59,7 +59,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     private static final long serialVersionUID=4l;
     private static Logger LOG=Logger.getLogger(SpliceBaseOperation.class);
     private static Logger LOG_CLOSE=Logger.getLogger(SpliceBaseOperation.class.getName()+".close");
-    protected Iterator<LocatedRow> locatedRowIterator;
+    protected Iterator<ExecRow> execRowIterator;
     protected Activation activation;
     protected String explainPlan="";
     protected double optimizerEstimatedRowCount;
@@ -72,7 +72,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     protected boolean isOpen=true;
     protected int resultSetNumber;
     protected OperationInformation operationInformation;
-    protected LocatedRow locatedRow;
+    protected ExecRow locatedRow;
     protected StatementContext statementContext;
     protected List<AutoCloseable> closeables;
     protected NoPutResultSet[] subqueryTrackingArray;
@@ -382,7 +382,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
                 dsp.setJobGroup(jobName, sql);
             }
             dsp.clearBroadcastedOperation();
-            this.locatedRowIterator=getDataSet(dsp).toLocalIterator();
+            this.execRowIterator =getDataSet(dsp).toLocalIterator();
         }catch(Exception e){ // This catches all the iterator errors for things that are not lazy.
             throw Exceptions.parseException(e);
         }
@@ -398,7 +398,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         if (dsp.getType() == DataSetProcessor.Type.SPARK && !isOlapServer() && !SpliceClient.isClient) {
             remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
             remoteQueryClient.submit();
-            locatedRowIterator = remoteQueryClient.getIterator();
+            execRowIterator = remoteQueryClient.getIterator();
         } else {
             openCore(dsp);
         }
@@ -407,9 +407,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     protected void computeModifiedRows() throws StandardException {
         modifiedRowCount = 0;
         badRecords = 0;
-        while (locatedRowIterator.hasNext()) {
-            LocatedRow next = locatedRowIterator.next();
-            ExecRow row = next.getRow();
+        while (execRowIterator.hasNext()) {
+            ExecRow row  = execRowIterator.next();
             modifiedRowCount += row.getColumn(1).getLong();
             if (row.nColumns() > 1) {
                 badRecords += row.getColumn(2).getLong();
@@ -428,11 +427,11 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     @Override
     public ExecRow getNextRowCore() throws StandardException{
         try{
-            if(locatedRowIterator.hasNext()){
-                locatedRow=locatedRowIterator.next();
+            if(execRowIterator.hasNext()){
+                locatedRow= execRowIterator.next();
                 if(LOG.isTraceEnabled())
                     SpliceLogUtils.trace(LOG,"getNextRowCore %s locatedRow=%s",this,locatedRow);
-                return locatedRow.getRow();
+                return locatedRow;
             }
             locatedRow=null;
             if(LOG.isTraceEnabled())
@@ -735,16 +734,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     }
 
     @Override
-    public void setCurrentLocatedRow(LocatedRow locatedRow){
-        if(locatedRow!=null){
-            setCurrentRow(locatedRow.getRow());
-            setCurrentRowLocation(locatedRow.getRowLocation());
-        }
-    }
-
-    @Override
-    public Iterator<LocatedRow> getLocatedRowIterator(){
-        return locatedRowIterator;
+    public Iterator<ExecRow> getExecRowIterator(){
+        return execRowIterator;
     }
 
     public void registerCloseable(AutoCloseable closeable) throws StandardException{
@@ -797,7 +788,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     }
 
     @Override
-    public DataSet<LocatedRow> getResultDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<ExecRow> getResultDataSet(DataSetProcessor dsp) throws StandardException {
         return getDataSet(dsp);
     }
 }

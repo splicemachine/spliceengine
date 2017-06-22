@@ -282,8 +282,8 @@ public class NormalizeOperation extends SpliceBaseOperation{
 
     @SuppressWarnings("unchecked")
     @Override
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException{
-        DataSet<LocatedRow> sourceSet=source.getDataSet(dsp);
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException{
+        DataSet<ExecRow> sourceSet=source.getDataSet(dsp);
         OperationContext operationContext=dsp.createOperationContext(this);
         operationContext.pushScope();
         try{

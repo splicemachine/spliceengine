@@ -14,7 +14,7 @@
 
 package com.splicemachine.derby.stream.iterator;
 
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.stream.function.NLJoinFunction;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.utils.Pair;
@@ -25,25 +25,25 @@ import java.util.concurrent.Callable;
 /**
  * Created by jyuan on 10/10/16.
  */
-public abstract class GetNLJoinIterator implements Callable<Pair<OperationContext, Iterator<LocatedRow>>> {
+public abstract class GetNLJoinIterator implements Callable<Pair<OperationContext, Iterator<ExecRow>>> {
 
-    protected LocatedRow locatedRow;
+    protected ExecRow locatedRow;
     protected OperationContext operationContext;
 
     public GetNLJoinIterator() {}
 
-    public GetNLJoinIterator(OperationContext operationContext, LocatedRow locatedRow) {
+    public GetNLJoinIterator(OperationContext operationContext, ExecRow locatedRow) {
         this.operationContext = operationContext;
         this.locatedRow = locatedRow;
     }
 
-    public abstract Pair<OperationContext, Iterator<LocatedRow>> call() throws Exception;
+    public abstract Pair<OperationContext, Iterator<ExecRow>> call() throws Exception;
 
 
 
     public static GetNLJoinIterator makeGetNLJoinIterator(NLJoinFunction.JoinType joinType,
                                                    OperationContext operationContext,
-                                                   LocatedRow locatedRow) {
+                                                          ExecRow locatedRow) {
         switch (joinType) {
             case INNER:
                 return new GetNLJoinInnerIterator(operationContext, locatedRow);

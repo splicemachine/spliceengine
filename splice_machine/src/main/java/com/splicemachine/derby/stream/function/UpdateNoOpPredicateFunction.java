@@ -14,9 +14,9 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.UpdateOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import javax.annotation.Nullable;
@@ -27,7 +27,7 @@ import javax.annotation.Nullable;
  * not changed.
  *
  */
-public class UpdateNoOpPredicateFunction<Op extends SpliceOperation> extends SplicePredicateFunction<Op,LocatedRow> {
+public class UpdateNoOpPredicateFunction<Op extends SpliceOperation> extends SplicePredicateFunction<Op,ExecRow> {
     protected UpdateOperation op;
     protected boolean initialized = false;
     public UpdateNoOpPredicateFunction() {
@@ -39,13 +39,13 @@ public class UpdateNoOpPredicateFunction<Op extends SpliceOperation> extends Spl
     }
 
     @Override
-    public boolean apply(@Nullable LocatedRow locatedRow) {
+    public boolean apply(@Nullable ExecRow locatedRow) {
         if (!initialized) {
             op = (UpdateOperation) operationContext.getOperation();
             initialized = true;
         }
         try {
-            DataValueDescriptor[] sourRowValues = locatedRow.getRow().getRowArray();
+            DataValueDescriptor[] sourRowValues = locatedRow.getRowArray();
             for (int i = op.getHeapList().anySetBit(), oldPos = 0; i >= 0; i = op.getHeapList().anySetBit(i), oldPos++) {
                 DataValueDescriptor oldVal = sourRowValues[oldPos];
                 DataValueDescriptor newVal = sourRowValues[op.getColumnPositionMap(op.getHeapList())[i]];
