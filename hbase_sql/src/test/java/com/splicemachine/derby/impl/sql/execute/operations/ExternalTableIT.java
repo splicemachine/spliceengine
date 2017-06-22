@@ -1243,6 +1243,24 @@ public class ExternalTableIT extends SpliceUnitTest{
 
         //Make sure empty file is created
         Assert.assertTrue(String.format("Table %s hasn't been created",tablePath), new File(tablePath).exists());
+
+        // collect stats
+        PreparedStatement ps = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.COLLECT_TABLE_STATISTICS(?,?,?) ");
+        ps.setString(1, "EXTERNALTABLEIT");
+        ps.setString(2, "PARTITION_PRUNE_ORC");
+        ps.setBoolean(3, true);
+        rs = ps.executeQuery();
+        rs.next();
+        Assert.assertEquals("Error with COLLECT_TABLE_STATISTICS for external table","EXTERNALTABLEIT",  rs.getString(1));
+        rs.close();
+
+        ResultSet rs2 = methodWatcher.executeQuery("select total_row_count from sys.systablestatistics where schemaname = 'EXTERNALTABLEIT' and tablename = 'PARTITION_PRUNE_ORC'");
+        String expected = "TOTAL_ROW_COUNT |\n" +
+                "------------------\n" +
+                "        3        |";
+        Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));
+        rs2.close();
+
     }
 
 
