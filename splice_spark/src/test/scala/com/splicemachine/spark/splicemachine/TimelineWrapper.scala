@@ -228,7 +228,7 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
     "SourceInventory bigint, " +
     "DestinationInventory bigint, " +
     "Qty bigint, " +
-    "Supplier varchar(100), " +
+    "Supplier bigint, " +
     "ASN varchar(100), " +
     "Container varchar(100), " +
     "TransportMode smallint, " +
@@ -318,9 +318,9 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
     "TO_Id bigint, " +
     "ShipFrom bigint, " +
     "ShipTo bigint, " +
-    "DeliveryDate timestamp, " +
-    "ModDeliveryDate timestamp, " +
-    "Supplier varchar(100), " +
+    "OrgDeliveryDate timestamp, " +
+    "NewDeliveryDate timestamp, " +
+    "Supplier bigint, " +
     "TransportMode smallint, " +
     "Carrier bigint, " +
     "FromWeather smallint, " +
@@ -334,8 +334,8 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
     "TO_Id, " +
     "ShipFrom, " +
     "ShipTo, " +
-    "DeliveryDate, " +
-    "ModDeliveryDate, " +
+    "OrgDeliveryDate, " +
+    "NewDeliveryDate, " +
     "Supplier, " +
     "TransportMode, " +
     "Carrier, " +
@@ -347,7 +347,7 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
     "TO_Id, " +
     "ShipFrom, " +
     "ShipTo, " +
-    "DeliveryDate, " +
+    "OrgDeliveryDate, " +
     "Supplier, " +
     "TransportMode, " +
     "Carrier, " +

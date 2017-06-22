@@ -268,7 +268,7 @@ class SupplyChainSimulator extends Timeline  {
 
 	class TOObjectCreateEvent (psource: Int, pdestination: Int, pshippingDate: String, pdeliveryDate: String, pqty: Long,
 														 pTO_Id: Integer,
-														 psupplier: String,
+														 psupplier: Integer,
 														 pASN: String,
 														 pcontainer: String,
 														 pmodeOfTransport: Integer,
@@ -295,7 +295,7 @@ class SupplyChainSimulator extends Timeline  {
 		def destination: Int = pdestination
 		def modDeliveryDate : String = pmodDeliveryDate
 		def TO_Id: Integer = pTO_Id
-		def supplier: String = psupplier
+		def supplier: Integer = psupplier
 		def ASN: String = pASN
 		def container: String = pcontainer
 		def modeOfTransport: Integer = pmodeOfTransport
@@ -314,7 +314,7 @@ class SupplyChainSimulator extends Timeline  {
 
 	class TOObjectChangeDeliveryEvent (source: Int, destination: Int, shippingDate: String, deliveryDate: String, newDeliveryDate: String, qty: Long,
 														 TO_Id: Integer,
-														 supplier: String,
+														 supplier: Integer,
 														  modeOfTransport: Integer,
 														 carrier: Integer,
 														 fromWeather: Integer,
@@ -356,10 +356,13 @@ class SupplyChainSimulator extends Timeline  {
 
 		val fmt   = org.joda.time.format.DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
 
-		val BEGIN_ORDER_DATE  ="2017-7-05 00:00:00"    // beginning of simulation
+		val BEGIN_ORDER_DATE  ="2017-08-05 00:00:00"    // beginning of simulation
 		val TOTAL_TICKS     = 10  // Number of ticks in simulation
 		val TICK_LENGTH_DAYS  = 1 // Lenght in days between each Tick in realtime
 		val TICKINTERVAL  =10 // UI interval between ticks
+
+		val BEGIN_TO_ID  =900   // TO ids starting ID be in sequence of
+
 
 		val MIN_ENDDAYS    = 1    // minimum delivery duration from orderdate
 		val MAX_ENDDAYS    = 7   // maximum delivery duration fro orderdate
@@ -381,7 +384,7 @@ class SupplyChainSimulator extends Timeline  {
 		val parts = Array(100, 200, 300, 400, 500)
 		val partsCnt = parts.length
 
-		val suppliers = Array("A", "B", "C", "D", "E")
+		val suppliers = Array(10000, 11000, 12000, 13000, 14000)
 		val suppliersCnt = suppliers.length
 
 		val modesOfTransport = Array (0,1,2) //Ground, Air, Sea
@@ -421,6 +424,7 @@ class SupplyChainSimulator extends Timeline  {
 			// load queue with some number of events
 			var t = 0
 			var curOrderDate = org.joda.time.DateTime.parse(BEGIN_ORDER_DATE, fmt)
+		  var to_id = BEGIN_TO_ID;
 
 			//println("START Creating events")
 			while (t < totalTicks) {
@@ -547,7 +551,8 @@ class SupplyChainSimulator extends Timeline  {
 							var destination = parts(RandomGen.randBetween(0,partsCnt-1))
 							if(part !=destination ) {
 								var snowevent = (RandomGen.randBetween(0,100) > 25 )
-								var toObject =generateTOObject(part,destination, curOrderDate,snowevent )
+								var toObject =generateTOObject(to_id, part,destination, curOrderDate,snowevent )
+									to_id = to_id+1
 									theSimulation.scheduleEvent(toObject)
 								 if(snowevent)
 									 theSimulation.scheduleEvent(generateTODeliveryChgEventObject(part,destination, curOrderDate,toObject ))
@@ -584,15 +589,13 @@ class SupplyChainSimulator extends Timeline  {
 		// convenience methods to delegate calls to the Simulation instance
 		def scheduleEvent(newEvent: Event) { theSimulation.scheduleEvent(newEvent) }
 
-		def generateTOObject (part : Int, destination :Int, curOrderDate : org.joda.time.DateTime, snowEvent : Boolean) :TOObjectCreateEvent = {
+		def generateTOObject (toId: Integer, part : Int, destination :Int, curOrderDate : org.joda.time.DateTime, snowEvent : Boolean) :TOObjectCreateEvent = {
 
 			//println("START GEN")
 			var shippingDate = curOrderDate.toString(fmt)
 			var deliveryDate = (curOrderDate.plusDays(RandomGen.randBetween(MIN_ENDDAYS,MAX_ENDDAYS))).toString(fmt)
 			var qty = RandomGen.randBetween(MIN_QTY,MAX_QTY)
-			var toId = RandomGen.randBetween(MIN_OID, MAX_OID)
 			var poId = RandomGen.randBetween(MIN_OID, MAX_OID)
-
 			var supplier = suppliers(RandomGen.randBetween(0,suppliers.length-1))
 			var asn = RandomGen.randBetween(MIN_ASN,MAX_ASN).toString
 			var container = RandomGen.randBetween(MIN_CNT,MAX_CNT).toString
@@ -723,7 +726,7 @@ test("Supply Chain Simulator TOObject Change Delivery ") {
 		//Generate Purchase Orders for 1 day, after clearing database
 		var noOfDays = 200
 		var eventTypes = "10"
-		var clearDB = "2"
+		var clearDB = "1"
 
 
 		//println("RUN TEST TO")
