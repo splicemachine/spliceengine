@@ -206,6 +206,9 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
     if (splicemachineContext.tableExists(table)){
       conn.createStatement().execute("drop table " + table)
     }
+    if (splicemachineContext.tableExists(FeatureTable)){
+      conn.createStatement().execute("drop table " + FeatureTable)
+    }
     conn.createStatement().execute("create table " + table + columns)
     if (index1.nonEmpty) {
       conn.createStatement().execute("create index " + index1 + " on " + table +  index1Columns)
@@ -216,7 +219,8 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
   }
 
   val TOTable = schema + "." + "TransferOrders"
-  val TOETable = schema + "." + "TOEvents"
+  val TOETable = schema + "." + "TO_DELIVERY_CHG_EVENT"
+  val FeatureTable = schema +"." + "FEATURES"
 
   val TOColumnsWithPrimaryKey = "(" +
     "TO_Id bigint, " +
