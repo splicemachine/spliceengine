@@ -30,30 +30,29 @@
  */
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.db.impl.sql.compile.UnsatTreePruningIT;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.log4j.Logger;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Created by yxia on 6/8/17.
  */
 public class MultipleDistinctAggregatesIT extends SpliceUnitTest {
-    private static Logger LOG = Logger.getLogger(UnsatTreePruningIT.class);
-    public static final String CLASS_NAME = UnsatTreePruningIT.class.getSimpleName().toUpperCase();
+    private static Logger LOG = Logger.getLogger(MultipleDistinctAggregatesIT.class);
+    public static final String CLASS_NAME = MultipleDistinctAggregatesIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
@@ -66,40 +65,16 @@ public class MultipleDistinctAggregatesIT extends SpliceUnitTest {
     public static void createData(Connection conn, String schemaName) throws Exception {
 
         new TableCreator(conn)
-                .withCreate("create table t1 (a1 int, b1 varchar(10), c1 float)")
-                .withInsert("insert into t1 values(?,?,?)")
+                .withCreate("create table t1 (a1 int, b1 int, c1 int, d1 int, e1 char(3))")
+                .withInsert("insert into t1 values(?,?,?,?,?)")
                 .withRows(rows(
-                        row(1, "aaa", 1.0),
-                        row(2, "bbb", 2.0),
-                        row(null, null, null)))
-                .create();
-
-
-        new TableCreator(conn)
-                .withCreate("create table t2 (a2 int, b2 varchar(10), c2 float)")
-                .withInsert("insert into t2 values(?,?,?)")
-                .withRows(rows(
-                        row(1, "aaa", 1.0),
-                        row(2, "bbb", 2.0),
-                        row(null, null, null)))
-                .create();
-
-        new TableCreator(conn)
-                .withCreate("create table t3 (a3 int, b3 varchar(10), c3 float)")
-                .withInsert("insert into t3 values(?,?,?)")
-                .withRows(rows(
-                        row(1, "aaa", 1.0),
-                        row(2, "bbb", 2.0),
-                        row(null, null, null)))
-                .create();
-
-        new TableCreator(conn)
-                .withCreate("create table t4 (a4 int, b4 varchar(10), c4 float)")
-                .withInsert("insert into t4 values(?,?,?)")
-                .withRows(rows(
-                        row(1, "aaa", 1.0),
-                        row(2, "bbb", 2.0),
-                        row(null, null, null)))
+                        row(1,2,1,1,"aaa"),
+                        row(1,2,1,1,"bbb"),
+                        row(1,2,2,2,"aaa"),
+                        row(1,2,3,3,"bbb"),
+                        row(1,1,1,1,"ccc"),
+                        row(1,1,1,2,"ddd"),
+                        row(null, null, null, null, null)))
                 .create();
 
         conn.commit();
@@ -111,7 +86,180 @@ public class MultipleDistinctAggregatesIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testMainQueryWithUnsat() throws Exception {
+    public void testGroupedMultipleDistinctAggreateViaControlPath() throws Exception {
+        /* Q1 */
+        String sqlText = "select a1, count(distinct c1), sum(distinct b1) from t1  --splice-properties useSpark=false\n group by a1 order by 1";
+        String expected = "A1  | 2 |  3  |\n" +
+                "----------------\n" +
+                "  1  | 3 |  3  |\n" +
+                "NULL | 0 |NULL |";
 
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q2 */
+        sqlText = "select a1, sum(distinct c1), sum(distinct b1), max(d1) from t1 --splice-properties useSpark=false\n group by a1 order by 1";
+        expected = "A1  |  2  |  3  |  4  |\n" +
+                "------------------------\n" +
+                "  1  |  6  |  3  |  3  |\n" +
+                "NULL |NULL |NULL |NULL |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q3 */
+        sqlText = "select a1, count(distinct b1), count(distinct d1), sum(c1), max(d1) from t1 --splice-properties useSpark=false\n group by a1 order by 1";
+        expected = "A1  | 2 | 3 |  4  |  5  |\n" +
+                "--------------------------\n" +
+                "  1  | 2 | 3 |  9  |  3  |\n" +
+                "NULL | 0 | 0 |NULL |NULL |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q4 */
+        sqlText = "select a1, b1, count(distinct c1), sum(d1), count(distinct e1) from t1 --splice-properties useSpark=false\n group by a1, b1 order by a1, b1";
+        expected = "A1  | B1  | 3 |  4  | 5 |\n" +
+                "--------------------------\n" +
+                "  1  |  1  | 1 |  3  | 2 |\n" +
+                "  1  |  2  | 3 |  7  | 2 |\n" +
+                "NULL |NULL | 0 |NULL | 0 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q5 */
+        sqlText = "select a1, count(distinct c1), sum(d1), b1, count(distinct e1) from t1 --splice-properties useSpark=false\n group by a1, b1 order by a1, b1";
+        expected = "A1  | 2 |  3  | B1  | 5 |\n" +
+                "--------------------------\n" +
+                "  1  | 1 |  3  |  1  | 2 |\n" +
+                "  1  | 3 |  7  |  2  | 2 |\n" +
+                "NULL | 0 |NULL |NULL | 0 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q6 */
+        sqlText = "select a1, sum(distinct c1), sum(distinct b1), max(d1),count(e1) from t1 --splice-properties useSpark=false\n group by a1 order by a1";
+        expected = "A1  |  2  |  3  |  4  | 5 |\n" +
+                "----------------------------\n" +
+                "  1  |  6  |  3  |  3  | 6 |\n" +
+                "NULL |NULL |NULL |NULL | 0 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q7 */
+        sqlText = "select a1, count(distinct b1), count(distinct c1), count(distinct d1), count(distinct e1) from t1 --splice-properties useSpark=false\n group by a1 order by a1";
+        expected = "A1  | 2 | 3 | 4 | 5 |\n" +
+                "----------------------\n" +
+                "  1  | 2 | 3 | 3 | 4 |\n" +
+                "NULL | 0 | 0 | 0 | 0 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+    }
+
+    @Test
+    public void testGroupedMultipleDistinctAggreateViaSparkPath() throws Exception {
+        /* Q1 */
+        String sqlText = "select a1, count(distinct c1), sum(distinct b1) from t1  --splice-properties useSpark=true\n group by a1 order by 1";
+        String expected = "A1  | 2 |  3  |\n" +
+                "----------------\n" +
+                "  1  | 3 |  3  |\n" +
+                "NULL | 0 |NULL |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q2 */
+        sqlText = "select a1, sum(distinct c1), sum(distinct b1), max(d1) from t1 --splice-properties useSpark=true\n group by a1 order by 1";
+        expected = "A1  |  2  |  3  |  4  |\n" +
+                "------------------------\n" +
+                "  1  |  6  |  3  |  3  |\n" +
+                "NULL |NULL |NULL |NULL |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q3 */
+        sqlText = "select a1, count(distinct b1), count(distinct d1), sum(c1), max(d1) from t1 --splice-properties useSpark=true\n group by a1 order by 1";
+        expected = "A1  | 2 | 3 |  4  |  5  |\n" +
+                "--------------------------\n" +
+                "  1  | 2 | 3 |  9  |  3  |\n" +
+                "NULL | 0 | 0 |NULL |NULL |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q4 */
+        sqlText = "select a1, b1, count(distinct c1), sum(d1), count(distinct e1) from t1 --splice-properties useSpark=true\n group by a1, b1 order by a1, b1";
+        expected = "A1  | B1  | 3 |  4  | 5 |\n" +
+                "--------------------------\n" +
+                "  1  |  1  | 1 |  3  | 2 |\n" +
+                "  1  |  2  | 3 |  7  | 2 |\n" +
+                "NULL |NULL | 0 |NULL | 0 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q5 */
+        sqlText = "select a1, count(distinct c1), sum(d1), b1, count(distinct e1) from t1 --splice-properties useSpark=true\n group by a1, b1 order by a1, b1";
+        expected = "A1  | 2 |  3  | B1  | 5 |\n" +
+                "--------------------------\n" +
+                "  1  | 1 |  3  |  1  | 2 |\n" +
+                "  1  | 3 |  7  |  2  | 2 |\n" +
+                "NULL | 0 |NULL |NULL | 0 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q6 */
+        sqlText = "select a1, sum(distinct c1), sum(distinct b1), max(d1),count(e1) from t1 --splice-properties useSpark=true\n group by a1 order by a1";
+        expected = "A1  |  2  |  3  |  4  | 5 |\n" +
+                "----------------------------\n" +
+                "  1  |  6  |  3  |  3  | 6 |\n" +
+                "NULL |NULL |NULL |NULL | 0 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q7 */
+        sqlText = "select a1, count(distinct b1), count(distinct c1), count(distinct d1), count(distinct e1) from t1 --splice-properties useSpark=true\n group by a1 order by a1";
+        expected = "A1  | 2 | 3 | 4 | 5 |\n" +
+                "----------------------\n" +
+                "  1  | 2 | 3 | 3 | 4 |\n" +
+                "NULL | 0 | 0 | 0 | 0 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
     }
 }
