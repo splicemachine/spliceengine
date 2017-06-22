@@ -22,10 +22,7 @@ import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.SpliceSpark;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
-
 import com.splicemachine.derby.stream.function.LocatedRowToRowFunction;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import org.apache.log4j.Logger;
@@ -37,14 +34,12 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import scala.collection.JavaConversions;
-
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import static org.apache.spark.sql.functions.asc;
 import static org.apache.spark.sql.functions.col;
 import static org.apache.spark.sql.functions.desc;
@@ -52,7 +47,7 @@ import static org.apache.spark.sql.functions.desc;
 public class SparkUtils {
     public static final Logger LOG = Logger.getLogger(SparkUtils.class);
 
-    public static JavaPairRDD<ExecRow, LocatedRow> getKeyedRDD(JavaRDD<LocatedRow> rdd, final int[] keyColumns)
+    public static JavaPairRDD<ExecRow, ExecRow> getKeyedRDD(JavaRDD<ExecRow> rdd, final int[] keyColumns)
             throws StandardException {
         return rdd.keyBy(new Keyer(keyColumns));
     }
@@ -95,16 +90,16 @@ public class SparkUtils {
         return key;
     }
 
-    public static JavaRDD<LocatedRow> toSparkRows(JavaRDD<ExecRow> execRows) {
-        return execRows.map(new Function<ExecRow, LocatedRow>() {
+    public static JavaRDD<ExecRow> toSparkRows(JavaRDD<ExecRow> execRows) {
+        return execRows.map(new Function<ExecRow, ExecRow>() {
             @Override
-            public LocatedRow call(ExecRow execRow) throws Exception {
-                return new LocatedRow(execRow);
+            public ExecRow call(ExecRow execRow) throws Exception {
+                return execRow;
             }
         });
     }
 
-    public static Iterator<ExecRow> toExecRowsIterator(final Iterator<LocatedRow> sparkRowsIterator) {
+    public static Iterator<ExecRow> toExecRowsIterator(final Iterator<ExecRow> sparkRowsIterator) {
         return new Iterator<ExecRow>() {
             @Override
             public boolean hasNext() {
@@ -113,7 +108,7 @@ public class SparkUtils {
 
             @Override
             public ExecRow next() {
-                return sparkRowsIterator.next().getRow();
+                return sparkRowsIterator.next();
             }
 
             @Override
@@ -123,7 +118,7 @@ public class SparkUtils {
         };
     }
 
-    public static Iterable<LocatedRow> toSparkRowsIterable(Iterable<ExecRow> execRows) {
+    public static Iterable<ExecRow> toSparkRowsIterable(Iterable<ExecRow> execRows) {
         return new SparkRowsIterable(execRows);
     }
 
@@ -157,7 +152,7 @@ public class SparkUtils {
         }
     }
 
-    public static class SparkRowsIterable implements Iterable<LocatedRow>, Iterator<LocatedRow> {
+    public static class SparkRowsIterable implements Iterable<ExecRow>, Iterator<ExecRow> {
         private Iterator<ExecRow> execRows;
 
         public SparkRowsIterable(Iterable<ExecRow> execRows) {
@@ -165,7 +160,7 @@ public class SparkUtils {
         }
 
         @Override
-        public Iterator<LocatedRow> iterator() {
+        public Iterator<ExecRow> iterator() {
             return this;
         }
 
@@ -175,8 +170,8 @@ public class SparkUtils {
         }
 
         @Override
-        public LocatedRow next() {
-            return new LocatedRow(execRows.next());
+        public ExecRow next() {
+            return execRows.next();
         }
 
         @Override
@@ -185,7 +180,7 @@ public class SparkUtils {
         }
     }
 
-    public static class Keyer implements Function<LocatedRow, ExecRow> {
+    public static class Keyer implements Function<ExecRow, ExecRow> {
 
         private static final long serialVersionUID = 3988079974858059941L;
         private int[] keyColumns;
@@ -198,8 +193,8 @@ public class SparkUtils {
         }
 
         @Override
-        public ExecRow call(LocatedRow row) throws Exception {
-            return SparkUtils.getKey(row.getRow(), keyColumns);
+        public ExecRow call(ExecRow row) throws Exception {
+            return SparkUtils.getKey(row, keyColumns);
         }
     }
 
@@ -208,8 +203,8 @@ public class SparkUtils {
         com.splicemachine.db.iapi.sql.ResultSet serverSideResultSet = ers.getUnderlyingResultSet();
         SpliceBaseOperation operation = (SpliceBaseOperation) serverSideResultSet;
         DataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
-        SparkDataSet<LocatedRow> spliceDataSet = (SparkDataSet) operation.getResultDataSet(dsp);
-        JavaRDD<LocatedRow> rdd = spliceDataSet.rdd;
+        SparkDataSet<ExecRow> spliceDataSet = (SparkDataSet) operation.getResultDataSet(dsp);
+        JavaRDD<ExecRow> rdd = spliceDataSet.rdd;
         final ResultColumnDescriptor[] columns = serverSideResultSet.getResultDescription().getColumnInfo();
 
         // Generate the schema based on the ResultColumnDescriptors

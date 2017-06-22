@@ -26,11 +26,9 @@ import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
-import com.splicemachine.derby.stream.function.InsertPairFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.si.api.txn.TxnView;
@@ -168,7 +166,7 @@ public class UpdateOperation extends DMLWriteOperation{
 
     @SuppressWarnings({ "unchecked" })
     @Override
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException{
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException{
         DataSet set=source.getDataSet(dsp);
         OperationContext operationContext=dsp.createOperationContext(this);
         TxnView txn=getCurrentTransaction();
@@ -176,8 +174,7 @@ public class UpdateOperation extends DMLWriteOperation{
         int[] execRowTypeFormatIds=WriteReadUtils.getExecRowTypeFormatIds(execRow);
         operationContext.pushScope();
         try{
-            PairDataSet toWrite=set.index(new InsertPairFunction(operationContext),true);
-            DataSetWriter writer=toWrite.updateData(operationContext)
+            DataSetWriter writer=set.updateData(operationContext)
                     .execRowDefinition(execRow)
                     .execRowTypeFormatIds(execRowTypeFormatIds)
                     .pkCols(pkCols==null?new int[0]:pkCols)

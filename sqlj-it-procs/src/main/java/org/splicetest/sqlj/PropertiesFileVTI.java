@@ -27,12 +27,10 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.vti.VTICosting;
 import com.splicemachine.db.vti.VTIEnvironment;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.vti.iapi.DatasetProvider;
-
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -60,11 +58,11 @@ public class PropertiesFileVTI  implements DatasetProvider, VTICosting{
     }
 
     @Override
-    public DataSet<LocatedRow> getDataSet(SpliceOperation op, DataSetProcessor dsp, ExecRow execRow) throws StandardException {
+    public DataSet<ExecRow> getDataSet(SpliceOperation op, DataSetProcessor dsp, ExecRow execRow) throws StandardException {
         operationContext = dsp.createOperationContext(op);
         
         //Create an arraylist to store the key / value pairs
-        ArrayList<LocatedRow> items = new ArrayList<LocatedRow>();
+        ArrayList<ExecRow> items = new ArrayList<ExecRow>();
         
         try {
             Properties properties = new Properties();
@@ -78,7 +76,7 @@ public class PropertiesFileVTI  implements DatasetProvider, VTICosting{
                 ValueRow valueRow = new ValueRow(2);
                 valueRow.setColumn(1,new SQLVarchar(key));
                 valueRow.setColumn(2,new SQLVarchar(value));
-                items.add(new LocatedRow(valueRow));
+                items.add(valueRow);
               }
         } catch (FileNotFoundException e) {
             e.printStackTrace();

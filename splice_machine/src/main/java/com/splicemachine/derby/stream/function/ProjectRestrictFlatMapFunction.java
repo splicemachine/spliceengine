@@ -16,8 +16,8 @@ package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.ProjectRestrictOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.commons.collections.iterators.SingletonIterator;
@@ -28,7 +28,7 @@ import java.util.Iterator;
 /**
  * Created by jleach on 5/1/15.
  */
-public class ProjectRestrictFlatMapFunction<Op extends SpliceOperation> extends SpliceFlatMapFunction<Op,LocatedRow,LocatedRow> {
+public class ProjectRestrictFlatMapFunction<Op extends SpliceOperation> extends SpliceFlatMapFunction<Op,ExecRow,ExecRow> {
     protected boolean initialized;
     protected ProjectRestrictOperation op;
     protected ExecutionFactory executionFactory;
@@ -42,21 +42,22 @@ public class ProjectRestrictFlatMapFunction<Op extends SpliceOperation> extends 
     }
 
     @Override
-    public Iterator<LocatedRow> call(LocatedRow from) throws Exception {
+    public Iterator<ExecRow> call(ExecRow from) throws Exception {
         if (!initialized) {
             initialized = true;
             op = (ProjectRestrictOperation) getOperation();
             executionFactory = op.getExecutionFactory();
         }
-        op.setCurrentRow(from.getRow());
-        op.source.setCurrentRow(from.getRow());
-        if (!op.getRestriction().apply(from.getRow())) {
+        op.setCurrentRow(from);
+        op.source.setCurrentRow(from);
+        if (!op.getRestriction().apply(from)) {
             operationContext.recordFilter();
-            return Collections.<LocatedRow>emptyList().iterator();
+            return Collections.<ExecRow>emptyList().iterator();
         }
-        ExecRow preCopy = op.doProjection(from.getRow());
-        LocatedRow locatedRow = new LocatedRow(from.getRowLocation(), preCopy);
-        op.setCurrentLocatedRow(locatedRow);
-        return new SingletonIterator(locatedRow);
+        ExecRow preCopy = op.doProjection(from);
+        preCopy.setKey(from.getKey());
+        op.setCurrentRow(preCopy);
+//        op.setCurrentRowLocation(new HBaseRowLocation(from.getKey()));
+        return new SingletonIterator(preCopy);
     }
 }

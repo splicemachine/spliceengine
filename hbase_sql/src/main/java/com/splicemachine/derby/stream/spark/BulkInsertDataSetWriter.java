@@ -35,7 +35,6 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -132,7 +131,7 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
      * @throws StandardException
      */
     @Override
-    public DataSet<LocatedRow> write() throws StandardException {
+    public DataSet<ExecRow> write() throws StandardException {
 
         // collect index information for the table
         Activation activation = operationContext.getActivation();
@@ -248,7 +247,7 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
             }
         }
 
-        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(new LocatedRow(valueRow)), 1));
+        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
     }
 
     /**

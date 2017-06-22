@@ -119,7 +119,7 @@ public class WindowOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext<WindowOperation> operationContext = dsp.createOperationContext(this);
         operationContext.pushScopeForOp(OperationContext.Scope.WINDOW);
         DataSet dataSet = source.getDataSet(dsp);

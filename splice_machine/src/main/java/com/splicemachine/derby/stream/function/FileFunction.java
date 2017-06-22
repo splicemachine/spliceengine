@@ -16,7 +16,6 @@ package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.BooleanList;
 import org.apache.commons.collections.iterators.SingletonIterator;
@@ -52,7 +51,7 @@ public class FileFunction extends AbstractFileFunction<String> {
 
     /**
      *
-     * Call Method for parsing the string into either a singleton List with a LocatedRow or
+     * Call Method for parsing the string into either a singleton List with a ExecRow or
      * an empty list.
      *
      * @param s
@@ -60,9 +59,9 @@ public class FileFunction extends AbstractFileFunction<String> {
      * @throws Exception
      */
     @Override
-    public Iterator<LocatedRow> call(final String s) throws Exception {
+    public Iterator<ExecRow> call(final String s) throws Exception {
         if (operationContext.isFailed())
-            return Collections.<LocatedRow>emptyList().iterator();
+            return Collections.<ExecRow>emptyList().iterator();
         if (!initialized) {
             Reader reader = new StringReader(s);
             checkPreference();
@@ -73,12 +72,12 @@ public class FileFunction extends AbstractFileFunction<String> {
             tokenizer.setLine(s);
             List<String> read=tokenizer.read();
             BooleanList quotedColumns=tokenizer.getQuotedColumns();
-            LocatedRow lr =  call(read,quotedColumns);
-            return lr==null?Collections.<LocatedRow>emptyList().iterator():new SingletonIterator(lr);
+            ExecRow lr =  call(read,quotedColumns);
+            return lr==null?Collections.<ExecRow>emptyList().iterator():new SingletonIterator(lr);
         } catch (Exception e) {
             if (operationContext.isPermissive()) {
                 operationContext.recordBadRecord(e.getLocalizedMessage(), e);
-                return Collections.<LocatedRow>emptyList().iterator();
+                return Collections.<ExecRow>emptyList().iterator();
             }
             throw StandardException.plainWrapException(e);
         }

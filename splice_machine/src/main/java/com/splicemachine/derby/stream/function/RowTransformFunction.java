@@ -22,7 +22,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.ddl.DDLMessage.DDLChange;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
@@ -37,7 +36,7 @@ import com.splicemachine.pipeline.RowTransformer;
  * Created by jyuan on 11/4/15.
  *
  */
-public class RowTransformFunction <Op extends SpliceOperation> extends SpliceFunction<Op,LocatedRow,KVPair> {
+public class RowTransformFunction <Op extends SpliceOperation> extends SpliceFunction<Op,ExecRow,KVPair> {
 
     private DDLChange ddlChange;
     private RowTransformer rowTransformer;
@@ -48,17 +47,17 @@ public class RowTransformFunction <Op extends SpliceOperation> extends SpliceFun
         this.ddlChange = ddlChange;
     }
 
-    public KVPair call(LocatedRow locatedRow) throws Exception {
+    public KVPair call(ExecRow locatedRow) throws Exception {
 
         if (!initialized) {
             initialize();
         }
-        ExecRow row = locatedRow.getRow();
+        ExecRow row = locatedRow;
 
         KVPair kvPair = rowTransformer.transform(row);
         if (kvPair.getRowKey().length == 0) {
             // If this is a dummy row key, reuse the original row key
-            kvPair.setKey(locatedRow.getRowLocation().getBytes());
+            kvPair.setKey(locatedRow.getKey());
         }
 
         return kvPair;

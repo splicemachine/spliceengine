@@ -19,7 +19,6 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.stream.control.ControlDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -30,7 +29,6 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.types.StructType;
-
 import javax.annotation.Nullable;
 import java.util.Iterator;
 
@@ -91,8 +89,8 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
             }
 
             @Override
-            public Iterator<LocatedRow> getIterator() {
-                return operation.getLocatedRowIterator();
+            public Iterator<ExecRow> getIterator() {
+                return operation.getExecRowIterator();
             }
 
             @Override

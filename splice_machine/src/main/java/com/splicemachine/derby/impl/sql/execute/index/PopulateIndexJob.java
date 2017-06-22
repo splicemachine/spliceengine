@@ -16,10 +16,10 @@ package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.iapi.sql.olap.SuccessfulOlapResult;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.IndexTransformFunction;
 import com.splicemachine.derby.stream.function.KVPairFunction;
 import com.splicemachine.derby.stream.iapi.*;
@@ -54,16 +54,16 @@ public class PopulateIndexJob implements Callable<Void> {
         return null;
     }
 
-    public static DataSet<LocatedRow> populateIndex(DDLMessage.TentativeIndex tentativeIndex,
-                                                    ScanSetBuilder<LocatedRow> scanSetBuilder,
-                                                    String prefix,
-                                                    int[] indexFormatIds,
-                                                    String scope,
-                                                    TxnView childTxn
+    public static DataSet<ExecRow> populateIndex(DDLMessage.TentativeIndex tentativeIndex,
+                                                 ScanSetBuilder<ExecRow> scanSetBuilder,
+                                                 String prefix,
+                                                 int[] indexFormatIds,
+                                                 String scope,
+                                                 TxnView childTxn
                                                     ) throws StandardException
     {
 
-        DataSet<LocatedRow> dataSet = scanSetBuilder.buildDataSet(prefix);
+        DataSet<ExecRow> dataSet = scanSetBuilder.buildDataSet(prefix);
         OperationContext operationContext = scanSetBuilder.getOperationContext();
         PairDataSet dsToWrite = dataSet
                 .map(new IndexTransformFunction(tentativeIndex), null, false, true, scope + ": Prepare Index")
