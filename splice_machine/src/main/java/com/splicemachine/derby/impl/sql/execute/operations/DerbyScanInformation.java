@@ -51,7 +51,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
     //fields marked transient as a documentation tool, so we know which fields aren't set
     private transient GenericStorablePreparedStatement gsps;
     private transient Activation activation;
-    public static final int[] Empty_Array = new int[]{};
+    public static final int[] Empty_Array = {};
     //serialized fields
     private String resultRowAllocatorMethodName;
     private String startKeyGetterMethodName;

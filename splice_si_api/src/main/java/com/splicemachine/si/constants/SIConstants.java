@@ -33,7 +33,7 @@ public class SIConstants {
     public static final byte[] TRUE_BYTES = Bytes.toBytes(true);
     public static final byte[] FALSE_BYTES = Bytes.toBytes(false);
     public static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
-    public static final byte[] SNAPSHOT_ISOLATION_FAILED_TIMESTAMP = new byte[] {-1};
+    public static final byte[] SNAPSHOT_ISOLATION_FAILED_TIMESTAMP = {-1};
     public static final int TRANSACTION_START_TIMESTAMP_COLUMN = 0;
     public static final int TRANSACTION_PARENT_COLUMN = 1;
     public static final int TRANSACTION_DEPENDENT_COLUMN = 2;
@@ -87,7 +87,7 @@ public class SIConstants {
 
     // Default Constants
     public static final String SUPPRESS_INDEXING_ATTRIBUTE_NAME = "iu";
-    public static final byte[] SUPPRESS_INDEXING_ATTRIBUTE_VALUE = new byte[]{};
+    public static final byte[] SUPPRESS_INDEXING_ATTRIBUTE_VALUE = {};
     public static final String CHECK_BLOOM_ATTRIBUTE_NAME = "cb";
 
     public static final String ENTRY_PREDICATE_LABEL= "p";

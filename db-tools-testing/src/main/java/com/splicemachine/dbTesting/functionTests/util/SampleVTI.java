@@ -47,7 +47,7 @@ import java.sql.SQLException;
  */
 public class SampleVTI  {
 
-    private static final String[][] oneColData = new String[][] {
+    private static final String[][] oneColData = {
             {"one"}, {"two"}, {"three"}, {"four"}, {"five"}
         };
 

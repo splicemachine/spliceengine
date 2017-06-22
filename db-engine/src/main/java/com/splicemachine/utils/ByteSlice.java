@@ -25,7 +25,7 @@ import java.nio.ByteBuffer;
 
 public class ByteSlice implements Externalizable,Comparable<ByteSlice>,Cloneable {
     private static final Hash32 hashFunction = HashFunctions.murmur3(0);
-    private static final byte[] EMPTY_BYTE_ARRAY = new byte[]{};
+    private static final byte[] EMPTY_BYTE_ARRAY = {};
     private byte[] buffer;
     private int offset;
     private int length;

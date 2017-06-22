@@ -131,8 +131,8 @@ public class SynchronousWriteControl implements SpliceWriteControl{
     }
 
     public static void main(String...args) throws Exception{
-        byte[] b1 = new byte[]{0x00,0x01,0x02};
-        byte[] b2 = new byte[]{0x00,0x20,0x02};
+        byte[] b1 = {0x00,0x01,0x02};
+        byte[] b2 = {0x00,0x20,0x02};
         System.out.println(ByteComparisons.comparator().compare(b1,b2));
     }
 }

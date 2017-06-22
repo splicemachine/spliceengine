@@ -135,7 +135,7 @@ public class RunList
         static String derbyTestingXaSingle;// Run junit test cases with under 
                                            // single branck xa transaction
 	
-    static String [] clientExclusionKeywords = new String [] {
+    static String [] clientExclusionKeywords = {
         "at-or-before:", "at-or-after:", "when-at-or-before:jdk",
         "when-at-or-after:jdk", "when:jdk"
     };

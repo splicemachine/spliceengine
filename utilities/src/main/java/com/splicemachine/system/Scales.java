@@ -21,8 +21,8 @@ package com.splicemachine.system;
 public class Scales {
     private Scales(){}
 
-    public static final String[] FULL_BYTE_SCALES=new String[]{"bytes","kilobytes","megabytes","gigabytes","terabytes","petabytes","exabytes","zetabytes"};
-    public static final String[] ABB_BYTE_SCALES=new String[]{"B","KB","MB","GB","TB","PB","EB","ZB"};
+    public static final String[] FULL_BYTE_SCALES= {"bytes","kilobytes","megabytes","gigabytes","terabytes","petabytes","exabytes","zetabytes"};
+    public static final String[] ABB_BYTE_SCALES= {"B","KB","MB","GB","TB","PB","EB","ZB"};
 
     /**
      * Scale the given number by the specified number of shifts. This make it easy to convert

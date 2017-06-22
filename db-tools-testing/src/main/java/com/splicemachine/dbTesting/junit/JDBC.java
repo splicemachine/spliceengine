@@ -85,18 +85,18 @@ public class JDBC {
      * Constant to pass to DatabaseMetaData.getTables() to fetch
      * just tables.
      */
-    public static final String[] GET_TABLES_TABLE = new String[] {"TABLE"};
+    public static final String[] GET_TABLES_TABLE = {"TABLE"};
     /**
      * Constant to pass to DatabaseMetaData.getTables() to fetch
      * just views.
      */
-    public static final String[] GET_TABLES_VIEW = new String[] {"VIEW"};
+    public static final String[] GET_TABLES_VIEW = {"VIEW"};
     /**
      * Constant to pass to DatabaseMetaData.getTables() to fetch
      * just synonyms.
      */
     public static final String[] GET_TABLES_SYNONYM =
-        new String[] {"SYNONYM"};
+            {"SYNONYM"};
     
     /**
      * Types.SQLXML value without having to compile with JDBC4.
@@ -853,8 +853,8 @@ public class JDBC {
     public static void assertSingleValueResultSet(ResultSet rs,
             String value) throws SQLException
     {
-        String[] row = new String[] {value};
-        String[][] set = new String[][] {row};
+        String[] row = {value};
+        String[][] set = {row};
         assertFullResultSet(rs, set);
     }
     

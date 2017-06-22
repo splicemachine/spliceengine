@@ -454,7 +454,7 @@ public class IndexStatsUtil {
      * @param closeConnection whether to close the associated connection
      */
     public void release(boolean closeConnection) {
-        PreparedStatement[] psToClose = new PreparedStatement[] {
+        PreparedStatement[] psToClose = {
             psGetStats, psGetIndexId, psGetStatsForIndex,
             psGetStatsForTable, psGetTableId,
             psGetIdToNameMapConglom, psGetIdToNameMapTable

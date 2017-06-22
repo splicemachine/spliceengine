@@ -55,8 +55,8 @@ import com.splicemachine.dbTesting.junit.TestConfiguration;
  */
 public abstract class HarnessJavaTest extends CanonTestCase {
 
-    private static final Object[] MAIN_ARG = new Object[] {new String[0]};
-    private static final Class[] MAIN_ARG_TYPE = new Class[] {MAIN_ARG[0].getClass()};
+    private static final Object[] MAIN_ARG = {new String[0]};
+    private static final Class[] MAIN_ARG_TYPE = {MAIN_ARG[0].getClass()};
 
     /**
      * Create a test, the name corresonds to the class name

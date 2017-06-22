@@ -283,19 +283,19 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
         return getTextMessage(key, new Object[0]);
 	}
 	public String getTextMessage(String key, Object o){
-			Object [] att=new Object[] {o};
+			Object [] att= {o};
 			return getTextMessage(key,att);
 	}
 	public String getTextMessage(String key, Object o1, Object o2){
-			Object [] att=new Object[] {o1,o2};
+			Object [] att= {o1,o2};
 			return getTextMessage(key,att);
 	}
 	public String getTextMessage(String key, Object o1, Object o2, Object o3){
-			Object [] att=new Object[] {o1,o2,o3};
+			Object [] att= {o1,o2,o3};
 			return getTextMessage(key,att);
 	}
 	public String getTextMessage(String key, Object o1, Object o2, Object o3, Object o4){
-			Object [] att=new Object[] {o1,o2,o3,o4};
+			Object [] att= {o1,o2,o3,o4};
 			return getTextMessage(key,att);
 	}
 	private Locale getNewLocale(String locStr){

@@ -50,7 +50,7 @@ public abstract class AbstractOlapHandler extends SimpleChannelUpstreamHandler {
     /*Protected convenience methods*/
     protected void writeResponse(MessageEvent e,final String requestId,OlapStatus status) throws IOException{
         Channel c = e.getChannel();
-        final boolean[] shouldRemove=new boolean[]{false};
+        final boolean[] shouldRemove= {false};
         ChannelFuture futureResponse = c.write(OlapSerializationUtils.buildResponse(status,shouldRemove,jobRegistry.tickTime()));
 
         futureResponse.addListener(new ChannelFutureListener(){

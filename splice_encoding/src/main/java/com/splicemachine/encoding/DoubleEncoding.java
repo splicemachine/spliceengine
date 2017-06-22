@@ -23,9 +23,9 @@ import java.nio.ByteBuffer;
  */
 class DoubleEncoding {
 
-    static final byte[] NULL_DOUBLE_BYTES = new byte[]{0,0};
+    static final byte[] NULL_DOUBLE_BYTES = {0,0};
     static final int NULL_DOUBLE_BYTES_LENGTH = 2;
-    static final byte[] NULL_FLOAT_BYTES = new byte[]{0, 0};
+    static final byte[] NULL_FLOAT_BYTES = {0, 0};
     static final int NULL_FLOAT_BYTES_LENGTH = 2;
 
     /**

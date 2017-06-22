@@ -275,7 +275,7 @@ public class ClassSizeCrawler {
 
     private void addClass(Class targetClass) {
         //int[] coefficients = ClassSize.getSizeCoefficients( targetClass);
-        int[] coefficients = new int[]{1, 1};
+        int[] coefficients = {1, 1};
         if (verbose)
             System.out.println(targetClass.getName() + " " + coefficients[0] + ", " + coefficients[1]);
         classSizes.put(targetClass.getName(), coefficients);

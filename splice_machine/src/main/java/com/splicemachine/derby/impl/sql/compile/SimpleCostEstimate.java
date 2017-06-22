@@ -26,7 +26,7 @@ import java.text.DecimalFormat;
  *         Date: 3/13/15
  */
 public class SimpleCostEstimate implements CostEstimate{
-    private static final String[] displayHeapUnits = new String[]{" B"," KB"," MB"," GB"," TB"};
+    private static final String[] displayHeapUnits = {" B"," KB"," MB"," GB"," TB"};
     /**
      * Note: if you add a field to this class, make sure you also make changes to cloneMe() and setCost()
      */

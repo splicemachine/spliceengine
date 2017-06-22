@@ -104,7 +104,7 @@ class SITransactorUtil{
                  */
                 byte[] family=DEFAULT_FAMILY_BYTES;
                 byte[] column=PACKED_COLUMN_BYTES;
-                byte[] value=new byte[]{};
+                byte[] value= {};
                 Map<byte[], Map<byte[], List<KVPair>>> familyMap=kvPairMap.get(txnId);
                 if(familyMap==null){
                     familyMap=Maps.newTreeMap(Bytes.BASE_COMPARATOR);

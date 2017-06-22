@@ -48,7 +48,7 @@ public class ProcedureUtils {
 
         DataTypeDescriptor dtd =
                 DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, message.length());
-        ResultColumnDescriptor[] rcds = new ResultColumnDescriptor[]{new GenericColumnDescriptor(outcome, dtd)};
+        ResultColumnDescriptor[] rcds = {new GenericColumnDescriptor(outcome, dtd)};
         ExecRow template = new ValueRow(1);
         template.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
         List<ExecRow> rows = Lists.newArrayList();
