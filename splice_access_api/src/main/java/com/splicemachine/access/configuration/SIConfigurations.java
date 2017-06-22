@@ -157,8 +157,7 @@ public class SIConfigurations implements ConfigurationDefault {
         builder.completedTxnCacheSize  = configurationSource.getInt(completedTxnCacheSize, DEFAULT_COMPLETED_TRANSACTION_CACHE_SIZE);
         builder.transactionKeepAliveThreads  = configurationSource.getInt(TRANSACTION_KEEP_ALIVE_THREADS, DEFAULT_KEEP_ALIVE_THREADS);
         builder.readResolverThreads  = configurationSource.getInt(READ_RESOLVER_THREADS, DEFAULT_READ_RESOLVER_THREADS);
-        builder.readResolverQueueSize  = configurationSource.getInt(READ_RESOLVER_QUEUE_SIZE, -1); //TODO -sf- reset to DEFAULT once ReadResolution works
-//        builder.readResolverQueueSize  = configurationSource.getInt(READ_RESOLVER_QUEUE_SIZE, DEFAULT_READ_RESOLVER_QUEUE_SIZE);
+        builder.readResolverQueueSize  = configurationSource.getInt(READ_RESOLVER_QUEUE_SIZE, DEFAULT_READ_RESOLVER_QUEUE_SIZE);
         builder.timestampClientWaitTime  = configurationSource.getInt(TIMESTAMP_CLIENT_WAIT_TIME, DEFAULT_TIMESTAMP_CLIENT_WAIT_TIME);
         builder.timestampServerBindPort  = configurationSource.getInt(TIMESTAMP_SERVER_BIND_PORT, DEFAULT_TIMESTAMP_SERVER_BIND_PORT);
         builder.activeTransactionCacheSize  = configurationSource.getInt(ACTIVE_TRANSACTION_CACHE_SIZE, DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE);

@@ -29,12 +29,16 @@ import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.iterator.TableScannerIterator;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.TxnSupplier;
+import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.NonSITxnFilter;
 import com.splicemachine.si.impl.TxnRegion;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
+import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Partition;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.iterators.SingletonIterator;
@@ -113,7 +117,12 @@ public class ControlDataSetProcessor implements DataSetProcessor{
                 try{
                     p =SIDriver.driver().getTableFactory().getTable(tableName);
                     TxnRegion localRegion=new TxnRegion(p,NoopRollForward.INSTANCE,NoOpReadResolver.INSTANCE,
-                            txnSupplier,transactory,txnOperationFactory);
+                            txnSupplier,transactory,txnOperationFactory) {
+                        @Override
+                        public TxnFilter unpackedFilter(TxnView txn) throws IOException {
+                            return new NonSITxnFilter();
+                        }
+                    };
 
                     this.region(localRegion).scanner(p.openScanner(getScan(),metricFactory)); //set the scanner
                     TableScannerIterator tableScannerIterator=new TableScannerIterator(this,spliceOperation);
