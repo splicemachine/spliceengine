@@ -361,7 +361,7 @@ public class Sed
                         StringTokenizer st2 = new StringTokenizer(patternName,";");
                         patName = st2.nextToken();
                         subName = st2.nextToken();
-                        if (!patName.equals("") && !subName.equals(""))
+                        if (!patName.isEmpty() && !subName.isEmpty())
                         {
                             searchStrings.addElement(patName);
                             subStrings.addElement(subName);

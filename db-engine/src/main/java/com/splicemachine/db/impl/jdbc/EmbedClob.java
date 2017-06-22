@@ -331,7 +331,7 @@ final class EmbedClob extends ConnectionChild implements Clob, EngineLOB
         if (searchStr == null)
             throw Util.generateCsSQLException(
                             SQLState.BLOB_NULL_PATTERN_OR_SEARCH_STR);
-        if ("".equals(searchStr))
+        if (searchStr != null && searchStr.isEmpty())
             return start; // match DB2's SQL LOCATE function
 
         boolean pushStack = false;

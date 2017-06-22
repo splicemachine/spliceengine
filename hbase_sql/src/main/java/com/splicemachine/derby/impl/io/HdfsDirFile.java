@@ -66,7 +66,7 @@ class HdfsDirFile implements StorageFile {
 		if (fileName == null) {
 			throw new IllegalArgumentException("The argument 'path' cannot be null.");
 		}
-		if (directoryName == null || directoryName.equals("")) {
+		if (directoryName == null || directoryName.isEmpty()) {
 			path = FileSystem.getDefaultUri(HConfiguration.unwrapDelegate()).getPath() +
                 File.separatorChar + fileName;
 		} else {
@@ -186,7 +186,7 @@ class HdfsDirFile implements StorageFile {
 
 	@Override
 	public String getName() {
-		if (path == null || path.equals("")) return "";  // As specified in the Javadoc.
+		if (path == null || path.isEmpty()) return "";  // As specified in the Javadoc.
 		return new Path(path).getName();
 	}
 

@@ -1118,7 +1118,7 @@ public class RunList
 	// if null, continue in all cases.
 	if (runwithibmjvm != null) 
 	{ 
-	    if (runwithibmjvm.equals("")) { needIBMjvm = null; }
+	    if (runwithibmjvm.isEmpty()) { needIBMjvm = null; }
 	    else { needIBMjvm = new Boolean(runwithibmjvm); }
 	}
 	if (runwithibmjvm == null) { needIBMjvm = null; }

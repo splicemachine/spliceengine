@@ -4648,7 +4648,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
             baseTableColumn = 0;
 
         //dervied column like select 2 from t1, has null schema and table name
-        if (resultSetMetaData_.sqlxSchema_[baseTableColumn] != null && !resultSetMetaData_.sqlxSchema_[baseTableColumn].equals("")) {
+        if (resultSetMetaData_.sqlxSchema_[baseTableColumn] != null && !resultSetMetaData_.sqlxSchema_[baseTableColumn].isEmpty()) {
             tableName += Utils.quoteSqlIdentifier(
                     resultSetMetaData_.sqlxSchema_[baseTableColumn]) + ".";
         }

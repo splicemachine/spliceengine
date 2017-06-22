@@ -211,7 +211,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
     public static void SYSCS_GET_REGION_SERVER_CONFIG_INFO(final String configRoot,final int showDisagreementsOnly,final ResultSet[] resultSet) throws StandardException, SQLException{
         Map<String,DatabaseVersion> dbVersions = EngineDriver.driver().dbAdministrator().getClusterDatabaseVersions();
-        boolean matchName=(configRoot!=null && !configRoot.equals(""));
+        boolean matchName=(configRoot!=null && !configRoot.isEmpty());
         int hostIdx=0;
         String hostName;
         ResultSetBuilder rsBuilder;

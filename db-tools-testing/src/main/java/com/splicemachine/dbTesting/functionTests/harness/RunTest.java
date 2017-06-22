@@ -215,7 +215,7 @@ public class RunTest
 			return;
 		}
 
-		if ( (scriptName == null) || (scriptName.equals("")) )
+		if ( (scriptName == null) || (scriptName.isEmpty()) )
 		{
 		    System.out.println("Null or blank test script name.");
 		    System.exit(1);
@@ -950,7 +950,7 @@ public class RunTest
         // Some tests will not work with some frameworks,
         // so check suite exclude files for tests to be skipped
         String skipFile = framework + ".exclude";
-        if (!framework.equals(""))
+        if (!framework.isEmpty())
         {
             skiptest = (SkipTest.skipIt(skipFile, scriptName));
             // in addition, check to see if the test should get skipped 
@@ -1267,7 +1267,7 @@ public class RunTest
 		    if ( (tsuiteName != null) && (tsuiteName.length()>0) )
 		    {	                
 		        skipFile = framework + "Useprocess.exclude";
-		        if (!framework.equals(""))
+		        if (!framework.isEmpty())
 		        {
 		            skiptest = (SkipTest.skipIt(skipFile, scriptName));
 		            if (skiptest) 
@@ -1636,7 +1636,7 @@ clp.list(System.out);
             {
                 try
                 {
-                    if (!framework.equals("") && 
+                    if (!framework.isEmpty() &&
                         !framework.equals("embedded"))
                         frameworkProtocol(ap);
                     else if (encryption)
@@ -2580,7 +2580,7 @@ clp.list(System.out);
                                         timeoutStr,
                                         inEncoding, outEncoding);
     
-            if (framework != null && ! framework.equals(""))
+            if (framework != null && !framework.isEmpty())
                 if (verbose) System.out.println("The test should be running...");
 
 			if (timeout != -1) {

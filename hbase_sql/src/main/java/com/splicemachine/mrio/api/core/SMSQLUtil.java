@@ -271,7 +271,7 @@ public class SMSQLUtil  {
 
     private String[] parseTableName(String str) throws SQLException{
         str = str.toUpperCase();
-        if(str == null || str.trim().equals(""))
+        if(str == null || str.trim().isEmpty())
             return null;
         else{
             String[] tmp = str.split("\\.");

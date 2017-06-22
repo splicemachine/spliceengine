@@ -133,7 +133,7 @@ class EmbedPooledConnection implements javax.sql.PooledConnection, BrokeredConne
 
 	String getUsername()
 	{
-		if (username == null || username.equals(""))
+		if (username == null || username.isEmpty())
 			return Property.DEFAULT_USER_NAME;
 		else
 			return username;

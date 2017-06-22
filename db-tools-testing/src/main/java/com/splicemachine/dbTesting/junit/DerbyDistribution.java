@@ -316,8 +316,7 @@ public class DerbyDistribution
             throws IOException {
         File[] productionJars = getProductionJars(dir);
         File[] testingJars = getTestingJars(dir);
-        List tmpJars = new ArrayList();
-        tmpJars.addAll(Arrays.asList(productionJars));
+        List tmpJars = new ArrayList(Arrays.asList(productionJars));
         tmpJars.addAll(Arrays.asList(testingJars));
         if (hasRequiredJars(tmpJars)) {
             return new DerbyDistribution(version, productionJars, testingJars);
