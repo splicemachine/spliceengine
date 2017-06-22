@@ -99,6 +99,13 @@
             </exclusions>
         </dependency>
 
+
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>SpliceFileSystem</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>units</artifactId>
@@ -1293,7 +1300,7 @@
                                 <argument>-Dderby.language.logStatementText=false</argument>
                                 <argument>-Dderby.infolog.append=true</argument>
                                 <argument>com.splicemachine.test.SpliceTestPlatform</argument>
-                                <argument>file://${project.build.directory}/hbase</argument>
+                                <argument>splice://${project.build.directory}/hbase</argument>
                                 <argument>60000</argument>
                                 <argument>60010</argument>
                                 <argument>60020</argument>

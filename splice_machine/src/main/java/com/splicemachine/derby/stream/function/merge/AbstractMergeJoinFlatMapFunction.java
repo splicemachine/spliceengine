@@ -22,7 +22,6 @@ import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -42,7 +41,7 @@ import java.util.LinkedList;
 /**
  * Created by jleach on 6/9/15.
  */
-public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunction<JoinOperation,Iterator<LocatedRow>,LocatedRow> {
+public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunction<JoinOperation,Iterator<ExecRow>,ExecRow> {
     boolean initialized;
     protected JoinOperation joinOperation;
 
@@ -55,8 +54,8 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
     }
 
     @Override
-    public Iterator<LocatedRow> call(Iterator<LocatedRow> locatedRows) throws Exception {
-        PeekingIterator<LocatedRow> leftPeekingIterator = Iterators.peekingIterator(locatedRows);
+    public Iterator<ExecRow> call(Iterator<ExecRow> locatedRows) throws Exception {
+        PeekingIterator<ExecRow> leftPeekingIterator = Iterators.peekingIterator(locatedRows);
         if (!initialized) {
             joinOperation = getOperation();
             initialized = true;
@@ -66,9 +65,9 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
         }
         final SpliceOperation rightSide = joinOperation.getRightOperation();
         DataSetProcessor dsp =EngineDriver.driver().processorFactory().bulkProcessor(getOperation().getActivation(), rightSide);
-        final Iterator<LocatedRow> rightIterator = Iterators.transform(rightSide.getDataSet(dsp).toLocalIterator(), new Function<LocatedRow, LocatedRow>() {
+        final Iterator<ExecRow> rightIterator = Iterators.transform(rightSide.getDataSet(dsp).toLocalIterator(), new Function<ExecRow, ExecRow>() {
             @Override
-            public LocatedRow apply(@Nullable LocatedRow locatedRow) {
+            public ExecRow apply(@Nullable ExecRow locatedRow) {
                 operationContext.recordJoinedRight();
                 return locatedRow;
             }
@@ -112,8 +111,8 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
         return false;
     }
 
-    protected void initRightScan(PeekingIterator<LocatedRow> leftPeekingIterator) throws StandardException{
-        ExecRow firstHashRow = joinOperation.getKeyRow(leftPeekingIterator.peek().getRow());
+    protected void initRightScan(PeekingIterator<ExecRow> leftPeekingIterator) throws StandardException{
+        ExecRow firstHashRow = joinOperation.getKeyRow(leftPeekingIterator.peek());
         ExecRow startPosition = joinOperation.getRightResultSet().getStartPosition();
         int[] columnOrdering = getColumnOrdering(joinOperation.getRightResultSet());
         int nCols = startPosition != null ? startPosition.nColumns():0;
@@ -178,7 +177,7 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
     }
 
 
-    protected abstract AbstractMergeJoinIterator createMergeJoinIterator(PeekingIterator<LocatedRow> leftPeekingIterator,
-                                                                         PeekingIterator<LocatedRow> rightPeekingIterator,
+    protected abstract AbstractMergeJoinIterator createMergeJoinIterator(PeekingIterator<ExecRow> leftPeekingIterator,
+                                                                         PeekingIterator<ExecRow> rightPeekingIterator,
                                                                          int[] leftHashKeys, int[] rightHashKeys, JoinOperation joinOperation, OperationContext<JoinOperation> operationContext);
 }

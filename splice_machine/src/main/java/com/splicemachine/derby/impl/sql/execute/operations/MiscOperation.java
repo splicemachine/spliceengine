@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.stream.iapi.ScopeNamed;
@@ -108,7 +109,7 @@ public class MiscOperation extends NoRowsOperation{
     }
 
     @Override
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException{
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException{
         setup();
 
         activation.getConstantAction().executeConstantAction(activation);
@@ -130,6 +131,6 @@ public class MiscOperation extends NoRowsOperation{
                             activation.getConstantAction().getClass().getSimpleName().
                                     replace("Operation","").replace("Constant","")),' ');
         }
-        return dsp.singleRowDataSet(new LocatedRow(valueRow),name);
+        return dsp.singleRowDataSet(valueRow,name);
     }
 }

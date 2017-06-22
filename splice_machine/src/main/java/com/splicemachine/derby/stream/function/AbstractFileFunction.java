@@ -24,7 +24,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DateTimeDataValue;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.stream.utils.BooleanList;
@@ -44,7 +43,7 @@ import java.util.List;
  * Created by jleach on 10/30/15.
  */
 @SuppressWarnings("WeakerAccess") //weaker access isn't allowed because we have to be serializable
-public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<SpliceOperation, I, LocatedRow> {
+public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<SpliceOperation, I, ExecRow> {
     CsvPreference preference = null;
     private static final char DEFAULT_COLUMN_DELIMITTER = ",".charAt(0);
     private static final char DEFAULT_STRIP_STRING = "\"".charAt(0);
@@ -122,7 +121,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
     }
 
     @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION",justification = "Intentional")
-    public LocatedRow call(List<String> values,BooleanList quotedColumns) throws Exception {
+    public ExecRow call(List<String> values,BooleanList quotedColumns) throws Exception {
         int columnID = 0;
         String columnValue = null;
         int numofColumnsinTable = 0;
@@ -180,7 +179,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
                         dvd.setValue(value);
                 }
             }
-            return new LocatedRow(returnRow);
+            return returnRow;
         } catch (Exception e) {
             if (operationContext.isPermissive()) {
                 String extendedMessage;

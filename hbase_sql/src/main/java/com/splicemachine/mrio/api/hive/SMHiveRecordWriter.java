@@ -17,17 +17,13 @@ package com.splicemachine.mrio.api.hive;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.ArrayList;
-
-import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.load.ColumnInfo;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.VTIOperation;
-import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.derby.stream.control.ControlDataSet;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.vti.SpliceIteratorVTI;
@@ -37,8 +33,8 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.mapred.RecordWriter;
 import org.apache.hadoop.mapred.Reporter;
@@ -67,7 +63,7 @@ public class SMHiveRecordWriter implements RecordWriter<RowLocationWritable, Exe
 			throws IOException {
         InsertOperation insertOperation = null;
         try {
-            DataSet<LocatedRow> dataSet = getDataSet(value);
+            DataSet<ExecRow> dataSet = getDataSet(value);
             insertOperation = (InsertOperation)activation.execute();
             VTIOperation vtiOperation = (VTIOperation)getVTIOperation(insertOperation);
             SpliceIteratorVTI iteratorVTI = (SpliceIteratorVTI)vtiOperation.getDataSetProvider();
@@ -111,12 +107,8 @@ public class SMHiveRecordWriter implements RecordWriter<RowLocationWritable, Exe
         return spliceOperation;
     }
 
-    private DataSet<LocatedRow> getDataSet(ExecRowWritable value) {
-        HBaseRowLocation rowLocation = new HBaseRowLocation(Bytes.toBytes(1));
-        LocatedRow locatedRow = new LocatedRow(rowLocation, value.get());
-        ArrayList<LocatedRow> rows = Lists.newArrayList();
-        rows.add(locatedRow);
-        return new ControlDataSet(rows.iterator());
+    private DataSet<ExecRow> getDataSet(ExecRowWritable value) {
+        return new ControlDataSet(new SingletonIterator(value.get()));
     }
 
     private void init() {

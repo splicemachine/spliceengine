@@ -20,7 +20,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.SpliceSpark;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.DataSetWriter;
@@ -75,14 +74,14 @@ public class SparkUpdateDataSetWriter<K,V> implements DataSetWriter{
     }
 
     @Override
-    public DataSet<LocatedRow> write() throws StandardException{
+    public DataSet<ExecRow> write() throws StandardException{
         rdd.saveAsNewAPIHadoopDataset(conf); //actually does the writing
         if (operationContext.getOperation() != null) {
             operationContext.getOperation().fireAfterStatementTriggers();
         }
         ValueRow valueRow=new ValueRow(1);
         valueRow.setColumn(1,new SQLLongint(operationContext.getRecordsWritten()));
-        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(new LocatedRow(valueRow)), 1));
+        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
     }
 
     @Override

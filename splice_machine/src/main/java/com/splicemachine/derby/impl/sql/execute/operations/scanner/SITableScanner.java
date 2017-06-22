@@ -209,6 +209,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                 measureOutputSize(keyValues);
                 currentKeyValue = keyValues.get(0);
                 setRowLocation(currentKeyValue);
+                template.setKey(currentRowLocation.getBytes());
                 return template;
             }
         }while(true); //TODO -sf- this doesn't seem quite right
@@ -225,23 +226,6 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
             }
         }
 
-    }
-
-    public void recordFieldLengths(int[] columnLengths){
-        if(rowDecodingMap!=null) {
-            for (int i = 0; i < rowDecodingMap.length; i++) {
-                int pos = rowDecodingMap[i];
-                if(pos<0) continue;
-                columnLengths[pos] = accumulator.getCurrentLength(i);
-            }
-        }
-        if(keyDecodingMap!=null) {
-            for (int i = 0; i < keyDecodingMap.length; i++) {
-                int pos = keyDecodingMap[i];
-                if(pos<0) continue;
-                columnLengths[pos] = keyAccumulator.getCurrentLength(i);
-            }
-        }
     }
 
     public RowLocation getCurrentRowLocation(){

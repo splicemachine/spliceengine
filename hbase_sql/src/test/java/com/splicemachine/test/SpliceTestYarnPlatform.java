@@ -141,9 +141,9 @@ public class SpliceTestYarnPlatform {
         }
 
         conf = new YarnConfiguration();
-        conf.set(FileSystem.FS_DEFAULT_NAME_KEY, "file:///");
+        conf.set(FileSystem.FS_DEFAULT_NAME_KEY, "splice:///");
         conf.setDouble("yarn.nodemanager.resource.io-spindles",2.0);
-        conf.set("fs.default.name", "file:///");
+        conf.set("fs.default.name", "splice:///");
         conf.set("yarn.nodemanager.container-executor.class","org.apache.hadoop.yarn.server.nodemanager.DefaultContainerExecutor");
         System.setProperty("zookeeper.sasl.client", "false");
         System.setProperty("zookeeper.sasl.serverconfig", "fake");

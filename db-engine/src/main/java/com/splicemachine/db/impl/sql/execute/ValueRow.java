@@ -67,6 +67,7 @@ public class ValueRow implements ExecRow, Externalizable {
 	private DataValueDescriptor[] column;
 	private int ncols;
 	private int hash = 0; // Cached value of hashCode(). Invalidate on any change to the object.
+	private byte[] key;
 
 	///////////////////////////////////////////////////////////////////////
 	//
@@ -164,6 +165,7 @@ public class ValueRow implements ExecRow, Externalizable {
                 rowClone.setColumn(colCtr +1, column[colCtr].cloneValue(false));
 			}
 		}
+		rowClone.setKey(getKey());
 		return rowClone;
 	}
 
@@ -654,4 +656,13 @@ public class ValueRow implements ExecRow, Externalizable {
 		return "c"+columnNumber;
 	}
 
+	@Override
+	public byte[] getKey() {
+		return key;
+	}
+
+	@Override
+	public void setKey(byte[] key) {
+		this.key = key;
+	}
 }

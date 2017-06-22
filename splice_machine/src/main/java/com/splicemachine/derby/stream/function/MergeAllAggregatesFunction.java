@@ -16,7 +16,6 @@ package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.GenericAggregateOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 
@@ -26,7 +25,7 @@ import java.io.Serializable;
  * Created by jleach on 4/24/15.
  */
 
-public class MergeAllAggregatesFunction<Op extends com.splicemachine.derby.iapi.sql.execute.SpliceOperation> extends SpliceFunction2<Op,LocatedRow,LocatedRow,LocatedRow> implements Serializable {
+public class MergeAllAggregatesFunction<Op extends com.splicemachine.derby.iapi.sql.execute.SpliceOperation> extends SpliceFunction2<Op,ExecRow,ExecRow,ExecRow> implements Serializable {
     protected SpliceGenericAggregator[] aggregates;
     protected boolean initialized;
     protected GenericAggregateOperation op;
@@ -38,7 +37,7 @@ public class MergeAllAggregatesFunction<Op extends com.splicemachine.derby.iapi.
     }
 
     @Override
-    public LocatedRow call(LocatedRow locatedRow1, LocatedRow locatedRow2) throws Exception {
+    public ExecRow call(ExecRow locatedRow1, ExecRow locatedRow2) throws Exception {
         if (!initialized) {
             op = (GenericAggregateOperation) getOperation();
             aggregates = op.aggregates;
@@ -47,8 +46,8 @@ public class MergeAllAggregatesFunction<Op extends com.splicemachine.derby.iapi.
         operationContext.recordRead();
         if (locatedRow1 == null) return locatedRow2.getClone();
         if (locatedRow2 == null) return locatedRow1;
-        ExecRow r1 = locatedRow1.getRow();
-        ExecRow r2 = locatedRow2.getRow();
+        ExecRow r1 = locatedRow1;
+        ExecRow r2 = locatedRow2;
 
         for(SpliceGenericAggregator aggregator:aggregates) {
             if (!aggregator.isInitialized(r1)) {
@@ -60,7 +59,7 @@ public class MergeAllAggregatesFunction<Op extends com.splicemachine.derby.iapi.
                 aggregator.merge(r2, r1);
             }
         }
-        return new LocatedRow(locatedRow1.getRowLocation(),r1);
+        return r1;
     }
 
 }

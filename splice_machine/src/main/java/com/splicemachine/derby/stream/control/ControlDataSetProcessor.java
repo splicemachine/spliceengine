@@ -22,7 +22,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.stream.iapi.*;
@@ -274,7 +273,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public Partitioner getPartitioner(DataSet<LocatedRow> dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder, int[] rightHashKeys) {
+    public Partitioner getPartitioner(DataSet<ExecRow> dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder, int[] rightHashKeys) {
         return NOOP_PARTITIONER;
     }
 
@@ -332,7 +331,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
+    public <V> DataSet<ExecRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
                                                 OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow,
                                                 boolean useSample, double sampleFraction) throws StandardException{
         DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();

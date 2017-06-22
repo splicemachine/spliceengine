@@ -18,6 +18,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultSet;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.function.CountJoinedLeftFunction;
 import com.splicemachine.derby.stream.function.KeyerFunction;
@@ -73,16 +74,16 @@ public class HalfMergeSortJoinOperation extends MergeJoinOperation {
     }
 
     @Override
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext<JoinOperation> operationContext = dsp.<JoinOperation>createOperationContext(this);
-        DataSet<LocatedRow> left = leftResultSet.getDataSet(dsp);
+        DataSet<ExecRow> left = leftResultSet.getDataSet(dsp);
 
         operationContext.pushScope();
         try {
             PairDataSet leftDataSet = left.map(new CountJoinedLeftFunction(operationContext))
-                    .keyBy(new KeyerFunction<LocatedRow, JoinOperation>(operationContext, leftHashKeys));
+                    .keyBy(new KeyerFunction<ExecRow, JoinOperation>(operationContext, leftHashKeys));
 
-            DataSet<LocatedRow> sorted = leftDataSet.partitionBy(getPartitioner(dsp), new RowComparator(getRightOrder())).values();
+            DataSet<ExecRow> sorted = leftDataSet.partitionBy(getPartitioner(dsp), new RowComparator(getRightOrder())).values();
             if (isOuterJoin)
                 return sorted.mapPartitions(new MergeOuterJoinFlatMapFunction(operationContext));
             else {

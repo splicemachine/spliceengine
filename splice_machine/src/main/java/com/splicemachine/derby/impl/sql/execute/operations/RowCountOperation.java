@@ -188,15 +188,15 @@ public class RowCountOperation extends SpliceBaseOperation {
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (bypass) {
             return source.getDataSet(dsp);
         }
         final long fetchLimit = getFetchLimit();
         long offset = getTotalOffset();
         OperationContext operationContext = dsp.createOperationContext(this);
-        DataSet<LocatedRow> sourceSet = source.getDataSet(dsp);
-        return sourceSet.zipWithIndex().mapPartitions(new OffsetFunction<SpliceOperation, LocatedRow>(operationContext, offset, fetchLimit));
+        DataSet<ExecRow> sourceSet = source.getDataSet(dsp);
+        return sourceSet.zipWithIndex().mapPartitions(new OffsetFunction<SpliceOperation, ExecRow>(operationContext, offset, fetchLimit));
     }
 
     @Override

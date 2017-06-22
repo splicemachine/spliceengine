@@ -46,7 +46,7 @@ import java.util.concurrent.*;
  *         Date: 4/11/14
  */
 public class IndexRowReaderBuilder implements Externalizable{
-    private Iterator<LocatedRow> source;
+    private Iterator<ExecRow> source;
     private int lookupBatchSize;
     private int numConcurrentLookups=-1;
     private ExecRow outputTemplate;
@@ -85,7 +85,7 @@ public class IndexRowReaderBuilder implements Externalizable{
         return this;
     }
 
-    public IndexRowReaderBuilder source(Iterator<LocatedRow> source){
+    public IndexRowReaderBuilder source(Iterator<ExecRow> source){
         this.source=source;
         return this;
     }

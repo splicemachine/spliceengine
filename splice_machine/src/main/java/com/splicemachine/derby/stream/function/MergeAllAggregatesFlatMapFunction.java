@@ -16,7 +16,6 @@ package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.GenericAggregateOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.commons.collections.iterators.SingletonIterator;
@@ -28,10 +27,10 @@ import java.util.Collections;
 import java.util.Iterator;
 
 public class MergeAllAggregatesFlatMapFunction<Op extends com.splicemachine.derby.iapi.sql.execute.SpliceOperation>
-    extends SpliceFlatMapFunction<Op, Iterator<LocatedRow>, LocatedRow> {
-    
+    extends SpliceFlatMapFunction<Op, Iterator<ExecRow>, ExecRow> {
+
     private static final long serialVersionUID = 1561171735864568225L;
-    
+
     protected boolean initialized;
     protected boolean returnDefault;
     protected GenericAggregateOperation op;
@@ -59,10 +58,10 @@ public class MergeAllAggregatesFlatMapFunction<Op extends com.splicemachine.derb
 
     @SuppressWarnings("unchecked")
     @Override
-    public Iterator<LocatedRow> call(Iterator<LocatedRow> locatedRows) throws Exception {
+    public Iterator<ExecRow> call(Iterator<ExecRow> locatedRows) throws Exception {
         if (!locatedRows.hasNext()) {
             return returnDefault ?
-                new SingletonIterator(new LocatedRow(getOperation().getExecRowDefinition())) :
+                new SingletonIterator(getOperation().getExecRowDefinition()) :
                 Collections.EMPTY_LIST.iterator();
         }
         if (!initialized) {
@@ -70,7 +69,7 @@ public class MergeAllAggregatesFlatMapFunction<Op extends com.splicemachine.derb
             aggregates = op.aggregates;
             initialized = true;
         }
-        ExecRow r1 = locatedRows.next().getRow();
+        ExecRow r1 = locatedRows.next();
         for (SpliceGenericAggregator aggregator:aggregates) {
             if (!aggregator.isInitialized(r1)) {
 //                if (RDDUtils.LOG.isTraceEnabled()) {
@@ -80,7 +79,7 @@ public class MergeAllAggregatesFlatMapFunction<Op extends com.splicemachine.derb
             }
         }
         while (locatedRows.hasNext()) {
-            ExecRow r2 = locatedRows.next().getRow();                                                                                                            
+            ExecRow r2 = locatedRows.next();
             for (SpliceGenericAggregator aggregator:aggregates) {
                 if (!aggregator.isInitialized(r2)) {
 //                    if (RDDUtils.LOG.isTraceEnabled()) {
@@ -96,6 +95,6 @@ public class MergeAllAggregatesFlatMapFunction<Op extends com.splicemachine.derb
             }
         }
         op.finishAggregation(r1); // calls setCurrentRow
-        return new SingletonIterator(new LocatedRow(r1));
+        return new SingletonIterator(r1);
     }
 }
