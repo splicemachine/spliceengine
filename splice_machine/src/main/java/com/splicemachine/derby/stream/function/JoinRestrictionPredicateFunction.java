@@ -14,8 +14,8 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 
 import javax.annotation.Nullable;
@@ -23,7 +23,7 @@ import javax.annotation.Nullable;
 /**
  * Created by jleach on 4/22/15.
  */
-public class JoinRestrictionPredicateFunction extends SplicePredicateFunction<JoinOperation,LocatedRow> {
+public class JoinRestrictionPredicateFunction extends SplicePredicateFunction<JoinOperation,ExecRow> {
     public JoinRestrictionPredicateFunction() {
         super();
     }
@@ -33,14 +33,14 @@ public class JoinRestrictionPredicateFunction extends SplicePredicateFunction<Jo
     }
 
     @Override
-    public boolean apply(@Nullable LocatedRow locatedRow) {
+    public boolean apply(@Nullable ExecRow locatedRow) {
         JoinOperation joinOp = operationContext.getOperation();
         try {
-            if (!joinOp.getRestriction().apply(locatedRow.getRow())) {
+            if (!joinOp.getRestriction().apply(locatedRow)) {
                 operationContext.recordFilter();
                 return false;
             }
-            joinOp.setCurrentLocatedRow(locatedRow);
+            joinOp.setCurrentRow(locatedRow);
             return true;
         } catch (Exception e) {
             throw new RuntimeException(e);

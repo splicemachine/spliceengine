@@ -298,7 +298,7 @@ public class TableScanOperation extends ScanOperation{
      * @throws StandardException
      */
     @Override
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException{
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException{
         assert currentTemplate!=null:"Current Template Cannot Be Null";
         return getTableScannerBuilder(dsp);
     }
@@ -326,9 +326,9 @@ public class TableScanOperation extends ScanOperation{
      * @return
      * @throws StandardException
      */
-    public DataSet<LocatedRow> getTableScannerBuilder(DataSetProcessor dsp) throws StandardException{
+    public DataSet<ExecRow> getTableScannerBuilder(DataSetProcessor dsp) throws StandardException{
         TxnView txn=getCurrentTransaction();
-        return dsp.<TableScanOperation,LocatedRow>newScanSet(this,tableName)
+        return dsp.<TableScanOperation,ExecRow>newScanSet(this,tableName)
                 .tableDisplayName(tableDisplayName)
                 .activation(activation)
                 .transaction(txn)

@@ -20,7 +20,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+
 import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -54,14 +54,6 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
 
     /**
      *
-     * Set the current Located Row.
-     *
-     * @param locatedRow
-     */
-    void setCurrentLocatedRow(LocatedRow locatedRow);
-
-    /**
-     *
      * Get the dataset abstraction for the operation.
      *
      * @see DataSet
@@ -70,7 +62,7 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
      * @return
      * @throws StandardException
      */
-    DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException;
+    DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException;
 
     /**
      * Dataset that's going to be consumed right away rather than operated on, transformed, joined... It might have some
@@ -80,7 +72,7 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
      * @return Dataset ready to be consumed
      * @throws StandardException
      */
-    DataSet<LocatedRow> getResultDataSet(DataSetProcessor dsp) throws StandardException;
+    DataSet<ExecRow> getResultDataSet(DataSetProcessor dsp) throws StandardException;
 
     /**
      *
@@ -329,7 +321,7 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
      *
      * @return
      */
-    Iterator<LocatedRow> getLocatedRowIterator();
+    Iterator<ExecRow> getExecRowIterator();
 
     /**
      *

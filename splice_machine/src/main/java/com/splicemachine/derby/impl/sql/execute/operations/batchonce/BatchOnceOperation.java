@@ -15,12 +15,12 @@
 package com.splicemachine.derby.impl.sql.execute.operations.batchonce;
 
 import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.spark_project.guava.base.Strings;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.stream.function.BatchOnceFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -186,7 +186,7 @@ public class BatchOnceOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         DataSet set = source.getDataSet(dsp);
         OperationContext<BatchOnceOperation> operationContext = dsp.createOperationContext(this);
         return set.mapPartitions(new BatchOnceFunction(operationContext));

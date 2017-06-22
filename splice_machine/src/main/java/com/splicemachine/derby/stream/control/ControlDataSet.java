@@ -17,9 +17,17 @@ package com.splicemachine.derby.stream.control;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.stream.output.BulkDeleteDataSetWriterBuilder;
-import com.splicemachine.derby.stream.output.BulkInsertDataSetWriterBuilder;
+import com.splicemachine.derby.stream.output.*;
+import com.splicemachine.derby.stream.output.delete.DeletePipelineWriter;
+import com.splicemachine.derby.stream.output.delete.DeleteTableWriterBuilder;
+import com.splicemachine.derby.stream.output.direct.DirectDataSetWriter;
+import com.splicemachine.derby.stream.output.direct.DirectPipelineWriter;
+import com.splicemachine.derby.stream.output.direct.DirectTableWriterBuilder;
+import com.splicemachine.derby.stream.output.insert.InsertPipelineWriter;
+import com.splicemachine.derby.stream.output.insert.InsertTableWriterBuilder;
+import com.splicemachine.derby.stream.output.update.UpdatePipelineWriter;
+import com.splicemachine.derby.stream.output.update.UpdateTableWriterBuilder;
+import com.splicemachine.kvpair.KVPair;
 import org.apache.commons.collections.IteratorUtils;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.base.Predicate;
@@ -33,7 +41,6 @@ import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
-import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.spark_project.guava.io.Closeables;
@@ -430,7 +437,7 @@ public class ControlDataSet<V> implements DataSet<V> {
      * @return
      */
     @Override
-    public DataSet<LocatedRow> writeParquetFile(int[] baseColumnMap, int[] partitionBy, String location, String compression, OperationContext context) {
+    public DataSet<ExecRow> writeParquetFile(int[] baseColumnMap, int[] partitionBy, String location, String compression, OperationContext context) {
         throw new UnsupportedOperationException("Cannot write parquet files");
     }
 
@@ -445,7 +452,7 @@ public class ControlDataSet<V> implements DataSet<V> {
      * @return
      */
     @Override
-    public DataSet<LocatedRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location, String compression, OperationContext context) {
+    public DataSet<ExecRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location, String compression, OperationContext context) {
         throw new UnsupportedOperationException("Cannot write orc files");
     }
 
@@ -462,7 +469,7 @@ public class ControlDataSet<V> implements DataSet<V> {
      * @return
      */
     @Override
-    public DataSet<LocatedRow> writeTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,  OperationContext context) {
+    public DataSet<ExecRow> writeTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,  OperationContext context) {
         throw new UnsupportedOperationException("Cannot write text files");
     }
 
@@ -517,6 +524,59 @@ public class ControlDataSet<V> implements DataSet<V> {
             lazyIterator.hasNext(); // Performs hbase call - make it non lazy.
             return lazyIterator;
         }
+    }
+
+    @Override
+    @SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION",justification = "Serialization" +
+            "of Control-side operations does not happen and would be a mistake")
+    public DataSetWriterBuilder deleteData(OperationContext operationContext) throws StandardException{
+        return new DeleteTableWriterBuilder(){
+            @Override
+            public DataSetWriter build() throws StandardException{
+                assert txn!=null:"Txn is null";
+                DeletePipelineWriter dpw = new DeletePipelineWriter(txn,heapConglom,operationContext);
+                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,dpw,operationContext);
+            }
+        };
+    }
+
+    @Override
+    @SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION",justification = "Serialization" +
+            "of Control-side operations does not happen and would be a mistake")
+    public InsertDataSetWriterBuilder insertData(OperationContext operationContext) throws StandardException{
+        return new InsertTableWriterBuilder(){
+            @Override
+            public DataSetWriter build() throws StandardException{
+                assert txn!=null:"Txn is null";
+                InsertPipelineWriter ipw = new InsertPipelineWriter(pkCols,
+                        tableVersion,
+                        execRowDefinition,
+                        autoIncrementRowLocationArray,
+                        spliceSequences,
+                        heapConglom,
+                        txn,
+                        operationContext,
+                        isUpsert);
+                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,ipw,operationContext);
+            }
+        }.operationContext(operationContext);
+    }
+
+    @Override
+    @SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION",justification = "Serialization" +
+            "of Control-side operations does not happen and would be a mistake")
+    public UpdateDataSetWriterBuilder updateData(OperationContext operationContext) throws StandardException{
+        return new UpdateTableWriterBuilder(){
+            @Override
+            public DataSetWriter build() throws StandardException{
+                assert txn!=null: "Txn is null";
+                UpdatePipelineWriter upw =new UpdatePipelineWriter(heapConglom,
+                        formatIds,columnOrdering,pkCols,pkColumns,tableVersion,
+                        txn,execRowDefinition,heapList,operationContext);
+
+                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,upw,operationContext);
+            }
+        };
     }
 
 

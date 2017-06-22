@@ -19,6 +19,7 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
@@ -130,7 +131,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
     }
 
     @Override
-    public Iterator<LocatedRow> getIterator() {
+    public Iterator<ExecRow> getIterator() {
         return streamListener.getIterator();
     }
 

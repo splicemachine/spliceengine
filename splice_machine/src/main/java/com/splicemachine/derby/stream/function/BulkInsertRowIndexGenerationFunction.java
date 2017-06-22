@@ -23,7 +23,6 @@ import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -123,8 +122,7 @@ public class BulkInsertRowIndexGenerationFunction extends  RowAndIndexGenerator 
     }
 
     @Override
-    public Iterator<Tuple2<Long,Tuple2<byte[], byte[]>>> call(LocatedRow locatedRow) throws Exception {
-        ExecRow execRow = locatedRow.getRow();
+    public Iterator<Tuple2<Long,Tuple2<byte[], byte[]>>> call(ExecRow execRow) throws Exception {
         if (!initialized) {
             encoder = new PairEncoder(getKeyEncoder(), getRowHash(), dataType);
             int i = 0;
@@ -139,10 +137,10 @@ public class BulkInsertRowIndexGenerationFunction extends  RowAndIndexGenerator 
         try {
             ArrayList<Tuple2<Long,Tuple2<byte[], byte[]>>> list = new ArrayList();
             KVPair mainRow = encoder.encode(execRow);
-            locatedRow.setRowLocation(new HBaseRowLocation(mainRow.rowKeySlice()));
+//            locatedRow.setRowLocation(new HBaseRowLocation(mainRow.rowKeySlice()));
             list.add(new Tuple2<>(heapConglom,new Tuple2<>(mainRow.getRowKey(), mainRow.getValue())));
             for (int i = 0; i< indexTransformFunctions.length; i++) {
-                LocatedRow indexRow = getIndexRow(indexTransformFunctions[i], locatedRow);
+                ExecRow indexRow = getIndexRow(indexTransformFunctions[i], execRow);
                 Long indexConglomerate = indexTransformFunctions[i].getIndexConglomerateId();
                 KVPair indexKVPair = indexTransformFunctions[i].call(indexRow);
                 list.add(new Tuple2<>(indexConglomerate, new Tuple2<>(indexKVPair.getRowKey(), indexKVPair.getValue())));
@@ -161,19 +159,17 @@ public class BulkInsertRowIndexGenerationFunction extends  RowAndIndexGenerator 
     /**
      * Strip off all non-index columns from a main table row
      */
-    private LocatedRow getIndexRow(IndexTransformFunction indexTransformFunction, LocatedRow locatedRow) throws StandardException {
-        ExecRow execRow = locatedRow.getRow();
+    private ExecRow getIndexRow(IndexTransformFunction indexTransformFunction, ExecRow locatedRow) throws StandardException {
         List<Integer> indexColToMainCol = indexTransformFunction.getIndexColsToMainColMapList();
         List<Integer> sortedList = new ArrayList<>(indexColToMainCol);
         Collections.sort(sortedList);
         ExecRow row = new ValueRow(indexColToMainCol.size());
         int col = 1;
         for (Integer n : sortedList) {
-            row.setColumn(col, execRow.getColumn(n));
+            row.setColumn(col, locatedRow.getColumn(n));
             col++;
         }
-        LocatedRow lr = new LocatedRow(locatedRow.getRowLocation(), row);
-        return lr;
+        return row;
     }
 
 

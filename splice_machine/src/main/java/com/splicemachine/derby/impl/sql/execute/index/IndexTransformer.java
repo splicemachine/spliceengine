@@ -17,7 +17,6 @@ package com.splicemachine.derby.impl.sql.execute.index;
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import org.spark_project.guava.primitives.Ints;
 import com.splicemachine.SpliceKryoRegistry;
@@ -155,9 +154,8 @@ public class IndexTransformer {
     }
 
 
-    public KVPair writeDirectIndex(LocatedRow locatedRow) throws IOException, StandardException {
-        assert locatedRow != null: "locatedRow passed in is null";
-        ExecRow execRow = locatedRow.getRow();
+    public KVPair writeDirectIndex(ExecRow execRow) throws IOException, StandardException {
+        assert execRow != null: "ExecRow passed in is null";
         getSerializers(execRow);
         EntryAccumulator keyAccumulator = getKeyAccumulator();
         keyAccumulator.reset();
@@ -177,7 +175,7 @@ public class IndexTransformer {
             }
         }
         //add the row key to the end of the index key
-        byte[] srcRowKey = Encoding.encodeBytesUnsorted(locatedRow.getRowLocation().getBytes());
+        byte[] srcRowKey = Encoding.encodeBytesUnsorted(execRow.getKey());
 
         EntryEncoder rowEncoder = getRowEncoder();
         MultiFieldEncoder entryEncoder = rowEncoder.getEntryEncoder();

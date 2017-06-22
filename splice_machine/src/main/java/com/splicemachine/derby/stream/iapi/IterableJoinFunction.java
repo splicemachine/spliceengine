@@ -17,7 +17,6 @@ package com.splicemachine.derby.stream.iapi;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 
 /**
  * Created by jleach on 5/4/15.
@@ -27,11 +26,11 @@ public interface IterableJoinFunction {
     ExecRow getRightRow();
     ExecRow getLeftRow();
     RowLocation getLeftRowLocation();
-    LocatedRow getLeftLocatedRow();
+    ExecRow getLeftLocatedRow();
     boolean wasRightOuterJoin();
     ExecutionFactory getExecutionFactory();
     int getNumberOfColumns();
-    void setCurrentLocatedRow(LocatedRow locatedRow);
+    void setCurrentLocatedRow(ExecRow locatedRow);
     int getResultSetNumber();
     OperationContext getOperationContext();
 

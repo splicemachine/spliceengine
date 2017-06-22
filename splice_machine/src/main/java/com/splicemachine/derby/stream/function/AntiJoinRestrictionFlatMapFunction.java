@@ -17,7 +17,6 @@ package com.splicemachine.derby.stream.function;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import scala.Tuple2;
@@ -29,9 +28,9 @@ import java.util.Iterator;
  *
  */
 @NotThreadSafe
-public class AntiJoinRestrictionFlatMapFunction<Op extends SpliceOperation> extends SpliceJoinFlatMapFunction<Op,Tuple2<LocatedRow,Iterable<LocatedRow>>,LocatedRow> {
-    protected LocatedRow leftRow;
-    protected LocatedRow rightRow;
+public class AntiJoinRestrictionFlatMapFunction<Op extends SpliceOperation> extends SpliceJoinFlatMapFunction<Op,Tuple2<ExecRow,Iterable<ExecRow>>,ExecRow> {
+    protected ExecRow leftRow;
+    protected ExecRow rightRow;
     protected ExecRow mergedRow;
     public AntiJoinRestrictionFlatMapFunction() {
         super();
@@ -42,26 +41,26 @@ public class AntiJoinRestrictionFlatMapFunction<Op extends SpliceOperation> exte
     }
 
     @Override
-    public Iterator<LocatedRow> call(Tuple2<LocatedRow, Iterable<LocatedRow>> tuple) throws Exception {
+    public Iterator<ExecRow> call(Tuple2<ExecRow, Iterable<ExecRow>> tuple) throws Exception {
         checkInit();
         leftRow = tuple._1();
-        Iterator<LocatedRow> it = tuple._2.iterator();
+        Iterator<ExecRow> it = tuple._2.iterator();
         while (it.hasNext()) {
             rightRow = it.next();
-            mergedRow = JoinUtils.getMergedRow(leftRow.getRow(),
-                    rightRow.getRow(), op.wasRightOuterJoin,
+            mergedRow = JoinUtils.getMergedRow(leftRow,
+                    rightRow, op.wasRightOuterJoin,
                     executionFactory.getValueRow(numberOfColumns));
             op.setCurrentRow(mergedRow);
             if (op.getRestriction().apply(mergedRow)) { // Has Row, abandon
                 operationContext.recordFilter();
-                return Collections.<LocatedRow>emptyList().iterator();
+                return Collections.<ExecRow>emptyList().iterator();
             }
         }
         // No Rows Matched...
-        LocatedRow returnRow = new LocatedRow(leftRow.getRowLocation(),JoinUtils.getMergedRow(leftRow.getRow(),
+        ExecRow returnRow = JoinUtils.getMergedRow(leftRow,
                 op.getEmptyRow(), op.wasRightOuterJoin,
-                executionFactory.getValueRow(numberOfColumns)));
-        op.setCurrentLocatedRow(returnRow);
+                executionFactory.getValueRow(numberOfColumns));
+        op.setCurrentRow(returnRow);
         return new SingletonIterator(returnRow);
     }
 }

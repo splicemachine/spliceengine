@@ -120,16 +120,21 @@ class SpliceTestPlatformConfig {
         //
         // File System
         //
-        config.set("fs.defaultFS", "file:///"); // MapR Hack, tells it local filesystem // fs.default.name is deprecated
-        config.set(FileSystem.FS_DEFAULT_NAME_KEY, "file:///");
+        config.set("fs.defaultFS", "splice:///"); // MapR Hack, tells it local filesystem // fs.default.name is deprecated
+        config.set(FileSystem.FS_DEFAULT_NAME_KEY, "splice:///");
         config.setDouble("yarn.nodemanager.resource.io-spindles",2.0);
-        config.set("fs.default.name", "file:///");
+        config.set("fs.default.name", "splice:///");
         config.set("yarn.nodemanager.container-executor.class","org.apache.hadoop.yarn.server.nodemanager.DefaultContainerExecutor");
 
         // Must allow Cygwin instance to config its own rootURI
         if (!"CYGWIN".equals(hbaseRootDirUri)) {
             config.set("hbase.rootdir", hbaseRootDirUri);
         }
+
+
+        config.set("fs.maprfs.impl","org.apache.hadoop.fs.LocalFileSystem");
+        config.set("fs.hdfs.impl","org.apache.hadoop.fs.LocalFileSystem");
+        config.set("fs.AbstractFileSystem.splice.impll","com.splicemachine.fs.SpliceFs");
 
         //
         // Threads, timeouts

@@ -341,59 +341,6 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     @Override
     @SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION",justification = "Serialization" +
             "of Control-side operations does not happen and would be a mistake")
-    public DataSetWriterBuilder deleteData(OperationContext operationContext) throws StandardException{
-        return new DeleteTableWriterBuilder(){
-            @Override
-            public DataSetWriter build() throws StandardException{
-                assert txn!=null:"Txn is null";
-                DeletePipelineWriter dpw = new DeletePipelineWriter(txn,heapConglom,operationContext);
-                return new ControlDataSetWriter<>((ControlPairDataSet<K,ExecRow>)ControlPairDataSet.this,dpw,operationContext);
-            }
-        };
-    }
-
-    @Override
-    @SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION",justification = "Serialization" +
-            "of Control-side operations does not happen and would be a mistake")
-    public InsertDataSetWriterBuilder insertData(OperationContext operationContext) throws StandardException{
-        return new InsertTableWriterBuilder(){
-            @Override
-            public DataSetWriter build() throws StandardException{
-                assert txn!=null:"Txn is null";
-                InsertPipelineWriter ipw = new InsertPipelineWriter(pkCols,
-                        tableVersion,
-                        execRowDefinition,
-                        autoIncrementRowLocationArray,
-                        spliceSequences,
-                        heapConglom,
-                        txn,
-                        operationContext,
-                        isUpsert);
-                return new ControlDataSetWriter<>((ControlPairDataSet<K,ExecRow>)ControlPairDataSet.this,ipw,operationContext);
-            }
-        }.operationContext(operationContext);
-    }
-
-    @Override
-    @SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION",justification = "Serialization" +
-            "of Control-side operations does not happen and would be a mistake")
-    public UpdateDataSetWriterBuilder updateData(OperationContext operationContext) throws StandardException{
-        return new UpdateTableWriterBuilder(){
-            @Override
-            public DataSetWriter build() throws StandardException{
-                assert txn!=null: "Txn is null";
-                UpdatePipelineWriter upw =new UpdatePipelineWriter(heapConglom,
-                        formatIds,columnOrdering,pkCols,pkColumns,tableVersion,
-                        txn,execRowDefinition,heapList,operationContext);
-
-                return new ControlDataSetWriter<>((ControlPairDataSet<K,ExecRow>)ControlPairDataSet.this,upw,operationContext);
-            }
-        };
-    }
-
-    @Override
-    @SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION",justification = "Serialization" +
-            "of Control-side operations does not happen and would be a mistake")
     public DataSetWriterBuilder directWriteData() throws StandardException{
         return new DirectTableWriterBuilder(){
             @Override
@@ -406,5 +353,6 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
             }
         };
     }
+
 
 }

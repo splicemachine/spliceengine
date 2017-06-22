@@ -21,7 +21,6 @@ import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.AbstractPipelineWriter;
@@ -41,19 +40,19 @@ import java.util.List;
  *         Date: 1/12/16
  */
 public class ControlDataSetWriter<K> implements DataSetWriter{
-    private final ControlPairDataSet<K, ExecRow> dataSet;
+    private final ControlDataSet<ExecRow> dataSet;
     private final OperationContext operationContext;
     private final AbstractPipelineWriter<ExecRow> pipelineWriter;
     private static final Logger LOG = Logger.getLogger(ControlDataSetWriter.class);
 
-    public ControlDataSetWriter(ControlPairDataSet<K, ExecRow> dataSet,AbstractPipelineWriter<ExecRow> pipelineWriter,OperationContext opContext){
+    public ControlDataSetWriter(ControlDataSet<ExecRow> dataSet,AbstractPipelineWriter<ExecRow> pipelineWriter,OperationContext opContext){
         this.dataSet=dataSet;
         this.operationContext=opContext;
         this.pipelineWriter=pipelineWriter;
     }
 
     @Override
-    public DataSet<LocatedRow> write() throws StandardException{
+    public DataSet<ExecRow> write() throws StandardException{
         SpliceOperation operation=operationContext.getOperation();
         Txn txn = null;
         try{
@@ -67,7 +66,7 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
             pipelineWriter.setTxn(txn);
             operation.fireBeforeStatementTriggers();
             pipelineWriter.open(operation.getTriggerHandler(),operation);
-            pipelineWriter.write(dataSet.values().toLocalIterator());
+            pipelineWriter.write(dataSet.toLocalIterator());
 
             long recordsWritten = operationContext.getRecordsWritten();
             operationContext.getActivation().getLanguageConnectionContext().setRecordsImported(operationContext.getRecordsWritten());
@@ -113,7 +112,7 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
                 valueRow = new ValueRow(1);
             }
             valueRow.setColumn(1,new SQLLongint(recordsWritten));
-            return new ControlDataSet<>(new SingletonIterator(new LocatedRow(valueRow)));
+            return new ControlDataSet<>(new SingletonIterator(valueRow));
        }catch(Exception e){
             if(txn!=null){
                 try{

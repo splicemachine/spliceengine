@@ -17,8 +17,8 @@ package com.splicemachine.derby.stream.iterator;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
@@ -33,7 +33,7 @@ import java.util.Iterator;
  *
  */
 @NotThreadSafe
-public class TableScannerIterator implements Iterable<LocatedRow>, Iterator<LocatedRow>, Closeable {
+public class TableScannerIterator implements Iterable<ExecRow>, Iterator<ExecRow>, Closeable {
     protected TableScannerBuilder siTableBuilder;
     protected SITableScanner tableScanner;
     protected boolean initialized;
@@ -57,7 +57,7 @@ public class TableScannerIterator implements Iterable<LocatedRow>, Iterator<Loca
     }
 
     @Override
-    public Iterator<LocatedRow> iterator() {
+    public Iterator<ExecRow> iterator() {
         return this;
     }
 
@@ -105,15 +105,16 @@ public class TableScannerIterator implements Iterable<LocatedRow>, Iterator<Loca
     }
 
     @Override
-    public LocatedRow next() {
+    public ExecRow next() {
         slotted = false;
         rows++;
-        LocatedRow locatedRow = new LocatedRow(tableScanner.getCurrentRowLocation(),execRow.getClone());
+        ExecRow nextRow = execRow.getClone();
         if (operation != null) {
-            StreamLogUtils.logOperationRecord(locatedRow, operation);
-            operation.setCurrentLocatedRow(locatedRow);
+            StreamLogUtils.logOperationRecord(nextRow, operation);
+            operation.setCurrentRow(nextRow);
+            operation.setCurrentRowLocation(new HBaseRowLocation(nextRow.getKey()));
         }
-        return locatedRow;
+        return nextRow;
     }
 
     @Override

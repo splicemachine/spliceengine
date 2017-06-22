@@ -16,7 +16,6 @@ package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.NormalizeOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.commons.collections.iterators.SingletonIterator;
@@ -30,7 +29,7 @@ import java.util.Iterator;
 /**
  * Created by jleach on 11/4/15.
  */
-public class NormalizeFunction extends SpliceFlatMapFunction<NormalizeOperation, LocatedRow, LocatedRow> {
+public class NormalizeFunction extends SpliceFlatMapFunction<NormalizeOperation, ExecRow, ExecRow> {
     private static final long serialVersionUID = 7780564699906451370L;
     private boolean requireNotNull;
 
@@ -55,24 +54,24 @@ public class NormalizeFunction extends SpliceFlatMapFunction<NormalizeOperation,
     }
 
     @Override
-    public Iterator<LocatedRow> call(LocatedRow sourceRow) throws Exception {
+    public Iterator<ExecRow> call(ExecRow sourceRow) throws Exception {
 
         NormalizeOperation normalize = operationContext.getOperation();
-        normalize.source.setCurrentLocatedRow(sourceRow);
+        normalize.source.setCurrentRow(sourceRow);
         if (sourceRow != null) {
             ExecRow normalized = null;
             try {
-                normalized = normalize.normalizeRow(sourceRow.getRow(), requireNotNull);
+                normalized = normalize.normalizeRow(sourceRow, requireNotNull);
             } catch (StandardException e) {
                 if (operationContext!=null && operationContext.isPermissive()) {
                     operationContext.recordBadRecord(e.getLocalizedMessage() + sourceRow.toString(), e);
-                    return Collections.<LocatedRow>emptyList().iterator();
+                    return Collections.<ExecRow>emptyList().iterator();
                 }
                 throw e;
             }
             getActivation().setCurrentRow(normalized, normalize.getResultSetNumber());
-            return new SingletonIterator(new LocatedRow(sourceRow.getRowLocation(), normalized.getClone()));
-        }else return Collections.<LocatedRow>emptyList().iterator();
+            return new SingletonIterator(normalized.getClone());
+        }else return Collections.<ExecRow>emptyList().iterator();
     }
 
 
