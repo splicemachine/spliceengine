@@ -822,7 +822,7 @@ public class ExternalTableIT extends SpliceUnitTest{
                 " BBB |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
-    @Test @Ignore
+    @Test
     public void testWriteReadWithPreExistingAvroAndOr() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table avro_simple_file_table_and_or (col1 int, col2 int, col3 int)" +
                 "STORED AS AVRO LOCATION '%s'", getResourceDirectory()+"avro_simple_file_test"));
@@ -848,19 +848,18 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "BBBB |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
-    @Test @Ignore
+    @Test
     public void testWriteReadFromCompressedAvroExternalTable() throws Exception {
-        methodWatcher.executeUpdate(String.format("create external table compressed_avro_test (col1 int, col2 varchar(24))" +
+        methodWatcher.executeUpdate(String.format("create external table compressed_avro_test (col1 varchar(24))" +
                 " COMPRESSED WITH SNAPPY STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"compressed_avro_test"));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into compressed_avro_test values (1,'XXXX')," +
-                "(2,'YYYY')," +
-                "(3,'ZZZZ')"));
-        Assert.assertEquals("insertCount is wrong",3,insertCount);
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into compressed_avro_test values ('XXXX')," +
+                "('YYYY')"));
+        Assert.assertEquals("insertCount is wrong",2,insertCount);
         ResultSet rs = methodWatcher.executeQuery("select * from compressed_avro_test");
-        Assert.assertEquals("COL2 |\n" +
+        Assert.assertEquals("COL1 |\n" +
                 "------\n" +
-                "AAAA |\n" +
-                "BBBB |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+                "XXXX |\n" +
+                "YYYY |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
 
@@ -886,6 +885,22 @@ public class ExternalTableIT extends SpliceUnitTest{
             methodWatcher.executeUpdate(String.format("create external table failing_number_attribute(col1 int, col2 int, col3 int, col4 int)" +
                     "STORED AS AVRO LOCATION '%s'", getResourceDirectory()+"avro_simple_file_test"));
             ResultSet rs = methodWatcher.executeQuery("select COL2 from failing_number_attribute where col1='1'");
+            Assert.assertEquals("COL2 |\n" +
+                    "------\n" +
+                    "  1  |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+            Assert.fail("Exception not thrown");
+        } catch (SQLException e) {
+
+            Assert.assertEquals("Wrong Exception","EXT23",e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testReadFailingNumberAttributeConstraintAvro_2() throws Exception {
+        try{
+            methodWatcher.executeUpdate(String.format("create external table failing_number_attribute_2(col1 int, col2 int)" +
+                    "STORED AS AVRO LOCATION '%s'", getResourceDirectory()+"avro_simple_file_test"));
+            ResultSet rs = methodWatcher.executeQuery("select COL2 from failing_number_attribute_2 where col1='1'");
             Assert.assertEquals("COL2 |\n" +
                     "------\n" +
                     "  1  |",TestUtils.FormattedResult.ResultFactory.toString(rs));
@@ -1305,7 +1320,7 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
     @Test
-    public void testWriteToNotPermitedLocation() throws Exception{
+    public void testWriteToNotPermittedLocation() throws Exception{
 
 
         methodWatcher.executeUpdate(String.format("create external table PARQUET_NO_PERMISSION (col1 int, col2 varchar(24), col3 boolean)" +
@@ -1332,7 +1347,7 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
     @Test
-    public void testWriteToNotPermitedLocationAvro() throws Exception{
+    public void testWriteToNotPermittedLocationAvro() throws Exception{
 
 
         methodWatcher.executeUpdate(String.format("create external table AVRO_NO_PERMISSION (col1 int, col2 varchar(24), col3 boolean)" +
@@ -1870,6 +1885,19 @@ public class ExternalTableIT extends SpliceUnitTest{
         Assert.assertTrue(String.format("Table %s hasn't been created",tablePath), new File(tablePath).exists());
     }
 
+
+    @Test
+    public void testFaultyCompressionAvro() throws Exception {
+        try {
+            String tablePath = getExternalResourceDirectory()+"/compression";
+            methodWatcher.executeUpdate(String.format("CREATE EXTERNAL TABLE bad_compression_avro (col1 int) " +
+                    "COMPRESSED WITH TURD " +
+                    "STORED AS AVRO LOCATION '%s'",tablePath));
+            Assert.fail("Exception not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception","42X01",e.getSQLState());
+        }
+    }
 
 
 }
