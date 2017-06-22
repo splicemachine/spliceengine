@@ -592,7 +592,7 @@ public abstract class IdUtil
 	{
 		String userName = params.getProperty(Attribute.USERNAME_ATTR,
 							Property.DEFAULT_USER_NAME);
-		if (userName.equals(""))
+		if (userName.isEmpty())
 			userName = Property.DEFAULT_USER_NAME;
 
 		return userName;

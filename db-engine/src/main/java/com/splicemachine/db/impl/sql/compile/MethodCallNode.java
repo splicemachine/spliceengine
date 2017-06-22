@@ -635,7 +635,7 @@ abstract class MethodCallNode extends JavaValueNode
 		for (int i = 0; i < methodParms.length; i++)
 		{
 			/* null parameters are represented by a java type name of "" */
-			if (methodParms[i].getJavaTypeName().equals(""))
+			if (methodParms[i].getJavaTypeName().isEmpty())
 			{		
 				/* Set the type information in the null constant node */
 				DataTypeDescriptor dts = DataTypeDescriptor.getSQLDataTypeDescriptor(parmTypeNames[i]);

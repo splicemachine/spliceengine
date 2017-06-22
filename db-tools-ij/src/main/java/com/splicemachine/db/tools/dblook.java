@@ -678,7 +678,7 @@ public final class dblook {
 		while (tokenizer.hasMoreTokens()) {
 
 			String tok = tokenizer.nextToken().trim();
-			if (tok.equals(""))
+			if (tok.isEmpty())
 				continue;
 			else if (tok.equals(",")) {
 				firstCol = false;

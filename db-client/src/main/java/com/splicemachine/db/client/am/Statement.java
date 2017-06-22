@@ -858,7 +858,7 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
                     agent_.logWriter_.traceEntry(this, "setCursorName", name);
                 }
                 checkForClosedStatement(); // Per jdbc spec (see java.sql.Statement.close() javadoc)
-                if (name == null || name.equals("")) {
+                if (name == null || name.isEmpty()) {
                     throw new SqlException(agent_.logWriter_, 
                         new ClientMessageId(SQLState.CURSOR_INVALID_NAME),
                         name);
@@ -2892,7 +2892,7 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
         }
 
         return
-                (cursorAttributes == null || cursorAttributes.toString().equals(""))
+                (cursorAttributes == null || cursorAttributes.toString().isEmpty())
                 ? null
                 : cursorAttributes.toString();
     }

@@ -3039,7 +3039,7 @@ public final class NetworkServerControlImpl {
 		//created in current directory.
 		propval = PropertyUtil.getSystemProperty(Property.DRDA_PROP_TRACEDIRECTORY,directory);
 		if(propval != null){
-			if(propval.equals(""))
+			if(propval.isEmpty())
 				propval = directory;
 			setTraceDirectory(propval);
 		}
@@ -3049,7 +3049,7 @@ public final class NetworkServerControlImpl {
 		propval = PropertyUtil.getSystemProperty( 
 			Property.DRDA_PROP_MINTHREADS);
 		if (propval != null){
-			if(propval.equals(""))
+			if(propval.isEmpty())
 				propval = "0";
 			setMinThreads(getIntPropVal(Property.DRDA_PROP_MINTHREADS, propval));
 		}
@@ -3057,7 +3057,7 @@ public final class NetworkServerControlImpl {
 		propval = PropertyUtil.getSystemProperty( 
 			Property.DRDA_PROP_MAXTHREADS);
 		if (propval != null){
-			if(propval.equals(""))
+			if(propval.isEmpty())
 				propval = "0";
 			setMaxThreads(getIntPropVal(Property.DRDA_PROP_MAXTHREADS, propval));
 		}
@@ -3066,7 +3066,7 @@ public final class NetworkServerControlImpl {
 		propval = PropertyUtil.getSystemProperty( 
 			Property.DRDA_PROP_TIMESLICE);
 		if (propval != null){
-			if(propval.equals(""))
+			if(propval.isEmpty())
 				propval = "0";
 			setTimeSlice(getIntPropVal(Property.DRDA_PROP_TIMESLICE, propval));
 		}
@@ -3074,7 +3074,7 @@ public final class NetworkServerControlImpl {
 		propval = PropertyUtil.getSystemProperty( 
 			Property.DRDA_PROP_PORTNUMBER);
 		if (propval != null){
-			if(propval.equals(""))
+			if(propval.isEmpty())
 				propval = String.valueOf(NetworkServerControl.DEFAULT_PORTNUMBER);
 			portNumber = getIntPropVal(Property.DRDA_PROP_PORTNUMBER, propval);
 		}
@@ -3092,7 +3092,7 @@ public final class NetworkServerControlImpl {
 		propval = PropertyUtil.getSystemProperty( 
 			Property.DRDA_PROP_HOSTNAME);
 		if (propval != null){
-			if(propval.equals(""))
+			if(propval.isEmpty())
 				hostArg = DEFAULT_HOST; 
 			else
 				hostArg = propval;
@@ -3916,7 +3916,7 @@ public final class NetworkServerControlImpl {
 		String startDRDA = PropertyUtil.getSystemProperty(Property.START_DRDA);
 		//DERBY-375 If a system property is specified without any value, getProperty returns 
 		//an empty string. Use default values in such cases.
-		if(startDRDA!=null && startDRDA.equals(""))
+		if(startDRDA!=null && startDRDA.isEmpty())
 			startDRDA = "false";
 
 		retval.put(Property.START_DRDA, (startDRDA == null)? "false" : startDRDA);
@@ -4036,7 +4036,7 @@ public final class NetworkServerControlImpl {
 		{
 			String sessionInfo  = ((DRDAConnThread)
 								   threadList.get(i)).buildRuntimeInfo("",locallangUtil) ;
-			if (!sessionInfo.equals(""))
+			if (!sessionInfo.isEmpty())
 			{
 				sessionCount ++;
 				s += sessionInfo + "\n";

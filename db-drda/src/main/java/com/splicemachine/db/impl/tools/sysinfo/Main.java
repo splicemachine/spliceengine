@@ -631,7 +631,7 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
 
 
 		String userclass = argumentMatches(args, ".class");
-		if (!userclass.equals("")) {
+		if (!userclass.isEmpty()) {
 			tryMyClasspath(argumentMatches(args, ".class"), Main.getTextMessage("SIF08.H", userclass), successes, failures);
 			seenArg =true;
 		}

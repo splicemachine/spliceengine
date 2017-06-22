@@ -497,10 +497,9 @@ public class SpliceTableMapReduceUtil{
 
         FileSystem localFs=FileSystem.getLocal(conf);
 
-        Set<String> jars=new HashSet<String>();
+        Set<String> jars=new HashSet<String>(conf.getStringCollection("tmpjars"));
 
         // Add jars that are already in the tmpjars variable
-        jars.addAll(conf.getStringCollection("tmpjars"));
 
         // Add jars containing the specified classes
         for(Class clazz : classes){

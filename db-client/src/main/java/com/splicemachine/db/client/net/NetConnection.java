@@ -1593,7 +1593,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         if (dataSource_ != null)
         {
             String dataSourceUserName = dataSource_.getUser();
-            if (!dataSourceUserName.equals("") &&
+            if (!dataSourceUserName.isEmpty() &&
                 userName.equalsIgnoreCase(
                     dataSource_.propertyDefault_user) &&
                 !dataSourceUserName.equalsIgnoreCase(
