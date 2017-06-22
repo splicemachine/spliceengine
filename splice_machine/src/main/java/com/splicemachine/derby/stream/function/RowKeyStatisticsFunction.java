@@ -75,10 +75,10 @@ public class RowKeyStatisticsFunction <Op extends SpliceOperation>
             rowSizeMap.put(conglomId, size);
         }
         List<Tuple2<Long, Tuple2<Double, ColumnStatisticsImpl>>> l = Lists.newArrayList();
-        for (Long c : keyStatisticsMap.keySet()) {
-            ColumnStatisticsImpl stats = keyStatisticsMap.get(c);
-            Double size = rowSizeMap.get(c);
-            l.add(new Tuple2<>(c,new Tuple2<>(size, stats)));
+        for (Map.Entry<Long, ColumnStatisticsImpl> longColumnStatisticsEntry : keyStatisticsMap.entrySet()) {
+            ColumnStatisticsImpl stats = longColumnStatisticsEntry.getValue();
+            Double size = rowSizeMap.get(longColumnStatisticsEntry.getKey());
+            l.add(new Tuple2<>(longColumnStatisticsEntry.getKey(),new Tuple2<>(size, stats)));
         }
         return l.iterator();
     }
