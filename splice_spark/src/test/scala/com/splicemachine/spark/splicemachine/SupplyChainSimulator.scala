@@ -715,7 +715,7 @@ test("Supply Chain Simulator TOObject Change Delivery ") {
 		//Generate Purchase Orders for 1 day, after clearing database
 		var noOfDays = 200
 		var eventTypes = "10"
-		var clearDB = "2"
+		var clearDB = "1"
 
 
 		//println("RUN TEST TO")
