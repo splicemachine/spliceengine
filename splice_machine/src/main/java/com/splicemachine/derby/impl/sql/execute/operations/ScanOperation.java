@@ -223,7 +223,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
 //        } else {
             s.cacheRows(1000).batchCells(-1);
 //        }
-        deSiify(s);
+//        deSiify(s);
         return s;
     }
 
