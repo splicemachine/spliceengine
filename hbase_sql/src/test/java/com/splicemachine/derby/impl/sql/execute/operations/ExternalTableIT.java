@@ -220,10 +220,10 @@ public class ExternalTableIT extends SpliceUnitTest{
     @Test
     public void testNoReferenceConstraintsOnExternalTablesAvro() throws Exception {
         try {
-            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_AVRO";
-            methodWatcher.executeUpdate("create table Cities (col1 int, col2 int, primary key (col1))");
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_AVRO_TEST";
+            methodWatcher.executeUpdate("create table Cities_avro (col1 int, col2 int, primary key (col1))");
             methodWatcher.executeUpdate(String.format("create external table foo_avro (col1 int, col2 int, CITY_ID INT CONSTRAINT city_foreign_key\n" +
-                    " REFERENCES Cities) STORED AS AVRO LOCATION '%s'",tablePath));
+                    " REFERENCES Cities_avro) STORED AS AVRO LOCATION '%s'",tablePath));
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
             Assert.assertEquals("Wrong Exception","EXT08",e.getSQLState());
@@ -401,6 +401,18 @@ public class ExternalTableIT extends SpliceUnitTest{
                 " STORED AS AVRO LOCATION '%s'",tablePath));
     }
 
+    @Test @Ignore
+    public void testLocationCannotBeAFileAvro() throws  Exception{
+        File temp = File.createTempFile("temp-file-avro", ".tmp");
+        try {
+            methodWatcher.executeUpdate(String.format("create external table table_to_existing_file_avro (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
+                    " STORED AS AVRO LOCATION '%s'", temp.getAbsolutePath()));
+            Assert.fail("Exception not thrown");
+        } catch (SQLException ee) {
+            Assert.assertEquals("Wrong Exception","EXT33" ,ee.getSQLState());
+        }
+    }
+
     @Test
     public void testLocationCannotBeAFile() throws  Exception{
         File temp = File.createTempFile("temp-file", ".tmp");
@@ -408,19 +420,6 @@ public class ExternalTableIT extends SpliceUnitTest{
         try {
             methodWatcher.executeUpdate(String.format("create external table table_to_existing_file (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
                     " STORED AS PARQUET LOCATION '%s'",temp.getAbsolutePath()));
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT33",e.getSQLState());
-        }
-    }
-
-    @Test
-    public void testLocationCannotBeAFileAvro() throws  Exception{
-        File temp = File.createTempFile("temp-file-avro", ".tmp");
-
-        try {
-            methodWatcher.executeUpdate(String.format("create external table table_to_existing_file_avro (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
-                    " STORED AS AVRO LOCATION '%s'",temp.getAbsolutePath()));
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
             Assert.assertEquals("Wrong Exception","EXT33",e.getSQLState());
