@@ -15,6 +15,7 @@
 
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.log4j.Logger;
@@ -30,17 +31,28 @@ import java.io.IOException;
 public class ZkUpgradeK2 implements UpgradeK2 {
     private static final Logger LOG = Logger.getLogger(ZkUpgradeK2.class);
     private final String path;
-    private static final String K2_NODE = "isK2";
 
     public ZkUpgradeK2(){
-        path =SIDriver.driver().getConfiguration().getSpliceRootPath()+"/" + K2_NODE;
+        path = SIDriver.driver().getConfiguration().getSpliceRootPath() + HConfiguration.K2_VERSION_NODE;
     }
 
     @Override
     public void setVersion() throws IOException {
         try {
             ZkUtils.create(path, new byte[]{0}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-            LOG.info("Created znode " + K2_NODE);
+            LOG.info("Created znode " + path);
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
+    }
+
+    @Override
+    public void clearBackups() throws IOException {
+        String backupNode = SIDriver.driver().getConfiguration().getBackupPath();
+        try {
+            if (ZkUtils.getRecoverableZooKeeper().exists(backupNode, false) != null) {
+                ZkUtils.recursiveDelete(backupNode);
+            }
         } catch (Exception e) {
             throw new IOException(e);
         }
