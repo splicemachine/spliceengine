@@ -199,7 +199,7 @@ public class SpliceORCPredicate implements OrcPredicate, Externalizable {
     }
 
     public static Map<Integer, ColumnStatistics> partitionStatsEval(List<Integer> baseColumnMap,
-                   StructType rowStruct, List<Integer> partitionColumns, String[] values) {
+                   StructType rowStruct, List<Integer> partitionColumns, String[] values, boolean isCollectStats) {
         try {
             Map<Integer, ColumnStatistics> partitionStatistics = new HashMap<>(partitionColumns.size());
 
@@ -210,6 +210,9 @@ public class SpliceORCPredicate implements OrcPredicate, Externalizable {
                 int j = baseColumnMap.get(storagePos);
                 if (j==-1) // Partition Column Not In List...
                     continue;
+                if (isCollectStats)
+                    j = j -1;  // stats related indexes are passed on one based index but rowStruct array is zero based
+
                 DataType dataType = rowStruct.fields()[j].dataType();
                 if (dataType instanceof BooleanType) {
                     partitionStatistics.put(storagePos, BooleanStatistics.getPartitionColumnStatistics(values[i]));

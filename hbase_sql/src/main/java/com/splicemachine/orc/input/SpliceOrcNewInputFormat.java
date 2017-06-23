@@ -52,6 +52,7 @@ public class SpliceOrcNewInputFormat extends InputFormat<NullWritable,Row>
     public static final double MAX_READ_SIZE_DEFAULT = 8;
     public static final double STREAM_BUFFER_SIZE_DEFAULT = 8;
     public static final long DEFAULT_PARTITION_SIZE = 10000;
+    public static final String SPLICE_COLLECTSTATS ="com.splicemachine.collectstats";
 
 
     @Override
@@ -64,6 +65,7 @@ public class SpliceOrcNewInputFormat extends InputFormat<NullWritable,Row>
         final List<Integer> columns = getReadColumnIDs(SPLICE_COLUMNS,jobContext.getConfiguration());
         final StructType structType = getRowStruct(configuration);
         final SpliceORCPredicate orcPredicate = getSplicePredicate(configuration);
+        boolean isCollectStats = !(configuration.get(SPLICE_COLLECTSTATS, "").isEmpty());
 
         try {
             // Predicate Pruning...
@@ -73,7 +75,7 @@ public class SpliceOrcNewInputFormat extends InputFormat<NullWritable,Row>
                         public boolean apply(@Nullable InputSplit s) {
                             try {
                                 List<String> values = Warehouse.getPartValuesFromPartName(((OrcNewSplit) s).getPath().toString());
-                                Map<Integer,ColumnStatistics> columnStatisticsMap = SpliceORCPredicate.partitionStatsEval(columns,structType,partitions,values.toArray(new String[values.size()]));
+                                Map<Integer,ColumnStatistics> columnStatisticsMap = SpliceORCPredicate.partitionStatsEval(columns,structType,partitions,values.toArray(new String[values.size()]), isCollectStats);
                                 return orcPredicate.matches(10000,columnStatisticsMap);
                             } catch (Exception e) {
                                 throw new RuntimeException(e);

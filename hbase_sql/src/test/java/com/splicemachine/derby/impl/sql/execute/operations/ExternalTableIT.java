@@ -1243,6 +1243,34 @@ public class ExternalTableIT extends SpliceUnitTest{
 
         //Make sure empty file is created
         Assert.assertTrue(String.format("Table %s hasn't been created",tablePath), new File(tablePath).exists());
+
+        // collect stats
+        PreparedStatement ps = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.COLLECT_TABLE_STATISTICS(?,?,?) ");
+        ps.setString(1, "EXTERNALTABLEIT");
+        ps.setString(2, "PARTITION_PRUNE_ORC");
+        ps.setBoolean(3, true);
+        rs = ps.executeQuery();
+        rs.next();
+        Assert.assertEquals("Error with COLLECT_TABLE_STATISTICS for external table","EXTERNALTABLEIT",  rs.getString(1));
+        rs.close();
+
+        ResultSet rs2 = methodWatcher.executeQuery("select total_row_count from sys.systablestatistics where schemaname = 'EXTERNALTABLEIT' and tablename = 'PARTITION_PRUNE_ORC'");
+        String expected = "TOTAL_ROW_COUNT |\n" +
+                "------------------\n" +
+                "        3        |";
+        Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));
+        rs2.close();
+
+        // make sure query runs ok after collect stats
+        ResultSet rs3 = methodWatcher.executeQuery("select * from partition_prune_orc");
+        Assert.assertEquals("USER_ID |SERVER_TIMESTAMP |CLICKS |USER_AGENT |USER_ACCEPT_LANGUAGE | URL |REFERRER_URL | PAGE_ID | PAGE_CATEGORY_CSV | PAGE_TAGS_CSV |  AD_INFO  | DATA_DATE |\n" +
+                "----------------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
+                "   100   |       100       |  100  |     x     |          x          |  x  |      x      |    x    |         x         |       x       |[100, 100] | 20160915  |\n" +
+                "   200   |       200       |  200  |     x     |          x          |  x  |      x      |    x    |         x         |       x       |[100, 100] | 20160916  |\n" +
+                "   300   |       300       |  300  |     x     |          x          |  x  |      x      |    x    |         x         |       x       |[100, 100] | 20160917  |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
+        rs3.close();
+
+
     }
 
 

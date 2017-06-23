@@ -207,7 +207,7 @@ public interface DataSetProcessor {
      */
     <V> DataSet<V> readORCFile(int[] baseColumnMap, int[] partitionColumnMap, String location,
                                OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow,
-                               boolean useSample, double sampleFraction) throws StandardException;
+                               boolean useSample, double sampleFraction, boolean statsjob) throws StandardException;
 
     /**
      *

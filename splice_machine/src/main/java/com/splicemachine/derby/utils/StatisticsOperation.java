@@ -94,7 +94,7 @@ public class StatisticsOperation extends SpliceBaseOperation {
                 else if (storedAs.equals("P"))
                     statsDataSet = dsp.readParquetFile(builder.getColumnPositionMap(), builder.getPartitionByColumnMap() , builder.getLocation(), null, null, null, builder.getTemplate(), useSample, sampleFraction);
                 else if (storedAs.equals("O"))
-                    statsDataSet = dsp.readORCFile(builder.getColumnPositionMap(), builder.getPartitionByColumnMap(), builder.getLocation(), null, null, null, builder.getTemplate(), useSample, sampleFraction);
+                    statsDataSet = dsp.readORCFile(builder.getColumnPositionMap(), builder.getPartitionByColumnMap(), builder.getLocation(), null, null, null, builder.getTemplate(), useSample, sampleFraction, true);
                 else {
                     throw new UnsupportedOperationException("storedAs Type not supported -> " + storedAs);
                 }
