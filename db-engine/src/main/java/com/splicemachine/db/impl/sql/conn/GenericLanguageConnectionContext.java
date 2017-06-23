@@ -3088,12 +3088,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             autoincrementHT=new HashMap<String, Long>();
 
         DataDictionary dd=getDataDictionary();
-        for(String key : autoincrementCacheHashtable.keySet()){
-            AutoincrementCounter aic=autoincrementCacheHashtable.get(key);
+        for(Map.Entry<String, AutoincrementCounter> stringAutoincrementCounterEntry : autoincrementCacheHashtable.entrySet()){
+            AutoincrementCounter aic= stringAutoincrementCounterEntry.getValue();
             Long value=aic.getCurrentValue();
             aic.flushToDisk(getTransactionExecute(),dd,tableUUID);
             if(value!=null){
-                autoincrementHT.put(key,value);
+                autoincrementHT.put(stringAutoincrementCounterEntry.getKey(),value);
             }
         }
         autoincrementCacheHashtable.clear();

@@ -368,17 +368,17 @@ public final class JMXManagementService implements ManagementService, ModuleCont
         if (mbeanServer == null)
             return;
         
-        for (ObjectName mbeanName : registeredMbeans.keySet())
+        for (Map.Entry<ObjectName, StandardMBean> objectNameStandardMBeanEntry : registeredMbeans.entrySet())
         {
             // If we registered this as a management bean
             // then leave it registered to allow the mbeans
             // to be re-registered with JMX
-            if (mbeanName.equals(myManagementBean) &&
+            if (objectNameStandardMBeanEntry.getKey().equals(myManagementBean) &&
                     mbeanServer.isRegistered(myManagementBean))
                 continue;
             
             try {
-                jmxRegister(registeredMbeans.get(mbeanName), mbeanName);
+                jmxRegister(objectNameStandardMBeanEntry.getValue(), objectNameStandardMBeanEntry.getKey());
             } catch (JMException e) {
                 // TODO - what to do here?
             }

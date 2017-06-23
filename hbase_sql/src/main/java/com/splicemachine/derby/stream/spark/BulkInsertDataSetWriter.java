@@ -310,8 +310,8 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
 
         // determine how many regions the table/index should be split into
         Map<Long, Integer> numPartitions = new HashMap<>();
-        for (Long conglomId : mergedStatistics.keySet()) {
-            Tuple2<Double, ColumnStatisticsImpl> stats = mergedStatistics.get(conglomId);
+        for (Map.Entry<Long, Tuple2<Double, ColumnStatisticsImpl>> longTuple2Entry : mergedStatistics.entrySet()) {
+            Tuple2<Double, ColumnStatisticsImpl> stats = longTuple2Entry.getValue();
             double size = stats._1;
             int numPartition = (int)(size/sampleFraction/(1.0*maxRegionSize)) + 1;
 
@@ -319,22 +319,22 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
                 SpliceLogUtils.debug(LOG, "total size of the table is %d", size);
             }
             if (numPartition > 1) {
-                numPartitions.put(conglomId, numPartition);
+                numPartitions.put(longTuple2Entry.getKey(), numPartition);
             }
         }
 
         // calculate cut points for each table/index using histogram
-        for (Long conglomId : numPartitions.keySet()) {
-            int numPartition = numPartitions.get(conglomId);
+        for (Map.Entry<Long, Integer> longIntegerEntry : numPartitions.entrySet()) {
+            int numPartition = longIntegerEntry.getValue();
             byte[][] cutPoints = new byte[numPartition-1][];
 
-            ColumnStatisticsImpl columnStatistics = mergedStatistics.get(conglomId)._2;
+            ColumnStatisticsImpl columnStatistics = mergedStatistics.get(longIntegerEntry.getKey())._2;
             ItemsSketch itemsSketch = columnStatistics.getQuantilesSketch();
             for (int i = 1; i < numPartition; ++i) {
                 SQLBlob blob = (SQLBlob) itemsSketch.getQuantile(i*1.0d/(double)numPartition);
                 cutPoints[i-1] = blob.getBytes();
             }
-            Tuple2<Long, byte[][]> tuple = new Tuple2<>(conglomId, cutPoints);
+            Tuple2<Long, byte[][]> tuple = new Tuple2<>(longIntegerEntry.getKey(), cutPoints);
             result.add(tuple);
         }
         return result;
@@ -405,10 +405,10 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
         }
 
         Map<Long, Tuple2<Double, ColumnStatisticsImpl>> statisticsMap = new HashMap<>();
-        for (Long conglomId : sm.keySet()) {
-            Double totalSize = sizeMap.get(conglomId);
-            ColumnStatisticsImpl columnStatistics = sm.get(conglomId).terminate();
-            statisticsMap.put(conglomId, new Tuple2(totalSize, columnStatistics));
+        for (Map.Entry<Long, ColumnStatisticsMerge> longColumnStatisticsMergeEntry : sm.entrySet()) {
+            Double totalSize = sizeMap.get(longColumnStatisticsMergeEntry.getKey());
+            ColumnStatisticsImpl columnStatistics = longColumnStatisticsMergeEntry.getValue().terminate();
+            statisticsMap.put(longColumnStatisticsMergeEntry.getKey(), new Tuple2(totalSize, columnStatistics));
         }
 
         return statisticsMap;
