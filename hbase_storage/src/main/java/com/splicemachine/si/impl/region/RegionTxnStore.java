@@ -91,6 +91,17 @@ public class RegionTxnStore implements TxnPartition{
     }
 
     @Override
+    public TxnMessage.Txn getTransactionV1(long txnId) throws IOException{
+        if(LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG,"getTransactionV1 txnId=%d",txnId);
+        Get get=new Get(getOldRowKey(txnId));
+        Result result=region.get(get);
+        if(result==null||result.isEmpty())
+            return null; //no transaction
+        return decodeV1(txnId,result);
+    }
+
+    @Override
     public void addDestinationTable(long txnId,byte[] destinationTable) throws IOException{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"addDestinationTable txnId=%d, desinationTable",txnId,destinationTable);
@@ -122,6 +133,10 @@ public class RegionTxnStore implements TxnPartition{
 
     protected byte[] getRowKey(long txnId){
         return TxnUtils.getRowKey(txnId);
+    }
+
+    protected byte[] getOldRowKey(long txnId){
+        return TxnUtils.getOldRowKey(txnId);
     }
 
     @Override
@@ -394,6 +409,13 @@ public class RegionTxnStore implements TxnPartition{
         return txn;
 
     }
+
+    private TxnMessage.Txn decodeV1(long txnId,Result result) throws IOException{
+        TxnMessage.Txn txn=newTransactionDecoder.decodeV1(this,txnId,result);
+        return txn;
+
+    }
+
 
     private TxnMessage.Txn decode(List<Cell> keyValues) throws IOException{
         TxnMessage.Txn txn=newTransactionDecoder.decode(this,keyValues);

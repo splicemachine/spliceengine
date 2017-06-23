@@ -18,6 +18,7 @@ import java.util.Comparator;
 import java.util.NavigableSet;
 import java.util.TreeMap;
 
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.EngineDriver;
@@ -73,7 +74,7 @@ public class SpliceCatalogUpgradeScripts{
         // Set the current version to upgrade from.
         // This flag should only be true for the master server.
         Splice_DD_Version currentVersion=catalogVersion;
-        SConfiguration configuration=EngineDriver.driver().getConfiguration();
+        SConfiguration configuration= SIDriver.driver().getConfiguration();
         if(configuration.upgradeForced()) {
 //        if (SpliceConstants.upgradeForced) {
             currentVersion=new Splice_DD_Version(null,configuration.getUpgradeForcedFrom());

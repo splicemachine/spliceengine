@@ -76,7 +76,6 @@ public class ConglomerateUtils{
         SIDriver driver=SIDriver.driver();
         try(Partition partition=driver.getTableFactory().getTable(SQLConfiguration.CONGLOMERATE_TABLE_NAME_BYTES)){
             DataGet get=driver.getOperationFactory().newDataGet(txn,Bytes.toBytes(conglomId),null);
-            get.returnAllVersions();
             get.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES);
             EntryPredicateFilter predicateFilter=EntryPredicateFilter.emptyPredicate();
             get.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());

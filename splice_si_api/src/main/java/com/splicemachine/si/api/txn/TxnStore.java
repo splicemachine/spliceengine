@@ -92,4 +92,5 @@ public interface TxnStore extends TxnSupplier{
 
     void setCache(TxnSupplier cache);
 
+    void setOldTransactions(long oldTransactions);
 }

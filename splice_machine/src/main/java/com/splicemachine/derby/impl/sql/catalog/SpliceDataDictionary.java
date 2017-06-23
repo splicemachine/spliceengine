@@ -380,7 +380,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         DatabaseVersion databaseVersion=(new ManifestReader()).createVersion();
         if(!databaseVersion.isUnknown()){
             spliceSoftwareVersion=new Splice_DD_Version(this,databaseVersion.getMajorVersionNumber(),
-                    databaseVersion.getMinorVersionNumber(),databaseVersion.getPatchVersionNumber());
+                    databaseVersion.getMinorVersionNumber(),databaseVersion.getPatchVersionNumber(),
+                    databaseVersion.getSprintVersionNumber());
         }
         if(create){
             SpliceAccessManager af=(SpliceAccessManager)Monitor.findServiceModule(this,AccessFactory.MODULE);
@@ -510,7 +511,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     private void upgradeIfNecessary(TransactionController tc) throws StandardException{
-
         boolean toUpgrade = Boolean.TRUE.equals(EngineLifecycleService.toUpgrade.get());
         // Only master can upgrade
         if (!toUpgrade) {

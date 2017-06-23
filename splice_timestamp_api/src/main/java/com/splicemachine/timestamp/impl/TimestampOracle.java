@@ -78,6 +78,10 @@ public class TimestampOracle implements TimestampOracleStatistics{
 	private void initialize() throws TimestampIOException {
 			synchronized(this) {
                 _maxReservedTimestamp = timestampBlockManager.initialize();
+				// make sure the block boundaries are a multiple of TIMESTAMP_INCREMENT
+				if (_maxReservedTimestamp % TIMESTAMP_INCREMENT != 0) {
+					_maxReservedTimestamp += TIMESTAMP_INCREMENT - (_maxReservedTimestamp % TIMESTAMP_INCREMENT);
+				}
 				_timestampCounter.set(_maxReservedTimestamp + TIMESTAMP_INCREMENT);
 			}
 			try {

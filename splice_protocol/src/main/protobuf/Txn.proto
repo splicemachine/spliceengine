@@ -139,6 +139,7 @@ message TxnLifecycleMessage{
 message TxnRequest{
     required uint64 txnId = 1;
     optional bool includeDestinationTables = 2;
+    optional bool isOld = 3;
 }
 
 message ActiveTxnIdResponse{
