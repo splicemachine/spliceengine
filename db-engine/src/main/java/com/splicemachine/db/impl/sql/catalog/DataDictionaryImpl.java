@@ -5489,6 +5489,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     @Override
     public void updateSystemSchemaAuthorization(String aid,TransactionController tc) throws StandardException{
+        LOG.warn("updating System Schema Authorization for " + aid);
+        LOG.warn("Stack Expected Below");
+        Thread.dumpStack();
         updateSchemaAuth(SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME,aid,tc);
         updateSchemaAuth(SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,aid,tc);
 
@@ -5515,6 +5518,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     public void updateSchemaAuth(String schemaName,String authorizationId,TransactionController tc) throws StandardException{
+        LOG.warn(String.format("updating schema auth %s, %s",schemaName,authorizationId));
+        Thread.dumpStack();
         ExecIndexRow keyRow;
         DataValueDescriptor schemaNameOrderable;
         TabInfoImpl ti=coreInfo[SYSSCHEMAS_CORE_NUM];
