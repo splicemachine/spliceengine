@@ -54,7 +54,7 @@ public class AuthenticationConfiguration implements ConfigurationDefault {
     // In this particular instance, there are Splice beta customers with AnA disabled and they want to
     // switch to using native AnA.  So we allow a manual override here.  See DB-2088 for more details.
     public static final String AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE = "splice.authentication.native.create.credentials.database";
-    private static final boolean DEFAULT_AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE = true;
+    private static final boolean DEFAULT_AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE = false;
 
     public static final String AUTHENTICATION_CUSTOM_PROVIDER = "splice.authentication.custom.provider";
     public static final String DEFAULT_AUTHENTICATION_CUSTOM_PROVIDER = "com.splicemachine.derby.authentication.SpliceUserAuthentication";
