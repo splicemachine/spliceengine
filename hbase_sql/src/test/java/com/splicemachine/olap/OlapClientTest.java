@@ -81,7 +81,7 @@ public class OlapClientTest {
         Assert.assertEquals(13, result.order);
     }
 
-    @Test(timeout = 16000) @Ignore
+    @Test(timeout = 16000)
     public void manyFastJobsTest() throws Exception {
         final Random rand = new Random(0);
         int sleep = 0;
@@ -93,7 +93,7 @@ public class OlapClientTest {
     }
 
 
-    @Test(timeout = 20000, expected = IllegalStateException.class) @Ignore
+    @Test(timeout = 20000, expected = IllegalStateException.class)
     public void cantReuseJobsTest() throws Exception {
         final Random rand = new Random(0);
         int sleep = rand.nextInt(200);
@@ -124,7 +124,7 @@ public class OlapClientTest {
         }
     }
 
-    @Test(timeout = 20000) @Ignore
+    @Test(timeout = 20000)
     public void concurrencyTest() throws Exception {
         int size = 32;
         Thread[] threads = new Thread[size];
@@ -156,7 +156,7 @@ public class OlapClientTest {
         }
     }
 
-    @Test(timeout = 20000) @Ignore
+    @Test(timeout = 20000)
     public void concurrencySameNameTest() throws Exception {
         int size = 32;
         Thread[] threads = new Thread[size];
@@ -187,7 +187,7 @@ public class OlapClientTest {
         }
     }
 
-    @Test(timeout = 20000) @Ignore
+    @Test(timeout = 20000)
     public void overflowTest() throws Exception {
         int size = 32;
         Thread[] threads = new Thread[size];
@@ -219,7 +219,7 @@ public class OlapClientTest {
         }
     }
 
-    @Test(timeout=10000) @Ignore
+    @Test(timeout=10000)
     public void testServerFailureAfterSubmit() throws Exception{
        /*
         * Tests what would happen if the server went down after we had successfully submitted, but while
