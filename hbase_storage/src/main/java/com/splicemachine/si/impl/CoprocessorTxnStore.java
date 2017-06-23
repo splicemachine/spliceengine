@@ -297,6 +297,11 @@ public class CoprocessorTxnStore implements TxnStore {
         this.oldTransactions = oldTransactions;
     }
 
+    @Override
+    public long getOldTransactions() {
+        return oldTransactions;
+    }
+
     /*monitoring methods*/
     public long lookupCount(){
         return lookups.get();

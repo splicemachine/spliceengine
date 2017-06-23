@@ -15,6 +15,7 @@
 
 package com.splicemachine.si.data.hbase;
 
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.primitives.Bytes;
@@ -23,14 +24,17 @@ import com.splicemachine.timestamp.api.TimestampSource;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 
 import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
-public class ZkUpgradeK2 {
+public class ZkUpgradeK2 implements Watcher {
     private static final Logger LOG = Logger.getLogger(ZkUpgradeK2.class);
     private static final String K2_NODE = "/isK2";
-    private static final String OLD_TRANSACTIONS_NODE = "/transactions/v1transactions";
     private final String path;
     private long oldTxns;
     private boolean init = false;
@@ -58,19 +62,37 @@ public class ZkUpgradeK2 {
     public void upgrade(long timestamp) throws IOException {
         oldTxns = timestamp;
         try {
-            ZkUtils.create(spliceRootPath+OLD_TRANSACTIONS_NODE, Bytes.toBytes(oldTxns), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+            ZkUtils.create(spliceRootPath + HConfiguration.OLD_TRANSACTIONS_NODE, Bytes.toBytes(oldTxns), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
             ZkUtils.delete(path);
         } catch (Exception e) {
             throw new IOException(e);
         }
     }
 
+    private Object latch = new Object();
+
     public synchronized long getOldTransactions() throws IOException {
         if (init)
             return oldTxns;
         init = true;
         try {
-            oldTxns = Bytes.toLong(ZkUtils.getData(spliceRootPath+OLD_TRANSACTIONS_NODE));
+            long start = System.currentTimeMillis();
+            try {
+                synchronized (latch) {
+                    while (ZkUtils.getRecoverableZooKeeper().exists(path, this) != null) {
+                        long diff = System.currentTimeMillis() - start;
+                        LOG.info("Waiting for master to clear node: " + path);
+                        if (diff > 30 * 60 * 1000) {
+                            LOG.error("Node " + path + " hasn't been cleared yet, master didn't come up?");
+                            throw new IOException(path + " hasn't been cleared after 30 minutes");
+                        }
+                        latch.wait(30000);
+                    }
+                }
+            } catch (Exception ie) {
+                throw new IOException(ie);
+            }
+            oldTxns = Bytes.toLong(ZkUtils.getData(spliceRootPath + HConfiguration.OLD_TRANSACTIONS_NODE));
 
             LOG.info("Read old transactions threshold: " + oldTxns);
         } catch (IOException e) {
@@ -84,5 +106,12 @@ public class ZkUpgradeK2 {
             throw e;
         }
         return oldTxns;
+    }
+
+    @Override
+    public void process(WatchedEvent watchedEvent) {
+        synchronized (latch) {
+            latch.notifyAll();
+        }
     }
 }
