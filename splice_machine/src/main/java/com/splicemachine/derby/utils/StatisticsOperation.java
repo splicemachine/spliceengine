@@ -96,7 +96,8 @@ public class StatisticsOperation extends SpliceBaseOperation {
                 else if (storedAs.equals("O")) {
                     int[] baseColumnMap = builder.getColumnPositionMap();
                     for (int i = 0; i < baseColumnMap.length; i++) {
-                        baseColumnMap[i] = baseColumnMap[i] - 1;  //make it zero based
+                        if (baseColumnMap[i] > 0)
+                            baseColumnMap[i] = baseColumnMap[i] - 1;  //make it zero based
                     }
                     statsDataSet = dsp.readORCFile(baseColumnMap, builder.getPartitionByColumnMap(), builder.getLocation(), null, null, null, builder.getTemplate(), useSample, sampleFraction);
                 }
