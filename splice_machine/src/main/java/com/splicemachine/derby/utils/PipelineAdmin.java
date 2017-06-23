@@ -43,7 +43,7 @@ import java.util.List;
  *         Date: 11/14/14
  */
 public class PipelineAdmin extends BaseAdminProcedures{
-    private static final ResultColumnDescriptor[] WRITE_INTAKE_COLUMNS = new ResultColumnDescriptor[]{    	
+    private static final ResultColumnDescriptor[] WRITE_INTAKE_COLUMNS = {
             new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
             new GenericColumnDescriptor("depThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
             new GenericColumnDescriptor("indThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),

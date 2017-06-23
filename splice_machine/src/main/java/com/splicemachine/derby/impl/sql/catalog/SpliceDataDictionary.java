@@ -192,7 +192,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         //sys_table_statistics
         TabInfoImpl tableStatsInfo=getTableStatisticsTable();
-        ColumnOrdering[] tableStatsOrder=new ColumnOrdering[]{
+        ColumnOrdering[] tableStatsOrder= {
                 new IndexColumnOrder(0),
                 new IndexColumnOrder(1)
         };
@@ -201,7 +201,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createSysTableStatsView(tc);
 
         //sys_column_statistics
-        ColumnOrdering[] columnPkOrder=new ColumnOrdering[]{
+        ColumnOrdering[] columnPkOrder= {
                 new IndexColumnOrder(0),
                 new IndexColumnOrder(1),
                 new IndexColumnOrder(2)
@@ -212,7 +212,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createSysColumnStatsView(tc);
 
         //sys_physical_statistics
-        ColumnOrdering[] physicalPkOrder=new ColumnOrdering[]{
+        ColumnOrdering[] physicalPkOrder= {
                 new IndexColumnOrder(0)
         };
         TabInfoImpl physicalStatsInfo=getPhysicalStatisticsTable();

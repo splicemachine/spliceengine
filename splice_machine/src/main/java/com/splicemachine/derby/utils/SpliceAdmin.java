@@ -495,7 +495,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             //   LASTCOMPILED			TIMESTAMP
             //   INITIALLY_COMPILABLE	BOOLEAN
             //   CONSTANTSTATE			BLOB --> VARCHAR showing existence of plan
-            DataValueDescriptor[] dvds=new DataValueDescriptor[]{
+            DataValueDescriptor[] dvds= {
                     new SQLVarchar(),
                     new SQLChar(),
                     new SQLBoolean(),
@@ -569,7 +569,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             //   KEY			VARCHAR
             //   VALUE			VARCHAR
             //   TYPE			VARCHAR (JVM, SERVICE, DATABASE, APP)
-            DataValueDescriptor[] dvds=new DataValueDescriptor[]{
+            DataValueDescriptor[] dvds= {
                     new SQLVarchar(),
                     new SQLVarchar(),
                     new SQLVarchar()
@@ -828,7 +828,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         Activation activation = activationHolder.ac;
         ActivationHolder ah = new ActivationHolder(activation, null);
         byte[] activationHolderBytes = SerializationUtils.serialize(ah);
-        DataValueDescriptor[] dvds = new DataValueDescriptor[] {
+        DataValueDescriptor[] dvds = {
             new SQLBlob()
         };
         int numCols = dvds.length;

@@ -56,7 +56,7 @@ import com.splicemachine.dbTesting.functionTests.util.PrivilegedFileOpsForTests;
 public class DerbyDistribution
         implements Comparable {
 
-    private static File[] EMPTY_FILE_ARRAY = new File[] {};
+    private static File[] EMPTY_FILE_ARRAY = {};
     public static final String JAR_RUN = "derbyrun.jar";
     public static final String JAR_CLIENT = "derbyclient.jar";
     public static final String JAR_ENGINE = "derby.jar";

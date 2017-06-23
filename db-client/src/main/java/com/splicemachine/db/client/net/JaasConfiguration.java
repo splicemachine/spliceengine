@@ -43,7 +43,7 @@ class JaasConfiguration extends javax.security.auth.login.Configuration {
                                 KEYTAB_KERBEROS_OPTIONS);
 
     private static final AppConfigurationEntry[] KEYTAB_KERBEROS_CONF =
-      new AppConfigurationEntry[]{KEYTAB_KERBEROS_LOGIN};
+            {KEYTAB_KERBEROS_LOGIN};
 
     private javax.security.auth.login.Configuration baseConfig;
     private final String loginContextName;

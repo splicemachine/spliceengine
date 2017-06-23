@@ -399,7 +399,7 @@ abstract class SetOperatorNode extends TableOperatorNode
 
 		// For details on how this whichRC variable is used, see the
 		// comments in BinaryRelationalOperatorNode.getScopedOperand().
-		int [] whichRC = new int[] { -1 };
+		int [] whichRC = { -1 };
 
 		// See if we already have a scoped version of the predicate cached,
 		// and if so just use that.

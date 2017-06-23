@@ -110,7 +110,7 @@ public class BackupSystemProcedures {
             backupManager.restoreDatabase(directory,backupId);
 
             // Print reboot statement
-            ResultColumnDescriptor[] rcds = new ResultColumnDescriptor[]{
+            ResultColumnDescriptor[] rcds = {
                     new GenericColumnDescriptor("result", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 30)),
                     new GenericColumnDescriptor("warnings", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 1024))
             };
@@ -136,7 +136,7 @@ public class BackupSystemProcedures {
             LOG.info("Restore completed. Database reboot is required.");
 
         } catch (Throwable t) {
-            ResultColumnDescriptor[] rcds = new ResultColumnDescriptor[]{
+            ResultColumnDescriptor[] rcds = {
                     new GenericColumnDescriptor("Error", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, t.getMessage().length()))};
             ExecRow template = new ValueRow(1);
             template.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});

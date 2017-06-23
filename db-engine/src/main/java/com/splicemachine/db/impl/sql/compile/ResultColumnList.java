@@ -212,7 +212,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
         ResultColumn rc;
         ColumnReference colRef;
-        int[] crColNum=new int[]{-1};
+        int[] crColNum= {-1};
 
         for(int index=size()-1;index>=0;index--){
             rc=elementAt(index);

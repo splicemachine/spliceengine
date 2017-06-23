@@ -315,7 +315,7 @@ public class StandardException extends Exception
 	/* 1 argument */
 
 	public static StandardException newException(String messageID, Object a1) {
-		Object[] oa = new Object[] {a1};
+		Object[] oa = {a1};
 		return new StandardException(messageID, oa);
 	}
 
@@ -325,14 +325,14 @@ public class StandardException extends Exception
 	}
 
 	public static StandardException newException(String messageID, Throwable t, Object a1) {
-		Object[] oa = new Object[] {a1};
+		Object[] oa = {a1};
 		return new StandardException(messageID, t, oa);
 	}
 
 	/* 2 arguments */
 
 	public static StandardException newException(String messageID, Object a1, Object a2) {
-		Object[] oa = new Object[] {a1, a2};
+		Object[] oa = {a1, a2};
 		return new StandardException(messageID, oa);
 	}
 
@@ -365,14 +365,14 @@ public class StandardException extends Exception
     }
 
 	public static StandardException newException(String messageID, Throwable t, Object a1, Object a2) {
-		Object[] oa = new Object[] {a1, a2};
+		Object[] oa = {a1, a2};
 		return new StandardException(messageID, t, oa);
 	}
 
 	/* 3 arguments */
 
 	public static StandardException newException(String messageID, Object a1, Object a2, Object a3) {
-		Object[] oa = new Object[] {a1, a2, a3};
+		Object[] oa = {a1, a2, a3};
 		return new StandardException(messageID, oa);
 	}
     
@@ -395,58 +395,58 @@ public class StandardException extends Exception
     }
 
 	public static StandardException newException(String messageID, Throwable t, Object a1, Object a2, Object a3) {
-		Object[] oa = new Object[] {a1, a2, a3};
+		Object[] oa = {a1, a2, a3};
 		return new StandardException(messageID, t, oa);
 	}
 
 	/* 4 arguments */
 
 	public static StandardException newException(String messageID, Object a1, Object a2, Object a3, Object a4) {
-		Object[] oa = new Object[] {a1, a2, a3, a4};
+		Object[] oa = {a1, a2, a3, a4};
 		return new StandardException(messageID, oa);
 	}
 	public static StandardException newException(String messageID, Throwable t, Object a1, Object a2, Object a3, Object a4) {
-		Object[] oa = new Object[] {a1, a2, a3, a4};
+		Object[] oa = {a1, a2, a3, a4};
 		return new StandardException(messageID, t, oa);
 	}
  
 	/* 5 arguments */
 	public static StandardException newException(String messageID, Object a1, Object a2, Object a3, Object a4, Object a5) {
-		Object[] oa = new Object[] {a1, a2, a3, a4, a5};
+		Object[] oa = {a1, a2, a3, a4, a5};
 		return new StandardException(messageID, oa);
 	}
 	public static StandardException newException(String messageID, Throwable t, Object a1, Object a2, Object a3, Object a4, Object a5) {
-		Object[] oa = new Object[] {a1, a2, a3, a4, a5};
+		Object[] oa = {a1, a2, a3, a4, a5};
 		return new StandardException(messageID, t, oa);
 	}
 
 	/* 6 arguments */
 	public static StandardException newException(String messageID, Object a1, Object a2, Object a3, Object a4, Object a5, Object a6) {
-		Object[] oa = new Object[] {a1, a2, a3, a4, a5, a6};
+		Object[] oa = {a1, a2, a3, a4, a5, a6};
 		return new StandardException(messageID, oa);
 	}
 	public static StandardException newException(String messageID, Throwable t, Object a1, Object a2, Object a3, Object a4, Object a5, Object a6) {
-		Object[] oa = new Object[] {a1, a2, a3, a4, a5, a6};
+		Object[] oa = {a1, a2, a3, a4, a5, a6};
 		return new StandardException(messageID, t, oa);
 	}
 
 	/* 7 arguments */
 	public static StandardException newException(String messageID, Object a1, Object a2, Object a3, Object a4, Object a5, Object a6, Object a7) {
-		Object[] oa = new Object[] {a1, a2, a3, a4, a5, a6, a7};
+		Object[] oa = {a1, a2, a3, a4, a5, a6, a7};
 		return new StandardException(messageID, oa);
 	}
 	public static StandardException newException(String messageID, Throwable t, Object a1, Object a2, Object a3, Object a4, Object a5, Object a6, Object a7) {
-		Object[] oa = new Object[] {a1, a2, a3, a4, a5, a6, a7};
+		Object[] oa = {a1, a2, a3, a4, a5, a6, a7};
 		return new StandardException(messageID, t, oa);
 	}
 
 	/* 8 arguments */
 	public static StandardException newException(String messageID, Object a1, Object a2, Object a3, Object a4, Object a5, Object a6, Object a7, Object a8) {
-		Object[] oa = new Object[] {a1, a2, a3, a4, a5, a6, a7, a8};
+		Object[] oa = {a1, a2, a3, a4, a5, a6, a7, a8};
 		return new StandardException(messageID, oa);
 	}
 	public static StandardException newException(String messageID, Throwable t, Object a1, Object a2, Object a3, Object a4, Object a5, Object a6, Object a7, Object a8) {
-		Object[] oa = new Object[] {a1, a2, a3, a4, a5, a6, a7, a8};
+		Object[] oa = {a1, a2, a3, a4, a5, a6, a7, a8};
 		return new StandardException(messageID, t, oa);
 	}
 
@@ -749,14 +749,14 @@ public class StandardException extends Exception
 
 	public static SQLWarning newWarning(String messageId, Object a1) {
 
-		Object[] oa = new Object[] {a1};
+		Object[] oa = {a1};
 
 		return newWarningCommon( messageId, oa );
 	}
 
 	public static SQLWarning newWarning(String messageId, Object a1, Object a2) {
 
-		Object[] oa = new Object[] {a1, a2};
+		Object[] oa = {a1, a2};
 
 		return newWarningCommon( messageId, oa );
 	}

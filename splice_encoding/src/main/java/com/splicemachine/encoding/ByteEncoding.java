@@ -32,8 +32,8 @@ final class ByteEncoding {
 //    private static final byte[] BCD_ENC_LOOKUP = new byte[]{3,4,5,6,7,9,10,12,14,15};
 
     /*Lookup table for decoding. -1 means ignored*/
-    private static final byte[] BCD_ENC_LOOKUP = new byte[]{      2,3,4,5,6,7,8,9,   11,13,14};
-    private static final byte[] BCD_DEC_LOOKUP = new byte[]{-1,-1,0,1,2,3,4,5,6,7,-1,8,-1,9,10};
+    private static final byte[] BCD_ENC_LOOKUP = {      2,3,4,5,6,7,8,9,   11,13,14};
+    private static final byte[] BCD_DEC_LOOKUP = {-1,-1,0,1,2,3,4,5,6,7,-1,8,-1,9,10};
 
     static byte[] encode(byte[] value, boolean desc){
         StringBuilder sb = new StringBuilder();
@@ -147,7 +147,7 @@ final class ByteEncoding {
         return result;
     }
 
-    private static final int[][] MASK_SHIFT_TABLE = new int[][]{
+    private static final int[][] MASK_SHIFT_TABLE = {
             new int[]{0xfe,1,0x01,6},
             new int[]{0xfc,2,0x03,5},
             new int[]{0xf8,3,0x07,4},
@@ -157,7 +157,7 @@ final class ByteEncoding {
             new int[]{0x80,7,0x7f,0}
     };
 
-    private static final int[][] INVERSE_MASK_SHIFT_TABLE= new int[][]{
+    private static final int[][] INVERSE_MASK_SHIFT_TABLE= {
             new int[]{0x7f,1,0x40,6},
             new int[]{0x3f,2,0x60,5},
             new int[]{0x1f,3,0x70,4},

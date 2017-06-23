@@ -336,10 +336,10 @@ public class ClassSize
         // See if we recognize the property value.
         if (arch != null) {
             // Is it a known 32 bit architecture?
-            String[] b32 = new String[] {"i386", "x86", "sparc"};
+            String[] b32 = {"i386", "x86", "sparc"};
             if (Arrays.asList(b32).contains(arch)) return 4; // 4 bytes per ref
             // Is it a known 64 bit architecture?
-            String[] b64 = new String[] {"amd64", "x86_64", "sparcv9"};
+            String[] b64 = {"amd64", "x86_64", "sparcv9"};
             if (Arrays.asList(b64).contains(arch)) return 8; // 8 bytes per ref
         }
 

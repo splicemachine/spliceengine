@@ -175,7 +175,7 @@ public class MoreArrays {
 //        int[] data = new int[]{-1,1,2,3};
 //        unsignedSort(data);
 //        System.out.println(Arrays.toString(data));
-        int[] data = new int[]{-2,-1,2,3};
+        int[] data = {-2,-1,2,3};
         unsignedSort(data);
         System.out.println(Arrays.toString(data));
     }

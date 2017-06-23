@@ -1830,7 +1830,7 @@ public class BinaryRelationalOperatorNode
 			 */
 
             // Find the source result set and source column position of cr.
-            int[] sourceColPos=new int[]{-1};
+            int[] sourceColPos= {-1};
             ResultSetNode sourceRSN=cr.getSourceResultSet(sourceColPos);
 
             if(SanityManager.DEBUG){

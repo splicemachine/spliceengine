@@ -63,7 +63,7 @@ public class SYSPRIMARYKEYSRowFactory extends CatalogRowFactory {
 
     private static final int[][] indexColumnPositions = {{SYSPRIMARYKEYS_CONSTRAINTID}};
 
-    private static final String[] uuids = new String[]{
+    private static final String[] uuids = {
             "f48ad515-013d-35d6-f400-6915f6177d2f", //catalog
             "f48ad516-013d-35d6-f400-6915f6177d2f", //heap
             "f48ad516-013d-35d6-f400-6915f6177d2f", //INDEX_1

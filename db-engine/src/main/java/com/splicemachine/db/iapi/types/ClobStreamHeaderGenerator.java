@@ -52,7 +52,7 @@ public final class ClobStreamHeaderGenerator
     private static final byte MAGIC_BYTE = (byte)0xF0;
 
     /** Bytes for a 10.5 unknown length header. */
-    private static final byte[] UNKNOWN_LENGTH = new byte[] {
+    private static final byte[] UNKNOWN_LENGTH = {
                                             0x00, 0x00, MAGIC_BYTE, 0x00, 0x00};
 
     /**

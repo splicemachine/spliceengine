@@ -81,7 +81,7 @@ public class SITransactor implements Transactor{
     @Override
     public boolean processPut(Partition table,RollForward rollForwardQueue,DataPut put) throws IOException{
         if(!isFlaggedForSITreatment(put)) return false;
-        final DataPut[] mutations=new DataPut[]{put};
+        final DataPut[] mutations= {put};
         mutations[0]=put;
         MutationStatus[] operationStatuses=processPutBatch(table,rollForwardQueue,mutations);
         return operationStatusLib.processPutStatus(operationStatuses[0]);

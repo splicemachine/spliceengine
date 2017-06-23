@@ -903,7 +903,7 @@ public abstract class BaseTestCase
     public static void assertLaunchedJUnitTestMethod(String testLaunchMethod)
             throws Exception 
     {
-        String[] cmd = new String[] { "junit.textui.TestRunner", "-m",
+        String[] cmd = { "junit.textui.TestRunner", "-m",
         testLaunchMethod };
         assertExecJavaCmdAsExpected(new String[] { "OK (1 test)" }, cmd, 0);
     }
@@ -921,7 +921,7 @@ public abstract class BaseTestCase
             String databaseName)
             throws Exception 
     {
-        String[] cmd = new String[] { 
+        String[] cmd = {
                 "-Dderby.tests.defaultDatabaseName=" + databaseName, 
                 "junit.textui.TestRunner", "-m", testLaunchMethod };
         assertExecJavaCmdAsExpected(new String[] { "OK (1 test)" }, cmd, 0);

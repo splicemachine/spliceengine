@@ -163,7 +163,7 @@ public abstract class Restriction implements Serializable
         public static final int ORDER_OP_NOT_EQUALS = 7;
 
         // Visible forms of the constants above
-        private String[] OPERATOR_SYMBOLS = new String[] {  "<", "=", "<=", ">", ">=", "IS NULL", "IS NOT NULL", "!=" };
+        private String[] OPERATOR_SYMBOLS = {  "<", "=", "<=", ">", ">=", "IS NULL", "IS NOT NULL", "!=" };
 
         ////////////////////////////////////////////////////////////////////////////////////////
         //
