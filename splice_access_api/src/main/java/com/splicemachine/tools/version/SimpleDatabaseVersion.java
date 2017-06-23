@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
 /**
  * Represents a version string and provides access to its components.
  *
- * Expects between zero and three version components separated by a period each of which contains some numeric
+ * Expects between zero and four version components separated by a period each of which contains some numeric
  * and (optionally) some non-numeric characters. Examples:
  *
  * 1.2.3
@@ -47,6 +47,7 @@ public class SimpleDatabaseVersion implements DatabaseVersion{
     private final int majorVersion;
     private final int minorVersion;
     private final int patchVersion;
+    private final int sprintVersion;
 
     SimpleDatabaseVersion(Map<String, String> manifestProps) {
         release = safeGet(manifestProps, "Release");
@@ -58,6 +59,7 @@ public class SimpleDatabaseVersion implements DatabaseVersion{
         majorVersion = versionParts.hasNext() ? safeParseInt(versionParts.next()) : UNKNOWN_INT;
         minorVersion = versionParts.hasNext() ? safeParseInt(versionParts.next()) : UNKNOWN_INT;
         patchVersion = versionParts.hasNext() ? safeParseInt(versionParts.next()) : UNKNOWN_INT;
+        sprintVersion = versionParts.hasNext() ? safeParseInt(versionParts.next()) : 0;
     }
 
     @Override
@@ -88,6 +90,11 @@ public class SimpleDatabaseVersion implements DatabaseVersion{
     @Override
     public int getMinorVersionNumber() {
         return minorVersion;
+    }
+
+    @Override
+    public int getSprintVersionNumber() {
+        return sprintVersion;
     }
 
     @Override
