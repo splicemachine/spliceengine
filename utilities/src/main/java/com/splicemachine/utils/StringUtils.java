@@ -40,7 +40,7 @@ public class StringUtils{
             return null;
         } else {
             int pads = size - str.length();
-            return pads <= 0?str:(pads > 8192?rightPad(str, size, String.valueOf(padChar)):str.concat(padding(pads, padChar)));
+            return pads <= 0?str:(pads > 8192?rightPad(str, size, String.valueOf(padChar)): str + padding(pads, padChar));
         }
     }
 
@@ -60,9 +60,9 @@ public class StringUtils{
             } else if(padLen == 1 && pads <= 8192) {
                 return rightPad(str, size, padStr.charAt(0));
             } else if(pads == padLen) {
-                return str.concat(padStr);
+                return str + padStr;
             } else if(pads < padLen) {
-                return str.concat(padStr.substring(0, pads));
+                return str + padStr.substring(0, pads);
             } else {
                 char[] padding = new char[pads];
                 char[] padChars = padStr.toCharArray();
@@ -71,7 +71,7 @@ public class StringUtils{
                     padding[i] = padChars[i % padLen];
                 }
 
-                return str.concat(new String(padding));
+                return str + new String(padding);
             }
         }
     }

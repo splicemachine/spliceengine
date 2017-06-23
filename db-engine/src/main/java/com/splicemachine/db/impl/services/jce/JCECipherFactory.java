@@ -753,7 +753,7 @@ public final class JCECipherFactory implements CipherFactory, java.security.Priv
 		// the generated key
 		int verifyKey = digest(ekr.paddedInputKey);
 
-		return encryptedKey.concat("-" + verifyKey);
+		return encryptedKey + "-" + verifyKey;
 
 	}
 

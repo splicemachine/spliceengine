@@ -2330,7 +2330,7 @@ public class SQLChar
         }
 
         result.setValue(
-                leftOperand.getString().concat(rightOperand.getString()));
+                leftOperand.getString() + rightOperand.getString());
 
         return result;
     }

@@ -134,7 +134,7 @@ public class propertyconfig {
 				String tag = key.substring("derby.module.".length());
 
 				// Check to see if it has any configuration requirements 
-				String configKey = "cloudscape.config.".concat(tag);
+				String configKey = "cloudscape.config." + tag;
 				String configProp = moduleList.getProperty(configKey);
 				
 				boolean match = false;
@@ -194,7 +194,7 @@ public class propertyconfig {
 					// that line only has meaning to this program
 
 					// db.env.classes.<tag>
-					String envKey = "derby.env.classes.".concat(tag);
+					String envKey = "derby.env.classes." + tag;
 					if (moduleList.getProperty(envKey) != null)
 						outputProp.put(envKey, moduleList.getProperty(envKey));
 
@@ -224,7 +224,7 @@ public class propertyconfig {
 					// implementation that runs on a specific jdk environment.
 					//
 					//db.env.jdk.<tag>
-					envKey = "derby.env.jdk.".concat(tag);
+					envKey = "derby.env.jdk." + tag;
 
 					if (moduleList.getProperty(envKey) != null)
 					{
@@ -323,9 +323,7 @@ public class propertyconfig {
 		try
 		{
 			outputProp.store(os,
-							header.
-							concat("# config is ").concat(config).
-							concat(footer));
+					header + "# config is " + config + footer);
 		}
 		finally
 		{

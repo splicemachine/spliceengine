@@ -510,10 +510,10 @@ public class StaticMethodCallNode extends MethodCallNode {
 						case java.sql.Types.BIGINT:
 						case java.sql.Types.REAL:
 						case java.sql.Types.DOUBLE:
-							arrayType = getTypeCompiler(typeId).getCorrespondingPrimitiveTypeName().concat("[]");
+							arrayType = getTypeCompiler(typeId).getCorrespondingPrimitiveTypeName() + "[]";
 							break;
 						default:
-							arrayType = typeId.getCorrespondingJavaTypeName().concat("[]");
+							arrayType = typeId.getCorrespondingJavaTypeName() + "[]";
 							break;
 					}
 

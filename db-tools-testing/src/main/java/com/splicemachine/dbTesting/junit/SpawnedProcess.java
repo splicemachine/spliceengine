@@ -137,10 +137,8 @@ public final class SpawnedProcess {
         this.javaProcess = javaProcess;
         this.name = name;
 
-        errSaver = startStreamSaver(javaProcess.getErrorStream(), name
-                .concat(":System.err"));
-        outSaver = startStreamSaver(javaProcess.getInputStream(), name
-                .concat(":System.out"));
+        errSaver = startStreamSaver(javaProcess.getErrorStream(), name + ":System.err");
+        outSaver = startStreamSaver(javaProcess.getInputStream(), name + ":System.out");
         killTask = scheduleKill(javaProcess, name);
     }
 

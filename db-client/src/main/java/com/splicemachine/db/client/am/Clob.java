@@ -682,7 +682,7 @@ public class Clob extends Lob implements java.sql.Clob {
         else {
             //The Clob is not locator enabled.
             String newString = string_.substring(0, (int) pos - 1);
-            string_ = newString.concat(str.substring(offset, offset + length));
+            string_ = newString + str.substring(offset, offset + length);
             asciiStream_ = new java.io.StringBufferInputStream(string_);
             unicodeStream_ = new java.io.StringBufferInputStream(string_);
             characterStream_ = new java.io.StringReader(string_);

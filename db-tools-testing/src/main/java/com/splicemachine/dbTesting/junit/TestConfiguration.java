@@ -680,7 +680,7 @@ public final class TestConfiguration {
         // as URLs and translates forward slash to the local
         // separator.
         String dbName = "singleUse/oneuse";
-        dbName = dbName.concat(Integer.toHexString(uniqueDB++));
+        dbName = dbName + Integer.toHexString(uniqueDB++);
         return dbName;
     }
 
@@ -1389,7 +1389,7 @@ public final class TestConfiguration {
            } else {
                url = jdbcClient.getUrlBase() + hostName + ":" + port + "/";
            }
-           return url.concat(name);
+           return url + name;
         }
         // No DriverManager support so no URL support.
         return null;
@@ -2041,7 +2041,7 @@ public final class TestConfiguration {
      */
     static final String getPassword(String user, String token)
     {
-        return user.concat(token);
+        return user + token;
     }
     
     /**

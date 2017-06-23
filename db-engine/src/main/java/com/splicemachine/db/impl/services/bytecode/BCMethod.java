@@ -1197,7 +1197,7 @@ class BCMethod implements MethodBuilder {
 		}
 
 		// an array reference is an object, hence width of 1
-		growStack(1, cb.factory.type(className.concat("[]")));
+		growStack(1, cb.factory.type(className + "[]"));
 	}
     
     /**

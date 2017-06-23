@@ -1096,7 +1096,7 @@ nextModule:
 			// Check to see if it has any environment requirements
 
 			// db.env.jdk.<modulename> - Any JDK requirements.
-			String envKey = Property.MODULE_ENV_JDK_PREFIX.concat(tag);
+			String envKey = Property.MODULE_ENV_JDK_PREFIX + tag;
 			String envJDK = moduleList.getProperty(envKey);
 			int envJDKId = 0;
 			
@@ -1108,7 +1108,7 @@ nextModule:
 			}
 
 			// db.env.classes.<tag> - Any class requirements
-			envKey = Property.MODULE_ENV_CLASSES_PREFIX.concat(tag);
+			envKey = Property.MODULE_ENV_CLASSES_PREFIX + tag;
 			String envClasses = moduleList.getProperty(envKey);
 			if (envClasses != null) {
 
@@ -2080,7 +2080,7 @@ nextModule:
 	}
 
 	public Thread getDaemonThread(Runnable task, String name, boolean setMinPriority) {
-		Thread t =  new Thread(daemonGroup, task, "derby.".concat(name));
+		Thread t =  new Thread(daemonGroup, task, "derby." + name);
 		t.setDaemon(true);
 
 		if (setMinPriority) {

@@ -192,8 +192,7 @@ public final class BasicAuthenticationServiceImpl
 		// be retrieved at the datbase level only).
 		//
         String userNameProperty =
-          Property.USER_PROPERTY_PREFIX.concat(
-                        userName);
+                Property.USER_PROPERTY_PREFIX + userName;
 
 		// check if user defined at the database level
 		definedUserPassword = getDatabaseProperty(userNameProperty);

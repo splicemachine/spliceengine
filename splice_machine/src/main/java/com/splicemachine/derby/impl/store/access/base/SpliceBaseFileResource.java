@@ -170,7 +170,7 @@ public abstract class SpliceBaseFileResource implements FileResource{
     // Moved from BaseDataFileFactory to avoid needing a DataFactory, which would then require a half dozen or more factories
     // that aren't really needed for simple writing and reading of local JAR files.
     private String getVersionedName(String name,long generationId){
-        return name.concat(".G".concat(Long.toString(generationId)));
+        return name + ".G".concat(Long.toString(generationId));
     }
 
     public StorageFactory getStorageFactory() {

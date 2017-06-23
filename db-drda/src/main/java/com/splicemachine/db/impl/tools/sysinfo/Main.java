@@ -883,7 +883,7 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
 
         for (int i = 0; i < infoNames.length; i++)
         {
-            final String resource = "/".concat(infoNames[i]);
+            final String resource = "/" + infoNames[i];
 
             InputStream is = (InputStream) AccessController.doPrivileged
             (new PrivilegedAction() {

@@ -1367,9 +1367,9 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
         } else {
             while (i < types.length) {
                 if (i > 0) {
-                    tableTypes = tableTypes.concat(",");
+                    tableTypes = tableTypes + ",";
                 }
-                tableTypes = tableTypes.concat("'" + types[i] + "'");
+                tableTypes = tableTypes + "'" + types[i] + "'";
                 i++;
             }
             cs.setStringX(4, tableTypes);
@@ -2086,9 +2086,9 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
         String udtTypes = "";
         while (types != null && i < types.length) {
             if (i > 0) {
-                udtTypes = udtTypes.concat(",");
+                udtTypes = udtTypes + ",";
             }
-            udtTypes = udtTypes.concat(String.valueOf(types[i]));
+            udtTypes = udtTypes + String.valueOf(types[i]);
             i++;
         }
         cs.setStringX(4, udtTypes);

@@ -92,7 +92,7 @@ public class SimpleProcedureTest {
 		out[0] = java.sql.Timestamp.valueOf("2004-04-12 04:25:26.462983731");
 	}
 	public static void pmap(String in, String[] inout, String[] out) {
-		inout[0] = inout[0].trim().concat("P2-PMAP");
+		inout[0] = inout[0].trim() + "P2-PMAP";
 		out[0] = "P3-PMAP";
 	}
 	
