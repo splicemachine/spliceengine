@@ -21,13 +21,13 @@ import org.apache.spark.sql.types.DataType;
  *
  */
 public interface ColumnBlock {
-    public ColumnVector getColumnVector();
-    public void setColumnVector(ColumnVector columnVector);
-    public DataType getDataType();
-    public void setDataType(DataType dataType);
-    public Object getObject(int i);
-    public Object getTestObject(int i);
-    public Object[] getTestObjectArray(int offset, int length);
-    public void setPartitionValue(String value, int size);
-    public void setPartitionNull(int size);
+    ColumnVector getColumnVector();
+    void setColumnVector(ColumnVector columnVector);
+    DataType getDataType();
+    void setDataType(DataType dataType);
+    Object getObject(int i);
+    Object getTestObject(int i);
+    Object[] getTestObjectArray(int offset, int length);
+    void setPartitionValue(String value, int size);
+    void setPartitionNull(int size);
 }
