@@ -462,7 +462,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     public <V> DataSet<V> readORCFile(int[] baseColumnMap,int[] partitionColumnMap, String location,
                                           OperationContext context, Qualifier[][] qualifiers,
                                       DataValueDescriptor probeValue, ExecRow execRow,
-                                      boolean useSample, double sampleFraction) throws StandardException {
+                                      boolean useSample, double sampleFraction, boolean statsjob) throws StandardException {
         assert baseColumnMap != null:"baseColumnMap Null";
         assert partitionColumnMap != null:"partitionColumnMap Null";
         try {
@@ -472,6 +472,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             configuration.set(SpliceOrcNewInputFormat.SPARK_STRUCT,execRow.createStructType().json());
             configuration.set(SpliceOrcNewInputFormat.SPLICE_COLUMNS,intArrayToString(baseColumnMap));
             configuration.set(SpliceOrcNewInputFormat.SPLICE_PARTITIONS,intArrayToString(partitionColumnMap));
+            if (statsjob)
+                configuration.set(SpliceOrcNewInputFormat.SPLICE_COLLECTSTATS, "true");
 
             JavaRDD<Row> rows = SpliceSpark.getContext().newAPIHadoopFile(
                     location,

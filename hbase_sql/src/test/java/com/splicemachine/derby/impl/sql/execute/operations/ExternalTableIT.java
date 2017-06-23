@@ -1261,6 +1261,16 @@ public class ExternalTableIT extends SpliceUnitTest{
         Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));
         rs2.close();
 
+        // make sure query runs ok after collect stats
+        ResultSet rs3 = methodWatcher.executeQuery("select * from partition_prune_orc");
+        Assert.assertEquals("USER_ID |SERVER_TIMESTAMP |CLICKS |USER_AGENT |USER_ACCEPT_LANGUAGE | URL |REFERRER_URL | PAGE_ID | PAGE_CATEGORY_CSV | PAGE_TAGS_CSV |  AD_INFO  | DATA_DATE |\n" +
+                "----------------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
+                "   100   |       100       |  100  |     x     |          x          |  x  |      x      |    x    |         x         |       x       |[100, 100] | 20160915  |\n" +
+                "   200   |       200       |  200  |     x     |          x          |  x  |      x      |    x    |         x         |       x       |[100, 100] | 20160916  |\n" +
+                "   300   |       300       |  300  |     x     |          x          |  x  |      x      |    x    |         x         |       x       |[100, 100] | 20160917  |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
+        rs3.close();
+
+
     }
 
 
