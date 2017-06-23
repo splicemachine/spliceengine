@@ -4536,8 +4536,8 @@ public abstract class ResultSet implements java.sql.ResultSet,
         int column;
         boolean foundOneUpdatedColumnAlready = false;
         
-        StringBuffer insertSQL = new StringBuffer("INSERT INTO ");
-        StringBuffer valuesSQL = new StringBuffer("VALUES (");
+        StringBuilder insertSQL = new StringBuilder("INSERT INTO ");
+        StringBuilder valuesSQL = new StringBuilder("VALUES (");
 
         insertSQL.append(getTableName());
         insertSQL.append(" (");
@@ -4575,7 +4575,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
 
         // For Derby, eg update t1 set c1=?, c2=? where current of cursorname
         boolean foundOneUpdatedColumnAlready = false;
-        StringBuffer updateString = new StringBuffer(64);
+        StringBuilder updateString = new StringBuilder(64);
         updateString.append("UPDATE ").append(getTableName()).append(" SET ");
 
         for (column = 1; column <= resultSetMetaData_.columns_; column++) {

@@ -216,7 +216,7 @@ public class XML {
 
         int charCount = 0;
         char [] cA = new char[1024];
-        StringBuffer sBuf = new StringBuffer();
+        StringBuilder sBuf = new StringBuilder();
         InputStreamReader reader =
             new InputStreamReader(BaseTestCase.openTestResource(xFile));
 

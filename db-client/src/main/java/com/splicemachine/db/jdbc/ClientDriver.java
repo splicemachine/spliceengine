@@ -179,7 +179,7 @@ public class ClientDriver implements java.sql.Driver {
      */
     private String appendDatabaseAttributes(String database, Properties augmentedProperties) {
 
-        StringBuffer longDatabase = new StringBuffer(database);
+        StringBuilder longDatabase = new StringBuilder(database);
         for (Enumeration keys = augmentedProperties.propertyNames();
              keys.hasMoreElements(); ) {
             String key = (String) keys.nextElement();

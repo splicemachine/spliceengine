@@ -176,7 +176,7 @@ public class DB_Alias
 		ResultSet aliasInfo, char aliasType) throws SQLException
 	{
 
-		StringBuffer alias = new StringBuffer("CREATE ");
+		StringBuilder alias = new StringBuilder("CREATE ");
 
         switch( aliasType )
         {

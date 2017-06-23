@@ -534,7 +534,7 @@ public class CreateConstraintConstantAction extends ConstraintConstantAction
 	{
 		// Do not put this under SanityManager.DEBUG - it is needed for
 		// error reporting.
-		StringBuffer strbuf = new StringBuffer();
+		StringBuilder strbuf = new StringBuilder();
 		strbuf.append("CREATE CONSTRAINT ").append(constraintName);
 		strbuf.append("\n=========================\n");
 

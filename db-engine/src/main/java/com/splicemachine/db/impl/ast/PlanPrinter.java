@@ -95,7 +95,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                 CompilerContext.DataSetProcessorType currentType = rsn.getCompilerContext().getDataSetProcessorType();
                 boolean useSpark = shouldUseSpark(orderedNodes);
                 Iterator<String> nodes = planToIterator(orderedNodes, useSpark);
-                StringBuffer sb = new StringBuffer();
+                StringBuilder sb = new StringBuilder();
                 while (nodes.hasNext())
                     sb.append(nodes.next()).append("\n");
                 LOG.info(String.format("Plan nodes for query <<\n\t%s\n>>%s\n",

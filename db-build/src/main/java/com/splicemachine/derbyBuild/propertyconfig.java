@@ -337,7 +337,7 @@ public class propertyconfig {
 
 	private static void printUsageAndExit()
 	{
-		StringBuffer buf = new StringBuffer(400);
+		StringBuilder buf = new StringBuilder(400);
 
 		buf.append("Usage propertyConfig <masterFile> <config> <outputFile>\n")
 			.append("masterFile must be a pre-existing properties file ")

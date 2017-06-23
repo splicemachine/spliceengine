@@ -76,7 +76,7 @@ class BasicGetLogHeader implements PrintWriterGetHeader
 	
 	public String getHeader()
 	{
-		StringBuffer header = new StringBuffer(48);
+		StringBuilder header = new StringBuilder(48);
 
 		if (tag != null) {
 			header.append(tag);

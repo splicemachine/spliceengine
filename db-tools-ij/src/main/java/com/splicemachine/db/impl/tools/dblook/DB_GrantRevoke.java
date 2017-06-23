@@ -151,7 +151,7 @@ public class DB_GrantRevoke {
 		throws SQLException
 	{
 		boolean addSeparator = false;
-		StringBuffer grantStmt = new StringBuffer("GRANT ");
+		StringBuilder grantStmt = new StringBuilder("GRANT ");
 
 		if (rs.getString(4).toUpperCase().equals("Y")) 
 		{
@@ -282,7 +282,7 @@ public class DB_GrantRevoke {
 	private static String mapColumnsToNames(String columns, ResultSet rsCols)
 		throws SQLException
 	{
-		StringBuffer colNames = new StringBuffer();
+		StringBuilder colNames = new StringBuilder();
 		rsCols.next();
 		int curColumn = 1;
 		boolean addSeparator = false;
@@ -319,7 +319,7 @@ public class DB_GrantRevoke {
 	private static String columnPrivStatement(ResultSet rs, String fullName,
 			String authName, ResultSet rsCols) throws SQLException
 	{
-		StringBuffer grantStmt = new StringBuffer("GRANT ");
+		StringBuilder grantStmt = new StringBuilder("GRANT ");
 
 		String privType = rs.getString(4).toUpperCase();
 		String columns = rs.getString(5);
@@ -440,7 +440,7 @@ public class DB_GrantRevoke {
 		throws SQLException
 	{
 		boolean addSeparator = false;
-		StringBuffer grantStmt = new StringBuffer("GRANT " + permission + " ON " + objectType + " " );
+		StringBuilder grantStmt = new StringBuilder("GRANT " + permission + " ON " + objectType + " " );
 
 		grantStmt.append(fullName);
 		grantStmt.append(" TO ");
@@ -491,7 +491,7 @@ public class DB_GrantRevoke {
 		throws SQLException
 	{
 		boolean addSeparator = false;
-		StringBuffer grantStmt = new StringBuffer("GRANT EXECUTE ON ");
+		StringBuilder grantStmt = new StringBuilder("GRANT EXECUTE ON ");
 
 		grantStmt.append((aliasType.equals("P")) ? "PROCEDURE " : "FUNCTION ");
 		grantStmt.append(fullName);

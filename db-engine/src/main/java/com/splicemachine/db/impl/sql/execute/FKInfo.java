@@ -345,7 +345,7 @@ public class FKInfo implements Formatable {
 	{
 		if (SanityManager.DEBUG)
 		{
-			StringBuffer str = new StringBuffer();
+			StringBuilder str = new StringBuilder();
 			str.append("\nTableName:\t\t\t");
 			str.append(tableName);
 

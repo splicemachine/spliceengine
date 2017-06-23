@@ -84,7 +84,7 @@ public class FileCompare
 
         BufferedReader outFile;
         BufferedReader masterFile;
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
  
         // If framework is DerbyNet, we may need to check subdirs of the master canon dir
         // for specific masters by client  we're running against. So, get version
@@ -271,7 +271,7 @@ public class FileCompare
         Process pr = null;
         try
         {
-            StringBuffer sb = new StringBuffer();
+            StringBuilder sb = new StringBuilder();
             sb.append("diff ");
             sb.append(tempMaster.getCanonicalPath());
             sb.append(" ");
@@ -333,8 +333,8 @@ public class FileCompare
                 if (!str1.equals(str2))
                 {
                     // Some lines diff because of too many spaces
-                    StringBuffer sb1 = new StringBuffer();
-                    StringBuffer sb2 = new StringBuffer();
+                    StringBuilder sb1 = new StringBuilder();
+                    StringBuilder sb2 = new StringBuilder();
                     StringTokenizer st1 = new StringTokenizer(str1);
                     while (st1.hasMoreTokens())
                     {

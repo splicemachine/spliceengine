@@ -79,7 +79,7 @@ public static String
 		InputStreamReader isr = new InputStreamReader(is);
 		BufferedReader br =
 			new BufferedReader(isr);
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		String l;
 		while((l = br.readLine()) != null) {
 			sb.append(l);

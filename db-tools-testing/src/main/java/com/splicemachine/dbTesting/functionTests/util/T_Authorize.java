@@ -141,7 +141,7 @@ public class T_Authorize
 				throw new Exception("operation incorrectly allowed for read only connection "+sText);
 			if (rc != expectRowCount)
 			{
-				StringBuffer argSb = new StringBuffer();
+				StringBuilder argSb = new StringBuilder();
 				for (int ix=0;ix<paramCount;ix++)
 				{
 					if (ix!=0) argSb.append(",");

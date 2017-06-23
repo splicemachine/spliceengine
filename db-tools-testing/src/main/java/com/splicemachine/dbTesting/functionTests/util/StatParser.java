@@ -50,7 +50,7 @@ public class StatParser
 		int endIndex = 0;
 		int indexIndex;
 
-		StringBuffer strbuf = new StringBuffer();
+		StringBuilder strbuf = new StringBuilder();
 
 		/*
 		** We need to know if we used an index

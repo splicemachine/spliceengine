@@ -45,7 +45,7 @@ public final class Utils {
         // In the common case the length of the return value is the length of
         // the identifier plus the two surrounding double quotes. Use that as
         // the initial capacity of the buffer.
-        StringBuffer retValue = new StringBuffer(identifier.length() + 2);
+        StringBuilder retValue = new StringBuilder(identifier.length() + 2);
 
         final char quote = '"';
 
@@ -68,7 +68,7 @@ public final class Utils {
         if (bytes == null) {
             return "{}";
         }
-        StringBuffer stringBuffer = new StringBuffer(bytes.length * 6 + 4);
+        StringBuilder stringBuffer = new StringBuilder(bytes.length * 6 + 4);
         stringBuffer.append("{ ");
         for (int i = 0; i < bytes.length; i++) {
             stringBuffer.append("0x");
@@ -85,7 +85,7 @@ public final class Utils {
         if (ints == null) {
             return "{}";
         }
-        StringBuffer stringBuffer = new StringBuffer();
+        StringBuilder stringBuffer = new StringBuilder();
         stringBuffer.append("{ ");
         for (int i = 0; i < ints.length; i++) {
             stringBuffer.append(String.valueOf(ints[i]));
@@ -101,7 +101,7 @@ public final class Utils {
         if (strings == null) {
             return "{}";
         }
-        StringBuffer stringBuffer = new StringBuffer();
+        StringBuilder stringBuffer = new StringBuilder();
         stringBuffer.append("{ ");
         for (int i = 0; i < strings.length; i++) {
             stringBuffer.append(strings[i]);
@@ -221,7 +221,7 @@ public final class Utils {
         {
             return s.substring(0, fixedLength);
         } else { // we need to pad
-            StringBuffer buffer = new StringBuffer(s);
+            StringBuilder buffer = new StringBuilder(s);
             for (int i = 0; i < fixedLength - s.length(); i++) {
                 buffer.append(" ");
             }

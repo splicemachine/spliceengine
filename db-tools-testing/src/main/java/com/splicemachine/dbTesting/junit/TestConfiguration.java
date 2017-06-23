@@ -1524,7 +1524,7 @@ public final class TestConfiguration {
      * are no attributes)
      */
     String getConnectionAttributesString() {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         Enumeration e = connectionAttributes.propertyNames();
         boolean first = true;
         while (e.hasMoreElements()) {
@@ -1907,7 +1907,7 @@ public final class TestConfiguration {
      */
     File getFailureFolder(TestCase test){
         
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
       
         sb.append("fail");
         sb.append(File.separatorChar);

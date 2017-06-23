@@ -152,7 +152,7 @@ public class CursorInfo
 	{
 		if (SanityManager.DEBUG)
 		{
-			StringBuffer strbuf = new StringBuffer();
+			StringBuilder strbuf = new StringBuilder();
 		
 			strbuf.append("CursorInfo" + "\n\tupdateMode: ").append(updateMode).append("\n\ttargetTable: ").append(targetTable).append("\n\tupdateColumns: ");
 

@@ -125,7 +125,7 @@ public abstract class Sqlca {
         }
 
         // concatenate tokens with sqlErrmcDelimiter delimiters into one String
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder buffer = new StringBuilder();
         int indx;
         for (indx = 0; indx < sqlErrmcMessages_.length - 1; indx++) {
             buffer.append(sqlErrmcMessages_[indx]);

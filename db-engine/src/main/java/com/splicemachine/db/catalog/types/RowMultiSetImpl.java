@@ -135,7 +135,7 @@ public class RowMultiSetImpl extends BaseTypeIdImpl
      */
     public  String  getSQLTypeName()
     {
-        StringBuffer    buffer = new StringBuffer();
+        StringBuilder buffer = new StringBuilder();
         int                     count = _columnNames.length;
 
         buffer.append( "TABLE ( " );

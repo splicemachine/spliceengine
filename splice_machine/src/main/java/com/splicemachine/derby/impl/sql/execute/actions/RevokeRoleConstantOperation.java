@@ -194,7 +194,7 @@ public class RevokeRoleConstantOperation extends DDLConstantOperation {
         // Do not put this under SanityManager.DEBUG - it is needed for
         // error reporting.
 
-        StringBuffer sb1 = new StringBuffer();
+        StringBuilder sb1 = new StringBuilder();
         for (Iterator it = roleNames.iterator(); it.hasNext();) {
             if( sb1.length() > 0) {
                 sb1.append( ", ");
@@ -202,7 +202,7 @@ public class RevokeRoleConstantOperation extends DDLConstantOperation {
             sb1.append( it.next().toString());
         }
 
-        StringBuffer sb2 = new StringBuffer();
+        StringBuilder sb2 = new StringBuilder();
         for (Iterator it = grantees.iterator(); it.hasNext();) {
             if( sb2.length() > 0) {
                 sb2.append( ", ");

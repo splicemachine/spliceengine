@@ -67,7 +67,7 @@ public class DB_Jar {
 		boolean firstTime = true;
 		while (rs.next()) {
 
-            StringBuffer loadJarString = new StringBuffer();
+            StringBuilder loadJarString = new StringBuilder();
 
             String jarName    = rs.getString(1);
             String schemaId   = rs.getString(2);
@@ -86,12 +86,12 @@ public class DB_Jar {
                     dblook.unExpandDoubleQuotes(
                         dblook.stripQuotes(dblook.lookupSchemaId(schemaId)));;
 
-                StringBuffer jarFullName = new StringBuffer();
+                StringBuilder jarFullName = new StringBuilder();
                 jarFullName.append(UUIDstring);
                 jarFullName.append(".jar.G");
                 jarFullName.append(genID);
 
-                StringBuffer oldJarPath = new StringBuffer();
+                StringBuilder oldJarPath = new StringBuilder();
                 oldJarPath.append(dbName);
                 oldJarPath.append(separator);
                 oldJarPath.append("jar");
@@ -138,12 +138,12 @@ public class DB_Jar {
                     dblook.expandDoubleQuotes(jarName));
 
                 String schemaWithoutQuotes = dblook.stripQuotes(schemaNameSQL);
-                StringBuffer jarFullName = new StringBuffer(separator);
+                StringBuilder jarFullName = new StringBuilder(separator);
                 jarFullName.append(dblook.stripQuotes(jarName));
                 jarFullName.append(".jar.G");
                 jarFullName.append(genID);
 
-                StringBuffer oldJarPath = new StringBuffer();
+                StringBuilder oldJarPath = new StringBuilder();
                 oldJarPath.append(dbName);
                 oldJarPath.append(separator);
                 oldJarPath.append("jar");

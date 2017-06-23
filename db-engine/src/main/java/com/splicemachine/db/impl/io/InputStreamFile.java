@@ -67,7 +67,7 @@ abstract class InputStreamFile implements StorageFile
         }
         else
         {
-            StringBuffer sb = new StringBuffer( storageFactory.separatedDataDirectory);
+            StringBuilder sb = new StringBuilder( storageFactory.separatedDataDirectory);
             if( File.separatorChar != '/')
                 sb.append( path.replace( File.separatorChar, '/'));
             else
@@ -80,7 +80,7 @@ abstract class InputStreamFile implements StorageFile
     InputStreamFile( BaseStorageFactory storageFactory, String parent, String name)
     {
         this.storageFactory = storageFactory;
-        StringBuffer sb = new StringBuffer( storageFactory.separatedDataDirectory);
+        StringBuilder sb = new StringBuilder( storageFactory.separatedDataDirectory);
         if( File.separatorChar != '/')
         {
             sb.append( parent.replace( File.separatorChar, '/'));
@@ -100,7 +100,7 @@ abstract class InputStreamFile implements StorageFile
     InputStreamFile( InputStreamFile dir, String name)
     {
         this.storageFactory = dir.storageFactory;
-        StringBuffer sb = new StringBuffer( dir.path);
+        StringBuilder sb = new StringBuilder( dir.path);
         sb.append( '/');
         if( File.separatorChar != '/')
             sb.append( name.replace( File.separatorChar, '/'));

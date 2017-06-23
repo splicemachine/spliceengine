@@ -1425,7 +1425,7 @@ public class JDBC {
     private static String bytesToString(byte[] ba)
     {
         if (ba == null) return null;
-        StringBuffer s = new StringBuffer();
+        StringBuilder s = new StringBuilder();
         for (int i = 0; i < ba.length; ++i) {
             s.append(Integer.toHexString(ba[i] & 0x00ff));
         }
@@ -1438,7 +1438,7 @@ public class JDBC {
 	 */
 	public static String escape(String name)
 	{
-        StringBuffer buffer = new StringBuffer(name.length() + 2);
+        StringBuilder buffer = new StringBuilder(name.length() + 2);
         buffer.append('"');
         for (int i = 0; i < name.length(); i++) {
             char c = name.charAt(i);

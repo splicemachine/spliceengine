@@ -257,7 +257,7 @@ public class ColumnInfo {
      * Get the column type names.
      */
     public String getColumnTypeNames() {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         boolean first = true;
         for(int index = 0 ; index < columnTypes.size(); index++) {
             if (!first)
@@ -273,7 +273,7 @@ public class ColumnInfo {
      * Get the column type names.
      */
     public String getImportAsColumns() {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         boolean first = true;
         for(int index = 0 ; index < columnTypes.size(); index++) {
             if (!first)
@@ -315,7 +315,7 @@ public class ColumnInfo {
 	 */
 	public String getInsertColumnNames()
 	{
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		boolean first = true;
 		for(int index = 0 ; index < noOfColumns; index++)
 		{

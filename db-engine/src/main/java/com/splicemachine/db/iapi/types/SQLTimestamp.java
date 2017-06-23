@@ -147,7 +147,7 @@ public final class SQLTimestamp extends DataType
             int separatorIdx = valueString.indexOf('-');
             if (separatorIdx >= 0 && separatorIdx < 4)
             {
-                StringBuffer sb = new StringBuffer();
+                StringBuilder sb = new StringBuilder();
                 for( ; separatorIdx < 4; separatorIdx++)
                     sb.append('0');
                 sb.append(valueString);

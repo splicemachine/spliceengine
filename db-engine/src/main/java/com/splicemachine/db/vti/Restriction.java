@@ -244,7 +244,7 @@ public abstract class Restriction implements Serializable
         
         public String toSQL()
         {
-            StringBuffer buffer = new StringBuffer();
+            StringBuilder buffer = new StringBuilder();
 
             buffer.append( IdUtil.normalToDelimited( _columnName ) );
             buffer.append(" ").append(OPERATOR_SYMBOLS[_comparisonOperator]).append(" ");

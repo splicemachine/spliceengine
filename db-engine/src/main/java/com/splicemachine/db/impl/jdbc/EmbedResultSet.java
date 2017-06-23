@@ -3609,8 +3609,8 @@ public abstract class EmbedResultSet extends ConnectionChild
                  */
 
                 boolean foundOneColumnAlready = false;
-                StringBuffer insertSQL = new StringBuffer("INSERT INTO ");
-                StringBuffer valuesSQL = new StringBuffer("VALUES (");
+                StringBuilder insertSQL = new StringBuilder("INSERT INTO ");
+                StringBuilder valuesSQL = new StringBuilder("VALUES (");
                 CursorActivation activation = lcc.lookupCursorActivation(getCursorName());
 
                 ExecCursorTableReference targetTable = 
@@ -3724,7 +3724,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 
             //now construct the update where current of sql
             boolean foundOneColumnAlready = false;
-            StringBuffer updateWhereCurrentOfSQL = new StringBuffer("UPDATE ");
+            StringBuilder updateWhereCurrentOfSQL = new StringBuilder("UPDATE ");
             CursorActivation activation = lcc.lookupCursorActivation(getCursorName());
 
 
@@ -3823,7 +3823,7 @@ public abstract class EmbedResultSet extends ConnectionChild
             
             //now construct the delete where current of sql
             try {
-                StringBuffer deleteWhereCurrentOfSQL = new StringBuffer("DELETE FROM ");
+                StringBuilder deleteWhereCurrentOfSQL = new StringBuilder("DELETE FROM ");
                 CursorActivation activation = lcc.lookupCursorActivation(getCursorName());
                 deleteWhereCurrentOfSQL.append(getFullBaseTableName(activation.getPreparedStatement().getTargetTable()));//get the underlying (schema.)table name
                 //using quotes around the cursor name to preserve case sensitivity

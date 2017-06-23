@@ -247,7 +247,7 @@ public final class SpawnedProcess {
      */
     public String getFailMessage(String reason) {
         sleep(500);
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append(reason);
         sb.append(":Spawned ");
         sb.append(name);

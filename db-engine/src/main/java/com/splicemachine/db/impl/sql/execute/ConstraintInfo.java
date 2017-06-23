@@ -191,7 +191,7 @@ public class ConstraintInfo implements ConsInfo
 	{
 		if (SanityManager.DEBUG)
 		{
-			StringBuffer str = new StringBuffer();
+			StringBuilder str = new StringBuilder();
 			str.append("Referencing ");
 			str.append(tableName);
 			if (columnNames != null)

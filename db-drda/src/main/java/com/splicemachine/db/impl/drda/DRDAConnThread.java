@@ -4675,7 +4675,7 @@ class DRDAConnThread extends Thread {
 						trace("numVars = " + numVars);
 					if (ps == null)		// it is a CallableStatement under construction
 					{
-						StringBuffer marks = new StringBuffer();	// construct parameter marks
+						StringBuilder marks = new StringBuilder();	// construct parameter marks
                         marks.append("(?");
 						for (int i = 1; i < numVars; i++)
 							marks.append(", ?");
@@ -6394,7 +6394,7 @@ class DRDAConnThread extends Thread {
 		if (se == null)
 			return "";
 		
-		StringBuffer sb = new StringBuffer(); 
+		StringBuilder sb = new StringBuilder();
 		 // String buffer to build up message
 		do {
 			sb.append(se.getLocalizedMessage());
@@ -6434,7 +6434,7 @@ class DRDAConnThread extends Thread {
 			{   
 				// this could happen for instance if an SQLException was thrown
 				// from a stored procedure.
-				StringBuffer sb = new StringBuffer(); 
+				StringBuilder sb = new StringBuilder();
 				sb.append(se.getLocalizedMessage());
 				se = se.getNextException();
 				if (se != null)
@@ -8735,7 +8735,7 @@ class DRDAConnThread extends Thread {
                                  EXTDTAReaderInputStream stream,
                                  boolean streamLOB, String encoding) {
         if (SanityManager.DEBUG && server.debugOutput == true) {
-            StringBuffer sb = new StringBuffer("Reading/setting EXTDTA: ");
+            StringBuilder sb = new StringBuilder("Reading/setting EXTDTA: ");
             // Data: t<type>/i<ob_index>/<streamLOB>/<encoding>/
             //       <statusByteExpected>/b<byteLength>
             sb.append("t").append(drdaType).append("/i").append(index).
@@ -8780,7 +8780,7 @@ class DRDAConnThread extends Thread {
 	 */
 	private String convertToHexString(byte [] buf)
 	{
-		StringBuffer str = new StringBuffer();
+		StringBuilder str = new StringBuilder();
 		str.append("0x");
 		String val;
 		int byteVal;

@@ -466,7 +466,7 @@ public class RuntimeStatisticsParser {
 
         // Make strings ready for comparison:
         for (int i=0; i < strings.length; i++) {
-            StringBuffer sb = new StringBuffer();
+            StringBuilder sb = new StringBuilder();
 
             sb.append('\n');
             

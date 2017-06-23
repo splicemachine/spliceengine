@@ -329,7 +329,7 @@ public class ReferencedColumnsDescriptorImpl
 		if (referencedColumns == null)
 			return "NULL";
 		
-		StringBuffer sb = new StringBuffer(60);
+		StringBuilder sb = new StringBuilder(60);
 
 		sb.append('(');
 		for (int index = 0; index < referencedColumns.length; index++)

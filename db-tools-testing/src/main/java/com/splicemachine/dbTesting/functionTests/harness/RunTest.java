@@ -278,7 +278,7 @@ public class RunTest
         }
 
 	    String startTime = CurrentTime.getTime();
-	    StringBuffer sb = new StringBuffer();
+	    StringBuilder sb = new StringBuilder();
 	    sb.append("*** Start: " + testBase + " jdk" + javaVersion + " ");
 	    if ( (!framework.isEmpty()) && (!framework.startsWith("embedded")) )
 	        sb.append(framework + " ");
@@ -1830,7 +1830,7 @@ clp.list(System.out);
 
     public static String setTestJavaFlags(String tflags)
     {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
 	    if (verbose) System.out.println("testJavaflags: " + tflags);
 	    String dintro = "-D";
         try
@@ -2028,7 +2028,7 @@ clp.list(System.out);
         }
 
 	    String endTime = CurrentTime.getTime();
-	    StringBuffer sbend = new StringBuffer();
+	    StringBuilder sbend = new StringBuilder();
 	    sbend.append("*** End:   " + testBase + " jdk" + javaVersion + " ");
 	    if ( (!framework.isEmpty()) && (!framework.startsWith("embedded")) )
 	        sbend.append(framework + " ");
@@ -2534,7 +2534,7 @@ clp.list(System.out);
             FileOutputStream fos = null;
             BufferedOutputStream bos = null;
             
-            StringBuffer sb = new StringBuffer();
+            StringBuilder sb = new StringBuilder();
             
             for (int i = 0; i < testCmd.length; i++)
             {

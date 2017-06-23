@@ -107,7 +107,7 @@ class DRDAXid implements Xid
 	{
 		if (buf == null)
 			return null;
-		StringBuffer str = new StringBuffer();
+		StringBuilder str = new StringBuilder();
 		str.append("0x");
 		String val;
 		int byteVal;

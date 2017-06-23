@@ -153,7 +153,7 @@ public class BitUtil
             byte byte_value;
 
 
-            StringBuffer str = new StringBuffer(data.length * 3);
+            StringBuilder str = new StringBuilder(data.length * 3);
 
             str.append("Hex dump:\n");
 

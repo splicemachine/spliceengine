@@ -70,7 +70,7 @@ public class D_LockControl implements Diagnosticable
     public String diag()
         throws StandardException
     {
-		StringBuffer sb = new StringBuffer(1024);
+		StringBuilder sb = new StringBuilder(1024);
 
 		sb.append("LockControl:\n  granted list: ");
 
