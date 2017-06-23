@@ -24,4 +24,5 @@ import java.io.IOException;
 public interface UpgradeK2 {
 
     void setVersion() throws IOException;
+    void clearBackups() throws IOException;
 }

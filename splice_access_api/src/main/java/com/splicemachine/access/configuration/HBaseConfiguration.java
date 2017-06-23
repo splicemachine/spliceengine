@@ -121,6 +121,9 @@ public class HBaseConfiguration implements ConfigurationDefault {
 
     public static final String SPLICE_BACKUP_PARALLELISM = "splice.backup.parallelism";
     public static final int DEFAULT_SPLICE_BACKUP_PARALLELISM = 16;
+
+    public static final String K2_VERSION_NODE = "/isK2";
+
     /**
      * The Path in zookeeper for storing the maximum reserved timestamp
      * from the ZkTimestampSource implementation.
