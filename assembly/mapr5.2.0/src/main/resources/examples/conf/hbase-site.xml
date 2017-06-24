@@ -53,7 +53,7 @@
 <property><name>ipc.client.connect.timeout</name><value>300000</value></property>
 <property><name>splice.authentication</name><value>NATIVE</value> </property>
 <property><name>splice.authentication.native.algorithm</name><value>SHA-512</value></property>
-<property><name>splice.authentication.native.create.credentials.database</name><value>true</value></property>
+<property><name>splice.authentication.native.create.credentials.database</name><value>false</value></property>
 <property><name>splice.client.write.maxDependentWrites</name><value>250000</value></property>
 <property><name>splice.client.write.maxIndependentWrites</name><value>250000</value></property>
 <property><name>splice.compression</name><value>snappy</value></property>
