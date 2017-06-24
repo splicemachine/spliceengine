@@ -25,6 +25,6 @@
   </property>
   <property>
     <name>splice.authentication.native.create.credentials.database</name>
-    <value>true</value>
+    <value>false</value>
   </property>
 </configuration>
