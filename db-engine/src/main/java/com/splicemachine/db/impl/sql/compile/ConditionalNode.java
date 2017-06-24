@@ -734,13 +734,9 @@ public class ConditionalNode extends ValueNode
 	public List getChildren() {
 		List nodes = new LinkedList();
 		nodes.add(testCondition);
-		
-		Iterator it = thenElseList.getNodes().iterator();
 
-		while(it.hasNext()) {
-			nodes.add(it.next());
-		}
-		
+		nodes.addAll(thenElseList.getNodes());
+
 		return nodes;
 	}
 

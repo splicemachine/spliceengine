@@ -953,32 +953,19 @@ public class CompilerContextImpl extends ContextImpl
 		}
 		if( requiredTablePrivileges != null)
 		{
-			for( Iterator itr = requiredTablePrivileges.values().iterator(); itr.hasNext();)
-			{
-				list.add( itr.next());
-			}
+			list.addAll(requiredTablePrivileges.values());
 		}
 		if( requiredSchemaPrivileges != null)
 		{
-			for( Iterator itr = requiredSchemaPrivileges.values().iterator(); itr.hasNext();)
-			{
-				list.add( itr.next());
-			}
+			list.addAll(requiredSchemaPrivileges.values());
 		}
 		if( requiredColumnPrivileges != null)
 		{
-			for( Iterator itr = requiredColumnPrivileges.values().iterator(); itr.hasNext();)
-			{
-				list.add( itr.next());
-			}
+			list.addAll(requiredColumnPrivileges.values());
 		}
 		if( requiredRolePrivileges != null)
 		{
-			for( Iterator itr = requiredRolePrivileges.values().iterator();
-				 itr.hasNext();)
-			{
-				list.add( itr.next());
-			}
+			list.addAll(requiredRolePrivileges.values());
 		}
 		return list;
 	} // end of getRequiredPermissionsList

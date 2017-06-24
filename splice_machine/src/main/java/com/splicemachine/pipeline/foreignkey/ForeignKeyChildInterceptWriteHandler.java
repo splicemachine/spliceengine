@@ -108,9 +108,7 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
             }
 
             List<byte[]> rowKeysToFetch = new ArrayList<>(culledLookups.size());
-            for (byte[] item: culledLookups) {
-                rowKeysToFetch.add(item);
-            }
+            rowKeysToFetch.addAll(culledLookups);
             SimpleTxnFilter readUncommittedFilter;
             SimpleTxnFilter readCommittedFilter;
             if (ctx.getTxn() instanceof ActiveWriteTxn) {

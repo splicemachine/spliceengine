@@ -137,9 +137,7 @@ public class VerifySignatures extends BaseTestCase {
             Set<Method> methods = new HashSet<Method>();
             for (Class iface : getAllInterfaces(pair.jdbcInterface)) {
                 interfaces.add(iface);
-                for (Method method : iface.getMethods()) {
-                    methods.add(method);
-                }
+                methods.addAll(Arrays.asList(iface.getMethods()));
             }
             for (Method method : methods) {
                 checkImplementationMethod(pair.derbyImplementation,
