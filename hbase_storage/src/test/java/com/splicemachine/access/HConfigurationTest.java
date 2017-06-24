@@ -14,14 +14,13 @@
 
 package com.splicemachine.access;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import com.splicemachine.access.api.SConfiguration;
+import org.junit.Test;
 
 import java.util.Map;
 
-import org.junit.Test;
-
-import com.splicemachine.access.api.SConfiguration;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 /**
  * Test getting and using SConfiguration from HConfiguration.
@@ -52,6 +51,6 @@ public class HConfigurationTest {
         key = "splice.authentication.native.create.credentials.database";
         value = auths.get(key);
         assertNotNull(value);
-        assertEquals("true", value);
+        assertEquals("false", value);
     }
 }
