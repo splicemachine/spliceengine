@@ -134,35 +134,37 @@ public class SplitRegionScanner implements RegionScanner {
     }
 
     public boolean nextInternal(List<Cell> results) throws IOException {
-        try {
-            boolean next = currentScanner.nextRaw(results);
-            scannerCount++;
-            totalScannerCount++;
-            if (!next && scannerPosition < regionScanners.size()) {
-                if (LOG.isDebugEnabled())
-                    SpliceLogUtils.debug(LOG, "scanner [%d] exhausted after {%d} records with results=%s", scannerPosition, scannerCount, results);
-                currentScanner = regionScanners.get(scannerPosition);
-                scannerPosition++;
-                scannerCount = 0;
-                return nextInternal(results);
-            }
-            return next;
-        } catch (IOException ioe) { // Move Issue
-            boolean rethrow = shouldRethrowException(ioe);
-            if (!rethrow) {
-                scanExceptionCount++;
-                Cell topCell = ((SkeletonClientSideRegionScanner) this.currentScanner).getTopCell();
-                if (topCell != null) {
-                    scan.setStartRow(Bytes.add(topCell.getRow(), new byte[]{0})); // set to previous start row
+        while (true) {
+            try {
+                boolean next = currentScanner.nextRaw(results);
+                scannerCount++;
+                totalScannerCount++;
+                if (!next && scannerPosition < regionScanners.size()) {
+                    if (LOG.isDebugEnabled())
+                        SpliceLogUtils.debug(LOG, "scanner [%d] exhausted after {%d} records with results=%s", scannerPosition, scannerCount, results);
+                    currentScanner = regionScanners.get(scannerPosition);
+                    scannerPosition++;
+                    scannerCount = 0;
+                    continue;
                 }
-                close();
-                SpliceLogUtils.warn(LOG, "re-init split scanner with scan=%s, table=%s",scan,htable);
-                init(true); // Refresh
-                results.clear();
-                return nextInternal(results);
-            } else
-                close(); // Close Scans
+                return next;
+            } catch (IOException ioe) { // Move Issue
+                boolean rethrow = shouldRethrowException(ioe);
+                if (!rethrow) {
+                    scanExceptionCount++;
+                    Cell topCell = ((SkeletonClientSideRegionScanner) this.currentScanner).getTopCell();
+                    if (topCell != null) {
+                        scan.setStartRow(Bytes.add(topCell.getRow(), new byte[]{0})); // set to previous start row
+                    }
+                    close();
+                    SpliceLogUtils.warn(LOG, "re-init split scanner with scan=%s, table=%s", scan, htable);
+                    init(true); // Refresh
+                    results.clear();
+                    continue;
+                } else
+                    close(); // Close Scans
                 throw new IOException(ioe);
+            }
         }
     }
 

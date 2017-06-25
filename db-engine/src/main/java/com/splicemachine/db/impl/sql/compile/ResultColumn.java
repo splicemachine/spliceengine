@@ -1888,7 +1888,7 @@ public class ResultColumn extends ValueNode
 	 * the number of the table to which this RC points, and
 	 * return that table number.  If we can't determine which
 	 * table this RC is for, then return -1.
-	 *
+	 * <p>
 	 * There are two places we can find the table number: 1) if
 	 * our expression is a ColumnReference, then we can get the
 	 * target table number from the ColumnReference and that's
@@ -1898,40 +1898,39 @@ public class ResultColumn extends ValueNode
 	 * VirtualColumnNode-ResultColumn chain and do a recursive
 	 * search.
 	 *
-	 * @return The number of the table to which this ResultColumn	
-	 *  points, or -1 if we can't determine that from where we are.
+	 * @return The number of the table to which this ResultColumn
+	 * points, or -1 if we can't determine that from where we are.
 	 */
 	@Override
-	public int getTableNumber()
-	{
-		if (expression instanceof ColumnReference)
-			return ((ColumnReference)expression).getTableNumber();
-		else if (expression instanceof VirtualColumnNode)
-		{
-			VirtualColumnNode vcn = (VirtualColumnNode)expression;
+	public int getTableNumber() {
+		ResultColumn other = this;
+		while (true) {
+			if (other.expression instanceof ColumnReference)
+				return ((ColumnReference) other.expression).getTableNumber();
+			else if (other.expression instanceof VirtualColumnNode) {
+				VirtualColumnNode vcn = (VirtualColumnNode) other.expression;
 
-			// If the VCN points to a FromBaseTable, just get that
-			// table's number.
-			if (vcn.getSourceResultSet() instanceof FromBaseTable)
-			{
-				return ((FromBaseTable)vcn.getSourceResultSet()).
-						getTableNumber();
+				// If the VCN points to a FromBaseTable, just get that
+				// table's number.
+				if (vcn.getSourceResultSet() instanceof FromBaseTable) {
+					return ((FromBaseTable) vcn.getSourceResultSet()).
+							getTableNumber();
+				}
+
+				// Else recurse down the VCN.
+				other = vcn.getSourceColumn();
+				continue;
+			} else if (other.expression instanceof TernaryOperatorNode) {
+				return ((TernaryOperatorNode) other.expression).receiver.getTableNumber();
+			} else if (other.expression == null) {
+				return -1;
 			}
 
-			// Else recurse down the VCN.
-			return vcn.getSourceColumn().getTableNumber();
+			// We can get here if expression has neither a column
+			// reference nor a FromBaseTable beneath it--for example,
+			// if it is of type BaseColumnNode.
+			return other.expression.getTableNumber();
 		}
-		else if (expression instanceof TernaryOperatorNode) {
-			return ((TernaryOperatorNode) expression).receiver.getTableNumber();
-		}
-		else if (expression == null) {
-			return -1;
-		}
-
-		// We can get here if expression has neither a column
-		// reference nor a FromBaseTable beneath it--for example,
-		// if it is of type BaseColumnNode. 
-		return expression.getTableNumber();
 	}
 
 	public boolean isEquivalent(ValueNode o) throws StandardException

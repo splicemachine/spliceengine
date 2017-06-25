@@ -113,19 +113,20 @@ public final class OrcInputStream
 
     @Override
     public int read()
-            throws IOException
-    {
-        if (current == null) {
-            return -1;
-        }
+            throws IOException {
+        while (true) {
+            if (current == null) {
+                return -1;
+            }
 
-        int result = current.read();
-        if (result != -1) {
-            return result;
-        }
+            int result = current.read();
+            if (result != -1) {
+                return result;
+            }
 
-        advance();
-        return read();
+            advance();
+
+        }
     }
 
     @Override
