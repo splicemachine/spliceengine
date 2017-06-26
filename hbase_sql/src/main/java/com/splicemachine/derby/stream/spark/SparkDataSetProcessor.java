@@ -332,7 +332,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         try {
             Dataset<Row> table = null;
             try {
-                SparkSession spark = SparkSession.builder().master("local").getOrCreate();
+                SparkSession spark = SpliceSpark.getSession();
                 // Creates a DataFrame from a specified file
                 table = spark.read().format("com.databricks.spark.avro").load(location);
             } catch (Exception e) {
@@ -385,7 +385,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 schema =  SpliceSpark.getSession().read().parquet(location).schema();
             }
             else if (storedAs.toLowerCase().equals("a")) {
-                schema =  SparkSession.builder().master("local").getOrCreate().read().format("com.databricks.spark.avro").load(location).schema();
+                schema =  SpliceSpark.getSession().read().format("com.databricks.spark.avro").load(location).schema();
             }
             else if (storedAs.toLowerCase().equals("o")) {
                 schema =  SpliceSpark.getSession().read().orc(location).schema();

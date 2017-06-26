@@ -401,7 +401,7 @@ public class ExternalTableIT extends SpliceUnitTest{
                 " STORED AS AVRO LOCATION '%s'",tablePath));
     }
 
-    @Test @Ignore
+    @Test @Ignore // DB-6044
     public void testLocationCannotBeAFileAvro() throws  Exception{
         File temp = File.createTempFile("temp-file-avro", ".tmp");
         try {
