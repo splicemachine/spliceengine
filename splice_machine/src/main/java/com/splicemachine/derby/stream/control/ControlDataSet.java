@@ -66,6 +66,11 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
+    public int partitions() {
+        return 1;
+    }
+
+    @Override
     public List<V> collect() {
         return IteratorUtils.<V>toList(iterator);
     }

@@ -33,6 +33,7 @@ import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.output.BulkDeleteDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.BulkInsertDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
+import com.splicemachine.derby.utils.StatisticsOperation;
 import com.splicemachine.utils.ByteDataInput;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
@@ -84,6 +85,12 @@ public class SparkDataSet<V> implements DataSet<V> {
         this.rdd = rdd;
         if (rdd != null && rddname != null) this.rdd.setName(rddname);
     }
+
+    @Override
+    public int partitions() {
+        return rdd.getNumPartitions();
+    }
+
     /**
      *
      * Execute the job and materialize the results as a List.  Be careful, all

@@ -58,6 +58,8 @@ import org.spark_project.guava.collect.FluentIterable;
 import org.spark_project.guava.collect.Lists;
 
 import javax.annotation.Nullable;
+import java.io.ByteArrayInputStream;
+import java.io.ObjectInputStream;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -184,7 +186,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             List<StatisticsOperation> futures = new ArrayList(tds.size());
             for (TableDescriptor td : tds) {
                 display.put(td.getHeapConglomerateId(),Pair.newPair(schema,td.getName()));
-                futures.add(collectTableStatistics(td, false, 0, txn, conn));
+                futures.add(collectTableStatistics(td, false, 0, true, txn, conn));
             }
             IteratorNoPutResultSet resultsToWrap = wrapResults(conn,
             displayTableStatistics(futures,true,dd,transactionExecute,display));
@@ -349,7 +351,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             IteratorNoPutResultSet resultsToWrap = wrapResults(
                     conn,
                     displayTableStatistics(Lists.newArrayList(
-                            collectTableStatistics(tableDesc, useSample, samplePercent/100, txn, conn)
+                            collectTableStatistics(tableDesc, useSample, samplePercent/100, mergeStats, txn, conn)
                             ),
                             mergeStats,
                             dd, tc, display));
@@ -364,15 +366,17 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     private static StatisticsOperation collectTableStatistics(TableDescriptor table,
                                                              boolean useSample,
                                                              double sampleFraction,
+                                                              boolean mergeStats,
                                                              TxnView txn,
                                                              EmbedConnection conn) throws StandardException, ExecutionException {
 
-       return collectBaseTableStatistics(table, useSample, sampleFraction, txn, conn);
+       return collectBaseTableStatistics(table, useSample, sampleFraction, mergeStats, txn, conn);
     }
 
     private static StatisticsOperation collectBaseTableStatistics(TableDescriptor table,
                                                                  boolean useSample,
                                                                  double sampleFraction,
+                                                                  boolean mergeStats,
                                                                  TxnView txn,
                                                                  EmbedConnection conn) throws StandardException, ExecutionException {
         long heapConglomerateId = table.getHeapConglomerateId();
@@ -387,7 +391,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             useSample = false;
             sampleFraction = 0.0d;
         }
-        StatisticsOperation op = new StatisticsOperation(scanSetBuilder,useSample, sampleFraction, scope,activation);
+        StatisticsOperation op = new StatisticsOperation(scanSetBuilder,useSample, sampleFraction, mergeStats, scope,activation);
         op.openCore();
         return op;
     }
@@ -682,11 +686,10 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                             private ExecRow nextRow;
                             private boolean fetched = false;
                             // data structures to accumulate the partition stats
-                            Map<Integer, ColumnStatisticsMerge> itemStatisticsBuilder = null;
                             private long conglomId = 0;
                             private long rowCount = 0L;
                             private long totalSize = 0;
-                            private long avgRowWidth = 0;
+                            private int avgRowWidth = 0;
                             private long numberOfPartitions = 0;
                             private int statsType = SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS;
                             private double sampleFraction = 0.0d;
@@ -698,28 +701,22 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                         nextRow = input.getNextRowCore();
                                         while (nextRow != null) {
                                             fetched = true;
-                                            if (nextRow.nColumns() == SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_COLUMN_COUNT) {
-                                                // process columnstats row
-                                                conglomId = nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.CONGLOMID).getLong();
-                                                ItemStatistics itemStatistics = (ItemStatistics) nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.DATA).getObject();
-                                                Integer columnId = new Integer(nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.COLUMNID).getInt());
-                                                if (itemStatisticsBuilder == null)
-                                                    itemStatisticsBuilder = new HashMap<>();
-                                                ColumnStatisticsMerge builder = itemStatisticsBuilder.get(columnId);
-                                                if (builder == null) {
-                                                    builder = ColumnStatisticsMerge.instance();
-                                                    itemStatisticsBuilder.put(columnId, builder);
-                                                }
-                                                builder.accumulate((ColumnStatisticsImpl) itemStatistics);
+                                            if (nextRow.nColumns() == 2) {
+                                                int columnId = nextRow.getColumn(1).getInt();
+                                                ByteArrayInputStream bais = new ByteArrayInputStream(nextRow.getColumn(2).getBytes());
+                                                ObjectInputStream ois = new ObjectInputStream(bais);
+                                                // compose the entry for a given column
+                                                ExecRow statsRow = StatisticsAdmin.generateRowFromStats(conglomId, "-All-", columnId, (ColumnStatisticsImpl) ois.readObject());
+                                                dataDictionary.addColumnStatistics(statsRow, tc);
+                                                bais.close();
                                             } else {
                                                 // process tablestats row
-                                                // in case no columns stats is collected, we need to set it conglomId here
                                                 conglomId = nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.CONGLOMID).getLong();
                                                 long partitionRowCount = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.ROWCOUNT).getLong();
-                                                rowCount += partitionRowCount;
-                                                totalSize += nextRow.getColumn(SYSTABLESTATISTICSRowFactory.PARTITION_SIZE).getLong();
-                                                avgRowWidth += nextRow.getColumn(SYSTABLESTATISTICSRowFactory.MEANROWWIDTH).getInt() * partitionRowCount;
-                                                numberOfPartitions++;
+                                                rowCount = partitionRowCount;
+                                                totalSize = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.PARTITION_SIZE).getLong();
+                                                avgRowWidth = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.MEANROWWIDTH).getInt();
+                                                numberOfPartitions = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.NUMBEROFPARTITIONS).getLong();
                                                 statsType = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.STATSTYPE).getInt();
                                                 sampleFraction = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.SAMPLEFRACTION).getDouble();
                                             }
@@ -738,19 +735,12 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                     fetched = false;
                                     // insert rows to dictionary tables, and return
                                     ExecRow statsRow;
-                                    if (itemStatisticsBuilder != null) {
-                                        for (Map.Entry<Integer, ColumnStatisticsMerge> builder : itemStatisticsBuilder.entrySet()) {
-                                            // compose the entry for a given column
-                                            statsRow = StatisticsAdmin.generateRowFromStats(conglomId, "-All-", builder.getKey(), builder.getValue().terminate());
-                                            dataDictionary.addColumnStatistics(statsRow, tc);
-                                        }
-                                    }
                                     //change statsType to 2: merged full stats or 3: merged sample stats
                                     if (statsType == SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS)
                                         statsType = SYSTABLESTATISTICSRowFactory.REGULAR_MERGED_STATS;
                                     else if (statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_NONMERGED_STATS)
                                         statsType = SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS;
-                                    statsRow = StatisticsAdmin.generateRowFromStats(conglomId, "-All-", rowCount, totalSize, (int) ((double) avgRowWidth / rowCount), numberOfPartitions, statsType, sampleFraction);
+                                    statsRow = StatisticsAdmin.generateRowFromStats(conglomId, "-All-", rowCount, totalSize, avgRowWidth, numberOfPartitions, statsType, sampleFraction);
                                     dataDictionary.addTableStatistics(statsRow, tc);
                                     Pair<String, String> pair = displayPair.get(conglomId);
                                     return generateOutputRow(pair.getFirst(), pair.getSecond(), statsRow);
