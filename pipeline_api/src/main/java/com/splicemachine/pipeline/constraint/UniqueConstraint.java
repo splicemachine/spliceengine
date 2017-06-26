@@ -23,7 +23,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.ByteSlice;
 
 import java.io.IOException;
-import java.util.Set;
+import java.util.Map;
 
 /**
  * A Unique Constraint.
@@ -55,13 +55,26 @@ public class UniqueConstraint implements Constraint {
     }
 
     @Override
-    public Result validate(KVPair mutation, TxnView txn, ServerControl rce, Set<ByteSlice> priorValues) throws IOException {
+    public Result validate(KVPair mutation, TxnView txn, ServerControl rce, Map<ByteSlice, ByteSlice> priorValues) throws IOException {
+        Type constraintType = getType();
         KVPair.Type type = mutation.getType();
         // Only these mutation types can cause UniqueConstraint violations.
         if (type == KVPair.Type.INSERT || type == KVPair.Type.UPSERT) {
-            // if prior visited values has it, it's in the same batch mutation, so don't fail it
-            if (priorValues.contains(mutation.rowKeySlice())) {
-                return (type == KVPair.Type.UPSERT) ? Result.ADDITIVE_WRITE_CONFLICT : Result.FAILURE;
+            ByteSlice value = priorValues.get(mutation.rowKeySlice());
+            if (constraintType == Type.PRIMARY_KEY) {
+                if (value != null)
+                    return (type == KVPair.Type.UPSERT) ? Result.ADDITIVE_WRITE_CONFLICT : Result.FAILURE;
+                else
+                    return Result.SUCCESS;
+            }
+            else {
+                if (value != null) {
+                    // If we have seen this index row before, and they are indexing the same main table row, the index row
+                    // is being retried by client. Otherwise it is a true conflict.
+                    if (!value.equals(mutation.valueSlice())) {
+                        return (type == KVPair.Type.UPSERT) ? Result.ADDITIVE_WRITE_CONFLICT : Result.FAILURE;
+                    }
+                }
             }
         }
         return Result.SUCCESS;
