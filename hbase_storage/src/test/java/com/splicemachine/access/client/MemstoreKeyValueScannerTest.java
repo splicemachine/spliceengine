@@ -63,9 +63,7 @@ public class MemstoreKeyValueScannerTest {
     private ResultScanner generateResultScanner(KeyValue... kvs) {
         TreeSet<KeyValue> set = new TreeSet<>(KeyValue.COMPARATOR);
 
-        for (KeyValue kv : kvs) {
-            set.add(kv);
-        }
+        set.addAll(Arrays.asList(kvs));
 
         KeyValue[] sortedKvs = new KeyValue[set.size()];
         set.toArray(sortedKvs);
