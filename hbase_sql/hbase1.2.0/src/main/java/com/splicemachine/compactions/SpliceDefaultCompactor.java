@@ -276,7 +276,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                     SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                             driver.getRollForward(),
                             driver.getConfiguration().getActiveTransactionCacheSize());
-                    boolean purgeDeletedRows = request.isMajor() ? shouldPurge() : false;
+                    boolean purgeDeletedRows = request.isMajor() && shouldPurge();
 
                     scanner = new SICompactionScanner(state,scanner,purgeDeletedRows);
                 }

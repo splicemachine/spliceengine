@@ -137,7 +137,7 @@ public class SpliceDateFunctions {
 
     /**
      * Implements the LAST_DAY function
-     */                                                                           ;
+     */
     public static Date LAST_DAY(Date source) {
         if (source == null) {
             return null;

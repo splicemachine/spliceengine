@@ -50,7 +50,7 @@ public class TentativeDropColumnDesc extends AlterTableDDLDescriptor implements 
         this.tableVersion = tentativeDropColumn.getTableVersion();
         this.srcColumnOrdering = Ints.toArray(tentativeDropColumn.getOldColumnOrderingList());
         this.targetColumnOrdering = Ints.toArray(tentativeDropColumn.getNewColumnOrderingList());
-        this.columnInfos = DDLUtils.deserializeColumnInfoArray(tentativeDropColumn.getColumnInfos().toByteArray());;
+        this.columnInfos = DDLUtils.deserializeColumnInfoArray(tentativeDropColumn.getColumnInfos().toByteArray());
         this.droppedColumnPosition = tentativeDropColumn.getDroppedColumnPosition();
 
     }

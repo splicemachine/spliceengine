@@ -337,10 +337,8 @@ public class BackupUtils {
     private static boolean shouldIgnore(SpliceMessage.PrepareBackupRequest request, HRegion region) {
         byte[] endKey = request.hasEndKey() ? request.getEndKey().toByteArray() : null;
         byte[] regionStartKey = region.getRegionInfo().getStartKey();
-        if (endKey != null && endKey.length > 0 && Bytes.compareTo(endKey, regionStartKey) == 0)
-            return true;
+        return endKey != null && endKey.length > 0 && Bytes.compareTo(endKey, regionStartKey) == 0;
 
-        return false;
     }
 
     private static boolean backupTimedout() throws Exception {

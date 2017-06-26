@@ -499,12 +499,13 @@ public class ControlDataSet<V> implements DataSet<V> {
     @Override
     public BulkInsertDataSetWriterBuilder bulkInsertData(OperationContext operationContext) throws StandardException {
        throw new RuntimeException("bulk load not supported");
-    };
+    }
 
     @Override
     public BulkDeleteDataSetWriterBuilder bulkDeleteData(OperationContext operationContext) throws StandardException {
         throw new RuntimeException("bulk load not supported");
-    };
+    }
+
     /**
      *
      * Non Lazy Callable
