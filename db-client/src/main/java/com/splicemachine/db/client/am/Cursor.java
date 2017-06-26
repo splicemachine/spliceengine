@@ -103,8 +103,8 @@ public abstract class Cursor {
     // scrollable updatable insensitive result sets for now.
     private boolean isRowUpdated_;
 
-    final static public java.lang.Boolean ROW_IS_NULL = new Boolean(true);
-    final static public java.lang.Boolean ROW_IS_NOT_NULL = new Boolean(false);
+    final static public java.lang.Boolean ROW_IS_NULL = Boolean.TRUE;
+    final static public java.lang.Boolean ROW_IS_NOT_NULL = Boolean.FALSE;
 
     java.util.Calendar recyclableCalendar_ = null;
 

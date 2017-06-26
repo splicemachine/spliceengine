@@ -187,7 +187,7 @@ public class ClientDriver implements java.sql.Driver {
                     key.equals(Attribute.PASSWORD_ATTR) ||
                     key.equals(Attribute.SSL_ATTR))
                 continue;
-            longDatabase.append(";" + key + "=" + augmentedProperties.getProperty(key));
+            longDatabase.append(";").append(key).append("=").append(augmentedProperties.getProperty(key));
         }
         return longDatabase.toString();
     }

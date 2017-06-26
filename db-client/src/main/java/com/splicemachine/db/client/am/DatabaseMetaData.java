@@ -1355,7 +1355,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
             cs.setStringX(3, tableNamePattern);
         }
 
-        String tableTypes = "";
+        StringBuilder tableTypes = new StringBuilder();
         int i = 0;
         if (types == null) {
             cs.setNullX(4, java.sql.Types.VARCHAR);
@@ -1364,12 +1364,12 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
         } else {
             while (i < types.length) {
                 if (i > 0) {
-                    tableTypes = tableTypes + ",";
+                    tableTypes.append(",");
                 }
-                tableTypes = tableTypes + "'" + types[i] + "'";
+                tableTypes.append("'").append(types[i]).append("'");
                 i++;
             }
-            cs.setStringX(4, tableTypes);
+            cs.setStringX(4, tableTypes.toString());
         }
         cs.setStringX(5, getOptions());
         return executeCatalogQuery(cs);
@@ -2080,15 +2080,15 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
         cs.setStringX(2, schemaPattern);
         cs.setStringX(3, typeNamePattern);
         int i = 0;
-        String udtTypes = "";
+        StringBuilder udtTypes = new StringBuilder();
         while (types != null && i < types.length) {
             if (i > 0) {
-                udtTypes = udtTypes + ",";
+                udtTypes.append(",");
             }
-            udtTypes = udtTypes + String.valueOf(types[i]);
+            udtTypes.append(String.valueOf(types[i]));
             i++;
         }
-        cs.setStringX(4, udtTypes);
+        cs.setStringX(4, udtTypes.toString());
         cs.setStringX(5, getOptions());
         return executeCatalogQuery(cs);
     }
