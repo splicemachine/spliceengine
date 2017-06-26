@@ -149,10 +149,10 @@ public class Decimal {
      *
      * @throws IllegalArgumentException if the specified representation is not recognized.
      */
-    public static final java.math.BigDecimal getBigDecimal(byte[] buffer,
-                                                           int offset,
-                                                           int precision,
-                                                           int scale) throws java.io.UnsupportedEncodingException {
+    public static java.math.BigDecimal getBigDecimal(byte[] buffer,
+                                                     int offset,
+                                                     int precision,
+                                                     int scale) throws java.io.UnsupportedEncodingException {
         // The byte-length of a packed decimal with precision <code>p</code> is always <code>p/2 + 1</code>
         int length = precision / 2 + 1;
 
@@ -264,10 +264,10 @@ public class Decimal {
      *
      * @throws IllegalArgumentException if the specified representation is not recognized.
      */
-    public static final double getDouble(byte[] buffer,
-                                         int offset,
-                                         int precision,
-                                         int scale) throws java.io.UnsupportedEncodingException {
+    public static double getDouble(byte[] buffer,
+                                   int offset,
+                                   int precision,
+                                   int scale) throws java.io.UnsupportedEncodingException {
         // The byte-length of a packed decimal with precision <code>p</code> is always <code>p/2 + 1</code>
         int length = precision / 2 + 1;
 
@@ -327,10 +327,10 @@ public class Decimal {
      * @throws IllegalArgumentException if the specified representation is not recognized.
      * @throws ArithmeticException if value is too large for a long
      */
-    public static final long getLong(byte[] buffer,
-                                     int offset,
-                                     int precision,
-                                     int scale) throws java.io.UnsupportedEncodingException {
+    public static long getLong(byte[] buffer,
+                               int offset,
+                               int precision,
+                               int scale) throws java.io.UnsupportedEncodingException {
         if (precision > 31) {
             // throw an exception here if nibbles is greater than 31
             throw new java.lang.IllegalArgumentException(
@@ -369,11 +369,11 @@ public class Decimal {
     /**
      * Write a Java <code>java.math.BigDecimal</code> to packed decimal bytes.
      */
-    public static final int bigDecimalToPackedDecimalBytes(byte[] buffer,
-                                                           int offset,
-                                                           java.math.BigDecimal b,
-                                                           int declaredPrecision,
-                                                           int declaredScale)
+    public static int bigDecimalToPackedDecimalBytes(byte[] buffer,
+                                                     int offset,
+                                                     java.math.BigDecimal b,
+                                                     int declaredPrecision,
+                                                     int declaredScale)
             throws SqlException {
         // packed decimal may only be up to 31 digits.
         if (declaredPrecision > 31) {

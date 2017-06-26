@@ -169,7 +169,7 @@ public final class InputStreamUtil {
      * @return The number of bytes skipped.
      * @throws IOException if reading from the stream fails
      */
-    public static final long skipPersistent(InputStream in, long bytesToSkip)
+    public static long skipPersistent(InputStream in, long bytesToSkip)
     throws IOException {
         long skipped = 0;
         while (skipped < bytesToSkip) {

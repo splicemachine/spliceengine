@@ -74,7 +74,7 @@ public class FloatingPoint {
      *
      * @throws IllegalArgumentException if the specified representation is not recognized.
      */
-    public static final float getFloat(byte[] buffer, int offset) {
+    public static float getFloat(byte[] buffer, int offset) {
         return Float.intBitsToFloat(convertFromByteToInt(buffer, offset));
     }
 
@@ -86,7 +86,7 @@ public class FloatingPoint {
      *
      * @throws IllegalArgumentException if the specified representation is not recognized.
      */
-    public static final double getDouble(byte[] buffer, int offset) {
+    public static double getDouble(byte[] buffer, int offset) {
         return Double.longBitsToDouble(convertFromByteToLong(buffer, offset));
     }
 
