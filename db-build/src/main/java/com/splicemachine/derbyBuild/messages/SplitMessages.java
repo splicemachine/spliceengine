@@ -253,11 +253,8 @@ public class SplitMessages {
             return true;
         }
 
-        if (clientMessageIds.contains(messageId)) {
-            return true;
-        }
+        return clientMessageIds.contains(messageId);
 
-        return false;
     }
 
 

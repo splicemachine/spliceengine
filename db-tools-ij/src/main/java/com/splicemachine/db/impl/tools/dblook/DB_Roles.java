@@ -113,10 +113,8 @@ public class DB_Roles {
     private static String roleDefinitionStatement(ResultSet rs, String roleName)
         throws SQLException
     {
-        StringBuilder createStmt = new StringBuilder("CREATE ROLE ");
 
-        createStmt.append(roleName);
-        return createStmt.toString();
+        return "CREATE ROLE " + roleName;
     }
 
     private static void generateRoleGrants(ResultSet rs)

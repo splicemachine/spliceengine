@@ -160,35 +160,35 @@ public class DB_GrantRevoke {
 
 		if (rs.getString(5).toUpperCase().equals("Y"))
 		{
-			grantStmt.append(separatorStr(addSeparator)+ "DELETE");
+			grantStmt.append(separatorStr(addSeparator)).append("DELETE");
 			addSeparator = true;
 		}
 
 		if (rs.getString(6).toUpperCase().equals("Y"))
 		{
-			grantStmt.append(separatorStr(addSeparator)+ "INSERT");
+			grantStmt.append(separatorStr(addSeparator)).append("INSERT");
 			addSeparator = true;
 		}
 
 		if (rs.getString(7).toUpperCase().equals("Y"))
 		{
-			grantStmt.append(separatorStr(addSeparator)+ "UPDATE");
+			grantStmt.append(separatorStr(addSeparator)).append("UPDATE");
 			addSeparator = true;
 		}
 
 		if (rs.getString(8).toUpperCase().equals("Y"))
 		{
-			grantStmt.append(separatorStr(addSeparator)+ "REFERENCES");
+			grantStmt.append(separatorStr(addSeparator)).append("REFERENCES");
 			addSeparator = true;
 		}
 
 		if (rs.getString(9).toUpperCase().equals("Y"))
 		{
-			grantStmt.append(separatorStr(addSeparator)+ "TRIGGER");
+			grantStmt.append(separatorStr(addSeparator)).append("TRIGGER");
 			addSeparator = true;
 		}
 
-		grantStmt.append(" ON " + fullName + " TO " + authName);
+		grantStmt.append(" ON ").append(fullName).append(" TO ").append(authName);
 
 		return grantStmt.toString();
 	}
@@ -260,12 +260,14 @@ public class DB_GrantRevoke {
 
 	private static String privTypeToString(String privType)
 	{
-		if (privType.equals("S"))
-			return "SELECT";
-		else if (privType.equals("R"))
-			return "REFERENCES";
-		else if (privType.equals("U"))
-			return "UPDATE";
+		switch (privType) {
+			case "S":
+				return "SELECT";
+			case "R":
+				return "REFERENCES";
+			case "U":
+				return "UPDATE";
+		}
 
 		// Should throw an exception?
 		return "";
@@ -439,13 +441,11 @@ public class DB_GrantRevoke {
 		throws SQLException
 	{
 		boolean addSeparator = false;
-		StringBuilder grantStmt = new StringBuilder("GRANT " + permission + " ON " + objectType + " " );
+		String grantStmt = "GRANT " + permission + " ON " + objectType + " " + fullName +
+				" TO " +
+				authName;
 
-		grantStmt.append(fullName);
-		grantStmt.append(" TO ");
-		grantStmt.append(authName);
-
-		return grantStmt.toString();
+		return grantStmt;
 	}
 
 	/** ************************************************
@@ -490,13 +490,11 @@ public class DB_GrantRevoke {
 		throws SQLException
 	{
 		boolean addSeparator = false;
-		StringBuilder grantStmt = new StringBuilder("GRANT EXECUTE ON ");
+		String grantStmt = "GRANT EXECUTE ON " + ((aliasType.equals("P")) ? "PROCEDURE " : "FUNCTION ") +
+				fullName +
+				" TO " +
+				authName;
 
-		grantStmt.append((aliasType.equals("P")) ? "PROCEDURE " : "FUNCTION ");
-		grantStmt.append(fullName);
-		grantStmt.append(" TO ");
-		grantStmt.append(authName);
-
-		return grantStmt.toString();
+		return grantStmt;
 	}
 }

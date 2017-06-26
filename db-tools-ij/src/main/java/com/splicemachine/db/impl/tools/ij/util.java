@@ -820,7 +820,7 @@ AppUI.out.println("SIZE="+l);
 		String framework = util.getSystemProperty("framework");
 		return ((framework != null)  &&
 			((framework.toUpperCase(Locale.ENGLISH).equals("DERBYNET")) ||
-			 (framework.toUpperCase(Locale.ENGLISH).indexOf("JCC") != -1)));
+			 (framework.toUpperCase(Locale.ENGLISH).contains("JCC"))));
 	}
 	
 	/**
