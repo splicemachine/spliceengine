@@ -19,6 +19,8 @@ import org.apache.log4j.Logger;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.MessageEvent;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * @author Scott Fines
  *         Date: 4/1/16
@@ -41,6 +43,18 @@ public class OlapStatusHandler extends AbstractOlapHandler{
             return;
         }
         OlapJobStatus status = jobRegistry.getStatus(cmd.getUniqueName());
+
+        OlapMessage.Status statusMsg = cmd.getExtension(OlapMessage.Status.command);
+        if (statusMsg.hasWaitTimeMillis() && status != null) {
+            long waitTime = statusMsg.getWaitTimeMillis();
+            switch (status.checkState()) {
+                case SUBMITTED:
+                case RUNNING:
+                    status.wait(waitTime, TimeUnit.MILLISECONDS);
+            }
+        }
+
+
         writeResponse(e,cmd.getUniqueName(),status);
 
         if (LOG.isTraceEnabled()) {
