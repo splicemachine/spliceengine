@@ -34,6 +34,8 @@ import java.util.concurrent.Future;
  */
 public interface DataSet<V> extends Iterable<V>, Serializable {
 
+    int partitions();
+
     public enum JoinType {
         INNER("inner"),
         OUTER("outer"),
