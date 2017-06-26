@@ -699,7 +699,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                             private ExecRow nextRow;
                             private boolean fetched = false;
                             // data structures to accumulate the partition stats
-                            Map<Integer, ColumnStatisticsImpl> columnStatisticsMap = new HashMap<Integer, ColumnStatisticsImpl>();
                             private long conglomId = 0;
                             private long rowCount = 0L;
                             private long totalSize = 0;
@@ -719,7 +718,9 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                                 int columnId = nextRow.getColumn(1).getInt();
                                                 ByteArrayInputStream bais = new ByteArrayInputStream(nextRow.getColumn(2).getBytes());
                                                 ObjectInputStream ois = new ObjectInputStream(bais);
-                                                columnStatisticsMap.put(columnId, (ColumnStatisticsImpl) ois.readObject());
+                                                // compose the entry for a given column
+                                                ExecRow statsRow = StatisticsAdmin.generateRowFromStats(conglomId, "-All-", columnId, (ColumnStatisticsImpl) ois.readObject());
+                                                dataDictionary.addColumnStatistics(statsRow, tc);
                                                 bais.close();
                                             } else {
                                                 // process tablestats row
@@ -728,7 +729,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                                 rowCount = partitionRowCount;
                                                 totalSize = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.PARTITION_SIZE).getLong();
                                                 avgRowWidth = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.MEANROWWIDTH).getInt();
-                                                numberOfPartitions = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.NUMBEROFPARTITIONS).getInt();
+                                                numberOfPartitions = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.NUMBEROFPARTITIONS).getLong();
                                                 statsType = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.STATSTYPE).getInt();
                                                 sampleFraction = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.SAMPLEFRACTION).getDouble();
                                             }
@@ -747,13 +748,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                     fetched = false;
                                     // insert rows to dictionary tables, and return
                                     ExecRow statsRow;
-                                    if (columnStatisticsMap != null) {
-                                        for (Map.Entry<Integer, ColumnStatisticsImpl> entry : columnStatisticsMap.entrySet()) {
-                                            // compose the entry for a given column
-                                            statsRow = StatisticsAdmin.generateRowFromStats(conglomId, "-All-", entry.getKey(), entry.getValue());
-                                            dataDictionary.addColumnStatistics(statsRow, tc);
-                                        }
-                                    }
                                     //change statsType to 2: merged full stats or 3: merged sample stats
                                     if (statsType == SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS)
                                         statsType = SYSTABLESTATISTICSRowFactory.REGULAR_MERGED_STATS;
