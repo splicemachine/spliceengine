@@ -24,4 +24,9 @@ import com.splicemachine.utils.ByteSlice;
 public class NoOpReadResolver implements ReadResolver {
 		public static final ReadResolver INSTANCE = new NoOpReadResolver();
     @Override public void resolve(ByteSlice rowKey, long txnId) {  }
+
+    @Override
+    public boolean enabled() {
+        return false;
+    }
 }
