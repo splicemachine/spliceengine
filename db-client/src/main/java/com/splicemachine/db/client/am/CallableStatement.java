@@ -243,7 +243,7 @@ public class CallableStatement extends PreparedStatement
                 boolean result;
                 checkGetterPreconditions(parameterIndex);
                 setWasNull(parameterIndex);
-                result = wasNullX() ? false : singletonRowData_.getBoolean(parameterIndex);
+                result = !wasNullX() && singletonRowData_.getBoolean(parameterIndex);
                 if (agent_.loggingEnabled()) {
                     agent_.logWriter_.traceExit(this, "getBoolean", result);
                 }

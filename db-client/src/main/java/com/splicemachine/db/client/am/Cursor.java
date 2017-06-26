@@ -263,7 +263,7 @@ public abstract class Cursor {
 
     public final void setIsUpdataDeleteHole(int row, boolean isRowNull) {
         isUpdateDeleteHole_ = isRowNull;
-        Boolean nullIndicator = (isUpdateDeleteHole_ == true) ? ROW_IS_NULL : ROW_IS_NOT_NULL;
+        Boolean nullIndicator = (isUpdateDeleteHole_) ? ROW_IS_NULL : ROW_IS_NOT_NULL;
         if (isUpdateDeleteHoleCache_.size() == row) {
             isUpdateDeleteHoleCache_.add(nullIndicator);
         } else {
@@ -326,10 +326,8 @@ public abstract class Cursor {
 
     // Build a Java boolean from a 1-byte signed binary representation.
     private boolean get_BOOLEAN(int column) {
-        if ( com.splicemachine.db.client.am.SignedBinary.getByte
-             ( dataBuffer_, columnDataPosition_[column - 1] ) == 0 )
-        { return false; }
-        else { return true; }
+        return SignedBinary.getByte
+                (dataBuffer_, columnDataPosition_[column - 1]) != 0;
     }
 
     // Build a Java short from a 2-byte signed binary representation.

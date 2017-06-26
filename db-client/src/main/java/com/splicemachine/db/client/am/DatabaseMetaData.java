@@ -916,11 +916,8 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
     public boolean supportsSavepoints() throws SQLException {
         checkForClosedConnection();
-        if (productLevel_.greaterThanOrEqualTo(5, 2, 0)) {
-            return true;
-        }
+        return productLevel_.greaterThanOrEqualTo(5, 2, 0);
 
-        return false;
     }
 
     // start tagging all abstract methods with an underscore like this !!
@@ -2330,11 +2327,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     protected void computeFeatureSet_() {
 
         // Support for QRYCLSIMP was added in 10.2.0
-        if (productLevel_.greaterThanOrEqualTo(10, 2, 0)) {
-            supportsQryclsimp_ = true;
-        } else {
-            supportsQryclsimp_ = false;
-        }
+        supportsQryclsimp_ = productLevel_.greaterThanOrEqualTo(10, 2, 0);
         
         supportsLayerBStreaming_ = 
             productLevel_.greaterThanOrEqualTo(10, 3, 0);

@@ -2967,11 +2967,7 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
     }
 
     public boolean isQueryMode() {
-        if (this.sqlMode_ == this.isQuery__) {
-            return true;
-        } else {
-            return false;
-        }
+        return this.sqlMode_ == this.isQuery__;
     }
 
     protected void removeClientCursorNameFromCache() {

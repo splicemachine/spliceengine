@@ -368,12 +368,8 @@ public class NetCursor extends com.splicemachine.db.client.am.Cursor {
         // the flag for allRowsReceivedFromServer_ is set, we still want to continue to parse through
         // the data in the dataBuffer.
         // But in the case where fixed row protocol is used,
-        if (!blocking_ && allRowsReceivedFromServer() &&
-            daNullIndicator == 0xFF) {
-            return false;
-        } else {
-            return true;
-        }
+        return !(!blocking_ && allRowsReceivedFromServer() &&
+                daNullIndicator == 0xFF);
     }
 
     /**
@@ -547,7 +543,7 @@ public class NetCursor extends com.splicemachine.db.client.am.Cursor {
             }
             length = SignedBinary.getLong(longBytes, 0);
         }
-        return (length != 0L) ? true : false;
+        return length != 0L;
     }
 
     protected void clearLobData_() {

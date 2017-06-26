@@ -417,11 +417,7 @@ public class Reply {
 
             do {
                 // determine if a continuation header needs to be read after the data
-                if (dssIsContinued_) {
-                    readHeader = true;
-                } else {
-                    readHeader = false;
-                }
+                readHeader = dssIsContinued_;
 
                 // read the segment
                 ensureALayerDataInBuffer(copySize);
@@ -435,7 +431,7 @@ public class Reply {
                 }
 
                 copySize = dssLength_;
-            } while (readHeader == true);
+            } while (readHeader);
             byte[] cipherBytes = baos.toByteArray();
             byte[] clearedByte = null;
             try {
@@ -781,11 +777,7 @@ public class Reply {
 
         do {
             // determine if a continuation header needs to be read after the data
-            if (dssIsContinued_) {
-                readHeader = true;
-            } else {
-                readHeader = false;
-            }
+            readHeader = dssIsContinued_;
 
             // read the segment
             ensureALayerDataInBuffer(copySize);
@@ -799,7 +791,7 @@ public class Reply {
             }
 
             copySize = dssLength_;
-        } while (readHeader == true);
+        } while (readHeader);
 
         return baos;
     }
@@ -1176,7 +1168,7 @@ public class Reply {
                 new DisconnectException(agent_, 
                 new ClientMessageId(SQLState.NET_DSS_NOT_ZERO)));
         }
-        if (dssIsChainedWithSameID_ == true) {
+        if (dssIsChainedWithSameID_) {
             agent_.accumulateChainBreakingReadExceptionAndThrow(
                 new DisconnectException(agent_, 
                 new ClientMessageId(SQLState.NET_DSS_CHAINED_WITH_SAME_ID)));
@@ -1359,11 +1351,7 @@ public class Reply {
 
         do {
             // determine if a continuation header needs to be read after the data
-            if (dssIsContinued_) {
-                readHeader = true;
-            } else {
-                readHeader = false;
-            }
+            readHeader = dssIsContinued_;
 
             // read the segment
             //ensureALayerDataInBuffer (copySize);
@@ -1377,7 +1365,7 @@ public class Reply {
             }
 
             copySize = dssLength_;
-        } while (readHeader == true);
+        } while (readHeader);
 
         return baos;
     }

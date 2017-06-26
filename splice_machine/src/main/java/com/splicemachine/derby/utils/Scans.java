@@ -264,10 +264,7 @@ public class Scans extends SpliceUtils {
     }
 
     private static boolean isEmpty(int[] array) {
-        if (array == null || array.length == 0) {
-            return true;
-        }
-        return false;
+        return array == null || array.length == 0;
     }
 
 

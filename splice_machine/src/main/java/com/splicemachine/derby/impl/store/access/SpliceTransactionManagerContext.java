@@ -29,7 +29,7 @@ public final class SpliceTransactionManagerContext extends ContextImpl {
 
 		boolean destroy = false;
 
-		if (abortAll == false && (error instanceof StandardException))
+		if (!abortAll && (error instanceof StandardException))
 		{
 			StandardException se = (StandardException) error;
 

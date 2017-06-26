@@ -264,7 +264,7 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
         boolean sendQryrowset = true;
         fetchSize = (fetchSize == 0) ? com.splicemachine.db.client.am.Configuration.defaultFetchSize : fetchSize;
 
-        boolean sendPrcnam = (procedureName != null) ? true : false;
+        boolean sendPrcnam = procedureName != null;
         int numParameters = (parameterMetaData != null) ? parameterMetaData.columns_ : 0;
         outputExpected = numParameters > 0;
 

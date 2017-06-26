@@ -161,14 +161,10 @@ public class EbcdicCcsidManager extends CcsidManager {
             }
         }
 
-        if (src.remaining() == 0) {
-            // All characters have been encoded. We're done.
-            return true;
-        } else {
-            // We still have more characters to encode, but no room in
-            // destination buffer.
-            return false;
-        }
+        // if true, all characters have been encoded. We're done.
+        // if false, we still have more characters to encode, but no room in
+        // destination buffer.
+        return src.remaining() == 0;
     }
 
     String convertToJavaString(byte[] sourceBytes, int offset, int numToConvert) {

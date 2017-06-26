@@ -1179,7 +1179,7 @@ public class Typdef implements java.lang.Cloneable {
 
     // Called before the code parses a descriptor
     void clearMddOverrides() {
-        if (mddOverride_ == false) {
+        if (!mddOverride_) {
             return;
         }
 

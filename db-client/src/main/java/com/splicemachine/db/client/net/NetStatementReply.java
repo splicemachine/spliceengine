@@ -1397,10 +1397,10 @@ public class NetStatementReply extends NetPackageReply implements StatementReply
                                               int tripletType,
                                               int previousTripletId,
                                               int tripletId) throws DisconnectException {
-        if (FdocaConstants.SQLDTARD_TRIPLET_TYPES[previousTripletType][tripletType] == false) {
+        if (!FdocaConstants.SQLDTARD_TRIPLET_TYPES[previousTripletType][tripletType]) {
             descriptorErrorDetected(); // DSCERRCD_02 move error identity into array
         }
-        if (FdocaConstants.SQLDTARD_TRIPLET_IDS[previousTripletId][tripletId] == false) {
+        if (!FdocaConstants.SQLDTARD_TRIPLET_IDS[previousTripletId][tripletId]) {
             descriptorErrorDetected(); // DSCERRCD_02 move error identity into array
         }
     }

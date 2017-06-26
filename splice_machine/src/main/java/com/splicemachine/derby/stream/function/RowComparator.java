@@ -91,7 +91,7 @@ public class RowComparator implements Comparator<ExecRow>, Serializable, Externa
             DataValueDescriptor c2 = a2[i];
             int result;
             try {
-                result = c1.compare(c2,nullsOrderedLow==null?true:nullsOrderedLow[i]);
+                result = c1.compare(c2, nullsOrderedLow == null || nullsOrderedLow[i]);
             } catch (StandardException e) {
                 throw new RuntimeException(e);
             }

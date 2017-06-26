@@ -313,7 +313,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
         // for TYPE_FORWARD_ONLY ResultSet, just call cursor.next()
         if (resultSetType_ == java.sql.ResultSet.TYPE_FORWARD_ONLY) {
             // cursor is null for singleton selects that do not return data.
-            isValidCursorPosition_ = (cursor_ == null) ? false : cursor_.next();
+            isValidCursorPosition_ = cursor_ != null && cursor_.next();
 
             // for forward-only cursors, if qryrowset was specificed on OPNQRY or EXCSQLSTT,
             // then we must count the rows returned in the rowset to make sure we received a
@@ -589,7 +589,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
                             resultSetMetaData_.types_[column - 1]);
                 }
             } else {
-                result = isNull(column) ? false : cursor_.getBoolean(column);
+                result = !isNull(column) && cursor_.getBoolean(column);
             }
             if (agent_.loggingEnabled()) {
                 agent_.logWriter_.traceExit(this, "getBoolean", result);
@@ -1454,7 +1454,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
         if (wasNullSensitiveUpdate(column)) {
             return true;
         } else {
-            return (cursor_.isUpdateDeleteHole_ == true || cursor_.isNull_[column - 1]);
+            return (cursor_.isUpdateDeleteHole_ || cursor_.isNull_[column - 1]);
         }
     }
 
@@ -2089,8 +2089,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
         if (sensitivity_ == sensitivity_sensitive_dynamic__) {
             return isLast_;
         } else {
-            return (resultSetContainsNoRows() ? false :
-                    (firstRowInRowset_ + currentRowInRowset_) == rowCount_);
+            return (!resultSetContainsNoRows() && (firstRowInRowset_ + currentRowInRowset_) == rowCount_);
         }
     }
 
@@ -2481,11 +2480,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
                 // re-fetch currentRow
                 isValidCursorPosition_ = getAbsoluteRowset(absolutePosition_);
             } else {
-                if (isBeforeFirstX() || isAfterLastX()) {
-                    isValidCursorPosition_ = false;
-                } else {
-                    isValidCursorPosition_ = true;
-                }
+                isValidCursorPosition_ = !(isBeforeFirstX() || isAfterLastX());
             }
             return isValidCursorPosition_;
         }
@@ -3471,7 +3466,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
             if (resultSetMetaData_.sqlxUpdatable_[i] == 1) {
                 // Since user may choose not to update all the columns in the
                 // select list, check first if the column has been updated
-                if (columnUpdated_[i] == true) {
+                if (columnUpdated_[i]) {
                     paramNumber++;
 
                     // column is updated either if the updatedColumns_ entry is not null,
@@ -3547,7 +3542,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
                 break;
             }
         }
-        if (didAnyColumnGetUpdated == false)
+        if (!didAnyColumnGetUpdated)
             return false;
 
         // User might not be updating all the updatable columns selected in the
@@ -3562,7 +3557,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
             if (resultSetMetaData_.sqlxUpdatable_[i] == 1) {
                 // Since user may choose not to update all the columns in the
                 // select list, check first if the column has been updated
-                if (columnUpdated_[i] == false)
+                if (!columnUpdated_[i])
                     continue;
                 paramNumber++;
 
@@ -4593,7 +4588,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
                 foundOneUpdatedColumnAlready = true;
             }
         }
-        if (foundOneUpdatedColumnAlready == false) //no columns updated on this row
+        if (!foundOneUpdatedColumnAlready) //no columns updated on this row
         {
             return null;
         }
@@ -4856,12 +4851,8 @@ public abstract class ResultSet implements java.sql.ResultSet,
         if (firstRowInRowset_ == lastRowInRowset_ && firstRowInRowset_ == 0) {
             return false;
         }
-        if (rowNumber >= firstRowInRowset_ &&
-                rowNumber <= lastRowInRowset_) {
-            return true;
-        } else {
-            return false;
-        }
+        return rowNumber >= firstRowInRowset_ &&
+                rowNumber <= lastRowInRowset_;
     }
 
     private void markPositionedUpdateDeletePreparedStatementsClosed() {
