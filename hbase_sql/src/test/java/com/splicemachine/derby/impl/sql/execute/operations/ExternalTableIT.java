@@ -564,7 +564,7 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
     @Test
-    public void testWriteReadFromSimpleParquetExternalTableAvro() throws Exception {
+    public void testWriteReadFromSimpleAvroExternalTable() throws Exception {
         String tablePath = getExternalResourceDirectory()+"simple_avro";
         methodWatcher.executeUpdate(String.format("create external table simple_avro (col1 int, col2 varchar(24))" +
                 " STORED AS AVRO LOCATION '%s'",tablePath));
@@ -692,12 +692,12 @@ public class ExternalTableIT extends SpliceUnitTest{
     @Ignore("SPLICE-1514")
     public void testLocalBroadcastColumnarAvro() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table left_side_bcast (col1 int, col2 int)" +
-                " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"left_side_bcast"));
+                " STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"left_side_bcast"));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into left_side_bcast values (1,5)," +
                 "(2,2)," +
                 "(3,3)"));
         methodWatcher.executeUpdate(String.format("create external table right_side_bcast (col1 int, col2 int)" +
-                " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"right_side_bcast"));
+                " STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"right_side_bcast"));
         int insertCount2 = methodWatcher.executeUpdate(String.format("insert into right_side_bcast values (1,1)," +
                 "(2,2)," +
                 "(3,3)"));
@@ -835,7 +835,7 @@ public class ExternalTableIT extends SpliceUnitTest{
     @Test @Ignore
     public void testWriteReadFromCompressedParquetExternalTable() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table compressed_parquet_test (col1 int, col2 varchar(24))" +
-                " COMPRESSED WITH SNAPPY  STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"compressed_parquet_test"));
+                " COMPRESSED WITH SNAPPY STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"compressed_parquet_test"));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into compressed_parquet_test values (1,'XXXX')," +
                 "(2,'YYYY')," +
                 "(3,'ZZZZ')"));
@@ -1573,6 +1573,14 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "        3        |";
         Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));
         rs2.close();
+
+        ResultSet rs3 = methodWatcher.executeQuery("select * from t1_avro");
+        Assert.assertEquals("COL1 |COL2 |\n" +
+                "------------\n" +
+                "  1  |XXXX |\n" +
+                "  2  |YYYY |\n" +
+                "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
+        rs3.close();
     }
 
     @Test

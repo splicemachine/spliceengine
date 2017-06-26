@@ -383,17 +383,14 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         if (storedAs!=null) {
             if (storedAs.toLowerCase().equals("p")) {
                 schema =  SpliceSpark.getSession().read().parquet(location).schema();
-
             }
-            if (storedAs.toLowerCase().equals("a")) {
+            else if (storedAs.toLowerCase().equals("a")) {
                 schema =  SparkSession.builder().master("local").getOrCreate().read().format("com.databricks.spark.avro").load(location).schema();
-
             }
-            if (storedAs.toLowerCase().equals("o")) {
+            else if (storedAs.toLowerCase().equals("o")) {
                 schema =  SpliceSpark.getSession().read().orc(location).schema();
-
             }
-            if (storedAs.toLowerCase().equals("t")) {
+            else if (storedAs.toLowerCase().equals("t")) {
                 schema =  SpliceSpark.getSession().read().csv(location).schema();
             }
         }
@@ -421,19 +418,16 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     if (storedAs.toLowerCase().equals("p")) {
                         empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
                                 .mode(SaveMode.Append).parquet(location);
-
                     }
-                    if (storedAs.toLowerCase().equals("a")) {
+                    else if (storedAs.toLowerCase().equals("a")) {
                         empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
                                 .mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);
-
                     }
-                    if (storedAs.toLowerCase().equals("o")) {
+                    else if (storedAs.toLowerCase().equals("o")) {
                         empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
                                 .mode(SaveMode.Append).orc(location);
-
                     }
-                    if (storedAs.toLowerCase().equals("t")) {
+                    else if (storedAs.toLowerCase().equals("t")) {
                         empty.write().option("compression",compression).mode(SaveMode.Append).csv(location);
                     }
             }
