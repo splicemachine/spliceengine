@@ -66,7 +66,7 @@ public class ColumnMetaData40 extends ColumnMetaData {
      *
      * @param  interfaces a Class defining an interface
      * @return an object that implements the interface
-     * @throws java.sql.SQLExption if no object if found that implements the 
+     * @throws java.sql.SQLException if no object if found that implements the
      * interface
      */
     public <T> T unwrap(java.lang.Class<T> interfaces)
