@@ -2577,7 +2577,7 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
         // Loop thru every character, if we're in double quotes just echo it,
         // if we're not in double quotes, upper case it.
         char[] charArray = null;
-        if (procedureName.indexOf("\"") == -1) {
+        if (!procedureName.contains("\"")) {
             return procedureName.toUpperCase();
         } else {
             charArray = procedureName.toCharArray();

@@ -29,6 +29,7 @@ import java.io.Serializable;
 import java.io.PrintWriter;
 import java.io.File;
 import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.NoSuchElementException;
@@ -457,19 +458,16 @@ public abstract class ClientBaseDataSource implements Serializable, Referenceabl
     	//This class will read the system property in it's run method and
     	//return the value to the caller.
     	return (String )AccessController.doPrivileged
-    	    (new java.security.PrivilegedAction(){
-    		    public Object run(){
+    	    ((PrivilegedAction) () -> {
                     try {
-                        return System.getProperty(key);
+                    return System.getProperty(key);
                     } catch (SecurityException se) {
-                        // We do not want the connection to fail if the user does not have permission to 
-                        // read the property, so if a security exception occurs, just return null and 
-                        // continue with the connection.  
-                        return null;
+                    // We do not want the connection to fail if the user does not have permission to
+                    // read the property, so if a security exception occurs, just return null and
+                    // continue with the connection.
+                    return null;
                     }
-    		    }
-    	    }
-    	    );
+            });
     }
 
     // ---------------------------- traceFileAppend -----------------------------------

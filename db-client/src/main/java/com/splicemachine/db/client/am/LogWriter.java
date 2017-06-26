@@ -25,6 +25,11 @@
 
 package com.splicemachine.db.client.am;
 
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.PrintWriter;
+import java.security.PrivilegedExceptionAction;
 import java.sql.SQLException;
 import java.util.Enumeration;
 import java.util.Properties;
@@ -1230,15 +1235,13 @@ public class LogWriter {
     	//PrintWriter object.
         try {
     	printWriter = (java.io.PrintWriter)AccessController.doPrivileged(
-    			new java.security.PrivilegedExceptionAction(){
-    				public Object run()throws java.io.IOException{
-    			        String fileCanonicalPath = new java.io.File(fileName).getCanonicalPath();
-    					return new java.io.PrintWriter(
-    							new java.io.BufferedOutputStream(
-    									new java.io.FileOutputStream(
-    											fileCanonicalPath, fileAppend), 4096), true);
-            			}
-            		});
+                (PrivilegedExceptionAction) () -> {
+                    String fileCanonicalPath = new File(fileName).getCanonicalPath();
+                    return new PrintWriter(
+                            new BufferedOutputStream(
+                                    new FileOutputStream(
+                                            fileCanonicalPath, fileAppend), 4096), true);
+                });
         } catch (java.security.PrivilegedActionException pae) {
             throw new SqlException(null, 
                 new ClientMessageId(SQLState.UNABLE_TO_OPEN_FILE),
