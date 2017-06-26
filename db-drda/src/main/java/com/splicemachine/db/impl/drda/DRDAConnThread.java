@@ -1500,7 +1500,7 @@ class DRDAConnThread extends Thread {
         // a password defined as part of the connection URL attributes cannot
         // be substituted (single-hashed) as it is not recoverable.
         if ((database.securityMechanism == CodePoint.SECMEC_USRSSBPWD) &&
-            (database.getDatabaseName().indexOf(Attribute.PASSWORD_ATTR) == -1))
+            (!database.getDatabaseName().contains(Attribute.PASSWORD_ATTR)))
         {
             p.put(Attribute.DRDA_SECMEC,
                   String.valueOf(database.securityMechanism));
@@ -4046,25 +4046,25 @@ class DRDAConnThread extends Thread {
 		//just set the attributes
 
 		boolean validAttribute = false;
-		if (attrs.indexOf("INSENSITIVE SCROLL") != -1 || attrs.indexOf("SCROLL INSENSITIVE") != -1) //CLI
+		if (attrs.contains("INSENSITIVE SCROLL") || attrs.contains("SCROLL INSENSITIVE")) //CLI
 		{
 			stmt.scrollType = ResultSet.TYPE_SCROLL_INSENSITIVE;
 			stmt.concurType = ResultSet.CONCUR_READ_ONLY;
 			validAttribute = true;
 		}
-		if ((attrs.indexOf("SENSITIVE DYNAMIC SCROLL") != -1) || (attrs.indexOf("SENSITIVE STATIC SCROLL") != -1))
+		if ((attrs.contains("SENSITIVE DYNAMIC SCROLL")) || (attrs.contains("SENSITIVE STATIC SCROLL")))
 		{
 			stmt.scrollType = ResultSet.TYPE_SCROLL_SENSITIVE;
 			validAttribute = true;
 		}
 
-		if ((attrs.indexOf("FOR UPDATE") != -1))
+		if ((attrs.contains("FOR UPDATE")))
 		{
 			validAttribute = true;
 			stmt.concurType = ResultSet.CONCUR_UPDATABLE;
 		}
 
-		if (attrs.indexOf("WITH HOLD") != -1)
+		if (attrs.contains("WITH HOLD"))
 		{
 			stmt.withHoldCursor = ResultSet.HOLD_CURSORS_OVER_COMMIT;
 			validAttribute = true;
@@ -9104,8 +9104,7 @@ class DRDAConnThread extends Thread {
         // SECMEC_USRSSBPWD cannot be supported for this connection.
         if ((srvrlslv == null) || (srvrlslv.isEmpty()) ||
             (srvrlslv.length() < CodePoint.PRDID_MAX) ||
-            (srvrlslv.indexOf(DRDAConstants.DERBY_DRDA_CLIENT_ID)
-                    == -1))
+            (!srvrlslv.contains(DRDAConstants.DERBY_DRDA_CLIENT_ID)))
             return CodePoint.SECCHKCD_NOTSUPPORTED; // Not Supported
 
 

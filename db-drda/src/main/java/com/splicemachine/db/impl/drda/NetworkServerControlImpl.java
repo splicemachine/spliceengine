@@ -1070,7 +1070,7 @@ public final class NetworkServerControlImpl {
             	//was DRDA_InvalidReplyHead. This can happen if we are 
             	//dealing with an older Network server product which do not
             	//recognize shutdown at protocol level 2.
-            	if (e.getMessage().indexOf("DRDA_InvalidReplyHead") != -1)
+            	if (e.getMessage().contains("DRDA_InvalidReplyHead"))
             	{
                     try {
                         closeSocket();
@@ -1509,7 +1509,7 @@ public final class NetworkServerControlImpl {
 		// First, pull off the unique thread id already found in thrd's default name;
 		// we do so by searching for the '-' character, and then counting everything
 		// after it as a N.
-		if (thrd.getName().indexOf("Thread-") == -1) {
+		if (!thrd.getName().contains("Thread-")) {
 		// default name has been changed; don't do anything.
 			return;
 		}
