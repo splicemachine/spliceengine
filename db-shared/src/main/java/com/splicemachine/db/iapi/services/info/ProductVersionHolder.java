@@ -438,13 +438,12 @@ public final class ProductVersionHolder implements java.security.PrivilegedActio
 	 */
 	public String toString()
 	{
-		StringBuilder sb = new StringBuilder();
-		sb.append(getProductVendorName());
-		sb.append(" - ");
-		sb.append(getProductName());
-		sb.append(" - ");
-		sb.append(getVersionBuildString(true));
-		return sb.toString();
+		String sb = getProductVendorName() +
+				" - " +
+				getProductName() +
+				" - " +
+				getVersionBuildString(true);
+		return sb;
 	}
 
 	/**

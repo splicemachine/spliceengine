@@ -169,7 +169,6 @@ public final class dblook {
 		skipViews = false;
 		verbose= false;
 		sourceDBName = null;
-		return;
 
 	}
 
@@ -494,7 +493,6 @@ public final class dblook {
 		if (schemaParam != null)
 			Logs.reportMessage("DBLOOK_TargetSchema", stripQuotes(schemaParam));
 		Logs.reportString("appendLogs: " + appendLogs + "\n");
-		return;
 
 	}
 
@@ -643,7 +641,6 @@ public final class dblook {
 		stmt.close();
 
 		// Load default property values.
-		return;
 
 	}
 
@@ -1106,7 +1103,6 @@ public final class dblook {
 		else
 			System.err.println(lookupMessage(key,
 				new String [] {value}));
-		return;
 
 	}
 

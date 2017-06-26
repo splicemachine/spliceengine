@@ -90,18 +90,18 @@ public class BroadcastJoinMemoryLimitIT extends SpliceUnitTest {
 
     @Test
     public void testMemoryLimitForConsecutiveBroadcastJoin() throws Exception {
-        String fromClause = "from --splice-properties joinOrder=fixed\n" +
-                "t1\n";
-        String whereClause = "where\n";
+        StringBuilder fromClause = new StringBuilder("from --splice-properties joinOrder=fixed\n" +
+                "t1\n");
+        StringBuilder whereClause = new StringBuilder("where\n");
 
         int numT2 = 400;
 
         for (int i=1; i<=numT2; i++) {
-            fromClause += format(", t2 as X%d --splice-properties joinStrategy=BROADCAST\n", i);
+            fromClause.append(format(", t2 as X%d --splice-properties joinStrategy=BROADCAST\n", i));
             if (i>1)
-                whereClause += format("and d1=X%d.d2\n", i);
+                whereClause.append(format("and d1=X%d.d2\n", i));
             else
-                whereClause += format("d1=X%d.d2\n",i);
+                whereClause.append(format("d1=X%d.d2\n", i));
         }
         String sqlText = "explain select a1, X1.a2\n" + fromClause + whereClause;
 
@@ -115,13 +115,13 @@ public class BroadcastJoinMemoryLimitIT extends SpliceUnitTest {
 
     @Test
     public void testMemoryLimitForConsecutiveBroadcastLeftJoins() throws Exception {
-        String fromClause = "from --splice-properties joinOrder=fixed\n" +
-                "t1\n";
+        StringBuilder fromClause = new StringBuilder("from --splice-properties joinOrder=fixed\n" +
+                "t1\n");
 
         int numT2 = 400;
 
         for (int i=1; i<=numT2; i++) {
-            fromClause += format("left join t2 as X%d --splice-properties joinStrategy=BROADCAST\n on a1=X%d.a2 \n", i, i);
+            fromClause.append(format("left join t2 as X%d --splice-properties joinStrategy=BROADCAST\n on a1=X%d.a2 \n", i, i));
         }
         String sqlText = "explain select a1, X1.a2\n" + fromClause;
 
@@ -135,13 +135,13 @@ public class BroadcastJoinMemoryLimitIT extends SpliceUnitTest {
 
     @Test
     public void testMemoryLimitForConsecutiveBroadcastLeftJoinsWithDT() throws Exception {
-        String fromClause = "from --splice-properties joinOrder=fixed\n" +
-                "(select * from t1) as DT\n";
+        StringBuilder fromClause = new StringBuilder("from --splice-properties joinOrder=fixed\n" +
+                "(select * from t1) as DT\n");
 
         int numT2 = 400;
 
         for (int i=1; i<=numT2; i++) {
-            fromClause += format("left join (select * from t2) as DT%d --splice-properties joinStrategy=BROADCAST\n on DT.a1=DT%d.a2 \n", i, i);
+            fromClause.append(format("left join (select * from t2) as DT%d --splice-properties joinStrategy=BROADCAST\n on DT.a1=DT%d.a2 \n", i, i));
         }
         String sqlText = "explain select DT.a1, DT1.a2\n" + fromClause;
 

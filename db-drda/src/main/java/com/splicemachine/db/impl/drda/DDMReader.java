@@ -166,9 +166,9 @@ class DDMReader
 	private InputStream inputStream;
     
     // State whether doing layer B Streaming or not.
-    private boolean doingLayerBStreaming = false;;
-    
-    // For JMX statistics. Volatile to ensure we 
+    private boolean doingLayerBStreaming = false;
+
+	// For JMX statistics. Volatile to ensure we
     // get one complete long, but we don't bother to synchronize, 
     // since this is just statistics.
     
@@ -397,11 +397,7 @@ class DDMReader
 				dssIsChainedWithSameID = false;
 				dssIsChainedWithDiffID = true;
 			}
-			if ((gdsFormatter & DssConstants.DSSCHAIN_ERROR_CONTINUE) 
-				== DssConstants.DSSCHAIN_ERROR_CONTINUE)
-				terminateChainOnErr = false;
-			else
-				terminateChainOnErr = true;
+			terminateChainOnErr = (gdsFormatter & DssConstants.DSSCHAIN_ERROR_CONTINUE) != DssConstants.DSSCHAIN_ERROR_CONTINUE;
 		}
 		else 
 		{
@@ -1188,10 +1184,7 @@ class DDMReader
 
     do {
       // determine if a continuation header needs to be read after the data
-      if (dssIsContinued)
-        readHeader = true;
-      else
-        readHeader = false;
+		readHeader = dssIsContinued;
 
       // read the segment
       ensureALayerDataInBuffer (copySize);
@@ -1207,7 +1200,7 @@ class DDMReader
 	  copySize = (int) Math.min(dssLength,desiredLength); //note: has already been adjusted for headers
 
     }
-    while (readHeader == true && desiredLength > 0);
+    while (readHeader && desiredLength > 0);
 
     return baos.toByteArray();
   }
@@ -1254,10 +1247,7 @@ class DDMReader
 
     // examine the null byte
     byte nullByte = buffer[pos++];
-    if (nullByte == (byte)0x00)
-      return false;
-
-    return true;
+	  return nullByte != (byte) 0x00;
   }
 
 

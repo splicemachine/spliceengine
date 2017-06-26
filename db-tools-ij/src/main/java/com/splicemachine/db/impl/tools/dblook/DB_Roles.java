@@ -66,7 +66,6 @@ public class DB_Roles {
 
         rs.close();
         stmt.close();
-        return;
 
     }
 
@@ -143,7 +142,7 @@ public class DB_Roles {
             String grantor = dblook.addQuotes
                 (dblook.expandDoubleQuotes(rs.getString(3))); // always DBO
             boolean isWithAdminOption =
-                rs.getString(4).equals("Y") ? true : false;
+                    rs.getString(4).equals("Y");
 
             Logs.writeToNewDDL
                 (roleGrantStatement(rs, roleName, grantee, isWithAdminOption));

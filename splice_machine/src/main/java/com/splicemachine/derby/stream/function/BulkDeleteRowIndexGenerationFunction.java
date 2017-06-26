@@ -132,7 +132,6 @@ public class BulkDeleteRowIndexGenerationFunction extends RowAndIndexGenerator {
             row.setColumn(col, execRow.getColumn(n+1));
             col++;
         }
-        LocatedRow lr = new LocatedRow(locatedRow.getRowLocation(), row);
-        return lr;
+        return new LocatedRow(locatedRow.getRowLocation(), row);
     }
 }

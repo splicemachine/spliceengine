@@ -83,7 +83,7 @@ class DRDAStatement
 	protected int isolationLevel;         //JCC isolation level for Statement
 	protected String cursorName;
 	protected int scrollType = ResultSet.TYPE_FORWARD_ONLY;			// Sensitive or Insensitive scroll attribute
-	protected int concurType = ResultSet.CONCUR_READ_ONLY;;			// Concurency type
+	protected int concurType = ResultSet.CONCUR_READ_ONLY;            // Concurency type
 	protected long rowCount;			// Number of rows we have processed
 	protected byte [] rslsetflg;		// Result Set Flags
 	protected int maxrslcnt;			// Maximum Result set count
@@ -1114,7 +1114,7 @@ class DRDAStatement
 		
 		withHoldCursor = -1;
 		scrollType = ResultSet.TYPE_FORWARD_ONLY;	
-		concurType = ResultSet.CONCUR_READ_ONLY;;
+		concurType = ResultSet.CONCUR_READ_ONLY;
 		rowCount = 0;
 		rslsetflg = null;
 		maxrslcnt = 0;
@@ -1432,11 +1432,9 @@ class DRDAStatement
 		java.util.StringTokenizer tokenizer = new java.util.StringTokenizer
 			(sql, "\t\n\r\f=? (");
 		 String firstToken = tokenizer.nextToken();
-		 if (StringUtil.SQLEqualsIgnoreCase(firstToken, 
-											"call")) // captures CALL...and ?=CALL...
-			 return true;
-		 return false;
-				 
+		return StringUtil.SQLEqualsIgnoreCase(firstToken,
+				"call");
+
 	}
 
 	private void setupCallableStatementParams(CallableStatement cs) throws SQLException

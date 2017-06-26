@@ -62,9 +62,9 @@ public class mtTestSuite
 		boolean loadTestsFailed = loadCases(cases);
 		boolean loadLastFailed = loadCases(last);
 
-		if ((loadInitFailed == true) ||
-			(loadTestsFailed == true) ||
-			(loadLastFailed == true))
+		if ((loadInitFailed) ||
+			(loadTestsFailed) ||
+			(loadLastFailed))
 		{
 			throw new Error("Initialization Error");
 		}
@@ -186,7 +186,7 @@ public class mtTestSuite
 			caseNum = (int)((java.lang.Math.random() * 1311) % numCases);
 			testCase = (mtTestCase)cases.elementAt(caseNum);
 		}
-		while (testCase.grab() == false);
+		while (!testCase.grab());
 	
 		return testCase;	
 	}

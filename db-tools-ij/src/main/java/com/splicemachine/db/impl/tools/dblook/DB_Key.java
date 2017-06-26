@@ -84,7 +84,6 @@ public class DB_Key {
 		getReferenceCols.close();
 		stmt.close();
 		rs.close();
-		return;
 
 	}
 
@@ -137,8 +136,6 @@ public class DB_Key {
 			firstTime = false;
 
 		}
-
-		return;
 
 	}
 

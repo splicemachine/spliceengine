@@ -84,7 +84,7 @@ public class DB_Jar {
             if (at10_9) {
                 String schemaNameCNF =
                     dblook.unExpandDoubleQuotes(
-                        dblook.stripQuotes(dblook.lookupSchemaId(schemaId)));;
+                        dblook.stripQuotes(dblook.lookupSchemaId(schemaId)));
 
                 StringBuilder jarFullName = new StringBuilder();
                 jarFullName.append(UUIDstring);

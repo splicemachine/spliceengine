@@ -99,7 +99,6 @@ public class DB_View {
 
 		rs.close();
 		stmt.close();
-		return;
 
 	}
 

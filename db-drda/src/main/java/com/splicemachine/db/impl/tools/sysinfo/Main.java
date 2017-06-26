@@ -128,7 +128,7 @@ public final class Main {
        // get our own instance variable
     parseArgs (args);
 
-    if (cptester == true)
+    if (cptester)
 	getClasspathInfo (args, out);
     else
 	getMainInfo (out, setPause);

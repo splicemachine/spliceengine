@@ -596,7 +596,6 @@ class xaHelper implements xaAbstractHelper
 		try {
 			java.lang.reflect.Method m = ds.getClass().getMethod(methodName, STRING_P);
 			m.invoke(ds, new Object[] {value});
-			return;
 		} catch (/*NoSuchMethod*/Exception nsme) {
 			throw new SQLException(property + " ???");
 			//java.lang.reflect.Method m = ds.getClass().getMethod("set" + property, INT_P);
@@ -612,7 +611,6 @@ private static void setDataSourceProperty(Object ds, String property, boolean va
 		try {
 			java.lang.reflect.Method m = ds.getClass().getMethod(methodName, BOOLEAN_P);
 			m.invoke(ds, new Object[] {new Boolean(value)});
-			return;
 		} catch (Exception nsme) {
 			throw new SQLException(property + " ???");
 		}

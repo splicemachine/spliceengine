@@ -830,7 +830,7 @@ class DRDAConnThread extends Thread {
 						// builtin method to check(expensive)
 						// For now we will assume that every execute immediate
 						// does an update (that is the most conservative thing)
-						if (database.RDBUPDRM_sent == false)
+						if (!database.RDBUPDRM_sent)
 						{
 							writeRDBUPDRM();
 						}
@@ -4422,8 +4422,7 @@ class DRDAConnThread extends Thread {
 		}
 
 		} while(hasResultSet && (++rsNum < numResults));
-		        
-		return;			// we are done
+
 	}
 
 
@@ -5595,14 +5594,11 @@ class DRDAConnThread extends Thread {
 				"not recognized.", "01000");
 		} // end if.
 
-		return;
 	}
 
 	private boolean canIgnoreStmt(String stmt)
 	{
-		if (stmt.indexOf("SET CLIENT") != -1)
-			return true;
-		return false;
+		return stmt.indexOf("SET CLIENT") != -1;
 	}
 
 	/**
@@ -6006,7 +6002,6 @@ class DRDAConnThread extends Thread {
 
 		// Just ignore it.
 		reader.skipBytes();
-		return;
 
 	}
 
@@ -6599,7 +6594,6 @@ class DRDAConnThread extends Thread {
 		throws DRDAProtocolException
 	{
 		writer.writeByte(CodePoint.NULLDATA);
-		return;
 	}
 
 	/**
@@ -6654,8 +6648,7 @@ class DRDAConnThread extends Thread {
 
 			se = se.getNextException();
 		}
-			
-		return;
+
 	}
 
 	/**
@@ -6760,7 +6753,6 @@ class DRDAConnThread extends Thread {
 		throws DRDAProtocolException
 	{
 		writer.writeByte(CodePoint.NULLDATA);
-		return;
 	}
 
 	/** 
@@ -6898,7 +6890,7 @@ class DRDAConnThread extends Thread {
 		for (int i = 0; i < numGroups; i++)
 		{
 			writeSQLDTAGRP(stmt, rsmeta, pmeta, colStart, colEnd, 
-							(i == 0 ? true : false));
+							(i == 0));
 			colStart = colEnd + 1;
 			// 4868 - Limit range to MAX_VARS_IN_NGDA (used to have extra col)
 			colEnd = colEnd + FdocaConstants.MAX_VARS_IN_NGDA;
@@ -7144,7 +7136,7 @@ class DRDAConnThread extends Thread {
 			// if we don't have enough room for a row of the 
 			// last row's size, don't try to cram it in.
 			// It would get split up but it is not very efficient.
-			if (getMoreData == true)
+			if (getMoreData)
 			{
 				int endLength = writer.getDSSLength();
 				int rowsize = endLength - startLength;
@@ -8049,7 +8041,7 @@ class DRDAConnThread extends Thread {
 		// Hard to get primary key info. Send 0 for now
 		writer.writeShort(0);
 		//   SQLXUPDATEABLE; DRDA TYPE I2; ENVLID 0x04; Length Override 2
-		writer.writeShort(rtnOutput ? rsmeta.isWritable(jdbcElemNum) : false);
+		writer.writeShort(rtnOutput && rsmeta.isWritable(jdbcElemNum));
 
 		//   SQLXGENERATED; DRDA TYPE I2; ENVLID 0x04; Length Override 2
 		if (rtnOutput && rsmeta.isAutoIncrement(jdbcElemNum)) 
@@ -8715,7 +8707,7 @@ class DRDAConnThread extends Thread {
 	 */
 	protected  void trace(String value)
 	{
-		if (SanityManager.DEBUG && server.debugOutput == true)
+		if (SanityManager.DEBUG && server.debugOutput)
 			server.consoleMessage(value, true);
 	}
 
@@ -8734,7 +8726,7 @@ class DRDAConnThread extends Thread {
     private void traceEXTDTARead(int drdaType, int index,
                                  EXTDTAReaderInputStream stream,
                                  boolean streamLOB, String encoding) {
-        if (SanityManager.DEBUG && server.debugOutput == true) {
+        if (SanityManager.DEBUG && server.debugOutput) {
             StringBuilder sb = new StringBuilder("Reading/setting EXTDTA: ");
             // Data: t<type>/i<ob_index>/<streamLOB>/<encoding>/
             //       <statusByteExpected>/b<byteLength>
@@ -9062,7 +9054,6 @@ class DRDAConnThread extends Thread {
 	private void finalizeChain() throws DRDAProtocolException {
 
 		writer.finalizeChain(reader.getCurrChainState(), getOutputStream());
-		return;
 
 	}
 
@@ -9124,7 +9115,7 @@ class DRDAConnThread extends Thread {
         appRequester.setClientVersion(
                 srvrlslv.substring(0, (int) CodePoint.PRDID_MAX));
 
-        if (appRequester.supportsSecMecUSRSSBPWD() == false)
+        if (!appRequester.supportsSecMecUSRSSBPWD())
             return CodePoint.SECCHKCD_NOTSUPPORTED; // Not Supported
 
         dbName = database.getShortDbName();

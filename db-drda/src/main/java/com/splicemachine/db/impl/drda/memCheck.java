@@ -44,7 +44,7 @@ public  memCheck (int num) {
 }
 
 public void run () {
-	while (stopNow == false) {
+	while (!stopNow) {
 		try {
 			showmem();
 			sleep(delay);

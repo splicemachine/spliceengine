@@ -96,7 +96,6 @@ public class DB_GrantRevoke {
 
 		rs.close();
 		stmt.close();
-		return;
 
 	}
 

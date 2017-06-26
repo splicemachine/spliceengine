@@ -493,17 +493,14 @@ public final class util implements java.security.PrivilegedAction {
 		
 		if (ijGetMessages != null)
 		{
-			if (ijGetMessages.equals("false"))
-				retrieveMessages = false;
-			else
-				retrieveMessages = true;
+			retrieveMessages = !ijGetMessages.equals("false");
 			
 		}
 		
 		if (connInfo == null)
 			connInfo = new Properties();
 		
-		if (retrieveMessages == true)
+		if (retrieveMessages)
 		{
 			connInfo.put("retrieveMessagesFromServerOnGetMessage",
 						 "true");
@@ -694,7 +691,7 @@ AppUI.out.println("SIZE="+l);
 		// perhaps just document the behavior... 
 	}
 
-	static final String getSystemProperty(String propertyName) {
+	static String getSystemProperty(String propertyName) {
 		try
 		{
 			if (propertyName.startsWith("ij.") || propertyName.startsWith("derby."))
@@ -765,8 +762,6 @@ AppUI.out.println("SIZE="+l);
 			tmpValue = tmpValue.trim();
 			prop.put(tmpKey, tmpValue);
 		}
-
-		return;
 
 	}
 

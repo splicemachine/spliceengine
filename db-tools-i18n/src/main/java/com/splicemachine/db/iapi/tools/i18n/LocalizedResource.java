@@ -66,7 +66,6 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 			// For instance, java.math.BigDecimal is not available with
 			// J2ME/CDC/Foundation 1.0 profile.
 			Class.forName("java.math.BigDecimal");
-			supportsBigDecimalCalls = true;
 			// And no methods using BigDecimal are available with JSR169 spec.
 			Method getbd = ResultSet.class.getMethod("getBigDecimal", new Class[] {int.class});
 			supportsBigDecimalCalls = true;
@@ -307,9 +306,9 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 			st=new StringTokenizer(locStr, "_");
 			try {
 				l=st.nextToken();
-				if(st.hasMoreTokens()==true)
+				if(st.hasMoreTokens())
 					r=st.nextToken();
-				if(st.hasMoreTokens()==true)
+				if(st.hasMoreTokens())
 					v=st.nextToken();
 				return new Locale(l,r,v);
 			} catch (Exception e) {
@@ -323,10 +322,10 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 			try{
 				return MessageFormat.format(res.getString(key), objectArr);
 			} catch (Exception e) {
-					String tmpFormat = key;
+					StringBuilder tmpFormat = new StringBuilder(key);
 					for (int i=0; i<objectArr.length; i++)
-						tmpFormat = tmpFormat + ", <{" + (i) + "}>";
-					return MessageFormat.format(tmpFormat, objectArr);
+						tmpFormat.append(", <{").append(i).append("}>");
+					return MessageFormat.format(tmpFormat.toString(), objectArr);
 			}
 	}
 	public String getLocalizedString(ResultSet rs,
@@ -463,7 +462,7 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 			return locale;
 	}
 
-	private final synchronized String getEnvProperty(String key) {
+	private synchronized String getEnvProperty(String key) {
 		String s;
 		 try
 		  {

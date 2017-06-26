@@ -565,10 +565,8 @@ public final class NetworkServerControlImpl {
 	 */
 	public void consoleExceptionPrint(Exception e)
 	{
-		if (debugOutput == true)
+		if (debugOutput)
 			consoleExceptionPrintTrace(e);
-
-		return;
 	}
 
 	/**
@@ -1120,7 +1118,6 @@ public final class NetworkServerControlImpl {
                 hostArg}); 
         
 		logWriter= savWriter;
-		return;
 	}
 
     /**
@@ -1519,8 +1516,6 @@ public final class NetworkServerControlImpl {
 			  oldName.substring(oldName.indexOf("-")+1, oldName.length()));
 		} // end else.
 
-		return;
-
 	}
 
 	/*******************************************************************************/
@@ -1839,7 +1834,7 @@ public final class NetworkServerControlImpl {
 							// we will add it to freeThreads
 							freeThreads++;
 							runQueue.wait();
-							if (shutdown == true)
+							if (shutdown)
 								return null;
 							freeThreads--;
 						}
@@ -1972,10 +1967,7 @@ public final class NetworkServerControlImpl {
 	 */
 	protected static boolean isCmd(String val)
 	{
-		if (val.equals(COMMAND_HEADER))
-			return true;
-		else
-			return false;
+		return val.equals(COMMAND_HEADER);
 	}
 
 	/*******************************************************************************/
@@ -3309,8 +3301,6 @@ public final class NetworkServerControlImpl {
 		if (type == ERRTYPE_UNKNOWN)
 			throw new Exception(locMsg);
 
-		return;
-
 	}
 	/**
 	 * Throw a SQL Exception which was sent over by a server
@@ -3542,10 +3532,7 @@ public final class NetworkServerControlImpl {
 	 */
 	private boolean isMsgProperty(String msg)
 	{
-		if (msg.startsWith(DRDA_MSG_PREFIX))
-			return true;
-		else
-			return false;
+		return msg.startsWith(DRDA_MSG_PREFIX);
 	}
 	/**
 	 * Get the current value of logging connections
@@ -3849,8 +3836,7 @@ public final class NetworkServerControlImpl {
 			else
 				sendOK(writer);
 			conn.close();
-			return;
-	  	} catch (SQLException se) {
+		} catch (SQLException se) {
 			sendSQLMessage(writer, se, SQLERROR);
 	  	}
 	}

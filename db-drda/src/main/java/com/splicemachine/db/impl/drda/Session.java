@@ -198,10 +198,7 @@ class Session
 	 */
 	protected boolean isTraceOn()
 	{
-		if (traceOn)
-			return true;
-		else
-			return false;
+		return traceOn;
 	}
 
 	/**
