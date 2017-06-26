@@ -132,7 +132,8 @@ public class MergeStatisticsHolder implements Externalizable {
         long rowCount = tableMergedStatistics.getColumn(SYSTABLESTATISTICSRowFactory.ROWCOUNT).getLong() + partitionRowCount;
         long totalSize = tableMergedStatistics.getColumn(SYSTABLESTATISTICSRowFactory.PARTITION_SIZE).getLong() + nextRow.getColumn(SYSTABLESTATISTICSRowFactory.PARTITION_SIZE).getLong();
         long avgRowWidth = tableMergedStatistics.getColumn(SYSTABLESTATISTICSRowFactory.MEANROWWIDTH).getLong() + nextRow.getColumn(SYSTABLESTATISTICSRowFactory.MEANROWWIDTH).getLong();
-        long numberOfPartitions = tableMergedStatistics.getColumn(SYSTABLESTATISTICSRowFactory.NUMBEROFPARTITIONS).getLong() + 1;
+        long numberOfPartitions = tableMergedStatistics.getColumn(SYSTABLESTATISTICSRowFactory.NUMBEROFPARTITIONS).getLong() +
+                nextRow.getColumn(SYSTABLESTATISTICSRowFactory.NUMBEROFPARTITIONS).getLong();
         int statsType = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.STATSTYPE).getInt();
         double sampleFraction = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.SAMPLEFRACTION).getDouble();
         tableMergedStatistics = generateTemporaryRowFromStats(conglomId, "-All-", rowCount, totalSize, avgRowWidth, numberOfPartitions, statsType, sampleFraction);
