@@ -142,7 +142,8 @@ public class HBaseConfiguration implements ConfigurationDefault {
         DDL_CHANGE_PATH,
         DDL_PATH,
         SNOWFLAKE_PATH,
-        BOOKINGS_PATH
+        BOOKINGS_PATH,
+        K2_VERSION_NODE
     ));
 
     // Splice Internal Tables
