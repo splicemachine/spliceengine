@@ -262,4 +262,120 @@ public class MultipleDistinctAggregatesIT extends SpliceUnitTest {
         assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
         rs.close();
     }
+
+    @Test
+    public void testScalarMultipleDistinctAggreateViaControlPath() throws Exception {
+        /* Q1 */
+        String sqlText = "select count(distinct c1), sum(distinct b1) from t1  --splice-properties useSpark=false";
+        String expected = "1 | 2 |\n" +
+                "--------\n" +
+                " 3 | 3 |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q2 */
+        sqlText = "select sum(distinct c1), sum(distinct b1), max(d1) from t1 --splice-properties useSpark=false";
+        expected = "1 | 2 | 3 |\n" +
+                "------------\n" +
+                " 6 | 3 | 3 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q3 */
+        sqlText = "select count(distinct b1), count(distinct d1), sum(c1), max(d1) from t1 --splice-properties useSpark=false";
+        expected = "1 | 2 | 3 | 4 |\n" +
+                "----------------\n" +
+                " 2 | 3 | 9 | 3 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q4 */
+        sqlText = "select count(distinct c1), sum(d1), count(distinct e1) from t1 --splice-properties useSpark=false";
+        expected = "1 | 2 | 3 |\n" +
+                "------------\n" +
+                " 3 |10 | 4 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q5 */
+        sqlText = "select sum(distinct c1), sum(distinct b1), max(d1),count(e1) from t1 --splice-properties useSpark=false";
+        expected = "1 | 2 | 3 | 4 |\n" +
+                "----------------\n" +
+                " 6 | 3 | 3 | 6 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+    }
+
+    @Test
+    public void testScalarMultipleDistinctAggreateViaSparkPath() throws Exception {
+        /* Q1 */
+        String sqlText = "select count(distinct c1), sum(distinct b1) from t1  --splice-properties useSpark=true";
+        String expected = "1 | 2 |\n" +
+                "--------\n" +
+                " 3 | 3 |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q2 */
+        sqlText = "select sum(distinct c1), sum(distinct b1), max(d1) from t1 --splice-properties useSpark=true";
+        expected = "1 | 2 | 3 |\n" +
+                "------------\n" +
+                " 6 | 3 | 3 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q3 */
+        sqlText = "select count(distinct b1), count(distinct d1), sum(c1), max(d1) from t1 --splice-properties useSpark=true";
+        expected = "1 | 2 | 3 | 4 |\n" +
+                "----------------\n" +
+                " 2 | 3 | 9 | 3 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q4 */
+        sqlText = "select count(distinct c1), sum(d1), count(distinct e1) from t1 --splice-properties useSpark=true";
+        expected = "1 | 2 | 3 |\n" +
+                "------------\n" +
+                " 3 |10 | 4 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q5 */
+        sqlText = "select sum(distinct c1), sum(distinct b1), max(d1),count(e1) from t1 --splice-properties useSpark=true";
+        expected = "1 | 2 | 3 | 4 |\n" +
+                "----------------\n" +
+                " 6 | 3 | 3 | 6 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+    }
 }

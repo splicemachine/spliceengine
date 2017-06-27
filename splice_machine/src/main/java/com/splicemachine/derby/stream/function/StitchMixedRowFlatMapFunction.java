@@ -13,7 +13,6 @@
  */
 package com.splicemachine.derby.stream.function;
 
-import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -21,51 +20,50 @@ import com.splicemachine.derby.impl.sql.execute.operations.GenericAggregateOpera
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import org.apache.commons.collections.iterators.SingletonIterator;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.io.Serializable;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 
 /**
- * Created by yxia on 5/28/17.
+ * Created by yxia on 6/27/17.
  */
-public class StitchMixedRowFunction<Op extends SpliceOperation> extends SpliceFunction2<Op, LocatedRow, LocatedRow, LocatedRow> implements Serializable {
-    protected GenericAggregateOperation aggregateOperation;
-    protected int[] groupingKeys;
-    protected SpliceGenericAggregator[] aggregates;
-
+public class StitchMixedRowFlatMapFunction<Op extends SpliceOperation> extends SpliceFlatMapFunction<Op, Iterator<LocatedRow>, LocatedRow> {
     protected boolean initialized;
+    protected GenericAggregateOperation op;
+    protected SpliceGenericAggregator[] aggregates;
     protected HashMap<Integer, SpliceGenericAggregator> distinctAggregateMap;
 
-    public StitchMixedRowFunction() {
+    public StitchMixedRowFlatMapFunction() {
     }
 
-    public StitchMixedRowFunction(OperationContext<Op> operationContext,
-                                  int[] groupByColumns) {
+    public StitchMixedRowFlatMapFunction(OperationContext<Op> operationContext) {
         super(operationContext);
-        groupingKeys = groupByColumns;
     }
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
-        ArrayUtil.writeIntArray(out, groupingKeys);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
-        groupingKeys = ArrayUtil.readIntArray(in);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public LocatedRow call(LocatedRow locatedRow1, LocatedRow locatedRow2) throws Exception {
+    public Iterator<LocatedRow> call(Iterator<LocatedRow> locatedRows) throws Exception {
+        if (!locatedRows.hasNext()) {
+            return Collections.EMPTY_LIST.iterator();
+        }
         if (!initialized) {
-            aggregateOperation = (GenericAggregateOperation)operationContext.getOperation();
-            aggregates = aggregateOperation.aggregates;
-
+            op = (GenericAggregateOperation) getOperation();
+            aggregates = op.aggregates;
             // build a map between distinct column to aggregator
             distinctAggregateMap = new HashMap<>();
             for (SpliceGenericAggregator aggr:aggregates) {
@@ -75,33 +73,21 @@ public class StitchMixedRowFunction<Op extends SpliceOperation> extends SpliceFu
             }
             initialized = true;
         }
-        operationContext.recordRead();
-        ExecRow valueRow;
-        LocatedRow resultRow;
-        int numOfGroupKeys = groupingKeys==null? 0: groupingKeys.length;
-        if (locatedRow1 == null || locatedRow1.size() < numOfGroupKeys + aggregates.length*3) {
-            // compose a row with all the aggregates together
-            valueRow = new ValueRow(numOfGroupKeys + aggregates.length*3);
 
-            if (locatedRow1 != null)
-                copyRow(valueRow, locatedRow1.getRow());
-            resultRow = new LocatedRow(valueRow);
-        } else {
-            valueRow = locatedRow1.getRow();
-            resultRow = locatedRow1;
+        ExecRow valueRow = new ValueRow(aggregates.length*3);
+        copyRow(valueRow, locatedRows.next().getRow());
+
+        while (locatedRows.hasNext()) {
+            ExecRow r2 = locatedRows.next().getRow();
+            copyRow(valueRow, r2);
         }
-        if (locatedRow2 == null) return resultRow;
 
-        copyRow(valueRow, locatedRow2.getRow());
-        return resultRow;
+        op.finishAggregation(valueRow); // calls setCurrentRow
+        return new SingletonIterator(new LocatedRow(valueRow));
     }
 
     private void copyRow(ExecRow valueRow, ExecRow src) throws Exception {
         int j=1;
-        for (; groupingKeys != null && j<=groupingKeys.length; j++) {
-            valueRow.setColumn(groupingKeys[j-1]+1, src.getColumn(j));
-        }
-
         SpliceGenericAggregator aggregator = distinctAggregateMap.get(src.getColumn(j++).getInt());
         if (aggregator != null) {
             valueRow.setColumn(aggregator.getResultColumnId(), src.getColumn(j++));

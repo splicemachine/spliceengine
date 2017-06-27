@@ -14,19 +14,6 @@
 
 package com.splicemachine;
 
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Properties;
-import java.util.TreeMap;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
@@ -54,27 +41,19 @@ import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
 import com.splicemachine.db.catalog.types.UDTAliasInfo;
 import com.splicemachine.db.catalog.types.UserDefinedTypeIdImpl;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
-import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-import com.splicemachine.db.iapi.services.io.FormatableHashtable;
-import com.splicemachine.db.iapi.services.io.FormatableInstanceGetter;
-import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
-import com.splicemachine.db.iapi.services.io.FormatableLongHolder;
+import com.splicemachine.db.iapi.services.io.*;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
+import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
+import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
-import com.splicemachine.db.impl.sql.CursorInfo;
-import com.splicemachine.db.impl.sql.CursorTableReference;
-import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
-import com.splicemachine.db.impl.sql.GenericParameter;
-import com.splicemachine.db.impl.sql.GenericParameterValueSet;
-import com.splicemachine.db.impl.sql.GenericPreparedStatement;
-import com.splicemachine.db.impl.sql.GenericResultDescription;
-import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import com.splicemachine.db.impl.sql.*;
 import com.splicemachine.db.impl.sql.catalog.DDColumnDependableFinder;
 import com.splicemachine.db.impl.sql.catalog.DD_Version;
 import com.splicemachine.db.impl.sql.catalog.DDdependableFinder;
+import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.store.access.PC_XenaVersion;
 import com.splicemachine.db.shared.common.udt.UDTBase;
 import com.splicemachine.derby.ddl.DDLChangeType;
@@ -85,6 +64,7 @@ import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
 import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportParams;
@@ -95,6 +75,7 @@ import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
 import com.splicemachine.derby.serialization.ActivationSerializer;
 import com.splicemachine.derby.serialization.SpliceObserverInstructions;
+import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.derby.utils.kryo.ValueRowSerializer;
 import com.splicemachine.kvpair.KVPair;
@@ -108,6 +89,14 @@ import com.splicemachine.utils.kryo.ExternalizableSerializer;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
+import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
+
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.util.*;
 
 
 /**
@@ -834,5 +823,11 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(SpliceBaseOperation.class,EXTERNALIZABLE_SERIALIZER,283);
         instance.register(CallStatementOperation.class,EXTERNALIZABLE_SERIALIZER,284);
 
+        instance.register(MergeNonDistinctAggregatesFunctionForMixedRows.class,EXTERNALIZABLE_SERIALIZER, 285);
+        instance.register(MergeAllAggregatesFunctionForMixedRows.class,EXTERNALIZABLE_SERIALIZER, 286);
+        instance.register(DistinctAggregatesPrepareFunction.class,EXTERNALIZABLE_SERIALIZER, 287);
+        instance.register(StitchMixedRowFunction.class,EXTERNALIZABLE_SERIALIZER, 288);
+        instance.register(StitchMixedRowFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER, 289);
+        instance.register(DistinctAggregateKeyCreation.class,EXTERNALIZABLE_SERIALIZER, 290);
     }
 }

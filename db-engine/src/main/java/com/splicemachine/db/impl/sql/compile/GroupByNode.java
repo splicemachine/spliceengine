@@ -627,10 +627,10 @@ public class GroupByNode extends SingleChildResultSetNode{
     private void addDistinctAggregatesToOrderBy(){
         int numDistinct=numDistinctAggregates(aggregateVector);
         if(numDistinct!=0){
-            if(SanityManager.DEBUG){
-                SanityManager.ASSERT(groupingList!=null || numDistinct==1,
-                        "Should not have more than 1 distinct aggregate per Group By node");
-            }
+ //           if(SanityManager.DEBUG){
+ //               SanityManager.ASSERT(groupingList!=null || numDistinct==1,
+ //                       "Should not have more than 1 distinct aggregate per Group By node");
+ //           }
 
             AggregatorInfo agg=null;
             for(AggregatorInfo info : aggInfo){
@@ -642,8 +642,10 @@ public class GroupByNode extends SingleChildResultSetNode{
 
             assert agg!=null && agg.isDistinct();
 
-            addDistinctAggregate=true;
-            addDistinctAggregateColumnNum=agg.getInputColNum();
+     //       if (numDistinct == 1) {
+                addDistinctAggregate = true;
+                addDistinctAggregateColumnNum = agg.getInputColNum();
+     //       }
         }
     }
 

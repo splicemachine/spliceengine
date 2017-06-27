@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLInteger;
@@ -43,30 +44,27 @@ public class DistinctAggregateKeyCreation<Op extends SpliceOperation> extends Sp
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
-        out.writeInt(groupByColumns.length);
-        for (int i = 0; i<groupByColumns.length;i++) {
-            out.writeInt(groupByColumns[i]);
-        }
+        ArrayUtil.writeIntArray(out, groupByColumns);
 
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
-        groupByColumns = new int[in.readInt()];
-        for (int i = 0; i<groupByColumns.length;i++) {
-            groupByColumns[i] = in.readInt();
-        }
+        groupByColumns = ArrayUtil.readIntArray(in);
     }
 
     @Override
      public ExecRow call(LocatedRow row) throws Exception {
-        ValueRow valueRow = new ValueRow(groupByColumns.length+2);
+        int numOfGroupKeys = 0;
+        if (groupByColumns != null)
+            numOfGroupKeys = groupByColumns.length;
+        ValueRow valueRow = new ValueRow(numOfGroupKeys+2);
         int position = 1;
 
         // copy the first N columns which are grouByColumns + distinct column position + distinct column
         // should we put the more distinct columns first instead? Is there performance difference for hashing?
-        for (; position<=groupByColumns.length+1; position++) {
+        for (; position<=numOfGroupKeys+1; position++) {
             valueRow.setColumn(position, row.getRow().getColumn(position));
         }
         //read the distinct column id
@@ -77,7 +75,7 @@ public class DistinctAggregateKeyCreation<Op extends SpliceOperation> extends Sp
             valueRow.setColumn(position, new SQLInteger());
         } else {
             // this is a row corresponding to a distinct aggregate
-            valueRow.setColumn(position, row.getRow().getColumn(groupByColumns.length+3));
+            valueRow.setColumn(position, row.getRow().getColumn(numOfGroupKeys+3));
         }
         return valueRow;
     }

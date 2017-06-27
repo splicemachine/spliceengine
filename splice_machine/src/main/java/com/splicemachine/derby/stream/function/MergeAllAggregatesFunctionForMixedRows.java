@@ -14,14 +14,18 @@
 package com.splicemachine.derby.stream.function;
 
 import com.clearspring.analytics.util.Lists;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.AggregatorInfo;
-import com.splicemachine.derby.impl.sql.execute.operations.GroupedAggregateOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.GenericAggregateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
@@ -30,7 +34,8 @@ import java.util.List;
  * Created by yxia on 5/31/17.
  */
 public class MergeAllAggregatesFunctionForMixedRows<Op extends com.splicemachine.derby.iapi.sql.execute.SpliceOperation> extends SpliceFunction2<Op,LocatedRow,LocatedRow,LocatedRow> implements Serializable {
-    protected SpliceGenericAggregator[] aggregates;
+    protected SpliceGenericAggregator[] nonDistinctAggregates;
+    protected int[] groupingKeys;
     protected boolean initialized;
     protected HashMap<Integer, SpliceGenericAggregator> distinctAggregateMap;
     protected int distinctColumnId = 0;
@@ -38,8 +43,21 @@ public class MergeAllAggregatesFunctionForMixedRows<Op extends com.splicemachine
     public MergeAllAggregatesFunctionForMixedRows() {
     }
 
-    public MergeAllAggregatesFunctionForMixedRows (OperationContext<Op> operationContext) {
+    public MergeAllAggregatesFunctionForMixedRows (OperationContext<Op> operationContext, int[] groupByColumns) {
         super(operationContext);
+        groupingKeys = groupByColumns;
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        ArrayUtil.writeIntArray(out, groupingKeys);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        groupingKeys = ArrayUtil.readIntArray(in);
     }
 
     @Override
@@ -68,7 +86,7 @@ public class MergeAllAggregatesFunctionForMixedRows<Op extends com.splicemachine
             }
         } else {
             // non-distinct aggregate row
-            for (SpliceGenericAggregator aggr : aggregates) {
+            for (SpliceGenericAggregator aggr : nonDistinctAggregates) {
                 if (aggr.isDistinct())
                     continue;
                 if (!aggr.isInitialized(r1)) {
@@ -91,9 +109,9 @@ public class MergeAllAggregatesFunctionForMixedRows<Op extends com.splicemachine
          * so for multiple distinct aggregate case, we need to compose a new aggregates array with
          * column ids pointing to the new position in the split row.
          */
-        GroupedAggregateOperation op = (GroupedAggregateOperation)operationContext.getOperation();
+        GenericAggregateOperation op = (GenericAggregateOperation)operationContext.getOperation();
         SpliceGenericAggregator[] origAggregates = op.aggregates;
-        int numOfGroupKeys = op.groupedAggregateContext.getGroupingKeys().length;
+        int numOfGroupKeys = groupingKeys==null? 0: groupingKeys.length;
 
         List<SpliceGenericAggregator> tmpAggregators = Lists.newArrayList();
         distinctAggregateMap = new HashMap<>();
@@ -122,16 +140,19 @@ public class MergeAllAggregatesFunctionForMixedRows<Op extends com.splicemachine
             }
 
             SpliceGenericAggregator newAggregator = new SpliceGenericAggregator(newAggInfo, cf);
-            tmpAggregators.add(newAggregator);
             if (newAggregator.isDistinct()) {
                 // note the distinct column id is from the original row, so need to use the
                 // column id in the original aggregates
                 distinctAggregateMap.put(new Integer(aggregator.getInputColumnId()), newAggregator);
+            } else {
+                tmpAggregators.add(newAggregator);
             }
         }
-        aggregates = new SpliceGenericAggregator[tmpAggregators.size()];
-        tmpAggregators.toArray(aggregates);
+        nonDistinctAggregates = new SpliceGenericAggregator[tmpAggregators.size()];
+        tmpAggregators.toArray(nonDistinctAggregates);
 
         distinctColumnId = numOfGroupKeys + 1;
+
+        return;
     }
 }

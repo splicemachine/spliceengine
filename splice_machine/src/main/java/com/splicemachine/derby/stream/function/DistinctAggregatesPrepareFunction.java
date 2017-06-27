@@ -14,14 +14,18 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.impl.sql.execute.operations.GroupedAggregateOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.GenericAggregateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
-import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.GroupedAggregateContext;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -44,13 +48,12 @@ import java.util.Iterator;
  * merge back together
  *
  */
-public class DistinctAggregatesPrepareFunction extends SpliceFlatMapFunction<GroupedAggregateOperation, LocatedRow, LocatedRow> {
+public class DistinctAggregatesPrepareFunction<Op extends SpliceOperation> extends SpliceFlatMapFunction<Op, LocatedRow, LocatedRow> {
     private static final long serialVersionUID = 7780564699906451370L;
     private boolean initialized = false;
-    private GroupedAggregateOperation groupedAggregateOperation;
-    private GroupedAggregateContext groupedAggregateContext;
+    protected SpliceGenericAggregator[] aggregates;
     private int[] groupingKeys;
-    private int[] uniqueColumns;
+    private int numOfDistinctAggregates;
     private int distinctRowLength;
     private int nonDistinctRowLength;
     private boolean hasNonDistinctAggregate;
@@ -58,27 +61,34 @@ public class DistinctAggregatesPrepareFunction extends SpliceFlatMapFunction<Gro
     public DistinctAggregatesPrepareFunction() {
     }
 
-    public DistinctAggregatesPrepareFunction(OperationContext<GroupedAggregateOperation> operationContext) {
+    public DistinctAggregatesPrepareFunction(OperationContext<Op> operationContext, int[] groupByColumns) {
         super(operationContext);
+        groupingKeys = groupByColumns;
+    }
+
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        ArrayUtil.writeIntArray(out, groupingKeys);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        groupingKeys = ArrayUtil.readIntArray(in);
     }
 
     @Override
     public Iterator<LocatedRow> call(LocatedRow sourceRow) throws Exception {
         if (!initialized) {
+            setup();
             initialized = true;
-            groupedAggregateOperation = operationContext.getOperation();
-            groupedAggregateContext = groupedAggregateOperation.groupedAggregateContext;
-            groupingKeys = groupedAggregateContext.getGroupingKeys();
-            uniqueColumns = groupedAggregateContext.getNonGroupedUniqueColumns();
-            distinctRowLength = groupingKeys.length + 4;
-            nonDistinctRowLength = groupingKeys.length + 1
-                    + (groupedAggregateOperation.aggregates.length - uniqueColumns.length)*3;
-            hasNonDistinctAggregate = (groupedAggregateOperation.aggregates.length - uniqueColumns.length != 0);
         }
-        ArrayList<LocatedRow> list = new ArrayList<>(hasNonDistinctAggregate?uniqueColumns.length+1:uniqueColumns.length);
+        ArrayList<LocatedRow> list = new ArrayList<>(hasNonDistinctAggregate ? numOfDistinctAggregates+1 : numOfDistinctAggregates);
         ValueRow valueRow;
 
-        for (SpliceGenericAggregator aggregator : groupedAggregateOperation.aggregates) {
+        for (SpliceGenericAggregator aggregator : aggregates) {
             if (!aggregator.isDistinct())
                 continue;
             valueRow = new ValueRow(distinctRowLength);
@@ -86,7 +96,7 @@ public class DistinctAggregatesPrepareFunction extends SpliceFlatMapFunction<Gro
             // note, column position is 1-based, while the columnid in groupingKeys and
             // uniqueColumns are 0-based
             int j=1;
-            for (; j<=groupingKeys.length; j++) {
+            for (; groupingKeys != null && j<=groupingKeys.length; j++) {
                 valueRow.setColumn(j, sourceRow.getRow().getColumn(groupingKeys[j-1]+1));
             }
             // add distinct column id
@@ -104,12 +114,12 @@ public class DistinctAggregatesPrepareFunction extends SpliceFlatMapFunction<Gro
             valueRow = new ValueRow(nonDistinctRowLength);
             //copy grouping key values
             int j = 1;
-            for (; j <= groupingKeys.length; j++) {
+            for (; groupingKeys != null && j <= groupingKeys.length; j++) {
                 valueRow.setColumn(j, sourceRow.getRow().getColumn(groupingKeys[j - 1] + 1));
             }
             // add distinct column id
             valueRow.setColumn(j++, new SQLInteger());
-            for (SpliceGenericAggregator aggregator : groupedAggregateOperation.aggregates) {
+            for (SpliceGenericAggregator aggregator : aggregates) {
                 if (aggregator.isDistinct())
                     continue;
                 valueRow.setColumn(j++, aggregator.getResultColumnValue(sourceRow.getRow()));
@@ -121,6 +131,25 @@ public class DistinctAggregatesPrepareFunction extends SpliceFlatMapFunction<Gro
         }
 
         return list.iterator();
+    }
+
+    private void setup() {
+        GenericAggregateOperation op = (GenericAggregateOperation)operationContext.getOperation();
+        aggregates = op.aggregates;
+        numOfDistinctAggregates = 0;
+        for (SpliceGenericAggregator aggregator : aggregates) {
+            if (aggregator.isDistinct())
+                numOfDistinctAggregates++;
+        }
+        int numOfGroupKeys = 0;
+        if (groupingKeys != null)
+            numOfGroupKeys = groupingKeys.length;
+        distinctRowLength = numOfGroupKeys + 4;
+        nonDistinctRowLength = numOfGroupKeys + 1
+                + (aggregates.length - numOfDistinctAggregates)*3;
+        hasNonDistinctAggregate = (aggregates.length != numOfDistinctAggregates);
+
+        return;
     }
 
 }

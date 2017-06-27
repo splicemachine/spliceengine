@@ -179,15 +179,27 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                  */
                 hasMultipleDistinct = true;
                 operationContext.pushScopeForOp(OperationContext.Scope.EXPAND);
-                DataSet set1 = set.flatMap(new DistinctAggregatesPrepareFunction(operationContext));
+                DataSet set1 = set.flatMap(new DistinctAggregatesPrepareFunction(operationContext, groupedAggregateContext.getGroupingKeys()));
                 operationContext.popScope();
 
                 operationContext.pushScopeForOp(OperationContext.Scope.GROUP_AGGREGATE_KEYER);
                 PairDataSet set2 = set1.keyBy(new DistinctAggregateKeyCreation(operationContext, groupedAggregateContext.getGroupingKeys()));
 
                 operationContext.popScope();
+
+                /**
+                 * With the rows split, the column positions recorded in aggregates are no longer valid,
+                 * so for multiple distinct aggregate case, we need to compose a new aggregates array with
+                 * column ids pointing to the new position in the split row.
+                 *
+                newAggregates = setupNewAggregates(groupedAggregateContext.getGroupingKeys());
+                distinctColumnId = groupedAggregateContext.getGroupingKeys().length + 1;
+                 */
+
                 operationContext.pushScopeForOp(OperationContext.Scope.REDUCE);
-                PairDataSet set3 = set2.reduceByKey(new MergeNonDistinctAggregatesFunctionForMixedRows(operationContext));
+                PairDataSet set3 = set2.reduceByKey(
+                        new MergeNonDistinctAggregatesFunctionForMixedRows(operationContext,
+                                                                           groupedAggregateContext.getGroupingKeys()));
                 operationContext.popScope();
 
                 operationContext.pushScopeForOp(OperationContext.Scope.READ);
@@ -222,6 +234,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
         // with more than one distinct aggregates, each row is split into multiple rows
         // where each row starts with the original group keys + the distinct column id
+        operationContext.pushScopeForOp(OperationContext.Scope.GROUP_AGGREGATE_KEYER);
         PairDataSet set2;
         if (hasMultipleDistinct) {
             int[] tmpGroupKey = new int[numOfGroupKeys + 1];
@@ -237,7 +250,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         operationContext.pushScopeForOp(OperationContext.Scope.REDUCE);
         PairDataSet set3;
         if (hasMultipleDistinct)
-            set3 = set2.reduceByKey(new MergeAllAggregatesFunctionForMixedRows(operationContext));
+            set3 = set2.reduceByKey(new MergeAllAggregatesFunctionForMixedRows(operationContext, groupedAggregateContext.getGroupingKeys()));
         else
             set3 = set2.reduceByKey(new MergeAllAggregatesFunction(operationContext));
         operationContext.popScope();
@@ -253,7 +266,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             operationContext.popScope();
 
             operationContext.pushScopeForOp(OperationContext.Scope.REDUCE);
-            PairDataSet set7 = set6.reduceByKey(new StitchMixedRowFunction(operationContext));
+            PairDataSet set7 = set6.reduceByKey(new StitchMixedRowFunction(operationContext, groupedAggregateContext.getGroupingKeys()));
             operationContext.popScope();
 
             operationContext.pushScopeForOp(OperationContext.Scope.READ);

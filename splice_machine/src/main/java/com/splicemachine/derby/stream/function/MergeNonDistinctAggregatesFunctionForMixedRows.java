@@ -15,15 +15,19 @@
 package com.splicemachine.derby.stream.function;
 
 import com.clearspring.analytics.util.Lists;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.AggregatorInfo;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.GroupedAggregateOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.GenericAggregateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.io.Serializable;
 import java.util.List;
 
@@ -31,15 +35,30 @@ import java.util.List;
  * Created by yxia on 5/31/17.
  */
 public class MergeNonDistinctAggregatesFunctionForMixedRows<Op extends SpliceOperation> extends SpliceFunction2<Op, LocatedRow, LocatedRow, LocatedRow> implements Serializable {
-    protected SpliceGenericAggregator[] aggregates;
-    protected boolean initialized;
+    protected SpliceGenericAggregator[] nonDistinctAggregates;
     protected int distinctColumnId = 0;
+    protected int[] groupingKeys;
+    protected boolean initialized;
 
     public MergeNonDistinctAggregatesFunctionForMixedRows() {
     }
 
-    public MergeNonDistinctAggregatesFunctionForMixedRows(OperationContext<Op> operationContext) {
+    public MergeNonDistinctAggregatesFunctionForMixedRows(OperationContext<Op> operationContext,
+                                                          int[] groupByColumns) {
         super(operationContext);
+        groupingKeys = groupByColumns;
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        ArrayUtil.writeIntArray(out, groupingKeys);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        groupingKeys = ArrayUtil.readIntArray(in);
     }
 
     @Override
@@ -56,18 +75,15 @@ public class MergeNonDistinctAggregatesFunctionForMixedRows<Op extends SpliceOpe
         ExecRow r2 = locatedRow2.getRow();
 
         // only process the mixed rows corresponding to the non-distinct aggregates
-        if (distinctColumnId < 1 || r1.getColumn(distinctColumnId).isNull()) {
-            assert aggregates != null: "aggregates is not expected to be null";
-            for (SpliceGenericAggregator aggregator : aggregates) {
-                if (!aggregator.isDistinct()) {
-                    if (!aggregator.isInitialized(locatedRow1.getRow())) {
-                        aggregator.initializeAndAccumulateIfNeeded(r1, r1);
-                    }
-                    if (!aggregator.isInitialized(locatedRow2.getRow())) {
-                        aggregator.initializeAndAccumulateIfNeeded(r2, r2);
-                    }
-                    aggregator.merge(r2, r1);
+        if (nonDistinctAggregates != null && r1.getColumn(distinctColumnId).isNull()) {
+            for (SpliceGenericAggregator aggregator : nonDistinctAggregates) {
+                if (!aggregator.isInitialized(locatedRow1.getRow())) {
+                    aggregator.initializeAndAccumulateIfNeeded(r1, r1);
                 }
+                if (!aggregator.isInitialized(locatedRow2.getRow())) {
+                    aggregator.initializeAndAccumulateIfNeeded(r2, r2);
+                }
+                aggregator.merge(r2, r1);
             }
         }
         return new LocatedRow(locatedRow1.getRowLocation(), r1);
@@ -79,39 +95,33 @@ public class MergeNonDistinctAggregatesFunctionForMixedRows<Op extends SpliceOpe
          * so for multiple distinct aggregate case, we need to compose a new aggregates array with
          * column ids pointing to the new position in the split row.
          */
-        GroupedAggregateOperation op = (GroupedAggregateOperation)operationContext.getOperation();
+        GenericAggregateOperation op = (GenericAggregateOperation) operationContext.getOperation();
         SpliceGenericAggregator[] origAggregates = op.aggregates;
-        int numOfGroupKeys = op.groupedAggregateContext.getGroupingKeys().length;
+        int numOfGroupKeys = groupingKeys == null? 0 : groupingKeys.length;
 
         List<SpliceGenericAggregator> tmpAggregators = Lists.newArrayList();
         int numOfNonDistinctAggregates = 0;
         ClassFactory cf = op.getActivation().getLanguageConnectionContext().getLanguageConnectionFactory().getClassFactory();
         for (SpliceGenericAggregator aggregator : origAggregates) {
             AggregatorInfo aggInfo = aggregator.getAggregatorInfo();
-            AggregatorInfo newAggInfo;
-            if (aggregator.isDistinct()) {
-                newAggInfo = new AggregatorInfo(aggInfo.getAggregateName()
-                        , aggInfo.getAggregatorClassName()
-                        , numOfGroupKeys + 2
-                        , numOfGroupKeys + 1
-                        , numOfGroupKeys + 3
-                        , true
-                        , aggInfo.getResultDescription());
-            } else {
-                newAggInfo = new AggregatorInfo(aggInfo.getAggregateName()
+            if (aggregator.isDistinct())
+                continue;
+            AggregatorInfo newAggInfo = new AggregatorInfo(aggInfo.getAggregateName()
                         , aggInfo.getAggregatorClassName()
                         , numOfGroupKeys + numOfNonDistinctAggregates * 3 + 2
                         , numOfGroupKeys + numOfNonDistinctAggregates * 3 + 1
                         , numOfGroupKeys + numOfNonDistinctAggregates * 3 + 3
                         , false
                         , aggInfo.getResultDescription());
-                numOfNonDistinctAggregates++;
-            }
+            numOfNonDistinctAggregates++;
+
             tmpAggregators.add(new SpliceGenericAggregator(newAggInfo, cf));
         }
-        aggregates = new SpliceGenericAggregator[tmpAggregators.size()];
-        tmpAggregators.toArray(aggregates);
+        nonDistinctAggregates = new SpliceGenericAggregator[tmpAggregators.size()];
+        tmpAggregators.toArray(nonDistinctAggregates);
 
         distinctColumnId = numOfGroupKeys + 1;
+
+        return;
     }
 }
