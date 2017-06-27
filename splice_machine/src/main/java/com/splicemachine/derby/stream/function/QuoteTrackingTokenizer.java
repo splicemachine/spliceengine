@@ -59,7 +59,7 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer{
      * Enumeration of tokenizer states. QUOTE_MODE is activated between quotes.
      */
     private enum TokenizerState{
-        NORMAL,QUOTE_MODE;
+        NORMAL,QUOTE_MODE
     }
 
     /**

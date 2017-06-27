@@ -87,8 +87,8 @@ public class SqlJJarIT extends SpliceUnitTest {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        STORED_PROCS_JAR_FILE = System.getProperty("user.dir")+"/target/sql-it/sql-it.jar";;
-        assertTrue("Cannot find procedures jar file: "+STORED_PROCS_JAR_FILE, STORED_PROCS_JAR_FILE != null &&
+        STORED_PROCS_JAR_FILE = System.getProperty("user.dir")+"/target/sql-it/sql-it.jar";
+		assertTrue("Cannot find procedures jar file: "+STORED_PROCS_JAR_FILE, STORED_PROCS_JAR_FILE != null &&
             STORED_PROCS_JAR_FILE.endsWith("jar"));
     }
 

@@ -77,7 +77,7 @@ public class StatisticsColumnMergeIT extends SpliceUnitTest{
                 ps.setShort(1, (short) n);
                 ps.setInt(2, n);
                 ps.setLong(3, n);
-                ps.setBoolean(4, n % 2 == 0 ? true : false);
+                ps.setBoolean(4, n % 2 == 0);
                 ps.setFloat(5, n);
                 ps.setDouble(6, n);
                 ps.setBigDecimal(7, new BigDecimal(n));

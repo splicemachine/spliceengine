@@ -44,7 +44,7 @@ public class ProcedureUtils {
             message = "";
         }
         Connection conn = SpliceAdmin.getDefaultConn();
-        LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();;
+        LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
 
         DataTypeDescriptor dtd =
                 DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, message.length());

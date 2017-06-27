@@ -2577,7 +2577,7 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
         // Loop thru every character, if we're in double quotes just echo it,
         // if we're not in double quotes, upper case it.
         char[] charArray = null;
-        if (procedureName.indexOf("\"") == -1) {
+        if (!procedureName.contains("\"")) {
             return procedureName.toUpperCase();
         } else {
             charArray = procedureName.toCharArray();
@@ -2967,11 +2967,7 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
     }
 
     public boolean isQueryMode() {
-        if (this.sqlMode_ == this.isQuery__) {
-            return true;
-        } else {
-            return false;
-        }
+        return this.sqlMode_ == this.isQuery__;
     }
 
     protected void removeClientCursorNameFromCache() {

@@ -41,7 +41,7 @@ public class RowToLocatedRowFunction implements Function <Row, LocatedRow>, Seri
 
     public RowToLocatedRowFunction(OperationContext<SpliceOperation> operationContext) throws StandardException {
             this(operationContext, operationContext.getOperation().getExecRowDefinition());
-    };
+    }
 
     public RowToLocatedRowFunction(OperationContext<SpliceOperation> operationContext,ExecRow execRow) {
         this.operationContext = operationContext;

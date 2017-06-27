@@ -413,7 +413,7 @@ public class JDBCDisplayUtil {
                 }
             }
         }
-        if (showSelectCount == true) {
+        if (showSelectCount) {
             if (numberOfRowsSelected == 1) {
                 out.println();
                 indentedPrintLine(out, indentLevel,
@@ -1001,7 +1001,7 @@ public class JDBCDisplayUtil {
 					ShowSQLException(out, e);
 			}
 		}
-		if (showSelectCount == true) {
+		if (showSelectCount) {
 		   if (numberOfRowsSelected == 1) {
 			   out.println();
 			   indentedPrintLine( out, indentLevel, "1 row selected");

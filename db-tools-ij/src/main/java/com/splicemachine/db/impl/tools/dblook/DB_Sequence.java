@@ -144,23 +144,15 @@ public class DB_Sequence
          )
 		throws SQLException
 	{
-		StringBuilder buffer = new StringBuilder();
+        String buffer = "CREATE SEQUENCE " + fullName + '\n' +
+                "    AS " + dataTypeName + '\n' +
+                "    START WITH " + Long.toString(startValue) + '\n' +
+                "    INCREMENT BY " + Long.toString(increment) + '\n' +
+                "    MAXVALUE " + Long.toString(maximumValue) + '\n' +
+                "    MINVALUE " + Long.toString(minimumValue) + '\n' +
+                "    " + cycleOption + '\n';
 
-        buffer.append( "CREATE SEQUENCE " + fullName + '\n' );
-
-        buffer.append( "    AS " + dataTypeName + '\n' );
-
-        buffer.append( "    START WITH " + Long.toString( startValue ) + '\n' );
-
-        buffer.append( "    INCREMENT BY " + Long.toString( increment ) + '\n' );
-
-        buffer.append( "    MAXVALUE " + Long.toString( maximumValue ) + '\n' );
-
-        buffer.append( "    MINVALUE " + Long.toString( minimumValue ) + '\n' );
-
-        buffer.append( "    " + cycleOption + '\n' );
-
-		return buffer.toString();
+        return buffer;
 	}
 
 }

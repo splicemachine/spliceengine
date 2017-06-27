@@ -1734,11 +1734,8 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
     // Driver-specific determination if local COMMIT/ROLLBACK is allowed;
     // Allow local COMMIT/ROLLBACK only if we are not in an XA transaction
     protected boolean allowLocalCommitRollback_() {
-       
-    	if (getXAState() == XA_T0_NOT_ASSOCIATED) {
-            return true;
-        }
-        return false;
+
+        return getXAState() == XA_T0_NOT_ASSOCIATED;
     }
 
     public void setInputStream(java.io.InputStream inputStream) {

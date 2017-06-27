@@ -117,7 +117,7 @@ class NetworkServerMBeanImpl implements NetworkServerMBean {
     public boolean getDrdaKeepAlive() {
         checkMonitor();
         String on = getServerProperty(Property.DRDA_PROP_KEEPALIVE);
-        return ( "true".equals(on) ? true : false);
+        return ("true".equals(on));
     }
     
     public int getDrdaMaxThreads() {
@@ -216,7 +216,7 @@ class NetworkServerMBeanImpl implements NetworkServerMBean {
         checkMonitor();
         
         String on = getServerProperty(Property.DRDA_PROP_TRACEALL);
-        return ("true".equals(on) ? true : false );
+        return ("true".equals(on));
     }
     
     /*

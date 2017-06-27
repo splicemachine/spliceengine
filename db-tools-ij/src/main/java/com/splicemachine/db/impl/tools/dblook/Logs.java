@@ -110,8 +110,6 @@ public class Logs {
 		else
 			ddlFile.println("-- " + msg);
 
-		return;
-
 	}
 
 	/* **********************************************

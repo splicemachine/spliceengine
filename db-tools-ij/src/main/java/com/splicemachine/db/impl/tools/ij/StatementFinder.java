@@ -136,11 +136,7 @@ public class StatementFinder {
 		atEOF = false;
 		peekEOF = false;
 		peeked = false;
-		if(s.isStandardInput() && promptwriter != null) {
-			doPrompt = true;
-		} else {
-			doPrompt = false;
-		}
+		doPrompt = s.isStandardInput() && promptwriter != null;
 	}
 
 	public void close() throws IOException {

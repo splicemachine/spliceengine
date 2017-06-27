@@ -83,7 +83,6 @@ public class DB_Check {
 
 		stmt.close();
 		rs.close();
-		return;
 
 	}
 

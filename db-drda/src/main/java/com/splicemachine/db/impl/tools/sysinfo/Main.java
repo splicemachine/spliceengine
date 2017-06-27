@@ -128,7 +128,7 @@ public final class Main {
        // get our own instance variable
     parseArgs (args);
 
-    if (cptester == true)
+    if (cptester)
 	getClasspathInfo (args, out);
     else
 	getMainInfo (out, setPause);
@@ -1225,8 +1225,8 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
 
         if (filename.startsWith("jar:")) { filename = filename.substring(4); }
         if (filename.startsWith("file:")) { filename = filename.substring(5); }
-        if (filename.indexOf("!") > -1) { filename = filename.substring(0, filename.indexOf("!")); }
-        if (filename.indexOf("/com/splicemachine/db") > -1) {
+        if (filename.contains("!")) { filename = filename.substring(0, filename.indexOf("!")); }
+        if (filename.contains("/com/splicemachine/db")) {
             filename = filename.substring(0, filename.indexOf("/com/splicemachine/db"));
         }
         if (filename.charAt(0) == '/' && 

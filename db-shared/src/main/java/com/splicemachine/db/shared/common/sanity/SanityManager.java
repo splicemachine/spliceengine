@@ -291,7 +291,7 @@ public class SanityManager {
      * for any DEBUG_ON check. DEBUG_CLEAR of an individual
      * flag will appear to have no effect.
      */
-    public static final void DEBUG_ALL_ON() {
+    public static void DEBUG_ALL_ON() {
         if (DEBUG) {
             AllDebugOn = true;
             AllDebugOff = false;
@@ -303,7 +303,7 @@ public class SanityManager {
      * for any DEBUG_ON check. DEBUG_SET of an individual
      * flag will appear to have no effect.
      */
-    public static final void DEBUG_ALL_OFF() {
+    public static void DEBUG_ALL_OFF() {
         if (DEBUG) {
             AllDebugOff = true;
             AllDebugOn = false;

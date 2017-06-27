@@ -175,7 +175,7 @@ public class ClientConnectionPoolDataSource extends ClientDataSource
     /**
      * Make sure the state of the de-serialized object is valid.
      */
-    private final void validateState() {
+    private void validateState() {
         // Make sure maxStatements is zero or higher.
         if (maxStatements < 0) {
             throw new IllegalArgumentException(msgUtil.getTextMessage(

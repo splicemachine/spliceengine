@@ -168,11 +168,8 @@ public class CreateRoleConstantOperation extends DDLConstantOperation {
 
         // Go through all schemas to see if any one of them is owned by a authid
         // the same as the proposed roleName.
-        if (dd.existsSchemaOwnedBy(roleName, tc)) {
-            return true;
-        }
+        return dd.existsSchemaOwnedBy(roleName, tc);
 
-        return false;
     }
 }
 

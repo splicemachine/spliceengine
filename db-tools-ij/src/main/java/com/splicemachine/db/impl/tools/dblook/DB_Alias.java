@@ -84,7 +84,6 @@ public class DB_Alias
 		generateDDL( ps, AGGREGATE_TYPE );
         ps.close();
 
-		return;
 	}
 
     /* ************************************************
@@ -269,7 +268,6 @@ public class DB_Alias
 
 		rs.close();
 		stmt.close();
-		return;
 
 	}
 }

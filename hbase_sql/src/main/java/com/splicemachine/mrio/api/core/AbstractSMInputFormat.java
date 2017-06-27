@@ -124,9 +124,7 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
      */
     public static boolean oneSplitPerRegion( Configuration configuration) {
         String oneSplitPerRegion = configuration.get(MRConstants.ONE_SPLIT_PER_REGION);
-        if (oneSplitPerRegion != null && oneSplitPerRegion.compareToIgnoreCase("TRUE") == 0)
-                return true;
-        return false;
+        return oneSplitPerRegion != null && oneSplitPerRegion.compareToIgnoreCase("TRUE") == 0;
     }
 
     /**

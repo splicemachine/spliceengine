@@ -183,7 +183,7 @@ public class DssTrace
   {
     synchronized (comBufferSync) {
         // Only start the trace if it is off.
-        if (comBufferTraceOn == false) {
+        if (!comBufferTraceOn) {
             // Make up to two attempts to create the trace file.
             // First just try to make it. Then if we get a FileNotFoundException
             // try making the directory and then retry the create.
@@ -270,7 +270,7 @@ public class DssTrace
   {
     synchronized (comBufferSync) {
       // Only stop the trace if it is actually on.
-      if (comBufferTraceOn == true) {
+      if (comBufferTraceOn) {
         // Turn of the trace flag.
         comBufferTraceOn = false;
         // Flush and close the writer used for tracing.

@@ -118,7 +118,7 @@ public class DB_Index {
 	{
 
 		StringBuffer sb = new StringBuffer("CREATE ");
-		if (ixDescribe.indexOf("UNIQUE") != -1)
+		if (ixDescribe.contains("UNIQUE"))
 			sb.append("UNIQUE ");
 
 		// Note: We leave the keyword "BTREE" out since it's not

@@ -948,7 +948,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         dm.invalidateFor(td, DependencyManager.ALTER_TABLE, lcc);
 
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
-        boolean b = "TRUE".compareToIgnoreCase(enable) == 0 ? true : false;
+        boolean b = "TRUE".compareToIgnoreCase(enable) == 0;
         td.setPurgeDeletedRows(b);
         dd.dropTableDescriptor(td, sd, tc);
         dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc);

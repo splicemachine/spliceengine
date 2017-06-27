@@ -29,6 +29,7 @@ import java.io.Serializable;
 import java.io.PrintWriter;
 import java.io.File;
 import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.NoSuchElementException;
@@ -206,7 +207,7 @@ public abstract class ClientBaseDataSource implements Serializable, Referenceabl
      *      string is {@code null}, {@link #SSL_OFF} is returned.
      * @throws SqlException if the string has an invalid value
      */
-    public static final int getSSLModeFromString(String s) 
+    public static int getSSLModeFromString(String s)
         throws SqlException
     {
         
@@ -238,7 +239,7 @@ public abstract class ClientBaseDataSource implements Serializable, Referenceabl
      * @throws SqlException if an invalid value for the SSL mode is specified
      *      in the property object
      */
-    public static final int getClientSSLMode(Properties properties)
+    public static int getClientSSLMode(Properties properties)
         throws SqlException
     {
         return getSSLModeFromString(properties.getProperty(Attribute.SSL_ATTR));
@@ -457,19 +458,16 @@ public abstract class ClientBaseDataSource implements Serializable, Referenceabl
     	//This class will read the system property in it's run method and
     	//return the value to the caller.
     	return (String )AccessController.doPrivileged
-    	    (new java.security.PrivilegedAction(){
-    		    public Object run(){
+    	    ((PrivilegedAction) () -> {
                     try {
-                        return System.getProperty(key);
+                    return System.getProperty(key);
                     } catch (SecurityException se) {
-                        // We do not want the connection to fail if the user does not have permission to 
-                        // read the property, so if a security exception occurs, just return null and 
-                        // continue with the connection.  
-                        return null;
+                    // We do not want the connection to fail if the user does not have permission to
+                    // read the property, so if a security exception occurs, just return null and
+                    // continue with the connection.
+                    return null;
                     }
-    		    }
-    	    }
-    	    );
+            });
     }
 
     // ---------------------------- traceFileAppend -----------------------------------
@@ -773,17 +771,17 @@ public abstract class ClientBaseDataSource implements Serializable, Referenceabl
 
 // The attribute value is invalid. Construct a string giving the choices for
 // display in the error message.
-        String choicesStr = "{";
+        StringBuilder choicesStr = new StringBuilder("{");
         for (int i = 0; i < choices.length; i++) {
             if (i > 0) {
-                choicesStr += "|";
+                choicesStr.append("|");
             }
-            choicesStr += choices[i];
+            choicesStr.append(choices[i]);
         }
 
         throw new SqlException(null, 
             new ClientMessageId(SQLState.INVALID_ATTRIBUTE),
-            attribute, value, choicesStr);
+            attribute, value, choicesStr.toString());
     }
 
     /*
@@ -974,10 +972,8 @@ public abstract class ClientBaseDataSource implements Serializable, Referenceabl
      * 
      */
     public final void setCreateDatabase(String create) {
-        if (create != null && create.equalsIgnoreCase("create"))
-            this.createDatabase = true;
-        else // reset
-            this.createDatabase = false;
+        // reset
+        this.createDatabase = create != null && create.equalsIgnoreCase("create");
     }
     
     /** @return "create" if create is set, or null if not 
@@ -997,10 +993,8 @@ public abstract class ClientBaseDataSource implements Serializable, Referenceabl
      * 
      */
     public final void setShutdownDatabase(String shutdown) {
-        if (shutdown != null && shutdown.equalsIgnoreCase("shutdown"))
-            this.shutdownDatabase = true;
-        else // reset
-            this.shutdownDatabase = false;
+        // reset
+        this.shutdownDatabase = shutdown != null && shutdown.equalsIgnoreCase("shutdown");
     }
 
     /** @return "shutdown" if shutdown is set, or null if not 

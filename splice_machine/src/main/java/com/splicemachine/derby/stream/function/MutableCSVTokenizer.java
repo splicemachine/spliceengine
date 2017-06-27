@@ -91,10 +91,7 @@ public class MutableCSVTokenizer extends QuoteTrackingTokenizer {
      * @throws IOException
      */
     protected boolean readRow() throws IOException {
-        if( readColumns(columns,quotedColumns) ) {
-            return true;
-        }
-        return false;
+        return readColumns(columns, quotedColumns);
     }
 
     /**

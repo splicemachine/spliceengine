@@ -169,7 +169,6 @@ public final class dblook {
 		skipViews = false;
 		verbose= false;
 		sourceDBName = null;
-		return;
 
 	}
 
@@ -322,7 +321,7 @@ public final class dblook {
 
 		String derbyDriver = System.getProperty("driver");
 		if (derbyDriver == null) {
-			if (sourceDBUrl.indexOf(":net://") != -1)
+			if (sourceDBUrl.contains(":net://"))
 				derbyDriver = "com.ibm.db2.jcc.DB2Driver";
 			else if (sourceDBUrl.startsWith("jdbc:splice://"))
 			   derbyDriver = "com.splicemachine.db.jdbc.ClientDriver";
@@ -494,7 +493,6 @@ public final class dblook {
 		if (schemaParam != null)
 			Logs.reportMessage("DBLOOK_TargetSchema", stripQuotes(schemaParam));
 		Logs.reportString("appendLogs: " + appendLogs + "\n");
-		return;
 
 	}
 
@@ -643,7 +641,6 @@ public final class dblook {
 		stmt.close();
 
 		// Load default property values.
-		return;
 
 	}
 
@@ -696,7 +693,7 @@ public final class dblook {
 				tok = tok.toUpperCase();
 				if (tok.equals("DESC") || tok.equals("ASC"))
 				// then this is okay; just add the token to result.
-					sb.append(" " + tok);
+					sb.append(" ").append(tok);
 				else
 				// shouldn't happen.
 					Logs.debug("INTERNAL ERROR: read a non-number (" +
@@ -997,7 +994,7 @@ public final class dblook {
 
 	public static String expandDoubleQuotes(String name) {
 
-		if ((name == null) || (name.indexOf("\"") < 0))
+		if ((name == null) || (!name.contains("\"")))
 		// nothing to do.
 			return name;
 
@@ -1029,7 +1026,7 @@ public final class dblook {
      */
     public static String unExpandDoubleQuotes(String name) {
 
-        if ((name == null) || (name.indexOf("\"") < 0))
+        if ((name == null) || (!name.contains("\"")))
         // nothing to do.
             return name;
 
@@ -1106,7 +1103,6 @@ public final class dblook {
 		else
 			System.err.println(lookupMessage(key,
 				new String [] {value}));
-		return;
 
 	}
 

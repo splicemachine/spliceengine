@@ -94,7 +94,7 @@ public class SpliceORCPredicate implements OrcPredicate, Externalizable {
         try {
             boolean row_qualifies = true;
             if (qualifiers == null)
-                return numberOfRows>0?true:false;
+                return numberOfRows > 0;
             for (int i = 0; i < qualifiers[0].length; i++) {
                 Qualifier q = qualifiers[0][i];
                 if (q.getVariantType() == Qualifier.VARIANT)

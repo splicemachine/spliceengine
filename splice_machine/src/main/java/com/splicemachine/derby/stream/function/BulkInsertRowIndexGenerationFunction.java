@@ -172,8 +172,7 @@ public class BulkInsertRowIndexGenerationFunction extends  RowAndIndexGenerator 
             row.setColumn(col, execRow.getColumn(n));
             col++;
         }
-        LocatedRow lr = new LocatedRow(locatedRow.getRowLocation(), row);
-        return lr;
+        return new LocatedRow(locatedRow.getRowLocation(), row);
     }
 
 

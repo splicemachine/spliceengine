@@ -616,10 +616,7 @@ public abstract class Connection
         if (!autoCommit_) {
             return false;
         }
-        if (! allowLocalCommitRollback_()) {
-            return false;
-        }
-        return true;
+        return allowLocalCommitRollback_();
     }
 
     // precondition: autoCommit_ is true

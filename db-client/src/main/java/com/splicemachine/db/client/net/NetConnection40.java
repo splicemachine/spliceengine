@@ -430,17 +430,13 @@ public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnect
         //
         executor.execute
             (
-             new Runnable()
-             {
-                 public void run()
-                 {
-                     try {
-                         rollback();
-                         close();
-                     } catch (SQLException se) { se.printStackTrace( agent_.getLogWriter() ); }
-                 }
-             }
-             );
+                    () -> {
+                        try {
+                            rollback();
+                            close();
+                        } catch (SQLException se) { se.printStackTrace( agent_.getLogWriter() ); }
+                    }
+            );
     }
 
     public int getNetworkTimeout() throws SQLException

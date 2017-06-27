@@ -213,8 +213,7 @@ public abstract class SparkValueRowSerializer<T extends ExecRow> extends Seriali
             if (this == o) return true;
             if (o == null) return false;
             IntArray intArray = (IntArray) o;
-            if (!Arrays.equals(array, intArray.array)) return false;
-            return true;
+            return Arrays.equals(array, intArray.array);
         }
     }
 

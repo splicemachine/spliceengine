@@ -81,12 +81,8 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
         if(!hashFeasible) return false;
 
         /* Currently BroadcastJoin does not work with a right side IndexRowToBaseRowOperation */
-        if(JoinStrategyUtil.isNonCoveringIndex(innerTable)) {
-            return false;
-        }
-
-        return true;
-	}
+        return !JoinStrategyUtil.isNonCoveringIndex(innerTable);
+    }
 
     @Override
     public void estimateCost(Optimizable innerTable,

@@ -57,7 +57,7 @@ public class mtTestCase
 	private int attempts;
 
 	public void mtTestCase()
-	{ };
+	{ }
 
 	public void setName(String name)
 	{

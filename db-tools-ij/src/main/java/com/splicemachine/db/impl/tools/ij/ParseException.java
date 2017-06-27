@@ -129,32 +129,32 @@ public class ParseException extends Exception {
     if (!specialConstructor) {
       return super.getMessage();
     }
-    String expected = "";
+    StringBuilder expected = new StringBuilder();
     int maxSize = 0;
     for (int i = 0; i < expectedTokenSequences.length; i++) {
       if (maxSize < expectedTokenSequences[i].length) {
         maxSize = expectedTokenSequences[i].length;
       }
       for (int j = 0; j < expectedTokenSequences[i].length; j++) {
-        expected += tokenImage[expectedTokenSequences[i][j]] + " ";
+        expected.append(tokenImage[expectedTokenSequences[i][j]]).append(" ");
       }
       if (expectedTokenSequences[i][expectedTokenSequences[i].length - 1] != 0) {
-        expected += "...";
+        expected.append("...");
       }
-      expected += eol + "    ";
+      expected.append(eol).append("    ");
     }
-    String retval = "Encountered \"";
+    StringBuilder retval = new StringBuilder("Encountered \"");
     Token tok = currentToken.next;
     for (int i = 0; i < maxSize; i++) {
-      if (i != 0) retval += " ";
+      if (i != 0) retval.append(" ");
       if (tok.kind == 0) {
-        retval += tokenImage[0];
+        retval.append(tokenImage[0]);
         break;
       }
-      retval += add_escapes(tok.image);
+      retval.append(add_escapes(tok.image));
       tok = tok.next;
     }
-    retval += "\" at line " + currentToken.next.beginLine + ", column " + currentToken.next.beginColumn;
+    retval.append("\" at line ").append(currentToken.next.beginLine).append(", column ").append(currentToken.next.beginColumn);
  /*
   * for output compatibility with previous releases, do not report expected tokens.
   *
@@ -166,7 +166,7 @@ public class ParseException extends Exception {
     }
     retval += expected;
   */
-    return retval;
+    return retval.toString();
   }
 
   /**
@@ -214,11 +214,10 @@ public class ParseException extends Exception {
            default:
               if ((ch = str.charAt(i)) < 0x20 || ch > 0x7e) {
                  String s = "0000" + Integer.toString(ch, 16);
-                 retval.append("\\u" + s.substring(s.length() - 4, s.length()));
+                 retval.append("\\u").append(s.substring(s.length() - 4, s.length()));
               } else {
                  retval.append(ch);
               }
-              continue;
         }
       }
       return retval.toString();

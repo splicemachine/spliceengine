@@ -62,9 +62,9 @@ public class mtTestSuite
 		boolean loadTestsFailed = loadCases(cases);
 		boolean loadLastFailed = loadCases(last);
 
-		if ((loadInitFailed == true) ||
-			(loadTestsFailed == true) ||
-			(loadLastFailed == true))
+		if ((loadInitFailed) ||
+			(loadTestsFailed) ||
+			(loadLastFailed))
 		{
 			throw new Error("Initialization Error");
 		}
@@ -143,31 +143,31 @@ public class mtTestSuite
 
 	public String toString()
 	{
-		String str;
+		StringBuilder str;
 		int	len;
 		int i;
 	
-		str = "TEST CASES\nNumber of Threads: "+numThreads;
-		str +="\nTime: "+time;
-		str +="\nNumber of Initializers: "+init.size()+"\n";
+		str = new StringBuilder("TEST CASES\nNumber of Threads: " + numThreads);
+		str.append("\nTime: ").append(time);
+		str.append("\nNumber of Initializers: ").append(init.size()).append("\n");
 		for (i = 0, len = init.size(); i < len; i++)
 		{
-			str += init.elementAt(i).toString() + "\n";
+			str.append(init.elementAt(i).toString()).append("\n");
 		}
 
-		str +="\nNumber of Cases: "+cases.size()+"\n";
+		str.append("\nNumber of Cases: ").append(cases.size()).append("\n");
 		for (i = 0, len = cases.size(); i < len; i++)
 		{
-			str += cases.elementAt(i).toString() + "\n";
+			str.append(cases.elementAt(i).toString()).append("\n");
 		}
 
-		str +="\nNumber of Final Cases: "+last.size()+"\n";
+		str.append("\nNumber of Final Cases: ").append(last.size()).append("\n");
 		for (i = 0, len = last.size(); i < len; i++)
 		{
-			str += last.elementAt(i).toString() + "\n";
+			str.append(last.elementAt(i).toString()).append("\n");
 		}
 
-		return str;
+		return str.toString();
 	}
 
 	/*
@@ -186,7 +186,7 @@ public class mtTestSuite
 			caseNum = (int)((java.lang.Math.random() * 1311) % numCases);
 			testCase = (mtTestCase)cases.elementAt(caseNum);
 		}
-		while (testCase.grab() == false);
+		while (!testCase.grab());
 	
 		return testCase;	
 	}

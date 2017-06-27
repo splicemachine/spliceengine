@@ -42,7 +42,7 @@ public class SignedBinary {
     /**
      * Get a byte from the buffer.
      */
-    public static final byte getByte(byte[] buffer, int offset) {
+    public static byte getByte(byte[] buffer, int offset) {
         return buffer[ offset ];
     }
 
@@ -51,7 +51,7 @@ public class SignedBinary {
      *
      * @throws IllegalArgumentException if the specified byte order is not recognized.
      */
-    public static final short getShort(byte[] buffer, int offset) {
+    public static short getShort(byte[] buffer, int offset) {
         return (short) (((buffer[offset + 0] & 0xff) << 8) +
                 ((buffer[offset + 1] & 0xff) << 0));
     }
@@ -61,7 +61,7 @@ public class SignedBinary {
      *
      * @throws IllegalArgumentException if the specified byte order is not recognized.
      */
-    public static final int getInt(byte[] buffer, int offset) {
+    public static int getInt(byte[] buffer, int offset) {
         return (int) (((buffer[offset + 0] & 0xff) << 24) +
                 ((buffer[offset + 1] & 0xff) << 16) +
                 ((buffer[offset + 2] & 0xff) << 8) +
@@ -73,7 +73,7 @@ public class SignedBinary {
      *
      * @throws IllegalArgumentException if the specified byte order is not recognized.
      */
-    public static final long getLong(byte[] buffer, int offset) {
+    public static long getLong(byte[] buffer, int offset) {
         return (long) (((buffer[offset + 0] & 0xffL) << 56) +
                 ((buffer[offset + 1] & 0xffL) << 48) +
                 ((buffer[offset + 2] & 0xffL) << 40) +

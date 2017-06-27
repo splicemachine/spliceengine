@@ -74,9 +74,7 @@ public class LocatedRow implements KeyableRow, Externalizable, Row {
 
         LocatedRow locatedRow = (LocatedRow) o;
 
-        if (!row.equals(locatedRow.row)) return false;
-
-        return true;
+        return row.equals(locatedRow.row);
     }
 
     @Override

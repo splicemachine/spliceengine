@@ -245,7 +245,7 @@ public abstract class AbstractPairDataSetTest extends BaseStreamTest {
         public Integer call(Tuple2<ExecRow, ExecRow> tuple) throws Exception {
             return tuple._1.getColumn(1).getInt();
         }
-    };
+    }
 
     public static class MapValueFunction extends SpliceFunction<SpliceOperation, Tuple2<ExecRow, ExecRow>, Integer> {
         public MapValueFunction() {}

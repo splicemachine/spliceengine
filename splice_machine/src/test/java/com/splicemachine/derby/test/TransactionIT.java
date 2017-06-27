@@ -299,7 +299,7 @@ public class TransactionIT extends SpliceUnitTest {
         s.execute(format("create table %s (num int, addr varchar(50))",this.getTableReference(TABLE_NAME_10)));
         s.execute(format("insert into %s values(100, '100RB: 101 Califronia St')",this.getTableReference(TABLE_NAME_10)));
         s.execute(format("insert into %s values(200, '200RB: 908 Glade Ct.')",this.getTableReference(TABLE_NAME_10)));
-        s.execute(format("insert into %s values(300, '300RB: my addr')",this.getTableReference(TABLE_NAME_10)));;
+        s.execute(format("insert into %s values(300, '300RB: my addr')",this.getTableReference(TABLE_NAME_10)));
         s.execute(format("insert into %s values(400, '400RB: 182 Second St.')",this.getTableReference(TABLE_NAME_10)));
         s.execute(format("insert into %s(num) values(500)",this.getTableReference(TABLE_NAME_10)));
         s.execute(format("insert into %s values(600, 'new addr')",this.getTableReference(TABLE_NAME_10)));

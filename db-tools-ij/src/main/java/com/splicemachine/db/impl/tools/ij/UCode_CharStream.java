@@ -60,7 +60,7 @@ public final class UCode_CharStream implements CharStream
   private int maxNextCharInd = 0;
   private int nextCharInd = -1;
 
-  private final void ExpandBuff(boolean wrapAround)
+  private void ExpandBuff(boolean wrapAround)
   {
      char[] newbuffer = new char[bufsize + 2048];
      int newbufline[] = new int[bufsize + 2048];
@@ -108,7 +108,7 @@ public final class UCode_CharStream implements CharStream
      tokenBegin = 0;
   }
 
-  private final void FillBuff() throws java.io.IOException
+  private void FillBuff() throws java.io.IOException
   {
      if (maxNextCharInd == 4096)
         maxNextCharInd = nextCharInd = 0;
@@ -123,7 +123,6 @@ public final class UCode_CharStream implements CharStream
         }
         else
            maxNextCharInd += i;
-        return;
      }
      catch(java.io.IOException e) {
         if (bufpos != 0)
@@ -142,7 +141,7 @@ public final class UCode_CharStream implements CharStream
      }
   }
 
-  private final char ReadChar() throws java.io.IOException
+  private char ReadChar() throws java.io.IOException
   {
      if (++nextCharInd >= maxNextCharInd)
         FillBuff();
@@ -159,7 +158,7 @@ public final class UCode_CharStream implements CharStream
      return c;
   }     
 
-  private final void UpdateLineColumn(char c)
+  private void UpdateLineColumn(char c)
   {
      column++;
 

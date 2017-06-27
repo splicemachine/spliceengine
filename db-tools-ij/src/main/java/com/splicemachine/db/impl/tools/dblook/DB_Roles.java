@@ -66,7 +66,6 @@ public class DB_Roles {
 
         rs.close();
         stmt.close();
-        return;
 
     }
 
@@ -114,10 +113,8 @@ public class DB_Roles {
     private static String roleDefinitionStatement(ResultSet rs, String roleName)
         throws SQLException
     {
-        StringBuilder createStmt = new StringBuilder("CREATE ROLE ");
 
-        createStmt.append(roleName);
-        return createStmt.toString();
+        return "CREATE ROLE " + roleName;
     }
 
     private static void generateRoleGrants(ResultSet rs)
@@ -143,7 +140,7 @@ public class DB_Roles {
             String grantor = dblook.addQuotes
                 (dblook.expandDoubleQuotes(rs.getString(3))); // always DBO
             boolean isWithAdminOption =
-                rs.getString(4).equals("Y") ? true : false;
+                    rs.getString(4).equals("Y");
 
             Logs.writeToNewDDL
                 (roleGrantStatement(rs, roleName, grantee, isWithAdminOption));
