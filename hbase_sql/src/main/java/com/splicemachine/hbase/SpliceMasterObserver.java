@@ -87,6 +87,7 @@ public class SpliceMasterObserver extends BaseMasterObserver {
             long threshold = to.getNextTimestamp();
             LOG.info("Setting old transactions threshold to " + threshold);
             upgradeK2.upgrade(threshold);
+            LOG.info("Upgrade complete");
         }
         env.txnStore().setOldTransactions(upgradeK2.getOldTransactions());
 

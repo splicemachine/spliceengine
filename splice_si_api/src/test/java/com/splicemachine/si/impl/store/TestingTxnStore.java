@@ -395,4 +395,9 @@ public class TestingTxnStore implements TxnStore{
     public void setOldTransactions(long oldTransactions) {
         // no op
     }
+
+    @Override
+    public long getOldTransactions() {
+        return 0;
+    }
 }
