@@ -230,19 +230,18 @@ public final class UpdateLoader implements LockOwner {
                 // Refuse to load classes from restricted name spaces
                 // That is classes in those name spaces can be not
                 // loaded from installed jar files.
-                for (int i = 0; i < RESTRICTED_PACKAGES.length; i++)
-                {
-                    if (className.startsWith(RESTRICTED_PACKAGES[i]))
-                        throw new ClassNotFoundException(className);
-                }
+				for (String RESTRICTED_PACKAGE : RESTRICTED_PACKAGES) {
+					if (className.startsWith(RESTRICTED_PACKAGE))
+						throw new ClassNotFoundException(className);
+				}
 
 				String jvmClassName = className.replace('.', '/') + ".class";
 
 				if (!initDone)
 					initLoaders();
 
-				for (int i = 0; i < jarList.length; i++) {
-					jl = jarList[i];
+				for (JarLoader aJarList1 : jarList) {
+					jl = aJarList1;
 					Class c = jl.loadClassData(className, jvmClassName, resolve);
 					if (c != null) {
 						if (vs != null)
@@ -255,8 +254,8 @@ public final class UpdateLoader implements LockOwner {
 				reload();
 				initDone = false;
 				initLoaders();
-				for (int i = 0; i < jarList.length; i++) {
-					jl = jarList[i];
+				for (JarLoader aJarList : jarList) {
+					jl = aJarList;
 					Class c = jl.loadClassData(className, jvmClassName, resolve);
 					if (c != null) {
 						if (vs != null)
@@ -306,9 +305,7 @@ public final class UpdateLoader implements LockOwner {
 				if (!initDone)
 					initLoaders();
 
-				for (int i = 0; i < jarList.length; i++) {
-
-					JarLoader jl = jarList[i];
+				for (JarLoader jl : jarList) {
 
 					is = jl.getStream(name);
 					if (is != null) {
@@ -387,8 +384,8 @@ public final class UpdateLoader implements LockOwner {
 
 	Class checkLoaded(String className, boolean resolve) {
 
-		for (int i = 0; i < jarList.length; i++) {
-			Class c = jarList[i].checkLoaded(className, resolve);
+		for (JarLoader aJarList : jarList) {
+			Class c = aJarList.checkLoaded(className, resolve);
 			if (c != null)
 				return c;
 		}
@@ -397,8 +394,8 @@ public final class UpdateLoader implements LockOwner {
 
 	void close() {
 
-		for (int i = 0; i < jarList.length; i++) {
-			jarList[i].setInvalid();
+		for (JarLoader aJarList : jarList) {
+			aJarList.setInvalid();
 		}
 
 	}
@@ -408,8 +405,8 @@ public final class UpdateLoader implements LockOwner {
 		if (initDone)
 			return;
 
-		for (int i = 0; i < jarList.length; i++) {
-			jarList[i].initialize();
+		for (JarLoader aJarList : jarList) {
+			aJarList.initialize();
 		}
 		initDone = true;
 	}

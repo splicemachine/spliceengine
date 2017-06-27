@@ -59,11 +59,10 @@ public class RevokeNode extends DDLStatementNode
 		if (SanityManager.DEBUG)
 		{
             StringBuilder sb = new StringBuilder();
-            for( Iterator it = grantees.iterator(); it.hasNext();)
-            {
-                if( sb.length() > 0)
-                    sb.append( ",");
-                sb.append( it.next().toString());
+            for (Object grantee : grantees) {
+                if (sb.length() > 0)
+                    sb.append(",");
+                sb.append(grantee.toString());
             }
 			return super.toString() +
                    privileges.toString() +

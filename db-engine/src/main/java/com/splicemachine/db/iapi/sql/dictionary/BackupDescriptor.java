@@ -31,9 +31,6 @@
 
 package com.splicemachine.db.iapi.sql.dictionary;
 
-/**
- * Created by jyuan on 2/6/15.
- */
 import org.joda.time.DateTime;
 
 import java.io.*;

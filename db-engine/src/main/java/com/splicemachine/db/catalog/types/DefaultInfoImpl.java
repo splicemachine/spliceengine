@@ -64,7 +64,7 @@ public class DefaultInfoImpl implements DefaultInfo, Formatable
     private String[]                   referencedColumnNames;
     private String                  originalCurrentSchema;
 
-	final private static int BITS_MASK_IS_DEFAULTVALUE_AUTOINC = 0x1 << 0;
+	final private static int BITS_MASK_IS_DEFAULTVALUE_AUTOINC = 0x1;
 	final private static int BITS_MASK_IS_GENERATED_COLUMN = 0x2;
 
 	/**
@@ -189,7 +189,9 @@ public class DefaultInfoImpl implements DefaultInfo, Formatable
         {
             int count = referencedColumnNames.length;
             out.writeInt( count );
-            for ( int i = 0; i < count; i++ ) { out.writeObject( referencedColumnNames[ i ] ); }
+            for (String referencedColumnName : referencedColumnNames) {
+                out.writeObject(referencedColumnName);
+            }
             out.writeObject( originalCurrentSchema );
         }
 	}

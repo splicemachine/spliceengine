@@ -106,12 +106,12 @@ public class AggregateNode extends UnaryOperatorNode
 		if ( uadClass instanceof UserAggregateDefinition )
 		{
 			setUserDefinedAggregate( (UserAggregateDefinition) uadClass );
-			this.distinct = ((Boolean) distinct).booleanValue();
+			this.distinct = (Boolean) distinct;
 		}
 		else if ( uadClass instanceof TableName )
 		{
 			this.userAggregateName = (TableName) uadClass;
-			this.distinct = ((Boolean) distinct).booleanValue();
+			this.distinct = (Boolean) distinct;
 		}
 		else
 		{
@@ -122,7 +122,7 @@ public class AggregateNode extends UnaryOperatorNode
 			// Distinct is meaningless for min and max
 			if (!aggregateDefinitionClass.equals(MaxMinAggregateDefinition.class))
 			{
-				this.distinct = ((Boolean) distinct).booleanValue();
+				this.distinct = (Boolean) distinct;
 			}
 			this.aggregateDefinitionClassName = aggregateDefinitionClass.getName();
 		}

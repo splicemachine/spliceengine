@@ -265,7 +265,7 @@ abstract class BaseMonitor
 		MessageService.setFinder(this);
 
 		if (SanityManager.DEBUG) {
-			reportOn = Boolean.valueOf(PropertyUtil.getSystemProperty("derby.monitor.verbose")).booleanValue();
+			reportOn = Boolean.valueOf(PropertyUtil.getSystemProperty("derby.monitor.verbose"));
 		}
 
 		// Set up the application properties
@@ -286,7 +286,7 @@ abstract class BaseMonitor
 			// would only work with a sane codeline.
 			try {
 				systemProperties = System.getProperties();
-			} catch (SecurityException se) {
+			} catch (SecurityException ignored) {
 			}
 		}
 
@@ -297,11 +297,9 @@ abstract class BaseMonitor
 
 		// TEMP - making this sanity only breaks the unit test code
 		// I will fix soon, djd.
-		if (true || SanityManager.DEBUG) {
-			// Don't allow external code to override our implementations.
-			systemImplementations = getImplementations(systemProperties, false);
-			applicationImplementations = getImplementations(applicationProperties, false);
-		}
+		// Don't allow external code to override our implementations.
+		systemImplementations = getImplementations(systemProperties, false);
+		applicationImplementations = getImplementations(applicationProperties, false);
 
 		Vector defaultImplementations = getDefaultImplementations();
 
@@ -310,13 +308,11 @@ abstract class BaseMonitor
 			implementationCount++;
 
 		// TEMP - making this sanity only breaks the unit test code
-		if (true || SanityManager.DEBUG) {
-			// Don't allow external code to override our implementations.
-			if (systemImplementations != null)
-				implementationCount++;
-			if (applicationImplementations != null)
-				implementationCount++;
-		}
+		// Don't allow external code to override our implementations.
+		if (systemImplementations != null)
+            implementationCount++;
+		if (applicationImplementations != null)
+            implementationCount++;
 
 		if (defaultImplementations != null)
 			implementationCount++;
@@ -325,14 +321,12 @@ abstract class BaseMonitor
 		implementationCount = 0;
 		if (bootImplementations != null)
 			implementationSets[implementationCount++] = bootImplementations;
-		
-		if (true || SanityManager.DEBUG) {
-			// Don't allow external code to override our implementations.
-			if (systemImplementations != null)
-				implementationSets[implementationCount++] = systemImplementations;
-			if (applicationImplementations != null)
-				implementationSets[implementationCount++] = applicationImplementations;
-		}
+
+		// Don't allow external code to override our implementations.
+		if (systemImplementations != null)
+            implementationSets[implementationCount++] = systemImplementations;
+		if (applicationImplementations != null)
+            implementationSets[implementationCount++] = applicationImplementations;
 
 		if (defaultImplementations != null)
 			implementationSets[implementationCount++] = defaultImplementations;
@@ -390,7 +384,7 @@ abstract class BaseMonitor
 		determineSupportedServiceProviders();
 
 		// See if automatic booting of persistent services is required
-		boolean bootAll = Boolean.valueOf(PropertyUtil.getSystemProperty(Property.BOOT_ALL)).booleanValue();
+		boolean bootAll = Boolean.valueOf(PropertyUtil.getSystemProperty(Property.BOOT_ALL));
 
 
 		startServices(bootProperties, bootAll);
@@ -643,14 +637,8 @@ abstract class BaseMonitor
 
 				return iga[off] = new ClassInfo(clazz);
 
-			} catch (ClassNotFoundException cnfe) {
+			} catch (ClassNotFoundException | LinkageError | InstantiationException | IllegalAccessException cnfe) {
 				t = cnfe;
-			} catch (IllegalAccessException iae) {
-				t = iae;
-			} catch (InstantiationException ie) {
-				t = ie;
-			} catch (LinkageError le) {
-				t = le;
 			}
 			throw StandardException.newException(SQLState.REGISTERED_CLASS_LINAKGE_ERROR,
 				t, FormatIdUtil.formatIdToString(fmtId), className);
@@ -692,20 +680,11 @@ abstract class BaseMonitor
 */
 			return ci.getNewInstance();
 		}
-		catch (InstantiationException ie) {
+		catch (InstantiationException | LinkageError | InvocationTargetException | IllegalAccessException ie) {
 			t = ie;
 		}
- 		catch (IllegalAccessException iae) {
-			t = iae;
-		}
-		catch (InvocationTargetException ite) {
-			t = ite;
-		}
-		catch (LinkageError le) {
-			t = le;
-		}
 		throw StandardException.newException(SQLState.REGISTERED_CLASS_INSTANCE_ERROR,
-			t, new Integer(identifier), "XX" /*ci.getClassName()*/);
+			t, identifier, "XX" /*ci.getClassName()*/);
 	}
 
 	private Boolean exceptionTrace;
@@ -728,8 +707,8 @@ abstract class BaseMonitor
 			instance = loadInstance(localImplementations, factoryInterface, properties);
 		}
 
-		for (int i = 0; i < implementationSets.length; i++) {
-			instance = loadInstance(implementationSets[i], factoryInterface, properties);
+		for (Vector implementationSet : implementationSets) {
+			instance = loadInstance(implementationSet, factoryInterface, properties);
 			if (instance != null)
 				break;
 		}
@@ -791,16 +770,9 @@ abstract class BaseMonitor
 			Class factoryClass = Class.forName(className);
 			return factoryClass.newInstance();
 		}
-		catch (ClassNotFoundException e) {
+		catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
 			report(className + " " + e.toString());
-		}
-		catch (InstantiationException e) {
-			report(className + " " + e.toString());
-		}
- 		catch (IllegalAccessException e) {
-			report(className + " " + e.toString());
-		}
-		catch (LinkageError le) {
+		} catch (LinkageError le) {
 			report(className + " " + le.toString());
 			reportException(le);
 		}
@@ -814,13 +786,9 @@ abstract class BaseMonitor
 		try {
 			return classObject.newInstance();
 		}
-		catch (InstantiationException e) {
+		catch (InstantiationException | IllegalAccessException e) {
 			report(classObject.getName() + " " + e.toString());
-		}
- 		catch (IllegalAccessException e) {
-			report(classObject.getName() + " " + e.toString());
-		}
-		catch (LinkageError le) {
+		} catch (LinkageError le) {
 			report(classObject.getName() + " " + le.toString());
 			reportException(le);
 		}
@@ -1033,7 +1001,7 @@ abstract class BaseMonitor
 		provider = findProviderForCreate(name);
         String serviceName = provider.getCanonicalServiceName(name);
         boolean removed = provider.removeServiceRoot(serviceName);
-        if (removed == false)
+        if (!removed)
 			throw StandardException.newException(SQLState.SERVICE_DIRECTORY_REMOVE_ERROR,serviceName);
     }
 	/**
@@ -1089,7 +1057,7 @@ nextModule:
             } else if (key.startsWith(Property.SUB_SUB_PROTOCOL_PREFIX)) {
                 tag = key.substring(Property.MODULE_PREFIX.length());
             } else {
-                continue nextModule;
+                continue;
             }
             
 
@@ -1103,7 +1071,7 @@ nextModule:
 			if (envJDK != null) {
 				envJDKId = Integer.parseInt(envJDK.trim());
 				if (envJDKId > theJDKId) {
-					continue nextModule;
+					continue;
 				}
 			}
 
@@ -1182,7 +1150,7 @@ nextModule:
 				// interface.
 				if (SanityManager.DEBUG) {
 					// ModuleSupportable
-					Class[] csParams = { new java.util.Properties().getClass()};
+					Class[] csParams = {Properties.class};
 					try {
 						possibleModule.getMethod("canSupport", csParams);
 						if (!ModuleSupportable.class.isAssignableFrom(possibleModule)) {
@@ -1193,7 +1161,7 @@ nextModule:
 					// ModuleControl
 					boolean eitherMethod = false;
 
-					Class[] bootParams = {Boolean.TYPE, new java.util.Properties().getClass()};
+					Class[] bootParams = {Boolean.TYPE, Properties.class};
 					try {
 						possibleModule.getMethod("boot", bootParams);
 						eitherMethod = true;
@@ -1213,11 +1181,8 @@ nextModule:
 				}
 
 			}
-			catch (ClassNotFoundException cnfe) {
+			catch (ClassNotFoundException | LinkageError cnfe) {
 				report("Class " + className + " " + cnfe.toString() + ", module ignored.");
-			}
-			catch (LinkageError le) {
-				report("Class " + className + " " + le.toString() + ", module ignored.");
 			}
 		}
         
@@ -1298,7 +1263,7 @@ nextModule:
                     try {
                         if( is != null)
                             is.close();
-                    } catch (IOException ioe2) {
+                    } catch (IOException ignored) {
                     }
                 }
             }
@@ -1383,7 +1348,7 @@ nextModule:
 					is = null;
 				}
 
-			} catch (IOException e) {
+			} catch (IOException ignored) {
 			}
 		}
 	}
@@ -1425,7 +1390,6 @@ nextModule:
 			// see if this provider can live in this environment
 			if (!BaseMonitor.canSupport(provider, (Properties) null)) {
 				i.remove();
-				continue;
 			}
 		}
 	}
@@ -1474,7 +1438,7 @@ nextModule:
 			}
 
 			// see if this service does not want to be auto-booted.
-			if (Boolean.valueOf(serviceProperties.getProperty(Property.NO_AUTO_BOOT)).booleanValue())
+			if (Boolean.valueOf(serviceProperties.getProperty(Property.NO_AUTO_BOOT)))
 				continue;
 
 
@@ -1483,7 +1447,6 @@ nextModule:
 			} catch (StandardException mse) {
 				report("Service failed to boot, name: " + serviceName + ", type = " + provider.getType());
 				reportException(mse);
-				continue;
 			}
 		}
 	}
@@ -1522,7 +1485,7 @@ nextModule:
 					return true; // we understand the type, but the service does not exist
 
 				// see if this service does not want to be auto-booted.
-				if (bootTime && Boolean.valueOf(serviceProperties.getProperty(Property.NO_AUTO_BOOT)).booleanValue())
+				if (bootTime && Boolean.valueOf(serviceProperties.getProperty(Property.NO_AUTO_BOOT)))
 					return true;
 
 				startProviderService(actualProvider, serviceName, serviceProperties);
@@ -1573,7 +1536,7 @@ nextModule:
 			throw savedMse;
 
 		// see if this service does not want to be auto-booted.
-		if (bootTime && Boolean.valueOf(serviceProperties.getProperty(Property.NO_AUTO_BOOT)).booleanValue())
+		if (bootTime && Boolean.valueOf(serviceProperties.getProperty(Property.NO_AUTO_BOOT)))
 			return true;
 
 		startProviderService(actualProvider, serviceName, serviceProperties);
@@ -1757,7 +1720,7 @@ nextModule:
 					properties.put(Property.SERVICE_PROTOCOL, factoryInterface);
 
 					serviceName = provider.createServiceRoot(serviceName,
-							Boolean.valueOf(properties.getProperty(Property.DELETE_ON_CREATE)).booleanValue());
+							Boolean.valueOf(properties.getProperty(Property.DELETE_ON_CREATE)));
 
 					serviceKey = ProtocolKey.create(factoryInterface, serviceName);
 				} else if (properties != null) {
@@ -1813,8 +1776,7 @@ nextModule:
 
 			//while doing restore from backup, we don't want service properties to be
 			//updated until all the files are copied from backup.
-			boolean inRestore = (properties !=null ?
-								 properties.getProperty(Property.IN_RESTORE_FROM_BACKUP) != null:false);
+			boolean inRestore = (properties != null && properties.getProperty(Property.IN_RESTORE_FROM_BACKUP) != null);
 			
 			if ((provider != null) && (properties != null)) {
 				// we need to track to see if the properties have
@@ -1868,8 +1830,7 @@ nextModule:
 
 				// Service root will only have been created if
 				// ts is non-null.
-				boolean deleteOnError = (properties !=null ?
-										 properties.getProperty(Property.DELETE_ROOT_ON_ERROR) !=null:false);
+				boolean deleteOnError = (properties != null && properties.getProperty(Property.DELETE_ROOT_ON_ERROR) != null);
 				if (create || deleteOnError)
 					provider.removeServiceRoot(serviceName);
 			}
@@ -1962,7 +1923,7 @@ nextModule:
 				if ((systemStreams == null) || bothPlaces)
 					logging.println(s);
 			}
-		} catch (IOException ioe) {
+		} catch (IOException ignored) {
 		}
 
 		if ((systemStreams == null) || bothPlaces)
@@ -2154,7 +2115,7 @@ nextModule:
                                     return;
                             }
                         }
-                        catch( StandardException se){}
+                        catch( StandardException ignored){}
 					}
                 }
             }

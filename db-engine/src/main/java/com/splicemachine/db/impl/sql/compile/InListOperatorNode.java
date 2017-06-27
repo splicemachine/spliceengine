@@ -312,7 +312,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 			ParameterNode pNode =
 				(ParameterNode) getNodeFactory().getNode(
 					C_NodeTypes.PARAMETER_NODE,
-					new Integer(0),
+                        0,
 					null, // default value
 					getContextManager());
 

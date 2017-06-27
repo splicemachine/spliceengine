@@ -557,8 +557,7 @@ public final class SQLTimestamp extends DataType
 			setValue(dateAndTime[0], dateAndTime[1]);
             return;
         }
-        catch( ParseException pe){}
-        catch( StandardException se){}
+        catch( ParseException | StandardException ignored){}
         if( thrownSE != null)
             throw thrownSE;
         throw StandardException.newException( SQLState.LANG_DATE_SYNTAX_EXCEPTION);

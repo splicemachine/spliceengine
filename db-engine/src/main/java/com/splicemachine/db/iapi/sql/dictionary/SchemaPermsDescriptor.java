@@ -40,9 +40,6 @@ import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 
 import java.sql.SQLException;
 
-/**
- * Created by jfilali on 8/18/16.
- */
 public class SchemaPermsDescriptor  extends PermissionsDescriptor {
 
     private UUID   schemaUUID;

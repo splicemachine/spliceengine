@@ -89,7 +89,7 @@ public class ResourceAdapterImpl
 
 			try {
 				tranState.conn.close();
-			} catch (java.sql.SQLException sqle) {
+			} catch (java.sql.SQLException ignored) {
 			}
 		}
 

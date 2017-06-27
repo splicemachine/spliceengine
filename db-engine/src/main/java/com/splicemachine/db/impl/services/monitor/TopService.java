@@ -140,33 +140,29 @@ final class TopService {
 	boolean isPotentialService(ProtocolKey otherKey) {
 
 
-		String otherCanonicalName;
+        String otherCanonicalName;
 
-		if (serviceType == null)
-			otherCanonicalName = otherKey.getIdentifier();
-		else {
-			try
-			{
-				otherCanonicalName = serviceType.getCanonicalServiceName(otherKey.getIdentifier());
-			} catch (StandardException se)
-			{
-				return false;
-			}
+        if (serviceType == null)
+            otherCanonicalName = otherKey.getIdentifier();
+        else {
+            try {
+                otherCanonicalName = serviceType.getCanonicalServiceName(otherKey.getIdentifier());
+            } catch (StandardException se) {
+                return false;
+            }
 
-			// if the service name cannot be converted into a canonical name then it is not a service.
-			if (otherCanonicalName == null)
-				return false;
-		}
+            // if the service name cannot be converted into a canonical name then it is not a service.
+            if (otherCanonicalName == null)
+                return false;
+        }
 
-		if (topModule != null)
-			return topModule.isTypeAndName(serviceType, key.getFactoryInterface(), otherCanonicalName);
+        if (topModule != null)
+            return topModule.isTypeAndName(serviceType, key.getFactoryInterface(), otherCanonicalName);
 
 
-		if (!otherKey.getFactoryInterface().isAssignableFrom(key.getFactoryInterface()))
-			return false;
+        return otherKey.getFactoryInterface().isAssignableFrom(key.getFactoryInterface()) && serviceType.isSameService(key.getIdentifier(), otherCanonicalName);
 
-		return serviceType.isSameService(key.getIdentifier(), otherCanonicalName);
-	}
+    }
 
 	boolean isActiveService() {
 		synchronized (this) {
@@ -241,8 +237,8 @@ final class TopService {
         // to prevent concurrent modifications from causing an
         // ArrayIndexOutOfBoundsException.
         synchronized (moduleInstances) {
-            for (int i = 0; i < moduleInstances.size(); i++) {
-                ModuleInstance module = (ModuleInstance) moduleInstances.get(i);
+            for (Object moduleInstance : moduleInstances) {
+                ModuleInstance module = (ModuleInstance) moduleInstance;
                 if (module.getInstance() == instance) {
                     return module;
                 }

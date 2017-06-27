@@ -507,7 +507,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      * closure.
      */
     boolean transitiveSearchClauseAdded(RelationalOperator ro){
-        return !(searchClauseHT==null || searchClauseHT.get(new Integer(ro.getOperator()))==null);
+        return !(searchClauseHT==null || searchClauseHT.get(ro.getOperator())==null);
     }
 
     /**
@@ -1312,12 +1312,11 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
                         trueNode,
                         cm);
         JBitSet newJBitSet=new JBitSet(numTables);
-        Predicate newPred=(Predicate)nf.
+
+        return (Predicate)nf.
                 getNode(C_NodeTypes.PREDICATE,
                         andNode,
                         newJBitSet,
                         cm);
-
-        return newPred;
     }
 }

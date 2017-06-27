@@ -118,9 +118,7 @@ public class ReplaceAggregatesWithCRVisitor implements Visitor
 	 */
 	public boolean skipChildren(Visitable node)
 	{
-		return (skipOverClass == null) ?
-				false:
-				skipOverClass.isInstance(node);
+		return skipOverClass != null && skipOverClass.isInstance(node);
 	}
 	
 	public boolean visitChildrenFirst(Visitable node)

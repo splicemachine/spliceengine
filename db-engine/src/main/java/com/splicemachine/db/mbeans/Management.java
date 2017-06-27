@@ -79,9 +79,7 @@ public class Management implements ManagementMBean {
      */
     public boolean isManagementActive() {
         ManagementMBean mgmtService = getManagementService();
-        if (mgmtService == null)
-             return false;
-        return mgmtService.isManagementActive();
+        return mgmtService != null && mgmtService.isManagementActive();
     }
 
     /**

@@ -64,7 +64,7 @@ public class DropSchemaNode extends DDLStatementNode
 	{
 		initAndCheck(null);
 		this.schemaName = (String) schemaName;
-		this.dropBehavior = ((Integer) dropBehavior).intValue();
+		this.dropBehavior = (Integer) dropBehavior;
 	}
 
 	public void bindStatement() throws StandardException

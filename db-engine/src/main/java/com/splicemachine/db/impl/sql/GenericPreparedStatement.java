@@ -390,7 +390,7 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
                 if (!se.getMessageId().equals(SQLState.LANG_STATEMENT_NEEDS_RECOMPILE) || spsAction)
                     throw se;
                 statementContext.cleanupOnError(se);
-                continue recompileOutOfDatePlan;
+                continue;
 
             }
 
@@ -566,7 +566,6 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
     public void finish(LanguageConnectionContext lcc) {
         synchronized (this) {
             inUseCount--;
-                return;
         }
     }
 

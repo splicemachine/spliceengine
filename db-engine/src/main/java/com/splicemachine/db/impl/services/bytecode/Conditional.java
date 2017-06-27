@@ -337,9 +337,8 @@ class Conditional {
 			branchOffset -= 3;
 			
 			mod.addInstrU4(VMOpcode.GOTO_W, branchOffset);
-			return;
 
-		}
+        }
 		else
 		{
 			// Ensure the pc we are jumping to (the current pc)
@@ -403,9 +402,8 @@ class Conditional {
 			offset += 2;
 			
 			mod.addInstrU4(VMOpcode.GOTO_W, offset);
-	
-			return;	
-		}
+
+        }
 	}
 
 

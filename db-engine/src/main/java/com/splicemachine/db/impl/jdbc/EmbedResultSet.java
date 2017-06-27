@@ -329,8 +329,8 @@ public abstract class EmbedResultSet extends ConnectionChild
 		
 		if (columnIndex < 1 ||
 		    columnIndex > resultDescription.getColumnCount())
-			throw newSQLException(SQLState.COLUMN_NOT_FOUND, 
-                         new Integer(columnIndex));
+			throw newSQLException(SQLState.COLUMN_NOT_FOUND,
+                    columnIndex);
 
 		return resultDescription.getColumnDescriptor(columnIndex).getType().getJDBCTypeId();
 	}
@@ -715,14 +715,11 @@ public abstract class EmbedResultSet extends ConnectionChild
 
 		try {
 
-			DataValueDescriptor dvd = getColumn(columnIndex);
+            DataValueDescriptor dvd = getColumn(columnIndex);
 
-			if (wasNull = dvd.isNull())
-				return false;
+            return !(wasNull = dvd.isNull()) && dvd.getBoolean();
 
-			return dvd.getBoolean();
-
-		} catch (StandardException t) {
+        } catch (StandardException t) {
 			throw noStateChangeException(t);
 		}
 	}
@@ -2097,7 +2094,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 		checkIfClosed("setFetchSize");
 		if (rows < 0 || (stmt.getMaxRows() != 0 && rows > stmt.getMaxRows())) {
 			throw Util.generateCsSQLException(SQLState.INVALID_FETCH_SIZE,
-					new Integer(rows));
+                    rows);
 		} else if (rows > 0) // if it is zero ignore the call
 		{
 			fetchSize = rows;
@@ -2257,7 +2254,7 @@ public abstract class EmbedResultSet extends ConnectionChild
       ResultDescription rd = theResults.getResultDescription();
       if (columnIndex < 1 || columnIndex > rd.getColumnCount())
         throw Util.generateCsSQLException(SQLState.LANG_INVALID_COLUMN_POSITION,
-					new Integer(columnIndex), String.valueOf(rd.getColumnCount()));
+                columnIndex, String.valueOf(rd.getColumnCount()));
 
       //2)Make sure the column corresponds to a column in the base table and it is not a derived column
       if (rd.getColumnDescriptor(columnIndex).getSourceTableName() == null)
@@ -3055,7 +3052,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 		int colType = getColumnType(columnIndex);
 		if ((colType == Types.DECIMAL) || (colType == Types.NUMERIC)) {
 			if (scale < 0)
-				throw newSQLException(SQLState.BAD_SCALE_VALUE, new Integer(scale));
+				throw newSQLException(SQLState.BAD_SCALE_VALUE, scale);
 
 			try {
 				DataValueDescriptor value = updateRow.getColumn(columnIndex);
@@ -3112,32 +3109,32 @@ public abstract class EmbedResultSet extends ConnectionChild
 		}
 
 		if (x instanceof Boolean) {
-			updateBoolean(columnIndex, ((Boolean) x).booleanValue());
+			updateBoolean(columnIndex, (Boolean) x);
 			return;
 		}
 
 		if (x instanceof Short) {
-			updateShort(columnIndex, ((Short) x).shortValue());
+			updateShort(columnIndex, (Short) x);
 			return;
 		}
 
 		if (x instanceof Integer) {
-			updateInt(columnIndex, ((Integer) x).intValue());
+			updateInt(columnIndex, (Integer) x);
 			return;
 		}
 
 		if (x instanceof Long) {
-			updateLong(columnIndex, ((Long) x).longValue());
+			updateLong(columnIndex, (Long) x);
 			return;
 		}
 
 		if (x instanceof Float) {
-			updateFloat(columnIndex, ((Float) x).floatValue());
+			updateFloat(columnIndex, (Float) x);
 			return;
 		}
 
 		if (x instanceof Double) {
-			updateDouble(columnIndex, ((Double) x).doubleValue());
+			updateDouble(columnIndex, (Double) x);
 			return;
 		}
 
@@ -4446,8 +4443,8 @@ public abstract class EmbedResultSet extends ConnectionChild
 	  closeCurrentStream();
 
 	  if (columnIndex < 1 || columnIndex > resultDescription.getColumnCount()) {
-		  throw newSQLException(SQLState.COLUMN_NOT_FOUND, 
-								new Integer(columnIndex));
+		  throw newSQLException(SQLState.COLUMN_NOT_FOUND,
+                  columnIndex);
 	  }
 	  if (isOnInsertRow || currentRowHasBeenUpdated && columnGotUpdated[columnIndex -1]) {
 		  return updateRow.getColumn(columnIndex);
@@ -4602,12 +4599,9 @@ public abstract class EmbedResultSet extends ConnectionChild
 	/**
 	 * * Is this result set from a select for update statement?
 	 */
-	public final boolean isForUpdate()
-	{
-		if (theResults instanceof NoPutResultSet)
-			return ((NoPutResultSet) theResults).isForUpdate();
-		return false;
-	}
+	public final boolean isForUpdate() {
+        return theResults instanceof NoPutResultSet && ((NoPutResultSet) theResults).isForUpdate();
+    }
     
     final String getColumnSQLType(int column)
     {
@@ -5404,13 +5398,13 @@ public abstract class EmbedResultSet extends ConnectionChild
 
 		if ( String.class.equals( type ) ) { retval = getString( columnIndex ); }
 		else if ( BigDecimal.class.equals( type ) ) { retval = getBigDecimal( columnIndex ); }
-		else if ( Boolean.class.equals( type ) ) { retval = Boolean.valueOf( getBoolean(columnIndex ) ); }
-		else if ( Byte.class.equals( type ) ) { retval = Byte.valueOf( getByte( columnIndex ) ); }
-		else if ( Short.class.equals( type ) ) { retval = Short.valueOf( getShort( columnIndex ) ); }
-		else if ( Integer.class.equals( type ) ) { retval = Integer.valueOf( getInt( columnIndex ) ); }
-		else if ( Long.class.equals( type ) ) { retval = Long.valueOf( getLong( columnIndex ) ); }
-		else if ( Float.class.equals( type ) ) { retval = Float.valueOf( getFloat( columnIndex ) ); }
-		else if ( Double.class.equals( type ) ) { retval = Double.valueOf( getDouble( columnIndex ) ); }
+		else if ( Boolean.class.equals( type ) ) { retval = getBoolean(columnIndex); }
+		else if ( Byte.class.equals( type ) ) { retval = getByte(columnIndex); }
+		else if ( Short.class.equals( type ) ) { retval = getShort(columnIndex); }
+		else if ( Integer.class.equals( type ) ) { retval = getInt(columnIndex); }
+		else if ( Long.class.equals( type ) ) { retval = getLong(columnIndex); }
+		else if ( Float.class.equals( type ) ) { retval = getFloat(columnIndex); }
+		else if ( Double.class.equals( type ) ) { retval = getDouble(columnIndex); }
 		else if ( Date.class.equals( type ) ) { retval = getDate( columnIndex ); }
 		else if ( Time.class.equals( type ) ) { retval = getTime( columnIndex ); }
 		else if ( Timestamp.class.equals( type ) ) { retval = getTimestamp( columnIndex ); }

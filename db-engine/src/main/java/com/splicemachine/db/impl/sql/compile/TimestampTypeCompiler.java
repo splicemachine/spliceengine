@@ -117,21 +117,12 @@ public class TimestampTypeCompiler extends BaseTypeCompiler
 	 * @param cf		A ClassFactory
 	 * @return true if otherType is storable into this type, else false.
 	 */
-	public boolean storable(TypeId otherType, ClassFactory cf)
-	{
-		int	otherJDBCTypeId = otherType.getJDBCTypeId();
+	public boolean storable(TypeId otherType, ClassFactory cf) {
+        int otherJDBCTypeId = otherType.getJDBCTypeId();
 
-		if (otherJDBCTypeId == Types.TIMESTAMP ||
-			(otherJDBCTypeId == Types.CHAR) ||
-			(otherJDBCTypeId == Types.VARCHAR))
-		{
-			return true;
-		}
+        return otherJDBCTypeId == Types.TIMESTAMP || (otherJDBCTypeId == Types.CHAR) || (otherJDBCTypeId == Types.VARCHAR) || cf.getClassInspector().assignableTo(otherType.getCorrespondingJavaTypeName(), "java.sql.Timestamp");
 
-		return cf.getClassInspector().assignableTo(
-			   otherType.getCorrespondingJavaTypeName(),
-			   "java.sql.Timestamp");
-	}
+    }
 
 	/** @see TypeCompiler#interfaceName */
 	public String interfaceName()

@@ -120,14 +120,14 @@ class JCECipherProvider implements CipherProvider
 				// ECB feedback mode does not require an IV
 				if (mode == CipherFactory.ENCRYPT)
 				{
-					if ((algorithm.indexOf("/ECB") > -1))
+					if ((algorithm.contains("/ECB")))
 						cipher.init(Cipher.ENCRYPT_MODE, secretKey);
 					else
 						cipher.init(Cipher.ENCRYPT_MODE, secretKey,ivspec);
 				}
 				else if (mode == CipherFactory.DECRYPT)
 				{
-					if ((algorithm.indexOf("/ECB") > -1))
+					if ((algorithm.contains("/ECB")))
 						cipher.init(Cipher.DECRYPT_MODE, secretKey);
 					else
 						cipher.init(Cipher.DECRYPT_MODE, secretKey,ivspec);
@@ -152,14 +152,14 @@ class JCECipherProvider implements CipherProvider
 					// ECB mode does not require IV
 					if (mode == CipherFactory.ENCRYPT )
 					{
-						if ((algorithm.indexOf("/ECB") > -1))
+						if ((algorithm.contains("/ECB")))
 							cipher.init(Cipher.ENCRYPT_MODE, secretKey);
 						else
 							cipher.init(Cipher.ENCRYPT_MODE, secretKey,ivspec);
 					}
 					else if (mode == CipherFactory.DECRYPT)
 					{
-						if ((algorithm.indexOf("/ECB") > -1))
+						if ((algorithm.contains("/ECB")))
 							cipher.init(Cipher.DECRYPT_MODE, secretKey);
 						else
 							cipher.init(Cipher.DECRYPT_MODE, secretKey,ivspec);

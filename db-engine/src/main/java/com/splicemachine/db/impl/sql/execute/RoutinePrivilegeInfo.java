@@ -81,42 +81,40 @@ public class RoutinePrivilegeInfo extends PrivilegeInfo
 		RoutinePermsDescriptor routinePermsDesc = ddg.newRoutinePermsDescriptor( aliasDescriptor, currentUser);
 
 		dd.startWriting(lcc);
-		for( Iterator itr = grantees.iterator(); itr.hasNext();)
-		{
-			// Keep track to see if any privileges are revoked by a revoke 
-			// statement. If a privilege is not revoked, we need to raise a
-			// warning.
-			boolean privileges_revoked = false;
-			String grantee = (String) itr.next();
-			if (dd.addRemovePermissionsDescriptor( grant, routinePermsDesc, grantee, tc)) 
-			{
-				privileges_revoked = true;	
-				//Derby currently supports only restrict form of revoke execute
-				//privilege and that is why, we are sending invalidation action 
-				//as REVOKE_PRIVILEGE_RESTRICT rather than REVOKE_PRIVILEGE
-				dd.getDependencyManager().invalidateFor
-					(routinePermsDesc,
-					 DependencyManager.REVOKE_PRIVILEGE_RESTRICT, lcc);
+        for (Object grantee1 : grantees) {
+            // Keep track to see if any privileges are revoked by a revoke
+            // statement. If a privilege is not revoked, we need to raise a
+            // warning.
+            boolean privileges_revoked = false;
+            String grantee = (String) grantee1;
+            if (dd.addRemovePermissionsDescriptor(grant, routinePermsDesc, grantee, tc)) {
+                privileges_revoked = true;
+                //Derby currently supports only restrict form of revoke execute
+                //privilege and that is why, we are sending invalidation action
+                //as REVOKE_PRIVILEGE_RESTRICT rather than REVOKE_PRIVILEGE
+                dd.getDependencyManager().invalidateFor
+                        (routinePermsDesc,
+                                DependencyManager.REVOKE_PRIVILEGE_RESTRICT, lcc);
 
-				// When revoking a privilege from a Routine we need to
-				// invalidate all GPSs refering to it. But GPSs aren't
-				// Dependents of RoutinePermsDescr, but of the
-				// AliasDescriptor itself, so we must send
-				// INTERNAL_RECOMPILE_REQUEST to the AliasDescriptor's
-				// Dependents.
-				dd.getDependencyManager().invalidateFor
-					(aliasDescriptor,
-					 DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
+                // When revoking a privilege from a Routine we need to
+                // invalidate all GPSs refering to it. But GPSs aren't
+                // Dependents of RoutinePermsDescr, but of the
+                // AliasDescriptor itself, so we must send
+                // INTERNAL_RECOMPILE_REQUEST to the AliasDescriptor's
+                // Dependents.
+                dd.getDependencyManager().invalidateFor
+                        (aliasDescriptor,
+                                DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
 
                 RoutinePermsDescriptor routinePermsDescriptor =
                         new RoutinePermsDescriptor(dd, routinePermsDesc.getGrantee(), routinePermsDesc.getGrantor(),
                                 routinePermsDesc.getRoutineUUID());
                 routinePermsDescriptor.setUUID(routinePermsDesc.getUUID());
                 result.add(routinePermsDescriptor);
-			}
-			
-			addWarningIfPrivilegeNotRevoked(activation, grant, privileges_revoked, grantee);
-		}
+            }
+
+            addWarningIfPrivilegeNotRevoked(activation, grant, privileges_revoked, grantee);
+        }
         return result;
 	} // end of executeConstantAction
 }

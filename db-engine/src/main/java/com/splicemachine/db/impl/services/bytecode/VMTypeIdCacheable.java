@@ -91,8 +91,7 @@ class VMTypeIdCacheable implements Cacheable {
 	/** @see Cacheable#clean */
 	public void clean(boolean remove) {
 		/* No such thing as a dirty cache entry */
-		return;
-	}
+    }
 
 	/** @see Cacheable#isDirty */
 	public boolean isDirty() {

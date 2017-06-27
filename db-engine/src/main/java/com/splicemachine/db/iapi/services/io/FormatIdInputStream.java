@@ -101,20 +101,11 @@ public final class FormatIdInputStream extends DataInputStream
 				ObjectInputStream ois = getObjectStream();
 				try {
 					return ois.readObject();
-				} catch (IOException ioe) {
+				} catch (IOException | ClassCastException | LinkageError | ClassNotFoundException ioe) {
 					setErrorInfo((ErrorInfo) ois);
 					throw ioe;
-				} catch (ClassNotFoundException cnfe) {
-					setErrorInfo((ErrorInfo) ois);
-					throw cnfe;
-				} catch (LinkageError le) {
-					setErrorInfo((ErrorInfo) ois);
-					throw le;
-				} catch (ClassCastException cce) {
-					setErrorInfo((ErrorInfo) ois);
-					throw cce;
 				}
-			}
+            }
 
 			try {
 

@@ -389,8 +389,7 @@ public class ClassInvestigator extends ClassHolder {
 				}
 
 			default:
-				continue;
-			}
+            }
 
 		}
 

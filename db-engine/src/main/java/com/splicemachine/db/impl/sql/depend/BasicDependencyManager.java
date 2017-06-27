@@ -99,7 +99,7 @@ public class BasicDependencyManager implements DependencyManager {
      *
      */
     //@GuardedBy("this")
-    private final Map<UUID, List<Dependency>> dependents = new HashMap<UUID, List<Dependency>>();
+    private final Map<UUID, List<Dependency>> dependents = new HashMap<>();
 
     /**
      * Map of in-memory dependencies for Providers.
@@ -113,7 +113,7 @@ public class BasicDependencyManager implements DependencyManager {
      *
      */
     //@GuardedBy("this")
-    private final Map<UUID, List<Dependency>> providers = new HashMap<UUID, List<Dependency>>();
+    private final Map<UUID, List<Dependency>> providers = new HashMap<>();
 
 
 	//
@@ -637,7 +637,7 @@ public class BasicDependencyManager implements DependencyManager {
 		}
 
         Iterator<Provider> provIter = list.iterator();
-        List<BasicProviderInfo> pih = new ArrayList<BasicProviderInfo>();
+        List<BasicProviderInfo> pih = new ArrayList<>();
         while (provIter.hasNext()) {
             Provider p = provIter.next();
 
@@ -935,7 +935,7 @@ public class BasicDependencyManager implements DependencyManager {
 
 		List<Dependency> deps = table.get(key);
 		if (deps == null) {
-			deps = new ArrayList<Dependency>();
+			deps = new ArrayList<>();
 			deps.add(dy);
 			table.put(key, deps);
 		}
@@ -1005,7 +1005,7 @@ public class BasicDependencyManager implements DependencyManager {
 	 */
     private List<Dependency> getDependencyDescriptorList(List<DependencyDescriptor> storedList,
                                                          Provider providerForList) throws StandardException {
-        List<Dependency> returnList = new ArrayList<Dependency>();
+        List<Dependency> returnList = new ArrayList<>();
         if (storedList.isEmpty()) {
             return returnList;
         }
@@ -1059,7 +1059,7 @@ public class BasicDependencyManager implements DependencyManager {
      * @throws StandardException thrown if something goes wrong
      */
     private List<Provider> getProviders (Dependent d) throws StandardException {
-        List<Provider> provs = new ArrayList<Provider>();
+        List<Provider> provs = new ArrayList<>();
         synchronized (this) {
             List<Dependency> deps = dependents.get(d.getObjectID());
             if (deps != null) {
@@ -1091,7 +1091,7 @@ public class BasicDependencyManager implements DependencyManager {
      * @throws StandardException if something goes wrong
 	 */
 	private List<Dependency> getDependents (Provider p) throws StandardException {
-        List<Dependency> deps = new ArrayList<Dependency>();
+        List<Dependency> deps = new ArrayList<>();
         synchronized (this) {
             List<Dependency> memDeps = providers.get(p.getObjectID());
             if (memDeps != null) {

@@ -762,8 +762,8 @@ public class FromBaseTable extends FromTable {
                     indexLookupList = new BitSet();
                     for (int i = scanColumnList.nextSetBit(0); i >= 0; i = scanColumnList.nextSetBit(i + 1)) {
                         boolean found = false;
-                        for (int j = 0; j < baseColumnPositions.length; j++) {
-                            if (i == baseColumnPositions[j]) {
+                        for (int baseColumnPosition : baseColumnPositions) {
+                            if (i == baseColumnPosition) {
                                 found = true;
                                 break;
                             }
@@ -3102,8 +3102,7 @@ public class FromBaseTable extends FromTable {
 
             // Look for equality predicate that is not a join predicate
             boolean existsNonjoinPredicate = false;
-            for (int i = 0; i < optimizableEqualityPredicateList.size(); ++i) {
-                Predicate predicate = optimizableEqualityPredicateList.get(i);
+            for (Predicate predicate : optimizableEqualityPredicateList) {
                 if (!predicate.isJoinPredicate()) {
                     existsNonjoinPredicate = true;
                     break;
@@ -3138,7 +3137,7 @@ public class FromBaseTable extends FromTable {
     private StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor cd) throws StandardException{
         if (skipStats) {
             if (!getCompilerContext().skipStats(this.getTableNumber()))
-                getCompilerContext().getSkipStatsTableList().add(new Integer(this.getTableNumber()));
+                getCompilerContext().getSkipStatsTableList().add(this.getTableNumber());
             return getCompilerContext().getStoreCostController(td, cd, true);
         }
         else {

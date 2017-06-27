@@ -347,14 +347,9 @@ public final class ColumnDescriptor extends TupleDescriptor
      *
      * @return Whether or not there is a non-null default on this column.
      */
-    public boolean hasNonNullDefault()
-    {
-        if (columnDefault != null && ! columnDefault.isNull())
-        {
-            return true;
-        }
+    public boolean hasNonNullDefault() {
+        return columnDefault != null && !columnDefault.isNull() || columnDefaultInfo != null;
 
-        return columnDefaultInfo != null;
     }
 
     /**
@@ -427,10 +422,8 @@ public final class ColumnDescriptor extends TupleDescriptor
     /**
      * Is this column a generated column
      */
-    public boolean hasGenerationClause()
-    {
-        if ( columnDefaultInfo == null ) { return false; }
-        else { return columnDefaultInfo.isGeneratedColumn(); }
+    public boolean hasGenerationClause() {
+        return columnDefaultInfo != null && columnDefaultInfo.isGeneratedColumn();
     }
 
     /**
@@ -541,8 +534,7 @@ public final class ColumnDescriptor extends TupleDescriptor
         ColumnDescriptor that = (ColumnDescriptor) o;
 
         if (table != null ? !table.equals(that.table) : that.table != null) return false;
-        if (columnName != null ? !columnName.equals(that.columnName) : that.columnName != null) return false;
-        return !(columnType != null ? !columnType.equals(that.columnType) : that.columnType != null);
+        return (columnName != null ? columnName.equals(that.columnName) : that.columnName == null) && !(columnType != null ? !columnType.equals(that.columnType) : that.columnType != null);
 
     }
 

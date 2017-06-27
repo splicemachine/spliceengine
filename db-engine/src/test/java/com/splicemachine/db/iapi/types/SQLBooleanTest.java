@@ -123,7 +123,7 @@ public class SQLBooleanTest extends SQLDataValueDescriptorTest {
                         else if (i>=1000 && i< 2000)
                                 sqlBoolean = new SQLBoolean(false);
                         else
-                                sqlBoolean = new SQLBoolean(i%2==0?true:false);
+                                sqlBoolean = new SQLBoolean(i % 2 == 0);
                         stats.update(sqlBoolean);
                 }
                 stats = serde(stats);

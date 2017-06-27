@@ -108,7 +108,7 @@ public class CreateSequenceNode extends DDLStatementNode
         if (initialValue != null) {
             _initialValue = (Long) initialValue;
         } else {
-            if (_stepValue.longValue() > 0L) {
+            if (_stepValue > 0L) {
                 _initialValue = _minValue;
             } else {
                 _initialValue = _maxValue;
@@ -154,7 +154,7 @@ public class CreateSequenceNode extends DDLStatementNode
         }
 
         if (_dataType.getTypeId().equals(TypeId.SMALLINT_ID)) {
-            if (_minValue.longValue() < Short.MIN_VALUE || _minValue.longValue() >= Short.MAX_VALUE) {
+            if (_minValue < Short.MIN_VALUE || _minValue >= Short.MAX_VALUE) {
                 throw StandardException.newException(
                         SQLState.LANG_SEQ_ARG_OUT_OF_DATATYPE_RANGE,
                         "MINVALUE",
@@ -162,7 +162,7 @@ public class CreateSequenceNode extends DDLStatementNode
                         Short.MIN_VALUE + "",
                         Short.MAX_VALUE + "");
             }
-            if (_maxValue.longValue() <= Short.MIN_VALUE || _maxValue.longValue() > Short.MAX_VALUE) {
+            if (_maxValue <= Short.MIN_VALUE || _maxValue > Short.MAX_VALUE) {
                 throw StandardException.newException(
                         SQLState.LANG_SEQ_ARG_OUT_OF_DATATYPE_RANGE,
                         "MAXVALUE",
@@ -171,7 +171,7 @@ public class CreateSequenceNode extends DDLStatementNode
                         Short.MAX_VALUE + "");
             }
         } else if (_dataType.getTypeId().equals(TypeId.INTEGER_ID)) {
-            if (_minValue.longValue() < Integer.MIN_VALUE || _minValue.longValue() >= Integer.MAX_VALUE) {
+            if (_minValue < Integer.MIN_VALUE || _minValue >= Integer.MAX_VALUE) {
                 throw StandardException.newException(
                         SQLState.LANG_SEQ_ARG_OUT_OF_DATATYPE_RANGE,
                         "MINVALUE",
@@ -179,7 +179,7 @@ public class CreateSequenceNode extends DDLStatementNode
                         Integer.MIN_VALUE + "",
                         Integer.MAX_VALUE + "");
             }
-            if (_maxValue.longValue() <= Integer.MIN_VALUE || _maxValue.longValue() > Integer.MAX_VALUE) {
+            if (_maxValue <= Integer.MIN_VALUE || _maxValue > Integer.MAX_VALUE) {
                 throw StandardException.newException(
                         SQLState.LANG_SEQ_ARG_OUT_OF_DATATYPE_RANGE,
                         "MAXVALUE",
@@ -189,7 +189,7 @@ public class CreateSequenceNode extends DDLStatementNode
             }
         } else {
             // BIGINT
-            if (_minValue.longValue() < Long.MIN_VALUE || _minValue.longValue() >= Long.MAX_VALUE) {
+            if (_minValue < Long.MIN_VALUE || _minValue >= Long.MAX_VALUE) {
                 throw StandardException.newException(
                         SQLState.LANG_SEQ_ARG_OUT_OF_DATATYPE_RANGE,
                         "MINVALUE",
@@ -197,7 +197,7 @@ public class CreateSequenceNode extends DDLStatementNode
                         Long.MIN_VALUE + "",
                         Long.MAX_VALUE + "");
             }
-            if (_maxValue.longValue() <= Long.MIN_VALUE || _maxValue.longValue() > Long.MAX_VALUE) {
+            if (_maxValue <= Long.MIN_VALUE || _maxValue > Long.MAX_VALUE) {
                 throw StandardException.newException(
                         SQLState.LANG_SEQ_ARG_OUT_OF_DATATYPE_RANGE,
                         "MAXVALUE",
@@ -207,14 +207,14 @@ public class CreateSequenceNode extends DDLStatementNode
             }
         }
 
-        if (_minValue.longValue() >= _maxValue.longValue()) {
+        if (_minValue >= _maxValue) {
             throw StandardException.newException(
                     SQLState.LANG_SEQ_MIN_EXCEEDS_MAX,
                     _minValue.toString(),
                     _maxValue.toString());
         }
 
-        if (_initialValue.longValue() < _minValue.longValue() || _initialValue.longValue() > _maxValue.longValue()) {
+        if (_initialValue < _minValue || _initialValue > _maxValue) {
              throw StandardException.newException(
                      SQLState.LANG_SEQ_INVALID_START,
                      _initialValue.toString(),
@@ -222,7 +222,7 @@ public class CreateSequenceNode extends DDLStatementNode
                      _maxValue.toString());
         }       
 
-        if (_stepValue.longValue() == 0L) {
+        if (_stepValue == 0L) {
             throw StandardException.newException(
                     SQLState.LANG_SEQ_INCREMENT_ZERO);
         }
@@ -246,11 +246,11 @@ public class CreateSequenceNode extends DDLStatementNode
                 getCreateSequenceConstantAction(
                         _sequenceName,
                         _dataType,
-                        _initialValue.longValue(),
-                        _stepValue.longValue(),
-                        _maxValue.longValue(),
-                        _minValue.longValue(),
-                        _cycle.booleanValue());
+                        _initialValue,
+                        _stepValue,
+                        _maxValue,
+                        _minValue,
+                        _cycle);
     }
 
 

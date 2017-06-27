@@ -218,26 +218,26 @@ public class RowOrderingImpl implements RowOrdering{
 
     @Override
     public String toString(){
-        String retval=null;
+        StringBuilder retval= null;
 
         if(SanityManager.DEBUG){
-            retval="Unordered optimizables: ";
+            retval = new StringBuilder("Unordered optimizables: ");
             for(Optimizable opt : unorderedOptimizables){
                 if(opt.getBaseTableName()!=null){
-                    retval+=opt.getBaseTableName();
+                    retval.append(opt.getBaseTableName());
                 }else{
-                    retval+=opt.toString();
+                    retval.append(opt.toString());
                 }
-                retval+=" ";
+                retval.append(" ");
             }
-            retval+="\n";
+            retval.append("\n");
 
             for(int i=0;i<ordering.size();i++){
-                retval+=" ColumnOrdering "+i+": "+ordering.get(i);
+                retval.append(" ColumnOrdering ").append(i).append(": ").append(ordering.get(i));
             }
         }
 
-        return retval;
+        return retval.toString();
     }
 
     /**

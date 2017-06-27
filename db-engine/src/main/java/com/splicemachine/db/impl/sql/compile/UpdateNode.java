@@ -1078,10 +1078,9 @@ public final class UpdateNode extends DMLModStatementNode
 		*/
 		int[]	changedColumnIds = updateColumnList.sortMe();
 
-		for (int ix = 0; ix < changedColumnIds.length; ix++)
-		{
-			columnMap.set(changedColumnIds[ix]);
-		}
+        for (int changedColumnId : changedColumnIds) {
+            columnMap.set(changedColumnId);
+        }
 
 		/* 
 		** Get a list of the indexes that need to be 
@@ -1110,10 +1109,9 @@ public final class UpdateNode extends DMLModStatementNode
 			}
 
 			int[] refColumns = cd.getReferencedColumns();
-			for (int i = 0; i < refColumns.length; i++)
-			{
-				columnMap.set(refColumns[i]);
-			}
+            for (int refColumn : refColumns) {
+                columnMap.set(refColumn);
+            }
 		}
 
         //
@@ -1153,64 +1151,61 @@ public final class UpdateNode extends DMLModStatementNode
 			// upgrade mode for a 10.8 or prior database so that we can
 			// go back to the older release if that's what the user chooses
 			// after the soft-upgrade.
-            for (Iterator descIter = relevantTriggers.iterator(); descIter.hasNext(); ) {
-                TriggerDescriptor trd = (TriggerDescriptor) descIter.next();
+            for (Object relevantTrigger : relevantTriggers) {
+                TriggerDescriptor trd = (TriggerDescriptor) relevantTrigger;
 
-					// See if we can avoid reading all the columns from the
-					// trigger table.
-	                int[] referencedColsInTriggerAction = trd.getReferencedColsInTriggerAction();
-	                int[] triggerCols = trd.getReferencedCols();
-	                if (triggerCols == null || triggerCols.length == 0) {
-	                        for (int i=0; i < columnCount; i++) {
-	                                columnMap.set(i+1);
-	                        }
-	                        //This trigger is not defined on specific columns 
-	                        // so we will have to read all the columns from the
-	                        // trigger table. Now, there is no need to go 
-	                        // through the rest of the triggers because we are
-	                        // going to read all the columns anyways.
-	                        break;
-	                } else {
-	                        if (referencedColsInTriggerAction == null ||
-	                                        referencedColsInTriggerAction.length == 0) {
-	                                //Does this trigger have REFERENCING clause defined on it
-	                                if (!trd.getReferencingNew() && !trd.getReferencingOld()) {
-	                                	//The trigger does not use trigger action columns through
-	                                	//the REFERENCING clause so we need to read just the
-	                                	//trigger columns
-                                        for (int ix = 0; ix < triggerCols.length; ix++)
-                                        {
-                                                columnMap.set(triggerCols[ix]);
-                                        }
-	                                } else {
-	                                	//The trigger has REFERENCING clause defined on it
-	                                	// so it might be used them in trigger action.
-	                                	// We should just go ahead and read all the
-	                                	// columns from the trigger table. Now, there is 
-	                                	// no need to go through the rest of the triggers 
-	                                	// because we are going to read all the columns 
-	                                	// anyways.
-	        	                        needToIncludeAllColumns = true;
-	        	                        break;
-	                                }
-	                        } else {
-	                        	//This trigger has both trigger columns and
-	                        	// trigger action columns(getting used through
-	                        	// the REFERENCING clause). Read only those
-	                        	// columns because that's all we need from
-	                        	// trigger table for the trigger execution.
-	                                for (int ix = 0; ix < triggerCols.length; ix++)
-	                                {
-	                                        columnMap.set(triggerCols[ix]);
-	                                }
-	                                for (int ix = 0; ix < referencedColsInTriggerAction.length; ix++)
-	                                {
-	                                        columnMap.set(referencedColsInTriggerAction[ix]);
-	                                }
-	                        }
-	                }			
+                // See if we can avoid reading all the columns from the
+                // trigger table.
+                int[] referencedColsInTriggerAction = trd.getReferencedColsInTriggerAction();
+                int[] triggerCols = trd.getReferencedCols();
+                if (triggerCols == null || triggerCols.length == 0) {
+                    for (int i = 0; i < columnCount; i++) {
+                        columnMap.set(i + 1);
+                    }
+                    //This trigger is not defined on specific columns
+                    // so we will have to read all the columns from the
+                    // trigger table. Now, there is no need to go
+                    // through the rest of the triggers because we are
+                    // going to read all the columns anyways.
+                    break;
+                } else {
+                    if (referencedColsInTriggerAction == null ||
+                            referencedColsInTriggerAction.length == 0) {
+                        //Does this trigger have REFERENCING clause defined on it
+                        if (!trd.getReferencingNew() && !trd.getReferencingOld()) {
+                            //The trigger does not use trigger action columns through
+                            //the REFERENCING clause so we need to read just the
+                            //trigger columns
+                            for (int triggerCol : triggerCols) {
+                                columnMap.set(triggerCol);
+                            }
+                        } else {
+                            //The trigger has REFERENCING clause defined on it
+                            // so it might be used them in trigger action.
+                            // We should just go ahead and read all the
+                            // columns from the trigger table. Now, there is
+                            // no need to go through the rest of the triggers
+                            // because we are going to read all the columns
+                            // anyways.
+                            needToIncludeAllColumns = true;
+                            break;
+                        }
+                    } else {
+                        //This trigger has both trigger columns and
+                        // trigger action columns(getting used through
+                        // the REFERENCING clause). Read only those
+                        // columns because that's all we need from
+                        // trigger table for the trigger execution.
+                        for (int triggerCol : triggerCols) {
+                            columnMap.set(triggerCol);
+                        }
+                        for (int aReferencedColsInTriggerAction : referencedColsInTriggerAction) {
+                            columnMap.set(aReferencedColsInTriggerAction);
+                        }
+                    }
+                }
 
-        }
+            }
 
         if (needToIncludeAllColumns) {
                 for (int i = 1; i <= columnCount; i++)
@@ -1246,10 +1241,9 @@ public final class UpdateNode extends DMLModStatementNode
             int[]                       mentionedColumns = baseTable.getColumnIDs( mentionedColumnNames );
             int                         mentionedColumnCount = mentionedColumns.length;
 
-            for ( int mcIdx = 0; mcIdx < mentionedColumnCount; mcIdx++ )
-            {
-                columnMap.set( mentionedColumns[ mcIdx ] );
-                
+            for (int mentionedColumn : mentionedColumns) {
+                columnMap.set(mentionedColumn);
+
             }   // done looping through mentioned columns
             
         }   // done looping through affected generated columns
@@ -1300,33 +1294,28 @@ public final class UpdateNode extends DMLModStatementNode
 
             // figure out if this generated column is affected by the
             // update
-            for ( int mcIdx = 0; mcIdx < mentionedColumnCount; mcIdx++ )
-            {
-                String                      mentionedColumnName = mentionedColumnNames[ mcIdx ];
-
-                if ( updatedColumns.contains( mentionedColumnName ) )
-                {
+            for (String mentionedColumnName : mentionedColumnNames) {
+                if (updatedColumns.contains(mentionedColumnName)) {
                     // Yes, we are updating one of the columns mentioned in
                     // this generation clause.
-                    affectedGeneratedColumns.add( tableID, gc );
-                    
+                    affectedGeneratedColumns.add(tableID, gc);
+
                     // If the generated column isn't in the update list yet,
                     // add it.
-                    if ( !updatedColumns.contains( gc.getColumnName() ) )
-                    {
-                        addedGeneratedColumns.add( tableID, gc );
-                        
-                        // we will fill in the real value later on in parseAndBindGenerationClauses();
-                        ValueNode       dummy = (ValueNode) getNodeFactory().getNode
-                            ( C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE, getContextManager());
-                       ResultColumn    newResultColumn = (ResultColumn) getNodeFactory().getNode
-                            ( C_NodeTypes.RESULT_COLUMN, gc.getType(), dummy, getContextManager());
-                        newResultColumn.setColumnDescriptor( baseTable, gc );
-                        newResultColumn.setName( gc.getColumnName() );
+                    if (!updatedColumns.contains(gc.getColumnName())) {
+                        addedGeneratedColumns.add(tableID, gc);
 
-                        updateColumnList.addResultColumn( newResultColumn );
+                        // we will fill in the real value later on in parseAndBindGenerationClauses();
+                        ValueNode dummy = (ValueNode) getNodeFactory().getNode
+                                (C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE, getContextManager());
+                        ResultColumn newResultColumn = (ResultColumn) getNodeFactory().getNode
+                                (C_NodeTypes.RESULT_COLUMN, gc.getType(), dummy, getContextManager());
+                        newResultColumn.setColumnDescriptor(baseTable, gc);
+                        newResultColumn.setName(gc.getColumnName());
+
+                        updateColumnList.addResultColumn(newResultColumn);
                     }
-                    
+
                     break;
                 }
             }   // done looping through mentioned columns
@@ -1520,7 +1509,6 @@ public final class UpdateNode extends DMLModStatementNode
                     // Skip this step if we're working on an update
                     // statement. For updates, the target list has already
                     // been enhanced.
-                    continue;
                 }
             }
         }

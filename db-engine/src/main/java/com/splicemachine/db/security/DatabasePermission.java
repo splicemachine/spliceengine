@@ -246,8 +246,8 @@ final public class DatabasePermission extends Permission {
         // check for any illegal actions
         actions = actions.toLowerCase(Locale.ENGLISH);
         final String[] s = StringUtil.split(actions, ',');
-        for (int i = 0; i < s.length; i++) {
-            final String action = s[i].trim();
+        for (String value : s) {
+            final String action = value.trim();
             if (!LEGAL_ACTIONS.contains(action)) {
                 // report illegal action
                 final String msg = "Illegal action '" + action + "'";

@@ -535,7 +535,7 @@ public final class ContextService{
      *                  AccessFactoryGlobals.USER_TRANS_NAME, LanguageConnectionContext.CONTEXT_ID, etc
      */
     public <T extends Context> List<T> getAllContexts(String contextId){
-        List<T> contexts=new ArrayList<T>();
+        List<T> contexts= new ArrayList<>();
         synchronized (allContexts) {
             for (ContextManager contextManager : allContexts) {
                 contexts.addAll((Collection<? extends T>) contextManager.getContextStack(contextId));

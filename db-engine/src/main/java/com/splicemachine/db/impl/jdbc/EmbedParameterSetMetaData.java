@@ -236,7 +236,7 @@ public class EmbedParameterSetMetaData implements EngineParameterMetaData
 			/* This message matches the one used by the DBMS */
 			throw Util.generateCsSQLException(
             SQLState.LANG_INVALID_PARAM_POSITION,
-            new Integer(parameterIndex), new Integer(paramCount));
+                    parameterIndex, paramCount);
 		}
     }
 }

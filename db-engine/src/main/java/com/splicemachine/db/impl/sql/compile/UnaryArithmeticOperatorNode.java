@@ -92,19 +92,15 @@ public class UnaryArithmeticOperatorNode extends UnaryOperatorNode{
      *
      * @see ValueNode#requiresTypeFromContext
      */
-    public boolean requiresTypeFromContext(){
-        if(operatorType==UNARY_PLUS || operatorType==UNARY_MINUS)
-            return operand.requiresTypeFromContext();
-        return false;
+    public boolean requiresTypeFromContext() {
+        return (operatorType == UNARY_PLUS || operatorType == UNARY_MINUS) && operand.requiresTypeFromContext();
     }
 
     /**
      * A +? or a -? is considered a parameter.
      */
-    public boolean isParameterNode(){
-        if(operatorType==UNARY_PLUS || operatorType==UNARY_MINUS)
-            return operand.isParameterNode();
-        return false;
+    public boolean isParameterNode() {
+        return (operatorType == UNARY_PLUS || operatorType == UNARY_MINUS) && operand.isParameterNode();
     }
 
     /**

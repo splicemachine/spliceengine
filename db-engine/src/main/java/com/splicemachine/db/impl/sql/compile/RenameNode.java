@@ -107,8 +107,8 @@ public class RenameNode extends DDLStatementNode
 				   Object renamingWhat)
 		throws StandardException
 	{
-		this.usedAlterTable = ((Boolean) usedAlterTable).booleanValue();
-		this.renamingWhat = ((Integer) renamingWhat).intValue();
+		this.usedAlterTable = (Boolean) usedAlterTable;
+		this.renamingWhat = (Integer) renamingWhat;
 
 		switch (this.renamingWhat)
 		{
@@ -390,12 +390,9 @@ public class RenameNode extends DDLStatementNode
             ColumnDescriptor    gc = generatedColumns.elementAt( i );
             String[]                    referencedColumns = gc.getDefaultInfo().getReferencedColumnNames();
             int                         refColCount = referencedColumns.length;
-            for ( int j = 0; j < refColCount; j++ )
-            {
-                String      refName = referencedColumns[ j ];
-                if ( oldObjectName.equals( refName ) )
-                {
-                    throw StandardException.newException( SQLState.LANG_GEN_COL_BAD_RENAME, oldObjectName, gc.getColumnName() );
+            for (String refName : referencedColumns) {
+                if (oldObjectName.equals(refName)) {
+                    throw StandardException.newException(SQLState.LANG_GEN_COL_BAD_RENAME, oldObjectName, gc.getColumnName());
                 }
             }
         }

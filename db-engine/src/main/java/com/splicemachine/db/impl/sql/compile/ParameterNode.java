@@ -135,7 +135,7 @@ public class ParameterNode extends ValueNode
 	public void init(Object parameterNumber, Object defaultValue)
 	{
 		this.defaultValue = (DataValueDescriptor) defaultValue;
-		this.parameterNumber = ((Integer) parameterNumber).intValue();
+		this.parameterNumber = (Integer) parameterNumber;
 	}
 
 	/**

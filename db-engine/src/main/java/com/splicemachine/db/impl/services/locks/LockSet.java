@@ -714,10 +714,9 @@ forever:	for (;;) {
             String str = "";
 
             int i = 0;
-            for (Iterator it = locks.values().iterator(); it.hasNext(); )
-            {
-                str += "\n  lock[" + i + "]: " + 
-                    DiagnosticUtil.toDiagString(it.next());
+            for (Object o : locks.values()) {
+                str += "\n  lock[" + i + "]: " +
+                        DiagnosticUtil.toDiagString(o);
             }
 
             return(str);
@@ -734,8 +733,8 @@ forever:	for (;;) {
      * MT - must be synchronized on this <code>LockSet</code> object.
      */
     public void addWaiters(Map waiters) {
-        for (Iterator it = locks.values().iterator(); it.hasNext(); ) {
-            Control control = (Control) it.next();
+        for (Object o : locks.values()) {
+            Control control = (Control) o;
             control.addWaiters(waiters);
         }
     }
@@ -748,13 +747,12 @@ forever:	for (;;) {
 	{
 		HashMap clone = new HashMap();
 
-		for (Iterator it = locks.keySet().iterator(); it.hasNext(); )
-		{
-			Lockable lockable = (Lockable) it.next();
-			Control control = getControl(lockable);
+        for (Object o : locks.keySet()) {
+            Lockable lockable = (Lockable) o;
+            Control control = getControl(lockable);
 
-			clone.put(lockable, control.shallowClone());
-		}
+            clone.put(lockable, control.shallowClone());
+        }
 
 		return clone;
 	}

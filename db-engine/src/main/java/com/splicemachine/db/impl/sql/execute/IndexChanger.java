@@ -257,11 +257,11 @@ public class IndexChanger
        */
       DataValueDescriptor[] ourRowDvds = ourIndexRow.getRowArray();
       int numNonNull = ourRowDvds.length;
-      for(int i=0;i<ourRowDvds.length;i++){
-          if(ourRowDvds[i].isNull()){
-              numNonNull--;
-          }
-      }
+        for (DataValueDescriptor ourRowDvd : ourRowDvds) {
+            if (ourRowDvd.isNull()) {
+                numNonNull--;
+            }
+        }
       Qualifier[][] qualifiers = null;
       if(numNonNull<ourRowDvds.length){
           qualifiers = new Qualifier[1][];
@@ -398,7 +398,7 @@ public class IndexChanger
 
                 Object[] args = new Object[2];
                 args[0] = ourIndexRow.getRowArray()[ourIndexRow.getRowArray().length - 1];
-                args[1] = new Long(indexCID);
+                args[1] = indexCID;
 
                 Monitor.getStream().println(MessageService.getCompleteMessage(
                     SQLState.LANG_IGNORE_MISSING_INDEX_ROW_DURING_DELETE, 

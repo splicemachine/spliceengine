@@ -80,8 +80,8 @@ class DebugByteTeeOutputStream extends FilterOutputStream {
 			// just return. The object was read sucessfully.
 
 			if ((f1.hashCode() == System.identityHashCode(f1)) &&
-				(f.hashCode() == System.identityHashCode(f)))
-				return;
+				(f.hashCode() == System.identityHashCode(f))) {
+            }
 
 		} catch (Throwable t) {
 

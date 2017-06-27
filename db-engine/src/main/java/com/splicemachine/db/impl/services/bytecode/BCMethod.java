@@ -366,18 +366,18 @@ class BCMethod implements MethodBuilder {
 
 				eout.putU2(numExc); // number_of_exceptions
 
-				for (int i = 0; i < numExc; i++) {
-					// put each exception into the constant pool
-					String e = thrownExceptions.get(i).toString();
-					int ei2 = modClass.addClassReference(e);
+                for (Object thrownException : thrownExceptions) {
+                    // put each exception into the constant pool
+                    String e = thrownException.toString();
+                    int ei2 = modClass.addClassReference(e);
 
-					// add constant pool index to exception attribute_info
-					eout.putU2(ei2);
-				}
+                    // add constant pool index to exception attribute_info
+                    eout.putU2(ei2);
+                }
 
 				myEntry.addAttribute("Exceptions", eout);
 
-			} catch (IOException ioe) {
+			} catch (IOException ignored) {
 			}			
 		}
 	}

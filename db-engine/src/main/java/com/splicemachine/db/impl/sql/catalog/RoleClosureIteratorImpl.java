@@ -172,7 +172,6 @@ public class RoleClosureIteratorImpl implements RoleClosureIterator
 
                 if (seenSoFar.containsKey
                         (inverse ? r.getRoleName() : r.getGrantee())) {
-                    continue;
                 } else {
                     lifo.add(r);
                     result = r;

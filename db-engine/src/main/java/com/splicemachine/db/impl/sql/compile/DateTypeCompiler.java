@@ -57,25 +57,18 @@ public class DateTypeCompiler extends BaseTypeCompiler
 	 *
 	 * @see TypeCompiler#convertible
 	 */
-	public boolean convertible(TypeId otherType, boolean forDataTypeFunction)
-	{
+	public boolean convertible(TypeId otherType, boolean forDataTypeFunction) {
 
 
-		if (otherType.isStringTypeId() && 
-			(!otherType.isLongConcatableTypeId()))
-		{
-			return true;
-		}
-
-        if (getTypeId().getJDBCTypeId() == Types.DATE && otherType.getJDBCTypeId() == Types.TIMESTAMP) {
-            // we can convert a date to a timestamp
+        if (otherType.isStringTypeId() &&
+                (!otherType.isLongConcatableTypeId())) {
             return true;
         }
 
-		return (getStoredFormatIdFromTypeId() == 
-				otherType.getTypeFormatId());
-		   
-	}
+        // we can convert a date to a timestamp
+        return getTypeId().getJDBCTypeId() == Types.DATE && otherType.getJDBCTypeId() == Types.TIMESTAMP || (getStoredFormatIdFromTypeId() == otherType.getTypeFormatId());
+
+    }
 
         /**
          * Tell whether this type (date) is compatible with the given type.
@@ -99,21 +92,12 @@ public class DateTypeCompiler extends BaseTypeCompiler
 	 * @param cf		A ClassFactory
 	 * @return true if otherType is storable into this type, else false.
 	 */
-	public boolean storable(TypeId otherType, ClassFactory cf)
-	{
-		int	otherJDBCTypeId = otherType.getJDBCTypeId();
+	public boolean storable(TypeId otherType, ClassFactory cf) {
+        int otherJDBCTypeId = otherType.getJDBCTypeId();
 
-		if (otherJDBCTypeId == Types.DATE ||
-			(otherJDBCTypeId == Types.CHAR) ||
-			(otherJDBCTypeId == Types.VARCHAR))
-		{
-			return true;
-		}
+        return otherJDBCTypeId == Types.DATE || (otherJDBCTypeId == Types.CHAR) || (otherJDBCTypeId == Types.VARCHAR) || cf.getClassInspector().assignableTo(otherType.getCorrespondingJavaTypeName(), "java.sql.Date");
 
-		return cf.getClassInspector().assignableTo(
-			   otherType.getCorrespondingJavaTypeName(),
-			   "java.sql.Date");
-	}
+    }
 
 	/** @see TypeCompiler#interfaceName */
 	public String interfaceName()

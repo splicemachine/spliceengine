@@ -128,7 +128,7 @@ final class ConcurrentLockSet implements LockTable {
 	ConcurrentLockSet(AbstractPool factory) {
 		this.factory = factory;
         blockCount = new AtomicInteger();
-		locks = new ConcurrentHashMap<Lockable, Entry>();
+		locks = new ConcurrentHashMap<>();
 	}
 
     /**
@@ -328,7 +328,7 @@ final class ConcurrentLockSet implements LockTable {
 
 		LockControl control;
 		Lock lockItem;
-        String  lockDebug = null;
+        StringBuilder lockDebug = null;
 
         Entry entry = getEntry(ref);
         try {
@@ -381,10 +381,9 @@ final class ConcurrentLockSet implements LockTable {
                         // exists at the time a timeout is about to 
                         // cause a deadlock exception to be thrown.
 
-                        lockDebug = 
-                            DiagnosticUtil.toDiagString(lockItem)   +
-                            "\nCould not grant lock with zero timeout, " +
-                            "here's the table";
+                        lockDebug = new StringBuilder(DiagnosticUtil.toDiagString(lockItem) +
+                                "\nCould not grant lock with zero timeout, " +
+                                "here's the table");
 
                         // We cannot hold a lock on an entry while calling
                         // toDebugString() since it will lock other entries in
@@ -392,7 +391,7 @@ final class ConcurrentLockSet implements LockTable {
                         // deadlock.
                         entry.unlock();
                         try {
-                            lockDebug += toDebugString();
+                            lockDebug.append(toDebugString());
                         } finally {
                             // Re-lock the entry so that the outer finally
                             // clause doesn't fail.
@@ -552,9 +551,8 @@ forever:	for (;;) {
                             // exclusive access to waitingLock. Wait until the
                             // entry has been unlocked before appending the
                             // contents of the lock table (to avoid deadlocks).
-                            lockDebug =
-                                DiagnosticUtil.toDiagString(waitingLock) +
-                                "\nGot deadlock/timeout, here's the table";
+                            lockDebug = new StringBuilder(DiagnosticUtil.toDiagString(waitingLock) +
+                                    "\nGot deadlock/timeout, here's the table");
                         }
 
                     } finally {
@@ -587,7 +585,7 @@ forever:	for (;;) {
                                 // exists at the time a timeout is about to
                                 // cause a deadlock exception to be thrown.
 
-                                lockDebug += toDebugString();
+                                lockDebug.append(toDebugString());
                             }
 
                             if (lockDebug != null)
@@ -931,21 +929,20 @@ forever:	for (;;) {
     {
         if (SanityManager.DEBUG)
         {
-            String str = "";
+            StringBuilder str = new StringBuilder();
 
             int i = 0;
             for (Entry entry : locks.values())
             {
                 entry.lock();
                 try {
-                    str += "\n  lock[" + i + "]: " +
-                        DiagnosticUtil.toDiagString(entry.control);
+                    str.append("\n  lock[").append(i).append("]: ").append(DiagnosticUtil.toDiagString(entry.control));
                 } finally {
                     entry.unlock();
                 }
             }
 
-            return(str);
+            return(str.toString());
         }
         else
         {
@@ -962,7 +959,7 @@ forever:	for (;;) {
      * finished.
      */
     public void addWaiters(Map waiters) {
-        seenByDeadlockDetection = new ArrayList<Entry>(locks.size());
+        seenByDeadlockDetection = new ArrayList<>(locks.size());
         for (Entry entry : locks.values()) {
             seenByDeadlockDetection.add(entry);
             entry.lockForDeadlockDetection();
@@ -977,7 +974,7 @@ forever:	for (;;) {
 	 * make a shallow clone of myself and my lock controls
 	 */
     public Map<Lockable, Control> shallowClone() {
-        HashMap<Lockable, Control> clone = new HashMap<Lockable, Control>();
+        HashMap<Lockable, Control> clone = new HashMap<>();
 
         for (Entry entry : locks.values()) {
             entry.lock();

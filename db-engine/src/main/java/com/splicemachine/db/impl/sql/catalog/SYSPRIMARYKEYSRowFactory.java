@@ -87,10 +87,10 @@ public class SYSPRIMARYKEYSRowFactory extends CatalogRowFactory {
 
             //find the Table conglomerate UUID
             ConglomerateDescriptorList cdl = constraint.getTableDescriptor().getConglomerateDescriptorList();
-            for(int index=0;index<cdl.size();index++){
-                ConglomerateDescriptor cd = (ConglomerateDescriptor) cdl.get(index);
+            for (ConglomerateDescriptor aCdl : cdl) {
+                ConglomerateDescriptor cd = (ConglomerateDescriptor) aCdl;
                 TableDescriptor tableDescriptor = constraint.getTableDescriptor();
-                if(tableDescriptor.getHeapConglomerateId()==cd.getConglomerateNumber()){
+                if (tableDescriptor.getHeapConglomerateId() == cd.getConglomerateNumber()) {
                     conglomerateId = cd.getUUID().toString();
                     break;
                 }

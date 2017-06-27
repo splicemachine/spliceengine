@@ -360,13 +360,13 @@ public class EmbedCallableStatement40
             
         if ( String.class.equals( type ) ) { retval = getString( parameterIndex ); }
         else if ( BigDecimal.class.equals( type ) ) { retval = getBigDecimal( parameterIndex ); }
-        else if ( Boolean.class.equals( type ) ) { retval = Boolean.valueOf( getBoolean(parameterIndex ) ); }
-        else if ( Byte.class.equals( type ) ) { retval = Byte.valueOf( getByte( parameterIndex ) ); }
-        else if ( Short.class.equals( type ) ) { retval = Short.valueOf( getShort( parameterIndex ) ); }
-        else if ( Integer.class.equals( type ) ) { retval = Integer.valueOf( getInt( parameterIndex ) ); }
-        else if ( Long.class.equals( type ) ) { retval = Long.valueOf( getLong( parameterIndex ) ); }
-        else if ( Float.class.equals( type ) ) { retval = Float.valueOf( getFloat( parameterIndex ) ); }
-        else if ( Double.class.equals( type ) ) { retval = Double.valueOf( getDouble( parameterIndex ) ); }
+        else if ( Boolean.class.equals( type ) ) { retval = getBoolean(parameterIndex); }
+        else if ( Byte.class.equals( type ) ) { retval = getByte(parameterIndex); }
+        else if ( Short.class.equals( type ) ) { retval = getShort(parameterIndex); }
+        else if ( Integer.class.equals( type ) ) { retval = getInt(parameterIndex); }
+        else if ( Long.class.equals( type ) ) { retval = getLong(parameterIndex); }
+        else if ( Float.class.equals( type ) ) { retval = getFloat(parameterIndex); }
+        else if ( Double.class.equals( type ) ) { retval = getDouble(parameterIndex); }
         else if ( Date.class.equals( type ) ) { retval = getDate( parameterIndex ); }
         else if ( Time.class.equals( type ) ) { retval = getTime( parameterIndex ); }
         else if ( Timestamp.class.equals( type ) ) { retval = getTimestamp( parameterIndex ); }

@@ -282,11 +282,8 @@ final class StorageFactoryService implements PersistentService
                         if( recreateFrom != null) // restore from a file
                         {
                             File propFile = new File(recreateFrom, PersistentService.PROPERTIES_NAME);
-                            InputStream is = new FileInputStream(propFile);
-                            try {
+                            try (InputStream is = new FileInputStream(propFile)) {
                                 serviceProperties.load(new BufferedInputStream(is));
-                            } finally {
-                                is.close();
                             }
                         }
                         else
@@ -295,13 +292,10 @@ final class StorageFactoryService implements PersistentService
                             StorageFile file = storageFactory.newStorageFile( PersistentService.PROPERTIES_NAME);
                             resolveServicePropertiesFiles(storageFactory, file);
                             try {
-                                InputStream is = file.getInputStream();
-                                try {
+                                try (InputStream is = file.getInputStream()) {
                                     // Need to load the properties before closing the
                                     // StorageFactory.
                                     serviceProperties.load(new BufferedInputStream(is));
-                                } finally {
-                                    is.close();
                                 }
                             } finally {
                                storageFactory.shutdown();
@@ -477,7 +471,7 @@ final class StorageFactoryService implements PersistentService
                             if (fos != null) {
                                 try {
                                     fos.close();
-                                } catch (IOException ioe2) {
+                                } catch (IOException ignored) {
                                 }
                                 fos = null;
                             }
@@ -972,12 +966,12 @@ final class StorageFactoryService implements PersistentService
      * @throws SecurityException if the required privileges are missing
      */
     private boolean fileExists(final File file) {
-        return ((Boolean)AccessController.doPrivileged(
+        return (Boolean) AccessController.doPrivileged(
                 new PrivilegedAction() {
                     public Object run() {
-                        return new Boolean(file.exists());
+                        return file.exists();
                     }
-            })).booleanValue();
+                });
     }
 
     /**
@@ -1082,7 +1076,8 @@ final class StorageFactoryService implements PersistentService
 
                         return this;
                     }
-                    catch (Exception se) { continue; }
+                    catch (Exception ignored) {
+                    }
                 }
                 return null;
             }

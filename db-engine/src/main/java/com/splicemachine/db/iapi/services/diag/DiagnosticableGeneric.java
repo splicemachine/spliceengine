@@ -95,6 +95,5 @@ public class DiagnosticableGeneric implements Diagnosticable
     public void diag_detail(Properties prop)
         throws StandardException
     {
-        return;
     }
 }

@@ -1145,8 +1145,7 @@ restartClock:
 
 				// at this point the item we cleaned could be in any state
 				// so we can't just re-use it. Continue searching
-				continue restartClock;
-			}
+            }
 			return availableItem;
 		} finally {
 
@@ -1227,15 +1226,15 @@ restartClock:
 			int size = holders.size();
 			int inUse = 0;
 
-			for (int position = 0; position < size; position++) {
+        for (Object holder : holders) {
 
-				CachedItem item = (CachedItem) holders.get(position);
+            CachedItem item = (CachedItem) holder;
 
-				if (item.isValid()) {
-					inUse++;
-				}
+            if (item.isValid()) {
+                inUse++;
+            }
 
-			}
+        }
 			return inUse;
 	}
 /*
@@ -1360,10 +1359,10 @@ innerscan:
 					item = (CachedItem) holders.get(position);
 
 					if (!item.isValid())
-						continue innerscan;
+						continue;
 
 					if (!item.getEntry().isDirty())
-						continue innerscan;
+						continue;
 
 					if (partialKey != null) {
 
@@ -1374,7 +1373,7 @@ innerscan:
 					}
 
 					item.keepForClean();
-					break innerscan;
+					break;
 				}
 			} // synchronized(this)
 
@@ -1881,9 +1880,9 @@ innerscan:
 	 */
 	public synchronized Collection values() {
 		ArrayList al = new ArrayList();
-		for (Iterator i = cache_.values().iterator(); i.hasNext();){
-			al.add(((CachedItem)i.next()).getEntry());
-		}
+        for (Object o : cache_.values()) {
+            al.add(((CachedItem) o).getEntry());
+        }
 		return al;
 	}
 }

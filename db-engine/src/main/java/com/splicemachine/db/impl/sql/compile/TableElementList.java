@@ -141,7 +141,6 @@ public class TableElementList extends QueryTreeNodeVector {
         {
             if ( cdn.hasGenerationClause() )
             {
-                return;
             }
             else
             {
@@ -746,7 +745,7 @@ public class TableElementList extends QueryTreeNodeVector {
         
 		cc = getCompilerContext();
 
-		List<AggregateNode> aggregateVector = new ArrayList<AggregateNode>();
+		List<AggregateNode> aggregateVector = new ArrayList<>();
 
 		for (int index = 0; index < size; index++) {
 			ColumnDefinitionNode cdn;
@@ -928,20 +927,16 @@ public class TableElementList extends QueryTreeNodeVector {
         // now look at their generation clauses to see if they reference one
         // another
         int    count = generatedColumns.size();
-        for ( int i = 0; i < count; i++ )
-        {
-            ColumnDefinitionNode    cdn = (ColumnDefinitionNode) generatedColumns.get( i );
-            GenerationClauseNode    generationClauseNode = cdn.getGenerationClauseNode();
-            Vector                  referencedColumns = generationClauseNode.findReferencedColumns();
-            int                     refCount = referencedColumns.size();
-            for ( int j = 0; j < refCount; j++ )
-            {
-                String  name = ((ColumnReference) referencedColumns.elementAt( j ) ).getColumnName();
+        for (Object generatedColumn : generatedColumns) {
+            ColumnDefinitionNode cdn = (ColumnDefinitionNode) generatedColumn;
+            GenerationClauseNode generationClauseNode = cdn.getGenerationClauseNode();
+            Vector referencedColumns = generationClauseNode.findReferencedColumns();
+            int refCount = referencedColumns.size();
+            for (int j = 0; j < refCount; j++) {
+                String name = ((ColumnReference) referencedColumns.elementAt(j)).getColumnName();
 
-                if ( name != null )
-                {
-                    if ( names.contains( name ) )
-                    {
+                if (name != null) {
+                    if (names.contains(name)) {
                         throw StandardException.newException(SQLState.LANG_CANT_REFERENCE_GENERATED_COLUMN, cdn.getColumnName());
                     }
                 }

@@ -296,12 +296,11 @@ class DirFile extends File implements StorageFile
         {
             String[] childList = super.list();
             String parentName = getPath();
-            for( int i = 0; i < childList.length; i++)
-            {
-                if( childList[i].equals( ".") || childList[i].equals( ".."))
+            for (String aChildList : childList) {
+                if (aChildList.equals(".") || aChildList.equals(".."))
                     continue;
-                DirFile child = new DirFile( parentName, childList[i]);
-                if( ! child.deleteAll())
+                DirFile child = new DirFile(parentName, aChildList);
+                if (!child.deleteAll())
                     return false;
             }
         }

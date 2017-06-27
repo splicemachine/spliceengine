@@ -60,7 +60,7 @@ public final class MessageService {
 	public static ResourceBundle getBundleForLocale(Locale locale, String msgId) {
 		try {
 			return MessageService.getBundleWithEnDefault("com.splicemachine.db.loc.m"+hashString50(msgId), locale);
-		} catch (MissingResourceException mre) {
+		} catch (MissingResourceException ignored) {
 		}
 		return null;
 	}
@@ -104,12 +104,11 @@ public final class MessageService {
 
 		try {
 			return formatMessage(getBundle(messageId), messageId, arguments, true);
-		} catch (MissingResourceException mre) {
+		} catch (MissingResourceException | ShutdownException mre) {
 			// message does not exist in the requested locale or the default locale.
 			// most likely it does exist in our fake base class _en, so try that.
-		} catch (ShutdownException se) {
 		}
-		return formatMessage(getBundleForLocale(EN, messageId), messageId, arguments, false);
+        return formatMessage(getBundleForLocale(EN, messageId), messageId, arguments, false);
 	}
 
 	/**
@@ -195,12 +194,11 @@ public final class MessageService {
 			msg[0] = formatMessage(getBundleForLocale(locale, messageId), messageId, arguments, true);
 			rc[0] = 0;
 			return;
-		} catch (MissingResourceException mre) {
+		} catch (MissingResourceException | ShutdownException mre) {
 			// message does not exist in the requested locale
 			// most likely it does exist in our fake base class _en, so try that.
-		} catch (ShutdownException se) {
 		}
-		msg[0] = formatMessage(getBundleForLocale(EN, messageId), messageId, arguments, false);
+        msg[0] = formatMessage(getBundleForLocale(EN, messageId), messageId, arguments, false);
 		rc[0] = 0;
 	}
 	
@@ -218,12 +216,11 @@ public final class MessageService {
 		try {
 			locMsg = formatMessage(getBundleForLocale(locale, messageId), messageId, args, true);
 			return locMsg;
-		} catch (MissingResourceException mre) {
+		} catch (MissingResourceException | ShutdownException mre) {
 			// message does not exist in the requested locale
 			// most likely it does exist in our fake base class _en, so try that.
-		} catch (ShutdownException se) {
 		}
-		locMsg = formatMessage(getBundleForLocale(EN, messageId), messageId, args, false);
+        locMsg = formatMessage(getBundleForLocale(EN, messageId), messageId, args, false);
 		return locMsg;
 	}
 
@@ -236,7 +233,7 @@ public final class MessageService {
 		try {
 			if (bundle != null)
 				return bundle.getString(messageId + "." + propertyName);
-		} catch (MissingResourceException mre) {
+		} catch (MissingResourceException ignored) {
 		}
 		return null;
 	}
@@ -257,15 +254,10 @@ public final class MessageService {
 				try {
 					return MessageFormat.format(messageId, arguments);
 				}
-				catch (IllegalArgumentException iae) {
-				}
-				catch (NullPointerException npe) {
-					//
-					//null arguments cause a NullPointerException. 
-					//This improves reporting.
+				catch (IllegalArgumentException | NullPointerException ignored) {
 				}
 
-			} catch (MissingResourceException mre) {
+            } catch (MissingResourceException mre) {
 				// caller will try and handle the last chance
 				if (lastChance)
 					throw mre;

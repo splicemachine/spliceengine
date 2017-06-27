@@ -69,7 +69,7 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
 	private int whichType;
 
 	public void init(Object whichType) {
-		this.whichType = ((Integer) whichType).intValue();
+		this.whichType = (Integer) whichType;
 
 		if (SanityManager.DEBUG)
 			SanityManager.ASSERT(this.whichType >= 0 && this.whichType <= 2);

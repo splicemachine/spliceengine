@@ -63,7 +63,7 @@ public class SavepointNode extends DDLStatementNode
 	{
 		initAndCheck(null);	
 		this.savepointName = (String) objectName;
-		this.savepointStatementType = ((Integer) savepointStatementType).intValue();
+		this.savepointStatementType = (Integer) savepointStatementType;
 
 		if (SanityManager.DEBUG)
 		{

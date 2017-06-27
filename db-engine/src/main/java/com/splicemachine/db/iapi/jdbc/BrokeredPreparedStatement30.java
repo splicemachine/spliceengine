@@ -68,7 +68,7 @@ public class BrokeredPreparedStatement30 extends BrokeredPreparedStatement {
 			// The prepareStatement() calls that take a generated key value do not take resultSet* type
 			// parameters, but since they don't return ResultSets that is OK. There are only for INSERT statements.
 			if (generatedKeys instanceof Integer)
-				newStatement = conn.prepareStatement(sql, ((Integer) generatedKeys).intValue());
+				newStatement = conn.prepareStatement(sql, (Integer) generatedKeys);
 			else if (generatedKeys instanceof int[])
 				newStatement = conn.prepareStatement(sql, (int[]) generatedKeys);
 			else

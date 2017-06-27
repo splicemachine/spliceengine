@@ -87,13 +87,11 @@ abstract class JavaValueNode extends QueryTreeNode
         return DataTypeDescriptor.getSQLDataTypeDescriptor( getJavaTypeName()) ;
     }
 
-	public boolean isPrimitiveType() throws StandardException
-	{
-		JSQLType	myType = getJSQLType();
-		
-		if ( myType == null ) { return false; }
-		else { return ( myType.getCategory() == JSQLType.JAVA_PRIMITIVE ); }
-	}
+	public boolean isPrimitiveType() throws StandardException {
+        JSQLType myType = getJSQLType();
+
+        return myType != null && (myType.getCategory() == JSQLType.JAVA_PRIMITIVE);
+    }
 
 	public String getJavaTypeName() throws StandardException
 	{

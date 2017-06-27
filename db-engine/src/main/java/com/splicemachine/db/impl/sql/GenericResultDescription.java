@@ -340,7 +340,7 @@ public final class GenericResultDescription
         if (val==null) {
             return -1;
         } else {
-            return val.intValue();
+            return val;
         }
     }
 }

@@ -47,8 +47,8 @@ import java.sql.ClientInfoStatus;
      * @see com.splicemachine.db.client.am.FailedProperties40
      */
 public class FailedProperties40 {
-    private final HashMap<String,ClientInfoStatus> failedProps_ = 
-	new HashMap<String,ClientInfoStatus>();
+    private final HashMap<String,ClientInfoStatus> failedProps_ =
+            new HashMap<>();
     private final String firstKey_;
     private final String firstValue_;
 

@@ -163,8 +163,8 @@ public class ColumnReference extends ValueNode {
 	{
 		this.columnName = (String) columnName;
 		this.tableName = (TableName) tableName;
-		this.setBeginOffset(((Integer) tokBeginOffset).intValue());
-		this.setEndOffset(((Integer) tokEndOffset).intValue());
+		this.setBeginOffset((Integer) tokBeginOffset);
+		this.setEndOffset((Integer) tokEndOffset);
 		tableNumber = -1;
 		remaps = null;
 	}
@@ -582,7 +582,7 @@ public class ColumnReference extends ValueNode {
 	 */
 	public boolean updatableByCursor()
 	{
-		return ((source != null) ? source.updatableByCursor() : false);
+		return ((source != null) && source.updatableByCursor());
 	}
 
 	/**

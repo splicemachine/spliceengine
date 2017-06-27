@@ -355,155 +355,150 @@ public abstract class DDLConstantAction implements ConstantAction
 
 			if (requiredPermissionsList != null && ! requiredPermissionsList.isEmpty())
 			{
-				for(Iterator iter = requiredPermissionsList.iterator();iter.hasNext();)
-				{
-					StatementPermission statPerm = (StatementPermission) iter.next();
-					//First check if we are dealing with a Table or 
-					//Column level privilege. All the other privileges
-					//are not required for a foreign key constraint.
-					if (statPerm instanceof StatementTablePermission)
-					{//It is a table/column level privilege
-						StatementTablePermission statementTablePermission = 
-							(StatementTablePermission) statPerm;
-						//Check if we are dealing with REFERENCES privilege.
-						//If not, move on to the next privilege in the
-						//required privileges list
-						if (statementTablePermission.getPrivType() != Authorizer.REFERENCES_PRIV)
-							continue;
-						//Next check is this REFERENCES privilege is 
-						//on the same table as referenced by the foreign
-						//key constraint? If not, move on to the next
-						//privilege in the required privileges list
-						if (!statementTablePermission.getTableUUID().equals(refTableUUID))
-							continue;
-					} else if (statPerm instanceof StatementSchemaPermission
-						    || statPerm instanceof StatementRolePermission
-                               || statPerm instanceof StatementGenericPermission ) {
-						continue;
-					} else {
-						if (SanityManager.DEBUG) {
-							SanityManager.ASSERT(
-								statPerm instanceof StatementRoutinePermission,
-								"only StatementRoutinePermission expected");
-						}
+                for (Object aRequiredPermissionsList : requiredPermissionsList) {
+                    StatementPermission statPerm = (StatementPermission) aRequiredPermissionsList;
+                    //First check if we are dealing with a Table or
+                    //Column level privilege. All the other privileges
+                    //are not required for a foreign key constraint.
+                    if (statPerm instanceof StatementTablePermission) {//It is a table/column level privilege
+                        StatementTablePermission statementTablePermission =
+                                (StatementTablePermission) statPerm;
+                        //Check if we are dealing with REFERENCES privilege.
+                        //If not, move on to the next privilege in the
+                        //required privileges list
+                        if (statementTablePermission.getPrivType() != Authorizer.REFERENCES_PRIV)
+                            continue;
+                        //Next check is this REFERENCES privilege is
+                        //on the same table as referenced by the foreign
+                        //key constraint? If not, move on to the next
+                        //privilege in the required privileges list
+                        if (!statementTablePermission.getTableUUID().equals(refTableUUID))
+                            continue;
+                    } else if (statPerm instanceof StatementSchemaPermission
+                            || statPerm instanceof StatementRolePermission
+                            || statPerm instanceof StatementGenericPermission) {
+                        continue;
+                    } else {
+                        if (SanityManager.DEBUG) {
+                            SanityManager.ASSERT(
+                                    statPerm instanceof StatementRoutinePermission,
+                                    "only StatementRoutinePermission expected");
+                        }
 
-						// skip if this permission concerns a function not
-						// referenced by this constraint
-						StatementRoutinePermission rp =
-							(StatementRoutinePermission)statPerm;
-						if (!inProviderSet(providers, rp.getRoutineUUID())) {
-							continue;
-						}
-					}
+                        // skip if this permission concerns a function not
+                        // referenced by this constraint
+                        StatementRoutinePermission rp =
+                                (StatementRoutinePermission) statPerm;
+                        if (!inProviderSet(providers, rp.getRoutineUUID())) {
+                            continue;
+                        }
+                    }
 
 
-					// We know that we are working with a REFERENCES, EXECUTE, or USAGE
-					// privilege. Find all the PermissionDescriptors for this
-					// privilege and make constraint depend on it through
-					// dependency manager.  The REFERENCES privilege could be
-					// defined at the table level or it could be defined at
-					// individual column levels. In addition, individual column
-					// REFERENCES privilege could be available at the user
-					// level, PUBLIC or role level.  EXECUTE and USAGE privileges could be
-					// available at the user level, PUBLIC or role level.
+                    // We know that we are working with a REFERENCES, EXECUTE, or USAGE
+                    // privilege. Find all the PermissionDescriptors for this
+                    // privilege and make constraint depend on it through
+                    // dependency manager.  The REFERENCES privilege could be
+                    // defined at the table level or it could be defined at
+                    // individual column levels. In addition, individual column
+                    // REFERENCES privilege could be available at the user
+                    // level, PUBLIC or role level.  EXECUTE and USAGE privileges could be
+                    // available at the user level, PUBLIC or role level.
                     permDesc = statPerm.getPermissionDescriptor(
-                        currentUser, dd);
+                            currentUser, dd);
 
-					if (permDesc == null) 
-					{
-						// No privilege exists for given user. The privilege
-						// has to exist at at PUBLIC level....
+                    if (permDesc == null) {
+                        // No privilege exists for given user. The privilege
+                        // has to exist at at PUBLIC level....
 
-						permDesc = statPerm.getPermissionDescriptor(Authorizer.PUBLIC_AUTHORIZATION_ID, dd);
-						// .... or at the role level. Additionally, for column
-						// level privileges, even if *some* were available at
-						// the PUBLIC level others may be still be missing,
-						// hence the call in the test below to
-						// allColumnsCoveredByUserOrPUBLIC.
-						boolean roleUsed = false;
+                        permDesc = statPerm.getPermissionDescriptor(Authorizer.PUBLIC_AUTHORIZATION_ID, dd);
+                        // .... or at the role level. Additionally, for column
+                        // level privileges, even if *some* were available at
+                        // the PUBLIC level others may be still be missing,
+                        // hence the call in the test below to
+                        // allColumnsCoveredByUserOrPUBLIC.
+                        boolean roleUsed = false;
 
-						if (permDesc == null ||
-							((permDesc instanceof ColPermsDescriptor) &&
-                                 ! ((StatementColumnPermission)statPerm).
-                                   allColumnsCoveredByUserOrPUBLIC(
-                                       currentUser, dd))) {
-							roleUsed = true;
-							permDesc = findRoleUsage(activation, statPerm);
-						}
+                        if (permDesc == null ||
+                                ((permDesc instanceof ColPermsDescriptor) &&
+                                        !((StatementColumnPermission) statPerm).
+                                                allColumnsCoveredByUserOrPUBLIC(
+                                                        currentUser, dd))) {
+                            roleUsed = true;
+                            permDesc = findRoleUsage(activation, statPerm);
+                        }
 
-						// If the user accessing the object is the owner of
-						// that object, then no privilege tracking is needed
-						// for the owner.
-                        if (! permDesc.checkOwner(currentUser) ) {
+                        // If the user accessing the object is the owner of
+                        // that object, then no privilege tracking is needed
+                        // for the owner.
+                        if (!permDesc.checkOwner(currentUser)) {
 
                             dm.addDependency(dependent, permDesc,
-											 lcc.getContextManager());
+                                    lcc.getContextManager());
 
-							if (roleUsed) {
-								// We had to rely on role, so track that
-								// dependency, too.
-								trackRoleDependency
-									(activation, dependent, roleDepAdded);
-							}
-						}
-					} else
-						//if the object on which permission is required is owned by the
-						//same user as the current user, then no need to keep that
-						//object's privilege dependency in the dependency system
-                    if (! permDesc.checkOwner(currentUser))
-					{
-						dm.addDependency(dependent, permDesc, lcc.getContextManager());
-						if (permDesc instanceof ColPermsDescriptor)
-						{
-							// The if statement above means we found a
-							// REFERENCES privilege at column level for the
-							// given authorizer. If this privilege doesn't
-							// cover all the column , then there has to exisit
-							// REFERENCES for the remaining columns at PUBLIC
-							// level or at role level.  Get that permission
-							// descriptor and save it in dependency system
-							StatementColumnPermission
-								statementColumnPermission = (
-									StatementColumnPermission)statPerm;
-							permDesc = statementColumnPermission.
-                                getPUBLIClevelColPermsDescriptor(
-                                    currentUser, dd);
-							//Following if checks if some column level privileges
-							//exist only at public level. If so, then the public
-							//level column privilege dependency is added
-							//into the dependency system
-							if (permDesc != null &&
-									permDesc.getObjectID() != null) {
-								// User did not have all required column
-								// permissions and at least one column is
-								// covered by PUBLIC.
-								dm.addDependency(dependent, permDesc,
-												 lcc.getContextManager());
-							}
-							// Possibly, the current role has also been relied
-							// upon.
-							if (!statementColumnPermission.
-                                    allColumnsCoveredByUserOrPUBLIC(
-                                        currentUser, dd)) {
-								// Role has been relied upon, so register a
-								// dependency.
-								trackRoleDependency
-									(activation, dependent, roleDepAdded);
-							}
-						}
-					}
+                            if (roleUsed) {
+                                // We had to rely on role, so track that
+                                // dependency, too.
+                                trackRoleDependency
+                                        (activation, dependent, roleDepAdded);
+                            }
+                        }
+                    } else
+                        //if the object on which permission is required is owned by the
+                        //same user as the current user, then no need to keep that
+                        //object's privilege dependency in the dependency system
+                        if (!permDesc.checkOwner(currentUser)) {
+                            dm.addDependency(dependent, permDesc, lcc.getContextManager());
+                            if (permDesc instanceof ColPermsDescriptor) {
+                                // The if statement above means we found a
+                                // REFERENCES privilege at column level for the
+                                // given authorizer. If this privilege doesn't
+                                // cover all the column , then there has to exisit
+                                // REFERENCES for the remaining columns at PUBLIC
+                                // level or at role level.  Get that permission
+                                // descriptor and save it in dependency system
+                                StatementColumnPermission
+                                        statementColumnPermission = (
+                                        StatementColumnPermission) statPerm;
+                                permDesc = statementColumnPermission.
+                                        getPUBLIClevelColPermsDescriptor(
+                                                currentUser, dd);
+                                //Following if checks if some column level privileges
+                                //exist only at public level. If so, then the public
+                                //level column privilege dependency is added
+                                //into the dependency system
+                                if (permDesc != null &&
+                                        permDesc.getObjectID() != null) {
+                                    // User did not have all required column
+                                    // permissions and at least one column is
+                                    // covered by PUBLIC.
+                                    dm.addDependency(dependent, permDesc,
+                                            lcc.getContextManager());
+                                }
+                                // Possibly, the current role has also been relied
+                                // upon.
+                                if (!statementColumnPermission.
+                                        allColumnsCoveredByUserOrPUBLIC(
+                                                currentUser, dd)) {
+                                    // Role has been relied upon, so register a
+                                    // dependency.
+                                    trackRoleDependency
+                                            (activation, dependent, roleDepAdded);
+                                }
+                            }
+                        }
 
-					if (!(statPerm instanceof StatementRoutinePermission)) {
-						//We have found the REFERENCES privilege for all the
-						//columns in foreign key constraint and we don't
-						//need to go through the rest of the privileges
-						//for this sql statement.
-						break;
-					} else {
-						// For EXECUTE privilege there may be several functions
-						// referenced in the constraint, so continue looking.
-					}
-				}
+                    if (!(statPerm instanceof StatementRoutinePermission)) {
+                        //We have found the REFERENCES privilege for all the
+                        //columns in foreign key constraint and we don't
+                        //need to go through the rest of the privileges
+                        //for this sql statement.
+                        break;
+                    } else {
+                        // For EXECUTE privilege there may be several functions
+                        // referenced in the constraint, so continue looking.
+                    }
+                }
 			}
 		}
 		
@@ -668,124 +663,121 @@ public abstract class DDLConstantAction implements ConstantAction
 			List requiredPermissionsList = activation.getPreparedStatement().getRequiredPermissionsList();
 			if (requiredPermissionsList != null && ! requiredPermissionsList.isEmpty())
 			{
-				for(Iterator iter = requiredPermissionsList.iterator();iter.hasNext();)
-				{
-					StatementPermission statPerm = (StatementPermission) iter.next();
-					//The schema ownership permission just needs to be checked 
-					//at object creation time, to see if the object creator has 
-					//permissions to create the object in the specified schema. 
-					//But we don't need to add schema permission to list of 
-					//permissions that the object is dependent on once it is 
-					//created.
-					//Also, StatementRolePermission should not occur here.
-					if (statPerm instanceof StatementSchemaPermission ||
-						statPerm instanceof StatementRolePermission) {
+                for (Object aRequiredPermissionsList : requiredPermissionsList) {
+                    StatementPermission statPerm = (StatementPermission) aRequiredPermissionsList;
+                    //The schema ownership permission just needs to be checked
+                    //at object creation time, to see if the object creator has
+                    //permissions to create the object in the specified schema.
+                    //But we don't need to add schema permission to list of
+                    //permissions that the object is dependent on once it is
+                    //created.
+                    //Also, StatementRolePermission should not occur here.
+                    if (statPerm instanceof StatementSchemaPermission ||
+                            statPerm instanceof StatementRolePermission) {
 
-						if (SanityManager.DEBUG) {
-							if (statPerm instanceof StatementRolePermission) {
-								SanityManager.THROWASSERT(
-									"Unexpected StatementRolePermission");
-							}
-						}
+                        if (SanityManager.DEBUG) {
+                            if (statPerm instanceof StatementRolePermission) {
+                                SanityManager.THROWASSERT(
+                                        "Unexpected StatementRolePermission");
+                            }
+                        }
 
-						continue;
-					}
+                        continue;
+                    }
 
-					//See if we can find the required privilege for given authorizer?
+                    //See if we can find the required privilege for given authorizer?
                     permDesc = statPerm.
-                        getPermissionDescriptor(currentUser, dd);
-					if (permDesc == null)//privilege not found for given authorizer 
-					{
-						//The if condition above means that required privilege does 
-						//not exist at the user level. The privilege has to exist at 
-						//PUBLIC level... ,
-						permDesc = statPerm.getPermissionDescriptor(
-							Authorizer.PUBLIC_AUTHORIZATION_ID, dd);
+                            getPermissionDescriptor(currentUser, dd);
+                    if (permDesc == null)//privilege not found for given authorizer
+                    {
+                        //The if condition above means that required privilege does
+                        //not exist at the user level. The privilege has to exist at
+                        //PUBLIC level... ,
+                        permDesc = statPerm.getPermissionDescriptor(
+                                Authorizer.PUBLIC_AUTHORIZATION_ID, dd);
 
-						boolean roleUsed = false;
+                        boolean roleUsed = false;
 
-						// .. or at role level
-						if (permDesc == null ||
-								((permDesc instanceof ColPermsDescriptor) &&
-                                 ! ((StatementColumnPermission)statPerm).
-                                     allColumnsCoveredByUserOrPUBLIC(
-                                         currentUser, dd)) ) {
-							roleUsed = true;
-							permDesc = findRoleUsage(activation, statPerm);
-						}
+                        // .. or at role level
+                        if (permDesc == null ||
+                                ((permDesc instanceof ColPermsDescriptor) &&
+                                        !((StatementColumnPermission) statPerm).
+                                                allColumnsCoveredByUserOrPUBLIC(
+                                                        currentUser, dd))) {
+                            roleUsed = true;
+                            permDesc = findRoleUsage(activation, statPerm);
+                        }
 
-						//If the user accessing the object is the owner of that 
-						//object, then no privilege tracking is needed for the
-						//owner.
-                        if (! permDesc.checkOwner(currentUser) ) {
+                        //If the user accessing the object is the owner of that
+                        //object, then no privilege tracking is needed for the
+                        //owner.
+                        if (!permDesc.checkOwner(currentUser)) {
 
-							dm.addDependency(dependent, permDesc, lcc.getContextManager());
+                            dm.addDependency(dependent, permDesc, lcc.getContextManager());
 
-							// We had to rely on role, so track that
-							// dependency, too.
-							if (roleUsed) {
-								trackRoleDependency
-									(activation, dependent, roleDepAdded);
-							}
-						}
-						continue;
-					}
-					//if the object on which permission is required is owned by the
-					//same user as the current user, then no need to keep that
-					//object's privilege dependency in the dependency system
-                    if (! permDesc.checkOwner(currentUser) )
-					{
-						dm.addDependency(dependent, permDesc, lcc.getContextManager());	           							
-						if (permDesc instanceof ColPermsDescriptor)
-						{
-							//For a given table, the table owner can give privileges
-							//on some columns at individual user level and privileges
-							//on some columns at PUBLIC level. Hence, when looking for
-							//column level privileges, we need to look both at user
-							//level as well as PUBLIC level(only if user level column
-							//privileges do not cover all the columns accessed by this
-							//object). We have finished adding dependency for user level 
-							//columns, now we are checking if some required column 
-							//level privileges are at PUBLIC level.
-							//A specific eg of a view
-							//user1
-							//create table t11(c11 int, c12 int);
-							//grant select(c11) on t1 to user2;
-							//grant select(c12) on t1 to PUBLIC;
-							//user2
-							//create view v1 as select c11 from user1.t11 where c12=2;
-							//For the view above, there are 2 column level privilege 
-							//depencies, one for column c11 which exists directly
-							//for user2 and one for column c12 which exists at PUBLIC level.
-							StatementColumnPermission statementColumnPermission = (StatementColumnPermission) statPerm;
+                            // We had to rely on role, so track that
+                            // dependency, too.
+                            if (roleUsed) {
+                                trackRoleDependency
+                                        (activation, dependent, roleDepAdded);
+                            }
+                        }
+                        continue;
+                    }
+                    //if the object on which permission is required is owned by the
+                    //same user as the current user, then no need to keep that
+                    //object's privilege dependency in the dependency system
+                    if (!permDesc.checkOwner(currentUser)) {
+                        dm.addDependency(dependent, permDesc, lcc.getContextManager());
+                        if (permDesc instanceof ColPermsDescriptor) {
+                            //For a given table, the table owner can give privileges
+                            //on some columns at individual user level and privileges
+                            //on some columns at PUBLIC level. Hence, when looking for
+                            //column level privileges, we need to look both at user
+                            //level as well as PUBLIC level(only if user level column
+                            //privileges do not cover all the columns accessed by this
+                            //object). We have finished adding dependency for user level
+                            //columns, now we are checking if some required column
+                            //level privileges are at PUBLIC level.
+                            //A specific eg of a view
+                            //user1
+                            //create table t11(c11 int, c12 int);
+                            //grant select(c11) on t1 to user2;
+                            //grant select(c12) on t1 to PUBLIC;
+                            //user2
+                            //create view v1 as select c11 from user1.t11 where c12=2;
+                            //For the view above, there are 2 column level privilege
+                            //depencies, one for column c11 which exists directly
+                            //for user2 and one for column c12 which exists at PUBLIC level.
+                            StatementColumnPermission statementColumnPermission = (StatementColumnPermission) statPerm;
                             permDesc = statementColumnPermission.
-                                getPUBLIClevelColPermsDescriptor(
-                                    currentUser, dd);
-							//Following if checks if some column level privileges
-							//exist only at public level. If so, then the public
-							//level column privilege, if any, dependency of
-							//view is added into dependency system.
+                                    getPUBLIClevelColPermsDescriptor(
+                                            currentUser, dd);
+                            //Following if checks if some column level privileges
+                            //exist only at public level. If so, then the public
+                            //level column privilege, if any, dependency of
+                            //view is added into dependency system.
 
-							if (permDesc != null &&
-									permDesc.getObjectID() != null) {
-								// User did not have all required column
-								// permissions and at least one column is
-								// covered by PUBLIC.
-								dm.addDependency(dependent, permDesc,
-												 lcc.getContextManager());
-							} // else nothing found for PUBLIC..
+                            if (permDesc != null &&
+                                    permDesc.getObjectID() != null) {
+                                // User did not have all required column
+                                // permissions and at least one column is
+                                // covered by PUBLIC.
+                                dm.addDependency(dependent, permDesc,
+                                        lcc.getContextManager());
+                            } // else nothing found for PUBLIC..
 
-							// Has the the current role has also been relied
-							// upon?
-							if (!statementColumnPermission.
+                            // Has the the current role has also been relied
+                            // upon?
+                            if (!statementColumnPermission.
                                     allColumnsCoveredByUserOrPUBLIC(
-                                        currentUser, dd)) {
-								trackRoleDependency
-									(activation, dependent, roleDepAdded);
-							}
-						}
-					}
-				}
+                                            currentUser, dd)) {
+                                trackRoleDependency
+                                        (activation, dependent, roleDepAdded);
+                            }
+                        }
+                    }
+                }
 			}
 		}
 	}
@@ -795,11 +787,11 @@ public abstract class DDLConstantAction implements ConstantAction
 			return false;
 		}
 
-		for (int i = 0; i < providers.length; i++) {
-			if (providers[i].getObjectId().equals(routineId)) {
-				return true;
-			}
-		}
+        for (ProviderInfo provider : providers) {
+            if (provider.getObjectId().equals(routineId)) {
+                return true;
+            }
+        }
 		return false;
 	}
 
@@ -826,14 +818,12 @@ public abstract class DDLConstantAction implements ConstantAction
             ColumnDescriptor    cd = td.getColumnDescriptor( ci.name );
             DefaultDescriptor   defDesc = cd.getDefaultDescriptor( dd );
 
-            for ( int px = 0; px < providerCount; px++ )
-            {
-                ProviderInfo            pi = providers[ px ];
-                DependableFinder    finder = pi.getDependableFinder();
-                UUID                        providerID = pi.getObjectId();
-                Provider                    provider = (Provider) finder.getDependable( dd, providerID );
+            for (ProviderInfo pi : providers) {
+                DependableFinder finder = pi.getDependableFinder();
+                UUID providerID = pi.getObjectId();
+                Provider provider = (Provider) finder.getDependable(dd, providerID);
 
-                dm.addDependency( defDesc, provider, cm );
+                dm.addDependency(defDesc, provider, cm);
             }   // end loop through providers
         }
     }
@@ -960,23 +950,19 @@ public abstract class DDLConstantAction implements ConstantAction
         ContextManager        cm = lcc.getContextManager();
 
         // add new dependencies
-        Iterator            addIterator = addUdtMap.values().iterator();
-        while( addIterator.hasNext() )
-        {
-            AliasDescriptor ad = (AliasDescriptor) addIterator.next();
+        for (Object o1 : addUdtMap.values()) {
+            AliasDescriptor ad = (AliasDescriptor) o1;
 
-            dm.addDependency( dependent, ad, cm );
+            dm.addDependency(dependent, ad, cm);
         }
 
         // drop dependencies that are orphaned
-        Iterator            dropIterator = dropUdtMap.values().iterator();
-        while( dropIterator.hasNext() )
-        {
-            AliasDescriptor ad = (AliasDescriptor) dropIterator.next();
+        for (Object o : dropUdtMap.values()) {
+            AliasDescriptor ad = (AliasDescriptor) o;
 
-            DependencyDescriptor dependency = new DependencyDescriptor( dependent, ad );
+            DependencyDescriptor dependency = new DependencyDescriptor(dependent, ad);
 
-            dd.dropStoredDependency( dependency, tc );
+            dd.dropStoredDependency(dependency, tc);
         }
     }
 
@@ -1036,12 +1022,13 @@ public abstract class DDLConstantAction implements ConstantAction
             TypeDescriptor[] columnTypes = rawReturnType.getRowTypes();
             int columnCount = columnTypes.length;
 
-            for ( int i = 0; i < columnCount; i++ )
-            {
-                AliasDescriptor       columnTypeAD = dd.getAliasDescriptorForUDT
-                    ( tc, DataTypeDescriptor.getType( columnTypes[ i ] ) );
+            for (TypeDescriptor columnType : columnTypes) {
+                AliasDescriptor columnTypeAD = dd.getAliasDescriptorForUDT
+                        (tc, DataTypeDescriptor.getType(columnType));
 
-                if ( columnTypeAD != null ) { udtMap.put( columnTypeAD.getObjectID().toString(), columnTypeAD ); }
+                if (columnTypeAD != null) {
+                    udtMap.put(columnTypeAD.getObjectID().toString(), columnTypeAD);
+                }
             }
         }
 
@@ -1050,12 +1037,13 @@ public abstract class DDLConstantAction implements ConstantAction
         if ( paramTypes != null )
         {
             int paramCount = paramTypes.length;
-            for ( int i = 0; i < paramCount; i++ )
-            {
-                AliasDescriptor       paramType = dd.getAliasDescriptorForUDT
-                    ( tc, DataTypeDescriptor.getType( paramTypes[ i ] ) );
+            for (TypeDescriptor paramType1 : paramTypes) {
+                AliasDescriptor paramType = dd.getAliasDescriptorForUDT
+                        (tc, DataTypeDescriptor.getType(paramType1));
 
-                if ( paramType != null ) { udtMap.put( paramType.getObjectID().toString(), paramType ); }
+                if (paramType != null) {
+                    udtMap.put(paramType.getObjectID().toString(), paramType);
+                }
             }
         }
 

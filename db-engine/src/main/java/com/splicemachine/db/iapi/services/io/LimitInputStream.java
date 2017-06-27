@@ -134,8 +134,7 @@ public class LimitInputStream extends FilterInputStream implements Limit {
 	public void setLimit(int length) {
 		remainingBytes = length;
 		limitInPlace = true;
-		return;
-	}
+    }
 
 	/**
 		Clear any limit set by setLimit. After this call no limit checking

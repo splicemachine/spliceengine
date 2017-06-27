@@ -285,8 +285,7 @@ public final class JCECipherFactory implements CipherFactory, java.security.Priv
 		
 
 		int rotation = 0;
-		for (int i = 0; i < bootPassword.length; i++)
-			rotation += bootPassword[i];
+        for (byte aBootPassword : bootPassword) rotation += aBootPassword;
 
 		for (int i = 0; i < encodedKeyByteLength; i++)
 			muck[i] = (byte)(bootPassword[(i+rotation)%ulength] ^
@@ -306,7 +305,7 @@ public final class JCECipherFactory implements CipherFactory, java.security.Priv
 		int length = secretKey.length;
 
 		if (length < CipherFactory.MIN_BOOTPASS_LENGTH)
-			throw StandardException.newException(SQLState.ILLEGAL_BP_LENGTH, new Integer(MIN_BOOTPASS_LENGTH));
+			throw StandardException.newException(SQLState.ILLEGAL_BP_LENGTH, MIN_BOOTPASS_LENGTH);
 
 		try
 		{
@@ -603,20 +602,12 @@ public final class JCECipherFactory implements CipherFactory, java.security.Priv
 		{
 			t = pae.getException();
 		}
-		catch (NoSuchAlgorithmException nsae)
+		catch (NoSuchAlgorithmException | ClassCastException | LinkageError | SecurityException nsae)
 		{
 			t = nsae;
 		}
-		catch (SecurityException se)
-		{
-			t = se;
-		} catch (LinkageError le) {
-			t = le;
-		} catch (ClassCastException cce) {
-			t = cce;
-		}
 
-		throw StandardException.newException(SQLState.MISSING_ENCRYPTION_PROVIDER, t);
+        throw StandardException.newException(SQLState.MISSING_ENCRYPTION_PROVIDER, t);
 	}
 
 
@@ -775,7 +766,7 @@ public final class JCECipherFactory implements CipherFactory, java.security.Priv
 		byte[] newBPAscii = StringUtil.getAsciiBytes(newBP);
 		if (newBPAscii == null || newBPAscii.length < CipherFactory.MIN_BOOTPASS_LENGTH)
 			throw StandardException.newException(SQLState.ILLEGAL_BP_LENGTH,
-                new Integer(CipherFactory.MIN_BOOTPASS_LENGTH));
+                    CipherFactory.MIN_BOOTPASS_LENGTH);
 
 		// verify old key
 
@@ -986,8 +977,7 @@ public final class JCECipherFactory implements CipherFactory, java.security.Priv
 				throw StandardException.newException(SQLState.ENCRYPTION_UNABLE_KEY_VERIFICATION,ioee);
 			}
 		}
-		return ;
-	}
+    }
 
 
 	/**

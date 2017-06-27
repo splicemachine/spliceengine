@@ -122,7 +122,7 @@ public class TernaryOperatorNode extends OperatorNode
 		this.receiver = (ValueNode) receiver;
 		this.leftOperand = (ValueNode) leftOperand;
 		this.rightOperand = (ValueNode) rightOperand;
-		this.operatorType = ((Integer) operatorType).intValue();
+		this.operatorType = (Integer) operatorType;
 		this.operator = (String) TernaryOperators[this.operatorType];
 		this.methodName = (String) TernaryMethodNames[this.operatorType];
 		this.resultInterfaceType = (String) TernaryResultType[this.operatorType];
@@ -130,7 +130,7 @@ public class TernaryOperatorNode extends OperatorNode
 		this.leftInterfaceType = (String) TernaryArgType[this.operatorType][1];
 		this.rightInterfaceType = (String) TernaryArgType[this.operatorType][2];
 		if (trimType != null)
-				this.trimType = ((Integer) trimType).intValue();
+				this.trimType = (Integer) trimType;
 	}
 
 	/**
@@ -356,7 +356,7 @@ public class TernaryOperatorNode extends OperatorNode
             if( SanityManager.DEBUG)
                 SanityManager.ASSERT( intervalType != null && intervalType instanceof Integer,
                                       "Invalid interval type used for " + operator);
-            mb.push( ((Integer) intervalType).intValue());
+            mb.push((Integer) intervalType);
             rightOperand.generateExpression( acb, mb);
             mb.upCast( TernaryArgType[ operatorType][2]);
             acb.getCurrentDateExpression( mb);

@@ -288,7 +288,7 @@ public class AutoloadedDriver implements Driver {
         try { 
             return (AutoloadedDriver) Class.forName( "com.splicemachine.db.jdbc.AutoloadedDriver40" ).newInstance();
         } 
-        catch (Throwable t) {} 
+        catch (Throwable ignored) {}
 
         return new AutoloadedDriver(); 
     } 

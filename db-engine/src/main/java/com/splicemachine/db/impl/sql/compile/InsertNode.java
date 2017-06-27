@@ -40,10 +40,7 @@ import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.reference.ClassName;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.IndexLister;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
@@ -171,7 +168,7 @@ public final class InsertNode extends DMLModStatementNode {
 		this.orderByList = (OrderByList) orderByList;
         this.offset = (ValueNode)offset;
         this.fetchFirst = (ValueNode)fetchFirst;
-        this.hasJDBClimitClause = (hasJDBClimitClause == null) ? false : ((Boolean) hasJDBClimitClause).booleanValue();
+        this.hasJDBClimitClause = hasJDBClimitClause != null && (Boolean) hasJDBClimitClause;
 
 		/* Remember that the query expression is the source to an INSERT */
 		getResultSetNode().setInsertSource();
@@ -881,15 +878,13 @@ public final class InsertNode extends DMLModStatementNode {
 	{
 		/* Create a boolean[] to track the (0-based) columns which are indexed */
 		boolean[] indexedCols = new boolean[targetTableDescriptor.getNumberOfColumns()];
-		for (int index = 0; index < indicesToMaintain.length; index++)
-		{
-			int[] colIds = indicesToMaintain[index].getIndexDescriptor().baseColumnPositions();
+        for (IndexRowGenerator anIndicesToMaintain : indicesToMaintain) {
+            int[] colIds = anIndicesToMaintain.getIndexDescriptor().baseColumnPositions();
 
-			for (int index2 = 0; index2 < colIds.length; index2++)
-			{
-				indexedCols[colIds[index2] - 1] = true;
-			}
-		}
+            for (int colId : colIds) {
+                indexedCols[colId - 1] = true;
+            }
+        }
 
 		return indexedCols;
 	}
@@ -1126,10 +1121,9 @@ public final class InsertNode extends DMLModStatementNode {
 		ConglomerateDescriptor[]	cds = td.getConglomerateDescriptors();
 		CompilerContext cc = getCompilerContext();
 
- 		for (int index = 0; index < cds.length; index++)
-		{
-			cc.createDependency(cds[index]);
-		}
+        for (ConglomerateDescriptor cd : cds) {
+            cc.createDependency(cd);
+        }
 	}
 	
 	/**

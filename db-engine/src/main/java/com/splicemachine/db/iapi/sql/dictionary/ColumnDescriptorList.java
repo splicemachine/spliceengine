@@ -77,17 +77,13 @@ public class ColumnDescriptorList extends ArrayList<ColumnDescriptor>
 	{
 		ColumnDescriptor	returnValue = null;
 
-		for (Iterator iterator = iterator(); iterator.hasNext(); )
-		{
-			ColumnDescriptor columnDescriptor = (ColumnDescriptor) iterator.next();
-
-			if ( columnName.equals( columnDescriptor.getColumnName() ) &&
-			    tableID.equals( columnDescriptor.getReferencingUUID() ) )
-			{
-				returnValue = columnDescriptor;
-				break;
-			}
-		}
+        for (ColumnDescriptor columnDescriptor : this) {
+            if (columnName.equals(columnDescriptor.getColumnName()) &&
+                    tableID.equals(columnDescriptor.getReferencingUUID())) {
+                returnValue = columnDescriptor;
+                break;
+            }
+        }
 
 		return returnValue;
 	}

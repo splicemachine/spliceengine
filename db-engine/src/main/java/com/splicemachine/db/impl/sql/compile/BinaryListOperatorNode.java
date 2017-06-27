@@ -360,16 +360,13 @@ public abstract class BinaryListOperatorNode extends ValueNode{
     }
 
     @Override
-    protected boolean isEquivalent(ValueNode o) throws StandardException{
-        if(!isSameNodeType(o)){
+    protected boolean isEquivalent(ValueNode o) throws StandardException {
+        if (!isSameNodeType(o)) {
             return false;
         }
-        BinaryListOperatorNode other=(BinaryListOperatorNode)o;
-        if(!operator.equals(other.operator) || !leftOperand.isEquivalent(other.getLeftOperand())){
-            return false;
-        }
+        BinaryListOperatorNode other = (BinaryListOperatorNode) o;
+        return !(!operator.equals(other.operator) || !leftOperand.isEquivalent(other.getLeftOperand())) && rightOperandList.isEquivalent(other.rightOperandList);
 
-        return rightOperandList.isEquivalent(other.rightOperandList);
     }
 
     public List getChildren(){

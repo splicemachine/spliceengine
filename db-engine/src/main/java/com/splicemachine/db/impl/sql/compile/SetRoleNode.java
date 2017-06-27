@@ -62,7 +62,7 @@ public class SetRoleNode extends MiscellaneousStatementNode
     {
         this.name = (String) roleName;
         if (type != null) {
-            this.type = ((Integer)type).intValue();
+            this.type = (Integer) type;
         }
     }
 
