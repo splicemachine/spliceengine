@@ -204,6 +204,7 @@ public class SpliceSpark {
 
         // TODO can this be set/overridden fwith system property, why do we use SpliceConstants?
         conf.set("spark.io.compression.codec",HConfiguration.getConfiguration().getSparkIoCompressionCodec());
+        conf.set("spark.sql.avro.compression.codec","uncompressed");
 
          /*
             Application Properties

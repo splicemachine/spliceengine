@@ -717,6 +717,32 @@ public class SparkDataSet<V> implements DataSet<V> {
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
+    public DataSet<LocatedRow> writeAvroFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
+                                                OperationContext context) {
+        try {
+            Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
+                    rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowFunction()),
+                    context.getOperation().getExecRowDefinition().schema());
+
+            List<Column> cols = new ArrayList();
+            for (int i = 0; i < baseColumnMap.length; i++) {
+                cols.add(new Column(ValueRow.getNamedColumn(baseColumnMap[i])));
+            }
+            List<String> partitionByCols = new ArrayList();
+            for (int i = 0; i < partitionBy.length; i++) {
+                partitionByCols.add(ValueRow.getNamedColumn(partitionBy[i]));
+            }
+            insertDF.write().option(SPARK_COMPRESSION_OPTION,compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
+                    .mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);
+            ValueRow valueRow=new ValueRow(1);
+            valueRow.setColumn(1,new SQLLongint(context.getRecordsWritten()));
+            return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(new LocatedRow(valueRow)), 1));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     public DataSet<LocatedRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
                                                     OperationContext context) {
         try {

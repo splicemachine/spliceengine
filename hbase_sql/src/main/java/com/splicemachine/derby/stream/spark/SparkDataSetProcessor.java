@@ -324,6 +324,38 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         }
     }
 
+    @Override
+    public <V> DataSet<V> readAvroFile(int[] baseColumnMap, int[] partitionColumnMap, String location,
+                                          OperationContext context, Qualifier[][] qualifiers,
+                                          DataValueDescriptor probeValue,  ExecRow execRow,
+                                          boolean useSample, double sampleFraction) throws StandardException {
+        try {
+            Dataset<Row> table = null;
+            try {
+                SparkSession spark = SpliceSpark.getSession();
+                // Creates a DataFrame from a specified file
+                table = spark.read().format("com.databricks.spark.avro").load(location);
+            } catch (Exception e) {
+                return handleExceptionInCaseOfEmptySet(e,location);
+            }
+            table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
+
+            if (useSample) {
+                return new SparkDataSet(table
+                        .rdd().toJavaRDD()
+                        .sample(false, sampleFraction)
+                        .map(new RowToLocatedRowFunction(context, execRow)));
+            } else {
+                return new SparkDataSet(table
+                        .rdd().toJavaRDD()
+                        .map(new RowToLocatedRowFunction(context, execRow)));
+            }
+        } catch (Exception e) {
+            throw StandardException.newException(
+                    SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
+        }
+    }
+
     /**
      *
      * Spark cannot handle empty directories.  Unfortunately, sometimes tables are empty.  Returns
@@ -351,13 +383,14 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         if (storedAs!=null) {
             if (storedAs.toLowerCase().equals("p")) {
                 schema =  SpliceSpark.getSession().read().parquet(location).schema();
-
             }
-            if (storedAs.toLowerCase().equals("o")) {
+            else if (storedAs.toLowerCase().equals("a")) {
+                schema =  SpliceSpark.getSession().read().format("com.databricks.spark.avro").load(location).schema();
+            }
+            else if (storedAs.toLowerCase().equals("o")) {
                 schema =  SpliceSpark.getSession().read().orc(location).schema();
-
             }
-            if (storedAs.toLowerCase().equals("t")) {
+            else if (storedAs.toLowerCase().equals("t")) {
                 schema =  SpliceSpark.getSession().read().csv(location).schema();
             }
         }
@@ -385,14 +418,16 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     if (storedAs.toLowerCase().equals("p")) {
                         empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
                                 .mode(SaveMode.Append).parquet(location);
-
                     }
-                    if (storedAs.toLowerCase().equals("o")) {
+                    else if (storedAs.toLowerCase().equals("a")) {
+                        empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
+                                .mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);
+                    }
+                    else if (storedAs.toLowerCase().equals("o")) {
                         empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
                                 .mode(SaveMode.Append).orc(location);
-
                     }
-                    if (storedAs.toLowerCase().equals("t")) {
+                    else if (storedAs.toLowerCase().equals("t")) {
                         empty.write().option("compression",compression).mode(SaveMode.Append).csv(location);
                     }
             }

@@ -276,6 +276,20 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
 
     /**
      *
+     * Write Avro File to the Hadoop Filesystem compliant location.
+     *
+     * @param baseColumnMap
+     * @param partitionBy
+     * @param location
+     * @param context
+     * @return
+     */
+    DataSet<LocatedRow> writeAvroFile(int[] baseColumnMap, int[] partitionBy, String location, String compression,
+                                         OperationContext context) ;
+
+
+    /**
+     *
      * Write ORC file to the Hadoop compliant location.
      *
      * @param baseColumnMap

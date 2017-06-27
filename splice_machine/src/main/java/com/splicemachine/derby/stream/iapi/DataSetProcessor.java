@@ -141,6 +141,24 @@ public interface DataSetProcessor {
                                    boolean useSample, double sampleFraction) throws StandardException ;
 
     /**
+     *
+     * Reads Avro files given the scan variables.
+     * @param baseColumnMap
+     * @param location
+     * @param context
+     * @param qualifiers
+     * @param probeValue
+     * @param execRow
+     * @param <V>
+     * @return
+     * @throws StandardException
+     */
+    <V> DataSet<V> readAvroFile(int[] baseColumnMap, int[] partitionColumnMap, String location,
+                                   OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow,
+                                   boolean useSample, double sampleFraction) throws StandardException ;
+
+
+    /**
      *  Create a empty external file based on the storage format specified in the method
      *  This is useful to have always a consitent system where we don't try to query on a file
      *  that doesn't exist.
