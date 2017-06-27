@@ -37,8 +37,9 @@ public class ConglomeratesUpgradeScript extends UpgradeScriptBase {
     protected void upgradeSystemTables() throws StandardException {
         try {
             ConglomerateUtils.upgradeK2().setVersion();
+            ConglomerateUtils.upgradeK2().clearBackups();
         } catch (IOException e) {
-            StandardException.plainWrapException(e);
+            throw StandardException.plainWrapException(e);
         }
         ConglomerateUtils.upgradeConglomerates(((SpliceTransactionManager)tc).getRawTransaction().getActiveStateTxn());
     }
