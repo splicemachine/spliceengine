@@ -753,7 +753,6 @@ public class SqlXmlUtil
         // Load the serializer with the correct properties.
         serializer = TransformerFactory.newInstance().newTransformer();
         serializer.setOutputProperties(props);
-        return;
     }
 
     /**

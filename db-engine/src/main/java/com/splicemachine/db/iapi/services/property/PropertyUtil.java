@@ -218,7 +218,7 @@ public class PropertyUtil {
 	*/
 	public static String getPropertyFromSet(Properties set, String key) {
 	
-		boolean dbOnly = set != null ? isDBOnly(set) : false;
+		boolean dbOnly = set != null && isDBOnly(set);
 
         //
         // Once NATIVE authentication has been set in the database, it cannot
@@ -236,7 +236,7 @@ public class PropertyUtil {
 
 	public static Serializable getPropertyFromSet(Dictionary set, String key) {
 	
-		boolean dbOnly = set != null ? isDBOnly(set) : false;
+		boolean dbOnly = set != null && isDBOnly(set);
 
 		return PropertyUtil.getPropertyFromSet(dbOnly, set, key);
 	}

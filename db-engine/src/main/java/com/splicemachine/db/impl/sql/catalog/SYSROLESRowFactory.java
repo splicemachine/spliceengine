@@ -239,8 +239,8 @@ public class SYSROLESRowFactory extends CatalogRowFactory
              roleid,
              grantee,
              grantor,
-             wao.equals("Y") ? true: false,
-             isdef.equals("Y") ? true: false);
+                    wao.equals("Y"),
+                    isdef.equals("Y"));
 
         return descriptor;
     }

@@ -838,7 +838,6 @@ abstract class DMLModStatementNode extends DMLStatementNode
 
     private void generatePKInfo(TableDescriptor td) throws StandardException {
         pkColumns = getPrimaryKeyInfo(td);
-        return;
     }
 
     public static int[] getPrimaryKeyInfo(TableDescriptor td) throws StandardException {

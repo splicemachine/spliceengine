@@ -2457,10 +2457,7 @@ public class OptimizerImpl implements Optimizer{
             memoryAlreadyConsumed += outermostCostEstimate.getAccumulatedMemory();
         }
 
-        if (memoryAlreadyConsumed > 0 && !currentAp.isJoinPathMemoryUsageUnderLimit(memoryAlreadyConsumed))
-            return false;
-
-        return true;
+        return !(memoryAlreadyConsumed > 0 && !currentAp.isJoinPathMemoryUsageUnderLimit(memoryAlreadyConsumed));
     }
 
     @Override

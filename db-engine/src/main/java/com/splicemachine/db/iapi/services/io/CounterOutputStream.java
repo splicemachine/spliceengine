@@ -85,8 +85,7 @@ public class CounterOutputStream extends OutputStream implements Limit {
 
 		this.limit = limit;
 
-		return;
-	}
+    }
 
 	public int clearLimit() {
 

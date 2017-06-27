@@ -289,7 +289,7 @@ public class SYSSEQUENCESRowFactory extends CatalogRowFactory
                         minimumValue,
                         maximumValue,
                         increment,
-                        cycleOption.equals("Y") ? true : false);
+                        cycleOption.equals("Y"));
 
         return descriptor;
     }

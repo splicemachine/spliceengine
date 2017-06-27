@@ -297,7 +297,7 @@ abstract class BaseMonitor
 
 		// TEMP - making this sanity only breaks the unit test code
 		// I will fix soon, djd.
-		if (true || SanityManager.DEBUG) {
+		if (true) {
 			// Don't allow external code to override our implementations.
 			systemImplementations = getImplementations(systemProperties, false);
 			applicationImplementations = getImplementations(applicationProperties, false);
@@ -310,7 +310,7 @@ abstract class BaseMonitor
 			implementationCount++;
 
 		// TEMP - making this sanity only breaks the unit test code
-		if (true || SanityManager.DEBUG) {
+		if (true) {
 			// Don't allow external code to override our implementations.
 			if (systemImplementations != null)
 				implementationCount++;
@@ -326,7 +326,7 @@ abstract class BaseMonitor
 		if (bootImplementations != null)
 			implementationSets[implementationCount++] = bootImplementations;
 		
-		if (true || SanityManager.DEBUG) {
+		if (true) {
 			// Don't allow external code to override our implementations.
 			if (systemImplementations != null)
 				implementationSets[implementationCount++] = systemImplementations;
@@ -1033,7 +1033,7 @@ abstract class BaseMonitor
 		provider = findProviderForCreate(name);
         String serviceName = provider.getCanonicalServiceName(name);
         boolean removed = provider.removeServiceRoot(serviceName);
-        if (removed == false)
+        if (!removed)
 			throw StandardException.newException(SQLState.SERVICE_DIRECTORY_REMOVE_ERROR,serviceName);
     }
 	/**
@@ -1089,7 +1089,7 @@ nextModule:
             } else if (key.startsWith(Property.SUB_SUB_PROTOCOL_PREFIX)) {
                 tag = key.substring(Property.MODULE_PREFIX.length());
             } else {
-                continue nextModule;
+                continue;
             }
             
 
@@ -1103,7 +1103,7 @@ nextModule:
 			if (envJDK != null) {
 				envJDKId = Integer.parseInt(envJDK.trim());
 				if (envJDKId > theJDKId) {
-					continue nextModule;
+					continue;
 				}
 			}
 
@@ -1425,7 +1425,6 @@ nextModule:
 			// see if this provider can live in this environment
 			if (!BaseMonitor.canSupport(provider, (Properties) null)) {
 				i.remove();
-				continue;
 			}
 		}
 	}
@@ -1483,7 +1482,6 @@ nextModule:
 			} catch (StandardException mse) {
 				report("Service failed to boot, name: " + serviceName + ", type = " + provider.getType());
 				reportException(mse);
-				continue;
 			}
 		}
 	}
@@ -1813,8 +1811,7 @@ nextModule:
 
 			//while doing restore from backup, we don't want service properties to be
 			//updated until all the files are copied from backup.
-			boolean inRestore = (properties !=null ?
-								 properties.getProperty(Property.IN_RESTORE_FROM_BACKUP) != null:false);
+			boolean inRestore = (properties != null && properties.getProperty(Property.IN_RESTORE_FROM_BACKUP) != null);
 			
 			if ((provider != null) && (properties != null)) {
 				// we need to track to see if the properties have
@@ -1868,8 +1865,7 @@ nextModule:
 
 				// Service root will only have been created if
 				// ts is non-null.
-				boolean deleteOnError = (properties !=null ?
-										 properties.getProperty(Property.DELETE_ROOT_ON_ERROR) !=null:false);
+				boolean deleteOnError = (properties != null && properties.getProperty(Property.DELETE_ROOT_ON_ERROR) != null);
 				if (create || deleteOnError)
 					provider.removeServiceRoot(serviceName);
 			}

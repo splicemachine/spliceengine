@@ -141,7 +141,6 @@ public class TableElementList extends QueryTreeNodeVector {
         {
             if ( cdn.hasGenerationClause() )
             {
-                return;
             }
             else
             {

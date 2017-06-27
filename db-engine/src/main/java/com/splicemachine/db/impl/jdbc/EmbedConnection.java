@@ -1657,8 +1657,7 @@ public abstract class EmbedConnection implements EngineConnection
     public void setCatalog(String catalog) throws SQLException {
         checkIfClosed();
 		// silently ignoring this request like the javadoc said.
-		return;
-	}
+    }
 
     /**
      * Return the Connection's current catalog name.

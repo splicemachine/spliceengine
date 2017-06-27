@@ -361,8 +361,7 @@ public class BasicDaemon implements DaemonService, Runnable
 				}
 			}
 
-			return;
-		}
+        }
 		catch (Throwable e)
 		{
 			if (SanityManager.DEBUG)

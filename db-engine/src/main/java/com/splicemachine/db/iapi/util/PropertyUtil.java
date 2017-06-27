@@ -209,8 +209,6 @@ public class PropertyUtil {
 			prop.put(tmpKey, tmpValue);
 		}
 
-		return;
-
-	}
+    }
 }
 

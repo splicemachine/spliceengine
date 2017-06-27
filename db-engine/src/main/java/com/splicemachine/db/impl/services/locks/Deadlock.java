@@ -174,7 +174,7 @@ outer:	for (;;) {
 			if (chain.isEmpty()) {
                 // All paths from the initial waiting lock request have been
                 // examined without finding a deadlock. We're done.
-				break outer;
+				break;
 			}
 
 			List grants = (List) chain.peek();
@@ -182,7 +182,7 @@ outer:	for (;;) {
                 // All granted locks in this lock control have been examined.
 				// pop this list of granted locks and back to the previous one
 				rollback(chain);
-				continue outer;
+				continue;
 			}
 
             // Pick one of the granted lock for examination. rollback()
@@ -330,7 +330,6 @@ inner:		for (;;) {
                             // We're behind another waiter with a compatible
                             // lock request. Skip it since we're not really
                             // blocked by it.
-                            continue skip_space;
                         } else {
                             // We are really blocked by the other waiter. Go
                             // ahead and investigate its compatibility space.

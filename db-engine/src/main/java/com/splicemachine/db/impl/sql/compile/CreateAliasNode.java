@@ -286,13 +286,12 @@ public class CreateAliasNode extends DDLStatementNode{
                             RoutineAliasInfo.MODIFIES_SQL_DATA:RoutineAliasInfo.READS_SQL_DATA);
 
                 Boolean isDeterministicO=(Boolean)routineElements[DETERMINISTIC];
-                boolean isDeterministic=(isDeterministicO==null)?false:isDeterministicO.booleanValue();
+                boolean isDeterministic= isDeterministicO != null && isDeterministicO.booleanValue();
 
                 Boolean definersRightsO=
                         (Boolean)routineElements[ROUTINE_SECURITY_DEFINER];
                 boolean definersRights=
-                        (definersRightsO==null)?false:
-                                definersRightsO.booleanValue();
+                        definersRightsO != null && definersRightsO.booleanValue();
 
                 Boolean calledOnNullInputO=(Boolean)routineElements[NULL_ON_NULL_INPUT];
                 boolean calledOnNullInput;

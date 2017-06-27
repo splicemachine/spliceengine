@@ -582,7 +582,7 @@ public class ColumnReference extends ValueNode {
 	 */
 	public boolean updatableByCursor()
 	{
-		return ((source != null) ? source.updatableByCursor() : false);
+		return ((source != null) && source.updatableByCursor());
 	}
 
 	/**

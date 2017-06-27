@@ -233,7 +233,6 @@ final class LockControl implements Control {
                     // with our own locks then yes, we can be granted.
                     
                     grantLock = true;
-                    continue;
                 }
                 else if (!lref.requestCompatible(qualifier, gl.getQualifier())) 
                 {

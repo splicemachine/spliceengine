@@ -694,7 +694,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             TableDescriptor td=allDeclaredGlobalTempTable.getTableDescriptor();
             if(!td.isOnCommitDeleteRows()){
                 // do nothing for temp table with ON COMMIT PRESERVE ROWS
-                continue;
             }else if(!checkIfAnyActivationHasHoldCursor(td.getName())){
                 // temp tables with ON COMMIT DELETE ROWS and 
                 // no open held cursors

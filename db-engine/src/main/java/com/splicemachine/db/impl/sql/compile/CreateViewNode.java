@@ -110,7 +110,7 @@ public class CreateViewNode extends DDLStatementNode
 		this.orderByList = (OrderByList)orderCols;
         this.offset = (ValueNode)offset;
         this.fetchFirst = (ValueNode)fetchFirst;
-        this.hasJDBClimitClause = (hasJDBClimitClause == null) ? false : ((Boolean) hasJDBClimitClause).booleanValue();
+        this.hasJDBClimitClause = hasJDBClimitClause != null && ((Boolean) hasJDBClimitClause).booleanValue();
 
 		implicitCreateSchema = true;
 	}
@@ -219,7 +219,7 @@ public class CreateViewNode extends DDLStatementNode
 		/* Check to make sure the queryExpression's RCL has unique names. If target column
 		 * names not specified, raise error if there are any un-named columns to match DB2
 		 */
-		duplicateColName = qeRCL.verifyUniqueNames((resultColumns == null) ? true : false);
+		duplicateColName = qeRCL.verifyUniqueNames(resultColumns == null);
 		if (duplicateColName != null)
 		{
 			throw StandardException.newException(SQLState.LANG_DUPLICATE_COLUMN_NAME_CREATE_VIEW, duplicateColName);

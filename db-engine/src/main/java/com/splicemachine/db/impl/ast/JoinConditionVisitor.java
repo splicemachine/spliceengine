@@ -520,7 +520,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
                                            ResultSetNode child,
                                            ResultColumn rc) throws StandardException{
 
-        boolean isLeft = node.getLeftResultSet() == child ? true : false;
+        boolean isLeft = node.getLeftResultSet() == child;
         ResultColumnList rcl = node.getResultColumns();
         boolean wasRightOuterJoin = false;
 

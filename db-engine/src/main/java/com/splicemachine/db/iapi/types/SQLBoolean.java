@@ -1194,7 +1194,7 @@ public final class SQLBoolean
 		if (OrderedBytes.isNull(src))
 			setToNull();
 		else
-			value = OrderedBytes.decodeInt8(src)==T?true:false;
+			value = OrderedBytes.decodeInt8(src) == T;
 	}
 
 	@Override

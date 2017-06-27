@@ -355,13 +355,11 @@ public class SequenceGenerator
         if ( _remainingPreallocatedValues < PREALLOCATION_THRESHHOLD )
         {
             computeNewAllocation( _currentValue, retval );
-            return;
         }
         else
         {
             _currentValue = nextValue;
             retval[ CVAA_STATUS ] = RET_OK;
-            return;
         }
     }
 
@@ -375,7 +373,6 @@ public class SequenceGenerator
         _isExhausted = true;
         retval[ CVAA_STATUS ] = RET_MARK_EXHAUSTED;
 
-        return;
     }
 
     /**

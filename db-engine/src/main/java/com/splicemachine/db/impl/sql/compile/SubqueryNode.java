@@ -208,7 +208,7 @@ public class SubqueryNode extends ValueNode{
         this.orderByList=(OrderByList)orderCols;
         this.offset=(ValueNode)offset;
         this.fetchFirst=(ValueNode)fetchFirst;
-        this.hasJDBClimitClause=(hasJDBClimitClause==null)?false:((Boolean)hasJDBClimitClause).booleanValue();
+        this.hasJDBClimitClause= hasJDBClimitClause != null && ((Boolean) hasJDBClimitClause).booleanValue();
 
 		/* Subqueries are presumed not to be under a top level AndNode by
 		 * default.  This is because expression normalization only recurses

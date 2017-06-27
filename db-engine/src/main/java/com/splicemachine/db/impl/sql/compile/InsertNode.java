@@ -171,7 +171,7 @@ public final class InsertNode extends DMLModStatementNode {
 		this.orderByList = (OrderByList) orderByList;
         this.offset = (ValueNode)offset;
         this.fetchFirst = (ValueNode)fetchFirst;
-        this.hasJDBClimitClause = (hasJDBClimitClause == null) ? false : ((Boolean) hasJDBClimitClause).booleanValue();
+        this.hasJDBClimitClause = hasJDBClimitClause != null && ((Boolean) hasJDBClimitClause).booleanValue();
 
 		/* Remember that the query expression is the source to an INSERT */
 		getResultSetNode().setInsertSource();

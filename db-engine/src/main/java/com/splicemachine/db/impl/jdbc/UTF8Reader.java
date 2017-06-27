@@ -429,7 +429,7 @@ readChars:
                     if (!csd.isPositionAware()) {
                         closeIn();
                     }
-                    break readChars;
+                    break;
                 }
                 throw utfFormatException("Reached EOF prematurely, " +
                     "read " + utfCount + " out of " + utfLen + " bytes");

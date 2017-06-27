@@ -1520,7 +1520,6 @@ public final class UpdateNode extends DMLModStatementNode
                     // Skip this step if we're working on an update
                     // statement. For updates, the target list has already
                     // been enhanced.
-                    continue;
                 }
             }
         }

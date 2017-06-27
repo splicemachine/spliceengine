@@ -185,8 +185,7 @@ abstract class DDLSingleTableConstantAction extends DDLConstantAction
 				activation);
 		}
 
-		return;
-	}
+    }
 
 	/**
 	 * Similar to dropConstraint(...) above, except this method
@@ -262,8 +261,7 @@ abstract class DDLSingleTableConstantAction extends DDLConstantAction
 				activation);
 		}
 
-		return;
-	}
+    }
     
     /**
      * Recreate backing index of unique constraint.
@@ -344,8 +342,7 @@ abstract class DDLSingleTableConstantAction extends DDLConstantAction
 
 		cc.getInternalTablePropertySet(ixProps);
 		cc.close();
-		return;
-	}
+    }
 
 	/**
 	 * Create a ConstantAction which, when executed, will create a
@@ -437,6 +434,5 @@ abstract class DDLSingleTableConstantAction extends DDLConstantAction
 			replaceConglomAction.getCreatedConglomNumber(),
 			lcc.getTransactionExecute());
 
-		return;
-	}
+    }
 }

@@ -245,9 +245,8 @@ public class EmbedConnection30 extends EmbedConnection
 		// connection
 		if (!lsv.sameConnection(this))
 			throw newSQLException(SQLState.XACT_SAVEPOINT_RELEASE_ROLLBACK_FAIL);
-      
-		return;
-	}
+
+    }
 
 	//@Override
 	public NClob createNClob() throws SQLException{

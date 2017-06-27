@@ -310,7 +310,6 @@ nextFile:	for (int i = 0; i < list.length; i++) {
                     else {
                         // the request is to not copy the directories, continue
                         // to the next file in the list.
-                        continue nextFile;
                     }
 
 				}

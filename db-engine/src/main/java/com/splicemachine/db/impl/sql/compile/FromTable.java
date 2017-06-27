@@ -1106,7 +1106,6 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      * due to their being equality comparisons with constant expressions.
      */
     protected void tellRowOrderingAboutConstantColumns(RowOrdering rowOrdering, OptimizablePredicateList predList){
-		return;
     }
 
     public boolean needsSpecialRCLBinding(){

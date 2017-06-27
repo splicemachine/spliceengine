@@ -1797,8 +1797,7 @@ final class CodeChunk {
                 // to see how a conditional should be handled
                 // with an expression split. So for the time
                 // being just bail.
-                if (true)
-                    return -1;
+				return -1;
 
                 // an else block exists, skip the then block.
                 if (cond_pcs[3] != -1) {

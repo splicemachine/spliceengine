@@ -523,8 +523,8 @@ public class SystemProcedures{
     public static void SQLSTATISTICS(String catalogName,String schemaName,String tableName,
                                      short unique,short approximate,String options,ResultSet[] rs)
             throws SQLException{
-        boolean boolUnique=(unique==0)?true:false;
-        boolean boolApproximate=(approximate==1)?true:false;
+        boolean boolUnique= unique == 0;
+        boolean boolApproximate= approximate == 1;
 
         rs[0]=isForODBC(options)
                 ?((EmbedDatabaseMetaData)getDMD()).getIndexInfoForODBC(
@@ -552,7 +552,7 @@ public class SystemProcedures{
                                          short scope,short nullable,String options,ResultSet[] rs)
             throws SQLException{
 
-        boolean boolNullable=(nullable==1)?true:false;
+        boolean boolNullable= nullable == 1;
         if(colType==SQL_BEST_ROWID){
             rs[0]=isForODBC(options)
                     ?((EmbedDatabaseMetaData)getDMD()).getBestRowIdentifierForODBC(

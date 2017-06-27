@@ -170,7 +170,7 @@ public class ColumnDefinitionNode extends TableElementNode
 				 * If using DB2 syntax to set increment value, will need to check if column
 				 * is already created for autoincrement.
 				 */
-				autoincrementVerify = (aii[QueryTreeNode.AUTOINCREMENT_IS_AUTOINCREMENT_INDEX] > 0) ? false : true;
+				autoincrementVerify = aii[QueryTreeNode.AUTOINCREMENT_IS_AUTOINCREMENT_INDEX] <= 0;
 				isAutoincrement = true;
 				// an autoincrement column cannot be null-- setting
 				// non-nullability for this column is needed because 

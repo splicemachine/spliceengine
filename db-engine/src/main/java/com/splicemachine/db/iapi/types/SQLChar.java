@@ -1268,7 +1268,7 @@ public class SQLChar
                 // OR the string was originally streamed in
                 // which puts a 0 for utflen but no trailing
                 // E0,0,0 markers.
-                break readingLoop;
+                break;
             }
 
             //if (c == -1)      // read EOF
@@ -1367,7 +1367,7 @@ public class SQLChar
                     // we reached the end of a long string,
                     // that was terminated with
                     // (11100000, 00000000, 00000000)
-                    break readingLoop;
+                    break;
                 }
 
                 if (((char2 & 0xC0) != 0x80) || ((char3 & 0xC0) != 0x80))

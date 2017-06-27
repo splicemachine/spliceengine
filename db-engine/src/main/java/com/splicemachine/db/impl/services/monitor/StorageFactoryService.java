@@ -1082,7 +1082,8 @@ final class StorageFactoryService implements PersistentService
 
                         return this;
                     }
-                    catch (Exception se) { continue; }
+                    catch (Exception se) {
+                    }
                 }
                 return null;
             }

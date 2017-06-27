@@ -384,8 +384,7 @@ cleanup:	for (int index = holder.size() - 1; index >= 0; index--) {
 					/*
 						For a less severe error, keep with the last error
 					 */
-					continue cleanup;
-				}
+                }
 				catch (Throwable t) {
 					reportError = reportError(t);
 
@@ -423,8 +422,7 @@ cleanup:	for (int index = holder.size() - 1; index >= 0; index--) {
 						For a less severe error, just continue with the last
 						error
 					 */
-					continue cleanup;
-				}
+                }
 			}
 
             if (threadDump != null) {

@@ -1145,8 +1145,7 @@ restartClock:
 
 				// at this point the item we cleaned could be in any state
 				// so we can't just re-use it. Continue searching
-				continue restartClock;
-			}
+            }
 			return availableItem;
 		} finally {
 
@@ -1360,10 +1359,10 @@ innerscan:
 					item = (CachedItem) holders.get(position);
 
 					if (!item.isValid())
-						continue innerscan;
+						continue;
 
 					if (!item.getEntry().isDirty())
-						continue innerscan;
+						continue;
 
 					if (partialKey != null) {
 
@@ -1374,7 +1373,7 @@ innerscan:
 					}
 
 					item.keepForClean();
-					break innerscan;
+					break;
 				}
 			} // synchronized(this)
 

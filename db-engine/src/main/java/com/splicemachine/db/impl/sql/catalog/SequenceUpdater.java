@@ -235,7 +235,7 @@ public abstract class SequenceUpdater implements Cacheable
             if (lcc != null)
             {
                 Database db = lcc.getDatabase();
-                boolean isactive = (db != null ? db.isActive() : false);
+                boolean isactive = (db != null && db.isActive());
                 lcc.getContextManager().cleanupOnError(se, isactive);
             }
         }

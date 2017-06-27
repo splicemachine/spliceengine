@@ -173,7 +173,8 @@ public class SelectivityUtil {
         if (predList != null) {
             for (int i = 0; i < predList.size(); i++) {
                 Predicate p = (Predicate) predList.getOptPredicate(i);
-                if (!p.isJoinPredicate()) continue;
+                if (!p.isJoinPredicate()) {
+                }
 
             }
         }

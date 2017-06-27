@@ -1369,7 +1369,6 @@ public class BinaryRelationalOperatorNode
                 break;
         }
 
-        return;
     }
 
     /**
@@ -2048,7 +2047,6 @@ public class BinaryRelationalOperatorNode
         // table numbers beneath the target node.
         btnVis.setTableMap(optBaseTables);
         ft.accept(btnVis);
-        return;
     }
 
     public boolean hasRowId(){

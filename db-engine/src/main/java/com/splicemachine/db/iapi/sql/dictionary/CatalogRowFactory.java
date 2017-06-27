@@ -179,7 +179,7 @@ public abstract	class CatalogRowFactory
 	 */
 	public boolean isIndexUnique(int indexNumber)
 	{
-		return (indexUniqueness != null ? indexUniqueness[indexNumber] : true);
+		return (indexUniqueness == null || indexUniqueness[indexNumber]);
 	}
 
 	/**

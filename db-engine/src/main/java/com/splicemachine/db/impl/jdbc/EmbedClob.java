@@ -398,7 +398,6 @@ final class EmbedClob extends ConnectionChild implements Clob, EngineLOB
                                 }
                                 clobOffset = (int) (newStart - pos) - 1;
                                 newStart = -1;
-                                continue;
                             }
                         }
                     }

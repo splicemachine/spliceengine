@@ -986,8 +986,7 @@ public final class JCECipherFactory implements CipherFactory, java.security.Priv
 				throw StandardException.newException(SQLState.ENCRYPTION_UNABLE_KEY_VERIFICATION,ioee);
 			}
 		}
-		return ;
-	}
+    }
 
 
 	/**

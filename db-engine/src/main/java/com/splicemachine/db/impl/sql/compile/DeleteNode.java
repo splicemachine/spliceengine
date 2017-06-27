@@ -1044,8 +1044,8 @@ public class DeleteNode extends DMLModStatementNode
                 TriggerDescriptor trd = (TriggerDescriptor)descIter.next();
 				//Does this trigger have REFERENCING clause defined on it.
 				//If yes, then read all the columns from the trigger table.
-				if (!trd.getReferencingNew() && !trd.getReferencingOld())
-					continue;
+				if (!trd.getReferencingNew() && !trd.getReferencingOld()) {
+                }
 				else
 				{
 					needToIncludeAllColumns = true;

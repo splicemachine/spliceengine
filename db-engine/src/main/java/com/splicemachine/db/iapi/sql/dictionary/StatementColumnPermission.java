@@ -375,8 +375,8 @@ public class StatementColumnPermission extends StatementTablePermission
 		boolean allColumnsCoveredByUserLevelPrivilege = true;
 		for( int i = columns.anySetBit(); i >= 0 && allColumnsCoveredByUserLevelPrivilege; i = columns.anySetBit( i))
 		{
-			if(permittedColumns.get(i))
-				continue;
+			if(permittedColumns.get(i)) {
+            }
 			else
 				allColumnsCoveredByUserLevelPrivilege = false;
 		}
