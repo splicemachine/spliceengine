@@ -79,7 +79,7 @@ public final class StaticClassFieldReferenceNode extends JavaValueNode {
 	{
 		this.fieldName = (String) fieldName;
 		this.javaClassName = (String) javaClassName;
-		this.classNameDelimitedIdentifier = ((Boolean) classNameDelimitedIdentifier).booleanValue();
+		this.classNameDelimitedIdentifier = (Boolean) classNameDelimitedIdentifier;
 	}
 
 	/**

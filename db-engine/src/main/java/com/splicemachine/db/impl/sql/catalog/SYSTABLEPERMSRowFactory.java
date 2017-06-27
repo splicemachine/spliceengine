@@ -334,9 +334,8 @@ public class SYSTABLEPERMSRowFactory extends PermissionsCatalogRowFactory
             removeOnePermission( row, colsChanged, TRIGGERPRIV_COL_NUM, tablePerms.getTriggerPriv()));
         if( ! permissionsLeft)
             return -1;
-        for( int i = 0; i < colsChanged.length; i++)
-        {
-            if( colsChanged[ i])
+        for (boolean aColsChanged : colsChanged) {
+            if (aColsChanged)
                 changeCount++;
         }
         return changeCount;

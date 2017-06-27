@@ -189,7 +189,9 @@ public class DefaultInfoImpl implements DefaultInfo, Formatable
         {
             int count = referencedColumnNames.length;
             out.writeInt( count );
-            for ( int i = 0; i < count; i++ ) { out.writeObject( referencedColumnNames[ i ] ); }
+            for (String referencedColumnName : referencedColumnNames) {
+                out.writeObject(referencedColumnName);
+            }
             out.writeObject( originalCurrentSchema );
         }
 	}

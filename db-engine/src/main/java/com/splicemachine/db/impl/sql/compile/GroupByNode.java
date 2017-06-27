@@ -136,7 +136,7 @@ public class GroupByNode extends SingleChildResultSetNode{
             Object nestingLevel)
             throws StandardException{
         super.init(bottomPR,tableProperties);
-        setLevel(((Integer)nestingLevel).intValue());
+        setLevel((Integer) nestingLevel);
         this.havingClause=(ValueNode)havingClause;
         this.havingSubquerys=(SubqueryList)havingSubquerys;
         /* Group by without aggregates gets xformed into distinct */

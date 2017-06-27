@@ -83,7 +83,7 @@ public class VirtualColumnNode extends ValueNode
 
 		this.sourceResultSet = (ResultSetNode) sourceResultSet;
 		this.sourceColumn = source;
-		this.columnId = ((Integer) columnId).intValue();
+		this.columnId = (Integer) columnId;
 		setType(source.getTypeServices());
 	}
 

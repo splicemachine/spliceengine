@@ -799,23 +799,15 @@ abstract class SQLBinary
 
 	public final BooleanDataValue equals(DataValueDescriptor left,
 							 DataValueDescriptor right)
-								throws StandardException
-	{
-		boolean isEqual;
+								throws StandardException {
+        boolean isEqual;
 
-		if (left.isNull() || right.isNull())
-		{
-			isEqual = false;
-		}
-		else
-		{	
-			isEqual = SQLBinary.compare(left.getBytes(), right.getBytes()) == 0;
-		}
+        isEqual = !(left.isNull() || right.isNull()) && SQLBinary.compare(left.getBytes(), right.getBytes()) == 0;
 
-		return SQLBoolean.truthValue(left,
-									 right,
-									 isEqual);
-	}
+        return SQLBoolean.truthValue(left,
+                right,
+                isEqual);
+    }
 
 	/**
 	 * The <> operator as called from the language module, as opposed to
@@ -832,23 +824,15 @@ abstract class SQLBinary
 
 	public final BooleanDataValue notEquals(DataValueDescriptor left,
 							 DataValueDescriptor right)
-								throws StandardException
-	{
-		boolean isNotEqual;
+								throws StandardException {
+        boolean isNotEqual;
 
-		if (left.isNull() || right.isNull())
-		{
-			isNotEqual = false;
-		}
-		else
-		{	
-			isNotEqual = SQLBinary.compare(left.getBytes(), right.getBytes()) != 0;
-		}
+        isNotEqual = !(left.isNull() || right.isNull()) && SQLBinary.compare(left.getBytes(), right.getBytes()) != 0;
 
-		return SQLBoolean.truthValue(left,
-									 right,
-									 isNotEqual);
-	}
+        return SQLBoolean.truthValue(left,
+                right,
+                isNotEqual);
+    }
 
 	/**
 	 * The < operator as called from the language module, as opposed to
@@ -865,23 +849,15 @@ abstract class SQLBinary
 
 	public final BooleanDataValue lessThan(DataValueDescriptor left,
 							 DataValueDescriptor right)
-								throws StandardException
-	{
-		boolean isLessThan;
+								throws StandardException {
+        boolean isLessThan;
 
-		if (left.isNull() || right.isNull())
-		{
-			isLessThan = false;
-		}
-		else
-		{	
-			isLessThan = SQLBinary.compare(left.getBytes(), right.getBytes()) < 0;
-		}
+        isLessThan = !(left.isNull() || right.isNull()) && SQLBinary.compare(left.getBytes(), right.getBytes()) < 0;
 
-		return SQLBoolean.truthValue(left,
-									 right,
-									 isLessThan);
-	}
+        return SQLBoolean.truthValue(left,
+                right,
+                isLessThan);
+    }
 
 	/**
 	 * The > operator as called from the language module, as opposed to
@@ -898,23 +874,15 @@ abstract class SQLBinary
 
 	public final BooleanDataValue greaterThan(DataValueDescriptor left,
 							 DataValueDescriptor right)
-								throws StandardException
-	{
-		boolean isGreaterThan = false;
+								throws StandardException {
+        boolean isGreaterThan = false;
 
-		if (left.isNull() || right.isNull())
-		{
-			isGreaterThan = false;
-		}
-		else
-		{	
-			isGreaterThan = SQLBinary.compare(left.getBytes(), right.getBytes()) > 0;
-		}
+        isGreaterThan = !(left.isNull() || right.isNull()) && SQLBinary.compare(left.getBytes(), right.getBytes()) > 0;
 
-		return SQLBoolean.truthValue(left,
-									 right,
-									 isGreaterThan);
-	}
+        return SQLBoolean.truthValue(left,
+                right,
+                isGreaterThan);
+    }
 
 	/**
 	 * The <= operator as called from the language module, as opposed to
@@ -931,23 +899,15 @@ abstract class SQLBinary
 
 	public final BooleanDataValue lessOrEquals(DataValueDescriptor left,
 							 DataValueDescriptor right)
-								throws StandardException
-	{
-		boolean isLessEquals = false;
+								throws StandardException {
+        boolean isLessEquals = false;
 
-		if (left.isNull() || right.isNull())
-		{
-			isLessEquals = false;
-		}
-		else
-		{	
-			isLessEquals = SQLBinary.compare(left.getBytes(), right.getBytes()) <= 0;
-		}
+        isLessEquals = !(left.isNull() || right.isNull()) && SQLBinary.compare(left.getBytes(), right.getBytes()) <= 0;
 
-		return SQLBoolean.truthValue(left,
-									 right,
-									 isLessEquals);
-	}
+        return SQLBoolean.truthValue(left,
+                right,
+                isLessEquals);
+    }
 
 	/**
 	 * The >= operator as called from the language module, as opposed to
@@ -964,23 +924,15 @@ abstract class SQLBinary
 
 	public final BooleanDataValue greaterOrEquals(DataValueDescriptor left,
 							 DataValueDescriptor right)
-								throws StandardException
-	{
-		boolean isGreaterEquals = false;
+								throws StandardException {
+        boolean isGreaterEquals = false;
 
-		if (left.isNull() || right.isNull())
-		{
-			isGreaterEquals = false;
-		}
-		else
-		{	
-			isGreaterEquals = SQLBinary.compare(left.getBytes(), right.getBytes()) >= 0;
-		}
+        isGreaterEquals = !(left.isNull() || right.isNull()) && SQLBinary.compare(left.getBytes(), right.getBytes()) >= 0;
 
-		return SQLBoolean.truthValue(left,
-									 right,
-									 isGreaterEquals);
-	}
+        return SQLBoolean.truthValue(left,
+                right,
+                isGreaterEquals);
+    }
 
 
 	/**

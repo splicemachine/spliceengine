@@ -1226,15 +1226,15 @@ restartClock:
 			int size = holders.size();
 			int inUse = 0;
 
-			for (int position = 0; position < size; position++) {
+        for (Object holder : holders) {
 
-				CachedItem item = (CachedItem) holders.get(position);
+            CachedItem item = (CachedItem) holder;
 
-				if (item.isValid()) {
-					inUse++;
-				}
+            if (item.isValid()) {
+                inUse++;
+            }
 
-			}
+        }
 			return inUse;
 	}
 /*
@@ -1880,9 +1880,9 @@ innerscan:
 	 */
 	public synchronized Collection values() {
 		ArrayList al = new ArrayList();
-		for (Iterator i = cache_.values().iterator(); i.hasNext();){
-			al.add(((CachedItem)i.next()).getEntry());
-		}
+        for (Object o : cache_.values()) {
+            al.add(((CachedItem) o).getEntry());
+        }
 		return al;
 	}
 }

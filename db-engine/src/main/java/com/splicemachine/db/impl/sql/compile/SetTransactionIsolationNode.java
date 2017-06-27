@@ -58,7 +58,7 @@ public class SetTransactionIsolationNode extends TransactionStatementNode
 	 */
 	public void init(Object isolationLevel)
 	{
-		this.isolationLevel = ((Integer) isolationLevel).intValue();
+		this.isolationLevel = (Integer) isolationLevel;
 	}
 
 	/**

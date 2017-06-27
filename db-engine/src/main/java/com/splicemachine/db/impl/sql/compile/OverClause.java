@@ -235,9 +235,9 @@ public class OverClause extends QueryTreeNode {
         if (this == other) return true;
         if (other == null) return false;
 
-        if (frameDefinition != null ? !frameDefinition.isEquivalent(other.frameDefinition) : other.frameDefinition != null) return false;
-        if (orderByClause != null ? !isEquivalent(orderByClause, other.orderByClause) : other.orderByClause != null) return false;
-        return partition != null ? partition.isEquivalent(other.partition) : other.partition == null;
+        if (frameDefinition != null ? !frameDefinition.isEquivalent(other.frameDefinition) : other.frameDefinition != null)
+            return false;
+        return (orderByClause != null ? isEquivalent(orderByClause, other.orderByClause) : other.orderByClause == null) && (partition != null ? partition.isEquivalent(other.partition) : other.partition == null);
 
     }
 

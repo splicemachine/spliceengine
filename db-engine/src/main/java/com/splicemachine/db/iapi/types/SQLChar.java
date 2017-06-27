@@ -1101,9 +1101,8 @@ public class SQLChar
         }
         catch (SQLException se)
         {
-            IOException ioe = new IOException( se.getMessage(), se);
 
-            throw ioe;
+            throw new IOException( se.getMessage(), se);
         }
     }
 

@@ -63,7 +63,7 @@ class LoadError {
 	static SQLException dataAfterStopDelimiter(int lineNumber, int columnNumber) {
 		return PublicAPI.wrapStandardException(
 			   StandardException.newException(SQLState.DATA_AFTER_STOP_DELIMITER,
-											  new Integer(lineNumber),new Integer(columnNumber)));				 	
+                       lineNumber, columnNumber));
 	}
 
 	/**
@@ -138,7 +138,7 @@ class LoadError {
 		
 		return PublicAPI.wrapStandardException(
 				StandardException.newException(SQLState.INVALID_COLUMN_NUMBER,
-											   new Integer(numberOfColumns)
+                        numberOfColumns
 											   ));
 	}
 
@@ -162,7 +162,7 @@ class LoadError {
 
 		return  PublicAPI.wrapStandardException(
 				StandardException.newException(SQLState.RECORD_SEPERATOR_MISSING,
-											   new Integer(lineNumber)));
+                        lineNumber));
 	}
 
 	/**
@@ -171,7 +171,7 @@ class LoadError {
 	static SQLException unexpectedEndOfFile(int lineNumber) {
     return  PublicAPI.wrapStandardException(
 			StandardException.newException(SQLState.UNEXPECTED_END_OF_FILE,
-										   new Integer(lineNumber)));
+                    lineNumber));
 	}
 
 	/**

@@ -91,22 +91,19 @@ public abstract class FileUtil {
 		// Some JVMs return null for File.list() when the
 		// directory is empty.
 		if (list != null) {
-			for (int i = 0; i < list.length; i++) {
-				File entry = new File(directory, list[i]);
+            for (String aList : list) {
+                File entry = new File(directory, aList);
 
-				//				System.out.println("\tremoving entry " + entry);
+                //				System.out.println("\tremoving entry " + entry);
 
-				if (entry.isDirectory())
-				{
-					if (!removeDirectory(entry))
-						return false;
-				}
-				else
-				{
-					if (!entry.delete())
-						return false;
-				}
-			}
+                if (entry.isDirectory()) {
+                    if (!removeDirectory(entry))
+                        return false;
+                } else {
+                    if (!entry.delete())
+                        return false;
+                }
+            }
 		}
 
 		return directory.delete();
@@ -168,33 +165,29 @@ public abstract class FileUtil {
 			if (buffer == null)
 				buffer = new byte[BUFFER_SIZE]; // reuse this buffer to copy files
 
-nextFile:	for (int i = 0; i < list.length; i++) {
+nextFile:
+for (String fileName : list) {
 
-				String fileName = list[i];
-
-				if (filter != null) {
-					for (int j = 0; j < filter.length; j++) {
-						if (fileName.equals(filter[j]))
-							continue nextFile;
-					}
-				}
+    if (filter != null) {
+        for (String aFilter : filter) {
+            if (fileName.equals(aFilter))
+                continue nextFile;
+        }
+    }
 
 
-				File entry = new File(from, fileName);
+    File entry = new File(from, fileName);
 
-				//				System.out.println("\tcopying entry " + entry);
+    //				System.out.println("\tcopying entry " + entry);
 
-				if (entry.isDirectory())
-				{
-					if (!copyDirectory(entry,new File(to,fileName),buffer,filter))
-						return false;
-				}
-				else
-				{
-					if (!copyFile(entry,new File(to,fileName),buffer))
-						return false;
-				}
-			}
+    if (entry.isDirectory()) {
+        if (!copyDirectory(entry, new File(to, fileName), buffer, filter))
+            return false;
+    } else {
+        if (!copyFile(entry, new File(to, fileName), buffer))
+            return false;
+    }
+}
 		}
 		return true;
 	}		
@@ -286,39 +279,32 @@ nextFile:	for (int i = 0; i < list.length; i++) {
 				buffer = new byte[BUFFER_SIZE]; // reuse this buffer to copy files
 
           nextFile:
-            for (int i = 0; i < list.length; i++)
-            {
-				String fileName = list[i];
+          for (String fileName : list) {
+              if (filter != null) {
+                  for (String aFilter : filter) {
+                      if (fileName.equals(aFilter))
+                          continue nextFile;
+                  }
+              }
 
-				if (filter != null) {
-					for (int j = 0; j < filter.length; j++) {
-						if (fileName.equals(filter[j]))
-							continue nextFile;
-					}
-				}
+              StorageFile entry = storageFactory.newStorageFile(from, fileName);
 
-				StorageFile entry = storageFactory.newStorageFile(from, fileName);
+              if (entry.isDirectory()) {
+                  if (copySubDirs) {
+                      if (!copyDirectory(storageFactory, entry,
+                              new File(to, fileName), buffer,
+                              filter, copySubDirs))
+                          return false;
+                  } else {
+                      // the request is to not copy the directories, continue
+                      // to the next file in the list.
+                  }
 
-				if (entry.isDirectory())
-				{
-                    if(copySubDirs) {
-                        if (!copyDirectory( storageFactory, entry, 
-                                            new File(to,fileName), buffer, 
-                                            filter, copySubDirs))
-                            return false;
-                    }
-                    else {
-                        // the request is to not copy the directories, continue
-                        // to the next file in the list.
-                    }
-
-				}
-				else
-				{
-					if (!copyFile( storageFactory, entry, new File(to,fileName), buffer))
-						return false;
-				}
-			}
+              } else {
+                  if (!copyFile(storageFactory, entry, new File(to, fileName), buffer))
+                      return false;
+              }
+          }
 		}
 		return true;
 	} // end of copyDirectory( StorageFactory sf, StorageFile from, File to, byte[] buf, String[] filter)
@@ -417,30 +403,24 @@ nextFile:	for (int i = 0; i < list.length; i++) {
 				buffer = new byte[BUFFER_SIZE]; // reuse this buffer to copy files
 
           nextFile:
-            for (int i = 0; i < list.length; i++)
-            {
-				String fileName = list[i];
+          for (String fileName : list) {
+              if (filter != null) {
+                  for (String aFilter : filter) {
+                      if (fileName.equals(aFilter))
+                          continue nextFile;
+                  }
+              }
 
-				if (filter != null) {
-					for (int j = 0; j < filter.length; j++) {
-						if (fileName.equals(filter[j]))
-							continue nextFile;
-					}
-				}
+              File entry = new File(from, fileName);
 
-				File entry = new File(from, fileName);
-
-				if (entry.isDirectory())
-				{
-					if (!copyDirectory( storageFactory, entry, storageFactory.newStorageFile(to,fileName), buffer, filter))
-						return false;
-				}
-				else
-				{
-					if (!copyFile( storageFactory, entry, storageFactory.newStorageFile(to,fileName), buffer))
-						return false;
-				}
-			}
+              if (entry.isDirectory()) {
+                  if (!copyDirectory(storageFactory, entry, storageFactory.newStorageFile(to, fileName), buffer, filter))
+                      return false;
+              } else {
+                  if (!copyFile(storageFactory, entry, storageFactory.newStorageFile(to, fileName), buffer))
+                      return false;
+              }
+          }
 		}
 		return true;
 	} // end of copyDirectory( StorageFactory sf, StorageFile from, File to, byte[] buf, String[] filter)
@@ -667,7 +647,7 @@ nextFile:	for (int i = 0; i < list.length; i++) {
             Property.STORAGE_USE_DEFAULT_FILE_PERMISSIONS);
 
         if (value != null) {
-            if (Boolean.valueOf(value.trim()).booleanValue()) {
+            if (Boolean.valueOf(value.trim())) {
                 return;
             }
         } else {
@@ -862,11 +842,11 @@ nextFile:	for (int i = 0; i < list.length; i++) {
         if (SanityManager.DEBUG) {
             Boolean b = (Boolean)r;
 
-            if (!b.booleanValue()) {
+            if (!b) {
                 String os =
                     PropertyUtil.getSystemProperty("os.name").toLowerCase();
 
-                if (os.indexOf("windows") >= 0) {
+                if (os.contains("windows")) {
                     // expect this to fail, Java 6 on Windows doesn't cut it,
                     // known not to work.
                 } else {
@@ -901,9 +881,9 @@ nextFile:	for (int i = 0; i < list.length; i++) {
                 new Object[]{fileP});
 
             boolean supported =
-                ((Boolean)supportsFileAttributeView.invoke(
-                    fileStore,
-                    new Object[]{aclFileAttributeViewClz})).booleanValue();
+                    (Boolean) supportsFileAttributeView.invoke(
+                            fileStore,
+                            new Object[]{aclFileAttributeViewClz});
 
             if (!supported) {
                 return false;

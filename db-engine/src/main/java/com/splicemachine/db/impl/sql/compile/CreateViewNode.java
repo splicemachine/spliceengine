@@ -105,12 +105,12 @@ public class CreateViewNode extends DDLStatementNode
 		initAndCheck(newObjectName);
 		this.resultColumns = (ResultColumnList) resultColumns;
 		this.queryExpression = (ResultSetNode) queryExpression;
-		this.checkOption = ((Integer) checkOption).intValue();
+		this.checkOption = (Integer) checkOption;
 		this.qeText = ((String) qeText).trim();
 		this.orderByList = (OrderByList)orderCols;
         this.offset = (ValueNode)offset;
         this.fetchFirst = (ValueNode)fetchFirst;
-        this.hasJDBClimitClause = hasJDBClimitClause != null && ((Boolean) hasJDBClimitClause).booleanValue();
+        this.hasJDBClimitClause = hasJDBClimitClause != null && (Boolean) hasJDBClimitClause;
 
 		implicitCreateSchema = true;
 	}

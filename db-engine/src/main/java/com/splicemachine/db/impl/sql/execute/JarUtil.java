@@ -241,8 +241,7 @@ public class JarUtil
                 public Object run() throws IOException, URISyntaxException {
                     Configuration conf = new Configuration();
                     FileSystem fs = FileSystem.get(new URI(externalPath), conf);
-                    DataInputStream dis = fs.open(new Path(externalPath));
-                    return dis;
+                    return fs.open(new Path(externalPath));
                 }
             });
         } catch (PrivilegedActionException e) {

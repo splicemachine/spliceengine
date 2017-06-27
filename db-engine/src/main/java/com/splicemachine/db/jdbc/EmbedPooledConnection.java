@@ -380,9 +380,9 @@ class EmbedPooledConnection implements javax.sql.PooledConnection, BrokeredConne
             ConnectionEvent event = new ConnectionEvent(this, exception);
             eventIterators++;
             try {
-                for (Iterator it = eventListener.iterator(); it.hasNext();) {
+                for (Object anEventListener : eventListener) {
                     ConnectionEventListener l =
-                            (ConnectionEventListener) it.next();
+                            (ConnectionEventListener) anEventListener;
                     if (exception == null) {
                         l.connectionClosed(event);
                     } else {
@@ -409,11 +409,8 @@ class EmbedPooledConnection implements javax.sql.PooledConnection, BrokeredConne
 		Returns true if isolation level has been set using either JDBC api or SQL
 	 */
 	public boolean isIsolationLevelSetUsingSQLorJDBC() throws SQLException {
-		if (realConnection != null)
-			return realConnection.getLanguageConnection().isIsolationLevelSetUsingSQLorJDBC();
-		else
-			return false;
-	}
+        return realConnection != null && realConnection.getLanguageConnection().isIsolationLevelSetUsingSQLorJDBC();
+    }
 
 	/**
 		Reset the isolation level flag used to keep state in 

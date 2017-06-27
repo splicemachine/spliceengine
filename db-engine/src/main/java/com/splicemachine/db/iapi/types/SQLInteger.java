@@ -139,7 +139,7 @@ public final class SQLInteger
 		if (isNull())
 			return null;
 		else
-			return new Integer(value);
+			return value;
 	}
 
 	public int	getLength()
@@ -247,13 +247,9 @@ public final class SQLInteger
 	 */
 	public void setValueFromResultSet(ResultSet resultSet, int colNumber,
 									  boolean isNullable)
-		throws SQLException
-	{
-			if ((value = resultSet.getInt(colNumber)) == 0)
-				isNull = (isNullable && resultSet.wasNull());
-			else
-				isNull = false;
-	}
+		throws SQLException {
+        isNull = (value = resultSet.getInt(colNumber)) == 0 && (isNullable && resultSet.wasNull());
+    }
 	/**
 		Set the value into a PreparedStatement.
 

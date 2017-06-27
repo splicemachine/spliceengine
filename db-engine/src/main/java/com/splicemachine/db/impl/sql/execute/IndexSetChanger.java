@@ -254,8 +254,7 @@ public class IndexSetChanger
 		 throws StandardException
 	{
 		openIndexes(ALL_INDEXES);
-		for (int ix = 0; ix < indexChangers.length; ix++)
-			indexChangers[ix].delete(baseRow,baseRowLocation);
+        for (IndexChanger indexChanger : indexChangers) indexChanger.delete(baseRow, baseRowLocation);
 	}
 
 	/**
@@ -272,8 +271,7 @@ public class IndexSetChanger
 		 throws StandardException
 	{
 		openIndexes(ALL_INDEXES);
-		for (int ix = 0; ix < indexChangers.length; ix++)
-			indexChangers[ix].insert(baseRow,baseRowLocation);
+        for (IndexChanger indexChanger : indexChangers) indexChanger.insert(baseRow, baseRowLocation);
 	}
 
 	/**
@@ -307,13 +305,11 @@ public class IndexSetChanger
 	 */
 	public void setBaseCC(ConglomerateController baseCC)
 	{
-		for (int ix = 0; ix < indexChangers.length; ix++)
-		{
-			if (indexChangers[ix] != null)
-			{
-				indexChangers[ix].setBaseCC(baseCC);
-			}
-		}
+        for (IndexChanger indexChanger : indexChangers) {
+            if (indexChanger != null) {
+                indexChanger.setBaseCC(baseCC);
+            }
+        }
 		this.baseCC = baseCC;
 	}
 
@@ -326,13 +322,11 @@ public class IndexSetChanger
 	public void finish()
 		throws StandardException
 	{
-		for (int ix = 0; ix < indexChangers.length; ix++)
-		{
-			if (indexChangers[ix] != null)
-			{
-				indexChangers[ix].finish();
-			}
-		}
+        for (IndexChanger indexChanger : indexChangers) {
+            if (indexChanger != null) {
+                indexChanger.finish();
+            }
+        }
 	}
 		
 	/**
@@ -344,13 +338,11 @@ public class IndexSetChanger
 		throws StandardException
 	{
 		whatIsOpen = NO_INDEXES;
-		for (int ix = 0; ix < indexChangers.length; ix++)
-		{
-			if (indexChangers[ix] != null)
-			{
-				indexChangers[ix].close();
-			}
-		}
+        for (IndexChanger indexChanger : indexChangers) {
+            if (indexChanger != null) {
+                indexChanger.close();
+            }
+        }
 		fixOnUpdate = null;
 		isOpen = false;
 		rowHolder = null;

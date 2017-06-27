@@ -160,7 +160,7 @@ public final class SQLLongint extends NumberDataType {
 		if (isNull())
 			return null;
 		else
-			return new Long(value);
+			return value;
 	}
 
 	public int	getLength()
@@ -257,13 +257,9 @@ public final class SQLLongint extends NumberDataType {
 	 */
 	public void setValueFromResultSet(ResultSet resultSet, int colNumber,
 									  boolean isNullable)
-		throws SQLException
-	{
-			if ((value = resultSet.getLong(colNumber)) == 0L)
-				isNull = (isNullable && resultSet.wasNull());
-			else
-				isNull = false;
-	}
+		throws SQLException {
+        isNull = (value = resultSet.getLong(colNumber)) == 0L && (isNullable && resultSet.wasNull());
+    }
 	/**
 		Set the value into a PreparedStatement.
 

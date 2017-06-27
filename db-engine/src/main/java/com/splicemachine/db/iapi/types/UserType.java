@@ -112,7 +112,7 @@ public class UserType extends DataType
 	public boolean getBoolean() throws StandardException
 	{
 		if (! isNull())
-			if (value instanceof Boolean) return ((Boolean)value).booleanValue();
+			if (value instanceof Boolean) return (Boolean) value;
 		return super.getBoolean();
 	}
 

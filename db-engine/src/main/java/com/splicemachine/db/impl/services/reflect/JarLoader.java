@@ -525,8 +525,8 @@ public final class JarLoader extends SecureClassLoader {
                 return null;
             }
 
-            for (int i = 0; i < list.length; i++) {
-                if (!(list[i] instanceof X509Certificate)) {
+            for (Certificate aList : list) {
+                if (!(aList instanceof X509Certificate)) {
                     String msg = MessageService.getTextMessage(
                             MessageId.CM_UNKNOWN_CERTIFICATE, className,
                             getJarName());
@@ -534,7 +534,7 @@ public final class JarLoader extends SecureClassLoader {
                     throw new SecurityException(msg);
                 }
 
-                X509Certificate cert = (X509Certificate) list[i];
+                X509Certificate cert = (X509Certificate) aList;
 
                 cert.checkValidity();
             }

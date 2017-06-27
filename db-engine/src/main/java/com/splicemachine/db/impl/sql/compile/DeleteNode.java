@@ -382,7 +382,7 @@ public class DeleteNode extends DMLModStatementNode
 					cascadeDelete = true;
 					int noDependents = fkTableNames.length;
 					dependentNodes = new StatementNode[noDependents];
-					graphHashTable.put(currentTargetTableName, new Integer(noDependents));
+					graphHashTable.put(currentTargetTableName, noDependents);
 					for(int i =0 ; i < noDependents ; i ++)
 					{
 						dependentNodes[i] = getDependentTableNode(fkTableNames[i],
@@ -399,7 +399,7 @@ public class DeleteNode extends DMLModStatementNode
 				{
 					String currentTargetTableName = targetTableDescriptor.getSchemaName()
 							 + "." + targetTableDescriptor.getName();
-					graphHashTable.put(currentTargetTableName, new Integer(0));
+					graphHashTable.put(currentTargetTableName, 0);
 
 				}
 			}
@@ -945,10 +945,9 @@ public class DeleteNode extends DMLModStatementNode
 	{
 		if(cascadeDelete)
 		{
-			for(int index=0 ; index < dependentNodes.length ; index++)
-			{
-				dependentNodes[index].optimizeStatement();
-			}
+            for (StatementNode dependentNode : dependentNodes) {
+                dependentNode.optimizeStatement();
+            }
 		}
 
 		super.optimizeStatement();
@@ -1039,19 +1038,16 @@ public class DeleteNode extends DMLModStatementNode
 			needsDeferredProcessing[0] = true;
 			
 			boolean needToIncludeAllColumns = false;
-            for (Iterator descIter = relevantTriggers.iterator();
-                    descIter.hasNext(); ) {
-                TriggerDescriptor trd = (TriggerDescriptor)descIter.next();
-				//Does this trigger have REFERENCING clause defined on it.
-				//If yes, then read all the columns from the trigger table.
-				if (!trd.getReferencingNew() && !trd.getReferencingOld()) {
+            for (Object relevantTrigger : relevantTriggers) {
+                TriggerDescriptor trd = (TriggerDescriptor) relevantTrigger;
+                //Does this trigger have REFERENCING clause defined on it.
+                //If yes, then read all the columns from the trigger table.
+                if (!trd.getReferencingNew() && !trd.getReferencingOld()) {
+                } else {
+                    needToIncludeAllColumns = true;
+                    break;
                 }
-				else
-				{
-					needToIncludeAllColumns = true;
-					break;
-				}
-			}
+            }
 
 			if (needToIncludeAllColumns) {
 				for (int i = 1; i <= columnCount; i++)

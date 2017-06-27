@@ -87,7 +87,7 @@ public class PrivilegeNode extends QueryTreeNode
     public void init( Object objectType, Object objectOfPrivilege, Object specificPrivileges)
         throws StandardException
     {
-        this.objectType = ((Integer) objectType).intValue();
+        this.objectType = (Integer) objectType;
         if( SanityManager.DEBUG)
         {
             SanityManager.ASSERT( objectOfPrivilege != null,
@@ -138,10 +138,10 @@ public class PrivilegeNode extends QueryTreeNode
      */
     public void init( Object objectType, Object objectName, Object privilege, Object restrict )
     {
-        this.objectType = ((Integer) objectType).intValue();
+        this.objectType = (Integer) objectType;
         this.objectName = (TableName) objectName;
         this.privilege = (String) privilege;
-        this.restrict = ((Boolean) restrict).booleanValue();
+        this.restrict = (Boolean) restrict;
     }
 
     /**

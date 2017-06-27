@@ -312,11 +312,9 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 
     // 0 or null is false, all else is true
 	public boolean	getBoolean() {
-		BigDecimal localValue = getBigDecimal();
-		if (localValue == null)
-			return false;
-		return localValue.compareTo(ZERO) != 0;
-	}
+        BigDecimal localValue = getBigDecimal();
+        return localValue != null && localValue.compareTo(ZERO) != 0;
+    }
 
 	public String	getString() {
 		BigDecimal localValue = getBigDecimal();

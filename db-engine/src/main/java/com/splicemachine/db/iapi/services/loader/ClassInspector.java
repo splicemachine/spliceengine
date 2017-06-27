@@ -83,15 +83,12 @@ public class ClassInspector
 	 * @return	true if obj is an instanceof className, false if not
 	 */
 	public boolean instanceOf(String className, Object obj)
-		throws ClassNotFoundException
-	{
-		Class clazz = getClass(className);
-		// is className an untyped null
-		if (clazz == null)
-			return false;
+		throws ClassNotFoundException {
+        Class clazz = getClass(className);
+        // is className an untyped null
+        return clazz != null && clazz.isInstance(obj);
 
-		return clazz.isInstance(obj);
-	}
+    }
 
 	/**
 	 * Is one named class assignable to another named class or interface?
@@ -250,19 +247,19 @@ public class ClassInspector
 		// specified name exists, regardless of its signature
 		if (parmTypes == null) {
 			Method[] methods = receiverClass.getMethods();
-			
-			for (int index = 0; index < methods.length; index++) {
-				if (staticMethod) {
-					if (!Modifier.isStatic(methods[index].getModifiers())) {
-						continue;
-					}
-				}
 
-				if (methodName.equals(methods[index].getName())) {
-					// We found a match
-					return methods[index];
-				}
-			}
+            for (Method method : methods) {
+                if (staticMethod) {
+                    if (!Modifier.isStatic(method.getModifiers())) {
+                        continue;
+                    }
+                }
+
+                if (methodName.equals(method.getName())) {
+                    // We found a match
+                    return method;
+                }
+            }
 			// No match
 			return null;
 		}
@@ -767,11 +764,10 @@ public class ClassInspector
 	 */
 	public static boolean primitiveType(String typeName)
 	{
-		for (int i = 0; i < primTypeNames.length; i++)
-		{
-			if (typeName.equals(primTypeNames[i]))
-				return true;
-		}
+        for (String primTypeName : primTypeNames) {
+            if (typeName.equals(primTypeName))
+                return true;
+        }
 
 		return false;
 	}

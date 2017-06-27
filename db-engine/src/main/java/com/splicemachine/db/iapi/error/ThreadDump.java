@@ -54,8 +54,8 @@ public class ThreadDump {
             StackTraceElement[] lines = e.getValue();
             Thread t = e.getKey();
             sb.append("Thread name=").append(t.getName()).append(" id=").append(t.getId()).append(" priority=").append(t.getPriority()).append(" state=").append(t.getState()).append(" isdaemon=").append(t.isDaemon()).append("\n");
-            for (int i = 0; i < lines.length; i++) {
-                sb.append("\t").append(lines[i]).append("\n");
+            for (StackTraceElement line : lines) {
+                sb.append("\t").append(line).append("\n");
 
             }
             sb.append("\n");

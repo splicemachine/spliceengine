@@ -129,7 +129,7 @@ public abstract class Driver20 extends InternalDriver implements Driver {
 		// RESOLVE other properties should be added into this method in the future ... 
 
         if (info != null) {
-			if (Boolean.valueOf(info.getProperty(Attribute.SHUTDOWN_ATTR)).booleanValue()) {
+			if (Boolean.valueOf(info.getProperty(Attribute.SHUTDOWN_ATTR))) {
 	
 				// no other options possible when shutdown is set to be true
 				return new DriverPropertyInfo[0];
@@ -144,7 +144,7 @@ public abstract class Driver20 extends InternalDriver implements Driver {
 		// properties.
 		FormatableProperties finfo = getAttributes(url, info);
 		info = null; // ensure we don't use this reference directly again.
-		boolean encryptDB = Boolean.valueOf(finfo.getProperty(Attribute.DATA_ENCRYPTION)).booleanValue();		
+		boolean encryptDB = Boolean.valueOf(finfo.getProperty(Attribute.DATA_ENCRYPTION));
 		String encryptpassword = finfo.getProperty(Attribute.BOOT_PASSWORD);
 
 		if (dbname.isEmpty() || (encryptDB && encryptpassword == null)) {

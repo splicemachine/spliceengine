@@ -235,16 +235,8 @@ public class BaseTypeIdImpl implements Formatable
     /**
      * we want equals to say if these are the same type id or not.
      */
-    public boolean equals(Object that)
-    {
-        if (that instanceof BaseTypeIdImpl)
-        {
-            return this.getSQLTypeName().equals(((BaseTypeIdImpl)that).getSQLTypeName());
-        }
-        else
-        {
-            return false;
-        }
+    public boolean equals(Object that) {
+        return that instanceof BaseTypeIdImpl && this.getSQLTypeName().equals(((BaseTypeIdImpl) that).getSQLTypeName());
     }
 
     /**

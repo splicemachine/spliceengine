@@ -79,8 +79,9 @@ public abstract class ArrayUtil
 		if (a == null)
 			return;
 
-		for(int ix = 0; ix < a.length; ix++)
-		{	out.writeObject(a[ix]); }
+		for (Object anA : a) {
+			out.writeObject(anA);
+		}
 	}
 
 	/**
@@ -102,8 +103,9 @@ public abstract class ArrayUtil
 		}
 
 		out.writeInt(a.length);
-		for(int ix = 0; ix < a.length; ix++)
-		{	out.writeObject(a[ix]); }
+		for (Object anA : a) {
+			out.writeObject(anA);
+		}
 	}
 
 	/**
@@ -180,8 +182,7 @@ public abstract class ArrayUtil
 		else {
 			out.writeBoolean(true);
 			out.writeInt(a.length);
-			for (int i=0; i<a.length; i++)
-				out.writeInt(a[i]);
+			for (int anA : a) out.writeInt(anA);
 		}
 	}
 
@@ -218,9 +219,8 @@ public abstract class ArrayUtil
 			int	count = val.length;
 			out.writeInt( count );
 
-			for (int i = 0; i < count; i++)
-			{
-				ArrayUtil.writeIntArray( out, val[i] );
+			for (int[] aVal : val) {
+				ArrayUtil.writeIntArray(out, aVal);
 			}
 		}
 	}
@@ -254,10 +254,9 @@ public abstract class ArrayUtil
         else
         {
             StringBuilder ret_val = new StringBuilder();
-            for (int i = 0; i < value.length; i++)
-            {
-                ret_val.append("[").append(value[i]).append("],");
-            }
+			for (int aValue : value) {
+				ret_val.append("[").append(aValue).append("],");
+			}
             return ret_val.toString();
         }
     }
@@ -282,8 +281,7 @@ public abstract class ArrayUtil
 			out.writeInt(0);
 		else {
 			out.writeInt(a.length);
-			for (int i=0; i<a.length; i++)
-				out.writeLong(a[i]);
+			for (long anA : a) out.writeLong(anA);
 		}
 	}
 
@@ -351,8 +349,7 @@ public abstract class ArrayUtil
 			out.writeInt(0);
 		else {
 			out.writeInt(a.length);
-			for (int i=0; i<a.length; i++)
-				out.writeBoolean(a[i]);
+			for (boolean anA : a) out.writeBoolean(anA);
 		}
 	}
 

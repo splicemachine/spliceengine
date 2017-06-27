@@ -68,7 +68,7 @@ public class DropAliasNode extends DDLStatementNode
 	{
 		TableName dropItem = (TableName) dropAliasName;
 		initAndCheck(dropItem);
-		this.aliasType = ((Character) aliasType).charValue();
+		this.aliasType = (Character) aliasType;
 	
 		switch (this.aliasType)
 		{

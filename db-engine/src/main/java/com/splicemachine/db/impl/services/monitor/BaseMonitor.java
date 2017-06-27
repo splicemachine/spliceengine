@@ -265,7 +265,7 @@ abstract class BaseMonitor
 		MessageService.setFinder(this);
 
 		if (SanityManager.DEBUG) {
-			reportOn = Boolean.valueOf(PropertyUtil.getSystemProperty("derby.monitor.verbose")).booleanValue();
+			reportOn = Boolean.valueOf(PropertyUtil.getSystemProperty("derby.monitor.verbose"));
 		}
 
 		// Set up the application properties
@@ -297,11 +297,9 @@ abstract class BaseMonitor
 
 		// TEMP - making this sanity only breaks the unit test code
 		// I will fix soon, djd.
-		if (true) {
-			// Don't allow external code to override our implementations.
-			systemImplementations = getImplementations(systemProperties, false);
-			applicationImplementations = getImplementations(applicationProperties, false);
-		}
+		// Don't allow external code to override our implementations.
+		systemImplementations = getImplementations(systemProperties, false);
+		applicationImplementations = getImplementations(applicationProperties, false);
 
 		Vector defaultImplementations = getDefaultImplementations();
 
@@ -310,13 +308,11 @@ abstract class BaseMonitor
 			implementationCount++;
 
 		// TEMP - making this sanity only breaks the unit test code
-		if (true) {
-			// Don't allow external code to override our implementations.
-			if (systemImplementations != null)
-				implementationCount++;
-			if (applicationImplementations != null)
-				implementationCount++;
-		}
+		// Don't allow external code to override our implementations.
+		if (systemImplementations != null)
+            implementationCount++;
+		if (applicationImplementations != null)
+            implementationCount++;
 
 		if (defaultImplementations != null)
 			implementationCount++;
@@ -325,14 +321,12 @@ abstract class BaseMonitor
 		implementationCount = 0;
 		if (bootImplementations != null)
 			implementationSets[implementationCount++] = bootImplementations;
-		
-		if (true) {
-			// Don't allow external code to override our implementations.
-			if (systemImplementations != null)
-				implementationSets[implementationCount++] = systemImplementations;
-			if (applicationImplementations != null)
-				implementationSets[implementationCount++] = applicationImplementations;
-		}
+
+		// Don't allow external code to override our implementations.
+		if (systemImplementations != null)
+            implementationSets[implementationCount++] = systemImplementations;
+		if (applicationImplementations != null)
+            implementationSets[implementationCount++] = applicationImplementations;
 
 		if (defaultImplementations != null)
 			implementationSets[implementationCount++] = defaultImplementations;
@@ -390,7 +384,7 @@ abstract class BaseMonitor
 		determineSupportedServiceProviders();
 
 		// See if automatic booting of persistent services is required
-		boolean bootAll = Boolean.valueOf(PropertyUtil.getSystemProperty(Property.BOOT_ALL)).booleanValue();
+		boolean bootAll = Boolean.valueOf(PropertyUtil.getSystemProperty(Property.BOOT_ALL));
 
 
 		startServices(bootProperties, bootAll);
@@ -705,7 +699,7 @@ abstract class BaseMonitor
 			t = le;
 		}
 		throw StandardException.newException(SQLState.REGISTERED_CLASS_INSTANCE_ERROR,
-			t, new Integer(identifier), "XX" /*ci.getClassName()*/);
+			t, identifier, "XX" /*ci.getClassName()*/);
 	}
 
 	private Boolean exceptionTrace;
@@ -728,8 +722,8 @@ abstract class BaseMonitor
 			instance = loadInstance(localImplementations, factoryInterface, properties);
 		}
 
-		for (int i = 0; i < implementationSets.length; i++) {
-			instance = loadInstance(implementationSets[i], factoryInterface, properties);
+		for (Vector implementationSet : implementationSets) {
+			instance = loadInstance(implementationSet, factoryInterface, properties);
 			if (instance != null)
 				break;
 		}
@@ -1473,7 +1467,7 @@ nextModule:
 			}
 
 			// see if this service does not want to be auto-booted.
-			if (Boolean.valueOf(serviceProperties.getProperty(Property.NO_AUTO_BOOT)).booleanValue())
+			if (Boolean.valueOf(serviceProperties.getProperty(Property.NO_AUTO_BOOT)))
 				continue;
 
 
@@ -1520,7 +1514,7 @@ nextModule:
 					return true; // we understand the type, but the service does not exist
 
 				// see if this service does not want to be auto-booted.
-				if (bootTime && Boolean.valueOf(serviceProperties.getProperty(Property.NO_AUTO_BOOT)).booleanValue())
+				if (bootTime && Boolean.valueOf(serviceProperties.getProperty(Property.NO_AUTO_BOOT)))
 					return true;
 
 				startProviderService(actualProvider, serviceName, serviceProperties);
@@ -1571,7 +1565,7 @@ nextModule:
 			throw savedMse;
 
 		// see if this service does not want to be auto-booted.
-		if (bootTime && Boolean.valueOf(serviceProperties.getProperty(Property.NO_AUTO_BOOT)).booleanValue())
+		if (bootTime && Boolean.valueOf(serviceProperties.getProperty(Property.NO_AUTO_BOOT)))
 			return true;
 
 		startProviderService(actualProvider, serviceName, serviceProperties);
@@ -1755,7 +1749,7 @@ nextModule:
 					properties.put(Property.SERVICE_PROTOCOL, factoryInterface);
 
 					serviceName = provider.createServiceRoot(serviceName,
-							Boolean.valueOf(properties.getProperty(Property.DELETE_ON_CREATE)).booleanValue());
+							Boolean.valueOf(properties.getProperty(Property.DELETE_ON_CREATE)));
 
 					serviceKey = ProtocolKey.create(factoryInterface, serviceName);
 				} else if (properties != null) {

@@ -415,8 +415,7 @@ public class ReaderToUTF8StreamTest
             testRandomSequence(seed);
         } catch (IOException ioe) {
             // Report the seed for repeatability.
-            IOException wrapper = new IOException("seed=" + seed, ioe);
-            throw wrapper;
+            throw new IOException("seed=" + seed, ioe);
         }
     }
 

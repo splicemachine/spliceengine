@@ -422,16 +422,13 @@ public abstract class ConstraintDescriptor
 			return true;
 		}
 
-		for (int outer = 0; outer < referencedColumns.length; outer++)
-		{	
-			for (int inner = 0; inner < otherColumns.length; inner++)
-			{
-				if (referencedColumns[outer] == otherColumns[inner])
-				{
-					return true;
-				}
-			}
-		}
+        for (int referencedColumn : referencedColumns) {
+            for (int otherColumn : otherColumns) {
+                if (referencedColumn == otherColumn) {
+                    return true;
+                }
+            }
+        }
 		return false;
 	}
 
@@ -732,11 +729,9 @@ public abstract class ConstraintDescriptor
                 // than one then which one is remvoed does not
                 // matter since they will all have the same critical
                 // information since they point to the same physical index.
-                for (int i = 0; i < conglomDescs.length; i++)
-                {
-                    if (conglomDescs[i].isConstraint())
-                    {
-                        newBackingConglomCD = conglomDescs[i].drop(lcc, table);
+                for (ConglomerateDescriptor conglomDesc : conglomDescs) {
+                    if (conglomDesc.isConstraint()) {
+                        newBackingConglomCD = conglomDesc.drop(lcc, table);
                         break;
                     }
                 }

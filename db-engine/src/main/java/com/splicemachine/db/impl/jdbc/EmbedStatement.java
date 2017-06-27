@@ -1490,8 +1490,7 @@ public class EmbedStatement extends ConnectionChild implements EngineStatement {
 
         // close all the dynamic result sets.
         if (dynamicResults != null) {
-            for (int i = 0; i < dynamicResults.length; i++) {
-                EmbedResultSet lrs = dynamicResults[i];
+            for (EmbedResultSet lrs : dynamicResults) {
                 if (lrs == null)
                     continue;
 
@@ -1577,9 +1576,7 @@ public class EmbedStatement extends ConnectionChild implements EngineStatement {
         EmbedResultSet[] sorted = new EmbedResultSet[holder.length];
 
         int actualCount = 0;
-        for (int i = 0; i < holder.length; i++) {
-
-            java.sql.ResultSet[] param = holder[i];
+        for (java.sql.ResultSet[] param : holder) {
 
             java.sql.ResultSet rs = param[0];
 
@@ -1701,8 +1698,7 @@ public class EmbedStatement extends ConnectionChild implements EngineStatement {
         // If we have dynamic results, see if there is another result set open.
         // If so, then no commit. The last result set to close will close the statement.
         if (dynamicResults != null) {
-            for (int i = 0; i < dynamicResults.length; i++) {
-                EmbedResultSet lrs = dynamicResults[i];
+            for (EmbedResultSet lrs : dynamicResults) {
                 if (lrs == null)
                     continue;
                 if (lrs.isClosed)
@@ -1734,11 +1730,8 @@ public class EmbedStatement extends ConnectionChild implements EngineStatement {
             return false;
 
         // Simple non-XA case
-        if (applicationStatement == this)
-            return true;
+        return applicationStatement == this || applicationStatement.getResultSetHoldability() == java.sql.ResultSet.HOLD_CURSORS_OVER_COMMIT;
 
-        return applicationStatement.getResultSetHoldability() ==
-                java.sql.ResultSet.HOLD_CURSORS_OVER_COMMIT;
     }
 
     /**
@@ -1813,8 +1806,8 @@ public class EmbedStatement extends ConnectionChild implements EngineStatement {
 
                 if (dynamicResults != null) {
                     int count = dynamicResults.length;
-                    for (int i = 0; i < count; i++) {
-                        if (isOpen(dynamicResults[i])) {
+                    for (EmbedResultSet dynamicResult : dynamicResults) {
+                        if (isOpen(dynamicResult)) {
                             return;
                         }
                     }

@@ -89,7 +89,7 @@ public class NewInvocationNode extends MethodCallNode
 
 		this.javaClassName = (String) javaClassName;
 		this.delimitedIdentifier =
-				 ((Boolean) delimitedIdentifier).booleanValue();
+                (Boolean) delimitedIdentifier;
 	}
 
 	/* This version of the "init" method is used for mapping a table name
@@ -195,7 +195,7 @@ public class NewInvocationNode extends MethodCallNode
 		}
 
 		this.delimitedIdentifier =
-				 ((Boolean) delimitedIdentifier).booleanValue();
+                (Boolean) delimitedIdentifier;
 	}
 
 	/**

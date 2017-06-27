@@ -445,20 +445,17 @@ public class SqlXmlUtil
 
         // Iterate through the list and serialize each item.
         boolean lastItemWasString = false;
-        for (int i = 0; i < sz; i++)
-        {
-            obj = items.get(i);
+        for (Object item : items) {
+            obj = item;
             // if it's a string, then this corresponds to some atomic
             // value, so just echo the string as it is.
-            if (obj instanceof String)
-            {
+            if (obj instanceof String) {
                 /* Step 2: Atomic values.  If "obj" is a string then it
                  * corresponds to some atomic value whose "lexical
                  * representation" is obj.  So we just take that.
                  */
 
-                if (lastItemWasString)
-                {
+                if (lastItemWasString) {
                     /* Step 3: Adjacent strings.  If we have multiple adjacent
                      * strings then concatenate them with a single space
                      * between them.
@@ -472,11 +469,9 @@ public class SqlXmlUtil
                  * creation of the Text node and just writing the string
                  * out directly to our serialized stream.
                  */
-                sWriter.write((String)obj);
+                sWriter.write((String) obj);
                 lastItemWasString = true;
-            }
-            else if (obj instanceof Attr)
-            {
+            } else if (obj instanceof Attr) {
                 /* Step 7a: Attribute nodes.  If there is an Attribute node
                  * node in the sequence then we have to throw a serialization
                  * error.  NOTE: The rules say we also have to throw an error
@@ -509,12 +504,9 @@ public class SqlXmlUtil
                 serializer.transform(
                         new DOMSource((Node) obj), new StreamResult(sWriter));
                 lastItemWasString = false;
-            }
-            else
-            { // We have a Node, so try to serialize it.
-                Node n = (Node)obj;
-                if (n instanceof Text)
-                {
+            } else { // We have a Node, so try to serialize it.
+                Node n = (Node) obj;
+                if (n instanceof Text) {
                     /* Step 6: Combine adjacent text nodes into a single
                      * text node.  Since we're just going to serialize the
                      * Text node back into a string, we short-cut this step
@@ -530,9 +522,7 @@ public class SqlXmlUtil
                      * use the getNodeValue() method instead.
                      */
                     sWriter.write(n.getNodeValue());
-                }
-                else
-                {
+                } else {
                     /* Steps 5 and 7b: Copy all non-attribute, non-text
                      * nodes to the "normalized sequence" and then serialize
                      * that normalized sequence.  We short-cut this by

@@ -143,7 +143,7 @@ public class PropertyUtil {
 		String value = (String) set.get(Property.DATABASE_PROPERTIES_ONLY);
 
 		return Boolean.valueOf(
-                    (value != null ? value.trim() : value)).booleanValue();
+                (value != null ? value.trim() : value));
 	}
 
 	public static boolean isDBOnly(Properties set) {
@@ -154,7 +154,7 @@ public class PropertyUtil {
 		String value = set.getProperty(Property.DATABASE_PROPERTIES_ONLY);
 
 		return Boolean.valueOf(
-                    (value != null ? value.trim() : value)).booleanValue();
+                (value != null ? value.trim() : value));
 	}
 	
 	/**
@@ -321,9 +321,9 @@ public class PropertyUtil {
 			PropertyUtil.getDatabaseProperty(
                 set, Property.DATABASE_PROPERTIES_ONLY);
 
-		boolean dbOnly = 
-            Boolean.valueOf(
-                (value != null ? value.trim() : value)).booleanValue();
+		boolean dbOnly =
+                Boolean.valueOf(
+                        (value != null ? value.trim() : value));
 
 		if (!dbOnly) {
 			value = Monitor.getMonitor().getJVMProperty(key);
@@ -382,7 +382,7 @@ public class PropertyUtil {
         if (value == null) {
             return defaultValue;
         } else {
-            return (Boolean.valueOf(value.trim()).booleanValue());
+            return (Boolean.valueOf(value.trim()));
         }
     }
 
@@ -575,9 +575,9 @@ public class PropertyUtil {
 		// db.database.propertiesOnly
 		boolean dbOnly = false;
 		dbOnly = Boolean.valueOf(
-			PropertyUtil.getDatabaseProperty(
-				set,
-				Property.DATABASE_PROPERTIES_ONLY)).booleanValue();
+                PropertyUtil.getDatabaseProperty(
+                        set,
+                        Property.DATABASE_PROPERTIES_ONLY));
 
 		return !dbOnly &&
 				systemPropertiesExistsBuiltinUser(username);
@@ -602,11 +602,9 @@ public class PropertyUtil {
      *Return true if NATIVE authentication is turned on for the passed-in
      * value of Property.AUTHENTICATION_PROVIDER_PARAMETER.
      */
-	private static boolean nativeAuthenticationEnabled( String authenticationProvider )
-    {
-        if ( authenticationProvider ==  null ) { return false; }
+	private static boolean nativeAuthenticationEnabled( String authenticationProvider ) {
+        return authenticationProvider != null && StringUtil.SQLToUpperCase(authenticationProvider).startsWith(Property.AUTHENTICATION_PROVIDER_NATIVE);
 
-        return StringUtil.SQLToUpperCase( authenticationProvider ).startsWith( Property.AUTHENTICATION_PROVIDER_NATIVE );
     }
     
 	/**

@@ -248,7 +248,7 @@ public abstract class EmbedConnection implements EngineConnection
 			EmbedConnectionContext context = pushConnectionContext(tr.getContextManager());
 
 			// if we are shutting down don't attempt to boot or create the database
-			boolean shutdown = Boolean.valueOf(info.getProperty(Attribute.SHUTDOWN_ATTR)).booleanValue();
+			boolean shutdown = Boolean.valueOf(info.getProperty(Attribute.SHUTDOWN_ATTR));
 
 			// see if database is already booted
 			Database database = (Database) Monitor.findService(Property.DATABASE_MODULE, tr.getDBName());
@@ -494,7 +494,7 @@ public abstract class EmbedConnection implements EngineConnection
 	{
 		int createCount = 0;
 
-		if (Boolean.valueOf(p.getProperty(Attribute.CREATE_ATTR)).booleanValue())
+		if (Boolean.valueOf(p.getProperty(Attribute.CREATE_ATTR)))
 			createCount++;
 
 		int restoreCount=0;
@@ -556,7 +556,7 @@ public abstract class EmbedConnection implements EngineConnection
      */
     private boolean isDropDatabase(Properties p) {
         return (Boolean.valueOf(
-                    p.getProperty(Attribute.DROP_ATTR)).booleanValue());
+                p.getProperty(Attribute.DROP_ATTR)));
     }
 
 	/**
@@ -569,7 +569,7 @@ public abstract class EmbedConnection implements EngineConnection
 	private boolean isEncryptionBoot(Properties p)
 	{
 		return ((Boolean.valueOf(
-					 p.getProperty(Attribute.DATA_ENCRYPTION)).booleanValue()) ||
+                p.getProperty(Attribute.DATA_ENCRYPTION))) ||
 				(p.getProperty(Attribute.NEW_BOOT_PASSWORD) != null)           ||
 				(p.getProperty(Attribute.NEW_CRYPTO_EXTERNAL_KEY) != null));
 	}
@@ -584,19 +584,17 @@ public abstract class EmbedConnection implements EngineConnection
 	private boolean isHardUpgradeBoot(Properties p)
 	{
 		return Boolean.valueOf(
-			p.getProperty(Attribute.UPGRADE_ATTR)).booleanValue();
+                p.getProperty(Attribute.UPGRADE_ATTR));
 	}
 
     private boolean isStartReplicationSlaveBoot(Properties p) {
         return ((Boolean.valueOf(
-                 p.getProperty(Attribute.REPLICATION_START_SLAVE)).
-                 booleanValue()));
+                p.getProperty(Attribute.REPLICATION_START_SLAVE))));
     }
 
     private boolean isStartReplicationMasterBoot(Properties p) {
         return ((Boolean.valueOf(
-                 p.getProperty(Attribute.REPLICATION_START_MASTER)).
-                 booleanValue()));
+                p.getProperty(Attribute.REPLICATION_START_MASTER))));
     }
     
     /**
@@ -608,14 +606,12 @@ public abstract class EmbedConnection implements EngineConnection
      */
     private boolean isReplicationFailover(Properties p) {
         return ((Boolean.valueOf(
-                 p.getProperty(Attribute.REPLICATION_FAILOVER)).
-                 booleanValue()));
+                p.getProperty(Attribute.REPLICATION_FAILOVER))));
     }
 
     private boolean isStopReplicationMasterBoot(Properties p) {
         return ((Boolean.valueOf(
-                 p.getProperty(Attribute.REPLICATION_STOP_MASTER)).
-                 booleanValue()));
+                p.getProperty(Attribute.REPLICATION_STOP_MASTER))));
     }
     
     /**
@@ -628,8 +624,7 @@ public abstract class EmbedConnection implements EngineConnection
      */
     private boolean isStopReplicationSlaveBoot(Properties p) {
         return Boolean.valueOf(
-               p.getProperty(Attribute.REPLICATION_STOP_SLAVE)).
-               booleanValue();
+                p.getProperty(Attribute.REPLICATION_STOP_SLAVE));
     }
 
  	/**
@@ -829,12 +824,11 @@ public abstract class EmbedConnection implements EngineConnection
         throws SQLException
     {
         try {
-            String  leftCanonical = Monitor.getMonitor().getCanonicalServiceName( leftDBName );
-            String  rightCanonical = Monitor.getMonitor().getCanonicalServiceName( rightDBName );
+            String leftCanonical = Monitor.getMonitor().getCanonicalServiceName(leftDBName);
+            String rightCanonical = Monitor.getMonitor().getCanonicalServiceName(rightDBName);
 
-            if ( leftCanonical == null ) { return false; }
-            else { return leftCanonical.equals( rightCanonical ); }
-            
+            return leftCanonical != null && leftCanonical.equals(rightCanonical);
+
         } catch (StandardException se) { throw Util.generateCsSQLException(se); }
     }
 
@@ -1712,7 +1706,7 @@ public abstract class EmbedConnection implements EngineConnection
 			iLevel = ExecutionContext.SERIALIZABLE_ISOLATION_LEVEL;
 			break;
 		default:
-			throw newSQLException(SQLState.UNIMPLEMENTED_ISOLATION_LEVEL, new Integer(level));
+			throw newSQLException(SQLState.UNIMPLEMENTED_ISOLATION_LEVEL, level);
 		}
 
 		synchronized(getConnectionSynchronization())
@@ -2641,7 +2635,7 @@ public abstract class EmbedConnection implements EngineConnection
 				break;
 			default:
 				throw Util.generateCsSQLException(
-															   SQLState.UNIMPLEMENTED_ISOLATION_LEVEL, new Integer(level));
+															   SQLState.UNIMPLEMENTED_ISOLATION_LEVEL, level);
 		}
 		
 		synchronized(getConnectionSynchronization())
@@ -2777,7 +2771,7 @@ public abstract class EmbedConnection implements EngineConnection
 	*/
 	public int addLOBMapping(Object LOBReference) {
 		int loc = getIncLOBKey();
-		getlobHMObj().put(new Integer(loc), LOBReference);
+		getlobHMObj().put(loc, LOBReference);
 		return loc;
 	}
 
@@ -2787,7 +2781,7 @@ public abstract class EmbedConnection implements EngineConnection
 	*            removed from the table.
 	*/
 	public void removeLOBMapping(int key) {
-		getlobHMObj().remove(new Integer(key));
+		getlobHMObj().remove(key);
 	}
 
 	/**
@@ -2796,7 +2790,7 @@ public abstract class EmbedConnection implements EngineConnection
 	* @return the LOB Object corresponding to this locator.
 	*/
 	public Object getLOBMapping(int key) {
-		return getlobHMObj().get(new Integer(key));
+		return getlobHMObj().get(key);
 	}
 
 	/**
@@ -2809,10 +2803,9 @@ public abstract class EmbedConnection implements EngineConnection
 		//free all the lob resources in the HashMap
 		Map map = rootConnection.lobReferences;
 		if (map != null) {
-            Iterator it = map.keySet ().iterator ();
-            while (it.hasNext()) {
-                ((EngineLOB)it.next()).free();
-			}
+            for (Object o : map.keySet()) {
+                ((EngineLOB) o).free();
+            }
 			map.clear();
 		}
         if (rootConnection.lobHashMap != null) {
@@ -2824,10 +2817,9 @@ public abstract class EmbedConnection implements EngineConnection
             // can cause problems further down the road.
 			if (lobFiles != null) {       
                 SQLException firstException = null;
-				Iterator it = lobFiles.iterator();
-                while (it.hasNext()) {
+                for (Object lobFile : lobFiles) {
                     try {
-                        ((LOBFile) it.next()).close();
+                        ((LOBFile) lobFile).close();
                     } catch (IOException ioe) {
                         // Discard all exceptions besides the first one.
                         if (firstException == null) {

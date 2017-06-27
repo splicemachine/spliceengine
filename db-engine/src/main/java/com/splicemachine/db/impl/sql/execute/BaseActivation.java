@@ -575,27 +575,22 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	 *
 	 * @return	true if this activation has held cursor and if it references the passed temp table name
 	 */
-	public boolean checkIfThisActivationHasHoldCursor(String tableName)
-	{
-		if (!inUse)
-			return false;
+	public boolean checkIfThisActivationHasHoldCursor(String tableName) {
+        if (!inUse)
+            return false;
 
-		if (!resultSetHoldability) //if this activation is not held over commit, do not need to worry about it
-			return false;
+        if (!resultSetHoldability) //if this activation is not held over commit, do not need to worry about it
+            return false;
 
-		if (indexOfSessionTableNamesInSavedObjects == -1) //if this activation does not refer to session schema tables, do not need to worry about it
-			return false;
+        if (indexOfSessionTableNamesInSavedObjects == -1) //if this activation does not refer to session schema tables, do not need to worry about it
+            return false;
 
 		/* is there an open result set? */
-		if ((resultSet != null) && !resultSet.isClosed() && resultSet.returnsRows())
-		{
-			//If we came here, it means this activation is held over commit and it reference session table names
-			//Now let's check if it referneces the passed temporary table name which has ON COMMIT DELETE ROWS defined on it.
-			return ((ArrayList)getPreparedStatement().getSavedObject(indexOfSessionTableNamesInSavedObjects)).contains(tableName);
-		}
+        //If we came here, it means this activation is held over commit and it reference session table names
+//Now let's check if it referneces the passed temporary table name which has ON COMMIT DELETE ROWS defined on it.
+        return (resultSet != null) && !resultSet.isClosed() && resultSet.returnsRows() && ((ArrayList) getPreparedStatement().getSavedObject(indexOfSessionTableNamesInSavedObjects)).contains(tableName);
 
-		return false;
-	}
+    }
 
 	/**
 	   remember the cursor name
@@ -851,13 +846,11 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	{
 		if (qualifiers != null)
 		{
-            for (int term = 0; term < qualifiers.length; term++)
-            {
-                for (int i = 0; i < qualifiers[term].length; i++)
-                {
-                    qualifiers[term][i].reinitialize();
-                }
-            }
+			for (Qualifier[] qualifier : qualifiers) {
+				for (int i = 0; i < qualifier.length; i++) {
+					qualifier[i].reinitialize();
+				}
+			}
 		}
 	}
 

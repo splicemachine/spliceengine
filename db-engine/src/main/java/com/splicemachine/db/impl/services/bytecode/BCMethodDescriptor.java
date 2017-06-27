@@ -92,9 +92,9 @@ class BCMethodDescriptor {
 
 		methDesc.append(VMDescriptor.C_METHOD);
 
-		for (int i = 0; i < paramCount; i++) {
-			methDesc.append(vmParameterTypes[i]);
-		}
+        for (String vmParameterType : vmParameterTypes) {
+            methDesc.append(vmParameterType);
+        }
 
 		methDesc.append(VMDescriptor.C_ENDMETHOD);
 		methDesc.append(vmReturnType);

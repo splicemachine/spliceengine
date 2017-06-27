@@ -62,6 +62,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 
+import java.util.Locale;
 import java.util.Properties;
 import java.util.StringTokenizer;
 
@@ -207,7 +208,7 @@ public abstract class InternalDriver implements ModuleControl {
 			/*
 			** A property "shutdown=true" means shut the system or database down
 			*/
-			boolean shutdown = Boolean.valueOf(finfo.getProperty(Attribute.SHUTDOWN_ATTR)).booleanValue();
+			boolean shutdown = Boolean.valueOf(finfo.getProperty(Attribute.SHUTDOWN_ATTR));
 			
 			if (shutdown) {				
 				// If we are shutting down the system don't attempt to create
@@ -242,8 +243,7 @@ public abstract class InternalDriver implements ModuleControl {
                     // value is true
                     if (finfo.getProperty(Attribute.DEREGISTER_ATTR) != null) {
                         boolean deregister = Boolean.valueOf(
-                                finfo.getProperty(Attribute.DEREGISTER_ATTR))
-                                .booleanValue();
+								finfo.getProperty(Attribute.DEREGISTER_ATTR));
                         InternalDriver.setDeregister(deregister);
                     }
 
@@ -426,9 +426,8 @@ public abstract class InternalDriver implements ModuleControl {
 		if (value == null)
 			return;
 
-        for( int i = 0; i < choices.length; i++)
-        {
-            if( value.toUpperCase(java.util.Locale.ENGLISH).equals( choices[i].toUpperCase(java.util.Locale.ENGLISH)))
+        for (String choice : choices) {
+            if (value.toUpperCase(Locale.ENGLISH).equals(choice.toUpperCase(Locale.ENGLISH)))
                 return;
         }
 

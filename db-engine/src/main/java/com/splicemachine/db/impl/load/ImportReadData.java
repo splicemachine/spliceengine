@@ -609,17 +609,15 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
 		boolean skipped = true;
 		int cDelLength = characterDelimiter.length ;
 		bufferedReader.mark(cDelLength);
-		for(int i = 0 ; i < cDelLength ; i++)
-		{
-			int nextChar = bufferedReader.read();
-			if(nextChar != characterDelimiter[i])
-			{
-				//not a double delimter case
-				bufferedReader.reset();
-				skipped = false;
-				break;
-			}
-		}
+        for (char aCharacterDelimiter : characterDelimiter) {
+            int nextChar = bufferedReader.read();
+            if (nextChar != aCharacterDelimiter) {
+                //not a double delimter case
+                bufferedReader.reset();
+                skipped = false;
+                break;
+            }
+        }
 		return skipped;
 	}
 

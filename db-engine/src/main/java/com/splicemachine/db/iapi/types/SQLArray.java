@@ -64,9 +64,9 @@ public class SQLArray extends DataType implements ArrayDataValue {
     {
         int sz = BASE_MEMORY_USAGE;
         if( null != value) {
-			for (int i = 0; i< value.length;i++) {
-			sz += value[i].estimateMemoryUsage();
-			}
+            for (DataValueDescriptor aValue : value) {
+                sz += aValue.estimateMemoryUsage();
+            }
 		}
         return sz;
     } // end of estimateMemoryUsage
@@ -116,9 +116,9 @@ public class SQLArray extends DataType implements ArrayDataValue {
 			output.writeBoolean(value !=null);
 			if (value != null) {
 				output.writeInt(value.length);
-				for (int i = 0; i< value.length; i++) {
-					output.writeObject(value[i]);
-				}
+                for (DataValueDescriptor aValue : value) {
+                    output.writeObject(aValue);
+                }
 			}
 			output.flush();
 			return stream.toByteArray();
@@ -189,8 +189,7 @@ public class SQLArray extends DataType implements ArrayDataValue {
 		out.writeBoolean(value != null);
         if (value != null) {
 			out.writeInt(value.length);
-			for (int i = 0;i<value.length;i++)
-				out.writeObject(value[i]);
+            for (DataValueDescriptor aValue : value) out.writeObject(aValue);
         }
 	}
 

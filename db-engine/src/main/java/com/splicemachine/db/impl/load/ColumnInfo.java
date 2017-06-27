@@ -149,7 +149,7 @@ public class ColumnInfo {
 				insertColumnNames.add(columnName);
 				String sqlType = getSqlType(typeName, columnSize, decimalDigits);
 				columnTypes.add(sqlType);
-                jdbcColumnTypes.add(new Integer(dataType));
+                jdbcColumnTypes.add((int) dataType);
 				noOfColumns++;
 
                 if ( dataType == java.sql.Types.JAVA_OBJECT ) {
@@ -259,12 +259,12 @@ public class ColumnInfo {
     public String getColumnTypeNames() {
         StringBuilder sb = new StringBuilder();
         boolean first = true;
-        for(int index = 0 ; index < columnTypes.size(); index++) {
+        for (Object columnType : columnTypes) {
             if (!first)
                 sb.append(", ");
             else
                 first = false;
-            sb.append(columnTypes.get(index));
+            sb.append(columnType);
         }
         return sb.toString();
     }
@@ -393,18 +393,16 @@ public class ColumnInfo {
         if ( stringMap == null ) { return null; }
         
         HashMap retval = new HashMap();
-        Iterator entries = stringMap.entrySet().iterator();
 
-        while ( entries.hasNext() )
-        {
-            Map.Entry entry = (Map.Entry)entries.next();
-            String columnName = (String) entry.getKey();
-            String className = (String) entry.getValue();
+		for (Object o : stringMap.entrySet()) {
+			Map.Entry entry = (Map.Entry) o;
+			String columnName = (String) entry.getKey();
+			String className = (String) entry.getValue();
 
-            Class classValue = Class.forName( className );
+			Class classValue = Class.forName(className);
 
-            retval.put( columnName, classValue );
-        }
+			retval.put(columnName, classValue);
+		}
 
         return retval;
     }

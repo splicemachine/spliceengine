@@ -114,8 +114,8 @@ public abstract class JVMInfo
              javaSpec.startsWith("J2ME") || // recognize IBM WCTME
              javaSpec.startsWith("CDC")  || // Oracle Java ME Embedded Client
              (
-              (javaSpec.indexOf( "Profile" ) > -1) && // recognize phoneME
-              (javaSpec.indexOf( "Specification" ) > -1)
+              (javaSpec.contains("Profile")) && // recognize phoneME
+              (javaSpec.contains("Specification"))
              )
             )
             )

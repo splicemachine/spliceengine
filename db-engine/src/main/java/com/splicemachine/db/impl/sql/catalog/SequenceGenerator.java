@@ -219,7 +219,7 @@ public class SequenceGenerator
         else
         {
             _isExhausted = false;
-            _currentValue = currentValue.longValue();
+            _currentValue = currentValue;
         }
 
         _CAN_CYCLE = canCycle;
@@ -286,7 +286,7 @@ public class SequenceGenerator
     {
         Long currentValue = null;
 
-        if ( !_isExhausted ) { currentValue = new Long( _currentValue ); }
+        if ( !_isExhausted ) { currentValue = _currentValue; }
         
         return currentValue;
     }
@@ -502,9 +502,7 @@ public class SequenceGenerator
 
         if ( happyResult < unhappyResult ) { return unhappyResult; }
 
-        double min = _MIN_VALUE;
-        double max = _MAX_VALUE;
-        double range = max - min;
+        double range = (double) _MAX_VALUE - (double) _MIN_VALUE;
         double step = _INCREMENT;
         if ( step < 0.0 ) { step = -step; }
 

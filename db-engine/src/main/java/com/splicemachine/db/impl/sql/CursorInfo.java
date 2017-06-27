@@ -179,10 +179,9 @@ public class CursorInfo
 			}
 			else
 			{
-				for (int i = 0; i < targetColumns.length; i++)
-				{
-					strbuf.append(targetColumns[i]);
-				}
+                for (ResultColumnDescriptor targetColumn : targetColumns) {
+                    strbuf.append(targetColumn);
+                }
 				strbuf.append("\n");
 			}
 			return strbuf.toString();	

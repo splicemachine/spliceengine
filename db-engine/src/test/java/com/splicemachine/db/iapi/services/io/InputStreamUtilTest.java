@@ -64,8 +64,7 @@ public class InputStreamUtilTest extends TestCase {
     public void testSkipUtilEOFWithOddLength() throws IOException{
         int[] lengths = {0, 1};
 
-        for(int i = 0; i < lengths.length; i++){
-            int length = lengths[i];
+        for (int length : lengths) {
             InputStream is = new ByteArrayInputStream(new byte[length]);
             assertEquals(length, InputStreamUtil.skipUntilEOF(is));
         }
@@ -74,8 +73,7 @@ public class InputStreamUtilTest extends TestCase {
     public void testSkipUtilEOF() throws IOException{
         int[] lengths = {1024, 1024 * 1024};
 
-        for(int i = 0; i < lengths.length; i++){
-            int length = lengths[i];
+        for (int length : lengths) {
             InputStream is = new ByteArrayInputStream(new byte[length]);
             assertEquals(length, InputStreamUtil.skipUntilEOF(is));
         }

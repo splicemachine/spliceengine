@@ -85,11 +85,10 @@ public class D_LockControl implements Diagnosticable
 		List granted = control.getGranted();
 		
 		if (granted != null) {
-			for (Iterator dli = granted.iterator(); dli.hasNext(); )
-			{
-				sb.append("\n    g[").append(i).append("]:").append(DiagnosticUtil.toDiagString(dli.next()));
-				i++;
-			}
+            for (Object aGranted : granted) {
+                sb.append("\n    g[").append(i).append("]:").append(DiagnosticUtil.toDiagString(aGranted));
+                i++;
+            }
 		}
 
 
@@ -101,9 +100,8 @@ public class D_LockControl implements Diagnosticable
 
         if (waiting != null)
         {
-			for (Iterator dli = waiting.iterator(); dli.hasNext(); )
-            {
-                sb.append("\n    w[").append(num_waiting).append("]:").append(DiagnosticUtil.toDiagString(dli.next()));
+            for (Object aWaiting : waiting) {
+                sb.append("\n    w[").append(num_waiting).append("]:").append(DiagnosticUtil.toDiagString(aWaiting));
 
                 num_waiting++;
             }

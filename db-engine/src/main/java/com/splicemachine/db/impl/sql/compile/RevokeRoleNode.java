@@ -82,20 +82,20 @@ public class RevokeRoleNode extends DDLStatementNode
 	{
 		if (SanityManager.DEBUG) {
 			StringBuilder sb1 = new StringBuilder();
-			for( Iterator it = roles.iterator(); it.hasNext();) {
-				if( sb1.length() > 0) {
-					sb1.append( ", ");
-				}
-				sb1.append( it.next().toString());
-			}
+            for (Object role : roles) {
+                if (sb1.length() > 0) {
+                    sb1.append(", ");
+                }
+                sb1.append(role.toString());
+            }
 
 			StringBuilder sb2 = new StringBuilder();
-			for( Iterator it = grantees.iterator(); it.hasNext();) {
-				if( sb2.length() > 0) {
-					sb2.append( ", ");
-				}
-				sb2.append( it.next().toString());
-			}
+            for (Object grantee : grantees) {
+                if (sb2.length() > 0) {
+                    sb2.append(", ");
+                }
+                sb2.append(grantee.toString());
+            }
 			return (super.toString() +
 					sb1.toString() +
 					" FROM: " +

@@ -204,43 +204,38 @@ public class BasicDaemon implements DaemonService, Runnable
 		wakeUp();
 	}
 
-	public boolean enqueue(Serviceable newClient, boolean serviceNow)
-	{
-		ServiceRecord clientRecord = new ServiceRecord(newClient, false, false);
+	public boolean enqueue(Serviceable newClient, boolean serviceNow) {
+        ServiceRecord clientRecord = new ServiceRecord(newClient, false, false);
 
-		if (SanityManager.DEBUG)
-		{
-			if (SanityManager.DEBUG_ON(DaemonService.DaemonTrace))
-				SanityManager.DEBUG(DaemonService.DaemonTrace,
-									"enqueing work, urgent = " + serviceNow + ":" + newClient );
-		}
+        if (SanityManager.DEBUG) {
+            if (SanityManager.DEBUG_ON(DaemonService.DaemonTrace))
+                SanityManager.DEBUG(DaemonService.DaemonTrace,
+                        "enqueing work, urgent = " + serviceNow + ":" + newClient);
+        }
 
 
-		List queue = serviceNow ? highPQ : normPQ;
+        List queue = serviceNow ? highPQ : normPQ;
 
-		int highPQsize;
-		synchronized (this) {
-			queue.add(clientRecord);
-			highPQsize = highPQ.size();
+        int highPQsize;
+        synchronized (this) {
+            queue.add(clientRecord);
+            highPQsize = highPQ.size();
 
-			if (SanityManager.DEBUG) {
+            if (SanityManager.DEBUG) {
 
-				if (SanityManager.DEBUG_ON("memoryLeakTrace")) {
+                if (SanityManager.DEBUG_ON("memoryLeakTrace")) {
 
-					if (highPQsize > (OPTIMAL_QUEUE_SIZE * 2))
-						System.out.println("memoryLeakTrace:BasicDaemon " + highPQsize);
-				}
-			}
-		}
+                    if (highPQsize > (OPTIMAL_QUEUE_SIZE * 2))
+                        System.out.println("memoryLeakTrace:BasicDaemon " + highPQsize);
+                }
+            }
+        }
 
-		if (serviceNow && !awakened)
-			wakeUp();
+        if (serviceNow && !awakened)
+            wakeUp();
 
-		if (serviceNow) {
-			return highPQsize > OPTIMAL_QUEUE_SIZE;
-		}
-		return false;
-	}
+        return serviceNow && highPQsize > OPTIMAL_QUEUE_SIZE;
+    }
 
 	/**
 		Get rid of all queued up Serviceable tasks.
@@ -510,16 +505,14 @@ public class BasicDaemon implements DaemonService, Runnable
 		while(true){
 			synchronized(this)
 			{
-				boolean noSubscriptionRequests = true; 
-				for (int urgentServiced = 0; urgentServiced < subscription.size(); urgentServiced++)
-				{
-					ServiceRecord clientRecord = (ServiceRecord)subscription.get(urgentServiced);
-					if (clientRecord != null &&	clientRecord.needService())
-					{
-						noSubscriptionRequests = false;
-						break;
-					}
-				}
+				boolean noSubscriptionRequests = true;
+                for (Object aSubscription : subscription) {
+                    ServiceRecord clientRecord = (ServiceRecord) aSubscription;
+                    if (clientRecord != null && clientRecord.needService()) {
+                        noSubscriptionRequests = false;
+                        break;
+                    }
+                }
 
 				if (highPQ.isEmpty() && noSubscriptionRequests &&!running){
 					return;

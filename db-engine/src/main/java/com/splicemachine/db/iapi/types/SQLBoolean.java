@@ -165,7 +165,7 @@ public final class SQLBoolean
 		if (isNull())
 			return null;
 		else
-			return new Boolean(value);
+			return value;
 	}
 
 	public int	getLength()
@@ -401,7 +401,7 @@ public final class SQLBoolean
 		}
 		else
 		{
-			value = theValue.booleanValue();
+			value = theValue;
 			isNull = false;
 		}
 
@@ -989,13 +989,9 @@ public final class SQLBoolean
 	 *			false if not
 	 */
 
-	public boolean equals(boolean val)
-	{
-		if (isNull())
-			return false;
-		else
-			return value == val;
-	}
+	public boolean equals(boolean val) {
+        return !isNull() && value == val;
+    }
 	
 	/**
 	 * Return an immutable BooleanDataValue with the same value as this.

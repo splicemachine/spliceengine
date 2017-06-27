@@ -172,16 +172,16 @@ class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cl
 
         //Now copy only new values from second array into superset
         int validColsPosition = columnsArray1.length;
-        for (int i = 0; i < columnsArray2.length; i++) {
+        for (int aColumnsArray2 : columnsArray2) {
             boolean found = false;
             for (int j = 0; j < validColsPosition; j++) {
-                if (maxArray[j] == columnsArray2[i]) {
+                if (maxArray[j] == aColumnsArray2) {
                     found = true;
                     break;
                 }
             }
             if (!found) {
-                maxArray[validColsPosition] = columnsArray2[i];
+                maxArray[validColsPosition] = aColumnsArray2;
                 validColsPosition++;
             }
         }
@@ -197,17 +197,17 @@ class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cl
         int numberOfColsInTriggerTable = columnsArrary.length;
 
         //Count number of non -1 entries
-        for (int i = 0; i < numberOfColsInTriggerTable; i++) {
-            if (columnsArrary[i] != -1)
+        for (int aColumnsArrary1 : columnsArrary) {
+            if (aColumnsArrary1 != -1)
                 countOfColsRefedInArray++;
         }
 
         if (countOfColsRefedInArray > 0) {
             int[] tempArrayOfNeededColumns = new int[countOfColsRefedInArray];
             int j = 0;
-            for (int i = 0; i < numberOfColsInTriggerTable; i++) {
-                if (columnsArrary[i] != -1)
-                    tempArrayOfNeededColumns[j++] = columnsArrary[i];
+            for (int aColumnsArrary : columnsArrary) {
+                if (aColumnsArrary != -1)
+                    tempArrayOfNeededColumns[j++] = aColumnsArrary;
             }
             return tempArrayOfNeededColumns;
         } else
@@ -221,8 +221,8 @@ class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cl
         int numberOfColsInTriggerTable = columnsArrary.length;
 
         //Count number of non -1 entries
-        for (int i = 0; i < numberOfColsInTriggerTable; i++) {
-            if (columnsArrary[i] != -1)
+        for (int aColumnsArrary : columnsArrary) {
+            if (aColumnsArrary != -1)
                 countOfColsRefedInArray++;
         }
 

@@ -118,32 +118,30 @@ public class GenericPrivilegeInfo extends PrivilegeInfo
             ( null, objectTypeName, objectID, _privilege, currentUser, null, false );
 
 		dd.startWriting(lcc);
-		for( Iterator itr = grantees.iterator(); itr.hasNext();)
-		{
-			// Keep track to see if any privileges are revoked by a revoke 
-			// statement. If a privilege is not revoked, we need to raise a
-			// warning.
-			boolean privileges_revoked = false;
-			String grantee = (String) itr.next();
-			if (dd.addRemovePermissionsDescriptor( grant, permDesc, grantee, tc)) 
-			{
+        for (Object grantee1 : grantees) {
+            // Keep track to see if any privileges are revoked by a revoke
+            // statement. If a privilege is not revoked, we need to raise a
+            // warning.
+            boolean privileges_revoked = false;
+            String grantee = (String) grantee1;
+            if (dd.addRemovePermissionsDescriptor(grant, permDesc, grantee, tc)) {
                 //
                 // We fall in here if we are performing REVOKE.
                 //
-				privileges_revoked = true;	
+                privileges_revoked = true;
                 int invalidationType = _restrict ? DependencyManager.REVOKE_PRIVILEGE_RESTRICT : DependencyManager.REVOKE_PRIVILEGE;
 
-				dd.getDependencyManager().invalidateFor( permDesc, invalidationType, lcc );
+                dd.getDependencyManager().invalidateFor(permDesc, invalidationType, lcc);
 
-				// Now invalidate all GPSs refering to the object.
-				dd.getDependencyManager().invalidateFor(_tupleDescriptor, invalidationType, lcc);
+                // Now invalidate all GPSs refering to the object.
+                dd.getDependencyManager().invalidateFor(_tupleDescriptor, invalidationType, lcc);
                 PermDescriptor permDescriptor = ddg.newPermDescriptor
-                        ( permDesc.getUUID(), objectTypeName, objectID, _privilege, currentUser, grantee, false );
+                        (permDesc.getUUID(), objectTypeName, objectID, _privilege, currentUser, grantee, false);
                 result.add(permDescriptor);
 
-			}
-			addWarningIfPrivilegeNotRevoked(activation, grant, privileges_revoked, grantee);
-		}
+            }
+            addWarningIfPrivilegeNotRevoked(activation, grant, privileges_revoked, grantee);
+        }
         return result;
 	} // end of executeGrantRevoke
 

@@ -49,14 +49,10 @@ final class CONSTANT_Float_info extends ConstantPoolEntry {
 
 	public boolean equals(Object other) {
 
-		// check it is the right type
-		if (other instanceof CONSTANT_Float_info) {
-		
-			return value == ((CONSTANT_Float_info) other).value;
-		}
+        // check it is the right type
+        return other instanceof CONSTANT_Float_info && value == ((CONSTANT_Float_info) other).value;
 
-		return false;
-	}
+    }
 
 	int classFileSize() {
 		// 1 (tag) + 4 (float length)

@@ -79,7 +79,7 @@ public final class BooleanConstantNode extends ConstantNode
 			 Boolean.FALSE,
 			 ReuseFactory.getInteger(1));
 
-			booleanValue = ((Boolean) arg1).booleanValue();
+			booleanValue = (Boolean) arg1;
 			super.setValue(new SQLBoolean(booleanValue));
 		}
 		else

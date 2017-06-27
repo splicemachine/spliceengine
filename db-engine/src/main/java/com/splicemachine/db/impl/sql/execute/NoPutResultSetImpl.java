@@ -282,19 +282,17 @@ extends BasicNoPutResultSetImpl
 		if (qualifiers != null)
 		{
 			Qualifier qual;
-			for (int term = 0; term < qualifiers.length; term++)
-			{
-				for (int index = 0; index < qualifiers[term].length; index++)
-				{
-					qual = qualifiers[term][index];
-					qual.clearOrderableCache();
-					/* beetle 4880 performance enhancement and avoid deadlock while pushing
+            for (Qualifier[] qualifier : qualifiers) {
+                for (int index = 0; index < qualifier.length; index++) {
+                    qual = qualifier[index];
+                    qual.clearOrderableCache();
+                    /* beetle 4880 performance enhancement and avoid deadlock while pushing
 					 * down method call to store: pre-evaluate.
 					 */
-					if (((GenericQualifier) qual).variantType != Qualifier.VARIANT)
-						qual.getOrderable();		// ignore return value
-				}
-			}
+                    if (((GenericQualifier) qual).variantType != Qualifier.VARIANT)
+                        qual.getOrderable();        // ignore return value
+                }
+            }
 		}
 	}
 

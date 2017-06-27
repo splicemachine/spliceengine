@@ -162,11 +162,10 @@ public	class	DDUtils
 		throws StandardException
 	{
 		ColumnDescriptorList cdl = new ColumnDescriptorList();
-		for (int colCtr = 0; colCtr < columnNames.length; colCtr++)
-		{
-			ColumnDescriptor cd = td.getColumnDescriptor(columnNames[colCtr]);
-			cdl.add(td.getUUID(), cd);
-		}
+        for (String columnName : columnNames) {
+            ColumnDescriptor cd = td.getColumnDescriptor(columnName);
+            cdl.add(td.getUUID(), cd);
+        }
 		return cdl;
 	}
 
@@ -216,15 +215,13 @@ public	class	DDUtils
 		{
 			boolean foundNullableColumn = false;
 			//check if we have a nullable foreign key column
-			for (int colCtr = 0; colCtr < columnNames.length; colCtr++)
-			{
-				ColumnDescriptor cd = td.getColumnDescriptor(columnNames[colCtr]);
-				if ((cd.getType().isNullable()))
-				{
-					foundNullableColumn = true;
-					break;
-				}
-			}
+            for (String columnName : columnNames) {
+                ColumnDescriptor cd = td.getColumnDescriptor(columnName);
+                if ((cd.getType().isNullable())) {
+                    foundNullableColumn = true;
+                    break;
+                }
+            }
 
 			if(!foundNullableColumn)
 			{
@@ -345,7 +342,7 @@ public	class	DDUtils
 					//not specified on the current link. It is actually the 
 					//value of what happens to the table whose delete
 					// connections we are finding.
-					dch.put(refTableName, (new Integer(childRefAction)));
+					dch.put(refTableName, (childRefAction));
 					
 					//find the next delete conectiions on this path for non
 					//self referencig delete connections.
@@ -455,7 +452,7 @@ public	class	DDUtils
 				** CASCADE, otherwise we should throw error.
 				*/
 
-				if(isSelfReferencingFk && dch.contains(new Integer(StatementType.RA_CASCADE)) && 
+				if(isSelfReferencingFk && dch.contains(StatementType.RA_CASCADE) &&
 				   refActionType!=  StatementType.RA_CASCADE)
 				{
 					throw
@@ -490,7 +487,7 @@ public	class	DDUtils
 			//referenced table
 			if(rAction != null)
 			{
-				checkForMultiplePathInvalidCases(rAction.intValue(),
+				checkForMultiplePathInvalidCases(rAction,
 												  refActionType,
 												  myConstraintName,currentRefTableName);
 			}
@@ -613,7 +610,7 @@ public	class	DDUtils
 					** current path refvalue.
 					**/
 					if(!isSelfRefLink && multiPathCheck)
-						checkForMultiplePathInvalidCases(rAction.intValue(),
+						checkForMultiplePathInvalidCases(rAction,
 														 refActionType, 
 														 myConstraintName,currentRefTableName);
 
@@ -623,7 +620,7 @@ public	class	DDUtils
 					if(rAction == null)
 					{
 						if(multiPathCheck)
-							dch.put(nextRefTableName, (new Integer(refActionType)));
+							dch.put(nextRefTableName, (refActionType));
 						if(!isSelfRefLink)
 						{
 							validateDeleteConnection(dd, actualTd,  nextRefTd,
@@ -837,7 +834,7 @@ public	class	DDUtils
 							{
 								if(newDconnHashTable.containsKey(tName))
 								{
-									int currentDeleteRule = ((Integer)	dConnHashtable.get(tName)).intValue();
+									int currentDeleteRule = (Integer) dConnHashtable.get(tName);
 									if((currentDeleteRule == StatementType.RA_SETNULL
 										&& raDeleteRuleToAddTable == StatementType.RA_SETNULL) ||
 									   currentDeleteRule  != raDeleteRuleToAddTable)

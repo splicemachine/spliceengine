@@ -358,18 +358,17 @@ public class CreateConstraintConstantAction extends ConstraintConstantAction
 		/* Create stored dependencies for each provider */
 		if (providerInfo != null)
 		{
-			for (int ix = 0; ix < providerInfo.length; ix++)
-			{
-				Provider provider = null;
-	
-				/* We should always be able to find the Provider */
-					provider = (Provider) providerInfo[ix].
-											getDependableFinder().
-												getDependable(dd, 
-													providerInfo[ix].getObjectId());
+            for (ProviderInfo aProviderInfo : providerInfo) {
+                Provider provider = null;
 
-				dm.addDependency(conDesc, provider, lcc.getContextManager());
-			}
+				/* We should always be able to find the Provider */
+                provider = (Provider) aProviderInfo.
+                        getDependableFinder().
+                        getDependable(dd,
+                                aProviderInfo.getObjectId());
+
+                dm.addDependency(conDesc, provider, lcc.getContextManager());
+            }
 		}
 
 		/* Finally, invalidate off of the table descriptor(s)
@@ -429,16 +428,14 @@ public class CreateConstraintConstantAction extends ConstraintConstantAction
 			/* Get the conglomerate descriptor for the backing index */
             conglomDescs = td.getConglomerateDescriptors();
 
-            for (int index = 0; index < conglomDescs.length; index++)
-            {
-                conglomDesc = conglomDescs[index];
+            for (ConglomerateDescriptor conglomDesc1 : conglomDescs) {
+                conglomDesc = conglomDesc1;
 
 				/* Check for conglomerate being an index first, since
-				 * name is null for heap.
+                 * name is null for heap.
 				 */
                 if (conglomDesc.isIndex() &&
-                        backingIndexName.equals(conglomDesc.getConglomerateName()))
-                {
+                        backingIndexName.equals(conglomDesc.getConglomerateName())) {
                     break;
                 }
             }

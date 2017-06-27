@@ -58,7 +58,7 @@ public class IsNode extends BinaryLogicalOperatorNode {
 	{
 		// the false for shortCir
 		super.init(leftOperand, rightOperand, "is" );
-		this.notMe = ((Boolean) notMe).booleanValue();
+		this.notMe = (Boolean) notMe;
 	}
 
 	/**

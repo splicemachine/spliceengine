@@ -191,9 +191,7 @@ public final class WindowDefinitionNode extends WindowNode
      */
     private boolean isEquivalent(WindowDefinitionNode other) throws StandardException {
         if (this == other) return true;
-        if (other == null) return false;
-
-        return !(overClause != null ? !overClause.isEquivalent(other.overClause) : other.overClause != null);
+        return other != null && !(overClause != null ? !overClause.isEquivalent(other.overClause) : other.overClause != null);
 
     }
 
@@ -250,8 +248,7 @@ public final class WindowDefinitionNode extends WindowNode
 
         WindowDefinitionNode that = (WindowDefinitionNode) o;
 
-        if (inlined != that.inlined) return false;
-        return overClause != null ? overClause.equals(that.overClause) : that.overClause == null;
+        return inlined == that.inlined && (overClause != null ? overClause.equals(that.overClause) : that.overClause == null);
 
     }
 

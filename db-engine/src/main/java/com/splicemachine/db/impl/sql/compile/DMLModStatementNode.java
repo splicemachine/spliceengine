@@ -130,7 +130,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
 	public void init(Object resultSet, Object statementType)
 	{
 		super.init(resultSet);
-		this.statementType = ((Integer) statementType).intValue();
+		this.statementType = (Integer) statementType;
 	}
 
 	void setTarget(QueryTreeNode targetName)
@@ -842,9 +842,8 @@ abstract class DMLModStatementNode extends DMLStatementNode
 
     public static int[] getPrimaryKeyInfo(TableDescriptor td) throws StandardException {
         ConglomerateDescriptorList cdl = td.getConglomerateDescriptorList();
-        for(int i=0;i<cdl.size();i++){
-            ConglomerateDescriptor cd = cdl.get(i);
-            if(cd.isPrimaryKey()){
+        for (ConglomerateDescriptor cd : cdl) {
+            if (cd.isPrimaryKey()) {
                 return cd.getIndexDescriptor().baseColumnPositions();
             }
         }
@@ -942,8 +941,8 @@ abstract class DMLModStatementNode extends DMLStatementNode
 	{
 		CompilerContext 			compilerContext = getCompilerContext();
 
-        for (Iterator descIter = tdl.iterator(); descIter.hasNext() ; ) {
-            TriggerDescriptor td = (TriggerDescriptor)descIter.next();
+        for (Object aTdl : tdl) {
+            TriggerDescriptor td = (TriggerDescriptor) aTdl;
             /*
             ** The dependent now depends on this trigger.
             ** The default dependent is the statement being compiled.
@@ -1520,49 +1519,46 @@ abstract class DMLModStatementNode extends DMLStatementNode
 
         int[] primaryKeyColumns = getPrimaryKeyInfo(baseTable);
 
-		for (int index = 0; index < cds.length; index++)
-		{
-			ConglomerateDescriptor cd = cds[index];
-
-			if (!cd.isIndex()) { continue; }
+        for (ConglomerateDescriptor cd : cds) {
+            if (!cd.isIndex()) {
+                continue;
+            }
 
 			/*
-			** If this index doesn't contain any updated
+            ** If this index doesn't contain any updated
 			** columns, then we can skip it.
 			*/
-			if ((updatedColumns != null) &&
-				(!updatedColumns.updateOverlaps(
-					cd.getIndexDescriptor().baseColumnPositions())))
-			{ continue; }
+            if ((updatedColumns != null) &&
+                    (!updatedColumns.updateOverlaps(
+                            cd.getIndexDescriptor().baseColumnPositions()))) {
+                continue;
+            }
 
-			if ( conglomVector != null )
-			{
-				int i;
-				for (i = 0; i < distinctCount; i++)
-				{
-					if (distinctConglomNums[i] == cd.getConglomerateNumber())
-						break;
-				}
-				if (i == distinctCount)		// first appearence
-				{
-					distinctConglomNums[distinctCount++] = cd.getConglomerateNumber();
-					conglomVector.add( cd );
-				}
-			}
+            if (conglomVector != null) {
+                int i;
+                for (i = 0; i < distinctCount; i++) {
+                    if (distinctConglomNums[i] == cd.getConglomerateNumber())
+                        break;
+                }
+                if (i == distinctCount)        // first appearence
+                {
+                    distinctConglomNums[distinctCount++] = cd.getConglomerateNumber();
+                    conglomVector.add(cd);
+                }
+            }
 
-			IndexRowGenerator ixd = cd.getIndexDescriptor();
-			int[] cols = ixd.baseColumnPositions(); 
+            IndexRowGenerator ixd = cd.getIndexDescriptor();
+            int[] cols = ixd.baseColumnPositions();
 
 
-			if (colBitSet != null)
-			{
-				for (int i = 0; i < cols.length; i++) {
+            if (colBitSet != null) {
+                for (int col : cols) {
                     // Do not Add Primary Keys, we have them in the rowKey (BaseTable) or in the RowLocation (IndexTable)
-                    if (!ArrayUtils.contains(primaryKeyColumns,cols[i]) || isBulkDelete)
-    					colBitSet.set(cols[i]);
-				}
-			}	// end IF
-		}		// end loop through conglomerates
+                    if (!ArrayUtils.contains(primaryKeyColumns, col) || isBulkDelete)
+                        colBitSet.set(col);
+                }
+            }    // end IF
+        }        // end loop through conglomerates
 
 	}
 

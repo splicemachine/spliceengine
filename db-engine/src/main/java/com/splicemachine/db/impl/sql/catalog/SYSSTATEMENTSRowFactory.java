@@ -248,114 +248,109 @@ public class SYSSTATEMENTSRowFactory extends CatalogRowFactory
 		ExecRow					row,
 		TupleDescriptor			parentTupleDescriptor,
 		DataDictionary 			dd )
-					throws StandardException
-	{
-		DataValueDescriptor			col;
-		SPSDescriptor				descriptor;
-		String						name;
-		String						text;
-		String						usingText;
-		UUID						uuid;
-		UUID						compUuid = null;
-		String						uuidStr;
-		UUID						suuid;		// schema
-		String						suuidStr;	// schema
-		String						typeStr;
-		char						type;
-		boolean						valid;
-		Timestamp					time = null;
-		ExecPreparedStatement		preparedStatement = null;
-		boolean						initiallyCompilable;
-		DataDescriptorGenerator		ddg = dd.getDataDescriptorGenerator();
+					throws StandardException {
+        DataValueDescriptor col;
+        SPSDescriptor descriptor;
+        String name;
+        String text;
+        String usingText;
+        UUID uuid;
+        UUID compUuid = null;
+        String uuidStr;
+        UUID suuid;        // schema
+        String suuidStr;    // schema
+        String typeStr;
+        char type;
+        boolean valid;
+        Timestamp time = null;
+        ExecPreparedStatement preparedStatement = null;
+        boolean initiallyCompilable;
+        DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(row.nColumns() == SYSSTATEMENTS_COLUMN_COUNT, 
-								 "Wrong number of columns for a SYSSTATEMENTS row");
-		}
+        if (SanityManager.DEBUG) {
+            SanityManager.ASSERT(row.nColumns() == SYSSTATEMENTS_COLUMN_COUNT,
+                    "Wrong number of columns for a SYSSTATEMENTS row");
+        }
 
-		// 1st column is STMTID (UUID - char(36))
-		col = row.getColumn(1);
-		uuidStr = col.getString();
-		uuid = getUUIDFactory().recreateUUID(uuidStr);
+        // 1st column is STMTID (UUID - char(36))
+        col = row.getColumn(1);
+        uuidStr = col.getString();
+        uuid = getUUIDFactory().recreateUUID(uuidStr);
 
-		// 2nd column is STMTNAME (varchar(128))
-		col = row.getColumn(2);
-		name = col.getString();
+        // 2nd column is STMTNAME (varchar(128))
+        col = row.getColumn(2);
+        name = col.getString();
 
-		// 3rd column is SCHEMAID (UUID - char(36))
-		col = row.getColumn(3);
-		suuidStr = col.getString();
-		suuid = getUUIDFactory().recreateUUID(suuidStr);
+        // 3rd column is SCHEMAID (UUID - char(36))
+        col = row.getColumn(3);
+        suuidStr = col.getString();
+        suuid = getUUIDFactory().recreateUUID(suuidStr);
 
-		// 4th column is TYPE (char(1))
-		col = row.getColumn(4);
-		type = col.getString().charAt(0);
+        // 4th column is TYPE (char(1))
+        col = row.getColumn(4);
+        type = col.getString().charAt(0);
 
-		if (SanityManager.DEBUG)
-		{
-			if (!SPSDescriptor.validType(type))
-			{
-				SanityManager.THROWASSERT("Bad type value ("+type+") for  statement "+name);
-			}
-		}
+        if (SanityManager.DEBUG) {
+            if (!SPSDescriptor.validType(type)) {
+                SanityManager.THROWASSERT("Bad type value (" + type + ") for  statement " + name);
+            }
+        }
 
-		// In soft upgrade mode the plan may not be understand by this engine
-		// so force a recompile.
-		if (dd.isReadOnlyUpgrade()) {
-			valid = false;
-		} else {
-			// 5th column is VALID (boolean)
-			col = row.getColumn(5);
-			valid = col.getBoolean();
-		}
+        // In soft upgrade mode the plan may not be understand by this engine
+        // so force a recompile.
+        if (dd.isReadOnlyUpgrade()) {
+            valid = false;
+        } else {
+            // 5th column is VALID (boolean)
+            col = row.getColumn(5);
+            valid = col.getBoolean();
+        }
 
-		// 6th column is TEXT (LONG VARCHAR)
-		col = row.getColumn(6);
-		text = col.getString();
+        // 6th column is TEXT (LONG VARCHAR)
+        col = row.getColumn(6);
+        text = col.getString();
 
 		/* 7th column is LASTCOMPILED (TIMESTAMP) */
-		col = row.getColumn(7);
-		time = col.getTimestamp(new java.util.GregorianCalendar());
+        col = row.getColumn(7);
+        time = col.getTimestamp(new java.util.GregorianCalendar());
 
-		// 8th column is COMPILATIONSCHEMAID (UUID - char(36))
-		col = row.getColumn(8);
-		uuidStr = col.getString();
-		if (uuidStr != null)
-			compUuid = getUUIDFactory().recreateUUID(uuidStr);
+        // 8th column is COMPILATIONSCHEMAID (UUID - char(36))
+        col = row.getColumn(8);
+        uuidStr = col.getString();
+        if (uuidStr != null)
+            compUuid = getUUIDFactory().recreateUUID(uuidStr);
 
-		// 9th column is TEXT (LONG VARCHAR)
-		col = row.getColumn(9);
-		usingText = col.getString();
+        // 9th column is TEXT (LONG VARCHAR)
+        col = row.getColumn(9);
+        usingText = col.getString();
 
-		// 10th column is CONSTANTSTATE (COM...ExecPreparedStatement)
+        // 10th column is CONSTANTSTATE (COM...ExecPreparedStatement)
 
-		// Only load the compiled plan if the statement is valid
-		if (valid) {
-			col = row.getColumn(10);
-			preparedStatement = (ExecPreparedStatement) col.getObject();
-		}
+        // Only load the compiled plan if the statement is valid
+        if (valid) {
+            col = row.getColumn(10);
+            preparedStatement = (ExecPreparedStatement) col.getObject();
+        }
 
-		// 11th column is INITIALLY_COMPILABLE (boolean)
-		col = row.getColumn(11);
-		if ( col.isNull() ) { initiallyCompilable = true; }
-		else { initiallyCompilable = col.getBoolean(); }
+        // 11th column is INITIALLY_COMPILABLE (boolean)
+        col = row.getColumn(11);
+        initiallyCompilable = col.isNull() || col.getBoolean();
 
-		descriptor = new SPSDescriptor(dd, name, 
-									uuid, 
-									suuid,
-									compUuid,
-									type, 
-									valid,
-									text,
-									usingText,
-									time,
-									preparedStatement,
-									initiallyCompilable
-									);
+        descriptor = new SPSDescriptor(dd, name,
+                uuid,
+                suuid,
+                compUuid,
+                type,
+                valid,
+                text,
+                usingText,
+                time,
+                preparedStatement,
+                initiallyCompilable
+        );
 
-		return descriptor;
-	}
+        return descriptor;
+    }
 
 	public ExecRow makeEmptyRow()
 		throws StandardException

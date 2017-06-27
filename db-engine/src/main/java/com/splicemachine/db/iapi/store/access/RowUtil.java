@@ -170,17 +170,15 @@ public class RowUtil
 
 		if (qualifiers != null) 
         {
-			for (int i = 0; i < qualifiers.length; i++)
-			{
-                for (int j = 0; j < qualifiers[i].length; j++)
-                {
-                    int colId = qualifiers[i][j].getColumnId();
+            for (Qualifier[] qualifier : qualifiers) {
+                for (int j = 0; j < qualifier.length; j++) {
+                    int colId = qualifier[j].getColumnId();
 
                     // we are about to set bit colId, need length to be colId+1
-                    qualifierColumnList.grow(colId+1);
+                    qualifierColumnList.grow(colId + 1);
                     qualifierColumnList.set(colId);
                 }
-			}
+            }
 		}
 
 		return qualifierColumnList;
@@ -232,13 +230,9 @@ public class RowUtil
 		@return true if row is empty.
 	*/
 	public static boolean isRowEmpty(
-    DataValueDescriptor[]   row) 
-    {
+    DataValueDescriptor[]   row) {
 
-		if (row == null)
-			return true;
-
-        return row.length == 0;
+        return row == null || row.length == 0;
 
     }
 

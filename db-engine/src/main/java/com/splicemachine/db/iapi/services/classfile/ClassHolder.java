@@ -159,9 +159,9 @@ public class ClassHolder {
 		if (interfaces != null) {
 			int ilen = interfaces.length;
 			out.putU2(ilen);
-			for (int i = 0; i < ilen; i++) {
-				out.putU2(interfaces[i]);
-			}
+            for (int anInterface : interfaces) {
+                out.putU2(anInterface);
+            }
 		} else {
 			out.putU2(0);
 		}

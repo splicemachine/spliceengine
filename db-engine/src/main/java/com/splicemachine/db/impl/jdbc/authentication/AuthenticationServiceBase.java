@@ -374,8 +374,8 @@ public abstract class AuthenticationServiceBase
 
 		boolean dbOnly = false;
 		dbOnly = Boolean.valueOf(
-					this.getDatabaseProperty(
-							Property.DATABASE_PROPERTIES_ONLY)).booleanValue();
+				this.getDatabaseProperty(
+						Property.DATABASE_PROPERTIES_ONLY));
 
 		if (dbOnly)
 			return null;
@@ -466,7 +466,7 @@ public abstract class AuthenticationServiceBase
 
                 if ( passwordLifetime < 0L ) { passwordLifetime = 0L; }
 
-                return new Long( passwordLifetime );
+                return passwordLifetime;
             } catch (Exception e) { return null; }
     }
     /** Parse the value of the password expiration threshold property. Return null if it is bad. */
@@ -476,7 +476,7 @@ public abstract class AuthenticationServiceBase
                 double  expirationThreshold = Double.parseDouble( expirationThresholdString );
 
                 if ( expirationThreshold <= 0L ) { return null; }
-                else { return new Double( expirationThreshold ); }
+                else { return expirationThreshold; }
             } catch (Exception e) { return null; }
     }
     
@@ -540,7 +540,7 @@ public abstract class AuthenticationServiceBase
 					properties,
 					Property.REQUIRE_AUTHENTICATION_PARAMETER
 														);
-		if ( Boolean.valueOf(requireAuthentication).booleanValue() ) { return true; }
+		if (Boolean.valueOf(requireAuthentication)) { return true; }
 
         //
         // NATIVE authentication does not require that you set REQUIRE_AUTHENTICATION_PARAMETER.

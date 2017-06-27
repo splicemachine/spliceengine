@@ -168,22 +168,16 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable
 	}
 
 	/** @see IndexDescriptor#isAscending */
-	public boolean			isAscending(Integer keyColumnPosition)
-	{
-		int i = keyColumnPosition.intValue() - 1;
-		if (i < 0 || i >= baseColumnPositions.length)
-			return false;
-		return isAscending[i];
-	}
+	public boolean			isAscending(Integer keyColumnPosition) {
+        int i = keyColumnPosition - 1;
+        return !(i < 0 || i >= baseColumnPositions.length) && isAscending[i];
+    }
 
 	/** @see IndexDescriptor#isDescending */
-	public boolean			isDescending(Integer keyColumnPosition)
-	{
-		int i = keyColumnPosition.intValue() - 1;
-		if (i < 0 || i >= baseColumnPositions.length)
-			return false;
-		return ! isAscending[i];
-	}
+	public boolean			isDescending(Integer keyColumnPosition) {
+        int i = keyColumnPosition - 1;
+        return !(i < 0 || i >= baseColumnPositions.length) && !isAscending[i];
+    }
 
 	/** @see IndexDescriptor#isAscending */
 	public boolean[]		isAscending()
@@ -255,28 +249,22 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable
 	 *
 	 * @exception IOException	Thrown on read error
 	 */
-	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException
-	{
-		FormatableHashtable fh = (FormatableHashtable)in.readObject();
-		isUnique = fh.getBoolean("isUnique");
-		int bcpLength = fh.getInt("keyLength");
-		baseColumnPositions = new int[bcpLength];
-		isAscending = new boolean[bcpLength];
-		for (int i = 0; i < bcpLength; i++)
-		{
-			baseColumnPositions[i] = fh.getInt("bcp" + i);
-			isAscending[i] = fh.getBoolean("isAsc" + i);
-		}
-		numberOfOrderedColumns = fh.getInt("orderedColumns");
-		indexType = (String)fh.get("indexType");
-		//isUniqueWithDuplicateNulls attribute won't be present if the index
-		//was created in older versions  
-		if (fh.containsKey("isUniqueWithDuplicateNulls"))
-			isUniqueWithDuplicateNulls = fh.getBoolean(
-                                    "isUniqueWithDuplicateNulls");
-		else
-			isUniqueWithDuplicateNulls = false;
-	}
+	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        FormatableHashtable fh = (FormatableHashtable) in.readObject();
+        isUnique = fh.getBoolean("isUnique");
+        int bcpLength = fh.getInt("keyLength");
+        baseColumnPositions = new int[bcpLength];
+        isAscending = new boolean[bcpLength];
+        for (int i = 0; i < bcpLength; i++) {
+            baseColumnPositions[i] = fh.getInt("bcp" + i);
+            isAscending[i] = fh.getBoolean("isAsc" + i);
+        }
+        numberOfOrderedColumns = fh.getInt("orderedColumns");
+        indexType = (String) fh.get("indexType");
+        //isUniqueWithDuplicateNulls attribute won't be present if the index
+        //was created in older versions
+        isUniqueWithDuplicateNulls = fh.containsKey("isUniqueWithDuplicateNulls") && fh.getBoolean("isUniqueWithDuplicateNulls");
+    }
 
 	/**
 	 * @see java.io.Externalizable#writeExternal
@@ -370,10 +358,9 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable
 
 		retval = isUnique ? 1 : 2;
 		retval *= numberOfOrderedColumns;
-		for (int i = 0; i < baseColumnPositions.length; i++)
-		{
-			retval *= baseColumnPositions[i];
-		}
+        for (int baseColumnPosition : baseColumnPositions) {
+            retval *= baseColumnPosition;
+        }
 		retval *= indexType.hashCode();
 
 		return retval;

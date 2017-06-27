@@ -157,7 +157,7 @@ public class UnaryOperatorNode extends OperatorNode
 					"Init params in UnaryOperator node have the " +
 					"wrong type.");
 			}
-			this.operatorType = ((Integer) operatorOrOpType).intValue();
+			this.operatorType = (Integer) operatorOrOpType;
 			this.operator = UnaryOperators[this.operatorType];
 			this.methodName = UnaryMethodNames[this.operatorType];
 			this.resultInterfaceType = UnaryResultTypes[this.operatorType];
@@ -763,7 +763,7 @@ public class UnaryOperatorNode extends OperatorNode
         mb.swap();
 
         // Push whether or not we want to preserve whitespace.
-        mb.push(((Boolean)additionalArgs[0]).booleanValue());
+        mb.push((Boolean) additionalArgs[0]);
 
         // Push the SqlXmlUtil instance as the next argument.
         pushSqlXmlUtil(acb, mb, null, null);

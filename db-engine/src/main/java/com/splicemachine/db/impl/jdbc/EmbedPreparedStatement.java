@@ -1308,32 +1308,32 @@ public abstract class EmbedPreparedStatement extends EmbedStatement implements E
         }
 
         if (x instanceof Boolean) {
-            setBoolean(parameterIndex, ((Boolean) x).booleanValue());
+            setBoolean(parameterIndex, (Boolean) x);
             return;
         }
         if (x instanceof Byte) {
-            setByte(parameterIndex, ((Byte) x).byteValue());
+            setByte(parameterIndex, (Byte) x);
             return;
         }
         if (x instanceof Short) {
-            setShort(parameterIndex, ((Short) x).shortValue());
+            setShort(parameterIndex, (Short) x);
             return;
         }
         if (x instanceof Integer) {
-            setInt(parameterIndex, ((Integer) x).intValue());
+            setInt(parameterIndex, (Integer) x);
             return;
         }
         if (x instanceof Long) {
-            setLong(parameterIndex, ((Long) x).longValue());
+            setLong(parameterIndex, (Long) x);
             return;
         }
 
         if (x instanceof Float) {
-            setFloat(parameterIndex, ((Float) x).floatValue());
+            setFloat(parameterIndex, (Float) x);
             return;
         }
         if (x instanceof Double) {
-            setDouble(parameterIndex, ((Double) x).doubleValue());
+            setDouble(parameterIndex, (Double) x);
             return;
         }
 

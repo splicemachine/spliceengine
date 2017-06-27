@@ -180,11 +180,9 @@ implements Authorizer
                     try 
                     {
                     	// perform the permission checking
-                        for (Iterator iter = requiredPermissionsList.iterator(); 
-                            iter.hasNext();) 
-                        {
-                            ((StatementPermission) iter.next()).check
-                                (lcc, false, activation);
+                        for (Object aRequiredPermissionsList : requiredPermissionsList) {
+                            ((StatementPermission) aRequiredPermissionsList).check
+                                    (lcc, false, activation);
                         }
                     } 
                     finally

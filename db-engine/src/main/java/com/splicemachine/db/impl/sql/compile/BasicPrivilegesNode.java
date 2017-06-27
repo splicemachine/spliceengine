@@ -183,17 +183,15 @@ public class BasicPrivilegesNode extends QueryTreeNode
 		this.descriptorList = new ArrayList();
 					
 		int siz = pis.length;
-		for (int i=0; i < siz; i++) 
-		{
-				Provider provider = (Provider) pis[i].getDependableFinder().getDependable(dd, pis[i].getObjectId());
-							
-				if (provider instanceof TableDescriptor || 
-					provider instanceof ViewDescriptor ||
-					provider instanceof AliasDescriptor)
-				{
-					descriptorList.add(provider);
-				}	   
-		}
+        for (ProviderInfo pi : pis) {
+            Provider provider = (Provider) pi.getDependableFinder().getDependable(dd, pi.getObjectId());
+
+            if (provider instanceof TableDescriptor ||
+                    provider instanceof ViewDescriptor ||
+                    provider instanceof AliasDescriptor) {
+                descriptorList.add(provider);
+            }
+        }
 	}
 	
 }

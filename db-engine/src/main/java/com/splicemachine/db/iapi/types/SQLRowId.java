@@ -155,8 +155,8 @@ public class SQLRowId extends DataType implements RowLocation, RowId{
         else {
             int len = bytes.length;
             out.writeInt(len);
-            for (int i = 0; i < len; ++i) {
-                out.writeByte(bytes[i]);
+            for (byte aByte : bytes) {
+                out.writeByte(aByte);
             }
         }
     }

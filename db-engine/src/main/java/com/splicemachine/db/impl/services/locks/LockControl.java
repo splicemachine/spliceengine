@@ -104,12 +104,10 @@ final class LockControl implements Control {
 	*/
 	public boolean isEmpty() {
 
-		// if we are locked then we are not empty
-		if (!isUnlocked())
-			return false;
+        // if we are locked then we are not empty
+        return isUnlocked() && ((waiting == null) || waiting.isEmpty());
 
-		return (waiting == null) || waiting.isEmpty();
-	}
+    }
 
 	/**
 		Grant this lock.
@@ -548,16 +546,16 @@ final class LockControl implements Control {
 			return;
 
 		Object previous = this;
-		for (ListIterator li = waiting.listIterator(); li.hasNext(); ) {
+        for (Object aWaiting : waiting) {
 
-			ActiveLock waitingLock = ((ActiveLock) li.next());
+            ActiveLock waitingLock = ((ActiveLock) aWaiting);
 
-			Object waiter = waitingLock.getCompatabilitySpace();
+            Object waiter = waitingLock.getCompatabilitySpace();
 
-			waiters.put(waiter, waitingLock);
-			waiters.put(waitingLock, previous);
-			previous = waitingLock;
-		}
+            waiters.put(waiter, waitingLock);
+            waiters.put(waitingLock, previous);
+            previous = waitingLock;
+        }
 	}
 
 	/**

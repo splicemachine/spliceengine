@@ -85,13 +85,10 @@ public class StatementColumnPermission extends StatementTablePermission
 	 */
 	public boolean equals( Object obj)
 	{
-		if( obj instanceof StatementColumnPermission)
-		{
-			StatementColumnPermission other = (StatementColumnPermission) obj;
-			if( ! columns.equals( other.columns))
-				return false;
-			return super.equals( obj);
-		}
+		if( obj instanceof StatementColumnPermission) {
+            StatementColumnPermission other = (StatementColumnPermission) obj;
+            return columns.equals(other.columns) && super.equals(obj);
+        }
 		return false;
 	}
 	

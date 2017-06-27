@@ -182,7 +182,7 @@ public final class SQLDouble extends NumberDataType
 		if (isNull())
 			return null;
 		else
-			return new Double(value);
+			return value;
 	}
 
 
@@ -354,7 +354,7 @@ public final class SQLDouble extends NumberDataType
 		if (isNull = (obj == null))
             ;
 		else
-			setValue(NumberDataType.normalizeDOUBLE(obj.doubleValue()));
+			setValue(NumberDataType.normalizeDOUBLE(obj));
 	}
 
 	private SQLDouble(double val, boolean startsnull) throws StandardException

@@ -543,7 +543,7 @@ public abstract class IdUtil
 		HashSet h = new HashSet();
 		Collections.addAll(h, l2);
 		Vector v = new Vector();
-		for(int ix=0;ix<l1.length;ix++) if (h.contains(l1[ix])) v.add(l1[ix]);
+        for (String aL1 : l1) if (h.contains(aL1)) v.add(aL1);
 		return vectorToIdList(v,true); 
 	}
 
@@ -609,13 +609,12 @@ public abstract class IdUtil
 		if (l == null) return null;
 		HashSet h = new HashSet();
 		Vector v = new Vector();
-		for(int ix=0;ix<l.length;ix++)
-		{
-			if (!h.contains(l[ix]))
-				h.add(l[ix]);
-			else
-				v.add(l[ix]);
-		}
+        for (String aL : l) {
+            if (!h.contains(aL))
+                h.add(aL);
+            else
+                v.add(aL);
+        }
 		return vectorToIdList(v,true);
 	}
 	
@@ -684,8 +683,7 @@ public abstract class IdUtil
 	{
 		if (list==null) return false;
 		String[] list_a = parseIdList(list);
-		for (int ix=0; ix < list_a.length; ix++)
-			if (id.equals(list_a[ix])) return true;
+        for (String aList_a : list_a) if (id.equals(aList_a)) return true;
 		return false;
 	}
 
@@ -718,9 +716,9 @@ public abstract class IdUtil
 		//removing elements that match id. Before we
 		//compare we parse each SQL indentifier in list to convert
 		//to normal form.
-		for (int ix=0; ix < enteredList_a.length; ix++)
-			if (!id.equals(IdUtil.parseSQLIdentifier(enteredList_a[ix])))
-				v.add(enteredList_a[ix]);
+        for (String anEnteredList_a : enteredList_a)
+            if (!id.equals(IdUtil.parseSQLIdentifier(anEnteredList_a)))
+                v.add(anEnteredList_a);
 		if (v.isEmpty())
 			return null;
 		else

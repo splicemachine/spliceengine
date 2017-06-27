@@ -972,12 +972,12 @@ final class StorageFactoryService implements PersistentService
      * @throws SecurityException if the required privileges are missing
      */
     private boolean fileExists(final File file) {
-        return ((Boolean)AccessController.doPrivileged(
+        return (Boolean) AccessController.doPrivileged(
                 new PrivilegedAction() {
                     public Object run() {
-                        return new Boolean(file.exists());
+                        return file.exists();
                     }
-            })).booleanValue();
+                });
     }
 
     /**
@@ -1082,7 +1082,7 @@ final class StorageFactoryService implements PersistentService
 
                         return this;
                     }
-                    catch (Exception se) {
+                    catch (Exception ignored) {
                     }
                 }
                 return null;

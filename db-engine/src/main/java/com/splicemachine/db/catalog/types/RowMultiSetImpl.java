@@ -211,7 +211,9 @@ public class RowMultiSetImpl extends BaseTypeIdImpl
 
         out.writeInt( count );
 
-        for ( int i = 0; i < count; i++ ) { out.writeUTF( _columnNames[ i ] ); }
+        for (String _columnName : _columnNames) {
+            out.writeUTF(_columnName);
+        }
         for ( int i = 0; i < count; i++ ) { out.writeObject( _types[ i ] ); }
     }
 

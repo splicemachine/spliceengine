@@ -82,9 +82,9 @@ class MemberTable {
 
 		Vector lentries = entries;
 		int count = lentries.size();
-		for (int i = 0; i < count; i++) {
-			((ClassMember) lentries.get(i)).put(out);
-		}
+        for (Object lentry : lentries) {
+            ((ClassMember) lentry).put(out);
+        }
 	}
 
 	int size() {
@@ -96,9 +96,9 @@ class MemberTable {
 
 		Vector lentries = entries;
 		int count = lentries.size();
-		for (int i = 0; i < count; i++) {
-			size += ((ClassMember) lentries.get(i)).classFileSize();
-		}
+        for (Object lentry : lentries) {
+            size += ((ClassMember) lentry).classFileSize();
+        }
 
 		return size;
 	}
@@ -133,17 +133,12 @@ class MemberTableHash
 		hashCode = name.hashCode() + descriptor.hashCode();
 	}
 
-	public boolean equals(Object other)
-	{
-		MemberTableHash mth = (MemberTableHash) other;
+	public boolean equals(Object other) {
+        MemberTableHash mth = (MemberTableHash) other;
 
-		if (other == null)
-		{
-			return false;
-		}
+        return other != null && name.equals(mth.name) && descriptor.equals(mth.descriptor);
 
-		return name.equals(mth.name) && descriptor.equals(mth.descriptor);
-	}
+    }
 
 	public int hashCode()
 	{

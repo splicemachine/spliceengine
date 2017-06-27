@@ -1131,10 +1131,9 @@ public class StaticMethodCallNode extends MethodCallNode {
 
 			// add the throws clause for the public static method we are going to call.
 			Class[] throwsSet = ((java.lang.reflect.Method) method).getExceptionTypes();
-			for (int te = 0; te < throwsSet.length; te++)
-			{
-				mbnc.addThrownException(throwsSet[te].getName());
-			}
+            for (Class aThrowsSet : throwsSet) {
+                mbnc.addThrownException(aThrowsSet.getName());
+            }
 
 			mbnc.getField(returnsNullOnNullState);
 			mbnc.conditionalIf();

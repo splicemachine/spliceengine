@@ -162,34 +162,34 @@ public abstract class BasicPrivilegeInfo extends PrivilegeInfo {
 			if (descriptorList != null) {
 				TransactionController tc = lcc.getTransactionExecute();
 				int siz = descriptorList.size();
-				for (int i = 0; i < siz; i++) {
-					TupleDescriptor p;
-					SchemaDescriptor s = null;
+                for (Object aDescriptorList : descriptorList) {
+                    TupleDescriptor p;
+                    SchemaDescriptor s = null;
 
-					p = (TupleDescriptor) descriptorList.get(i);
-					if (p instanceof TableDescriptor) {
-						TableDescriptor t = (TableDescriptor) p;
-						s = t.getSchemaDescriptor();
-					} else if (p instanceof ViewDescriptor) {
-						ViewDescriptor v = (ViewDescriptor) p;
-						s = dd.getSchemaDescriptor(v.getCompSchemaId(), tc);
-					} else if (p instanceof AliasDescriptor) {
-						AliasDescriptor a = (AliasDescriptor) p;
-						s = dd.getSchemaDescriptor(a.getSchemaUUID(), tc);
-					}
+                    p = (TupleDescriptor) aDescriptorList;
+                    if (p instanceof TableDescriptor) {
+                        TableDescriptor t = (TableDescriptor) p;
+                        s = t.getSchemaDescriptor();
+                    } else if (p instanceof ViewDescriptor) {
+                        ViewDescriptor v = (ViewDescriptor) p;
+                        s = dd.getSchemaDescriptor(v.getCompSchemaId(), tc);
+                    } else if (p instanceof AliasDescriptor) {
+                        AliasDescriptor a = (AliasDescriptor) p;
+                        s = dd.getSchemaDescriptor(a.getSchemaUUID(), tc);
+                    }
 
-					if (s != null && !user.equals(s.getAuthorizationId())) {
-						throw StandardException.newException(
-								SQLState.AUTH_NO_OBJECT_PERMISSION,
-								user,
-								"grant",
-								sd.getSchemaName(),
-								td.getName());
-					}
+                    if (s != null && !user.equals(s.getAuthorizationId())) {
+                        throw StandardException.newException(
+                                SQLState.AUTH_NO_OBJECT_PERMISSION,
+                                user,
+                                "grant",
+                                sd.getSchemaName(),
+                                td.getName());
+                    }
 
-					// FUTURE: if object is not own by grantor then check if
-					//         the grantor have grant option.
-				}
+                    // FUTURE: if object is not own by grantor then check if
+                    //         the grantor have grant option.
+                }
 			}
 		}
 
@@ -198,9 +198,9 @@ public abstract class BasicPrivilegeInfo extends PrivilegeInfo {
 
 	public boolean hasColumns() {
 		if(columnBitSets != null && columnBitSets.length>0){
-			for(int i=0; i<columnBitSets.length; i++){
-				if(columnBitSets[i]!= null) return true;
-			}
+            for (FormatableBitSet columnBitSet : columnBitSets) {
+                if (columnBitSet != null) return true;
+            }
 		}
 		return false;
 	}

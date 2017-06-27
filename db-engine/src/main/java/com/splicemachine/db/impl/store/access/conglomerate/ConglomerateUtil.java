@@ -200,9 +200,8 @@ public final class ConglomerateUtil
     ObjectOutput out)
         throws IOException
     {
-        for (int i = 0; i < format_id_array.length; i++)
-        {
-            FormatIdUtil.writeFormatIdInteger(out, format_id_array[i]);
+        for (int aFormat_id_array : format_id_array) {
+            FormatIdUtil.writeFormatIdInteger(out, aFormat_id_array);
         }
     }
 
@@ -267,11 +266,9 @@ public final class ConglomerateUtil
     {
         // count non COLLATION_TYPE_UCS_BASIC values.
         int non_collate_val_count = 0;
-        for (int i = 0; i < collation_id_array.length; i++)
-        {
-            if (collation_id_array[i] != 
-                    StringDataValue.COLLATION_TYPE_UCS_BASIC)
-            {
+        for (int aCollation_id_array : collation_id_array) {
+            if (aCollation_id_array !=
+                    StringDataValue.COLLATION_TYPE_UCS_BASIC) {
                 non_collate_val_count++;
             }
         }

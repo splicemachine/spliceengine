@@ -305,9 +305,9 @@ public class ValueRow implements ExecRow, Externalizable {
         if (ncols != row.nColumns())
             return -1;
         int compare;
-        for (int i = 0; i < compareKeys.length; i++ ) {
+        for (int compareKey : compareKeys) {
             try {
-                compare = getColumn(compareKeys[i]).compare(row.getColumn(compareKeys[i]));
+                compare = getColumn(compareKey).compare(row.getColumn(compareKey));
                 if (compare != 0)
                     return compare;
             } catch (StandardException e) {
@@ -353,10 +353,8 @@ public class ValueRow implements ExecRow, Externalizable {
         if (getClass() != obj.getClass())
             return false;
         ValueRow other = (ValueRow) obj;
-        if (!Arrays.equals(column, other.column))
-            return false;
-		return ncols == other.ncols;
-	}
+        return Arrays.equals(column, other.column) && ncols == other.ncols;
+    }
 
     @Override
     public ExecRow getKeyedExecRow(int[] keyColumns) throws StandardException {

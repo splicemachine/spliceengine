@@ -354,10 +354,9 @@ public class CompilerContextImpl extends ContextImpl
 			return;
 		}
 
-		for (int i = 0; i < objs.length; i++)
-		{
-			addSavedObject(objs[i]);
-		}		
+        for (Object obj : objs) {
+            addSavedObject(obj);
+        }
 	}
 
 	/** @see CompilerContext#setCursorInfo */
@@ -446,7 +445,7 @@ public class CompilerContextImpl extends ContextImpl
 		** Try to find the given conglomerate number in the array of
 		** conglom ids.
 		*/
-		Pair<Long, Boolean> pairedKey = Pair.newPair(new Long(conglomerateNumber), new Boolean(skipStats));
+		Pair<Long, Boolean> pairedKey = Pair.newPair(conglomerateNumber, skipStats);
 		StoreCostController scc = storeCostControllers.get(pairedKey);
 		if (scc != null)
 			return scc;
@@ -721,7 +720,7 @@ public class CompilerContextImpl extends ContextImpl
 
 	public void popCurrentPrivType( )
 	{
-		currPrivType = ((Integer) privTypeStack.pop()).intValue();
+		currPrivType = (Integer) privTypeStack.pop();
 	}
 
 	/**
@@ -935,21 +934,19 @@ public class CompilerContextImpl extends ContextImpl
 		ArrayList list = new ArrayList( size);
 		if( requiredRoutinePrivileges != null)
 		{
-			for( Iterator itr = requiredRoutinePrivileges.keySet().iterator(); itr.hasNext();)
-			{
-				UUID routineUUID = (UUID) itr.next();
-				
-				list.add( new StatementRoutinePermission( routineUUID));
-			}
+            for (Object o : requiredRoutinePrivileges.keySet()) {
+                UUID routineUUID = (UUID) o;
+
+                list.add(new StatementRoutinePermission(routineUUID));
+            }
 		}
 		if( requiredUsagePrivileges != null)
 		{
-			for( Iterator itr = requiredUsagePrivileges.keySet().iterator(); itr.hasNext();)
-			{
-				UUID objectID = (UUID) itr.next();
-				
-				list.add( new StatementGenericPermission( objectID, (String) requiredUsagePrivileges.get( objectID ), PermDescriptor.USAGE_PRIV ) );
-			}
+            for (Object o : requiredUsagePrivileges.keySet()) {
+                UUID objectID = (UUID) o;
+
+                list.add(new StatementGenericPermission(objectID, (String) requiredUsagePrivileges.get(objectID), PermDescriptor.USAGE_PRIV));
+            }
 		}
 		if( requiredTablePrivileges != null)
 		{
@@ -980,11 +977,9 @@ public class CompilerContextImpl extends ContextImpl
 	/**
 	 * Report whether the given sequence has been referenced already.
 	 */
-    public boolean isReferenced( SequenceDescriptor sd )
-    {
-        if ( referencedSequences == null ) { return false; }
+    public boolean isReferenced( SequenceDescriptor sd ) {
+        return referencedSequences != null && referencedSequences.containsKey(sd.getUUID());
 
-        return referencedSequences.containsKey( sd.getUUID() );
     }
 
 	/*

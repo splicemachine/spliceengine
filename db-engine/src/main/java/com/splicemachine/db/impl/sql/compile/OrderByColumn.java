@@ -240,7 +240,7 @@ public class OrderByColumn extends OrderedColumn {
 		}else if(isReferedColByNum(expression)){
 			
 			ResultColumnList targetCols = target.getResultColumns();
-			columnPosition = ((Integer)expression.getConstantValueAsObject()).intValue();
+			columnPosition = (Integer) expression.getConstantValueAsObject();
 			resultCol = targetCols.getOrderByColumn(columnPosition);
 
 			/* Column is out of range if either a) resultCol is null, OR
@@ -274,21 +274,19 @@ public class OrderByColumn extends OrderedColumn {
 					new CollectNodesVisitor(ColumnReference.class);
 				expression.accept(collectNodesVisitor);
 
-				for (Iterator it = collectNodesVisitor.getList().iterator();
-				it.hasNext(); )
-				{//visits through the columns in this OrderByColumn
-					ColumnReference cr1=(ColumnReference)it.next();
-					col=cr1.getColumnName();
-					match = columnMatchFound(target,cr1);
-					/* breaks if a match not found, this is needed
+                for (Object o : collectNodesVisitor.getList()) {//visits through the columns in this OrderByColumn
+                    ColumnReference cr1 = (ColumnReference) o;
+                    col = cr1.getColumnName();
+                    match = columnMatchFound(target, cr1);
+                    /* breaks if a match not found, this is needed
 					 * because all column references in this
 					 * OrderByColumn should be there in the select
 					 * clause.*/
-					if(!match)
-						throw StandardException.newException(
-								SQLState.LANG_DISTINCT_ORDER_BY,
-								col);
-				}
+                    if (!match)
+                        throw StandardException.newException(
+                                SQLState.LANG_DISTINCT_ORDER_BY,
+                                col);
+                }
 			}
 
 			if( SanityManager.DEBUG)
@@ -481,15 +479,11 @@ public class OrderByColumn extends OrderedColumn {
 	}
 
 	public static boolean isReferedColByNum(ValueNode expression)
-	throws StandardException{
-		
-		if(!expression.isConstantExpression()){
-			return false;
-		}
-		return expression instanceof NumericConstantNode &&
-				expression.getConstantValueAsObject() instanceof Integer;
+	throws StandardException {
 
-	}
+        return expression.isConstantExpression() && expression instanceof NumericConstantNode && expression.getConstantValueAsObject() instanceof Integer;
+
+    }
 
 	
 	private ResultColumn resolveColumnReference(ResultSetNode target,

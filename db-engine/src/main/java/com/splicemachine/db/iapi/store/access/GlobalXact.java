@@ -90,29 +90,27 @@ public abstract class GlobalXact {
 		if (global_id != null) 
 	    {
 			int mask = 0;
-			for (int i = 0; i < global_id.length; i++)
-		    {
-				mask = (global_id[i] & 0xFF);
+            for (byte aGlobal_id : global_id) {
+                mask = (aGlobal_id & 0xFF);
                 if (mask < 16) {
                     globalhex += "0" + Integer.toHexString(mask);
                 } else {
                     globalhex += Integer.toHexString(mask);
                 }
-		    }
+            }
 	    }
 	
 		if (branch_id != null)
 	    {
 			int mask = 0;
-			for (int i = 0; i < branch_id.length; i++)
-		    {
-				mask = (branch_id[i] & 0xFF);
+            for (byte aBranch_id : branch_id) {
+                mask = (aBranch_id & 0xFF);
                 if (mask < 16) {
                     branchhex += "0" + Integer.toHexString(mask);
                 } else {
                     branchhex += Integer.toHexString(mask);
                 }
-		    }
+            }
 	    }
 
 		return("(" + format_id + "," + globalhex + "," + branchhex + ")");
@@ -131,14 +129,12 @@ public abstract class GlobalXact {
 		// format_id.  Lop off top bits.
 		int hash = global_id.length + branch_id.length + (format_id & 0xFFFFFFF);
 
-		for (int i = 0; i < global_id.length; i++) 
-	    {
-			hash += global_id[i];
-	    }
-		for (int i = 0; i < branch_id.length; i++) 
-	    {
-			hash += branch_id[i];
-	    }
+        for (byte aGlobal_id : global_id) {
+            hash += aGlobal_id;
+        }
+        for (byte aBranch_id : branch_id) {
+            hash += aBranch_id;
+        }
 	
 		return(hash);
     }

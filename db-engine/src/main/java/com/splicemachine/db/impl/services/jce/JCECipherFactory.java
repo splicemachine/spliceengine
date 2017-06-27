@@ -285,8 +285,7 @@ public final class JCECipherFactory implements CipherFactory, java.security.Priv
 		
 
 		int rotation = 0;
-		for (int i = 0; i < bootPassword.length; i++)
-			rotation += bootPassword[i];
+        for (byte aBootPassword : bootPassword) rotation += aBootPassword;
 
 		for (int i = 0; i < encodedKeyByteLength; i++)
 			muck[i] = (byte)(bootPassword[(i+rotation)%ulength] ^
@@ -306,7 +305,7 @@ public final class JCECipherFactory implements CipherFactory, java.security.Priv
 		int length = secretKey.length;
 
 		if (length < CipherFactory.MIN_BOOTPASS_LENGTH)
-			throw StandardException.newException(SQLState.ILLEGAL_BP_LENGTH, new Integer(MIN_BOOTPASS_LENGTH));
+			throw StandardException.newException(SQLState.ILLEGAL_BP_LENGTH, MIN_BOOTPASS_LENGTH);
 
 		try
 		{
@@ -775,7 +774,7 @@ public final class JCECipherFactory implements CipherFactory, java.security.Priv
 		byte[] newBPAscii = StringUtil.getAsciiBytes(newBP);
 		if (newBPAscii == null || newBPAscii.length < CipherFactory.MIN_BOOTPASS_LENGTH)
 			throw StandardException.newException(SQLState.ILLEGAL_BP_LENGTH,
-                new Integer(CipherFactory.MIN_BOOTPASS_LENGTH));
+                    CipherFactory.MIN_BOOTPASS_LENGTH);
 
 		// verify old key
 
