@@ -63,7 +63,7 @@ public class OlapClientTest {
         olapServer.stopServer();
     }
 
-    @Test(timeout = 3000)
+    @Test
     public void simpleTest() throws Exception {
         final Random rand = new Random(0);
         int sleep = rand.nextInt(200);
@@ -72,7 +72,7 @@ public class OlapClientTest {
         Assert.assertEquals(13, result.order);
     }
 
-    @Test(timeout = 16000)
+    @Test
     public void longRunningTest() throws Exception {
         final Random rand = new Random(0);
         int sleep = 4000;
@@ -81,7 +81,7 @@ public class OlapClientTest {
         Assert.assertEquals(13, result.order);
     }
 
-    @Test(timeout = 3000)
+    @Test
     public void manyFastJobsTest() throws Exception {
         int sleep = 0;
         for (int i = 0; i < 200; ++i) {
@@ -92,7 +92,7 @@ public class OlapClientTest {
     }
 
 
-    @Test(timeout = 20000, expected = IllegalStateException.class)
+    @Test(expected = IllegalStateException.class)
     public void cantReuseJobsTest() throws Exception {
         final Random rand = new Random(0);
         int sleep = rand.nextInt(200);
@@ -104,7 +104,7 @@ public class OlapClientTest {
         Assert.fail("Should have raised exception");
     }
 
-    @Test(timeout = 3000)
+    @Test
     public void failingJobTest() throws Exception {
         try {
             DumbOlapResult result = olapClient.execute(new FailingDistributedJob("failingJob"));
@@ -114,14 +114,14 @@ public class OlapClientTest {
         }
     }
 
-    @Test(timeout = 6000)
+    @Test
     public void repeatedFailingJob() throws Exception{
         for(int i=0;i<100;i++){
             failingJobTest();
         }
     }
 
-    @Test(timeout = 20000)
+    @Test
     public void concurrencyTest() throws Exception {
         int size = 32;
         Thread[] threads = new Thread[size];
@@ -153,7 +153,7 @@ public class OlapClientTest {
         }
     }
 
-    @Test(timeout = 20000)
+    @Test
     public void concurrencySameNameTest() throws Exception {
         int size = 32;
         Thread[] threads = new Thread[size];
@@ -184,7 +184,7 @@ public class OlapClientTest {
         }
     }
 
-    @Test(timeout = 20000)
+    @Test
     public void overflowTest() throws Exception {
         int size = 32;
         Thread[] threads = new Thread[size];
@@ -216,7 +216,7 @@ public class OlapClientTest {
         }
     }
 
-    @Test(timeout=10000)
+    @Test
     public void testServerFailureAfterSubmit() throws Exception{
        /*
         * Tests what would happen if the server went down after we had successfully submitted, but while
