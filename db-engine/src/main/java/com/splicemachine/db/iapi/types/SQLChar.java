@@ -1101,8 +1101,7 @@ public class SQLChar
         }
         catch (SQLException se)
         {
-            IOException ioe = new IOException( se.getMessage() );
-            ioe.initCause( se );
+            IOException ioe = new IOException( se.getMessage(), se);
 
             throw ioe;
         }
@@ -2015,9 +2014,7 @@ public class SQLChar
                     false,  // parameter
                     true,   // read
                     dataSize,
-                    transferSize);
-
-                warning.initCause(se);
+                    transferSize, se);
 
                 StatementContext statementContext = (StatementContext)
                     ContextService.getContext(ContextId.LANG_STATEMENT);

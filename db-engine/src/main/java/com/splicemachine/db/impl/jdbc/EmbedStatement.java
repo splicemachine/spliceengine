@@ -279,7 +279,7 @@ public class EmbedStatement extends ConnectionChild implements EngineStatement {
         if (active) {
             try {
                 checkExecStatus();
-            } catch (SQLException sqle) {
+            } catch (SQLException ignored) {
             }
         }
         return !active;
@@ -1017,10 +1017,9 @@ public class EmbedStatement extends ConnectionChild implements EngineStatement {
 
             SQLException batch =
                     new java.sql.BatchUpdateException(sqle.getMessage(), sqle.getSQLState(),
-                            sqle.getErrorCode(), successfulUpdateCount);
+                            sqle.getErrorCode(), successfulUpdateCount, sqle);
 
             batch.setNextException(sqle);
-            batch.initCause(sqle);
             throw batch;
         }
     }
@@ -1339,7 +1338,7 @@ public class EmbedStatement extends ConnectionChild implements EngineStatement {
                 if (a.isSingleExecution()) {
                     try {
                         a.close();
-                    } catch (Throwable tt) {
+                    } catch (Throwable ignored) {
                     }
                 }
                 throw handleException(t);
@@ -1533,7 +1532,7 @@ public class EmbedStatement extends ConnectionChild implements EngineStatement {
         if (pvs.checkNoDeclaredOutputParameters()) {
             try {
                 activation.close();
-            } catch (StandardException se) {
+            } catch (StandardException ignored) {
             }
             throw newSQLException(SQLState.REQUIRES_CALLABLE_STATEMENT, SQLText);
         }

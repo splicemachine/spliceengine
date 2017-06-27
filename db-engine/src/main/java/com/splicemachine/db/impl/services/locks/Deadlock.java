@@ -519,7 +519,7 @@ inner:		for (;;) {
 					Long containerId = (Long) attributes.get(VirtualLockTable.CONTAINERID);
 					try {
 						conglomId = new Long(tc.findConglomid(containerId.longValue()));
-					} catch (StandardException se) {
+					} catch (StandardException ignored) {
 					}
 				}
 				addInfo(sb, ", ", tabInfo.getTableName(conglomId));

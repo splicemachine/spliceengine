@@ -132,7 +132,7 @@ public class JarStorageFactory extends BaseStorageFactory
         if (zipData != null) {
             try {
                 zipData.close();
-            } catch (IOException e) {
+            } catch (IOException ignored) {
             }
             zipData = null;
         }

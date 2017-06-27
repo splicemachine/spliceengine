@@ -43,9 +43,6 @@ import com.splicemachine.db.iapi.types.SQLBoolean;
 import com.splicemachine.db.iapi.types.SQLVarchar;
 import java.sql.Types;
 
-/**
- * Created by jyuan on 2/6/15.
- */
 public class SYSBACKUPFILESETRowFactory extends CatalogRowFactory {
 
     private static final String TABLENAME_STRING = "SYSBACKUPFILESET";

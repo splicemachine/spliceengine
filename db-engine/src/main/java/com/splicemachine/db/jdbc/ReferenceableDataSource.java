@@ -395,8 +395,8 @@ public class ReferenceableDataSource implements
 					if (ov != null) {
 						ref.add(new StringRefAddr(propertyName, ov.toString()));
 					}
-				} catch (IllegalAccessException iae) {
-				} catch (InvocationTargetException ite) {
+				} catch (IllegalAccessException ignored) {
+				} catch (InvocationTargetException ignored) {
 				}
 
 

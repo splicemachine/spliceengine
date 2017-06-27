@@ -60,7 +60,7 @@ public final class MessageService {
 	public static ResourceBundle getBundleForLocale(Locale locale, String msgId) {
 		try {
 			return MessageService.getBundleWithEnDefault("com.splicemachine.db.loc.m"+hashString50(msgId), locale);
-		} catch (MissingResourceException mre) {
+		} catch (MissingResourceException ignored) {
 		}
 		return null;
 	}
@@ -107,7 +107,7 @@ public final class MessageService {
 		} catch (MissingResourceException mre) {
 			// message does not exist in the requested locale or the default locale.
 			// most likely it does exist in our fake base class _en, so try that.
-		} catch (ShutdownException se) {
+		} catch (ShutdownException ignored) {
 		}
 		return formatMessage(getBundleForLocale(EN, messageId), messageId, arguments, false);
 	}
@@ -198,7 +198,7 @@ public final class MessageService {
 		} catch (MissingResourceException mre) {
 			// message does not exist in the requested locale
 			// most likely it does exist in our fake base class _en, so try that.
-		} catch (ShutdownException se) {
+		} catch (ShutdownException ignored) {
 		}
 		msg[0] = formatMessage(getBundleForLocale(EN, messageId), messageId, arguments, false);
 		rc[0] = 0;
@@ -221,7 +221,7 @@ public final class MessageService {
 		} catch (MissingResourceException mre) {
 			// message does not exist in the requested locale
 			// most likely it does exist in our fake base class _en, so try that.
-		} catch (ShutdownException se) {
+		} catch (ShutdownException ignored) {
 		}
 		locMsg = formatMessage(getBundleForLocale(EN, messageId), messageId, args, false);
 		return locMsg;
@@ -236,7 +236,7 @@ public final class MessageService {
 		try {
 			if (bundle != null)
 				return bundle.getString(messageId + "." + propertyName);
-		} catch (MissingResourceException mre) {
+		} catch (MissingResourceException ignored) {
 		}
 		return null;
 	}
@@ -257,7 +257,7 @@ public final class MessageService {
 				try {
 					return MessageFormat.format(messageId, arguments);
 				}
-				catch (IllegalArgumentException iae) {
+				catch (IllegalArgumentException ignored) {
 				}
 				catch (NullPointerException npe) {
 					//

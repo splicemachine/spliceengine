@@ -162,7 +162,7 @@ public abstract class JVMInfo
 
                     if (Float.parseFloat(javaVersion) > 1.8f)
                         id = J2SE_18;
-				} catch (NumberFormatException nfe) {
+				} catch (NumberFormatException ignored) {
 				}
 			}
 		}

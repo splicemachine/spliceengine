@@ -236,12 +236,12 @@ nextFile:	for (int i = 0; i < list.length; i++) {
 			if (from_s != null)
 			{
 				try { from_s.close(); }
-				catch (IOException ioe) {}
+				catch (IOException ignored) {}
 			}
 			if (to_s != null)
 			{
 				try { to_s.close(); }
-				catch (IOException ioe) {}
+				catch (IOException ignored) {}
 			}
 		}
 
@@ -362,12 +362,12 @@ nextFile:	for (int i = 0; i < list.length; i++) {
 			if (from_s != null)
 			{
 				try { from_s.close(); }
-				catch (IOException ioe) {}
+				catch (IOException ignored) {}
 			}
 			if (to_s != null)
 			{
 				try { to_s.close(); }
-				catch (IOException ioe) {}
+				catch (IOException ignored) {}
 			}
 		}
 
@@ -483,12 +483,12 @@ nextFile:	for (int i = 0; i < list.length; i++) {
 			if (from_s != null)
 			{
 				try { from_s.close(); }
-				catch (IOException ioe) {}
+				catch (IOException ignored) {}
 			}
 			if (to_s != null)
 			{
 				try { to_s.close(); }
-				catch (IOException ioe) {}
+				catch (IOException ignored) {}
 			}
 		}
 
@@ -537,12 +537,12 @@ nextFile:	for (int i = 0; i < list.length; i++) {
 			if (from_s != null)
 			{
 				try { from_s.close(); }
-				catch (IOException ioe) {}
+				catch (IOException ignored) {}
 			}
 			if (to_s != null)
 			{
 				try { to_s.close(); }
-				catch (IOException ioe) {}
+				catch (IOException ignored) {}
 			}
 		}
 
@@ -593,7 +593,7 @@ nextFile:	for (int i = 0; i < list.length; i++) {
         try {
             URL url = new URL(originalName);
             result = url.getFile();
-        } catch (MalformedURLException ex) {}
+        } catch (MalformedURLException ignored) {}
 
         return result;
     }

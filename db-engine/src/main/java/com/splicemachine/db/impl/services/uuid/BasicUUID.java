@@ -162,7 +162,7 @@ public class BasicUUID implements UUID, Formatable
 				value += nibble;
 			}
 		}
-		catch (Exception e)
+		catch (Exception ignored)
 		{
 		}
 

@@ -377,7 +377,7 @@ class BCMethod implements MethodBuilder {
 
 				myEntry.addAttribute("Exceptions", eout);
 
-			} catch (IOException ioe) {
+			} catch (IOException ignored) {
 			}			
 		}
 	}

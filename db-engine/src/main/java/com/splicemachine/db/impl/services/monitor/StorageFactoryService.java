@@ -477,7 +477,7 @@ final class StorageFactoryService implements PersistentService
                             if (fos != null) {
                                 try {
                                     fos.close();
-                                } catch (IOException ioe2) {
+                                } catch (IOException ignored) {
                                 }
                                 fos = null;
                             }

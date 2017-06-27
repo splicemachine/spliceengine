@@ -487,7 +487,7 @@ cleanup:	for (int index = holder.size() - 1; index >= 0; index--) {
 		else if (finder != null) {
 			try {
 				return finder.getCurrentLocale();
-			} catch (StandardException se) {
+			} catch (StandardException ignored) {
 				
 			}
 		}

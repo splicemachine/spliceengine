@@ -77,7 +77,7 @@ public class ClassSize
             catalog = (java.util.Hashtable)
               Class.forName( "com.splicemachine.db.iapi.services.cache.ClassSizeCatalog").newInstance();
         }
-        catch( Exception e){}
+        catch( Exception ignored){}
 
         // Figure out whether this is a 32 or 64 bit machine.
         int tmpRefSize = fetchRefSizeFromSystemProperties();
@@ -329,7 +329,7 @@ public class ClassSize
         String dataModel = getSystemProperty("sun.arch.data.model");
         try {
             return (Integer.parseInt(dataModel) / 8);
-        } catch (NumberFormatException ignoreNFE) {}
+        } catch (NumberFormatException ignored) {}
 
         // Try 'os.arch'
         String arch = getSystemProperty("os.arch");

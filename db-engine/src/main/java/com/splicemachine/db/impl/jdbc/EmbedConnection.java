@@ -871,7 +871,7 @@ public abstract class EmbedConnection implements EngineConnection
 		} catch (StandardException e) {
 			try {
 				tr.rollback();
-			} catch (StandardException ee) {
+			} catch (StandardException ignored) {
 			}
 
 			throw handleException(e);

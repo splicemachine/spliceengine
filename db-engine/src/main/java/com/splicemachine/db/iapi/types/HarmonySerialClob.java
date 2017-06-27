@@ -86,9 +86,8 @@ public class HarmonySerialClob implements Clob, Serializable, Cloneable {
             characterStream.read(buf);
         } catch (IOException e) {
             SQLException se = new SQLException("SerialClob: "
-                    + e.getMessage());
+                    + e.getMessage(), e);
 
-            se.initCause(e);
             throw se;
         }
     }

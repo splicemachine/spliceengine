@@ -286,7 +286,7 @@ abstract class BaseMonitor
 			// would only work with a sane codeline.
 			try {
 				systemProperties = System.getProperties();
-			} catch (SecurityException se) {
+			} catch (SecurityException ignored) {
 			}
 		}
 
@@ -1298,7 +1298,7 @@ nextModule:
                     try {
                         if( is != null)
                             is.close();
-                    } catch (IOException ioe2) {
+                    } catch (IOException ignored) {
                     }
                 }
             }
@@ -1383,7 +1383,7 @@ nextModule:
 					is = null;
 				}
 
-			} catch (IOException e) {
+			} catch (IOException ignored) {
 			}
 		}
 	}
@@ -1958,7 +1958,7 @@ nextModule:
 				if ((systemStreams == null) || bothPlaces)
 					logging.println(s);
 			}
-		} catch (IOException ioe) {
+		} catch (IOException ignored) {
 		}
 
 		if ((systemStreams == null) || bothPlaces)
@@ -2150,7 +2150,7 @@ nextModule:
                                     return;
                             }
                         }
-                        catch( StandardException se){}
+                        catch( StandardException ignored){}
 					}
                 }
             }

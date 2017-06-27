@@ -52,9 +52,6 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.sql.RowId;
 
-/**
- * Created by jyuan on 10/8/14.
- */
 public class SQLRowId extends DataType implements RowLocation, RowId{
 
     private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog(SQLRowId.class);

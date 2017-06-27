@@ -100,7 +100,7 @@ public class SQLArray extends DataType implements ArrayDataValue {
 				if (input != null) {
 					input.close();
 				}
-			} catch (Exception e) {}
+			} catch (Exception ignored) {}
 		}
 
 	}
@@ -129,7 +129,7 @@ public class SQLArray extends DataType implements ArrayDataValue {
 				if (output != null) {
 					output.close();
 				}
-			} catch (Exception e) {}
+			} catch (Exception ignored) {}
 		}
 
 	}

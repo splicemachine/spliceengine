@@ -105,7 +105,7 @@ public class JarUtil
 		}
 		finally {
 			try {if (is != null) is.close();}
-			catch (IOException ioe) {}
+			catch (IOException ignored) {}
 		}
 	}
 
@@ -184,7 +184,7 @@ public class JarUtil
 		}
 		finally {
 			try {if (is != null) is.close();}
-			catch (IOException ioe) {}
+			catch (IOException ignored) {}
 		}
 	}
 

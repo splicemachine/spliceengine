@@ -1161,7 +1161,7 @@ class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cl
         Object clo = null;
         try {
             clo = super.clone();
-        } catch (CloneNotSupportedException e) {
+        } catch (CloneNotSupportedException ignored) {
         }
         return clo;
     }

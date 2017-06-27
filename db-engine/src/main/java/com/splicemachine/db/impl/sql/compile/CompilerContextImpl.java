@@ -471,7 +471,7 @@ public class CompilerContextImpl extends ContextImpl
 			StoreCostController scc = entry.getValue();
 			try {
 				scc.close();
-			} catch (StandardException se) {
+			} catch (StandardException ignored) {
 			}
 		}
 

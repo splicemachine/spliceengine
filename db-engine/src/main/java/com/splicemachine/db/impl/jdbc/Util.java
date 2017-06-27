@@ -375,8 +375,7 @@ public abstract class Util  {
      * @return an {@code IOException} linked to {@code cause}
      */
     static IOException newIOException(Throwable cause) {
-        IOException ioe = new IOException(cause.getMessage());
-        ioe.initCause(cause);
+        IOException ioe = new IOException(cause.getMessage(), cause);
         return ioe;
     }
 

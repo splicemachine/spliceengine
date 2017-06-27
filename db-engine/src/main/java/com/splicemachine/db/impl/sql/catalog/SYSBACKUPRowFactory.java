@@ -31,10 +31,6 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
-/**
- * Created by jyuan on 2/6/15.
- */
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;

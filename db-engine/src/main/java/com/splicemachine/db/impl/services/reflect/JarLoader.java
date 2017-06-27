@@ -399,7 +399,7 @@ public final class JarLoader extends SecureClassLoader {
         if (jar != null) {
             try {
                 jar.close();
-            } catch (IOException ioe) {
+            } catch (IOException ignored) {
             }
             jar = null;
 
@@ -472,7 +472,7 @@ public final class JarLoader extends SecureClassLoader {
             if (jarIn != null) {
                 try {
                     jarIn.close();
-                } catch (IOException ioe2) {
+                } catch (IOException ignored) {
                 }
             }            
         }

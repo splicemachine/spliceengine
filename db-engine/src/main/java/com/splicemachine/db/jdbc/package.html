@@ -90,7 +90,7 @@ The JDBC specicification is in theory a single document however clarifications o
 </TR>
 </TABLE>
 <hr>
-<a name="implblob"/a>
+<a name="implblob"/>
 <h3>java.sql.Blob</h3>
 <h4>Clarification for getBytes(int pos, int length)</h4>
 If the pos (position) argument is greater than the length of the BLOB then an exception is thrown.
@@ -99,7 +99,7 @@ This matches the semantics of the SQL SUBSTR function.
 If the pattern argument has length zero, then the value of start argument will be returned.
 This matches the semantics of the SQL LOCATE function.
 <hr>
-<a name="implclob"/a>
+<a name="implclob"/>
 <h3>java.sql.Clob</h3>
 <h4>Clarification for getSubString(int pos, int length)</h4>
 If the pos (position) argument is greater than the length of the CLOB then an exception is thrown.
@@ -108,12 +108,12 @@ This matches the semantics of the SQL SUBSTR function.
 If the searchstr argument has length zero (the empty string), then the value of start argument
 will be returned. This matches the semantics of the SQL LOCATE function.
 <hr>
-<a name="implconnection"/a>
+<a name="implconnection"/>
 <h3>java.sql.Connection</h3>
 <h4>Clarification for createStatement(), prepareStatement() and prepareCall()</h4>
 CONCUR_UPDATABLE concurrency is supported for TYPE_FORWARD_ONLY and TYPE_SCROLL_INSENSITIVE ResultSet types only.
 <hr>
-<a name="implpreparedstatement"/a>
+<a name="implpreparedstatement"/>
 <h3>java.sql.PreparedStatement</h3>
 <h4>Clarification for  setAsciiStream(),setBinaryStream(),setCharacterStream()</h4>
 In Derby, the stream must have the exact amount of data as the length argument,
@@ -130,7 +130,7 @@ Stream parameter values are not re-used and if a stream is re-used,
 the statement execution will fail with
 'Stream has already been read and end-of-file reached and cannot be re-used.'.
 <hr>
-<a name="implresultset"/a>
+<a name="implresultset"/>
 <h3>java.sql.ResultSet</h3>
 <h4>Extension for getXXX()</h4>
 Support for data conversion using the getXXX() methods matches Table B-6 of [JDBC3] with this extension:
@@ -208,7 +208,7 @@ byte[] data = {0x34, 0x87, 0xc2, 0x1f} then:
 <LI>getString() returns a String with eight characters "3487c21f"
 </UL>
 <hr>
-<a name="implsqldate"/a>
+<a name="implsqldate"/>
 <h3>Derby's SQL DATE interactions with JDBC</h3>
 <p>Derby&rsquo;s SQL DATE type represents a date in the form yyyy-mm-dd with no associated time zone information.</p>
 <h4>java.sql.Date</h4>
@@ -295,7 +295,7 @@ byte[] data = {0x34, 0x87, 0xc2, 0x1f} then:
 <p>If the format of the string matches one of the built in formats then a conversion to a java.sql.Date matches that of a SQL DATE value with value yyyy-mm-dd.</p>
 <p>If the string does not match any of the built in formats Derby attempts to use the Java locale specific parser to interpret the string as a date.</p>
 <hr>
-<a name="implsqltime"/a>
+<a name="implsqltime"/>
 <h3>Derby's SQL TIME interactions with JDBC</h3>
 <p>Derby&rsquo;s SQL TIME type represents a time of day in the form hh:mm:ss with no associated time zone information.</p>
 <h4>java.sql.Time</h4>
@@ -384,7 +384,7 @@ byte[] data = {0x34, 0x87, 0xc2, 0x1f} then:
 <p>If the format of the string matches one of the built in formats then a conversion to a java.sql.Time matches that of a SQL TIME value with value hh:mm:ss.</p>
 <p>If the string does not match any of the built in formats Derby attempts to use the Java locale specific parser to interpret the string as a date.</p>
 <hr>
-<a name="implsqltimestamp"/a>
+<a name="implsqltimestamp"/>
 <h3>Derby's SQL TIMESTAMP interactions with JDBC</h3>
 <p>Derby&rsquo;s SQL TIMESTAMP type represents a time of day in the form yyyy-mm-dd hh:mm:ss.fffffffff (nanosecond granularity) with no associated time zone information.</p>
 <h4>java.sql.Timestamp</h4>

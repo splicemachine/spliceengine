@@ -181,7 +181,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 			if ((lv >= Integer.MIN_VALUE) && (lv <= Integer.MAX_VALUE))
 				return (int) lv;
 
-		} catch (StandardException se) {
+		} catch (StandardException ignored) {
 		}
 
 		throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, "INTEGER");
@@ -201,7 +201,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 			if ((lv >= Byte.MIN_VALUE) && (lv <= Byte.MAX_VALUE))
 				return (byte) lv;
 
-		} catch (StandardException se) {
+		} catch (StandardException ignored) {
 		}
 
 		throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, "TINYINT");
@@ -221,7 +221,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 			if ((lv >= Short.MIN_VALUE) && (lv <= Short.MAX_VALUE))
 				return (short) lv;
 
-		} catch (StandardException se) {
+		} catch (StandardException ignored) {
 		}
 
 		throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, "SMALLINT");

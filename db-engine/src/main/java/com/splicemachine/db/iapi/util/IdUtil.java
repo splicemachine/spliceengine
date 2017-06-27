@@ -576,7 +576,7 @@ public abstract class IdUtil
             if (userName != null)
 			    return parseSQLIdentifier(userName);
 		}
-		catch (StandardException se) {
+		catch (StandardException ignored) {
 		}
         throw StandardException.newException(SQLState.AUTH_INVALID_USER_NAME, userName);
 	}

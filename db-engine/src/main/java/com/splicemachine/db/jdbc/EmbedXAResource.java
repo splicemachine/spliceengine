@@ -904,7 +904,7 @@ class EmbedXAResource implements XAResource {
         if (conn != null) {
             try {
                 conn.close();
-            } catch (SQLException sqle) {
+            } catch (SQLException ignored) {
                 
             }
         }
