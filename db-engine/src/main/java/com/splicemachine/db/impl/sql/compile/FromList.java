@@ -792,8 +792,8 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
 			** The sum of all integers from 0 through n is (n * (n - 1)) / 2.
 			*/
             if(sum!=((joinOrder.length*(joinOrder.length-1))/2)){
-                String arrayVals="";
-                for(int aJoinOrder : joinOrder) arrayVals=arrayVals+aJoinOrder+" ";
+                StringBuilder arrayVals= new StringBuilder();
+                for(int aJoinOrder : joinOrder) arrayVals.append(aJoinOrder).append(" ");
                 SanityManager.THROWASSERT("joinOrder array has some duplicate value: "+arrayVals);
             }
         }

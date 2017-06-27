@@ -745,7 +745,7 @@ public class TableElementList extends QueryTreeNodeVector {
         
 		cc = getCompilerContext();
 
-		List<AggregateNode> aggregateVector = new ArrayList<AggregateNode>();
+		List<AggregateNode> aggregateVector = new ArrayList<>();
 
 		for (int index = 0; index < size; index++) {
 			ColumnDefinitionNode cdn;

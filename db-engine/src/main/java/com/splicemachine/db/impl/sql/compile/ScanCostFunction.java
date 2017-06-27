@@ -121,7 +121,7 @@ public class ScanCostFunction{
     private void addSelectivity(SelectivityHolder holder) {
         List<SelectivityHolder> holders = selectivityHolder[holder.getColNum()];
         if (holders == null) {
-            holders = new LinkedList<SelectivityHolder>();
+            holders = new LinkedList<>();
             selectivityHolder[holder.getColNum()] = holders;
         }
         holders.add(holder);
@@ -137,7 +137,7 @@ public class ScanCostFunction{
     private List<SelectivityHolder> getSelectivityListForColumn(int colNum) {
         List<SelectivityHolder> holders = selectivityHolder[colNum];
         if (holders == null) {
-            holders = new LinkedList<SelectivityHolder>();
+            holders = new LinkedList<>();
             selectivityHolder[colNum] = holders;
         }
         return holders;

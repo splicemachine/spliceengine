@@ -250,12 +250,10 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
         inputStream = new FileInputStream(inputFileName);
         
       }
-    } catch (FileNotFoundException ex) {
+    } catch (FileNotFoundException | SecurityException ex) {
         throw LoadError.dataFileNotFound(inputFileName, ex);
-    } catch (SecurityException se) {
-		throw LoadError.dataFileNotFound(inputFileName, se);
-	}
-    java.io.Reader rd = dataCodeset == null ?
+    }
+      java.io.Reader rd = dataCodeset == null ?
     		new InputStreamReader(inputStream) : new InputStreamReader(inputStream, dataCodeset);    
     bufferedReader = new BufferedReader(rd, 32*1024);
     streamOpenForReading = true;

@@ -129,8 +129,8 @@ public class ResultSetBuilder {
 		 * Private constructor to limit instantiation to the parent builder class.
 		 */
 		private ColumnBuilder() {
-			columnInfoList = new ArrayList<ResultColumnDescriptor>();
-			dvdsList = new ArrayList<DataValueDescriptor>();
+			columnInfoList = new ArrayList<>();
+			dvdsList = new ArrayList<>();
 		}
 
 		/**
@@ -274,7 +274,7 @@ public class ResultSetBuilder {
 		 * Private constructor to limit instantiation to the parent builder class.
 		 */
 		private RowBuilder() {
-			rowsList = new ArrayList<ExecRow>();
+			rowsList = new ArrayList<>();
 			dvds = columnBuilder.dvdsList.toArray(new DataValueDescriptor[numCols]);
 			dataTemplate = new ValueRow(numCols);
 			dataTemplate.setRowArray(dvds);

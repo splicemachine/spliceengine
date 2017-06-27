@@ -85,17 +85,17 @@ public abstract class GlobalXact {
 
     public String toString()
     {
-		String globalhex = "";
-		String branchhex = "";
+		StringBuilder globalhex = new StringBuilder();
+		StringBuilder branchhex = new StringBuilder();
 		if (global_id != null) 
 	    {
 			int mask = 0;
             for (byte aGlobal_id : global_id) {
                 mask = (aGlobal_id & 0xFF);
                 if (mask < 16) {
-                    globalhex += "0" + Integer.toHexString(mask);
+                    globalhex.append("0").append(Integer.toHexString(mask));
                 } else {
-                    globalhex += Integer.toHexString(mask);
+                    globalhex.append(Integer.toHexString(mask));
                 }
             }
 	    }
@@ -106,9 +106,9 @@ public abstract class GlobalXact {
             for (byte aBranch_id : branch_id) {
                 mask = (aBranch_id & 0xFF);
                 if (mask < 16) {
-                    branchhex += "0" + Integer.toHexString(mask);
+                    branchhex.append("0").append(Integer.toHexString(mask));
                 } else {
-                    branchhex += Integer.toHexString(mask);
+                    branchhex.append(Integer.toHexString(mask));
                 }
             }
 	    }

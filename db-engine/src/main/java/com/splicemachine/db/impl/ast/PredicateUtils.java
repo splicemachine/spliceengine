@@ -102,7 +102,7 @@ public class PredicateUtils {
      */
     public static List<Predicate> PLtoList(PredicateList pl) {
         if (pl==null)
-            return new ArrayList<Predicate>();
+            return new ArrayList<>();
         List<Predicate> preds = new ArrayList<>(pl.size());
         for (int i = 0, s = pl.size(); i < s; i++) {
             OptimizablePredicate p = pl.getOptPredicate(i);

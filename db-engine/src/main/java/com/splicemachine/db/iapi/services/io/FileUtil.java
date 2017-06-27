@@ -751,11 +751,7 @@ for (String fileName : list) {
 
                     allow = aclEntryTypeClz.getField("ALLOW");
 
-                } catch (NoSuchMethodException e) {
-                    // not Java 7 or higher
-                } catch (ClassNotFoundException e) {
-                    // not Java 7 or higher
-                } catch (NoSuchFieldException e) {
+                } catch (NoSuchMethodException | NoSuchFieldException | ClassNotFoundException e) {
                     // not Java 7 or higher
                 }
             }
@@ -951,12 +947,7 @@ for (String fileName : list) {
             // view.setAcl(newAcl);
             setAcl.invoke(view, new Object[]{newAcl});
 
-        } catch (IllegalAccessException e) {
-            // coding error
-            if (SanityManager.DEBUG) {
-                SanityManager.THROWASSERT(e);
-            }
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalAccessException | IllegalArgumentException e) {
             // coding error
             if (SanityManager.DEBUG) {
                 SanityManager.THROWASSERT(e);

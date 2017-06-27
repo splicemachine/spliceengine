@@ -47,6 +47,8 @@ import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import	com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 
+import java.util.Arrays;
+
 /**
  * This class is used to get information from a ConstraintDescriptor.
  * A ConstraintDescriptor can represent a constraint on a table or on a
@@ -453,7 +455,7 @@ public abstract class ConstraintDescriptor
 				"constraintId: " + constraintId + "\n" +
 				"deferrable: " + deferrable + "\n" +
 				"initiallyDeferred: " + initiallyDeferred + "\n" +
-				"referencedColumns: " + referencedColumns + "\n" +
+				"referencedColumns: " + Arrays.toString(referencedColumns) + "\n" +
 				"schemaDesc: " + schemaDesc + "\n"
 				;
 		}

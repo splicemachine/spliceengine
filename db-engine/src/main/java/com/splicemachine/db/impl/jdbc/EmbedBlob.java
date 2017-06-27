@@ -672,11 +672,7 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
                     }
                 }
             }
-        }
-        catch (StandardException e) {
-            throw handleMyExceptions(e);
-        }
-        catch (Throwable t)
+        } catch (Throwable t)
         {
 			throw handleMyExceptions(t);
         }
@@ -785,11 +781,7 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
                     }
                 }
             }
-        }
-        catch (StandardException e) {
-            throw handleMyExceptions(e);
-        }
-        catch (Throwable t)
+        } catch (Throwable t)
         {
 			throw handleMyExceptions(t);
         }

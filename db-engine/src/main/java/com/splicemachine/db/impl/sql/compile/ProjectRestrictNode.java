@@ -278,7 +278,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             // If only select from one table, use the table statistics to estimate cost
             //Table
             SelectNode selectNode = (SelectNode)childResult;
-            List<FromBaseTable> baseTables = new ArrayList<FromBaseTable>();
+            List<FromBaseTable> baseTables = new ArrayList<>();
             ConglomerateDescriptor cd = null;
 
             if (selectNode.getFromList().size() == 1) {

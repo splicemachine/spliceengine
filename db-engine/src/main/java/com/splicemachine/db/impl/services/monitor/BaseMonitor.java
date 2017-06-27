@@ -637,14 +637,8 @@ abstract class BaseMonitor
 
 				return iga[off] = new ClassInfo(clazz);
 
-			} catch (ClassNotFoundException cnfe) {
+			} catch (ClassNotFoundException | LinkageError | InstantiationException | IllegalAccessException cnfe) {
 				t = cnfe;
-			} catch (IllegalAccessException iae) {
-				t = iae;
-			} catch (InstantiationException ie) {
-				t = ie;
-			} catch (LinkageError le) {
-				t = le;
 			}
 			throw StandardException.newException(SQLState.REGISTERED_CLASS_LINAKGE_ERROR,
 				t, FormatIdUtil.formatIdToString(fmtId), className);
@@ -686,17 +680,8 @@ abstract class BaseMonitor
 */
 			return ci.getNewInstance();
 		}
-		catch (InstantiationException ie) {
+		catch (InstantiationException | LinkageError | InvocationTargetException | IllegalAccessException ie) {
 			t = ie;
-		}
- 		catch (IllegalAccessException iae) {
-			t = iae;
-		}
-		catch (InvocationTargetException ite) {
-			t = ite;
-		}
-		catch (LinkageError le) {
-			t = le;
 		}
 		throw StandardException.newException(SQLState.REGISTERED_CLASS_INSTANCE_ERROR,
 			t, identifier, "XX" /*ci.getClassName()*/);
@@ -785,16 +770,9 @@ abstract class BaseMonitor
 			Class factoryClass = Class.forName(className);
 			return factoryClass.newInstance();
 		}
-		catch (ClassNotFoundException e) {
+		catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
 			report(className + " " + e.toString());
-		}
-		catch (InstantiationException e) {
-			report(className + " " + e.toString());
-		}
- 		catch (IllegalAccessException e) {
-			report(className + " " + e.toString());
-		}
-		catch (LinkageError le) {
+		} catch (LinkageError le) {
 			report(className + " " + le.toString());
 			reportException(le);
 		}
@@ -808,13 +786,9 @@ abstract class BaseMonitor
 		try {
 			return classObject.newInstance();
 		}
-		catch (InstantiationException e) {
+		catch (InstantiationException | IllegalAccessException e) {
 			report(classObject.getName() + " " + e.toString());
-		}
- 		catch (IllegalAccessException e) {
-			report(classObject.getName() + " " + e.toString());
-		}
-		catch (LinkageError le) {
+		} catch (LinkageError le) {
 			report(classObject.getName() + " " + le.toString());
 			reportException(le);
 		}
@@ -1176,7 +1150,7 @@ nextModule:
 				// interface.
 				if (SanityManager.DEBUG) {
 					// ModuleSupportable
-					Class[] csParams = { new java.util.Properties().getClass()};
+					Class[] csParams = {Properties.class};
 					try {
 						possibleModule.getMethod("canSupport", csParams);
 						if (!ModuleSupportable.class.isAssignableFrom(possibleModule)) {
@@ -1187,7 +1161,7 @@ nextModule:
 					// ModuleControl
 					boolean eitherMethod = false;
 
-					Class[] bootParams = {Boolean.TYPE, new java.util.Properties().getClass()};
+					Class[] bootParams = {Boolean.TYPE, Properties.class};
 					try {
 						possibleModule.getMethod("boot", bootParams);
 						eitherMethod = true;
@@ -1207,11 +1181,8 @@ nextModule:
 				}
 
 			}
-			catch (ClassNotFoundException cnfe) {
+			catch (ClassNotFoundException | LinkageError cnfe) {
 				report("Class " + className + " " + cnfe.toString() + ", module ignored.");
-			}
-			catch (LinkageError le) {
-				report("Class " + className + " " + le.toString() + ", module ignored.");
 			}
 		}
         

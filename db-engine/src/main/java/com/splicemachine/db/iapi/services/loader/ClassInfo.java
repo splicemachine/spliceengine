@@ -97,12 +97,8 @@ public class ClassInfo implements InstanceGetter {
 
             try {
                 noArgConstructor = CONSTRUCTOR_CACHE.get(clazz);
-            } catch (ExecutionException e) {
+            } catch (ExecutionException | SecurityException e) {
                 // let Class.newInstance() generate the exception
-                useConstructor = false;
-                return clazz.newInstance();
-            } catch (SecurityException se) {
-                // not allowed to to get a handle on the constructor just use the standard mechanism.
                 useConstructor = false;
                 return clazz.newInstance();
             }

@@ -72,7 +72,7 @@ public class ContextManager
 	 */
 	private static final class CtxStack {
 		/** Internal list with all the elements of the stack. */
-		private final List<Context> stack_ = new ArrayList<Context>();
+		private final List<Context> stack_ = new ArrayList<>();
 		/** Read-only view of the internal list. */
 		private final List<Context> view_ = Collections.unmodifiableList(stack_);
 
@@ -113,12 +113,12 @@ public class ContextManager
 	 * with a String key.
 	 * @see ContextManager#pushContext(Context)
 	 */
-	private final Map<String, CtxStack> ctxTable = new HashMap<String, CtxStack>();
+	private final Map<String, CtxStack> ctxTable = new HashMap<>();
 
 	/**
 	 * List of all Contexts of all types.
 	 */
-	private final List<Context> holder = new ArrayList<Context>();
+	private final List<Context> holder = new ArrayList<>();
 
 	public void setActiveThread(){
 		this.activeThread = Thread.currentThread();
@@ -162,7 +162,7 @@ public class ContextManager
 		if (SanityManager.DEBUG)
 			SanityManager.ASSERT( idStack == null ||
 								  idStack.isEmpty() ||
-								  idStack.top().getIdName() == contextId);
+					Objects.equals(idStack.top().getIdName(), contextId));
 		return (idStack==null?null:idStack.top());
 	}
 
@@ -188,7 +188,7 @@ public class ContextManager
 		if (SanityManager.DEBUG) {
 			SanityManager.ASSERT( idStack != null &&
 								  (! idStack.isEmpty()) &&
-								  idStack.top().getIdName() == contextId);
+					Objects.equals(idStack.top().getIdName(), contextId));
 		}
 		idStack.pop();
 	}

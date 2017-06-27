@@ -262,19 +262,13 @@ public abstract class DatabaseClasses
 				return c;
 			}
 		}
-		catch (SecurityException se)
+		catch (SecurityException | LinkageError se)
 		{
 			// Thrown if the class has been comprimised in some
 			// way, e.g. modified in a signed jar.
 			loadError = se;	
 		}
-		catch (LinkageError le)
-		{
-			// some error linking the jar, again could
-			// be malicious code inserted into a jar.
-			loadError = le;	
-		}
-		throw new ClassNotFoundException(className + " : " + loadError.getMessage());
+        throw new ClassNotFoundException(className + " : " + loadError.getMessage());
 	}
 	
 	protected abstract Class loadClassNotInDatabaseJar(String className)

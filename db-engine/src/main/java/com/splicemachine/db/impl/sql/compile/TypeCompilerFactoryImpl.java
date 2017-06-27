@@ -274,20 +274,12 @@ public class TypeCompilerFactoryImpl implements TypeCompilerFactory
                                 anInstance  = (TypeCompiler) typeCompilerClass.newInstance();
                                 ((BaseTypeCompiler) anInstance).setTypeId(typeId);
                         }
-                        catch (ClassNotFoundException cnfe)
+                        catch (ClassNotFoundException | InstantiationException | IllegalAccessException cnfe)
                         {
                                 exc = cnfe;
                         }
-                        catch (IllegalAccessException iae)
-                        {
-                                exc = iae;
-                        }
-                        catch (InstantiationException ie)
-                        {
-                                exc = ie;
-                        }
 
-                        if (SanityManager.DEBUG)
+                    if (SanityManager.DEBUG)
                         {
                                 if (exc != null)
                                 {

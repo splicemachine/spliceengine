@@ -602,20 +602,12 @@ public final class JCECipherFactory implements CipherFactory, java.security.Priv
 		{
 			t = pae.getException();
 		}
-		catch (NoSuchAlgorithmException nsae)
+		catch (NoSuchAlgorithmException | ClassCastException | LinkageError | SecurityException nsae)
 		{
 			t = nsae;
 		}
-		catch (SecurityException se)
-		{
-			t = se;
-		} catch (LinkageError le) {
-			t = le;
-		} catch (ClassCastException cce) {
-			t = cce;
-		}
 
-		throw StandardException.newException(SQLState.MISSING_ENCRYPTION_PROVIDER, t);
+        throw StandardException.newException(SQLState.MISSING_ENCRYPTION_PROVIDER, t);
 	}
 
 

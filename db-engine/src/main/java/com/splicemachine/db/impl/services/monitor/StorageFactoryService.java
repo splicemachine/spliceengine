@@ -282,11 +282,8 @@ final class StorageFactoryService implements PersistentService
                         if( recreateFrom != null) // restore from a file
                         {
                             File propFile = new File(recreateFrom, PersistentService.PROPERTIES_NAME);
-                            InputStream is = new FileInputStream(propFile);
-                            try {
+                            try (InputStream is = new FileInputStream(propFile)) {
                                 serviceProperties.load(new BufferedInputStream(is));
-                            } finally {
-                                is.close();
                             }
                         }
                         else
@@ -295,13 +292,10 @@ final class StorageFactoryService implements PersistentService
                             StorageFile file = storageFactory.newStorageFile( PersistentService.PROPERTIES_NAME);
                             resolveServicePropertiesFiles(storageFactory, file);
                             try {
-                                InputStream is = file.getInputStream();
-                                try {
+                                try (InputStream is = file.getInputStream()) {
                                     // Need to load the properties before closing the
                                     // StorageFactory.
                                     serviceProperties.load(new BufferedInputStream(is));
-                                } finally {
-                                    is.close();
                                 }
                             } finally {
                                storageFactory.shutdown();

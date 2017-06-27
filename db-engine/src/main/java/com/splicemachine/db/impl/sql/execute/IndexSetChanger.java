@@ -372,26 +372,23 @@ public class IndexSetChanger
 				break;
 			}
 
-			String fixOnUpdate_s = "fixOnUpdate=(";
+			StringBuilder fixOnUpdate_s = new StringBuilder("fixOnUpdate=(");
 			for (int ix = 0; ix < fixOnUpdate.length; ix++)
 			{
 				if (ix > 0)
-					fixOnUpdate_s+=",";
+					fixOnUpdate_s.append(",");
 
-                fixOnUpdate_s += fixOnUpdate[ix];
+                fixOnUpdate_s.append(fixOnUpdate[ix]);
 			}
-			fixOnUpdate_s +=")";
+			fixOnUpdate_s.append(")");
 
-			String indexDesc_s = "\n";
+			StringBuilder indexDesc_s = new StringBuilder("\n");
 			for (int ix = 0; ix < indexCIDS.length; ix++)
 			{
 				if (indexChangers[ix] == null)
-					indexDesc_s += "    Index["+ix+"] cid="+
-						indexCIDS[ix]+" closed. \n";
+					indexDesc_s.append("    Index[").append(ix).append("] cid=").append(indexCIDS[ix]).append(" closed. \n");
                 else
-					indexDesc_s +=
-						"    "+
-						indexChangers[ix].toString() + "\n";
+					indexDesc_s.append("    ").append(indexChangers[ix].toString()).append("\n");
 			}
 
 			return "IndexSetChanger: "+

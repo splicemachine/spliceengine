@@ -394,12 +394,8 @@ public class ClassInspector
 				}
 			}
 
-		} catch (ClassNotFoundException cnfe) {
+		} catch (ClassNotFoundException | SecurityException | NoSuchFieldException cnfe) {
 			e = cnfe;
-		} catch (NoSuchFieldException nsfep) {
-			e = nsfep;
-		} catch (SecurityException se) {
-			e = se;
 		}
 
 		throw StandardException.newException(
@@ -631,7 +627,7 @@ public class ClassInspector
         }
 
         if (start == chainEnd) {
-            result = new ArrayList<Class<?>>();
+            result = new ArrayList<>();
         }
 
         if (result == null) {
@@ -665,7 +661,7 @@ public class ClassInspector
             return null;
         }
 
-        HashMap<Type, Type> resolvedTypes = new HashMap<Type, Type>();
+        HashMap<Type, Type> resolvedTypes = new HashMap<>();
 
         for (Class<?> klass : chain) {
             addResolvedTypes(resolvedTypes, klass.getGenericSuperclass());
@@ -715,7 +711,7 @@ public class ClassInspector
 
         Type[] actualTypeArguments = parameterizedType.getTypeParameters();
 
-        ArrayList<Class<?>> result = new ArrayList<Class<?>>();
+        ArrayList<Class<?>> result = new ArrayList<>();
 
         // resolve types by composing type variables.
         for (Type baseType : actualTypeArguments) {

@@ -400,8 +400,7 @@ abstract class SQLBinary
                 bytesRead += numOfBytes; 
             }
         }
-        catch (StandardException se) { throw new IOException( se.getMessage() ); }
-        catch (SQLException se) { throw new IOException( se.getMessage() ); }
+        catch (StandardException | SQLException se) { throw new IOException( se.getMessage() ); }
     }
     
 	/** 

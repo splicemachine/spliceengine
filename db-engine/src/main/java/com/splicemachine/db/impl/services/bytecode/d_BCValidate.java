@@ -183,15 +183,15 @@ class d_BCValidate
 				e.printStackTrace(System.out);
 			}
 
-			String sig = dt.javaName() + " >> " + rt.javaName() + " " + methodName + "(";
+			StringBuilder sig = new StringBuilder(dt.javaName() + " >> " + rt.javaName() + " " + methodName + "(");
 			if (debugParameterTypes != null) {
 				for (int i = 0; i < debugParameterTypes.length; i++) {
 					if (i != 0)
-						sig = sig + ", ";
-					sig = sig + debugParameterTypes[i];
+						sig.append(", ");
+					sig.append(debugParameterTypes[i]);
 				}
 			}
-			sig = sig + ")";
+			sig.append(")");
 
 			String msg = "Invalid method " + sig + " because " + reason;
 

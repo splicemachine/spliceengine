@@ -2191,10 +2191,6 @@ public abstract class EmbedConnection implements EngineConnection
             throw Util.generateCsSQLException(
                     SQLState.AUTH_DATABASE_CREATE_MISSING_PERMISSION,
                     user, dbname, ace);
-        } catch (IOException ioe) {
-            throw Util.generateCsSQLException(
-                    SQLState.AUTH_DATABASE_CREATE_EXCEPTION,
-                    dbname, (Object)ioe); // overloaded method
         } catch (Exception e) {
             throw Util.generateCsSQLException(
                     SQLState.AUTH_DATABASE_CREATE_EXCEPTION,

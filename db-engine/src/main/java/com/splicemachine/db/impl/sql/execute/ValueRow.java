@@ -213,18 +213,18 @@ public class ValueRow implements ExecRow, Externalizable {
 	public String toString() {
 		// NOTE: This method is required for external functionality (the
 		// consistency checker), so do not put it under SanityManager.DEBUG.
-		String s = "{ ";
+		StringBuilder s = new StringBuilder("{ ");
 		for (int i = 0; i < column.length; i++)
 		{
 			if (column[i] == null)
-				s += "null";
+				s.append("null");
 			else
-				s += column[i].toString();
+				s.append(column[i].toString());
 			if (i < (column.length - 1))
-				s += ", ";
+				s.append(", ");
 		}
-		s += " }";
-		return s;
+		s.append(" }");
+		return s.toString();
 	}
 
 

@@ -208,18 +208,17 @@ public class ColumnOrdering{
     }
 
     public String toString(){
-        String retval="";
+        StringBuilder retval= new StringBuilder();
 
         if(SanityManager.DEBUG){
-            retval+="Direction: "+myDirection;
+            retval.append("Direction: ").append(myDirection);
 
             for(int i=0;i<columns.size();i++){
-                retval+=" Table "+tables.get(i)+
-                        ", Column "+columns.get(i);
+                retval.append(" Table ").append(tables.get(i)).append(", Column ").append(columns.get(i));
             }
         }
 
-        return retval;
+        return retval.toString();
     }
 
     public int size(){

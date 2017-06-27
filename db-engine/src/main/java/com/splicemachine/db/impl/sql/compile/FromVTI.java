@@ -758,7 +758,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
             if (ref.getTableNumber() == -1) {
                 // we need a fake agg list
                 if (aggregateVector == null) {
-                    aggregateVector = new ArrayList<AggregateNode>();
+                    aggregateVector = new ArrayList<>();
                 }
                 ref.bindExpression(fromListParam, subqueryList, aggregateVector);
             }

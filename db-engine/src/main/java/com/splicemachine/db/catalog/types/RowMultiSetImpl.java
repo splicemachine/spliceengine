@@ -36,6 +36,7 @@ import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
 import java.sql.Types;
+import java.util.Arrays;
 
 /**
  * <p>
@@ -104,7 +105,7 @@ public class RowMultiSetImpl extends BaseTypeIdImpl
             (columnNames.length != types.length )
             )
         {
-            throw new IllegalArgumentException( "Bad args: columnNames = " + columnNames + ". types = " + types );
+            throw new IllegalArgumentException( "Bad args: columnNames = " + Arrays.toString(columnNames) + ". types = " + Arrays.toString(types));
         }
     }
 

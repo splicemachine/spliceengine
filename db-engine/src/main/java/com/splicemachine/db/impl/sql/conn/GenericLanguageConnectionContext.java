@@ -3084,7 +3084,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             return;
 
         if(autoincrementHT==null)
-            autoincrementHT=new HashMap<String, Long>();
+            autoincrementHT= new HashMap<>();
 
         DataDictionary dd=getDataDictionary();
         for(Map.Entry<String, AutoincrementCounter> stringAutoincrementCounterEntry : autoincrementCacheHashtable.entrySet()){

@@ -41,6 +41,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * @author Scott Fines
@@ -84,7 +85,7 @@ public class DecimalBufferedSumAggregator extends SumAggregator {
                return;
             }
 
-            if (other.sum != BigDecimal.ZERO) {
+            if (!Objects.equals(other.sum, BigDecimal.ZERO)) {
                 buffer[position] = other.sum;
                 incrementPosition();
             }

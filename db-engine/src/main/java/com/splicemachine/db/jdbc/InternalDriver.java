@@ -329,10 +329,6 @@ public abstract class InternalDriver implements ModuleControl {
             final Permission sp = new SystemPermission(
                 SystemPermission.ENGINE, SystemPermission.SHUTDOWN);
             checkSystemPrivileges(user, sp);
-        } catch (AccessControlException ace) {
-            throw Util.generateCsSQLException(
-				SQLState.AUTH_SHUTDOWN_MISSING_PERMISSION,
-				user, (Object)ace); // overloaded method
         } catch (Exception e) {
             throw Util.generateCsSQLException(
 				SQLState.AUTH_SHUTDOWN_MISSING_PERMISSION,
@@ -433,12 +429,12 @@ public abstract class InternalDriver implements ModuleControl {
 
         // The attribute value is invalid. Construct a string giving the choices for
         // display in the error message.
-        String choicesStr = "{";
+        StringBuilder choicesStr = new StringBuilder("{");
         for( int i = 0; i < choices.length; i++)
         {
             if( i > 0)
-                choicesStr += "|";
-            choicesStr += choices[i];
+                choicesStr.append("|");
+            choicesStr.append(choices[i]);
         }
         
 		throw Util.generateCsSQLException(
