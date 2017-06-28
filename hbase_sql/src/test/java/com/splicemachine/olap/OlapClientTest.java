@@ -228,7 +228,7 @@ public class OlapClientTest {
             @Override
             public void run(){
                 try{
-                    results.set(0, olapClient.execute(new DumbDistributedJob(100000,0)));
+                    results.set(0, olapClient.execute(new DumbDistributedJob(10000,0)));
                 }catch(IOException | TimeoutException e){
                     errors.set(0, e);
                     results.set(0, null);
@@ -346,7 +346,7 @@ public class OlapClientTest {
 
     }
 
-    private static void setupServer(){
+    private static void setupServer() throws IOException {
         Clock clock=new SystemClock();
         olapServer = new OlapServer(0,clock); // any port
         olapServer.startServer(HConfiguration.getConfiguration());
