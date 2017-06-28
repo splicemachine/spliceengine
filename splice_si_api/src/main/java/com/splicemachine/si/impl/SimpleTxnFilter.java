@@ -14,7 +14,6 @@
 
 package com.splicemachine.si.impl;
 
-import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.si.api.filter.RowAccumulator;
 import com.splicemachine.si.api.filter.TxnFilter;
@@ -43,8 +42,8 @@ public class SimpleTxnFilter implements TxnFilter{
     private final ReadResolver readResolver;
     //per row fields
     private final LongOpenHashSet visitedTxnIds=new LongOpenHashSet();
-    private final LongArrayList tombstonedTxnRows=new LongArrayList(1); //usually, there are very few deletes
-    private final LongArrayList antiTombstonedTxnRows=new LongArrayList(1);
+    private Long tombstonedTxnRow = null;
+    private Long antiTombstonedTxnRow = null;
     private final ByteSlice rowKey=new ByteSlice();
     private final String tableName;
 
@@ -119,8 +118,8 @@ public class SimpleTxnFilter implements TxnFilter{
     public void nextRow(){
         //clear row-specific fields
         visitedTxnIds.clear();
-        tombstonedTxnRows.clear();
-        antiTombstonedTxnRows.clear();
+        tombstonedTxnRow = null;
+        antiTombstonedTxnRow = null;
         rowKey.reset();
     }
 
@@ -190,21 +189,11 @@ public class SimpleTxnFilter implements TxnFilter{
 		 * it matches, then we can see it.
 		 */
         long timestamp=data.version();//dataStore.getOpFactory().getTimestamp(data);
-        long[] tombstones=tombstonedTxnRows.buffer;
-        int tombstoneSize=tombstonedTxnRows.size();
-        for(int i=0;i<tombstoneSize;i++){
-            long tombstone=tombstones[i];
-            if(timestamp<=tombstone)
-                return DataFilter.ReturnCode.NEXT_ROW;
-        }
+        if(tombstonedTxnRow != null && timestamp<= tombstonedTxnRow)
+            return DataFilter.ReturnCode.NEXT_ROW;
 
-        long[] antiTombstones=antiTombstonedTxnRows.buffer;
-        int antiTombstoneSize=antiTombstonedTxnRows.size();
-        for(int i=0;i<antiTombstoneSize;i++){
-            long antiTombstone=antiTombstones[i];
-            if(timestamp<antiTombstone)
-                return DataFilter.ReturnCode.NEXT_ROW;
-        }
+        if(antiTombstonedTxnRow != null && timestamp< antiTombstonedTxnRow)
+            return DataFilter.ReturnCode.NEXT_ROW;
 
         //we don't have any tombstone problems, so just check our own visibility
         if(!isVisible(timestamp)) return DataFilter.ReturnCode.SKIP;
@@ -230,8 +219,10 @@ public class SimpleTxnFilter implements TxnFilter{
         /*
          * Check if we can see this anti-tombstone
          */
-        if(antiTombstonedTxnRows.isEmpty() && !tombstonedTxnRows.contains(txnId) && isVisible(txnId)){
-            antiTombstonedTxnRows.add(txnId);
+        boolean empty = antiTombstonedTxnRow == null;
+        boolean tombstoned = tombstonedTxnRow != null && tombstonedTxnRow == txnId;
+        if(empty && !tombstoned && isVisible(txnId)){
+            antiTombstonedTxnRow = txnId;
         }
     }
 
@@ -241,8 +232,11 @@ public class SimpleTxnFilter implements TxnFilter{
 		 * Only add a tombstone to our list if it's actually visible,
 		 * otherwise there's no point, since we can't see it anyway.
 		 */
-        if(tombstonedTxnRows.isEmpty() && !antiTombstonedTxnRows.contains(txnId) && isVisible(txnId))
-            tombstonedTxnRows.add(txnId);
+        boolean empty = tombstonedTxnRow == null;
+        boolean antiTombstoned = antiTombstonedTxnRow != null && antiTombstonedTxnRow == txnId;
+        if(empty && !antiTombstoned && isVisible(txnId)) {
+            tombstonedTxnRow = txnId;
+        }
     }
 
     private void ensureTransactionIsCached(DataCell data) throws IOException{
