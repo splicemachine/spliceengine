@@ -162,7 +162,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         // Have distinct Aggregates?
         boolean hasMultipleDistinct = false;
         int numOfGroupKeys = groupedAggregateContext.getGroupingKeys().length;
-        if (groupedAggregateContext.getNonGroupedUniqueColumns() != null) {
+        if (groupedAggregateContext.getNonGroupedUniqueColumns() != null && groupedAggregateContext.getNonGroupedUniqueColumns().length > 0) {
             if (groupedAggregateContext.getNonGroupedUniqueColumns().length > 1) {
                 /**
                  * To handle multiple distinct aggregates, we will be splitting an input row to multiple rows. For example,
@@ -207,7 +207,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                 operationContext.popScope();
 
                 set = set4;
-            } else { //only one distinct aggregate
+            } else {
+                //only one distinct aggregate
                 int[] allKeys = ArrayUtils.addAll(groupedAggregateContext.getGroupingKeys(), groupedAggregateContext.getNonGroupedUniqueColumns());
 
                 operationContext.pushScopeForOp(OperationContext.Scope.GROUP_AGGREGATE_KEYER);

@@ -35,8 +35,10 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
-import org.apache.log4j.Logger;
-import org.junit.*;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -51,7 +53,6 @@ import static org.junit.Assert.assertEquals;
  * Created by yxia on 6/8/17.
  */
 public class MultipleDistinctAggregatesIT extends SpliceUnitTest {
-    private static Logger LOG = Logger.getLogger(MultipleDistinctAggregatesIT.class);
     public static final String CLASS_NAME = MultipleDistinctAggregatesIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
@@ -75,6 +76,10 @@ public class MultipleDistinctAggregatesIT extends SpliceUnitTest {
                         row(1,1,1,1,"ccc"),
                         row(1,1,1,2,"ddd"),
                         row(null, null, null, null, null)))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table t3 (a3 int, b3 int, c3 int, d3 int, e3 char(3))")
                 .create();
 
         conn.commit();
@@ -172,6 +177,15 @@ public class MultipleDistinctAggregatesIT extends SpliceUnitTest {
         resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
         assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
         rs.close();
+
+        /* Q8 test empty table */
+        sqlText = "select a3, count(distinct b3), sum(distinct c3), count(distinct d3), count(distinct e3) from t3 --splice-properties useSpark=false\n group by a3 order by a3";
+        expected = "";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
     }
 
     @Test
@@ -261,6 +275,15 @@ public class MultipleDistinctAggregatesIT extends SpliceUnitTest {
         resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
         assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
         rs.close();
+
+        /* Q8 test empty table */
+        sqlText = "select a3, count(distinct b3), sum(distinct c3), count(distinct d3), count(distinct e3) from t3 --splice-properties useSpark=true\n group by a3 order by a3";
+        expected = "";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
     }
 
     @Test
@@ -319,6 +342,17 @@ public class MultipleDistinctAggregatesIT extends SpliceUnitTest {
         resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
         assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
         rs.close();
+
+        /* Q6 test empty table */
+        sqlText = "select count(distinct a3), sum(distinct b3), count(distinct c3), max(distinct d3), count(distinct e3) from t3 --splice-properties useSpark=false";
+        expected = "1 |  2  | 3 |  4  | 5 |\n" +
+                "------------------------\n" +
+                " 0 |NULL | 0 |NULL | 0 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
     }
 
     @Test
@@ -372,6 +406,17 @@ public class MultipleDistinctAggregatesIT extends SpliceUnitTest {
         expected = "1 | 2 | 3 | 4 |\n" +
                 "----------------\n" +
                 " 6 | 3 | 3 | 6 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q6 test empty table */
+        sqlText = "select count(distinct a3), sum(distinct b3), count(distinct c3), max(distinct d3), count(distinct e3) from t3 --splice-properties useSpark=true";
+        expected = "1 |  2  | 3 |  4  | 5 |\n" +
+                "------------------------\n" +
+                " 0 |NULL | 0 |NULL | 0 |";
 
         rs = methodWatcher.executeQuery(sqlText);
         resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
