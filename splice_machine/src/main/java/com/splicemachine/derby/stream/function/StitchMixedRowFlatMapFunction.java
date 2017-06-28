@@ -14,7 +14,6 @@
 package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.GenericAggregateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
@@ -25,7 +24,6 @@ import org.apache.commons.collections.iterators.SingletonIterator;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 
@@ -58,9 +56,6 @@ public class StitchMixedRowFlatMapFunction<Op extends SpliceOperation> extends S
     @SuppressWarnings("unchecked")
     @Override
     public Iterator<LocatedRow> call(Iterator<LocatedRow> locatedRows) throws Exception {
-        if (!locatedRows.hasNext()) {
-            return Collections.EMPTY_LIST.iterator();
-        }
         if (!initialized) {
             op = (GenericAggregateOperation) getOperation();
             aggregates = op.aggregates;
@@ -74,15 +69,19 @@ public class StitchMixedRowFlatMapFunction<Op extends SpliceOperation> extends S
             initialized = true;
         }
 
-        ExecRow valueRow = new ValueRow(aggregates.length*3);
-        copyRow(valueRow, locatedRows.next().getRow());
-
+        ExecRow valueRow = op.getSourceExecIndexRow().getClone();
         while (locatedRows.hasNext()) {
             ExecRow r2 = locatedRows.next().getRow();
             copyRow(valueRow, r2);
         }
 
-        op.finishAggregation(valueRow); // calls setCurrentRow
+        for(SpliceGenericAggregator aggregator:aggregates){
+            if (!aggregator.isInitialized(valueRow)) {
+                aggregator.initializeAndAccumulateIfNeeded(valueRow, valueRow);
+            }
+            aggregator.finish(valueRow);
+        }
+        op.setCurrentRow(valueRow);
         return new SingletonIterator(new LocatedRow(valueRow));
     }
 

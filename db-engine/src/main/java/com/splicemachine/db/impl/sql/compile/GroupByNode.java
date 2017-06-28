@@ -642,10 +642,8 @@ public class GroupByNode extends SingleChildResultSetNode{
 
             assert agg!=null && agg.isDistinct();
 
-     //       if (numDistinct == 1) {
-                addDistinctAggregate = true;
-                addDistinctAggregateColumnNum = agg.getInputColNum();
-     //       }
+            addDistinctAggregate = true;
+            addDistinctAggregateColumnNum = agg.getInputColNum();
         }
     }
 

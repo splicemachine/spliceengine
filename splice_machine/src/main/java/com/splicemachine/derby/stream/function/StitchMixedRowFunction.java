@@ -15,7 +15,7 @@ package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.GenericAggregateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
@@ -34,6 +34,7 @@ import java.util.HashMap;
 public class StitchMixedRowFunction<Op extends SpliceOperation> extends SpliceFunction2<Op, LocatedRow, LocatedRow, LocatedRow> implements Serializable {
     protected GenericAggregateOperation aggregateOperation;
     protected int[] groupingKeys;
+    protected int numOfGroupKeys;
     protected SpliceGenericAggregator[] aggregates;
 
     protected boolean initialized;
@@ -65,6 +66,7 @@ public class StitchMixedRowFunction<Op extends SpliceOperation> extends SpliceFu
         if (!initialized) {
             aggregateOperation = (GenericAggregateOperation)operationContext.getOperation();
             aggregates = aggregateOperation.aggregates;
+            numOfGroupKeys = groupingKeys==null? 0: groupingKeys.length;
 
             // build a map between distinct column to aggregator
             distinctAggregateMap = new HashMap<>();
@@ -76,24 +78,30 @@ public class StitchMixedRowFunction<Op extends SpliceOperation> extends SpliceFu
             initialized = true;
         }
         operationContext.recordRead();
+
+        if (locatedRow1 == null) return locatedRow2;
+        if (locatedRow2 == null) return locatedRow1;
+
         ExecRow valueRow;
-        LocatedRow resultRow;
-        int numOfGroupKeys = groupingKeys==null? 0: groupingKeys.length;
-        if (locatedRow1 == null || locatedRow1.size() < numOfGroupKeys + aggregates.length*3) {
-            // compose a row with all the aggregates together
-            valueRow = new ValueRow(numOfGroupKeys + aggregates.length*3);
 
-            if (locatedRow1 != null)
-                copyRow(valueRow, locatedRow1.getRow());
-            resultRow = new LocatedRow(valueRow);
-        } else {
+        if (locatedRow1.size() == numOfGroupKeys + aggregates.length*3) {
             valueRow = locatedRow1.getRow();
-            resultRow = locatedRow1;
+            if (locatedRow1.size() == locatedRow2.size())
+                mergeRow(valueRow, locatedRow2.getRow());
+            else
+                copyRow(valueRow, locatedRow2.getRow());
+        } else if (locatedRow2.size() == numOfGroupKeys + aggregates.length*3) {
+            valueRow = locatedRow2.getRow();
+            copyRow(valueRow, locatedRow1.getRow());
+        } else {
+            // neither row is the accumulated row,
+            // compose a row with all the aggregates together
+            valueRow = aggregateOperation.getExecRowDefinition();
+            copyRow(valueRow, locatedRow1.getRow());
+            copyRow(valueRow, locatedRow2.getRow());
         }
-        if (locatedRow2 == null) return resultRow;
 
-        copyRow(valueRow, locatedRow2.getRow());
-        return resultRow;
+        return new LocatedRow(valueRow);
     }
 
     private void copyRow(ExecRow valueRow, ExecRow src) throws Exception {
@@ -115,6 +123,15 @@ public class StitchMixedRowFunction<Op extends SpliceOperation> extends SpliceFu
                     valueRow.setColumn(aggr.getAggregatorColumnId(), src.getColumn(j++));
                 }
             }
+        }
+        return;
+    }
+
+    private void mergeRow(ExecRow valueRow, ExecRow src) throws Exception {
+        for (int j=numOfGroupKeys+1; j<=numOfGroupKeys + aggregates.length*3; j++) {
+            DataValueDescriptor dvd = src.getColumn(j);
+            if (!dvd.isNull())
+                valueRow.setColumn(j, dvd);
         }
         return;
     }

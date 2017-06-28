@@ -259,7 +259,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         DataSet set4 = set3.values(OperationContext.Scope.READ.displayName());
         operationContext.popScope();
 
-        //need to do stitch the split rows together for multiple aggregates case
+        //need to stitch the split rows together for multiple aggregates case
         if (hasMultipleDistinct) {
             operationContext.pushScopeForOp(OperationContext.Scope.GROUP_AGGREGATE_KEYER);
             PairDataSet set6 = set4.keyBy(new KeyerFunction(operationContext, groupedAggregateContext.getGroupingKeys()));
@@ -277,7 +277,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         operationContext.pushScopeForOp(OperationContext.Scope.FINALIZE);
         DataSet set5 = set4.map(new AggregateFinisherFunction(operationContext), true);
         operationContext.popScope();
-        
+
         return set5;
     }
 

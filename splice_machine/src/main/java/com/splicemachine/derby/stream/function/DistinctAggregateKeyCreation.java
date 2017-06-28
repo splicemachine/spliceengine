@@ -62,15 +62,15 @@ public class DistinctAggregateKeyCreation<Op extends SpliceOperation> extends Sp
         ValueRow valueRow = new ValueRow(numOfGroupKeys+2);
         int position = 1;
 
-        // copy the first N columns which are grouByColumns + distinct column position + distinct column
+        // copy the first N columns which are groupByColumns + distinct column position + distinct column
         // should we put the more distinct columns first instead? Is there performance difference for hashing?
-        for (; position<=numOfGroupKeys+1; position++) {
+        for (; position<=numOfGroupKeys; position++) {
             valueRow.setColumn(position, row.getRow().getColumn(position));
         }
         //read the distinct column id
         DataValueDescriptor dvd = row.getRow().getColumn(position);
         valueRow.setColumn(position++, dvd);
-        if (dvd == null) {
+        if (dvd.isNull()) {
             // this is a row for non-distinct aggregates, put null value here
             valueRow.setColumn(position, new SQLInteger());
         } else {

@@ -126,7 +126,6 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
             numDistinctAggs++;
         }
 
-        DataSet<ExecRow> ds3;
         if (numDistinctAggs > 1) {
             /**
              * To handle multiple distinct aggregates, we will be splitting an input row to multiple rows. For example,
@@ -176,17 +175,16 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
             set4 = set3.values();
             operationContext.popScope();
 
-            operationContext.pushScopeForOp("Stitch Mixed rows");
-            ds3 = set4.mapPartitions(new StitchMixedRowFlatMapFunction(operationContext));
-            operationContext.popScope();
+            DataSet ds3 = set4.coalesce(1, true, false, operationContext, true, "Coalesce");
+            return ds3.mapPartitions(new StitchMixedRowFlatMapFunction(operationContext), true, true, "Stitch Mixed rows");
         } else {
             DataSet<ExecRow> ds2 = dataSet.keyBy(new KeyerFunction(operationContext, keyColumns), null, true, "Prepare Keys")
                     .reduceByKey(new MergeNonDistinctAggregatesFunction(operationContext), false, true, "Reduce")
                     .values(null, false, operationContext, true, "Read Values");
-            ds3 = ds2.mapPartitions(new MergeAllAggregatesFlatMapFunction(operationContext, false), false, true, "First Aggregation");
+            DataSet<LocatedRow> ds3 = ds2.mapPartitions(new MergeAllAggregatesFlatMapFunction(operationContext, false), false, true, "First Aggregation");
+            DataSet<LocatedRow> ds4 = ds3.coalesce(1, true, false, operationContext, true, "Coalesce");
+            return ds4.mapPartitions(new MergeAllAggregatesFlatMapFunction(operationContext, true), true, true, "Final Aggregation");
         }
-        DataSet<ExecRow> ds4 = ds3.coalesce(1, true, false, operationContext, true, "Coalesce");
-        return ds4.mapPartitions(new MergeAllAggregatesFlatMapFunction(operationContext, true), true, true, "Final Aggregation");
 
     }
 }

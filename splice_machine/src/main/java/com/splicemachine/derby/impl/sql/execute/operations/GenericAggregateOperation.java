@@ -14,14 +14,11 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.clearspring.analytics.util.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.impl.sql.execute.AggregatorInfo;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.DerbyAggregateContext;
@@ -169,44 +166,7 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
         this.setCurrentRow(row);
     }
 
-	/**
-	 * In the case of multiple distinct aggregate operations,
-	 * with the rows split, the column positions recorded in aggregates are no longer valid,
-	 * so for multiple distinct aggregate case, we need to compose a new aggregates array with
-	 * column ids pointing to the new position in the split row.
-	 */
-	public SpliceGenericAggregator[] setupNewAggregates(int[] groupingKeys) {
-		SpliceGenericAggregator[] origAggregates = aggregates;
-		int numOfGroupKeys = groupingKeys.length;
-
-		List<SpliceGenericAggregator> tmpAggregators = Lists.newArrayList();
-		int numOfNonDistinctAggregates = 0;
-		ClassFactory cf = getActivation().getLanguageConnectionContext().getLanguageConnectionFactory().getClassFactory();
-		for (SpliceGenericAggregator aggregator : origAggregates) {
-			AggregatorInfo aggInfo = aggregator.getAggregatorInfo();
-			AggregatorInfo newAggInfo;
-			if (aggregator.isDistinct()) {
-				newAggInfo = new AggregatorInfo(aggInfo.getAggregateName()
-						, aggInfo.getAggregatorClassName()
-						, numOfGroupKeys + 2
-						, numOfGroupKeys + 1
-						, numOfGroupKeys + 3
-						, true
-						, aggInfo.getResultDescription());
-			} else {
-				newAggInfo = new AggregatorInfo(aggInfo.getAggregateName()
-						, aggInfo.getAggregatorClassName()
-						, numOfGroupKeys + numOfNonDistinctAggregates * 3 + 2
-						, numOfGroupKeys + numOfNonDistinctAggregates * 3 + 1
-						, numOfGroupKeys + numOfNonDistinctAggregates * 3 + 3
-						, false
-						, aggInfo.getResultDescription());
-				numOfNonDistinctAggregates++;
-			}
-			tmpAggregators.add(new SpliceGenericAggregator(newAggInfo, cf));
-		}
-		SpliceGenericAggregator[] newAggregates = new SpliceGenericAggregator[tmpAggregators.size()];
-		tmpAggregators.toArray(newAggregates);
-		return newAggregates;
+	public ExecIndexRow getSourceExecIndexRow() {
+		return sourceExecIndexRow;
 	}
 }
