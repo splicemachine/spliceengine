@@ -23,6 +23,7 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.impl.driver.SIDriver;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
 
 /**
@@ -78,17 +79,25 @@ public class ImportUtils{
         if(path==null) return;
         DistributedFileSystem fsLayer = getFileSystem(path);
         FileInfo info;
+
         try{
             info = fsLayer.getInfo(path);
-        }catch(IOException e){
-            throw Exceptions.parseException(e);
+        }catch(Exception e){
+            throw StandardException.plainWrapException(e);
         }
 
-        if(checkDirectory &&!info.isDirectory()){
-            throw ErrorState.DATA_FILE_NOT_FOUND.newException(path);
-        }
-        if(!info.isWritable()){
-            throw ErrorState.LANG_NO_WRITE_PERMISSION.newException(info.getUser(),info.getGroup(),path);
+        URI uri = URI.create(path);
+        String scheme = uri.getScheme();
+        if (scheme == null || scheme.compareToIgnoreCase("S3A") != 0) {
+            // PrestoS3AFileSystem has problem reading an empty folder. It cannot determine whether the folder does not
+            // exist, or the folder is empty. Skip checking for S3A. If the directory does not exist, it will be
+            // created.
+            if (checkDirectory && !info.isDirectory()) {
+                throw ErrorState.DATA_FILE_NOT_FOUND.newException(path);
+            }
+            if (!info.isWritable()) {
+                throw ErrorState.LANG_NO_WRITE_PERMISSION.newException(info.getUser(), info.getGroup(), path);
+            }
         }
     }
 
