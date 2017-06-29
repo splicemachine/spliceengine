@@ -270,7 +270,7 @@ public class DataDictionaryCache {
     }
 
     public void conglomerateCacheAdd(Long conglomId, Conglomerate conglomerate,TransactionController xactMgr) throws StandardException {
-        if (!dd.canUseCache(xactMgr))
+        if (!dd.canUseCache(xactMgr)  && conglomId>=DataDictionary.FIRST_USER_TABLE_NUMBER)
             return;
         if (LOG.isDebugEnabled())
             LOG.debug("conglomerateCacheAdd " + conglomId + " : " + conglomerate);
