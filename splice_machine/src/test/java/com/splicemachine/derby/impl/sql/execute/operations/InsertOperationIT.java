@@ -30,6 +30,7 @@ import java.util.*;
 
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.getBaseDirectory;
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.getResourceDirectory;
+import static com.splicemachine.derby.test.framework.SpliceUnitTest.rowsContainsQuery;
 
 public class InsertOperationIT {
 
@@ -86,6 +87,74 @@ public class InsertOperationIT {
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
+
+    @Test
+    public void testInsertCharsIntoSmallInt() throws Exception{
+        //Varchar
+        classWatcher.executeUpdate("create table tab1 (col1 int, col2 varchar(4), col3 smallint)");
+        classWatcher.executeUpdate("create table tab2(c1 int, c2 varchar(4), c3 smallint)");
+        classWatcher.executeUpdate("insert into tab2 (c1, c3) select col1, col2 from tab1");
+
+        //Char
+        classWatcher.executeUpdate("create table tab3 (col1 int, col2 char(4), col3 smallint)");
+        classWatcher.executeUpdate("create table tab4(c1 int, c2 char(4), c3 smallint)");
+        classWatcher.executeUpdate("insert into tab4 (c1, c3) select col1, col2 from tab3");
+    }
+
+    @Test
+    public void testInsertCharsIntoBigInt() throws Exception{
+        //varchar
+        classWatcher.executeUpdate("create table tab1 (col1 int, col2 varchar(4), col3 bigint)");
+        classWatcher.executeUpdate("create table tab2(c1 int, c2 varchar(4), c3 bigint)");
+        classWatcher.executeUpdate("insert into tab2 (c1, c3) select col1, col2 from tab1");
+
+        //char
+        classWatcher.executeUpdate("create table tab3 (col1 int, col2 char(4), col3 bigint)");
+        classWatcher.executeUpdate("create table tab4(c1 int, c2 varchar(4), c3 bigint)");
+        classWatcher.executeUpdate("insert into tab4 (c1, c3) select col1, col2 from tab3");
+    }
+
+    @Test
+    public void testInsertCharsIntoInt() throws Exception{
+        //varchar
+        classWatcher.executeUpdate("create table tab1 (col1 int, col2 varchar(4), col3 bigint)");
+        classWatcher.executeUpdate("create table tab2(c1 int, c2 varchar(4), c3 int)");
+        classWatcher.executeUpdate("insert into tab2 (c1, c3) select col1, col2 from tab1");
+
+        //char
+        classWatcher.executeUpdate("create table tab3 (col1 int, col2 char(4), col3 bigint)");
+        classWatcher.executeUpdate("create table tab4(c1 int, c2 varchar(4), c3 int)");
+        classWatcher.executeUpdate("insert into tab4 (c1, c3) select col1, col2 from tab3");
+    }
+
+    //Fix does not support inserting int types into varchar fields
+    @Ignore
+    public void testInsertIntsToChars() throws Exception{
+        classWatcher.executeUpdate("create table varcharTab(c1 int, c2 varchar(4))"); // varchar to put ints into
+        classWatcher.executeUpdate("create table charTab(c1 int, c2 char(4))");    // char to put ints into
+
+        classWatcher.executeUpdate("create table smallintTab(col1 int, col2 smallint)"); // smallint
+        classWatcher.executeUpdate("create table intTab(col1 int, col2 int)");      // int
+        classWatcher.executeUpdate("create table bigintTab(col1 int, col2 bigint)");   // bigint
+
+        //smallint to varchar
+        classWatcher.executeUpdate("insert into varcharTab (c1, c2) select col1, col2 from smallintTab");
+
+        //smallint to char
+        classWatcher.executeUpdate("insert into charTab (c1, c2) select col1, col2 from smallintTab");
+
+        //int to varchar
+        classWatcher.executeUpdate("insert into varcharTab (c1, c2) select col1, col2 from intTab");
+
+        //int to char
+        classWatcher.executeUpdate("insert into charTab (c1, c2) select col1, col2 from intTab");
+
+        //bigint to varchar
+        classWatcher.executeUpdate("insert into varcharTab (c1, c2) select col1, col2 from bigintTab");
+
+        //bigint to char
+        classWatcher.executeUpdate("insert into charTab (c1, c2) select col1, col2 from bigintTab");
+    }
 
     @Test
     public void testInsertOverMergeSortOuterJoinIsCorrect() throws Exception {
