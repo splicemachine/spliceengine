@@ -15350,7 +15350,7 @@ dropTableStatement() throws StandardException :
 	Token ifTok = null;
 	Token existsTok = null;
 	Token ifTok2 = null;
-    Token existsTok2 = null;
+	Token existsTok2 = null;
 	TableName tableName;
 }
 {
