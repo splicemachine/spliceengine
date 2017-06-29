@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
+import com.carrotsearch.hppc.LongOpenHashSet;
+import com.splicemachine.db.impl.db.BasicDatabase;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Function;
@@ -1375,7 +1377,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         if (retval!=null) {
             ConglomerateDescriptor[] conglomerateDescriptors = retval.getConglomerateDescriptors();
             if (conglomerateDescriptors.length > 0 &&
-                    conglomerateDescriptors[0].getConglomerateNumber() < DataDictionary.FIRST_USER_TABLE_NUMBER)
+                    BasicDatabase.isSystemConglomerate(conglomerateDescriptors[0].getConglomerateNumber()))
                 retval.setVersion(SYSTABLESRowFactory.ORIGINAL_TABLE_VERSION);
             dataDictionaryCache.nameTdCacheAdd(tableKey, retval);
         }
@@ -10250,4 +10252,15 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             ti.updateRow(keyRow,row,SYSSOURCECODERowFactory.SYSSOURCECODE_INDEX1_ID,bArray,colsToUpdate,tc);
         }
     }
+
+    @Override
+    public TabInfoImpl[] getNoncoreInfo() {
+        return noncoreInfo;
+    }
+
+    @Override
+    public TabInfoImpl[] getCoreInfo() {
+        return coreInfo;
+    }
+
 }
