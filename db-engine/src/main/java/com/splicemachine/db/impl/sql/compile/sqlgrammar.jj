@@ -15360,7 +15360,7 @@ dropTableStatement() throws StandardException :
 		StatementNode deleteNode = (StatementNode) nodeFactory.getNode(
 											C_NodeTypes.DROP_TABLE_NODE,
 											tableName,
-											(ifExists ? 
+											(ifExists ?
 											  new Integer(StatementType.DROP_IF_EXISTS) : 
 											  new Integer(StatementType.DROP_DEFAULT)),
 											getContextManager());
@@ -15454,14 +15454,23 @@ dropAliasStatement() throws StandardException :
 StatementNode
 dropViewStatement() throws StandardException :
 {
+    Token ifTok = null;
+    Token ifTok2 = null;
+    Token existsTok = null;
+    Token existsTok2 = null;
 	TableName viewName;
 }
 {
-	<VIEW> viewName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) 
+	<VIEW> [ ifTok = <IF> existsTok = <EXISTS> ] viewName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) [ ifTok2 = <IF> existsTok2 = <EXISTS> ]
 	{
+        // must have both "if" and "exists"
+        boolean ifExists = ifTok != null && existsTok != null;
+        boolean ifExists2 = ifTok2 != null && existsTok2 != null;
+
 		return (StatementNode) nodeFactory.getNode(
 								C_NodeTypes.DROP_VIEW_NODE,
 								viewName,
+								((ifExists || ifExists2) ? new Integer(StatementType.DROP_IF_EXISTS) : new Integer(StatementType.DROP_DEFAULT)),
 								getContextManager());
 	}
 }
