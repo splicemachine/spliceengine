@@ -14,16 +14,20 @@
 
 package com.splicemachine.derby.impl.sql.execute.sequence;
 
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.test_tools.TableCreator;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
+
+import java.sql.SQLException;
+
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
 import static java.lang.String.format;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -73,6 +77,15 @@ public class SpliceSequenceIT {
         assertTrue(first >= Short.MIN_VALUE && first <= Short.MAX_VALUE);
 
         methodWatcher.executeUpdate("drop sequence SMALLSEQ restrict");
+    }
+
+    @Ignore
+    public void testIdentityValLocal() throws Exception{
+        methodWatcher.executeUpdate(String.format("create table t1(c1 int generated always as identity, c2 int)"));
+        methodWatcher.executeUpdate(String.format("insert into t1(c2) values (8)"));
+        methodWatcher.executeUpdate(String.format("insert into t1(c2) values (IDENTITY_VAL_LOCAL())"));
+
+
     }
 /*
     @Test
