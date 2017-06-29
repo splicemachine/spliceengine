@@ -88,6 +88,20 @@ public class InsertOperationIT {
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
     @Test
+    public void testInsertVarcharIntoSmallInt() throws Exception{
+        classWatcher.executeUpdate("create table tab1 (col1 int, col2 varchar(4), col3 smallint)");
+        classWatcher.executeUpdate("create table tab2(c1 int, c2 varchar(4), c3 smallint)");
+        classWatcher.executeUpdate("insert into tab2 (c1, c3) select col1, col2 from tab1");
+    }
+
+    @Test
+    public void testInsertVarcharIntoBigInt() throws Exception{
+        classWatcher.executeUpdate("create table tab1 (col1 int, col2 varchar(4), col3 bigint)");
+        classWatcher.executeUpdate("create table tab2(c1 int, c2 varchar(4), c3 bigint)");
+        classWatcher.executeUpdate("insert into tab2 (c1, c3) select col1, col2 from tab1");
+    }
+
+    @Test
     public void testInsertOverMergeSortOuterJoinIsCorrect() throws Exception {
         /*
          * Regression test for DB-1833. Tests that we can insert over a subselect that has a merge-sort
