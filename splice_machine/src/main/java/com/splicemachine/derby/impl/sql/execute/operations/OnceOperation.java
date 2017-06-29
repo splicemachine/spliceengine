@@ -146,16 +146,16 @@ public class OnceOperation extends SpliceBaseOperation {
 
 
     private static class IteratorRowSource implements RowSource {
-        private final Iterator<LocatedRow> iterator;
+        private final Iterator<ExecRow> iterator;
 
-        public IteratorRowSource(Iterator<LocatedRow> iterator) {
+        public IteratorRowSource(Iterator<ExecRow> iterator) {
             this.iterator = iterator;
         }
 
         @Override
         public ExecRow next() throws StandardException, IOException {
             if (iterator.hasNext()) {
-                return iterator.next().getRow();
+                return iterator.next();
             } else {
                 return null;
             }
@@ -237,10 +237,10 @@ public class OnceOperation extends SpliceBaseOperation {
 		}
 
     @Override
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         // We are consuming the dataset, get a resultDataSet
-        DataSet<LocatedRow> raw = source.getResultDataSet(dsp);
-        final Iterator<LocatedRow> iterator = raw.toLocalIterator();
+        DataSet<ExecRow> raw = source.getResultDataSet(dsp);
+        final Iterator<ExecRow> iterator = raw.toLocalIterator();
         ExecRow result;
         try {
             result = validateNextRow(new IteratorRowSource(iterator), true);
@@ -248,7 +248,7 @@ public class OnceOperation extends SpliceBaseOperation {
             throw Exceptions.parseException(e);
         }
 
-        return dsp.singleRowDataSet(new LocatedRow(result));
+        return dsp.singleRowDataSet(result);
     }
 
 }

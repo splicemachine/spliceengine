@@ -15,8 +15,8 @@
 package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iterator.NestedLoopJoinIterator;
 
@@ -28,7 +28,7 @@ import java.util.Iterator;
 /**
  *
  */
-public class NLJInnerJoinFunction<Op extends SpliceOperation> extends NLJoinFunction<Op, Iterator<LocatedRow>, LocatedRow> {
+public class NLJInnerJoinFunction<Op extends SpliceOperation> extends NLJoinFunction<Op, Iterator<ExecRow>, ExecRow> {
 
     public NLJInnerJoinFunction() {}
 
@@ -37,7 +37,7 @@ public class NLJInnerJoinFunction<Op extends SpliceOperation> extends NLJoinFunc
     }
 
     @Override
-    public Iterator<LocatedRow> call(Iterator<LocatedRow> from) throws Exception {
+    public Iterator<ExecRow> call(Iterator<ExecRow> from) throws Exception {
         if (!initialized) {
             init(from);
             initialized = true;
@@ -47,7 +47,7 @@ public class NLJInnerJoinFunction<Op extends SpliceOperation> extends NLJoinFunc
     }
 
     @Override
-    protected void init(Iterator<LocatedRow> from) throws StandardException {
+    protected void init(Iterator<ExecRow> from) throws StandardException {
         joinType = JoinType.INNER;
         super.init(from);
     }

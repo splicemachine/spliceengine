@@ -30,7 +30,6 @@ import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.sql.catalog.SYSCOLUMNSTATISTICSRowFactory;
 import com.splicemachine.db.impl.sql.catalog.SYSTABLESTATISTICSRowFactory;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.collect.FluentIterable;
 
@@ -164,16 +163,16 @@ public class MergeStatisticsHolder implements Externalizable {
         return tableMergedStatistics;
     }
 
-    public Iterator<LocatedRow> toList() throws StandardException {
+    public Iterator<ExecRow> toList() throws StandardException {
         long rowCount = tableMergedStatistics.getColumn(SYSTABLESTATISTICSRowFactory.ROWCOUNT).getLong();
         long avgRowWidth = tableMergedStatistics.getColumn(SYSTABLESTATISTICSRowFactory.MEANROWWIDTH).getLong();
         tableMergedStatistics.setColumn(SYSTABLESTATISTICSRowFactory.MEANROWWIDTH, new SQLInteger( (int) ((double) avgRowWidth / rowCount)));
-        return Iterators.concat(Arrays.asList(new LocatedRow(tableMergedStatistics)).iterator(),
-                FluentIterable.from(columnStatisticsMergeHashMap.entrySet()).transform(new Function<Map.Entry<Integer, ColumnStatisticsMerge>, LocatedRow>() {
+        return Iterators.concat(Arrays.asList(tableMergedStatistics).iterator(),
+                FluentIterable.from(columnStatisticsMergeHashMap.entrySet()).transform(new Function<Map.Entry<Integer, ColumnStatisticsMerge>, ExecRow>() {
                     @Nullable
                     @Override
-                    public LocatedRow apply(@Nullable Map.Entry<Integer, ColumnStatisticsMerge> entry) {
-                        return new LocatedRow(entry.getValue().toExecRow(entry.getKey()));
+                    public ExecRow apply(@Nullable Map.Entry<Integer, ColumnStatisticsMerge> entry) {
+                        return  entry.getValue().toExecRow(entry.getKey());
                     }
                 }).iterator());
     }

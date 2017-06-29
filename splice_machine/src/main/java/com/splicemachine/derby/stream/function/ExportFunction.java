@@ -14,7 +14,7 @@
 
 package com.splicemachine.derby.stream.function;
 
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportCSVWriterBuilder;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportExecRowWriter;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
@@ -28,7 +28,7 @@ import java.util.Iterator;
 /**
  * Created by jleach on 10/28/15.
  */
-public class ExportFunction extends SpliceFunction2<ExportOperation, OutputStream, Iterator<LocatedRow>, Integer> {
+public class ExportFunction extends SpliceFunction2<ExportOperation, OutputStream, Iterator<ExecRow>, Integer> {
         public ExportFunction() {
         }
 
@@ -37,14 +37,13 @@ public class ExportFunction extends SpliceFunction2<ExportOperation, OutputStrea
         }
 
         @Override
-        public Integer call(OutputStream outputStream, Iterator<LocatedRow> locatedRowIterator) throws Exception {
+        public Integer call(OutputStream outputStream, Iterator<ExecRow> locatedRowIterator) throws Exception {
             ExportOperation op = operationContext.getOperation();
             ExportExecRowWriter rowWriter = initializeRowWriter(outputStream, op.getExportParams());
             int count = 0;
             while (locatedRowIterator.hasNext()) {
                 count++;
-                LocatedRow lr = locatedRowIterator.next();
-                rowWriter.writeRow(lr.getRow(), op.getSourceResultColumnDescriptors());
+                rowWriter.writeRow(locatedRowIterator.next(), op.getSourceResultColumnDescriptors());
             }
             rowWriter.close();
             return count;

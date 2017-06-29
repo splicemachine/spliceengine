@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.index.DistributedPopulateIndexJob;
 import com.splicemachine.derby.impl.sql.execute.index.PopulateIndexJob;
 import com.splicemachine.derby.stream.utils.StreamUtils;
@@ -25,7 +26,6 @@ import org.spark_project.guava.primitives.Ints;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
@@ -162,7 +162,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 				dsp = EngineDriver.driver().processorFactory().localProcessor(null,null);
 
             childTxn = beginChildTransaction(indexTransaction, tentativeIndex.getIndex().getConglomerate());
-			ScanSetBuilder<LocatedRow> builder = dsp.newScanSet(null, Long.toString(tentativeIndex.getTable().getConglomerate()));
+			ScanSetBuilder<ExecRow> builder = dsp.newScanSet(null, Long.toString(tentativeIndex.getTable().getConglomerate()));
 			builder.tableDisplayName(tableName)
 			.demarcationPoint(demarcationPoint)
 			.transaction(indexTransaction)

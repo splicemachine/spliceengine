@@ -15,6 +15,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
@@ -233,17 +234,17 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
     }
 
     @Override
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         try {
             TxnView txn = getCurrentTransaction();
             List<DataScan> scans = scanInformation.getScans(getCurrentTransaction(), null, activation, getKeyDecodingMap());
-            DataSet<LocatedRow> dataSet = dsp.getEmpty();
+            DataSet<ExecRow> dataSet = dsp.getEmpty();
             OperationContext<MultiProbeTableScanOperation> operationContext = dsp.<MultiProbeTableScanOperation>createOperationContext(this);
             int i = 0;
             for (DataScan scan : scans) {
                 deSiify(scan);
                 MultiProbeTableScanOperation clone = (MultiProbeTableScanOperation) operationContext.getClone().getOperation();
-                DataSet<LocatedRow> ds = dsp.<MultiProbeTableScanOperation, LocatedRow>newScanSet(this, tableName)
+                DataSet<ExecRow> ds = dsp.<MultiProbeTableScanOperation, ExecRow>newScanSet(this, tableName)
                         .tableDisplayName(tableDisplayName)
                         .activation(clone.getActivation())
                         .transaction(txn)

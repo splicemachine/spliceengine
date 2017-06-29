@@ -47,6 +47,7 @@ import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.spark.HBasePartitioner;
 import com.splicemachine.derby.stream.spark.RowPartition;
+import com.splicemachine.derby.stream.spark.SparkFlatMapFunction;
 import com.splicemachine.derby.stream.spark.SparkOperationContext;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.kvpair.KVPair;
@@ -558,7 +559,6 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(ColumnInfo[].class);
         instance.register(MergeLeftOuterJoinOperation.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(DataValueDescriptor[].class);
-        instance.register(LocatedRow.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(AbstractSpliceFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(AggregateFinisherFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(AntiJoinFunction.class,EXTERNALIZABLE_SERIALIZER);
@@ -575,11 +575,8 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(InnerJoinFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(InnerJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(InnerJoinRestrictionFunction.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(InsertPairFunction.class,EXTERNALIZABLE_SERIALIZER);
-
         instance.register(JoinRestrictionPredicateFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(KeyerFunction.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(LocatedRowToRowLocationFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(MergeAllAggregatesFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(MergeAllAggregatesFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(MergeNonDistinctAggregatesFunction.class,EXTERNALIZABLE_SERIALIZER);

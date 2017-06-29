@@ -15,16 +15,15 @@
 package com.splicemachine.example;
 
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.mllib.linalg.Vector;
-
 import java.io.*;
 
 /**
  * Created by jleach on 12/15/15.
  */
-public class ExecRowToVectorFunction implements Function<LocatedRow,Vector>, Externalizable{
+public class ExecRowToVectorFunction implements Function<ExecRow,Vector>, Externalizable{
     private int[] fieldsToConvert;
 
     public ExecRowToVectorFunction() {
@@ -45,7 +44,7 @@ public class ExecRowToVectorFunction implements Function<LocatedRow,Vector>, Ext
     }
 
     @Override
-    public Vector call(LocatedRow locatedRow) throws Exception {
-        return SparkMLibUtils.convertExecRowToVector(locatedRow.getRow(),fieldsToConvert);
+    public Vector call(ExecRow locatedRow) throws Exception {
+        return SparkMLibUtils.convertExecRowToVector(locatedRow,fieldsToConvert);
     }
 }

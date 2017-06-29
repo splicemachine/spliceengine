@@ -196,7 +196,7 @@ public class SortOperation extends SpliceBaseOperation{
     }
 
     @SuppressWarnings({"rawtypes","unchecked"})
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException{
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException{
         OperationContext operationContext=dsp.createOperationContext(this);
         DataSet dataSet=source.getDataSet(dsp);
 

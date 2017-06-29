@@ -14,13 +14,12 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.IndexRowReader;
 import com.splicemachine.derby.impl.sql.execute.operations.IndexRowReaderBuilder;
 import com.splicemachine.derby.impl.sql.execute.operations.IndexRowToBaseRowOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -29,7 +28,7 @@ import java.util.Iterator;
 /**
  * Created by jleach on 5/28/15.
  */
-public class IndexToBaseRowFlatMapFunction<Op extends SpliceOperation> extends SpliceFlatMapFunction<Op,Iterator<LocatedRow>,LocatedRow> {
+public class IndexToBaseRowFlatMapFunction<Op extends SpliceOperation> extends SpliceFlatMapFunction<Op,Iterator<ExecRow>,ExecRow> {
     boolean initialized;
     protected IndexRowToBaseRowOperation indexRowToBaseRowOperation;
     protected IndexRowReaderBuilder indexRowReaderBuilder;
@@ -60,7 +59,7 @@ public class IndexToBaseRowFlatMapFunction<Op extends SpliceOperation> extends S
     }
 
     @Override
-    public Iterator<LocatedRow> call(Iterator<LocatedRow> locatedRows) throws Exception {
+    public Iterator<ExecRow> call(Iterator<ExecRow> locatedRows) throws Exception {
         if (!initialized) {
             indexRowToBaseRowOperation = (IndexRowToBaseRowOperation) getOperation();
             reader = indexRowReaderBuilder.source(locatedRows).build();

@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
+import com.splicemachine.derby.stream.function.ExternalizableFlatMapFunction;
 import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
 import com.splicemachine.derby.stream.function.StatisticsFlatMapFunction;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
@@ -131,6 +132,7 @@ import com.splicemachine.utils.kryo.ExternalizableSerializer;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
+
 
 /**
  * Maps serializable entities to a Kryo Serializer, so that

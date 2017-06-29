@@ -15,7 +15,7 @@
 package com.splicemachine.derby.stream.iapi;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 
 import java.util.Iterator;
 
@@ -25,5 +25,5 @@ import java.util.Iterator;
 public interface RemoteQueryClient extends AutoCloseable {
     void submit() throws StandardException;
 
-    Iterator<LocatedRow> getIterator();
+    Iterator<ExecRow> getIterator();
 }

@@ -176,9 +176,9 @@ public class BroadcastJoinOperation extends JoinOperation{
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext operationContext = dsp.createOperationContext(this);
-        DataSet<LocatedRow> leftDataSet = leftResultSet.getDataSet(dsp);
+        DataSet<ExecRow> leftDataSet = leftResultSet.getDataSet(dsp);
 
 //        operationContext.pushScope();
         leftDataSet = leftDataSet.map(new CountJoinedLeftFunction(operationContext));
@@ -189,10 +189,10 @@ public class BroadcastJoinOperation extends JoinOperation{
         SConfiguration configuration= EngineDriver.driver().getConfiguration();
         boolean useDataset = rightResultSet.getEstimatedCost() / 1000 > configuration.getBroadcastDatasetCostThreshold();
 
-        DataSet<LocatedRow> result;
+        DataSet<ExecRow> result;
         if (useDataset && dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
                 (restriction ==null || (!isOuterJoin && !notExistsRightSide))) {
-            DataSet<LocatedRow> rightDataSet = rightResultSet.getDataSet(dsp);
+            DataSet<ExecRow> rightDataSet = rightResultSet.getDataSet(dsp);
             if (isOuterJoin)
                 result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTOUTER,true);
             else if (notExistsRightSide)

@@ -17,15 +17,12 @@ import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.txn.TxnView;
 import scala.Tuple2;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -55,15 +52,14 @@ public class BulkDeleteRowIndexGenerationFunction extends RowAndIndexGenerator {
     }
 
     @Override
-    public Iterator<Tuple2<Long,Tuple2<byte[], byte[]>>> call(LocatedRow locatedRow) throws Exception {
+    public Iterator<Tuple2<Long,Tuple2<byte[], byte[]>>> call(ExecRow locatedRow) throws Exception {
         init();
 
         ArrayList<Tuple2<Long,Tuple2<byte[], byte[]>>> list = new ArrayList();
-        RowLocation rowLocation = locatedRow.getRowLocation();
-        list.add(new Tuple2<>(heapConglom,new Tuple2<>(rowLocation.getBytes(), new byte[0])));
+        list.add(new Tuple2<>(heapConglom,new Tuple2<>(locatedRow.getKey(), new byte[0])));
 
         for (int i = 0; i< indexTransformFunctions.length; i++) {
-            LocatedRow indexRow = getIndexRow(indexTransformFunctions[i], locatedRow);
+            ExecRow indexRow = getIndexRow(indexTransformFunctions[i], locatedRow);
             Long indexConglomerate = indexTransformFunctions[i].getIndexConglomerateId();
             KVPair indexKVPair = indexTransformFunctions[i].call(indexRow);
             list.add(new Tuple2<>(indexConglomerate, new Tuple2<>(indexKVPair.getRowKey(), new byte[0])));
@@ -121,8 +117,7 @@ public class BulkDeleteRowIndexGenerationFunction extends RowAndIndexGenerator {
     /**
      * Strip off all non-index columns from a main table row
      */
-    private LocatedRow getIndexRow(IndexTransformFunction indexTransformFunction, LocatedRow locatedRow) throws StandardException {
-        ExecRow execRow = locatedRow.getRow();
+    private ExecRow getIndexRow(IndexTransformFunction indexTransformFunction, ExecRow execRow) throws StandardException {
         List<Integer> indexColToMainCol = indexTransformFunction.getIndexColsToMainColMapList();
         Long conglom = indexTransformFunction.getIndexConglomerateId();
         int[] indexColToScanRowMap = indexColMap.get(conglom);
@@ -132,7 +127,7 @@ public class BulkDeleteRowIndexGenerationFunction extends RowAndIndexGenerator {
             row.setColumn(col, execRow.getColumn(n+1));
             col++;
         }
-        LocatedRow lr = new LocatedRow(locatedRow.getRowLocation(), row);
-        return lr;
+        row.setKey(execRow.getKey());
+        return row;
     }
 }

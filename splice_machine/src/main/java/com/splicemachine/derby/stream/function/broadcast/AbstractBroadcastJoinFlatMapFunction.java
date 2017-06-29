@@ -24,7 +24,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.impl.sql.JoinTable;
 import com.splicemachine.derby.impl.sql.execute.operations.BroadcastJoinCache;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -93,13 +92,13 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
                     }catch(StandardException e){
                         throw new RuntimeException(e);
                     }
-                }).transform(new Function<LocatedRow, ExecRow>() {
+                }).transform(new Function<ExecRow, ExecRow>() {
                     @Nullable
                     @Override
-                    public ExecRow apply(@Nullable LocatedRow locatedRow) {
+                    public ExecRow apply(@Nullable ExecRow locatedRow) {
                         assert locatedRow!=null;
                         operationContext.recordJoinedRight();
-                        return locatedRow.getRow();
+                        return locatedRow;
                     }
                 }));
             };

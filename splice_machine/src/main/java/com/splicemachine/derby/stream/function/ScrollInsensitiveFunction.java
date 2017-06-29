@@ -14,8 +14,8 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 
 import java.io.IOException;
@@ -25,7 +25,7 @@ import java.io.ObjectOutput;
 /**
  * Created by jleach on 4/24/15.
  */
-public class ScrollInsensitiveFunction extends SpliceFunction<SpliceOperation, LocatedRow, LocatedRow> {
+public class ScrollInsensitiveFunction extends SpliceFunction<SpliceOperation, ExecRow, ExecRow> {
         protected SpliceOperation op;
         public ScrollInsensitiveFunction() {
             super();
@@ -37,15 +37,15 @@ public class ScrollInsensitiveFunction extends SpliceFunction<SpliceOperation, L
         }
 
         @Override
-        public LocatedRow call(LocatedRow locatedRow) throws Exception {
+        public ExecRow call(ExecRow execRow) throws Exception {
             if (!initialized) {
                 op = (SpliceOperation) getOperation();
                 initialized = true;
             }
             this.operationContext.recordRead();
-            op.setCurrentLocatedRow(locatedRow);
+            op.setCurrentRow(execRow);
             this.operationContext.recordProduced();
-            return locatedRow;
+            return execRow;
         }
 
 }

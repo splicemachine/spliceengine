@@ -17,12 +17,9 @@ package com.splicemachine.derby.stream.iapi;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.function.*;
-import com.splicemachine.derby.stream.output.BulkDeleteDataSetWriterBuilder;
-import com.splicemachine.derby.stream.output.BulkInsertDataSetWriterBuilder;
-import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
+import com.splicemachine.derby.stream.output.*;
 
 import java.io.Serializable;
 import java.util.Iterator;
@@ -271,8 +268,8 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
      * @param context
      * @return
      */
-    public DataSet<LocatedRow> writeParquetFile(int[] baseColumnMap, int[] partitionBy, String location, String compression,
-                                                    OperationContext context) ;
+    DataSet<ExecRow> writeParquetFile(int[] baseColumnMap, int[] partitionBy, String location, String compression,
+                                         OperationContext context) ;
 
     /**
      *
@@ -284,8 +281,8 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
      * @param context
      * @return
      */
-    public DataSet<LocatedRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location, String compression,
-                                            OperationContext context) ;
+    DataSet<ExecRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location, String compression,
+                                     OperationContext context) ;
 
     /**
      *
@@ -299,8 +296,8 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
      * @param context
      * @return
      */
-    public DataSet<LocatedRow> writeTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
-                                             OperationContext context);
+    DataSet<ExecRow> writeTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
+                                      OperationContext context);
 
     /**
      *
@@ -317,4 +314,9 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
     BulkInsertDataSetWriterBuilder bulkInsertData(OperationContext operationContext) throws StandardException;
 
     BulkDeleteDataSetWriterBuilder bulkDeleteData(OperationContext operationContext) throws StandardException;
+
+    DataSetWriterBuilder deleteData(OperationContext operationContext) throws StandardException;
+    InsertDataSetWriterBuilder insertData(OperationContext operationContext) throws StandardException;
+    UpdateDataSetWriterBuilder updateData(OperationContext operationContext) throws StandardException;
+
 }

@@ -17,7 +17,6 @@ package com.splicemachine.derby.stream.function;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.load.SpliceCsvReader;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.BooleanList;
 
@@ -58,13 +57,13 @@ import java.util.NoSuchElementException;
     }
 
     @Override
-    public Iterator<LocatedRow> call(final InputStream s) throws Exception {
+    public Iterator<ExecRow> call(final InputStream s) throws Exception {
         if (operationContext.isFailed())
-            return Collections.<LocatedRow>emptyList().iterator();
+            return Collections.<ExecRow>emptyList().iterator();
         checkPreference();
 
-        return new Iterator<LocatedRow>() {
-                    private LocatedRow nextRow;
+        return new Iterator<ExecRow>() {
+                    private ExecRow nextRow;
                     private boolean initialized = false;
                     private Reader reader;
                     private SpliceCsvReader spliceCsvReader;
@@ -108,7 +107,7 @@ import java.util.NoSuchElementException;
                     }
 
                     @Override
-                    public LocatedRow next() {
+                    public ExecRow next() {
                         if(!hasNext()) throw new NoSuchElementException();
                         stale = false;
                         return nextRow;

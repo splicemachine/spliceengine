@@ -219,21 +219,6 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
     }
 
     @Override
-    public DataSetWriterBuilder deleteData(OperationContext operationContext) throws StandardException{
-        return new SparkDeleteTableWriterBuilder<>(wrapExceptions());
-    }
-
-    @Override
-    public InsertDataSetWriterBuilder insertData(OperationContext operationContext) throws StandardException{
-        return new SparkInsertTableWriterBuilder<>(wrapExceptions());
-    }
-
-    @Override
-    public UpdateDataSetWriterBuilder updateData(OperationContext operationContext) throws StandardException{
-        return new SparkUpdateTableWriterBuilder<>(wrapExceptions());
-    }
-
-    @Override
     public DataSetWriterBuilder directWriteData() throws StandardException{
         return new SparkDirectWriterBuilder<>(wrapExceptions());
     }
@@ -247,7 +232,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
         }
     }
 
-    JavaPairRDD<K,Either<Exception, V>> wrapExceptions() {
+    public JavaPairRDD<K,Either<Exception, V>> wrapExceptions() {
         return rdd.mapPartitionsToPair(new ExceptionWrapperFunction<K, V>());
     }
 

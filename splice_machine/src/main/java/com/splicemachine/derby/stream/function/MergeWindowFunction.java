@@ -15,7 +15,6 @@
 package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.WindowOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
@@ -36,7 +35,7 @@ import static java.util.Collections.sort;
  * Created by jleach on 4/24/15.
  */
 
-public class MergeWindowFunction<Op extends WindowOperation> extends SpliceFlatMapFunction<Op, Tuple2<ExecRow, Iterable<LocatedRow>>,LocatedRow> implements Serializable {
+public class MergeWindowFunction<Op extends WindowOperation> extends SpliceFlatMapFunction<Op, Tuple2<ExecRow, Iterable<ExecRow>>,ExecRow> implements Serializable {
     public MergeWindowFunction() {
     }
 
@@ -45,10 +44,10 @@ public class MergeWindowFunction<Op extends WindowOperation> extends SpliceFlatM
     }
 
     @Override
-    public Iterator<LocatedRow> call(Tuple2<ExecRow, Iterable<LocatedRow>> tuple) throws Exception {
-        Iterable<LocatedRow> locatedRows = tuple._2();
-        List<LocatedRow> partitionRows =new ArrayList<>();
-        for(LocatedRow lr:locatedRows){
+    public Iterator<ExecRow> call(Tuple2<ExecRow, Iterable<ExecRow>> tuple) throws Exception {
+        Iterable<ExecRow> locatedRows = tuple._2();
+        List<ExecRow> partitionRows =new ArrayList<>();
+        for(ExecRow lr:locatedRows){
             partitionRows.add(lr);
         }
         WindowContext windowContext = operationContext.getOperation().getWindowContext();
@@ -67,7 +66,7 @@ public class MergeWindowFunction<Op extends WindowOperation> extends SpliceFlatM
         });
     }
 
-    private class LocatedRowComparator implements Comparator<LocatedRow> {
+    private class LocatedRowComparator implements Comparator<ExecRow> {
         private final ColumnComparator rowComparator;
 
         public LocatedRowComparator(int[] keyColumns, boolean[] keyOrders) {
@@ -75,14 +74,14 @@ public class MergeWindowFunction<Op extends WindowOperation> extends SpliceFlatM
         }
 
         @Override
-        public int compare(LocatedRow r1, LocatedRow r2) {
-            return rowComparator.compare(r1.getRow(), r2.getRow());
+        public int compare(ExecRow r1, ExecRow r2) {
+            return rowComparator.compare(r1, r2);
         }
     }
     private static class LocatedToExecRowIter implements Iterator<ExecRow> {
-        private final Iterator<LocatedRow> delegate;
+        private final Iterator<ExecRow> delegate;
 
-        public LocatedToExecRowIter(Iterator<LocatedRow> delegate){
+        public LocatedToExecRowIter(Iterator<ExecRow> delegate){
             this.delegate=delegate;
         }
 
@@ -93,7 +92,7 @@ public class MergeWindowFunction<Op extends WindowOperation> extends SpliceFlatM
 
         @Override
         public ExecRow next() {
-            return delegate.next().getRow();
+            return delegate.next();
         }
 
         @Override
@@ -102,7 +101,7 @@ public class MergeWindowFunction<Op extends WindowOperation> extends SpliceFlatM
         }
     }
 
-    public static class ExecRowToLocatedRowIterable implements Iterable<LocatedRow>, Iterator<LocatedRow> {
+    public static class ExecRowToLocatedRowIterable implements Iterable<ExecRow>, Iterator<ExecRow> {
         private Iterator<ExecRow> execRows;
 
         public ExecRowToLocatedRowIterable(Iterable<ExecRow> execRows) {
@@ -110,7 +109,7 @@ public class MergeWindowFunction<Op extends WindowOperation> extends SpliceFlatM
         }
 
         @Override
-        public Iterator<LocatedRow> iterator() {
+        public Iterator<ExecRow> iterator() {
             return this;
         }
 
@@ -120,8 +119,8 @@ public class MergeWindowFunction<Op extends WindowOperation> extends SpliceFlatM
         }
 
         @Override
-        public LocatedRow next() {
-            return new LocatedRow(execRows.next());
+        public ExecRow next() {
+            return execRows.next();
         }
 
         @Override

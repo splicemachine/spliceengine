@@ -16,9 +16,9 @@ package com.splicemachine.stream;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
@@ -56,7 +56,7 @@ public class QueryJob implements Callable<Void>{
         ActivationHolder ah = queryRequest.ah;
         SpliceOperation root = ah.getOperationsMap().get(queryRequest.rootResultSetNumber);
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
-        DataSet<LocatedRow> dataset;
+        DataSet<ExecRow> dataset;
         OperationContext<SpliceOperation> context;
         try {
             ah.reinitialize(null);
@@ -73,7 +73,7 @@ public class QueryJob implements Callable<Void>{
             dsp.clearBroadcastedOperation();
             dataset = root.getDataSet(dsp);
             context = dsp.createOperationContext(root);
-            SparkDataSet<LocatedRow> sparkDataSet = (SparkDataSet<LocatedRow>) dataset;
+            SparkDataSet<ExecRow> sparkDataSet = (SparkDataSet<ExecRow>) dataset;
             String clientHost = queryRequest.host;
             int clientPort = queryRequest.port;
             UUID uuid = queryRequest.uuid;

@@ -15,21 +15,21 @@
 
 package com.splicemachine.derby.stream.function;
 
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.utils.StatisticsOperation;
 
 import java.util.Arrays;
 import java.util.Iterator;
 
 public class ReturnStatisticsFlatMapFunction
-    extends SpliceFlatMapFunction<StatisticsOperation, Iterator<MergeStatisticsHolder>, LocatedRow> {
+    extends SpliceFlatMapFunction<StatisticsOperation, Iterator<MergeStatisticsHolder>, ExecRow> {
 
     public ReturnStatisticsFlatMapFunction() {
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public Iterator<LocatedRow> call(Iterator<MergeStatisticsHolder> holders) throws Exception {
+    public Iterator<ExecRow> call(Iterator<MergeStatisticsHolder> holders) throws Exception {
         return holders.next().toList();
     }
 }

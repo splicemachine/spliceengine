@@ -14,8 +14,8 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.StreamLogUtils;
 
@@ -23,7 +23,7 @@ import com.splicemachine.derby.stream.utils.StreamLogUtils;
  *
  *
  */
-public class SetCurrentLocatedRowFunction<Op extends SpliceOperation> extends SpliceFunction<Op,LocatedRow,LocatedRow> {
+public class SetCurrentLocatedRowFunction<Op extends SpliceOperation> extends SpliceFunction<Op,ExecRow,ExecRow> {
 
     public SetCurrentLocatedRowFunction() {
         super();
@@ -34,8 +34,8 @@ public class SetCurrentLocatedRowFunction<Op extends SpliceOperation> extends Sp
     }
 
     @Override
-    public LocatedRow call(LocatedRow locatedRow) throws Exception {
-        getOperation().setCurrentLocatedRow(locatedRow);
+    public ExecRow call(ExecRow locatedRow) throws Exception {
+        getOperation().setCurrentRow(locatedRow);
         StreamLogUtils.logOperationRecord(locatedRow, operationContext);
         return locatedRow;
     }
