@@ -309,10 +309,10 @@ public class RowOperation extends SpliceBaseOperation{
      * @throws StandardException
      */
     @Override
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException{
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException{
         ExecRow execRow=new ValueRow(1);
         execRow.setColumn(1,new SQLInteger(123));
-        return dsp.singleRowDataSet(new LocatedRow(new HBaseRowLocation(Bytes.toBytes(1)),execRow))
+        return dsp.singleRowDataSet(execRow)
                 .map(new RowOperationFunction(dsp.createOperationContext(this)));
     }
 

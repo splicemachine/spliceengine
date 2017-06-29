@@ -15,9 +15,9 @@
 package com.splicemachine.derby.impl.sql.execute.pin;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.iapi.sql.olap.SuccessfulOlapResult;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import java.util.concurrent.Callable;
@@ -49,7 +49,7 @@ public class PopulatePinJob implements Callable<Void> {
         dsp.setSchedulerPool("admin");
         dsp.setJobGroup(request.jobGroup, "");
         String scope = request.scope;
-        DataSet<LocatedRow> dataSet = request.scanSetBuilder.buildDataSet(request.prefix);
+        DataSet<ExecRow> dataSet = request.scanSetBuilder.buildDataSet(request.prefix);
         dataSet.pin(request.scanSetBuilder.getTemplate(),conglomID);
         jobStatus.markCompleted(new SuccessfulOlapResult());
         return null;

@@ -15,7 +15,6 @@
 
 package com.splicemachine.derby.stream.function;
 
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.utils.StatisticsOperation;
 
 import java.util.Arrays;

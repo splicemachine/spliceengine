@@ -14,8 +14,8 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.ConcatenatedIterable;
 import org.apache.commons.collections.IteratorUtils;
@@ -26,9 +26,9 @@ import java.util.*;
  *
  *
  */
-public class CogroupAntiJoinRestrictionFlatMapFunction<Op extends SpliceOperation> extends SpliceJoinFlatMapFunction<Op, Tuple2<Iterable<LocatedRow>,Iterable<LocatedRow>>,LocatedRow> {
+public class CogroupAntiJoinRestrictionFlatMapFunction<Op extends SpliceOperation> extends SpliceJoinFlatMapFunction<Op, Tuple2<Iterable<ExecRow>,Iterable<ExecRow>>,ExecRow> {
     private AntiJoinRestrictionFlatMapFunction<Op> antiJoinRestrictionFlatMapFunction;
-    protected LocatedRow leftRow;
+    protected ExecRow leftRow;
     public CogroupAntiJoinRestrictionFlatMapFunction() {
         super();
     }
@@ -38,11 +38,11 @@ public class CogroupAntiJoinRestrictionFlatMapFunction<Op extends SpliceOperatio
     }
 
     @Override
-    public Iterator<LocatedRow> call(Tuple2<Iterable<LocatedRow>, Iterable<LocatedRow>> tuple) throws Exception {
+    public Iterator<ExecRow> call(Tuple2<Iterable<ExecRow>, Iterable<ExecRow>> tuple) throws Exception {
         checkInit();
-        Iterable<LocatedRow> rightSide = tuple._2;
-        List<Iterable<LocatedRow>> returnRows = new LinkedList<>();
-        for(LocatedRow a_1 : tuple._1){
+        Iterable<ExecRow> rightSide = tuple._2;
+        List<Iterable<ExecRow>> returnRows = new LinkedList<>();
+        for(ExecRow a_1 : tuple._1){
             returnRows.add(IteratorUtils.toList(antiJoinRestrictionFlatMapFunction.call(new Tuple2<>(a_1,rightSide))));
         }
         return new ConcatenatedIterable<>(returnRows).iterator();

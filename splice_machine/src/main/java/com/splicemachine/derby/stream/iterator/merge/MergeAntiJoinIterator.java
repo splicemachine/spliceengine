@@ -14,8 +14,8 @@
 
 package com.splicemachine.derby.stream.iterator.merge;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.PeekingIterator;
@@ -33,8 +33,8 @@ public class MergeAntiJoinIterator extends AbstractMergeJoinIterator {
      * @param rightKeys     Join Key(s) on which right side is sorted
      * @param operationContext
      */
-    public MergeAntiJoinIterator(Iterator<LocatedRow> leftRS,
-                                 PeekingIterator<LocatedRow> rightRS,
+    public MergeAntiJoinIterator(Iterator<ExecRow> leftRS,
+                                 PeekingIterator<ExecRow> rightRS,
                                  int[] leftKeys, int[] rightKeys,
                                  JoinOperation mergeJoinOperation, OperationContext<JoinOperation> operationContext) {
         super(leftRS,rightRS,leftKeys,rightKeys,mergeJoinOperation, operationContext);
@@ -45,18 +45,18 @@ public class MergeAntiJoinIterator extends AbstractMergeJoinIterator {
         try {
             while (leftRS.hasNext()) {
                 left = leftRS.next();
-                currentRightIterator = rightsForLeft(left.getRow());
+                currentRightIterator = rightsForLeft(left);
                 boolean returnedRows = false;
                 while (currentRightIterator.hasNext()) {
-                    currentLocatedRow = mergeRows(left, currentRightIterator.next());
-                    if (mergeJoinOperation.getRestriction().apply(currentLocatedRow.getRow())) {
+                    currentExecRow = mergeRows(left, currentRightIterator.next());
+                    if (mergeJoinOperation.getRestriction().apply(currentExecRow)) {
                         returnedRows = true;
                         break;
                     }
                     operationContext.recordFilter();
                 }
                 if (!returnedRows) {
-                    currentLocatedRow = mergeRows(left, null);
+                    currentExecRow = mergeRows(left, null);
                     return true;
                 }
             }

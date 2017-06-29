@@ -17,7 +17,6 @@ package com.splicemachine.derby.stream.function;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.GenericAggregateOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 
@@ -26,7 +25,7 @@ import java.io.Serializable;
 /**
  * Created by jleach on 4/24/15.
  */
-public class MergeNonDistinctAggregatesFunction<Op extends SpliceOperation> extends SpliceFunction2<Op, LocatedRow, LocatedRow, LocatedRow> implements Serializable {
+public class MergeNonDistinctAggregatesFunction<Op extends SpliceOperation> extends SpliceFunction2<Op, ExecRow, ExecRow, ExecRow> implements Serializable {
     protected SpliceGenericAggregator[] aggregates;
     protected boolean initialized;
     protected GenericAggregateOperation op;
@@ -39,7 +38,7 @@ public class MergeNonDistinctAggregatesFunction<Op extends SpliceOperation> exte
     }
 
     @Override
-    public LocatedRow call(LocatedRow locatedRow1, LocatedRow locatedRow2) throws Exception {
+    public ExecRow call(ExecRow locatedRow1, ExecRow locatedRow2) throws Exception {
         if (!initialized) {
             op = (GenericAggregateOperation) getOperation();
             aggregates = op.aggregates;
@@ -49,20 +48,20 @@ public class MergeNonDistinctAggregatesFunction<Op extends SpliceOperation> exte
 
         if (locatedRow1 == null) return locatedRow2.getClone();
         if (locatedRow2 == null) return locatedRow1;
-        ExecRow r1 = locatedRow1.getRow();
-        ExecRow r2 = locatedRow2.getRow();
+        ExecRow r1 = locatedRow1;
+        ExecRow r2 = locatedRow2;
 
         for (SpliceGenericAggregator aggregator : aggregates) {
             if (!aggregator.isDistinct()) {
-                if (!aggregator.isInitialized(locatedRow1.getRow())) {
+                if (!aggregator.isInitialized(locatedRow1)) {
                     aggregator.initializeAndAccumulateIfNeeded(r1, r1);
                 }
-                if (!aggregator.isInitialized(locatedRow2.getRow())) {
+                if (!aggregator.isInitialized(locatedRow2)) {
                     aggregator.initializeAndAccumulateIfNeeded(r2, r2);
                 }
                 aggregator.merge(r2, r1);
             }
         }
-        return new LocatedRow(locatedRow1.getRowLocation(), r1);
+        return r1;
     }
 }

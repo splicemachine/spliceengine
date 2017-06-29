@@ -14,8 +14,8 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregator;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -27,7 +27,7 @@ import java.io.ObjectOutput;
 /**
  * Created by jleach on 4/24/15.
  */
-public class WindowFinisherFunction extends SpliceFunction<SpliceOperation, LocatedRow, LocatedRow>{
+public class WindowFinisherFunction extends SpliceFunction<SpliceOperation, ExecRow, ExecRow>{
     protected WindowAggregator[] aggregates;
     protected SpliceOperation op;
 
@@ -62,7 +62,7 @@ public class WindowFinisherFunction extends SpliceFunction<SpliceOperation, Loca
     }
 
     @Override
-    public LocatedRow call(LocatedRow locatedRow) throws Exception{
+    public ExecRow call(ExecRow execRow) throws Exception{
         if(!initialized){
             op=getOperation();
             initialized=true;
@@ -71,9 +71,9 @@ public class WindowFinisherFunction extends SpliceFunction<SpliceOperation, Loca
 //                if (aggregator.initialize(locatedRow.getRow())) {
 //                    aggregator.accumulate(locatedRow.getRow(), locatedRow.getRow());
 //                }
-            aggregator.finish(locatedRow.getRow());
+            aggregator.finish(execRow);
         }
-        op.setCurrentLocatedRow(locatedRow);
-        return locatedRow;
+        op.setCurrentRow(execRow);
+        return execRow;
     }
 }

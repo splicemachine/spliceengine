@@ -223,7 +223,7 @@ public class VTIOperation extends SpliceBaseOperation {
 	 */
 	private ExecRow getAllocatedRow() throws StandardException {
 		if (allocatedRow == null)
-			allocatedRow = (ExecRow) row.invoke();
+            allocatedRow = (ExecRow) row.invoke();
 		return allocatedRow;
 	}
 
@@ -259,7 +259,7 @@ public class VTIOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         return getDataSetProvider().getDataSet(this, dsp,getAllocatedRow());
     }
 

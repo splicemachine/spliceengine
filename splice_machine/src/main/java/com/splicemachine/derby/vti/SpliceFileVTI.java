@@ -23,7 +23,6 @@ import com.splicemachine.db.vti.VTICosting;
 import com.splicemachine.db.vti.VTIEnvironment;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.ImportUtils;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.FileFunction;
 import com.splicemachine.derby.stream.function.StreamFileFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -118,7 +117,7 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
     }
 
     @Override
-    public DataSet<LocatedRow> getDataSet(SpliceOperation op, DataSetProcessor dsp, ExecRow execRow) throws StandardException {
+    public DataSet<ExecRow> getDataSet(SpliceOperation op, DataSetProcessor dsp, ExecRow execRow) throws StandardException {
         if (op != null)
             operationContext = dsp.createOperationContext(op);
         else // this call works even if activation is null

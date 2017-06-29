@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
+import com.splicemachine.derby.stream.function.ExternalizableFlatMapFunction;
 import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
 import com.splicemachine.derby.stream.function.StatisticsFlatMapFunction;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
@@ -107,6 +108,7 @@ import com.splicemachine.utils.kryo.ExternalizableSerializer;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
+
 
 /**
  * Maps serializable entities to a Kryo Serializer, so that
@@ -828,7 +830,9 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ColumnStatisticsMerge.class,EXTERNALIZABLE_SERIALIZER,278);
         instance.register(RowToLocatedRowFunction.class,EXTERNALIZABLE_SERIALIZER,279);
         instance.register(SQLArray.class,EXTERNALIZABLE_SERIALIZER,280);
-        instance.register(SpliceBaseOperation.class,EXTERNALIZABLE_SERIALIZER,281);
+        instance.register(ExternalizableFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER,281);
+        instance.register(SpliceBaseOperation.class,EXTERNALIZABLE_SERIALIZER,283);
+        instance.register(CallStatementOperation.class,EXTERNALIZABLE_SERIALIZER,284);
 
     }
 }
