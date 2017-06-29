@@ -14,8 +14,8 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.api.txn.TxnView;
@@ -28,7 +28,7 @@ import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-public abstract class RowAndIndexGenerator extends SpliceFlatMapFunction<SpliceBaseOperation, LocatedRow, Tuple2<Long, Tuple2<byte[], byte[]>>> {
+public abstract class RowAndIndexGenerator extends SpliceFlatMapFunction<SpliceBaseOperation, ExecRow, Tuple2<Long, Tuple2<byte[], byte[]>>> {
     private static final long serialVersionUID = 844136943916989111L;
     protected TxnView txn;
     protected long heapConglom;
@@ -88,5 +88,5 @@ public abstract class RowAndIndexGenerator extends SpliceFlatMapFunction<SpliceB
         }
     }
 
-    public abstract Iterator<Tuple2<Long,Tuple2<byte[], byte[]>>> call(LocatedRow locatedRow) throws Exception;
+    public abstract Iterator<Tuple2<Long,Tuple2<byte[], byte[]>>> call(ExecRow locatedRow) throws Exception;
 }

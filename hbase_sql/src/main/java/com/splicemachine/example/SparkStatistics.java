@@ -29,7 +29,6 @@ import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.mllib.linalg.Vector;
 import org.apache.spark.mllib.stat.MultivariateStatisticalSummary;
@@ -60,7 +59,7 @@ public class SparkStatistics {
             ResultSet rs = ps.executeQuery();
 
             // Convert result set to Java RDD
-            JavaRDD<LocatedRow> resultSetRDD = ResultSetToRDD(rs);
+            JavaRDD<ExecRow> resultSetRDD = ResultSetToRDD(rs);
 
             // Collect column statistics
             int[] fieldsToConvert = getFieldsToConvert(ps);
@@ -73,7 +72,7 @@ public class SparkStatistics {
         }
     }
 
-    private static MultivariateStatisticalSummary getColumnStatisticsSummary(JavaRDD<LocatedRow> resultSetRDD,
+    private static MultivariateStatisticalSummary getColumnStatisticsSummary(JavaRDD<ExecRow> resultSetRDD,
                                                                      int[] fieldsToConvert) throws StandardException{
         JavaRDD<Vector> vectorJavaRDD = SparkMLibUtils.locatedRowRDDToVectorRDD(resultSetRDD, fieldsToConvert);
         return Statistics.colStats(vectorJavaRDD.rdd());
@@ -83,7 +82,7 @@ public class SparkStatistics {
     /*
      * Convert a ResultSet to JavaRDD
      */
-    private static JavaRDD<LocatedRow> ResultSetToRDD (ResultSet resultSet) throws StandardException{
+    private static JavaRDD<ExecRow> ResultSetToRDD (ResultSet resultSet) throws StandardException{
         EmbedResultSet40 ers = (EmbedResultSet40)resultSet;
 
         com.splicemachine.db.iapi.sql.ResultSet rs = ers.getUnderlyingResultSet();

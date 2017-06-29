@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.function.NLJAntiJoinFunction;
@@ -90,8 +91,8 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		}
 
 
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        DataSet<LocatedRow> left = leftResultSet.getDataSet(dsp);
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        DataSet<ExecRow> left = leftResultSet.getDataSet(dsp);
         OperationContext<NestedLoopJoinOperation> operationContext = dsp.createOperationContext(this);
 
         operationContext.pushScope();

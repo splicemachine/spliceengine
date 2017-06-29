@@ -16,11 +16,11 @@ package com.splicemachine.derby.stream.control.output;
 
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportFile;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.stream.control.ControlDataSet;
@@ -57,7 +57,7 @@ public class ControlExportDataSetWriter<V> implements DataSetWriter{
     }
 
     @Override
-    public DataSet<LocatedRow> write() throws StandardException{
+    public DataSet<ExecRow> write() throws StandardException{
         Integer count;
         String extension = ".csv";
         SpliceOperation operation=exportFunction.getOperation();
@@ -88,7 +88,7 @@ public class ControlExportDataSetWriter<V> implements DataSetWriter{
         ValueRow valueRow = new ValueRow(2);
         valueRow.setColumn(1,new SQLLongint(count));
         valueRow.setColumn(2,new SQLInteger(0));
-        return new ControlDataSet<>(new SingletonIterator(new LocatedRow(valueRow)));
+        return new ControlDataSet<>(new SingletonIterator(valueRow));
     }
 
     @Override

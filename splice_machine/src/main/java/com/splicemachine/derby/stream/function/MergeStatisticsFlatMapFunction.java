@@ -20,7 +20,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.impl.sql.execute.StatisticsRow;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.StatisticsAdmin;
@@ -35,17 +34,17 @@ import java.util.Iterator;
 import java.util.List;
 
 public class MergeStatisticsFlatMapFunction
-    extends SpliceFlatMapFunction<StatisticsOperation, Iterator<LocatedRow>, MergeStatisticsHolder> {
+    extends SpliceFlatMapFunction<StatisticsOperation, Iterator<ExecRow>, MergeStatisticsHolder> {
 
     public MergeStatisticsFlatMapFunction() {
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public Iterator<MergeStatisticsHolder> call(Iterator<LocatedRow> locatedRows) throws Exception {
+    public Iterator<MergeStatisticsHolder> call(Iterator<ExecRow> locatedRows) throws Exception {
         MergeStatisticsHolder msh = new MergeStatisticsHolder();
         while (locatedRows.hasNext()) {
-            msh.merge(locatedRows.next().getRow());
+            msh.merge(locatedRows.next());
         }
         return Arrays.asList(msh).iterator();
     }

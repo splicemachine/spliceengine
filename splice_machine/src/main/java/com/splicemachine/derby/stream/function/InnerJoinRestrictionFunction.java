@@ -17,7 +17,6 @@ package com.splicemachine.derby.stream.function;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import scala.Tuple2;
 
@@ -30,7 +29,7 @@ import java.io.ObjectOutput;
  *
  */
 @NotThreadSafe
-public class InnerJoinRestrictionFunction<Op extends SpliceOperation> extends SpliceJoinFunction<Op, Tuple2<ExecRow,Tuple2<LocatedRow,LocatedRow>>, LocatedRow> {
+public class InnerJoinRestrictionFunction<Op extends SpliceOperation> extends SpliceJoinFunction<Op, Tuple2<ExecRow,Tuple2<ExecRow,ExecRow>>, ExecRow> {
     private static final long serialVersionUID = 3988079974858059941L;
     public InnerJoinRestrictionFunction() {
     }
@@ -50,12 +49,11 @@ public class InnerJoinRestrictionFunction<Op extends SpliceOperation> extends Sp
     }
 
     @Override
-    public LocatedRow call(Tuple2<ExecRow, Tuple2<LocatedRow, LocatedRow>> tuple) throws Exception {
+    public ExecRow call(Tuple2<ExecRow, Tuple2<ExecRow, ExecRow>> tuple) throws Exception {
         checkInit();
-        ExecRow execRow = JoinUtils.getMergedRow(tuple._2()._1().getRow(),tuple._2()._2().getRow(),
+        ExecRow execRow = JoinUtils.getMergedRow(tuple._2()._1(),tuple._2()._2(),
                 op.wasRightOuterJoin,executionFactory.getValueRow(numberOfColumns));
-        LocatedRow lr = new LocatedRow(tuple._2._1.getRowLocation(),execRow);
-        op.setCurrentLocatedRow(lr);
-        return lr;
+        op.setCurrentRow(execRow);
+        return execRow;
     }
 }

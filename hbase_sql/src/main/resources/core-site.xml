@@ -39,9 +39,4 @@
         <value>file:///</value>
     </property>
 
-    <property>
-        <name>fs.s3a.impl</name>
-        <value>com.splicemachine.fs.s3.PrestoS3FileSystem</value>
-    </property>
-
     </configuration>

@@ -17,7 +17,6 @@ package com.splicemachine.derby.stream.function;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import scala.Tuple2;
 
@@ -31,9 +30,9 @@ import java.util.List;
  *
  */
 @NotThreadSafe
-public class OuterJoinRestrictionFlatMapFunction<Op extends SpliceOperation> extends SpliceJoinFlatMapFunction<Op,Tuple2<LocatedRow,Iterable<LocatedRow>>,LocatedRow> {
-    protected LocatedRow leftRow;
-    protected LocatedRow rightRow;
+public class OuterJoinRestrictionFlatMapFunction<Op extends SpliceOperation> extends SpliceJoinFlatMapFunction<Op,Tuple2<ExecRow,Iterable<ExecRow>>,ExecRow> {
+    protected ExecRow leftRow;
+    protected ExecRow rightRow;
     protected ExecRow mergedRow;
     public OuterJoinRestrictionFlatMapFunction() {
         super();
@@ -44,29 +43,29 @@ public class OuterJoinRestrictionFlatMapFunction<Op extends SpliceOperation> ext
     }
 
     @Override
-    public Iterator<LocatedRow> call(Tuple2<LocatedRow, Iterable<LocatedRow>> tuple) throws Exception {
+    public Iterator<ExecRow> call(Tuple2<ExecRow, Iterable<ExecRow>> tuple) throws Exception {
         checkInit();
         leftRow = tuple._1();
-        List<LocatedRow> returnRows = new ArrayList();
-        Iterator<LocatedRow> it = tuple._2.iterator();
+        List<ExecRow> returnRows = new ArrayList();
+        Iterator<ExecRow> it = tuple._2.iterator();
         while (it.hasNext()) {
             rightRow = it.next();
-            mergedRow = JoinUtils.getMergedRow(leftRow.getRow(),
-                    rightRow.getRow(), op.wasRightOuterJoin,
+            mergedRow = JoinUtils.getMergedRow(leftRow,
+                    rightRow, op.wasRightOuterJoin,
                     executionFactory.getValueRow(numberOfColumns));
+            mergedRow.setKey(leftRow.getKey());
             op.setCurrentRow(mergedRow);
             if (op.getRestriction().apply(mergedRow)) { // Has Row, abandon
-                LocatedRow lr = new LocatedRow(leftRow.getRowLocation(),mergedRow);
-                returnRows.add(lr);
+                returnRows.add(mergedRow);
             }
             operationContext.recordFilter();
         }
         if (returnRows.isEmpty()) {
-            mergedRow = JoinUtils.getMergedRow(leftRow.getRow(),
+            mergedRow = JoinUtils.getMergedRow(leftRow,
                     op.getEmptyRow(), op.wasRightOuterJoin,
                     executionFactory.getValueRow(numberOfColumns));
-            LocatedRow lr = new LocatedRow(leftRow.getRowLocation(),mergedRow);
-            returnRows.add(lr);
+            mergedRow.setKey(leftRow.getKey());
+            returnRows.add(mergedRow);
         }
         return returnRows.iterator();
     }

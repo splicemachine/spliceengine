@@ -18,7 +18,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.PeekingIterator;
@@ -29,16 +28,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-public abstract class AbstractMergeJoinIterator implements Iterator<LocatedRow>, Iterable<LocatedRow> {
+public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, Iterable<ExecRow> {
     private static final Logger LOG = Logger.getLogger(MergeOuterJoinIterator.class);
-    final Iterator<LocatedRow> leftRS;
-    final PeekingIterator<LocatedRow> rightRS;
+    final Iterator<ExecRow> leftRS;
+    final PeekingIterator<ExecRow> rightRS;
     final int[] joinKeys;
     protected final OperationContext<?> operationContext;
     protected List<ExecRow> currentRights = new ArrayList<ExecRow>();
-    protected LocatedRow left;
+    protected ExecRow left;
     protected Iterator<ExecRow> currentRightIterator;
-    protected LocatedRow currentLocatedRow;
+    protected ExecRow currentExecRow;
     protected JoinOperation mergeJoinOperation;
     private boolean closed = false;
     private List<Closeable> closeables = new ArrayList<>();
@@ -55,8 +54,8 @@ public abstract class AbstractMergeJoinIterator implements Iterator<LocatedRow>,
      * @param rightKeys     Join Key(s) on which right side is sorted
      * @param operationContext
      */
-    public AbstractMergeJoinIterator(Iterator<LocatedRow> leftRS,
-                                     PeekingIterator<LocatedRow> rightRS,
+    public AbstractMergeJoinIterator(Iterator<ExecRow> leftRS,
+                                     PeekingIterator<ExecRow> rightRS,
                                      int[] leftKeys, int[] rightKeys,
                                      JoinOperation mergeJoinOperation, OperationContext<?> operationContext) {
         this.mergeJoinOperation = mergeJoinOperation;
@@ -92,9 +91,9 @@ public abstract class AbstractMergeJoinIterator implements Iterator<LocatedRow>,
         // If not, look for the ones that do
         currentRights = new ArrayList<ExecRow>();
         while (rightRS.hasNext()){
-            int comparison = compare(left, rightRS.peek().getRow());
+            int comparison = compare(left, rightRS.peek());
             if (comparison == 0) { // if matches left, add to buffer
-                currentRights.add(rightRS.next().getRow().getClone());
+                currentRights.add(rightRS.next().getClone());
             } else if (comparison < 0) { // if is greater than left, stop
                 break;
             } else {
@@ -106,7 +105,7 @@ public abstract class AbstractMergeJoinIterator implements Iterator<LocatedRow>,
     }
 
     @Override
-    public Iterator<LocatedRow> iterator() {
+    public Iterator<ExecRow> iterator() {
         return this;
     }
 
@@ -141,10 +140,10 @@ public abstract class AbstractMergeJoinIterator implements Iterator<LocatedRow>,
     protected abstract boolean internalHasNext();
 
     @Override
-    public LocatedRow next() {
+    public ExecRow next() {
         if(!hasNext()) throw new NoSuchElementException();
         populated=false;
-        return currentLocatedRow;
+        return currentExecRow;
     }
 
     @Override
@@ -152,15 +151,14 @@ public abstract class AbstractMergeJoinIterator implements Iterator<LocatedRow>,
         throw new RuntimeException("Not Supported");
     }
 
-    protected LocatedRow mergeRows(LocatedRow leftRow, ExecRow rightRow) {
+    protected ExecRow mergeRows(ExecRow leftRow, ExecRow rightRow) {
         try {
-            ExecRow execRow = JoinUtils.getMergedRow(leftRow.getRow(), rightRow == null ? mergeJoinOperation.getEmptyRow() : rightRow,
+            ExecRow execRow = JoinUtils.getMergedRow(leftRow, rightRow == null ? mergeJoinOperation.getEmptyRow() : rightRow,
                     mergeJoinOperation.wasRightOuterJoin,
                     mergeJoinOperation.getExecutionFactory().getValueRow(
                             mergeJoinOperation.getRightNumCols() + mergeJoinOperation.getLeftNumCols()));
-            LocatedRow lr = new LocatedRow(leftRow.getRowLocation(), execRow);
-            mergeJoinOperation.setCurrentLocatedRow(lr);
-            return lr;
+            mergeJoinOperation.setCurrentRow(execRow);
+            return execRow;
         } catch (Exception e ) {
             throw new RuntimeException(e);
         }

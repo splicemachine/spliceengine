@@ -15,9 +15,9 @@
 package com.splicemachine.derby.impl.sql.execute.altertable;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.iapi.sql.olap.SuccessfulOlapResult;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.KVPairFunction;
 import com.splicemachine.derby.stream.function.RowTransformFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -54,9 +54,9 @@ public class AlterTableTransformJob implements Callable<Void> {
         DataSet<KVPair> dataSet = request.scanSetBuilder.buildDataSet(this);
 
         // Write new conglomerate
-        PairDataSet<LocatedRow,KVPair> ds = dataSet.map(new RowTransformFunction(request.ddlChange)).index(new KVPairFunction());
+        PairDataSet<ExecRow,KVPair> ds = dataSet.map(new RowTransformFunction(request.ddlChange)).index(new KVPairFunction());
         //side effects are what matters here
-        @SuppressWarnings("unused") DataSet<LocatedRow> result = ds.directWriteData()
+        @SuppressWarnings("unused") DataSet<ExecRow> result = ds.directWriteData()
                 .txn(request.childTxn)
                 .destConglomerate(request.destConglom)
                 .skipIndex(true).build().write();

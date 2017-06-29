@@ -47,7 +47,7 @@ import java.util.concurrent.Future;
  * @author Scott Fines
  *         Created on: 9/4/13
  */
-public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow>{
+public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
     protected static Logger LOG=Logger.getLogger(IndexRowReader.class);
     private final ExecutorService lookupService;
     private final int batchSize;
@@ -62,17 +62,17 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
     private final TxnOperationFactory operationFactory;
     private final PartitionFactory tableFactory;
 
-    private List<Pair<LocatedRow, DataResult>> currentResults;
-    private List<Future<List<Pair<LocatedRow, DataResult>>>> resultFutures;
+    private List<Pair<ExecRow, DataResult>> currentResults;
+    private List<Future<List<Pair<ExecRow, DataResult>>>> resultFutures;
     private boolean populated=false;
     private EntryDecoder entryDecoder;
-    protected Iterator<LocatedRow> sourceIterator;
+    protected Iterator<ExecRow> sourceIterator;
 
-    private LocatedRow heapRowToReturn=new LocatedRow();
-    private LocatedRow indexRowToReturn;
+    private ExecRow heapRowToReturn;
+    private ExecRow indexRowToReturn;
 
     IndexRowReader(ExecutorService lookupService,
-                   Iterator<LocatedRow> sourceIterator,
+                   Iterator<ExecRow> sourceIterator,
                    ExecRow outputTemplate,
                    TxnView txn,
                    int lookupBatchSize,
@@ -109,11 +109,11 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
     }
 
     @Override
-    public LocatedRow next(){
+    public ExecRow next(){
         return heapRowToReturn;
     }
 
-    public LocatedRow nextScannedRow(){
+    public ExecRow nextScannedRow(){
         return indexRowToReturn;
     }
 
@@ -132,16 +132,16 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
                 return false; // No More Data
             }
 
-            Pair<LocatedRow, DataResult> next=currentResults.remove(0);
+            Pair<ExecRow, DataResult> next=currentResults.remove(0);
             //merge the results
-            LocatedRow nextScannedRow=next.getFirst();
+            ExecRow nextScannedRow=next.getFirst();
             DataResult nextFetchedData=next.getSecond();
             if(entryDecoder==null)
                 entryDecoder=new EntryDecoder();
             for(DataCell kv : nextFetchedData){
-                keyDecoder.decode(kv.keyArray(),kv.keyOffset(),kv.keyLength(),nextScannedRow.getRow());
+                keyDecoder.decode(kv.keyArray(),kv.keyOffset(),kv.keyLength(),nextScannedRow);
                 rowDecoder.set(kv.valueArray(),kv.valueOffset(),kv.valueLength());
-                rowDecoder.decode(nextScannedRow.getRow());
+                rowDecoder.decode(nextScannedRow);
             }
             heapRowToReturn=nextScannedRow;
             indexRowToReturn=nextScannedRow;
@@ -156,18 +156,18 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
         /*private helper methods*/
     private void getMoreData() throws StandardException, IOException{
         //read up to batchSize rows from the source, then submit them to the background thread for processing
-        List<LocatedRow> sourceRows=Lists.newArrayListWithCapacity(batchSize);
+        List<Pair<byte[],ExecRow>> sourceRows=Lists.newArrayListWithCapacity(batchSize);
         for(int i=0;i<batchSize;i++){
             if(!sourceIterator.hasNext())
                 break;
-            LocatedRow next=sourceIterator.next();
+            ExecRow next=sourceIterator.next();
             for(int index=0;index<indexCols.length;index++){
                 if(indexCols[index]!=-1){
-                    outputTemplate.setColumn(index+1,next.getRow().getColumn(indexCols[index]+1));
+                    outputTemplate.setColumn(index+1,next.getColumn(indexCols[index]+1));
                 }
             }
-            HBaseRowLocation rl=(HBaseRowLocation)next.getRow().getColumn(next.getRow().nColumns());
-            sourceRows.add(new LocatedRow(HBaseRowLocation.deepClone(rl), outputTemplate.getClone()));
+            HBaseRowLocation rl=(HBaseRowLocation)next.getColumn(next.nColumns());
+            sourceRows.add(new Pair(rl.getBytes(), outputTemplate.getClone()));
         }
         if(!sourceRows.isEmpty()){
             //submit to the background thread
@@ -186,7 +186,7 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
     private void waitForBlockCompletion() throws StandardException, IOException{
         //wait for the first future to return correctly or error-out
         try{
-            Future<List<Pair<LocatedRow, DataResult>>> future=resultFutures.remove(0);
+            Future<List<Pair<ExecRow, DataResult>>> future=resultFutures.remove(0);
             currentResults=future.get();
         }catch(InterruptedException e){
             throw new InterruptedIOException(e.getMessage());
@@ -197,19 +197,18 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
         }
     }
 
-    public class Lookup implements Callable<List<Pair<LocatedRow, DataResult>>>{
-        private final List<LocatedRow> sourceRows;
+    public class Lookup implements Callable<List<Pair<ExecRow, DataResult>>>{
+        private final List<Pair<byte[],ExecRow>> sourceRows;
 
-        public Lookup(List<LocatedRow> sourceRows){
+        public Lookup(List<Pair<byte[],ExecRow>> sourceRows){
             this.sourceRows=sourceRows;
         }
 
         @Override
-        public List<Pair<LocatedRow, DataResult>> call() throws Exception{
+        public List<Pair<ExecRow, DataResult>> call() throws Exception{
             List<byte[]> rowKeys = new ArrayList<>(sourceRows.size());
-            for(LocatedRow sourceRow : sourceRows){
-                byte[] row=sourceRow.getRowLocation().getBytes();
-                rowKeys.add(row);
+            for(Pair<byte[],ExecRow> sourceRow : sourceRows){
+                rowKeys.add(sourceRow.getFirst());
             }
             Attributable attributable = new MapAttributes();
             attributable.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL,predicateFilterBytes);
@@ -217,11 +216,11 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
 
             try(Partition table = tableFactory.getTable(Long.toString(mainTableConglomId))){
                 Iterator<DataResult> results=table.batchGet(attributable,rowKeys);
-                List<Pair<LocatedRow, DataResult>> locations=Lists.newArrayListWithCapacity(sourceRows.size());
-                for(LocatedRow sourceRow : sourceRows){
+                List<Pair<ExecRow, DataResult>> locations=Lists.newArrayListWithCapacity(sourceRows.size());
+                for(Pair<byte[],ExecRow> sourceRow : sourceRows){
                     if(!results.hasNext())
                         throw new IllegalStateException("Programmer error: incompatible iterator sizes!");
-                    locations.add(Pair.newPair(sourceRow,results.next().getClone()));
+                    locations.add(Pair.newPair(sourceRow.getSecond(),results.next().getClone()));
                 }
                 return locations;
             }
@@ -229,7 +228,7 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
     }
 
     @Override
-    public Iterator<LocatedRow> iterator(){
+    public Iterator<ExecRow> iterator(){
         return this;
     }
 

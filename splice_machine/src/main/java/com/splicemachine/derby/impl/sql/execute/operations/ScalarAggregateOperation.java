@@ -117,11 +117,11 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	}
 
     @Override
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext<ScalarAggregateOperation> operationContext = dsp.createOperationContext(this);
-        DataSet<LocatedRow> dsSource = source.getDataSet(dsp);
-        DataSet<LocatedRow> ds = dsSource.mapPartitions(new ScalarAggregateFlatMapFunction(operationContext, false), false, /*pushScope=*/true, "First Aggregation");
-        DataSet<LocatedRow> ds2 = ds.coalesce(1, /*shuffle=*/true, /*isLast=*/false, operationContext, /*pushScope=*/true, "Coalesce");
+        DataSet<ExecRow> dsSource = source.getDataSet(dsp);
+        DataSet<ExecRow> ds = dsSource.mapPartitions(new ScalarAggregateFlatMapFunction(operationContext, false), false, /*pushScope=*/true, "First Aggregation");
+        DataSet<ExecRow> ds2 = ds.coalesce(1, /*shuffle=*/true, /*isLast=*/false, operationContext, /*pushScope=*/true, "Coalesce");
         return ds2.mapPartitions(new ScalarAggregateFlatMapFunction(operationContext, true), /*isLast=*/true, /*pushScope=*/true, "Final Aggregation");
     }
 }

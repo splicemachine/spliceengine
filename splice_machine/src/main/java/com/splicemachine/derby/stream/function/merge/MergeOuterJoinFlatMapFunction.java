@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.stream.function.merge;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iterator.merge.AbstractMergeJoinIterator;
@@ -33,7 +34,7 @@ public class MergeOuterJoinFlatMapFunction extends AbstractMergeJoinFlatMapFunct
     }
 
     @Override
-    protected AbstractMergeJoinIterator createMergeJoinIterator(PeekingIterator<LocatedRow> leftPeekingIterator, PeekingIterator<LocatedRow> rightPeekingIterator, int[] leftHashKeys, int[] rightHashKeys, JoinOperation mergeJoinOperation, OperationContext<JoinOperation> operationContext) {
+    protected AbstractMergeJoinIterator createMergeJoinIterator(PeekingIterator<ExecRow> leftPeekingIterator, PeekingIterator<ExecRow> rightPeekingIterator, int[] leftHashKeys, int[] rightHashKeys, JoinOperation mergeJoinOperation, OperationContext<JoinOperation> operationContext) {
         return new MergeOuterJoinIterator(leftPeekingIterator,
                 rightPeekingIterator,
                 leftHashKeys, rightHashKeys,

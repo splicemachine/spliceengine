@@ -14,13 +14,12 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.stream.function.InsertPairFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.si.api.txn.TxnView;
@@ -81,7 +80,7 @@ public class DeleteOperation extends DMLWriteOperation {
 
     @SuppressWarnings("unchecked")
     @Override
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         DataSet set = source.getDataSet(dsp);
         OperationContext operationContext = dsp.createOperationContext(this);
         TxnView txn = getCurrentTransaction();
@@ -95,8 +94,7 @@ public class DeleteOperation extends DMLWriteOperation {
                         .colMap(colMap);
             }
             if (dataSetWriterBuilder == null) {
-                PairDataSet toWrite = set.index(new InsertPairFunction(operationContext), true);
-                dataSetWriterBuilder = toWrite.deleteData(operationContext);
+                dataSetWriterBuilder = set.deleteData(operationContext);
             }
             DataSetWriter dataSetWriter = dataSetWriterBuilder
                     .destConglomerate(heapConglom)

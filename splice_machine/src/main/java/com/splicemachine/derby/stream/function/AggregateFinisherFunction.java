@@ -14,16 +14,16 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.GenericAggregateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.GroupedAggregateOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 
 /**
  * Created by jleach on 4/24/15.
  */
-public class AggregateFinisherFunction extends SpliceFunction<GroupedAggregateOperation, LocatedRow, LocatedRow> {
+public class AggregateFinisherFunction extends SpliceFunction<GroupedAggregateOperation, ExecRow, ExecRow> {
         protected SpliceGenericAggregator[] aggregates;
         protected boolean initialized;
         protected GenericAggregateOperation op;
@@ -35,19 +35,19 @@ public class AggregateFinisherFunction extends SpliceFunction<GroupedAggregateOp
             super(operationContext);
         }
         @Override
-        public LocatedRow call(LocatedRow locatedRow) throws Exception {
+        public ExecRow call(ExecRow locatedRow) throws Exception {
             if (!initialized) {
                 op =getOperation();
                 aggregates = op.aggregates;
                 initialized = true;
             }
             for(SpliceGenericAggregator aggregator:aggregates){
-                if (!aggregator.isInitialized(locatedRow.getRow())) {
-                    aggregator.initializeAndAccumulateIfNeeded(locatedRow.getRow(), locatedRow.getRow());
+                if (!aggregator.isInitialized(locatedRow)) {
+                    aggregator.initializeAndAccumulateIfNeeded(locatedRow, locatedRow);
                 }
-                aggregator.finish(locatedRow.getRow());
+                aggregator.finish(locatedRow);
             }
-            op.setCurrentLocatedRow(locatedRow);
+            op.setCurrentRow(locatedRow);
             operationContext.recordProduced();
             return locatedRow;
         }

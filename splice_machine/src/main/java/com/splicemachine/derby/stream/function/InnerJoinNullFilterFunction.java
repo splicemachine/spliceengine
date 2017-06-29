@@ -17,7 +17,6 @@ package com.splicemachine.derby.stream.function;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -29,7 +28,7 @@ import java.io.ObjectOutput;
  * This class filters out nulls based on the hash keys provided.
  *
  */
-public class InnerJoinNullFilterFunction extends SplicePredicateFunction<JoinOperation,LocatedRow> {
+public class InnerJoinNullFilterFunction extends SplicePredicateFunction<JoinOperation,ExecRow> {
     private boolean initialized = false;
     private int[] hashKeys;
     public InnerJoinNullFilterFunction() {
@@ -55,16 +54,16 @@ public class InnerJoinNullFilterFunction extends SplicePredicateFunction<JoinOpe
     }
 
     @Override
-    public boolean apply(@Nullable LocatedRow locatedRow) {
+    public boolean apply(@Nullable ExecRow locatedRow) {
         try {
-            ExecRow row = locatedRow.getRow();
+            ExecRow row = locatedRow;
             for (int i = 0; i< hashKeys.length; i++) {
                 if (row.getColumn(hashKeys[i]+1).isNull()) {
                     operationContext.recordFilter();
                     return false;
                 }
             }
-            operationContext.getOperation().setCurrentLocatedRow(locatedRow);
+            operationContext.getOperation().setCurrentRow(locatedRow);
             return true;
         } catch (Exception e) {
             throw new RuntimeException(e);

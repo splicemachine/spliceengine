@@ -14,10 +14,10 @@
 
 package com.splicemachine.derby.stream.function.broadcast;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.spark_project.guava.base.Predicate;
 import org.spark_project.guava.collect.FluentIterable;
 import com.splicemachine.derby.impl.sql.JoinTable;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 
 import javax.annotation.Nullable;
@@ -26,7 +26,7 @@ import java.util.Iterator;
 /**
  * Created by dgomezferro on 11/6/15.
  */
-public class SubtractByKeyBroadcastJoinFunction extends AbstractBroadcastJoinFlatMapFunction<LocatedRow, LocatedRow> {
+public class SubtractByKeyBroadcastJoinFunction extends AbstractBroadcastJoinFlatMapFunction<ExecRow, ExecRow> {
     public SubtractByKeyBroadcastJoinFunction() {
     }
 
@@ -35,17 +35,17 @@ public class SubtractByKeyBroadcastJoinFunction extends AbstractBroadcastJoinFla
     }
 
     @Override
-    protected Iterable<LocatedRow> call(final Iterator<LocatedRow> locatedRows, final JoinTable joinTable) {
-        return FluentIterable.from(new Iterable<LocatedRow>(){
+    protected Iterable<ExecRow> call(final Iterator<ExecRow> locatedRows, final JoinTable joinTable) {
+        return FluentIterable.from(new Iterable<ExecRow>(){
             @Override
-            public Iterator<LocatedRow> iterator(){
+            public Iterator<ExecRow> iterator(){
                 return locatedRows;
             }
-        }).filter(new Predicate<LocatedRow>() {
+        }).filter(new Predicate<ExecRow>() {
             @Override
-            public boolean apply(@Nullable LocatedRow locatedRow) {
+            public boolean apply(@Nullable ExecRow locatedRow) {
                 try {
-                    boolean rowsOnRight = joinTable.fetchInner(locatedRow.getRow()).hasNext();
+                    boolean rowsOnRight = joinTable.fetchInner(locatedRow).hasNext();
                     return !rowsOnRight;
                 } catch (Exception e) {
                     throw new RuntimeException(e);
