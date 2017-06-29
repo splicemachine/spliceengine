@@ -15,7 +15,7 @@
 <configuration>
 <property>
     <name>fs.default.name</name>
-    <value>splice:///</value>
+    <value>file:///</value>
 </property>
 
 <property>
@@ -36,12 +36,7 @@
 
     <property>
         <name>fs.defaultFS</name>
-        <value>splice:///</value>
-    </property>
-
-    <property>
-        <name>fs.AbstractFileSystem.splice.impl</name>
-        <value>com.splicemachine.fs.SpliceFs</value>
+        <value>file:///</value>
     </property>
 
     </configuration>
