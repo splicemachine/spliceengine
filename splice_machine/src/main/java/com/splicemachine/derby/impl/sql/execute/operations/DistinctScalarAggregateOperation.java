@@ -14,22 +14,23 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.stream.function.KeyerFunction;
-import com.splicemachine.derby.stream.function.MergeAllAggregatesFlatMapFunction;
-import com.splicemachine.derby.stream.function.MergeNonDistinctAggregatesFunction;
-import com.splicemachine.derby.stream.iapi.DataSet;
-import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
+import com.splicemachine.derby.stream.function.*;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.derby.utils.EngineUtils;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -117,11 +118,73 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext operationContext = dsp.createOperationContext(this);
         DataSet<ExecRow> dataSet = source.getDataSet(dsp);
-        DataSet<ExecRow> ds2 = dataSet.keyBy(new KeyerFunction(operationContext, keyColumns), null, true, "Prepare Keys")
-            .reduceByKey(new MergeNonDistinctAggregatesFunction(operationContext), false, true, "Reduce")
-            .values(null, false, operationContext, true, "Read Values");
-        DataSet<ExecRow> ds3 = ds2.mapPartitions(new MergeAllAggregatesFlatMapFunction(operationContext, false), false, true, "First Aggregation");
-        DataSet<ExecRow> ds4 = ds3.coalesce(1, true, false, operationContext, true, "Coalesce");
-        return ds4.mapPartitions(new MergeAllAggregatesFlatMapFunction(operationContext, true), true, true, "Final Aggregation");
+
+        int numDistinctAggs = 0;
+        for (SpliceGenericAggregator aggregator : aggregates) {
+            if (!aggregator.isDistinct())
+                continue;
+            numDistinctAggs++;
+        }
+
+        if (numDistinctAggs > 1) {
+            /**
+             * To handle multiple distinct aggregates, we will be splitting an input row to multiple rows. For example,
+             * Given a multiple distinct aggregate query like the following:
+             * select a1, count(distinct b1), sum(distinct c1), max(d1) from t1;
+             *
+             * an input row would look like the below
+             * (count_result, count_input(b1), count_func, sum_result, sum_input(c1), sum_func, max_result, max_input(d1), max_func),
+             * we will emit 3 rows as follows:
+             * (2, count_result, b1, count_func),
+             * (5, sum_result, c1, sum_func),
+             * (null, max_result, d1, max_func).
+             * Here the value 2, 5  or null in each row are the distinct aggregate column's position in the original row
+             */
+            operationContext.pushScope();
+            dataSet = dataSet.map(new CountReadFunction(operationContext));
+            operationContext.popScope();
+
+            operationContext.pushScopeForOp(OperationContext.Scope.EXPAND);
+            DataSet set1 = dataSet.flatMap(new DistinctAggregatesPrepareFunction(operationContext, null));
+            operationContext.popScope();
+
+            operationContext.pushScopeForOp(OperationContext.Scope.GROUP_AGGREGATE_KEYER);
+            PairDataSet set2 = set1.keyBy(new DistinctAggregateKeyCreation(operationContext, null));
+            operationContext.popScope();
+
+            operationContext.pushScopeForOp(OperationContext.Scope.REDUCE);
+            PairDataSet set3 = set2.reduceByKey(
+                    new MergeNonDistinctAggregatesFunctionForMixedRows(operationContext,
+                            null));
+            operationContext.popScope();
+
+            operationContext.pushScopeForOp(OperationContext.Scope.READ);
+            DataSet set4 = set3.values();
+            operationContext.popScope();
+
+            // with more than one distinct aggregates, each row is split into multiple rows
+            // where each row starts with the distinct column id
+            // Note, groupKeys as input for KeyerFunction is 0-based
+            int[] tmpGroupKey = {0};
+            operationContext.pushScopeForOp(OperationContext.Scope.GROUP_AGGREGATE_KEYER);
+            set2 = set4.keyBy(new KeyerFunction(operationContext, tmpGroupKey));
+            operationContext.popScope();
+
+            operationContext.pushScopeForOp(OperationContext.Scope.REDUCE);
+            set3 = set2.reduceByKey(new MergeAllAggregatesFunctionForMixedRows(operationContext, null));
+            set4 = set3.values();
+            operationContext.popScope();
+
+            DataSet ds3 = set4.coalesce(1, true, false, operationContext, true, "Coalesce");
+            return ds3.mapPartitions(new StitchMixedRowFlatMapFunction(operationContext), true, true, "Stitch Mixed rows");
+        } else {
+            DataSet<ExecRow> ds2 = dataSet.keyBy(new KeyerFunction(operationContext, keyColumns), null, true, "Prepare Keys")
+                    .reduceByKey(new MergeNonDistinctAggregatesFunction(operationContext), false, true, "Reduce")
+                    .values(null, false, operationContext, true, "Read Values");
+            DataSet<ExecRow> ds3 = ds2.mapPartitions(new MergeAllAggregatesFlatMapFunction(operationContext, false), false, true, "First Aggregation");
+            DataSet<ExecRow> ds4 = ds3.coalesce(1, true, false, operationContext, true, "Coalesce");
+            return ds4.mapPartitions(new MergeAllAggregatesFlatMapFunction(operationContext, true), true, true, "Final Aggregation");
+        }
+
     }
 }

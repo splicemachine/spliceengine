@@ -14,28 +14,28 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.homeless.TestUtils;
+import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
+import org.spark_project.guava.collect.Maps;
+import org.spark_project.guava.collect.Sets;
+
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.junit.Ignore;
-import org.spark_project.guava.collect.Maps;
-import org.spark_project.guava.collect.Sets;
-import com.splicemachine.derby.test.framework.*;
-import com.splicemachine.homeless.TestUtils;
-import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
-import org.junit.runner.Description;
-
 import static com.splicemachine.homeless.TestUtils.o;
+import static org.junit.Assert.assertEquals;
 
 public class DistinctGroupedAggregateOperationIT extends SpliceUnitTest {
 	public static final String CLASS_NAME = DistinctGroupedAggregateOperationIT.class.getSimpleName().toUpperCase();
@@ -155,28 +155,41 @@ public class DistinctGroupedAggregateOperationIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testUnsupportedSyntax() throws Exception {
-        // TODO: Need to support multiple distinct aggregates, till then error out without wrong answer
-        try {
-            methodWatcher.executeQuery("select count(distinct c1), count(distinct c2) from t1");
-            Assert.fail("Error not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("42Z02", e.getSQLState());
-        }
+    public void testMultipleCountDistinct() throws Exception {
+        /* Q1 */
+        String sqlText = "select count(distinct c1), count(distinct c2) from t1";
+        String expected = "1 | 2 |\n" +
+                "--------\n" +
+                " 4 | 2 |";
 
-        try {
-            methodWatcher.executeQuery("select count(distinct c1) from t1 order by count(distinct c2)");
-            Assert.fail("Error not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("42Z02", e.getSQLState());
-        }
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
 
-        try {
-            methodWatcher.executeQuery("select count(distinct c1) from t1 group by c2 order by count(distinct c2)");
-            Assert.fail("Error not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("42Z02", e.getSQLState());
-        }
+        /* Q2 */
+        sqlText = "select count(distinct c1) from t1 order by count(distinct c2)";
+        expected = "1 |\n" +
+                "----\n" +
+                " 4 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q3 */
+        sqlText = "select c2, count(distinct c1) from t1 group by c2 order by count(distinct c2), c2";
+        expected = "C2  | 2 |\n" +
+                "----------\n" +
+                "NULL | 0 |\n" +
+                "  1  | 3 |\n" +
+                " 10  | 1 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
     }
 
 }

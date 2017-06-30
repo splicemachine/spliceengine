@@ -579,7 +579,12 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(MergeAllAggregatesFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(MergeAllAggregatesFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(MergeNonDistinctAggregatesFunction.class,EXTERNALIZABLE_SERIALIZER);
-
+        instance.register(MergeNonDistinctAggregatesFunctionForMixedRows.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(MergeAllAggregatesFunctionForMixedRows.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(DistinctAggregatesPrepareFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(StitchMixedRowFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(StitchMixedRowFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(DistinctAggregateKeyCreation.class,EXTERNALIZABLE_SERIALIZER);
 
         instance.register(MergeWindowFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(NLJAntiJoinFunction.class,EXTERNALIZABLE_SERIALIZER);
