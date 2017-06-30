@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.catalog;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.*;
@@ -185,36 +186,62 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         return snapshotTable;
     }
 
+    private void dropDictionaryTable(TransactionController tc, TabInfoImpl tableInfo, String viewName) throws StandardException {
+        SchemaDescriptor systemSchema=getSystemSchemaDescriptor();
+        DataDictionaryCache cache = getDataDictionaryCache();
+        if (viewName != null) {
+            TableDescriptor view = getTableDescriptor(viewName, systemSchema, tc);
+            if (view != null) {
+                dropAllColumnDescriptors(view.getUUID(), tc);
+                dropViewDescriptor(getViewDescriptor(view), tc);
+                dropTableDescriptor(view, systemSchema, tc);
+            }
+        }
+        TableDescriptor td = getTableDescriptor(tableInfo.getTableName(), systemSchema, tc);
+        dropAllColumnDescriptors(td.getUUID(), tc);
+        dropTableDescriptor(td, systemSchema, tc);
+        dropAllConglomerateDescriptors(td, tc);
+
+        TableKey tableKey = new TableKey(td.getSchemaDescriptor().getUUID(), td.getName());
+        cache.nameTdCacheRemove(tableKey);
+        cache.oidTdCacheRemove(td.getUUID());
+
+        // Remove Conglomerate Level and Statistics Caching..
+        for (ConglomerateDescriptor cd: td.getConglomerateDescriptorList()) {
+            cache.partitionStatisticsCacheRemove(cd.getConglomerateNumber());
+            cache.conglomerateCacheRemove(cd.getConglomerateNumber());
+        }
+    }
+
+    public void dropStatisticsTables(TransactionController tc) throws StandardException{
+        //sys_table_statistics
+        dropDictionaryTable(tc, getTableStatisticsTable(), "SYSTABLESTATISTICS");
+
+        //sys_column_statistics
+        dropDictionaryTable(tc, getColumnStatisticsTable(), "SYSCOLUMNSTATISTICS");
+
+        //sys_physical_statistics
+        dropDictionaryTable(tc, getPhysicalStatisticsTable(), null);
+    }
+
     public void createStatisticsTables(TransactionController tc) throws StandardException{
         SchemaDescriptor systemSchema=getSystemSchemaDescriptor();
 
         //sys_table_statistics
         TabInfoImpl tableStatsInfo=getTableStatisticsTable();
-        ColumnOrdering[] tableStatsOrder=new ColumnOrdering[]{
-                new IndexColumnOrder(0),
-                new IndexColumnOrder(1)
-        };
-        addTableIfAbsent(tc,systemSchema,tableStatsInfo,tableStatsOrder);
+        addTableIfAbsent(tc,systemSchema,tableStatsInfo,null);
 
         createSysTableStatsView(tc);
 
         //sys_column_statistics
-        ColumnOrdering[] columnPkOrder=new ColumnOrdering[]{
-                new IndexColumnOrder(0),
-                new IndexColumnOrder(1),
-                new IndexColumnOrder(2)
-        };
         TabInfoImpl columnStatsInfo=getColumnStatisticsTable();
-        addTableIfAbsent(tc,systemSchema,columnStatsInfo,columnPkOrder);
+        addTableIfAbsent(tc,systemSchema,columnStatsInfo,null);
 
         createSysColumnStatsView(tc);
 
         //sys_physical_statistics
-        ColumnOrdering[] physicalPkOrder=new ColumnOrdering[]{
-                new IndexColumnOrder(0)
-        };
         TabInfoImpl physicalStatsInfo=getPhysicalStatisticsTable();
-        addTableIfAbsent(tc,systemSchema,physicalStatsInfo,physicalPkOrder);
+        addTableIfAbsent(tc,systemSchema,physicalStatsInfo,null);
     }
 
     private TabInfoImpl getBackupTable() throws StandardException{
@@ -331,7 +358,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     @Override
-    protected SystemAggregateGenerator getSystemAggregateGenerator(){
+    public SystemAggregateGenerator getSystemAggregateGenerator(){
         return new SpliceSystemAggregatorGenerator(this);
     }
 

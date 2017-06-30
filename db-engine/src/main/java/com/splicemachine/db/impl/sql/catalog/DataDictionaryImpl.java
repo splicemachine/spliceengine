@@ -549,7 +549,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     protected abstract SystemProcedureGenerator getSystemProcedures();
 
-    protected abstract SystemAggregateGenerator getSystemAggregateGenerator();
+    public abstract SystemAggregateGenerator getSystemAggregateGenerator();
 
     /**
      * Find the default message digest algorithm to use for BUILTIN
