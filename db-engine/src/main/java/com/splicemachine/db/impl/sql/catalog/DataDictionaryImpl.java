@@ -6154,11 +6154,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 makeCatalog(ti,isDummy?sysIBMSchemaDesc:systemSchemaDesc,tc);
                 if(isDummy)
                     populateSYSDUMMY1(tc);
-                // Clear the table entry for this non-core table,
-                // to allow it to be garbage-collected. The idea
-                // is that a running database might never need to
-                // reference a non-core table after it was created.
-                //clearNoncoreTable(noncoreCtr);
             }catch(Exception e){
                 e.printStackTrace();
                 System.out.println("Dictionary Table Failure - exiting");
