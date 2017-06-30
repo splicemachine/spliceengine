@@ -15350,18 +15350,21 @@ dropTableStatement() throws StandardException :
 {
 	Token ifTok = null;
 	Token existsTok = null;
+	Token ifTok2 = null;
+	Token existsTok2 = null;
 	TableName tableName;
 }
 {
-	<TABLE> [ ifTok = <IF> existsTok = <EXISTS> ] tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+	<TABLE> [ ifTok = <IF> existsTok = <EXISTS> ] tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) [ ifTok2 = <IF> existsTok2 = <EXISTS> ]
 	{
         // must have both "if" and "exists"
         boolean ifExists = ifTok != null && existsTok != null;
+        boolean ifExists2 = ifTok2 != null && existsTok2 != null;
 		// DB2 does not support a drop behaviour
 		StatementNode deleteNode = (StatementNode) nodeFactory.getNode(
 											C_NodeTypes.DROP_TABLE_NODE,
 											tableName,
-											(ifExists ? 
+											((ifExists || ifExists2) ?
 											  new Integer(StatementType.DROP_IF_EXISTS) : 
 											  new Integer(StatementType.DROP_DEFAULT)),
 											getContextManager());
