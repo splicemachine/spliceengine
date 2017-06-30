@@ -14,18 +14,20 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Types;
-
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.suites.Stats;
 import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
-import com.splicemachine.test.suites.Stats;
+
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Types;
+
+import static org.junit.Assert.assertEquals;
 
 public class ScalarAggregateOperationIT extends SpliceUnitTest {
     public static final String CLASS_NAME = ScalarAggregateOperationIT.class.getSimpleName().toUpperCase();
@@ -259,6 +261,100 @@ public class ScalarAggregateOperationIT extends SpliceUnitTest {
             Assert.assertEquals("Incorrect count returned!", correctVal, rs.getInt(1));
         }
         Assert.assertEquals("Incorrect num rows returned",1,count);
+    }
+
+    @Test
+    public void testAggregatesOnEmptyTableViaControl() throws Exception {
+	    /* Q1 test non-distinct aggregate */
+        String sqlText = "select max(oid),min(score), sum(score), count(brand), count(*) from EMPTY_TABLE --splice-properties useSpark=false";
+        String expected = "1  |  2  |  3  | 4 | 5 |\n" +
+                "--------------------------\n" +
+                "NULL |NULL |NULL | 0 | 0 |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q2 max(distinct) + non-distinct aggregates */
+        sqlText = "select max(distinct oid),min(score), sum(score), count(brand), count(*) from EMPTY_TABLE --splice-properties useSpark=false";
+        expected = "1  |  2  |  3  | 4 | 5 |\n" +
+                "--------------------------\n" +
+                "NULL |NULL |NULL | 0 | 0 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q3 min(distinct) */
+        sqlText = "select min(distinct oid) from EMPTY_TABLE --splice-properties useSpark=false";
+        expected = "1  |\n" +
+                "------\n" +
+                "NULL |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q4 sum(distinct) */
+        sqlText = "select sum(distinct oid) from EMPTY_TABLE --splice-properties useSpark=false";
+        expected = "1  |\n" +
+                "------\n" +
+                "NULL |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+    }
+
+    @Test
+    public void testAggregatesOnEmptyTableViaSpark() throws Exception {
+	    /* Q1 test non-distinct aggregate */
+        String sqlText = "select max(oid),min(score), sum(score), count(brand), count(*) from EMPTY_TABLE --splice-properties useSpark=true";
+        String expected = "1  |  2  |  3  | 4 | 5 |\n" +
+                "--------------------------\n" +
+                "NULL |NULL |NULL | 0 | 0 |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q2 max(distinct) + non-distinct aggregates */
+        sqlText = "select max(distinct oid),min(score), sum(score), count(brand), count(*) from EMPTY_TABLE --splice-properties useSpark=true";
+        expected = "1  |  2  |  3  | 4 | 5 |\n" +
+                "--------------------------\n" +
+                "NULL |NULL |NULL | 0 | 0 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q3 min(distinct) */
+        sqlText = "select min(distinct oid) from EMPTY_TABLE --splice-properties useSpark=true";
+        expected = "1  |\n" +
+                "------\n" +
+                "NULL |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q4 sum(distinct) */
+        sqlText = "select sum(distinct oid) from EMPTY_TABLE --splice-properties useSpark=true";
+        expected = "1  |\n" +
+                "------\n" +
+                "NULL |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
     }
 
 		@Test
