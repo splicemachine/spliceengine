@@ -500,10 +500,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         assert baseColumnMap != null:"baseColumnMap Null";
         assert partitionColumnMap != null:"partitionColumnMap Null";
         try {
-            SpliceORCPredicate predicate = new SpliceORCPredicate(qualifiers,baseColumnMap,execRow.createStructType());
+            SpliceORCPredicate predicate = new SpliceORCPredicate(qualifiers,baseColumnMap,execRow.createStructTypeCorrected(baseColumnMap));
             Configuration configuration = new Configuration(HConfiguration.unwrapDelegate());
             configuration.set(SpliceOrcNewInputFormat.SPLICE_PREDICATE,predicate.serialize());
-            configuration.set(SpliceOrcNewInputFormat.SPARK_STRUCT,execRow.createStructType().json());
+            configuration.set(SpliceOrcNewInputFormat.SPARK_STRUCT,execRow.createStructTypeCorrected(baseColumnMap).json());
             configuration.set(SpliceOrcNewInputFormat.SPLICE_COLUMNS,intArrayToString(baseColumnMap));
             configuration.set(SpliceOrcNewInputFormat.SPLICE_PARTITIONS,intArrayToString(partitionColumnMap));
             if (statsjob)

@@ -623,6 +623,26 @@ public class ValueRow implements ExecRow, Externalizable {
 		}
 		return DataTypes.createStructType(fields);
 	}
+
+	@Override // SPLICE-1621
+	public StructType createStructTypeCorrected(int[] baseColumnMap) {
+		int length = 0;
+		for (int selectedCols : baseColumnMap){
+			if (selectedCols != -1){
+				length++;
+			}
+		}
+		StructField[] fields = new StructField[length];
+		int j = 0;
+		for(int i = 0; i < baseColumnMap.length; i++){
+			if (baseColumnMap[i] != -1){
+				fields[j] = getColumn(j+1).getStructField(getNamedColumn(i));
+				j++;
+			}
+		}
+		return DataTypes.createStructType(fields);
+	}
+
 	@Override
 	public int compare(ExecRow o1, ExecRow o2) {
 		return o1.compareTo(o2);
