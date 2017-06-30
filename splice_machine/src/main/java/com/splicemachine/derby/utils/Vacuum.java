@@ -32,6 +32,7 @@ import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.db.BasicDatabase;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -105,7 +106,7 @@ public class Vacuum{
                         continue;
                     }
                     long tableConglom = Long.parseLong(tableName[1]);
-                    if(tableConglom < DataDictionary.FIRST_USER_TABLE_NUMBER) {
+                    if(BasicDatabase.isSystemConglomerate(tableConglom)) {
                         if (LOG.isTraceEnabled()) {
                             LOG.trace("Ignoring system table: " + table.getTableName());
                         }
