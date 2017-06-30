@@ -14,6 +14,7 @@
 
 package com.splicemachine;
 
+import java.io.Externalizable;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Date;

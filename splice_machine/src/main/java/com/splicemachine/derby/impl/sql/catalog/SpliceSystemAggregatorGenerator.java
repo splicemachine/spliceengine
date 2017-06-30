@@ -14,9 +14,11 @@
 
 package com.splicemachine.derby.impl.sql.catalog;
 
+import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
@@ -49,7 +51,7 @@ public class SpliceSystemAggregatorGenerator extends DefaultSystemAggregateGener
                 TypeDescriptor.DOUBLE,
                 SpliceStddevPop.class.getCanonicalName());
 
-        aggregate.createSystemAggregate(dictionary, tc, sysFunUUID);
+        aggregate.createOrUpdateSystemAggregate(dictionary, tc, sysFunUUID);
 
         aggregate = new Aggregate(
                 "STDDEV_SAMP",
@@ -57,14 +59,15 @@ public class SpliceSystemAggregatorGenerator extends DefaultSystemAggregateGener
                 TypeDescriptor.DOUBLE,
                 SpliceStddevSamp.class.getCanonicalName());
 
-        aggregate.createSystemAggregate(dictionary, tc, sysFunUUID);
+        aggregate.createOrUpdateSystemAggregate(dictionary, tc, sysFunUUID);
 
         TypeId mergeTypeId = TypeId.getUserDefinedTypeId(ColumnStatisticsImpl.class.getCanonicalName(), false);
         DataTypeDescriptor dtd = new DataTypeDescriptor(mergeTypeId,true);
         TypeDescriptor mergeTypeDescriptor = dtd.getCatalogType();
         aggregate = new Aggregate("STATS_MERGE", mergeTypeDescriptor,mergeTypeDescriptor,
                 ColumnStatisticsMerge.class.getCanonicalName());
-        aggregate.createSystemAggregate(dictionary,tc,sysFunUUID);
+        aggregate.createOrUpdateSystemAggregate(dictionary,tc,sysFunUUID);
 
     }
+
 }

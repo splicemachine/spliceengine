@@ -61,15 +61,15 @@ public class Aggregate {
         this.javaClassName = javaClassName;
     }
 
-    public void createSystemAggregate(DataDictionary dataDictionary, TransactionController tc)
+    public void createOrUpdateSystemAggregate(DataDictionary dataDictionary, TransactionController tc)
 		throws StandardException {
     	// By default, puts aggregate function into SYSCS_UTIL schema
     	// unless you invoke the method that takes schema UUID argument.
         UUID schemaId = dataDictionary.getSystemUtilSchemaDescriptor().getUUID();
-        createSystemAggregate(dataDictionary, tc, schemaId);
+        createOrUpdateSystemAggregate(dataDictionary, tc, schemaId);
     }
 
-    public void createSystemAggregate(DataDictionary dataDictionary, TransactionController tc, UUID schemaId)
+    public void createOrUpdateSystemAggregate(DataDictionary dataDictionary, TransactionController tc, UUID schemaId)
 		throws StandardException {
 
         char aliasType = AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR;
@@ -78,6 +78,12 @@ public class Aggregate {
         AggregateAliasInfo aliasInfo = new AggregateAliasInfo(inType, returnType);
 
         UUID aggregate_uuid = dataDictionary.getUUIDFactory().createUUID();
+
+
+        AliasDescriptor ad = dataDictionary.getAliasDescriptor(dataDictionary.getSysFunSchemaDescriptor().getUUID().toString(), name, AliasInfo.ALIAS_NAME_SPACE_AGGREGATE_AS_CHAR);
+        if (ad != null) {  // Drop the procedure if it already exists.
+            dataDictionary.dropAliasDescriptor(ad, tc);
+        }
 
         AliasDescriptor ads =
                 new AliasDescriptor(
