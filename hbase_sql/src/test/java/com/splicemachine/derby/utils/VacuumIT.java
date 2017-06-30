@@ -15,6 +15,7 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.impl.db.BasicDatabase;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
@@ -85,7 +86,7 @@ public class VacuumIT extends SpliceUnitTest{
             Set<String> deletedTables=getDeletedTables(beforeTables,afterTables);
             for(String t : deletedTables){
                 long conglom=new Long(t);
-                Assert.assertTrue(conglom>=DataDictionary.FIRST_USER_TABLE_NUMBER);
+                Assert.assertTrue(BasicDatabase.isSystemConglomerate(conglom));
             }
         }
     }
