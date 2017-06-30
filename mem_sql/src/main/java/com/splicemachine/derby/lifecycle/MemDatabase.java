@@ -24,6 +24,7 @@ import com.splicemachine.access.configuration.ConfigurationDefault;
 import com.splicemachine.access.configuration.ConfigurationSource;
 import com.splicemachine.access.configuration.HConfigurationDefaultsList;
 import com.splicemachine.access.util.ReflectingConfigurationSource;
+import com.splicemachine.client.SpliceClient;
 import com.splicemachine.concurrent.ConcurrentTicker;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.si.MemSIEnvironment;
@@ -47,6 +48,7 @@ public class MemDatabase{
 
         SIDriver.loadDriver(env);
         final SIDriver driver = env.getSIDriver();
+        SpliceClient.isRegionServer = true;
         //start the database sequence
         EngineLifecycleService els = new EngineLifecycleService(new DistributedDerbyStartup(){
             @Override
