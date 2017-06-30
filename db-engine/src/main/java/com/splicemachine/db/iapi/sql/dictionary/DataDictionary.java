@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
+import com.splicemachine.db.impl.sql.catalog.TabInfoImpl;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import java.sql.Types;
 import java.util.Dictionary;
@@ -64,11 +65,6 @@ import java.util.Map;
 
 public interface DataDictionary{
     String MODULE="com.splicemachine.db.iapi.sql.dictionary.DataDictionary";
-
-    /** The conglomerate id of the first user table */
-    // NOTE: JC - this constant is also defined in (splice) EnvUtils. When adding a new sys table, this
-    // number will need to be increased in BOTH places.
-    long FIRST_USER_TABLE_NUMBER = 1568;
 
     /**
      * Special version indicating the database must be upgraded to or created at the current engine level
@@ -2112,4 +2108,20 @@ public interface DataDictionary{
     void addSnapshot(TupleDescriptor descriptor, TransactionController tc) throws StandardException;
 
     void deleteSnapshot(String snapshotName, long conglomeratenumber, TransactionController tc) throws StandardException;
+
+    /**
+     * Used as Helper Methods for the isSystemTable call in Database.
+     *
+     * @return
+     */
+    public TabInfoImpl[] getNoncoreInfo();
+
+    /**
+     * Used as Helper Methods for the isSystemTable call in Database.
+     *
+     * @return
+     */
+    public TabInfoImpl[] getCoreInfo();
+
+
 }
