@@ -902,7 +902,7 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
 
         QueryTreeNode maxWidthNode = (QueryTreeNode) getNodeFactory().getNode(
             C_NodeTypes.INT_CONSTANT_NODE,
-            new Integer(maxWidth),
+                maxWidth,
             getContextManager());
         param.add(maxWidthNode);
 

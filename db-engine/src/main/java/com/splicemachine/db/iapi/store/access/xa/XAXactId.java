@@ -128,14 +128,12 @@ public class XAXactId extends GlobalXact implements Xid
 	// 1+2+1+2+1+9+1+1+1
 		int maxLength = 20+(global_id.length+branch_id.length)*2;
 
-		String hexdump = String.valueOf(COLON) +
-				Integer.toString(global_id.length) + COLON +
-				Integer.toString(branch_id.length) + COLON +
-				Integer.toString(format_id, 16) + COLON +
-				com.splicemachine.db.iapi.util.StringUtil.toHexString(global_id, 0, global_id.length) + COLON +
-				com.splicemachine.db.iapi.util.StringUtil.toHexString(branch_id, 0, branch_id.length) + COLON;
-
-		return hexdump;
+        return String.valueOf(COLON) +
+                Integer.toString(global_id.length) + COLON +
+                Integer.toString(branch_id.length) + COLON +
+                Integer.toString(format_id, 16) + COLON +
+                com.splicemachine.db.iapi.util.StringUtil.toHexString(global_id, 0, global_id.length) + COLON +
+                com.splicemachine.db.iapi.util.StringUtil.toHexString(branch_id, 0, branch_id.length) + COLON;
 
     }
 

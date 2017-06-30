@@ -181,7 +181,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 			if ((lv >= Integer.MIN_VALUE) && (lv <= Integer.MAX_VALUE))
 				return (int) lv;
 
-		} catch (StandardException se) {
+		} catch (StandardException ignored) {
 		}
 
 		throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, "INTEGER");
@@ -201,7 +201,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 			if ((lv >= Byte.MIN_VALUE) && (lv <= Byte.MAX_VALUE))
 				return (byte) lv;
 
-		} catch (StandardException se) {
+		} catch (StandardException ignored) {
 		}
 
 		throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, "TINYINT");
@@ -221,7 +221,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 			if ((lv >= Short.MIN_VALUE) && (lv <= Short.MAX_VALUE))
 				return (short) lv;
 
-		} catch (StandardException se) {
+		} catch (StandardException ignored) {
 		}
 
 		throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, "SMALLINT");
@@ -312,11 +312,9 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 
     // 0 or null is false, all else is true
 	public boolean	getBoolean() {
-		BigDecimal localValue = getBigDecimal();
-		if (localValue == null)
-			return false;
-		return localValue.compareTo(ZERO) != 0;
-	}
+        BigDecimal localValue = getBigDecimal();
+        return localValue != null && localValue.compareTo(ZERO) != 0;
+    }
 
 	public String	getString() {
 		BigDecimal localValue = getBigDecimal();

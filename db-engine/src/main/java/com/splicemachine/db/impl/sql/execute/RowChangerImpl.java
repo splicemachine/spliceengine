@@ -179,13 +179,12 @@ class RowChangerImpl	implements	RowChanger
 			sparseRowArray =
 				new DataValueDescriptor[changedColumnIds[changedColumnIds.length - 1] + 1];
 			changedColumnBitSet = new FormatableBitSet(numberOfColumns);
-			for (int i = 0; i < changedColumnIds.length; i++)
-			{
-				// make sure changedColumnBitSet can accomodate bit 
-				// changedColumnIds[i] - 1 
-				changedColumnBitSet.grow(changedColumnIds[i]);
-				changedColumnBitSet.set(changedColumnIds[i] - 1);
-			}
+            for (int changedColumnId : changedColumnIds) {
+                // make sure changedColumnBitSet can accomodate bit
+                // changedColumnIds[i] - 1
+                changedColumnBitSet.grow(changedColumnId);
+                changedColumnBitSet.set(changedColumnId - 1);
+            }
 
 			/*
 			** If we have a read map and a write map, we
@@ -509,18 +508,16 @@ class RowChangerImpl	implements	RowChanger
 			int[] changedColumnArray = (partialChangedColumnIds == null) ?
 					changedColumnIds : partialChangedColumnIds;
 			int nextColumnToUpdate = -1;
-			for (int i = 0; i < changedColumnArray.length; i++)
-			{
-				int copyFrom = changedColumnArray[i] - 1;
-				nextColumnToUpdate =
-							changedColumnBitSet.anySetBit(nextColumnToUpdate);
-				if (SanityManager.DEBUG)
-				{
-					SanityManager.ASSERT(nextColumnToUpdate >= 0,
-						"More columns in changedColumnArray than in changedColumnBitSet");
-				}
-				sparseRowArray[nextColumnToUpdate] = baseRowArray[copyFrom];
-			}
+            for (int aChangedColumnArray : changedColumnArray) {
+                int copyFrom = aChangedColumnArray - 1;
+                nextColumnToUpdate =
+                        changedColumnBitSet.anySetBit(nextColumnToUpdate);
+                if (SanityManager.DEBUG) {
+                    SanityManager.ASSERT(nextColumnToUpdate >= 0,
+                            "More columns in changedColumnArray than in changedColumnBitSet");
+                }
+                sparseRowArray[nextColumnToUpdate] = baseRowArray[copyFrom];
+            }
 		}
 		else
 		{
@@ -611,14 +608,14 @@ class RowChangerImpl	implements	RowChanger
 			changedColumnIds : partialChangedColumnIds;
 
 		int nextColumnToUpdate = -1;
-		for (int i = 0; i < changeColArray.length; i++) {
-			nextColumnToUpdate =
-				changedColumnBitSet.anySetBit(nextColumnToUpdate);
+        for (int aChangeColArray : changeColArray) {
+            nextColumnToUpdate =
+                    changedColumnBitSet.anySetBit(nextColumnToUpdate);
 
-			if (selectedCol == nextColumnToUpdate + 1) { // bit set is 0 based
-				return changeColArray[i];
-			}
-		}
+            if (selectedCol == nextColumnToUpdate + 1) { // bit set is 0 based
+                return aChangeColArray;
+            }
+        }
 
 		return -1;
 	}

@@ -121,7 +121,7 @@ public class ScanCostFunction{
     private void addSelectivity(SelectivityHolder holder) {
         List<SelectivityHolder> holders = selectivityHolder[holder.getColNum()];
         if (holders == null) {
-            holders = new LinkedList<SelectivityHolder>();
+            holders = new LinkedList<>();
             selectivityHolder[holder.getColNum()] = holders;
         }
         holders.add(holder);
@@ -137,7 +137,7 @@ public class ScanCostFunction{
     private List<SelectivityHolder> getSelectivityListForColumn(int colNum) {
         List<SelectivityHolder> holders = selectivityHolder[colNum];
         if (holders == null) {
-            holders = new LinkedList<SelectivityHolder>();
+            holders = new LinkedList<>();
             selectivityHolder[colNum] = holders;
         }
         return holders;
@@ -319,9 +319,9 @@ public class ScanCostFunction{
     public static double computeTotalSelectivity(List<SelectivityHolder>[] selectivityHolder) throws StandardException {
         double totalSelectivity = 1.0d;
         List<SelectivityHolder> holders = new ArrayList();
-        for (int i = 0; i< selectivityHolder.length; i++) {
-            if (selectivityHolder[i] != null)
-                holders.addAll(selectivityHolder[i]);
+        for (List<SelectivityHolder> aSelectivityHolder : selectivityHolder) {
+            if (aSelectivityHolder != null)
+                holders.addAll(aSelectivityHolder);
         }
         Collections.sort(holders);
         return computeSelectivity(totalSelectivity,holders);
@@ -340,10 +340,10 @@ public class ScanCostFunction{
     public static double computePhaseSelectivity(List<SelectivityHolder>[] selectivityHolder,QualifierPhase... phases) throws StandardException {
         double totalSelectivity = 1.0d;
         List<SelectivityHolder> holders = new ArrayList();
-        for (int i = 0; i< selectivityHolder.length; i++) {
-            if (selectivityHolder[i] != null) {
-                for (SelectivityHolder holder: selectivityHolder[i]) {
-                    for (QualifierPhase phase:phases) {
+        for (List<SelectivityHolder> aSelectivityHolder : selectivityHolder) {
+            if (aSelectivityHolder != null) {
+                for (SelectivityHolder holder : aSelectivityHolder) {
+                    for (QualifierPhase phase : phases) {
                         if (holder.getPhase().equals(phase))
                             holders.add(holder); // Only add Phased Qualifiers
                     }

@@ -327,7 +327,7 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
             // Nothing to do here, except checking if the position is valid.
             if (logicalPos >= control.getLength()) {
                 throw StandardException.newException(
-                        SQLState.BLOB_POSITION_TOO_LARGE, new Long(logicalPos));
+                        SQLState.BLOB_POSITION_TOO_LARGE, logicalPos);
             }
         } else {
             // Reposition the store stream, account for the length field offset.
@@ -337,7 +337,7 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
             } catch (EOFException eofe) {
                 throw StandardException.newException(
                         SQLState.BLOB_POSITION_TOO_LARGE, eofe,
-                        new Long(logicalPos));
+                        logicalPos);
             }
         }
         return logicalPos;
@@ -472,10 +472,10 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
         {
             if (startPos < 1)
                 throw StandardException.newException(
-                    SQLState.BLOB_BAD_POSITION, new Long(startPos));
+                    SQLState.BLOB_BAD_POSITION, startPos);
             if (length < 0)
                 throw StandardException.newException(
-                    SQLState.BLOB_NONPOSITIVE_LENGTH, new Integer(length));
+                    SQLState.BLOB_NONPOSITIVE_LENGTH, length);
 
             byte[] result;
             // if the blob is materialized
@@ -535,7 +535,7 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
         {  // if this is a setPosition exception then we ran out of Blob
             if (e.getMessageId().equals(SQLState.BLOB_LENGTH_TOO_LONG))
                 e = StandardException.newException(
-                    SQLState.BLOB_POSITION_TOO_LARGE, new Long(startPos));
+                    SQLState.BLOB_POSITION_TOO_LARGE, startPos);
             throw handleMyExceptions(e);
         }
         catch (Throwable t)
@@ -635,7 +635,7 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
         {
             if (start < 1)
                 throw StandardException.newException(
-                    SQLState.BLOB_BAD_POSITION, new Long(start));
+                    SQLState.BLOB_BAD_POSITION, start);
             if (pattern == null)
                 throw StandardException.newException(SQLState.BLOB_NULL_PATTERN_OR_SEARCH_STR);
             if (pattern.length == 0)
@@ -672,11 +672,7 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
                     }
                 }
             }
-        }
-        catch (StandardException e) {
-            throw handleMyExceptions(e);
-        }
-        catch (Throwable t)
+        } catch (Throwable t)
         {
 			throw handleMyExceptions(t);
         }
@@ -737,7 +733,7 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
         {
             if (start < 1)
                 throw StandardException.newException(
-                    SQLState.BLOB_BAD_POSITION, new Long(start));
+                    SQLState.BLOB_BAD_POSITION, start);
             if (pattern == null)
                 throw StandardException.newException(SQLState.BLOB_NULL_PATTERN_OR_SEARCH_STR);
 
@@ -785,11 +781,7 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
                     }
                 }
             }
-        }
-        catch (StandardException e) {
-            throw handleMyExceptions(e);
-        }
-        catch (Throwable t)
+        } catch (Throwable t)
         {
 			throw handleMyExceptions(t);
         }
@@ -926,25 +918,25 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
 
         if (pos - 1 > length())
             throw Util.generateCsSQLException(SQLState.BLOB_POSITION_TOO_LARGE,
-                    new Long(pos));
+                    pos);
         if (pos < 1)
             throw Util.generateCsSQLException(SQLState.BLOB_BAD_POSITION,
-                    new Long(pos));
+                    pos);
         
         if ((offset < 0) || offset > bytes.length) {
             throw Util.generateCsSQLException(SQLState.BLOB_INVALID_OFFSET,
-                    new Long(offset));
+                    (long) offset);
         }
         if (len < 0) {
             throw Util.generateCsSQLException(SQLState.BLOB_NONPOSITIVE_LENGTH,
-                    new Long(len));
+                    (long) len);
         }
         if (len == 0) {
             return 0;
         }
         if (len > bytes.length - offset) {
             throw Util.generateCsSQLException(SQLState.BLOB_LENGTH_TOO_LONG,
-                    new Long(len));
+                    (long) len);
         }
 
         try {
@@ -981,10 +973,10 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
             checkValidity ();
             if (pos - 1 > length())
                 throw Util.generateCsSQLException(
-                    SQLState.BLOB_POSITION_TOO_LARGE, new Long(pos));
+                    SQLState.BLOB_POSITION_TOO_LARGE, pos);
             if (pos < 1)
                 throw Util.generateCsSQLException(
-                    SQLState.BLOB_BAD_POSITION, new Long(pos));
+                    SQLState.BLOB_BAD_POSITION, pos);
             try {
                 if (materialized) {
                     return control.getOutputStream (pos - 1);
@@ -1023,7 +1015,7 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
 	{
             if (len > length())
                 throw Util.generateCsSQLException(
-                    SQLState.BLOB_LENGTH_TOO_LONG, new Long(len));
+                    SQLState.BLOB_LENGTH_TOO_LONG, len);
             try {
                 if (materialized) {
                     control.truncate (len);
@@ -1115,17 +1107,17 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
         if (pos <= 0) {
             throw Util.generateCsSQLException(
                     SQLState.BLOB_BAD_POSITION,
-                    new Long(pos));
+                    pos);
         }
         if (length < 0) {
             throw Util.generateCsSQLException(
                     SQLState.BLOB_NONPOSITIVE_LENGTH,
-                    new Long(length));
+                    length);
         }
         if (length > (this.length() - (pos -1))) {
             throw Util.generateCsSQLException(
                     SQLState.POS_AND_LENGTH_GREATER_THAN_LOB,
-                    new Long(pos), new Long(length));
+                    pos, length);
         }
         
         try {

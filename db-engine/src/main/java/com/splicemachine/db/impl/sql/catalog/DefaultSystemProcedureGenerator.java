@@ -94,16 +94,13 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     public final void createProcedures(TransactionController tc, HashSet newlyCreatedRoutines) throws StandardException {
         //get system procedures
         Map/*<UUID,Procedure>*/ procedureMap = getProcedures(dictionary,tc);
-        Iterator uuidIterator = procedureMap.keySet().iterator();
-        while(uuidIterator.hasNext()){
-            UUID uuid = (UUID)uuidIterator.next();
-            Iterator/*<Procedure>*/ procedures = ((List) procedureMap.get(uuid)).iterator();
-            while(procedures.hasNext()){
-                Object n = procedures.next();
+        for (Object o : procedureMap.keySet()) {
+            UUID uuid = (UUID) o;
+            for (Object n : ((List) procedureMap.get(uuid))) {
                 //free null check plus cast protection
-                if(n instanceof Procedure){
-                    Procedure procedure = (Procedure)n;
-                    newlyCreatedRoutines.add(procedure.createSystemProcedure(uuid,dictionary,tc).getMethodName());
+                if (n instanceof Procedure) {
+                    Procedure procedure = (Procedure) n;
+                    newlyCreatedRoutines.add(procedure.createSystemProcedure(uuid, dictionary, tc).getMethodName());
                 }
             }
         }
@@ -258,14 +255,12 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     	if (procedureList == null) {
     		throw StandardException.newException(SQLState.PROPERTY_INVALID_VALUE, "SCHEMA", (schemaName));
     	}
-    	Iterator/*<Procedure>*/ procedures = procedureList.iterator();
-    	while (procedures.hasNext()) {
-    		Object n = procedures.next();
-    		if (n instanceof Procedure) {
-    			Procedure procedure = (Procedure)n;
-    			createOrUpdateProcedure(schemaName, procedure.getName(), tc, newlyCreatedRoutines);
-    		}
-    	}
+        for (Object n : procedureList) {
+            if (n instanceof Procedure) {
+                Procedure procedure = (Procedure) n;
+                createOrUpdateProcedure(schemaName, procedure.getName(), tc, newlyCreatedRoutines);
+            }
+        }
     }
 
     /**
@@ -314,16 +309,14 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     		return null;
     	}
 
-    	Iterator/*<Procedure>*/ procedures = procedureList.iterator();
-    	while (procedures.hasNext()) {
-    		Object n = procedures.next();
-    		if (n instanceof Procedure) {
-    			Procedure procedure = (Procedure)n;
-    			if (procName.equalsIgnoreCase(procedure.getName())) {
-    				return procedure;
-    			}
-    		}
-    	}
+        for (Object n : procedureList) {
+            if (n instanceof Procedure) {
+                Procedure procedure = (Procedure) n;
+                if (procName.equalsIgnoreCase(procedure.getName())) {
+                    return procedure;
+                }
+            }
+        }
     	return null;
     }
 

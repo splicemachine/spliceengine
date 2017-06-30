@@ -75,7 +75,7 @@ public class BitConstantNode extends ConstantNode
 		byte[] nv = com.splicemachine.db.iapi.util.StringUtil.fromHexString(a1, 0, a1.length());
 
 		Integer bitLengthO = (Integer) arg2;
-		bitLength = bitLengthO.intValue();
+		bitLength = bitLengthO;
 
 		init(
 			TypeId.getBuiltInTypeId(Types.BINARY),

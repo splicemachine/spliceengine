@@ -531,7 +531,7 @@ public class CursorNode extends DMLStatementNode{
             fromTable=(FromTable)fromList.elementAt(i);
             if(fromTable instanceof FromBaseTable && isSessionSchema(fromTable.getTableDescriptor().getSchemaDescriptor())){
                 if(sessionSchemaTableNames==null)
-                    sessionSchemaTableNames=new ArrayList<String>();
+                    sessionSchemaTableNames= new ArrayList<>();
                 sessionSchemaTableNames.add(fromTable.getTableName().getTableName());
             }
         }

@@ -261,21 +261,14 @@ abstract class BaseTypeCompiler implements TypeCompiler {
 	 */
 	protected boolean userTypeStorable(TypeId thisType,
 							TypeId otherType,
-							ClassFactory cf)
-	{
-		/*
+							ClassFactory cf) {
+        /*
 		** If the other type is user-defined, use the java types to determine
 		** assignability.
 		*/
-		if (otherType.userType())
-		{
-			return cf.getClassInspector().assignableTo(
-					thisType.getCorrespondingJavaTypeName(),
-					otherType.getCorrespondingJavaTypeName());
-		}
+        return otherType.userType() && cf.getClassInspector().assignableTo(thisType.getCorrespondingJavaTypeName(), otherType.getCorrespondingJavaTypeName());
 
-		return false;
-	}
+    }
 	
 	/**
 	 * Tell whether this numeric type can be converted to the given type.

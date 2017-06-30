@@ -367,7 +367,7 @@ public class Level2OptimizerTrace implements OptimizerTrace{
             return cd.toString();
         }
 
-        String keyString="";
+        StringBuilder keyString= new StringBuilder();
         String[] columnNames=cd.getColumnNames();
 
         if(cd.isIndex() && columnNames!=null){
@@ -375,11 +375,11 @@ public class Level2OptimizerTrace implements OptimizerTrace{
 
             int[] keyColumns=irg.baseColumnPositions();
 
-            keyString=", key columns = {"+columnNames[keyColumns[0]-1];
+            keyString = new StringBuilder(", key columns = {" + columnNames[keyColumns[0] - 1]);
             for(int index=1;index<keyColumns.length;index++){
-                keyString=keyString+", "+columnNames[keyColumns[index]-1];
+                keyString.append(", ").append(columnNames[keyColumns[index] - 1]);
             }
-            keyString=keyString+"}";
+            keyString.append("}");
         }
 
         return "CD: conglomerateNumber = "+cd.getConglomerateNumber()+

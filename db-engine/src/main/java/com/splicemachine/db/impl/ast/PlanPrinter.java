@@ -87,7 +87,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                 node instanceof DMLStatementNode &&
                 (((DMLStatementNode) node).getResultSetNode()) != null) {
             rsn = (DMLStatementNode) node;
-            List<QueryTreeNode> orderedNodes = new ArrayList<QueryTreeNode>();
+            List<QueryTreeNode> orderedNodes = new ArrayList<>();
             rsn.buildTree(orderedNodes,0);
             Map<String, Collection<QueryTreeNode>> m=planMap.get();
             m.put(query,orderedNodes);
@@ -254,12 +254,12 @@ public class PlanPrinter extends AbstractSpliceVisitor {
     }
 
     public static List<Map<String, Object>> getResultColumnInfo(ResultSetNode rsn) throws StandardException {
-        List<Map<String, Object>> resultColumns = new ArrayList<Map<String, Object>>();
+        List<Map<String, Object>> resultColumns = new ArrayList<>();
         ResultColumnList resultColumnList = rsn.getResultColumns();
         if (resultColumnList != null && !resultColumnList.isEmpty()) {
 
             for (ResultColumn resultColumn : resultColumnList) {
-                Map<String, Object> columnInfo = new LinkedHashMap<String, Object>();
+                Map<String, Object> columnInfo = new LinkedHashMap<>();
                 if (resultColumn != null) {
                     columnInfo.put("column", resultColumn.getName());
                     columnInfo.put("position", resultColumn.getColumnPosition());
@@ -300,7 +300,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
     public static List<Map<String,Object>> linearizeNodeInfoTree(Map<String, Object> info)
             throws StandardException {
         List<Map<String,Object>> children = (List<Map<String,Object>>)info.get("children");
-        List<Map<String,Object>> nodes = new LinkedList<Map<String, Object>>();
+        List<Map<String,Object>> nodes = new LinkedList<>();
         nodes.add(info);
         for (Map<String,Object> child : Lists.reverse(children)) {
             nodes.addAll(linearizeNodeInfoTree(child));

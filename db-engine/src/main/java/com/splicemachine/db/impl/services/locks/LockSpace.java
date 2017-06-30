@@ -153,9 +153,9 @@ final class LockSpace implements CompatibilitySpace {
 		if (dl == null)
 			return;
 
-		for (Iterator list = dl.keySet().iterator(); list.hasNext(); ) {
-			lset.unlock((Lock) list.next(), 0);
-		}
+        for (Object o : dl.keySet()) {
+            lset.unlock((Lock) o, 0);
+        }
 
 		if ((callbackGroup != null) && group.equals(callbackGroup)) {
 			nextLimitCall = limit;
@@ -255,23 +255,21 @@ final class LockSpace implements CompatibilitySpace {
 
 	private void mergeGroups(HashMap from, HashMap into) {
 
-		for (Iterator e = from.keySet().iterator(); e.hasNext(); ) {
+        for (Object lock : from.keySet()) {
 
-			Object lock = e.next();
+            Object lockI = into.get(lock);
 
-			Object lockI = into.get(lock);
+            if (lockI == null) {
+                // lock is only in from list
+                into.put(lock, lock);
+            } else {
+                // merge the locks
+                Lock fromL = (Lock) lock;
+                Lock intoL = (Lock) lockI;
 
-			if (lockI == null) {
-				// lock is only in from list
-				into.put(lock, lock);
-			} else {
-				// merge the locks
-				Lock fromL = (Lock) lock;
-				Lock intoL = (Lock) lockI;
-
-				intoL.count += fromL.getCount();
-			}
-		}
+                intoL.count += fromL.getCount();
+            }
+        }
 
 	}
 
@@ -365,15 +363,15 @@ final class LockSpace implements CompatibilitySpace {
 
 		int count = 0;
 
-		for (Iterator it = groups.values().iterator(); it.hasNext(); ) {
-			HashMap group = (HashMap) it.next();
-			for (Iterator locks = group.keySet().iterator(); locks.hasNext(); ) {
-					Lock lock = (Lock) locks.next();
-					count += lock.getCount();
-					if (count > bail)
-						return count;
-			}
-		}
+        for (Object o1 : groups.values()) {
+            HashMap group = (HashMap) o1;
+            for (Object o : group.keySet()) {
+                Lock lock = (Lock) o;
+                count += lock.getCount();
+                if (count > bail)
+                    return count;
+            }
+        }
 		return count;
 
 	}

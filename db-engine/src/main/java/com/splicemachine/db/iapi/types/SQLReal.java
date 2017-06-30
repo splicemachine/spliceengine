@@ -209,7 +209,7 @@ public final class SQLReal
 		if (isNull())
 			return null;
 		else
-			return new Float(value);
+			return value;
 	}
 
 	// this is for DataType's error generator
@@ -362,7 +362,7 @@ public final class SQLReal
 		if (isNull = (obj == null))
 			;
 		else {
-			setValue(NumberDataType.normalizeREAL(obj.floatValue()));
+			setValue(NumberDataType.normalizeREAL(obj));
 		}
 	}
 

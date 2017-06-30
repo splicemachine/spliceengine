@@ -178,8 +178,7 @@ class ClassEnumeration implements Enumeration {
 	        }
 
             foundClasses.add(fieldType);
-            return;
-         }
+		}
          else
          {
             // it's a method signature
@@ -197,7 +196,6 @@ class ClassEnumeration implements Enumeration {
                 }
                 else
                 {
-                    continue;
                 }
             }
          }

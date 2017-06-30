@@ -451,23 +451,14 @@ public class OrNode extends BinaryLogicalOperatorNode {
 	{
 		boolean isValid = true;
 
-		if (SanityManager.ASSERT)
-		{
-			isValid = ((rightOperand instanceof OrNode) ||
-					   (rightOperand.isBooleanFalse()));
-			if (rightOperand instanceof OrNode)
-			{
-				isValid = rightOperand.verifyChangeToCNF();
-			}
-			if (leftOperand instanceof OrNode)
-			{
-				isValid = false;
-			}
-			else
-			{
-				isValid = leftOperand.verifyChangeToCNF();
-			}
-		}
+		if (SanityManager.ASSERT) {
+            isValid = ((rightOperand instanceof OrNode) ||
+                    (rightOperand.isBooleanFalse()));
+            if (rightOperand instanceof OrNode) {
+                isValid = rightOperand.verifyChangeToCNF();
+            }
+            isValid = !(leftOperand instanceof OrNode) && leftOperand.verifyChangeToCNF();
+        }
 
 		return isValid;
 	}

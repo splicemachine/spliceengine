@@ -196,39 +196,36 @@ public class ConsistencyChecker
 
 			/* Look at all the indexes on the table */
 			ConglomerateDescriptor[] cds = td.getConglomerateDescriptors();
-			for (int index = 0; index < cds.length; index++)
-			{
-				indexCD = cds[index];
-				/* Skip the heap */
-				if ( ! indexCD.isIndex())
-					continue;
+            for (ConglomerateDescriptor cd1 : cds) {
+                indexCD = cd1;
+                /* Skip the heap */
+                if (!indexCD.isIndex())
+                    continue;
 
 				/* Check the internal consistency of the index */
-				indexCC = 
-			        tc.openConglomerate(
-				        indexCD.getConglomerateNumber(),
-                        false,
-					    0,
-						TransactionController.MODE_TABLE,
-	                    TransactionController.ISOLATION_SERIALIZABLE);
+                indexCC =
+                        tc.openConglomerate(
+                                indexCD.getConglomerateNumber(),
+                                false,
+                                0,
+                                TransactionController.MODE_TABLE,
+                                TransactionController.ISOLATION_SERIALIZABLE);
 
-				indexCC.checkConsistency();
-				indexCC.close();
-				indexCC = null;
+                indexCC.checkConsistency();
+                indexCC.close();
+                indexCC = null;
 
 				/* if index is for a constraint check that the constraint exists */
 
-				if (indexCD.isConstraint())
-				{
-					constraintDesc = dd.getConstraintDescriptor(td, indexCD.getUUID());
-					if (constraintDesc == null)
-					{
-						throw StandardException.newException(
-										SQLState.LANG_OBJECT_NOT_FOUND,
-										"CONSTRAINT for INDEX",
-										indexCD.getConglomerateName());
-					}
-				}
+                if (indexCD.isConstraint()) {
+                    constraintDesc = dd.getConstraintDescriptor(td, indexCD.getUUID());
+                    if (constraintDesc == null) {
+                        throw StandardException.newException(
+                                SQLState.LANG_OBJECT_NOT_FOUND,
+                                "CONSTRAINT for INDEX",
+                                indexCD.getConglomerateName());
+                    }
+                }
 
 				/*
 				** Set the base row count when we get to the first index.
@@ -236,121 +233,113 @@ public class ConsistencyChecker
 				** we won't do the work of counting the rows in the base table
 				** if there are no indexes to check.
 				*/
-				if (baseRowCount < 0)
-				{
-					scan = tc.openScan(heapCD.getConglomerateNumber(),
-										false,	// hold
-										0,		// not forUpdate
-									    TransactionController.MODE_TABLE,
-									    TransactionController.ISOLATION_SERIALIZABLE,
-                                        RowUtil.EMPTY_ROW_BITSET,
-										null,	// startKeyValue
-										0,		// not used with null start posn.
-										null,	// qualifier
-										null,	// stopKeyValue
-										0);		// not used with null stop posn.
+                if (baseRowCount < 0) {
+                    scan = tc.openScan(heapCD.getConglomerateNumber(),
+                            false,    // hold
+                            0,        // not forUpdate
+                            TransactionController.MODE_TABLE,
+                            TransactionController.ISOLATION_SERIALIZABLE,
+                            RowUtil.EMPTY_ROW_BITSET,
+                            null,    // startKeyValue
+                            0,        // not used with null start posn.
+                            null,    // qualifier
+                            null,    // stopKeyValue
+                            0);        // not used with null stop posn.
 
 					/* Also, get the row location template for index rows */
-					rl = scan.newRowLocationTemplate();
-					scanRL = scan.newRowLocationTemplate();
+                    rl = scan.newRowLocationTemplate();
+                    scanRL = scan.newRowLocationTemplate();
 
-					for (baseRowCount = 0; scan.next(); baseRowCount++)
-						;	/* Empty statement */
+                    for (baseRowCount = 0; scan.next(); baseRowCount++)
+                        ;	/* Empty statement */
 
-					scan.close();
-					scan = null;
-				}
+                    scan.close();
+                    scan = null;
+                }
 
-				baseColumnPositions =
-						indexCD.getIndexDescriptor().baseColumnPositions();
-				baseColumns = baseColumnPositions.length;
+                baseColumnPositions =
+                        indexCD.getIndexDescriptor().baseColumnPositions();
+                baseColumns = baseColumnPositions.length;
 
-				FormatableBitSet indexColsBitSet = new FormatableBitSet();
-				for (int i = 0; i < baseColumns; i++)
-				{
-					indexColsBitSet.grow(baseColumnPositions[i]);
-					indexColsBitSet.set(baseColumnPositions[i] - 1);
-				}
+                FormatableBitSet indexColsBitSet = new FormatableBitSet();
+                for (int i = 0; i < baseColumns; i++) {
+                    indexColsBitSet.grow(baseColumnPositions[i]);
+                    indexColsBitSet.set(baseColumnPositions[i] - 1);
+                }
 
 				/* Get one row template for the index scan, and one for the fetch */
-				indexRow = ef.getValueRow(baseColumns + 1);
+                indexRow = ef.getValueRow(baseColumns + 1);
 
 				/* Fill the row with nulls of the correct type */
-				for (int column = 0; column < baseColumns; column++)
-				{
+                for (int column = 0; column < baseColumns; column++) {
 					/* Column positions in the data dictionary are one-based */
- 					ColumnDescriptor cd = td.getColumnDescriptor(baseColumnPositions[column]);
-					indexRow.setColumn(column + 1,
-											cd.getType().getNull());
-				}
+                    ColumnDescriptor cd = td.getColumnDescriptor(baseColumnPositions[column]);
+                    indexRow.setColumn(column + 1,
+                            cd.getType().getNull());
+                }
 
 				/* Set the row location in the last column of the index row */
-				indexRow.setColumn(baseColumns + 1, rl);
+                indexRow.setColumn(baseColumns + 1, rl);
 
 				/* Do a full scan of the index */
-				scan = tc.openScan(indexCD.getConglomerateNumber(),
-									false,	// hold
-									0,		// not forUpdate
-								    TransactionController.MODE_TABLE,
-						            TransactionController.ISOLATION_SERIALIZABLE,
-									(FormatableBitSet) null,
-									null,	// startKeyValue
-									0,		// not used with null start posn.
-									null,	// qualifier
-									null,	// stopKeyValue
-									0);		// not used with null stop posn.
+                scan = tc.openScan(indexCD.getConglomerateNumber(),
+                        false,    // hold
+                        0,        // not forUpdate
+                        TransactionController.MODE_TABLE,
+                        TransactionController.ISOLATION_SERIALIZABLE,
+                        (FormatableBitSet) null,
+                        null,    // startKeyValue
+                        0,        // not used with null start posn.
+                        null,    // qualifier
+                        null,    // stopKeyValue
+                        0);        // not used with null stop posn.
 
-				DataValueDescriptor[] baseRowIndexOrder = 
-                    new DataValueDescriptor[baseColumns];
-				DataValueDescriptor[] baseObjectArray = baseRow.getRowArray();
+                DataValueDescriptor[] baseRowIndexOrder =
+                        new DataValueDescriptor[baseColumns];
+                DataValueDescriptor[] baseObjectArray = baseRow.getRowArray();
 
-				for (int i = 0; i < baseColumns; i++)
-				{
-					baseRowIndexOrder[i] = baseObjectArray[baseColumnPositions[i] - 1];
-				}
+                for (int i = 0; i < baseColumns; i++) {
+                    baseRowIndexOrder[i] = baseObjectArray[baseColumnPositions[i] - 1];
+                }
 			
 				/* Get the index rows and count them */
-				for (indexRows = 0; scan.fetchNext(indexRow.getRowArray()); indexRows++)
-				{
+                for (indexRows = 0; scan.fetchNext(indexRow.getRowArray()); indexRows++) {
 					/*
 					** Get the base row using the RowLocation in the index row,
 					** which is in the last column.  
 					*/
-					RowLocation baseRL = (RowLocation) indexRow.getColumn(baseColumns + 1);
-					ExecRow row = new ValueRow();
-					row.setRowArray(baseObjectArray);
-					boolean base_row_exists = 
-		                baseCC.fetch(
-			                baseRL, row, indexColsBitSet);
+                    RowLocation baseRL = (RowLocation) indexRow.getColumn(baseColumns + 1);
+                    ExecRow row = new ValueRow();
+                    row.setRowArray(baseObjectArray);
+                    boolean base_row_exists =
+                            baseCC.fetch(
+                                    baseRL, row, indexColsBitSet);
 
 					/* Throw exception if fetch() returns false */
-					if (! base_row_exists)
-					{
-						String indexName = indexCD.getConglomerateName();
-						throw StandardException.newException(SQLState.LANG_INCONSISTENT_ROW_LOCATION, 
-									(schemaName + "." + tableName),
-									indexName, 
-									baseRL.toString(),
-									indexRow.toString());
-					}
+                    if (!base_row_exists) {
+                        String indexName = indexCD.getConglomerateName();
+                        throw StandardException.newException(SQLState.LANG_INCONSISTENT_ROW_LOCATION,
+                                (schemaName + "." + tableName),
+                                indexName,
+                                baseRL.toString(),
+                                indexRow.toString());
+                    }
 
 					/* Compare all the column values */
-					for (int column = 0; column < baseColumns; column++)
-					{
-						DataValueDescriptor indexColumn =
-							indexRow.getColumn(column + 1);
-						DataValueDescriptor baseColumn =
-							baseRowIndexOrder[column];
+                    for (int column = 0; column < baseColumns; column++) {
+                        DataValueDescriptor indexColumn =
+                                indexRow.getColumn(column + 1);
+                        DataValueDescriptor baseColumn =
+                                baseRowIndexOrder[column];
 
 						/*
 						** With this form of compare(), null is considered equal
 						** to null.
 						*/
-						if (indexColumn.compare(baseColumn) != 0)
-						{
-							ColumnDescriptor cd = 
-                                td.getColumnDescriptor(
-                                    baseColumnPositions[column]);
+                        if (indexColumn.compare(baseColumn) != 0) {
+                            ColumnDescriptor cd =
+                                    td.getColumnDescriptor(
+                                            baseColumnPositions[column]);
 
                             /*
                             System.out.println(
@@ -365,38 +354,37 @@ public class ConsistencyChecker
                                 ";indexRow.toString() = " + indexRow.toString());
                             */
 
-							throw StandardException.newException(
-                                SQLState.LANG_INDEX_COLUMN_NOT_EQUAL, 
-                                indexCD.getConglomerateName(),
-                                td.getSchemaName(),
-                                td.getName(),
-                                baseRL.toString(),
-                                cd.getColumnName(),
-                                indexColumn.toString(),
-                                baseColumn.toString(),
-                                indexRow.toString());
-						}
-					}
-				}
+                            throw StandardException.newException(
+                                    SQLState.LANG_INDEX_COLUMN_NOT_EQUAL,
+                                    indexCD.getConglomerateName(),
+                                    td.getSchemaName(),
+                                    td.getName(),
+                                    baseRL.toString(),
+                                    cd.getColumnName(),
+                                    indexColumn.toString(),
+                                    baseColumn.toString(),
+                                    indexRow.toString());
+                        }
+                    }
+                }
 
 				/* Clean up after the index scan */
-				scan.close();
-				scan = null;
+                scan.close();
+                scan = null;
 
 				/*
 				** The index is supposed to have the same number of rows as the
 				** base conglomerate.
 				*/
-				if (indexRows != baseRowCount)
-				{
-					throw StandardException.newException(SQLState.LANG_INDEX_ROW_COUNT_MISMATCH, 
-										indexCD.getConglomerateName(),
-										td.getSchemaName(),
-										td.getName(),
-										Long.toString(indexRows),
-										Long.toString(baseRowCount));
-				}
-			}
+                if (indexRows != baseRowCount) {
+                    throw StandardException.newException(SQLState.LANG_INDEX_ROW_COUNT_MISMATCH,
+                            indexCD.getConglomerateName(),
+                            td.getSchemaName(),
+                            td.getName(),
+                            Long.toString(indexRows),
+                            Long.toString(baseRowCount));
+                }
+            }
 			/* check that all constraints have backing index */
 			ConstraintDescriptorList constraintDescList = 
 				dd.getConstraintDescriptors(td);

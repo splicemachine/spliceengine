@@ -521,7 +521,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         for (colCtr = 0; colCtr < columns.length; colCtr++) {
             // Is there an equijoin condition on this column?
             if (predList.hasOptimizableEquijoin(innerTable, columns[colCtr])) {
-                hashKeyVector.add(new Integer(colCtr));
+                hashKeyVector.add(colCtr);
             }
         }
 
@@ -529,7 +529,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         if (!hashKeyVector.isEmpty()) {
             int[] keyCols = new int[hashKeyVector.size()];
             for (int index = 0; index < keyCols.length; index++) {
-                keyCols[index] = ((Integer) hashKeyVector.get(index)).intValue();
+                keyCols[index] = (Integer) hashKeyVector.get(index);
             }
             return keyCols;
         }

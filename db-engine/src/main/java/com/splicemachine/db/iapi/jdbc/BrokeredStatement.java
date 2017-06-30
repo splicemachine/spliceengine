@@ -501,7 +501,7 @@ public class BrokeredStatement implements EngineStatement {
 		if (cursorName != null)
 			newStatement.setCursorName(cursorName);
 		if (escapeProcessing != null)
-			newStatement.setEscapeProcessing(escapeProcessing.booleanValue());
+			newStatement.setEscapeProcessing(escapeProcessing);
 
 		newStatement.setFetchDirection(oldStatement.getFetchDirection());
 		newStatement.setFetchSize(oldStatement.getFetchSize());

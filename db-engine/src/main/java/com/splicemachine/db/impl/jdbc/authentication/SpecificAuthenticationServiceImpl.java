@@ -138,14 +138,10 @@ public class SpecificAuthenticationServiceImpl
 
 			return;
 
-		} catch (ClassNotFoundException cnfe) {
+		} catch (ClassNotFoundException | IllegalAccessException | InstantiationException cnfe) {
 			t = cnfe;
-		} catch (InstantiationException ie) {
-			t = ie;
-		} catch (IllegalAccessException iae) {
-			t = iae;
 		}
-        
+
         String  detail = t.getClass().getName() + ": " + t.getMessage();
 		throw StandardException.newException
             ( SQLState.AUTHENTICATION_SCHEME_ERROR, specificAuthenticationScheme, detail );

@@ -122,36 +122,33 @@ public class TablePrivilegeInfo extends BasicPrivilegeInfo
 
 		dd.startWriting(lcc);
 		// Add or remove the privileges to/from the SYS.SYSTABLEPERMS and SYS.SYSCOLPERMS tables
-		for( Iterator itr = grantees.iterator(); itr.hasNext();)
-		{
-			// Keep track to see if any privileges are revoked by a revoke 
-			// statement. If a privilege is not revoked, we need to raise a 
-			// warning. For table privileges, we do not check if privilege for 
-			// a specific action has been revoked or not. Also, we do not check
-			// privileges for specific columns. If at least one privilege has 
-			// been revoked, we do not raise a warning. This has to be refined 
-			// further to check for specific actions/columns and raise warning 
-			// if any privilege has not been revoked.
-			boolean privileges_revoked = false;
-						
-			String grantee = (String) itr.next();
-			if( tablePermsDesc != null)
-			{
-				if (dd.addRemovePermissionsDescriptor( grant, tablePermsDesc, grantee, tc))
-				{
-					privileges_revoked = true;
-					dd.getDependencyManager().invalidateFor
-						(tablePermsDesc,
-						 DependencyManager.REVOKE_PRIVILEGE, lcc);
+        for (Object grantee1 : grantees) {
+            // Keep track to see if any privileges are revoked by a revoke
+            // statement. If a privilege is not revoked, we need to raise a
+            // warning. For table privileges, we do not check if privilege for
+            // a specific action has been revoked or not. Also, we do not check
+            // privileges for specific columns. If at least one privilege has
+            // been revoked, we do not raise a warning. This has to be refined
+            // further to check for specific actions/columns and raise warning
+            // if any privilege has not been revoked.
+            boolean privileges_revoked = false;
 
-					// When revoking a privilege from a Table we need to
-					// invalidate all GPSs refering to it. But GPSs aren't
-					// Dependents of TablePermsDescr, but of the
-					// TableDescriptor itself, so we must send
-					// INTERNAL_RECOMPILE_REQUEST to the TableDescriptor's
-					// Dependents.
-					dd.getDependencyManager().invalidateFor
-						(td, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
+            String grantee = (String) grantee1;
+            if (tablePermsDesc != null) {
+                if (dd.addRemovePermissionsDescriptor(grant, tablePermsDesc, grantee, tc)) {
+                    privileges_revoked = true;
+                    dd.getDependencyManager().invalidateFor
+                            (tablePermsDesc,
+                                    DependencyManager.REVOKE_PRIVILEGE, lcc);
+
+                    // When revoking a privilege from a Table we need to
+                    // invalidate all GPSs refering to it. But GPSs aren't
+                    // Dependents of TablePermsDescr, but of the
+                    // TableDescriptor itself, so we must send
+                    // INTERNAL_RECOMPILE_REQUEST to the TableDescriptor's
+                    // Dependents.
+                    dd.getDependencyManager().invalidateFor
+                            (td, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
                     TablePermsDescriptor tablePermsDescriptor =
                             new TablePermsDescriptor(dd, tablePermsDesc.getGrantee(),
                                     tablePermsDesc.getGrantor(), tablePermsDesc.getTableUUID(),
@@ -160,38 +157,35 @@ public class TablePrivilegeInfo extends BasicPrivilegeInfo
                                     tablePermsDesc.getReferencesPriv(), tablePermsDesc.getTriggerPriv());
                     tablePermsDescriptor.setUUID(tablePermsDesc.getUUID());
                     result.add(tablePermsDescriptor);
-				}
-			}
-			for( int i = 0; i < columnBitSets.length; i++)
-			{
-				if( colPermsDescs[i] != null)
-				{
-					if (dd.addRemovePermissionsDescriptor( grant, colPermsDescs[i], grantee, tc)) 
-					{
-						privileges_revoked = true;
-						dd.getDependencyManager().invalidateFor(colPermsDescs[i], DependencyManager.REVOKE_PRIVILEGE, lcc);
-						// When revoking a privilege from a Table we need to
-						// invalidate all GPSs refering to it. But GPSs aren't
-						// Dependents of colPermsDescs[i], but of the
-						// TableDescriptor itself, so we must send
-						// INTERNAL_RECOMPILE_REQUEST to the TableDescriptor's
-						// Dependents.
-						dd.getDependencyManager().invalidateFor
-							(td,
-							 DependencyManager.INTERNAL_RECOMPILE_REQUEST,
-							 lcc);
+                }
+            }
+            for (int i = 0; i < columnBitSets.length; i++) {
+                if (colPermsDescs[i] != null) {
+                    if (dd.addRemovePermissionsDescriptor(grant, colPermsDescs[i], grantee, tc)) {
+                        privileges_revoked = true;
+                        dd.getDependencyManager().invalidateFor(colPermsDescs[i], DependencyManager.REVOKE_PRIVILEGE, lcc);
+                        // When revoking a privilege from a Table we need to
+                        // invalidate all GPSs refering to it. But GPSs aren't
+                        // Dependents of colPermsDescs[i], but of the
+                        // TableDescriptor itself, so we must send
+                        // INTERNAL_RECOMPILE_REQUEST to the TableDescriptor's
+                        // Dependents.
+                        dd.getDependencyManager().invalidateFor
+                                (td,
+                                        DependencyManager.INTERNAL_RECOMPILE_REQUEST,
+                                        lcc);
                         ColPermsDescriptor colPermsDescriptor =
                                 new ColPermsDescriptor(dd, grantee, colPermsDescs[i].getGrantor(),
                                         colPermsDescs[i].getTableUUID(), colPermsDescs[i].getType(),
                                         colPermsDescs[i].getColumns());
                         colPermsDescriptor.setUUID(colPermsDescs[i].getUUID());
                         result.add(colPermsDescriptor);
-					}
-				}
-			}
-			
-			addWarningIfPrivilegeNotRevoked(activation, grant, privileges_revoked, grantee);
-		}
+                    }
+                }
+            }
+
+            addWarningIfPrivilegeNotRevoked(activation, grant, privileges_revoked, grantee);
+        }
         return result;
 	} // end of executeConstantAction
 

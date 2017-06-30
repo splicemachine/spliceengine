@@ -146,7 +146,6 @@ public final class UCode_CharStream implements CharStream
         }
         else
            maxNextCharInd += i;
-        return;
      }
      catch(java.io.IOException e) {
         if (bufpos != 0)

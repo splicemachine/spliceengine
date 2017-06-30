@@ -89,45 +89,42 @@ public class SchemaPrivilegeInfo extends BasicPrivilegeInfo
 
 
 		dd.startWriting(lcc);
-		for( Iterator itr = grantees.iterator(); itr.hasNext();)
-		{
-			// Keep track to see if any privileges are revoked by a revoke
-			// statement. If a privilege is not revoked, we need to raise a
-			// warning.
-			boolean privileges_revoked = false;
+        for (Object grantee1 : grantees) {
+            // Keep track to see if any privileges are revoked by a revoke
+            // statement. If a privilege is not revoked, we need to raise a
+            // warning.
+            boolean privileges_revoked = false;
 
-			String grantee = (String) itr.next();
-			if( schemaPermsDesc != null)
-			{
-				if (dd.addRemovePermissionsDescriptor( grant, schemaPermsDesc, grantee, tc))
-				{
-					privileges_revoked = true;
-					dd.getDependencyManager().invalidateFor
-							(schemaPermsDesc,
-									DependencyManager.REVOKE_PRIVILEGE, lcc);
+            String grantee = (String) grantee1;
+            if (schemaPermsDesc != null) {
+                if (dd.addRemovePermissionsDescriptor(grant, schemaPermsDesc, grantee, tc)) {
+                    privileges_revoked = true;
+                    dd.getDependencyManager().invalidateFor
+                            (schemaPermsDesc,
+                                    DependencyManager.REVOKE_PRIVILEGE, lcc);
 
-					// When revoking a privilege from a Table we need to
-					// invalidate all GPSs refering to it. But GPSs aren't
-					// Dependents of SchemaPermsDescr, but of the
-					// SchemaDescriptor itself, so we must send
-					// INTERNAL_RECOMPILE_REQUEST to the SchemaDescriptor's
-					// Dependents.
-					dd.getDependencyManager().invalidateFor
-							(sd, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
-					SchemaPermsDescriptor schemaPermsDescriptor =
-							new SchemaPermsDescriptor(dd, schemaPermsDesc.getGrantee(),
-									schemaPermsDesc.getGrantor(), schemaPermsDesc.getSchemaUUID(),
-									schemaPermsDesc.getSelectPriv(), schemaPermsDesc.getDeletePriv(),
-									schemaPermsDesc.getInsertPriv(), schemaPermsDesc.getUpdatePriv(),
-									schemaPermsDesc.getReferencesPriv(), schemaPermsDesc.getTriggerPriv());
-					schemaPermsDescriptor.setUUID(schemaPermsDesc.getUUID());
-					result.add(schemaPermsDescriptor);
-				}
-			}
+                    // When revoking a privilege from a Table we need to
+                    // invalidate all GPSs refering to it. But GPSs aren't
+                    // Dependents of SchemaPermsDescr, but of the
+                    // SchemaDescriptor itself, so we must send
+                    // INTERNAL_RECOMPILE_REQUEST to the SchemaDescriptor's
+                    // Dependents.
+                    dd.getDependencyManager().invalidateFor
+                            (sd, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
+                    SchemaPermsDescriptor schemaPermsDescriptor =
+                            new SchemaPermsDescriptor(dd, schemaPermsDesc.getGrantee(),
+                                    schemaPermsDesc.getGrantor(), schemaPermsDesc.getSchemaUUID(),
+                                    schemaPermsDesc.getSelectPriv(), schemaPermsDesc.getDeletePriv(),
+                                    schemaPermsDesc.getInsertPriv(), schemaPermsDesc.getUpdatePriv(),
+                                    schemaPermsDesc.getReferencesPriv(), schemaPermsDesc.getTriggerPriv());
+                    schemaPermsDescriptor.setUUID(schemaPermsDesc.getUUID());
+                    result.add(schemaPermsDescriptor);
+                }
+            }
 
 
-			addWarningIfPrivilegeNotRevoked(activation, grant, privileges_revoked, grantee);
-		}
+            addWarningIfPrivilegeNotRevoked(activation, grant, privileges_revoked, grantee);
+        }
 		return result;
 	}
 

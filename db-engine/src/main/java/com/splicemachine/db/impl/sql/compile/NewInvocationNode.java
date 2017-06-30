@@ -89,7 +89,7 @@ public class NewInvocationNode extends MethodCallNode
 
 		this.javaClassName = (String) javaClassName;
 		this.delimitedIdentifier =
-				 ((Boolean) delimitedIdentifier).booleanValue();
+                (Boolean) delimitedIdentifier;
 	}
 
 	/* This version of the "init" method is used for mapping a table name
@@ -195,7 +195,7 @@ public class NewInvocationNode extends MethodCallNode
 		}
 
 		this.delimitedIdentifier =
-				 ((Boolean) delimitedIdentifier).booleanValue();
+                (Boolean) delimitedIdentifier;
 	}
 
 	/**
@@ -271,21 +271,20 @@ public class NewInvocationNode extends MethodCallNode
 		if (method == null)
 		{
 			/* Put the parameter type names into a single string */
-			String	parmTypes = "";
+			StringBuilder parmTypes = new StringBuilder();
 			for (int i = 0; i < parmTypeNames.length; i++)
 			{
 				if (i != 0)
-					parmTypes += ", ";
-				parmTypes += (!parmTypeNames[i].isEmpty() ?
-								parmTypeNames[i] :
-								MessageService.getTextMessage(
-									SQLState.LANG_UNTYPED)
-									);
+					parmTypes.append(", ");
+				parmTypes.append(!parmTypeNames[i].isEmpty() ?
+                        parmTypeNames[i] :
+                        MessageService.getTextMessage(
+                                SQLState.LANG_UNTYPED));
 			}
 
 			throw StandardException.newException(SQLState.LANG_NO_CONSTRUCTOR_FOUND, 
 													javaClassName,
-												 	parmTypes);
+                    parmTypes.toString());
 		}
 
 		methodParameterTypes = classInspector.getParameterTypes(method);

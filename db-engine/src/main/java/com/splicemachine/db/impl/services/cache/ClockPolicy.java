@@ -141,7 +141,7 @@ final class ClockPolicy implements ReplacementPolicy {
     ClockPolicy(ConcurrentCache cacheManager, int initialSize, int maxSize) {
         this.cacheManager = cacheManager;
         this.maxSize = maxSize;
-        clock = new ArrayList<Holder>(initialSize);
+        clock = new ArrayList<>(initialSize);
     }
 
     /**

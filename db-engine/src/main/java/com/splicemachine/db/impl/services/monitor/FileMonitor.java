@@ -207,11 +207,11 @@ public final class FileMonitor extends BaseMonitor
 	final boolean initialize(final boolean lite)
 	{
         // SECURITY PERMISSION - OP2, OP2a, OP2b
-        return ((Boolean) AccessController.doPrivileged(new PrivilegedAction() {
+        return (Boolean) AccessController.doPrivileged(new PrivilegedAction() {
             public Object run() {
-                return Boolean.valueOf(PBinitialize(lite));
+                return PBinitialize(lite);
             }
-        })).booleanValue();
+        });
 	}
 
 	final Properties getDefaultModuleProperties() {

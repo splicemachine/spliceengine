@@ -215,13 +215,13 @@ public class SystemPrivilegesPermissionTest {
                 validNames.length * validActions.length];
 
         int c = 0;
-        for (int tn = 0; tn < validNames.length; tn++) {
-            for (int a = 0; a < validActions.length; a++) {
+        for (String validName1 : validNames) {
+            for (String validAction : validActions) {
                 Permission p = new SystemPermission(
-                        validNames[tn], validActions[a]);
+                        validName1, validAction);
 
-                assertEquals(validNames[tn], p.getName());
-                assertEquals(validActions[a], p.getActions());
+                assertEquals(validName1, p.getName());
+                assertEquals(validAction, p.getActions());
 
                 // test SystemPermission.equals()
                 assertFalse(p.equals(null));
@@ -236,15 +236,15 @@ public class SystemPrivilegesPermissionTest {
         checkDistinctPermissions(all);
 
         // Check two actions
-        for (int n = 0; n < validNames.length; n++) {
+        for (String validName : validNames) {
             for (int a = 0; a < validActions.length; a++) {
                 Permission base = new SystemPermission(
-                        validNames[n], validActions[a]);
+                        validName, validActions[a]);
 
                 // Two actions
                 for (int oa = 0; oa < validActions.length; oa++) {
                     Permission p = new SystemPermission(
-                            validNames[n],
+                            validName,
                             validActions[a] + "," + validActions[oa]);
 
                     if (oa == a) {
@@ -481,8 +481,7 @@ public class SystemPrivilegesPermissionTest {
                 = new SystemPrincipal("unAuthorizedSystemUser");
         final SystemPrincipal superUser
                 = new SystemPrincipal("superUser");
-        for (int i = 0; i < singleLocPaths.length; i++) {
-            final int j = singleLocPaths[i];
+        for (final int j : singleLocPaths) {
             execute(unAuthorizedUser,
                     new CreateDatabaseAction(relDirPathPerms[j]), false);
             execute(authorizedUser,

@@ -176,7 +176,7 @@ public final class SQLSmallint
 		if (isNull())
 			return null;
 		else
-			return new Integer(value);
+			return (int) value;
 	}
 
 	// this is for DataType's error generator
@@ -360,7 +360,7 @@ public final class SQLSmallint
 		else
 		{
 		    try {
-		        value = Short.valueOf(theValue.trim()).shortValue();
+		        value = Short.valueOf(theValue.trim());
 			} catch (NumberFormatException nfe) {
 			    throw invalidFormat();
 			}

@@ -173,8 +173,8 @@ public class CastNode extends ValueNode
 			throws StandardException
 	{
 		this.castOperand = (ValueNode) castOperand;
-		int charLen = ((Integer) charLength).intValue();
-		targetCharType = ((Integer) charType).intValue();
+		int charLen = (Integer) charLength;
+		targetCharType = (Integer) charType;
 		if (charLen < 0)	// unknown, figure out later
 			return;
 		setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(targetCharType, charLen));
@@ -682,13 +682,13 @@ public class CastNode extends ValueNode
 				}
 				return (ValueNode) getNodeFactory().getNode(
 						C_NodeTypes.FLOAT_CONSTANT_NODE,
-						new Float((float) longValue),
+                        (float) longValue,
 						getContextManager());
 
 			case Types.DOUBLE:
 				return (ValueNode) getNodeFactory().getNode(
 						C_NodeTypes.DOUBLE_CONSTANT_NODE,
-						new Double((double) longValue),
+                        (double) longValue,
 						getContextManager());
 		}
 
@@ -734,7 +734,7 @@ public class CastNode extends ValueNode
 
 			case Types.TINYINT:
 				nodeType = C_NodeTypes.TINYINT_CONSTANT_NODE;
-				constantObject = new Byte(constantValue.getByte());
+				constantObject = constantValue.getByte();
 				break;
 
 			case Types.SMALLINT:
@@ -754,13 +754,13 @@ public class CastNode extends ValueNode
 
 			case Types.REAL:
 				nodeType = C_NodeTypes.FLOAT_CONSTANT_NODE;
-				constantObject = new Float(NumberDataType.normalizeREAL(constantValue.getDouble()));
+				constantObject = NumberDataType.normalizeREAL(constantValue.getDouble());
 				break;
 
 			case Types.DOUBLE:
 				// no need to normalize here because no constant could be out of range for a double
 				nodeType = C_NodeTypes.DOUBLE_CONSTANT_NODE;
-				constantObject = new Double(constantValue.getDouble());
+				constantObject = constantValue.getDouble();
 				break;
 		}
 

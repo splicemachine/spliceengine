@@ -53,7 +53,7 @@ final class EmbedXAConnection40 extends EmbedXAConnection
      */
     private final CopyOnWriteArrayList<StatementEventListener>
             statementEventListeners =
-                    new CopyOnWriteArrayList<StatementEventListener>();
+            new CopyOnWriteArrayList<>();
     
     /**
      * Creates EmbedXAConnection40.

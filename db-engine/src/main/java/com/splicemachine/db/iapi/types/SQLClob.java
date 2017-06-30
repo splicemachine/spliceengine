@@ -898,9 +898,7 @@ public class SQLClob
             ((Resetable)in).resetStream();
             InputStreamUtil.skipFully(in, offset);
         } catch (StandardException se) {
-            IOException ioe = new IOException(se.getMessage());
-            ioe.initCause(se);
-            throw ioe;
+            throw new IOException(se.getMessage(), se);
         }
     }
 

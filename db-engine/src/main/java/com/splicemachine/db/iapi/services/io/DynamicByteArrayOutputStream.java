@@ -188,8 +188,7 @@ public class DynamicByteArrayOutputStream extends OutputStream {
 		if (position > used)
 			used = position;
 
-		return ;
-	}
+    }
 
 	/**
 		Set the begin position of the stream pointer.

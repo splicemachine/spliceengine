@@ -94,7 +94,7 @@ public class CreateIndexNode extends DDLStatementNode
 		throws StandardException
 	{
 		initAndCheck(indexName);
-		this.unique = ((Boolean) unique).booleanValue();
+		this.unique = (Boolean) unique;
 		this.indexType = (String) indexType;
 		this.indexName = (TableName) indexName;
 		this.tableName = (TableName) tableName;
@@ -263,12 +263,11 @@ public class CreateIndexNode extends DDLStatementNode
 		// Ideally, we would want to have atleast 2 or 3 keys fit in one page
 		// With fix for beetle 5728, indexes on long types is not allowed
 		// so we do not have to consider key columns of long types
-		for (int i = 0; i < columnCount; i++)
-		{
-			ColumnDescriptor columnDescriptor = td.getColumnDescriptor(columnNames[i]);
-			DataTypeDescriptor dts = columnDescriptor.getType();
-			approxLength += dts.getTypeId().getApproximateLengthInBytes(dts);
-		}
+        for (String columnName : columnNames) {
+            ColumnDescriptor columnDescriptor = td.getColumnDescriptor(columnName);
+            DataTypeDescriptor dts = columnDescriptor.getType();
+            approxLength += dts.getTypeId().getApproximateLengthInBytes(dts);
+        }
 
 
         if (approxLength > Property.IDX_PAGE_SIZE_BUMP_THRESHOLD)

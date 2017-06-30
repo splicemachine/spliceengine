@@ -356,11 +356,11 @@ public abstract class StatementNode extends QueryTreeNode{
     public void bindAndOptimizeRealTimeViews() throws StandardException {
         if (this.withParameterList != null) {
             Map<String,TableDescriptor> withMap = new HashMap<>(withParameterList.size());
-            for (int i = 0; i<withParameterList.size(); i++) {
-                CreateViewNode createViewNode = (CreateViewNode) withParameterList.get(i);
+            for (Object aWithParameterList : withParameterList) {
+                CreateViewNode createViewNode = (CreateViewNode) aWithParameterList;
                 createViewNode.bindStatement();
                 createViewNode.optimizeStatement();
-                withMap.put(createViewNode.getRelativeName(),createViewNode.createDynamicView());
+                withMap.put(createViewNode.getRelativeName(), createViewNode.createDynamicView());
                 this.getLanguageConnectionContext().setWithStack(withMap);
             }
         }

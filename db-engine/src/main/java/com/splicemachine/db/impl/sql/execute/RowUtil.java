@@ -383,14 +383,12 @@ public class RowUtil
 		if (colMap != null)
 		{
 			int lastCol = -1;
-			for (int i = 0; i < colMap.length; i++)
-			{
-				if (lastCol > colMap[i])
-				{	
-					return false;
-				}
-				lastCol = colMap[i];
-			}
+            for (int aColMap : colMap) {
+                if (lastCol > aColMap) {
+                    return false;
+                }
+                lastCol = aColMap;
+            }
 		}
 		return true;
 	}	

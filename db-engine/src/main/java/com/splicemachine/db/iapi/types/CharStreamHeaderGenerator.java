@@ -78,7 +78,7 @@ public final class CharStreamHeaderGenerator
     public int generateInto(byte[] buffer, int offset, long byteLength) {
         if (byteLength > 0 && byteLength <= MAX_ENCODABLE_LENGTH) {
             buffer[offset] = (byte)(byteLength >>> 8);
-            buffer[offset +1] = (byte)(byteLength >>> 0);
+            buffer[offset +1] = (byte)byteLength;
         } else {
             // Byte length is zero, unknown or too large to encode.
             buffer[offset] = 0x00;

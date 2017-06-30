@@ -564,18 +564,17 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 		//Verify that all jar files on the database classpath are in the data dictionary.
 		if (dbcp != null)
 		{
-			for (int ix=0;ix<dbcp.length;ix++)
-			{
-				SchemaDescriptor sd = dd.getSchemaDescriptor(dbcp[ix][IdUtil.DBCP_SCHEMA_NAME], null, false);
+            for (String[] aDbcp : dbcp) {
+                SchemaDescriptor sd = dd.getSchemaDescriptor(aDbcp[IdUtil.DBCP_SCHEMA_NAME], null, false);
 
-                FileInfoDescriptor fid = null;	
-				if (sd != null) 
-					fid = dd.getFileInfoDescriptor(sd,dbcp[ix][IdUtil.DBCP_SQL_JAR_NAME]);			
+                FileInfoDescriptor fid = null;
+                if (sd != null)
+                    fid = dd.getFileInfoDescriptor(sd, aDbcp[IdUtil.DBCP_SQL_JAR_NAME]);
 
-				if (fid == null){
-					throw StandardException.newException(SQLState.LANG_DB_CLASS_PATH_HAS_MISSING_JAR						, IdUtil.mkQualifiedName(dbcp[ix]));
-				}
-			}
+                if (fid == null) {
+                    throw StandardException.newException(SQLState.LANG_DB_CLASS_PATH_HAS_MISSING_JAR, IdUtil.mkQualifiedName(aDbcp));
+                }
+            }
 		}
 
 		return true;
@@ -790,10 +789,10 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 			//We don't concern ourselves with 3 part names since they may
 			//refer to a jar file in another database and may not occur in
 			//a database classpath that is stored in the propert congomerate.
-			for (int ix=0;ix<dbcp.length;ix++)
-				if (dbcp.length == 2 &&
-						dbcp[ix][0].equals(util.getSchemaName()) && dbcp[ix][1].equals(util.getSqlName()))
-					found = true;
+            for (String[] aDbcp : dbcp)
+                if (dbcp.length == 2 &&
+                        aDbcp[0].equals(util.getSchemaName()) && aDbcp[1].equals(util.getSqlName()))
+                    found = true;
 			if (found)
 				throw StandardException.newException(SQLState.LANG_CANT_DROP_JAR_ON_DB_CLASS_PATH_DURING_EXECUTION,
 						IdUtil.mkQualifiedName(util.getSchemaName(),util.getSqlName()),

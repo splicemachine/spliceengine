@@ -185,7 +185,7 @@ public class BinaryOperatorNode extends OperatorNode
 	{
 		this.leftOperand = (ValueNode)leftOperand;
 		this.rightOperand = (ValueNode)rightOperand;
-		this.operatorType = ((Integer)opType).intValue();
+		this.operatorType = (Integer) opType;
 		this.operator = BinaryOperators[this.operatorType];
 		this.methodName = BinaryMethodNames[this.operatorType];
 		this.leftInterfaceType = BinaryArgTypes[this.operatorType][0];

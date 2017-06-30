@@ -380,14 +380,10 @@ public final class SchemaDescriptor extends TupleDescriptor implements UniqueTup
 	 *
 	 * @return true/false
 	 */
-	public boolean isSchemaWithGrantableRoutines()
-	{
-		if (!isSystem)
-			return true;
+	public boolean isSchemaWithGrantableRoutines() {
+        return !isSystem || name.equals(STD_SQLJ_SCHEMA_NAME) || name.equals(STD_SYSTEM_UTIL_SCHEMA_NAME);
 
-		return name.equals(STD_SQLJ_SCHEMA_NAME) || name.equals(STD_SYSTEM_UTIL_SCHEMA_NAME);
-
-	}
+    }
 
 	public boolean isSYSIBM()
 	{

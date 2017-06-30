@@ -63,31 +63,31 @@ public class PropertyValidation implements PropertyFactory
  		if (notifyOnSet != null) {
 			synchronized (this) {
 
-				for (int i = 0; i < notifyOnSet.size() ; i++) {
-					PropertySetCallback psc = (PropertySetCallback) notifyOnSet.get(i);
-					if (!psc.validate(key, value, d))
-						continue;
+                for (Object aNotifyOnSet : notifyOnSet) {
+                    PropertySetCallback psc = (PropertySetCallback) aNotifyOnSet;
+                    if (!psc.validate(key, value, d))
+                        continue;
 
-					if (mappedValue == null)
- 						mappedValue = psc.map(key, value, d);
+                    if (mappedValue == null)
+                        mappedValue = psc.map(key, value, d);
 
-					// if this property should not be used then
-					// don't call apply. This depends on where
-					// the old value comes from
-					// SET_IN_JVM - property will not be used
-					// SET_IN_DATABASE - propery will be used
-					// SET_IN_APPLICATION - will become SET_IN_DATABASE
-					// NOT_SET - will become SET_IN_DATABASE
+                    // if this property should not be used then
+                    // don't call apply. This depends on where
+                    // the old value comes from
+                    // SET_IN_JVM - property will not be used
+                    // SET_IN_DATABASE - propery will be used
+                    // SET_IN_APPLICATION - will become SET_IN_DATABASE
+                    // NOT_SET - will become SET_IN_DATABASE
 
-					if (!dbOnlyProperty && key.startsWith("derby.")) {
-						if (PropertyUtil.whereSet(key, d) == PropertyUtil.SET_IN_JVM)
-							continue;
-					}
+                    if (!dbOnlyProperty && key.startsWith("derby.")) {
+                        if (PropertyUtil.whereSet(key, d) == PropertyUtil.SET_IN_JVM)
+                            continue;
+                    }
 
-					Serviceable s;
-					if ((s = psc.apply(key,value,d,tc)) != null)
-						((TransactionManager) tc).addPostCommitWork(s);
-				}
+                    Serviceable s;
+                    if ((s = psc.apply(key, value, d, tc)) != null)
+                        ((TransactionManager) tc).addPostCommitWork(s);
+                }
 			}
 		}
 		return mappedValue;
@@ -132,10 +132,10 @@ public class PropertyValidation implements PropertyFactory
         }
 
  		if (notifyOnSet != null) {
-			for (int i = 0; i < notifyOnSet.size(); i++) {
-				PropertySetCallback psc = (PropertySetCallback) notifyOnSet.get(i);
-				psc.validate(key, value, set);
-			}
+            for (Object aNotifyOnSet : notifyOnSet) {
+                PropertySetCallback psc = (PropertySetCallback) aNotifyOnSet;
+                psc.validate(key, value, set);
+            }
 		}
 	}
 

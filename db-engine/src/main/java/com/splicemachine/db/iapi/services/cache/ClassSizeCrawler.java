@@ -259,7 +259,7 @@ public class ClassSizeCrawler {
                 } catch (ClassNotFoundException cnfe) {
                     System.err.println("Could not find class " + targetClassName);
                     System.exit(1);
-                } catch (Throwable t) {
+                } catch (Throwable ignored) {
                 }
                 className.setLength(classNameLength);
             } else {

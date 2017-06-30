@@ -91,12 +91,12 @@ public class ConstraintDefinitionNode extends TableElementNode
 		{
 			this.name = this.constraintName.getTableName();
 		}
-		this.constraintType = ((Integer) constraintType).intValue();
+		this.constraintType = (Integer) constraintType;
 		this.properties = (Properties) properties;
 		this.columnList = (ResultColumnList) rcl;
 		this.checkCondition = (ValueNode) checkCondition;
 		this.constraintText = (String) constraintText;
-		this.behavior = ((Integer) behavior).intValue();
+		this.behavior = (Integer) behavior;
 	}
 
 	public void init(
@@ -129,7 +129,7 @@ public class ConstraintDefinitionNode extends TableElementNode
                     Object verifyType)
 	{
         init( constraintName, constraintType, rcl, properties, checkCondition, constraintText, behavior);
-        this.verifyType = ((Integer) verifyType).intValue();
+        this.verifyType = (Integer) verifyType;
     }
     
 	/**

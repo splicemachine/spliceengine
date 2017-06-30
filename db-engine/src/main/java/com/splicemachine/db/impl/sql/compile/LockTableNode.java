@@ -64,7 +64,7 @@ public class LockTableNode extends MiscellaneousStatementNode
 	public void init(Object tableName, Object exclusiveMode)
 	{
 		this.tableName = (TableName) tableName;
-		this.exclusiveMode = ((Boolean) exclusiveMode).booleanValue();
+		this.exclusiveMode = (Boolean) exclusiveMode;
 	}
 
 	/**

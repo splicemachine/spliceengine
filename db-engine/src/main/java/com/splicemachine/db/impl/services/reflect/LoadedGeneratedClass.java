@@ -81,17 +81,11 @@ public abstract class LoadedGeneratedClass
 			ni.postConstructor();
 			return ni;
 
-		} catch (InstantiationException ie) {
+		} catch (InstantiationException | LinkageError | java.lang.reflect.InvocationTargetException | IllegalAccessException ie) {
 			t = ie;
-		} catch (IllegalAccessException iae) {
-			t = iae;
-		} catch (java.lang.reflect.InvocationTargetException ite) {
-			t = ite;
-		} catch (LinkageError le) {
-			t = le;
 		}
 
-		throw StandardException.newException(SQLState.GENERATED_CLASS_INSTANCE_ERROR, t, getName());
+        throw StandardException.newException(SQLState.GENERATED_CLASS_INSTANCE_ERROR, t, getName());
 	}
 
 	public final int getClassLoaderVersion() {

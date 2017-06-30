@@ -118,7 +118,7 @@ public final class JMXManagementService implements ManagementService, ModuleCont
     public synchronized void boot(boolean create, Properties properties)
             throws StandardException {
         
-        registeredMbeans = new HashMap<ObjectName,StandardMBean>();
+        registeredMbeans = new HashMap<>();
         
         systemIdentifier =
             Monitor.getMonitor().getUUIDFactory().createUUID().toString();
@@ -156,7 +156,7 @@ public final class JMXManagementService implements ManagementService, ModuleCont
         // items from registeredMbeans and thus invalidate any iterator
         // on it directly.
         for (ObjectName mbeanName :
-                new HashSet<ObjectName>(registeredMbeans.keySet()))
+                new HashSet<>(registeredMbeans.keySet()))
             unregisterMBean(mbeanName);
         
         mbeanServer = null;
@@ -333,16 +333,12 @@ public final class JMXManagementService implements ManagementService, ModuleCont
 
                     });
 
-        } catch (PrivilegedActionException pae) {
+        } catch (PrivilegedActionException | SecurityException pae) {
             // TODO - this is called on shutdown where
             // we don't really care about errors.
             // JMException jme = (JMException) pae.getException();
             //if (!(jme instanceof InstanceNotFoundException))
                 // throw StandardException.plainWrapException(jme);
-        } catch (SecurityException se) {
-            // Can't unregister the MBean we registered due to permission
-            // problems, oh-well just leave it there. We are fail-safe
-            // if we attempt to re-register it.
         }
     }
 

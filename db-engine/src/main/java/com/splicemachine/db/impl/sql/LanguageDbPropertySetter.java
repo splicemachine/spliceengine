@@ -75,7 +75,7 @@ public class LanguageDbPropertySetter implements PropertySetCallback
 			LanguageConnectionContext lcc = (LanguageConnectionContext)
 					ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
 
-			if (lcc.usesSqlAuthorization() && !Boolean.valueOf((String)value).booleanValue())
+			if (lcc.usesSqlAuthorization() && !Boolean.valueOf((String) value))
 				throw StandardException.newException(SQLState.PROPERTY_UNSUPPORTED_CHANGE,
 					key, value);
 		}

@@ -105,7 +105,7 @@ public class JarUtil
 		}
 		finally {
 			try {if (is != null) is.close();}
-			catch (IOException ioe) {}
+			catch (IOException ignored) {}
 		}
 	}
 
@@ -184,7 +184,7 @@ public class JarUtil
 		}
 		finally {
 			try {if (is != null) is.close();}
-			catch (IOException ioe) {}
+			catch (IOException ignored) {}
 		}
 	}
 
@@ -241,8 +241,7 @@ public class JarUtil
                 public Object run() throws IOException, URISyntaxException {
                     Configuration conf = new Configuration();
                     FileSystem fs = FileSystem.get(new URI(externalPath), conf);
-                    DataInputStream dis = fs.open(new Path(externalPath));
-                    return dis;
+                    return fs.open(new Path(externalPath));
                 }
             });
         } catch (PrivilegedActionException e) {

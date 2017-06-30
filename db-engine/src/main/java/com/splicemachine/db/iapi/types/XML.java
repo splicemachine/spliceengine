@@ -476,7 +476,6 @@ public class XML
         }
 
         ((DataValueDescriptor) this).setValue(source);
-        return;
 
     }
 
@@ -1045,7 +1044,6 @@ public class XML
                 SQLState.LANG_MISSING_XML_CLASSES, xmlReqCheck);
         }
 
-        return;
     }
 
     /**

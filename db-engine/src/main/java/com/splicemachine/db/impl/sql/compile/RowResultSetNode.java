@@ -874,12 +874,11 @@ public class RowResultSetNode extends FromTable {
 
     @Override
     public String printExplainInformation(String attrDelim, int order) throws StandardException {
-		String sb = spaceToLevel() +
-				"Values" + "(" +
-				"n=" + order +
-				attrDelim + getFinalCostEstimate().prettyProcessingString(attrDelim) +
-				")";
-		return sb;
+        return spaceToLevel() +
+                "Values" + "(" +
+                "n=" + order +
+                attrDelim + getFinalCostEstimate().prettyProcessingString(attrDelim) +
+                ")";
     }
     @Override
     public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
