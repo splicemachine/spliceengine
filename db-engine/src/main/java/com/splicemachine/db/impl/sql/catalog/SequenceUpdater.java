@@ -235,7 +235,7 @@ public abstract class SequenceUpdater implements Cacheable
             if (lcc != null)
             {
                 Database db = lcc.getDatabase();
-                boolean isactive = (db != null ? db.isActive() : false);
+                boolean isactive = (db != null && db.isActive());
                 lcc.getContextManager().cleanupOnError(se, isactive);
             }
         }
@@ -348,13 +348,13 @@ public abstract class SequenceUpdater implements Cacheable
                 return;
                 
             case SequenceGenerator.RET_MARK_EXHAUSTED:
-                updateCurrentValueOnDisk( new Long( currentValue ), null );
+                updateCurrentValueOnDisk(currentValue, null );
                 returnValue.setValue( currentValue );
                 return;
                 
             case SequenceGenerator.RET_ALLOCATE_NEW_VALUES:
                 
-                if ( updateCurrentValueOnDisk( new Long( currentValue ), new Long( lastAllocatedValue ) ) )
+                if ( updateCurrentValueOnDisk(currentValue, lastAllocatedValue) )
                 {
                     _sequenceGenerator.allocateNewRange( currentValue, numberOfValuesAllocated );
                 }
@@ -482,11 +482,7 @@ public abstract class SequenceUpdater implements Cacheable
             
             return (SequencePreallocator) Class.forName( className ).newInstance();
         }
-        catch (ClassNotFoundException e) { throw missingAllocator( propertyName, className, e ); }
-        catch (ClassCastException e) { throw missingAllocator( propertyName, className, e ); }
-        catch (InstantiationException e) { throw missingAllocator( propertyName, className, e ); }
-        catch (IllegalAccessException e) { throw missingAllocator( propertyName, className, e ); }
-        catch (NumberFormatException e) { throw missingAllocator( propertyName, className, e ); }
+        catch (ClassNotFoundException | NumberFormatException | IllegalAccessException | InstantiationException | ClassCastException e) { throw missingAllocator( propertyName, className, e ); }
     }
     private StandardException   missingAllocator( String propertyName, String className, Exception e )
     {

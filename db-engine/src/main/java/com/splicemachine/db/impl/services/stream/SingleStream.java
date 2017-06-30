@@ -203,13 +203,11 @@ public class SingleStream implements InfoStreams, ModuleControl, java.security.P
 			else
 				fos = new FileOutputStream(streamFile);
             FileUtil.limitAccessToOwner(streamFile);
-		} catch (IOException ioe) {
+		} catch (IOException | SecurityException ioe) {
 			return useDefaultStream(header, ioe);
-		} catch (SecurityException se) {
-			return useDefaultStream(header, se);
 		}
 
-		return new BasicHeaderPrintWriter(new BufferedOutputStream(fos), header,
+        return new BasicHeaderPrintWriter(new BufferedOutputStream(fos), header,
 			true, streamFile.getPath());
 	}
 
@@ -252,10 +250,8 @@ public class SingleStream implements InfoStreams, ModuleControl, java.security.P
 				try {
 					return makeValueHPW(theMethod, theMethod.invoke((Object) null, 
 						new Object[0]), header, methodInvocation);
-				} catch (IllegalAccessException iae) {
+				} catch (IllegalAccessException | IllegalArgumentException iae) {
 					t = iae;
-				} catch (IllegalArgumentException iarge) {
-					t = iarge;
 				} catch (InvocationTargetException ite) {
 					t = ite.getTargetException();
 				}
@@ -263,13 +259,10 @@ public class SingleStream implements InfoStreams, ModuleControl, java.security.P
 			} catch (NoSuchMethodException nsme) {
 				t = nsme;
 			}
-		} catch (ClassNotFoundException cnfe) {
+		} catch (ClassNotFoundException | SecurityException cnfe) {
 			t = cnfe;
-		} catch (SecurityException se) {
-			t = se;
-			
 		}
-		return useDefaultStream(header, t);
+        return useDefaultStream(header, t);
 
 	}
 
@@ -298,21 +291,17 @@ public class SingleStream implements InfoStreams, ModuleControl, java.security.P
 				try {
 					return makeValueHPW(theField, theField.get((Object) null), 
 						header, fieldAccess);
-				} catch (IllegalAccessException iae) {
+				} catch (IllegalAccessException | IllegalArgumentException iae) {
 					t = iae;
-				} catch (IllegalArgumentException iarge) {
-					t = iarge;
 				}
 
-			} catch (NoSuchFieldException nsfe) {
+            } catch (NoSuchFieldException nsfe) {
 				t = nsfe;
 			}
-		} catch (ClassNotFoundException cnfe) {
+		} catch (ClassNotFoundException | SecurityException cnfe) {
 			t = cnfe;
-		} catch (SecurityException se) {
-			t = se;
 		}
-		return useDefaultStream(header, t);
+        return useDefaultStream(header, t);
 
 		/*
 			If we decide it is a bad idea to use reflect and need

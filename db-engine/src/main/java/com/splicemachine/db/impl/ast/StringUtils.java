@@ -98,13 +98,12 @@ public class StringUtils {
             if(chars[pos]!='\\'){
                 sb.append(chars[pos]);
                 pos++;
-                continue iterator;
+                continue;
             }
             pos++;
             if(pos==chars.length){
                 sb.append(toControlCharacter(chars[pos]));
                 pos++;
-                continue iterator;
             }else if(chars[pos]=='u'){
                 if(unicode==null)unicode = new char[4];
                 for(int i=0;i<4;i++){

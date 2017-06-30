@@ -104,7 +104,7 @@ public abstract class NumberDataType extends DataType
 
         if( this.isNegative() )
         {
-            if( (new Double(doubleValue)).equals(new Double(-0.0d)) )
+            if( (new Double(doubleValue)).equals(-0.0d) )
             {
                 doubleValue = 0.0d;
             }

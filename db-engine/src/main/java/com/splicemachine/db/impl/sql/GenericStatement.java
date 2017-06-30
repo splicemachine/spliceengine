@@ -168,7 +168,6 @@ public class GenericStatement implements Statement{
 
                     // Don't return yet. The statement was invalidated, so
                     // we must retry the compilation.
-                    continue;
                 }
             }
         }

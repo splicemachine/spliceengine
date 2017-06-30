@@ -157,7 +157,7 @@ public class UnaryOperatorNode extends OperatorNode
 					"Init params in UnaryOperator node have the " +
 					"wrong type.");
 			}
-			this.operatorType = ((Integer) operatorOrOpType).intValue();
+			this.operatorType = (Integer) operatorOrOpType;
 			this.operator = UnaryOperators[this.operatorType];
 			this.methodName = UnaryMethodNames[this.operatorType];
 			this.resultInterfaceType = UnaryResultTypes[this.operatorType];
@@ -500,9 +500,7 @@ public class UnaryOperatorNode extends OperatorNode
 	public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly)
 		throws StandardException
 	{
-		return (operand == null) ? 
-				false : 
-				operand.categorize(referencedTabs, simplePredsOnly);
+		return operand != null && operand.categorize(referencedTabs, simplePredsOnly);
 	}
 
 	/**
@@ -530,15 +528,13 @@ public class UnaryOperatorNode extends OperatorNode
 	 */
 	public boolean isConstantExpression()
 	{
-		return (operand == null) ? true: operand.isConstantExpression();
+		return (operand == null) || operand.isConstantExpression();
 	}
 
 	/** @see ValueNode#constantExpression */
 	public boolean constantExpression(PredicateList whereClause)
 	{
-		return (operand == null) ?
-					true :
-					operand.constantExpression(whereClause);
+		return (operand == null) || operand.constantExpression(whereClause);
 	}
 
 	/**
@@ -767,7 +763,7 @@ public class UnaryOperatorNode extends OperatorNode
         mb.swap();
 
         // Push whether or not we want to preserve whitespace.
-        mb.push(((Boolean)additionalArgs[0]).booleanValue());
+        mb.push((Boolean) additionalArgs[0]);
 
         // Push the SqlXmlUtil instance as the next argument.
         pushSqlXmlUtil(acb, mb, null, null);

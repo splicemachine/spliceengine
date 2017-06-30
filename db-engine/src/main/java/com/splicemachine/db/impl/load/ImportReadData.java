@@ -250,12 +250,10 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
         inputStream = new FileInputStream(inputFileName);
         
       }
-    } catch (FileNotFoundException ex) {
+    } catch (FileNotFoundException | SecurityException ex) {
         throw LoadError.dataFileNotFound(inputFileName, ex);
-    } catch (SecurityException se) {
-		throw LoadError.dataFileNotFound(inputFileName, se);
-	}
-    java.io.Reader rd = dataCodeset == null ?
+    }
+      java.io.Reader rd = dataCodeset == null ?
     		new InputStreamReader(inputStream) : new InputStreamReader(inputStream, dataCodeset);    
     bufferedReader = new BufferedReader(rd, 32*1024);
     streamOpenForReading = true;
@@ -609,17 +607,15 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
 		boolean skipped = true;
 		int cDelLength = characterDelimiter.length ;
 		bufferedReader.mark(cDelLength);
-		for(int i = 0 ; i < cDelLength ; i++)
-		{
-			int nextChar = bufferedReader.read();
-			if(nextChar != characterDelimiter[i])
-			{
-				//not a double delimter case
-				bufferedReader.reset();
-				skipped = false;
-				break;
-			}
-		}
+        for (char aCharacterDelimiter : characterDelimiter) {
+            int nextChar = bufferedReader.read();
+            if (nextChar != aCharacterDelimiter) {
+                //not a double delimter case
+                bufferedReader.reset();
+                skipped = false;
+                break;
+            }
+        }
 		return skipped;
 	}
 

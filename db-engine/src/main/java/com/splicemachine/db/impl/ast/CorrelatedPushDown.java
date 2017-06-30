@@ -164,7 +164,7 @@ public class CorrelatedPushDown extends AbstractSpliceVisitor {
     }
 
     public static <K,V> Map<K,V> zipMap(Iterable<K> keys, Iterable<V> vals) {
-        Map<K,V> m = new HashMap<K, V>();
+        Map<K,V> m = new HashMap<>();
         Iterator<V> valsIterator = vals.iterator();
         for (K key: keys){
             if (valsIterator.hasNext()) {

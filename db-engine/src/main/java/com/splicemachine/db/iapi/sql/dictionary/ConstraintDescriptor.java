@@ -47,6 +47,8 @@ import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import	com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 
+import java.util.Arrays;
+
 /**
  * This class is used to get information from a ConstraintDescriptor.
  * A ConstraintDescriptor can represent a constraint on a table or on a
@@ -422,16 +424,13 @@ public abstract class ConstraintDescriptor
 			return true;
 		}
 
-		for (int outer = 0; outer < referencedColumns.length; outer++)
-		{	
-			for (int inner = 0; inner < otherColumns.length; inner++)
-			{
-				if (referencedColumns[outer] == otherColumns[inner])
-				{
-					return true;
-				}
-			}
-		}
+        for (int referencedColumn : referencedColumns) {
+            for (int otherColumn : otherColumns) {
+                if (referencedColumn == otherColumn) {
+                    return true;
+                }
+            }
+        }
 		return false;
 	}
 
@@ -456,7 +455,7 @@ public abstract class ConstraintDescriptor
 				"constraintId: " + constraintId + "\n" +
 				"deferrable: " + deferrable + "\n" +
 				"initiallyDeferred: " + initiallyDeferred + "\n" +
-				"referencedColumns: " + referencedColumns + "\n" +
+				"referencedColumns: " + Arrays.toString(referencedColumns) + "\n" +
 				"schemaDesc: " + schemaDesc + "\n"
 				;
 		}
@@ -732,11 +731,9 @@ public abstract class ConstraintDescriptor
                 // than one then which one is remvoed does not
                 // matter since they will all have the same critical
                 // information since they point to the same physical index.
-                for (int i = 0; i < conglomDescs.length; i++)
-                {
-                    if (conglomDescs[i].isConstraint())
-                    {
-                        newBackingConglomCD = conglomDescs[i].drop(lcc, table);
+                for (ConglomerateDescriptor conglomDesc : conglomDescs) {
+                    if (conglomDesc.isConstraint()) {
+                        newBackingConglomCD = conglomDesc.drop(lcc, table);
                         break;
                     }
                 }

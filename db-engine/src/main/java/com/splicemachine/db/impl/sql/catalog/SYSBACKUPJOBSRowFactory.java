@@ -42,9 +42,6 @@ import org.joda.time.DateTime;
 
 import java.sql.Types;
 
-/**
- * Created by jyuan on 3/24/15.
- */
 public class SYSBACKUPJOBSRowFactory extends CatalogRowFactory {
     private static final String TABLENAME_STRING = "SYSBACKUPJOBS";
     private static final int BACKUPJOBS_COLUMN_COUNT = 5;

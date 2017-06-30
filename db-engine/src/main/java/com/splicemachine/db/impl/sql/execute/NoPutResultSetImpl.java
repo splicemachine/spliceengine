@@ -282,19 +282,17 @@ extends BasicNoPutResultSetImpl
 		if (qualifiers != null)
 		{
 			Qualifier qual;
-			for (int term = 0; term < qualifiers.length; term++)
-			{
-				for (int index = 0; index < qualifiers[term].length; index++)
-				{
-					qual = qualifiers[term][index];
-					qual.clearOrderableCache();
-					/* beetle 4880 performance enhancement and avoid deadlock while pushing
+            for (Qualifier[] qualifier : qualifiers) {
+                for (int index = 0; index < qualifier.length; index++) {
+                    qual = qualifier[index];
+                    qual.clearOrderableCache();
+                    /* beetle 4880 performance enhancement and avoid deadlock while pushing
 					 * down method call to store: pre-evaluate.
 					 */
-					if (((GenericQualifier) qual).variantType != Qualifier.VARIANT)
-						qual.getOrderable();		// ignore return value
-				}
-			}
+                    if (((GenericQualifier) qual).variantType != Qualifier.VARIANT)
+                        qual.getOrderable();        // ignore return value
+                }
+            }
 		}
 	}
 
@@ -431,7 +429,7 @@ extends BasicNoPutResultSetImpl
 	{
 		String idt = "";
 
-		String output = "";
+		StringBuilder output = new StringBuilder();
 		if (qualifiers == null)
 		{
 			return idt + MessageService.getTextMessage(SQLState.LANG_NONE);
@@ -443,11 +441,11 @@ extends BasicNoPutResultSetImpl
             {
                 Qualifier qual = qualifiers[term][i];
 
-                output = idt + output +
-                    MessageService.getTextMessage(
-                        SQLState.LANG_COLUMN_ID_ARRAY,
-                            String.valueOf(term), String.valueOf(i)) +
-                        ": " + qual.getColumnId() + "\n";
+                output = new StringBuilder(idt + output +
+                        MessageService.getTextMessage(
+                                SQLState.LANG_COLUMN_ID_ARRAY,
+                                String.valueOf(term), String.valueOf(i)) +
+                        ": " + qual.getColumnId() + "\n");
                     
                 int operator = qual.getOperator();
                 String opString = null;
@@ -476,25 +474,14 @@ extends BasicNoPutResultSetImpl
                     opString = "unknown value (" + operator + ")";
                     break;
                 }
-                output = output +
-                    idt + MessageService.getTextMessage(SQLState.LANG_OPERATOR) +
-                            ": " + opString + "\n" +
-                    idt +
-                        MessageService.getTextMessage(
-                            SQLState.LANG_ORDERED_NULLS) +
-                        ": " + qual.getOrderedNulls() + "\n" +
-                    idt +
-                        MessageService.getTextMessage(
-                            SQLState.LANG_UNKNOWN_RETURN_VALUE) +
-                        ": " + qual.getUnknownRV() + "\n" +
-                    idt +
-                        MessageService.getTextMessage(
-                            SQLState.LANG_NEGATE_COMPARISON_RESULT) +
-                        ": " + qual.negateCompareResult() + "\n";
+                output.append(idt).append(MessageService.getTextMessage(SQLState.LANG_OPERATOR)).append(": ").append(opString).append("\n").append(idt).append(MessageService.getTextMessage(
+                        SQLState.LANG_ORDERED_NULLS)).append(": ").append(qual.getOrderedNulls()).append("\n").append(idt).append(MessageService.getTextMessage(
+                        SQLState.LANG_UNKNOWN_RETURN_VALUE)).append(": ").append(qual.getUnknownRV()).append("\n").append(idt).append(MessageService.getTextMessage(
+                        SQLState.LANG_NEGATE_COMPARISON_RESULT)).append(": ").append(qual.negateCompareResult()).append("\n");
             }
         }
 
-		return output;
+		return output.toString();
 	}
 
 	/**

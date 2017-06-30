@@ -217,7 +217,7 @@ public final class SQLTinyint
 	{
 		return (isNull()) ?
 					null:
-					new Integer(value);
+                (int) value;
 	}
 
 	// this is for DataType's error generator
@@ -364,7 +364,7 @@ public final class SQLTinyint
 		else
 		{
 		    try {
-		        value = Byte.valueOf(theValue.trim()).byteValue();
+		        value = Byte.valueOf(theValue.trim());
 			} catch (NumberFormatException nfe) {
 			    throw invalidFormat();
 			}

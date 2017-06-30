@@ -159,12 +159,10 @@ public  abstract    class   StringColumnVTI extends VTITemplate
         return columnValue;
     }
     
-    public boolean getBoolean(int columnIndex) throws SQLException
-    {
-        String  columnValue = getString( columnIndex );
+    public boolean getBoolean(int columnIndex) throws SQLException {
+        String columnValue = getString(columnIndex);
 
-        if ( columnValue == null ) { return false; }
-        else { return Boolean.valueOf( columnValue ).booleanValue(); }
+        return columnValue != null && Boolean.valueOf(columnValue).booleanValue();
     }
 
     public byte getByte(int columnIndex) throws SQLException
@@ -175,7 +173,7 @@ public  abstract    class   StringColumnVTI extends VTITemplate
         else
         {
             try {
-                return Byte.valueOf( columnValue ).byteValue();
+                return Byte.valueOf(columnValue);
             } catch (NumberFormatException e) { throw wrap( e ); }
         }
     }
@@ -188,7 +186,7 @@ public  abstract    class   StringColumnVTI extends VTITemplate
         else
         {
             try {
-                return Short.valueOf( columnValue ).shortValue();
+                return Short.valueOf(columnValue);
             } catch (NumberFormatException e) { throw wrap( e ); }
         }
     }
@@ -214,7 +212,7 @@ public  abstract    class   StringColumnVTI extends VTITemplate
         else
         {
             try {
-                return Long.valueOf( columnValue ).longValue();
+                return Long.valueOf(columnValue);
             } catch (NumberFormatException e) { throw wrap( e ); }
         }
     }

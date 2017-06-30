@@ -548,26 +548,22 @@ public final class ConglomerateDescriptor extends TupleDescriptor
 		if (!isIndex())
 		{
 			ConglomerateDescriptor heap = null;
-			for (int i = 0; i < descriptors.length; i++)
-			{
-				if (getConglomerateNumber() !=
-					descriptors[i].getConglomerateNumber())
-				{
-					continue;
-				}
+            for (ConglomerateDescriptor descriptor : descriptors) {
+                if (getConglomerateNumber() !=
+                        descriptor.getConglomerateNumber()) {
+                    continue;
+                }
 
-				if (SanityManager.DEBUG)
-				{
-					if (!descriptors[i].getUUID().equals(getUUID()))
-					{
-						SanityManager.THROWASSERT(
-							"Should not have multiple descriptors for " +
-							"heap conglomerate " + getConglomerateNumber());
-					}
-				}
+                if (SanityManager.DEBUG) {
+                    if (!descriptor.getUUID().equals(getUUID())) {
+                        SanityManager.THROWASSERT(
+                                "Should not have multiple descriptors for " +
+                                        "heap conglomerate " + getConglomerateNumber());
+                    }
+                }
 
-				heap = descriptors[i];
-			}
+                heap = descriptor;
+            }
 
 			return heap;
 		}
@@ -600,59 +596,52 @@ public final class ConglomerateDescriptor extends TupleDescriptor
 		 */
 
 		ConglomerateDescriptor returnDesc = null;
-		for (int i = 0; i < descriptors.length; i++)
-		{
-			// Skip if it's not an index (i.e. it's a heap descriptor).
-			if (!descriptors[i].isIndex())
-				continue;
+        for (ConglomerateDescriptor descriptor : descriptors) {
+            // Skip if it's not an index (i.e. it's a heap descriptor).
+            if (!descriptor.isIndex())
+                continue;
 
-			// Skip if it doesn't share with "this".
-			if (getConglomerateNumber() !=
-				descriptors[i].getConglomerateNumber())
-			{
-				continue;
-			}
+            // Skip if it doesn't share with "this".
+            if (getConglomerateNumber() !=
+                    descriptor.getConglomerateNumber()) {
+                continue;
+            }
 
-			// Skip if ignoreThis is true and it describes "this".
-			// DERBY-5249. We need to check both the UUID and the
-			// conglomerateName to see if this is a match, because
-			// databases prior to the DERBY-655 fix may have a 
-			// duplicate conglomerateID
-			if (ignoreThis &&
-				getUUID().equals(descriptors[i].getUUID()) &&
-				getConglomerateName().equals(descriptors[i].
-							getConglomerateName())
-				)
-			{
-				continue;
-			}
+            // Skip if ignoreThis is true and it describes "this".
+            // DERBY-5249. We need to check both the UUID and the
+            // conglomerateName to see if this is a match, because
+            // databases prior to the DERBY-655 fix may have a
+            // duplicate conglomerateID
+            if (ignoreThis &&
+                    getUUID().equals(descriptor.getUUID()) &&
+                    getConglomerateName().equals(descriptor.
+                            getConglomerateName())
+                    ) {
+                continue;
+            }
 
-			if (descriptors[i].getIndexDescriptor().isUnique())
-			{
-				/* Given criteria #1 and #4 described above, if we
+            if (descriptor.getIndexDescriptor().isUnique()) {
+                /* Given criteria #1 and #4 described above, if we
 				 * have a unique conglomerate descriptor then we've
 				 * found what we need, so we're done.
 				 */
-				returnDesc = descriptors[i];
-				break;
-			}
+                returnDesc = descriptor;
+                break;
+            }
 
-			if (descriptors[i].getIndexDescriptor()
-					.isUniqueWithDuplicateNulls())
-			{
+            if (descriptor.getIndexDescriptor()
+                    .isUniqueWithDuplicateNulls()) {
 				/* Criteria #2. Remember this descriptor. If we don't find
 				 * any unique descriptor we will use this.
 				 */
-				returnDesc = descriptors[i];
-			}
-			else if (returnDesc == null)
-			{
+                returnDesc = descriptor;
+            } else if (returnDesc == null) {
 				/* Criteria #3 If no other descriptor found satifying
 				 * #1 or #2 this descriptor will be used.
 				 */
-				 returnDesc = descriptors[i];
-			}
-		}
+                returnDesc = descriptor;
+            }
+        }
 
 		if (SanityManager.DEBUG)
 		{

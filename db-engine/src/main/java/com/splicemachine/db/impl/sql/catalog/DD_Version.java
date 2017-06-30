@@ -616,10 +616,9 @@ public	class DD_Version implements	Formatable
 											crf.getCatalogName(),
 											sd, tc);
 		ConglomerateDescriptor[]	cds = td.getConglomerateDescriptors();
-		for (int index = 0; index < cds.length; index++)
-		{
-			tc.dropConglomerate(cds[index].getConglomerateNumber());
-		}
+        for (ConglomerateDescriptor cd : cds) {
+            tc.dropConglomerate(cd.getConglomerateNumber());
+        }
 		dropSystemCatalogDescription(tc,td);
 	}
 

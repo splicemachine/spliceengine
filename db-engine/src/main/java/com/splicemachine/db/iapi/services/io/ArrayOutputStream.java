@@ -116,8 +116,7 @@ public class ArrayOutputStream extends OutputStream implements Limit {
 		start = position;
 		end = position + length;
 
-		return;
-	}
+    }
 
 	public int clearLimit() {
 

@@ -558,16 +558,14 @@ final class GenericStatementContext
 		/* Close down any open subqueries */
 		if (subqueryTrackingArray != null)
 		{
-			for (int index = 0; index < subqueryTrackingArray.length; index++)
-			{
-				/* Remember, the array is sparse, so only check
+            for (NoPutResultSet aSubqueryTrackingArray : subqueryTrackingArray) {
+                /* Remember, the array is sparse, so only check
 				 * non-null entries.
 				 */
-				if (subqueryTrackingArray[index] != null)
-				{
-					subqueryTrackingArray[index].cleanUp();
-				}
-			}
+                if (aSubqueryTrackingArray != null) {
+                    aSubqueryTrackingArray.cleanUp();
+                }
+            }
 		}
 
 		/* Clean up any dependencies */
@@ -575,11 +573,10 @@ final class GenericStatementContext
 		{
 			DependencyManager dmgr = lcc.getDataDictionary().getDependencyManager();
 
-			for (Iterator iterator = dependencies.iterator(); iterator.hasNext(); ) 
-			{
-				Dependency dy = (Dependency) iterator.next();
-				dmgr.clearInMemoryDependency(dy);
-			}
+            for (Object dependency : dependencies) {
+                Dependency dy = (Dependency) dependency;
+                dmgr.clearInMemoryDependency(dy);
+            }
 
 			dependencies = null;
 		}

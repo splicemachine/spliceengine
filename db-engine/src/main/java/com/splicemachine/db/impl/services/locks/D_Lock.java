@@ -65,15 +65,14 @@ public class D_Lock implements Diagnosticable
     public String diag()
         throws StandardException
     {
-        String sb = "Lockable=" +
+
+        return "Lockable=" +
                 DiagnosticUtil.toDiagString(lock.getLockable()) +
                 " Qual=" +
                 DiagnosticUtil.toDiagString(lock.getQualifier()) +
                 " CSpc=" +
                 lock.getCompatabilitySpace() +
                 " count=" + lock.count + " ";
-
-        return sb;
     }
 
 	public void diag_detail(Properties prop) {}

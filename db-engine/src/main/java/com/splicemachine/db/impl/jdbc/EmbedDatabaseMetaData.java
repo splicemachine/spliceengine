@@ -2146,23 +2146,23 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 		String[] typeParams = new String[numberOfTableTypesInDerby];
 		for (int i=0; i < numberOfTableTypesInDerby;i++)
 			typeParams[i] = null;
-		
-		for (int i = 0; i<types.length; i++){
-			if ("TABLE".equals(types[i]))
+
+		for (String type : types) {
+			if ("TABLE".equals(type))
 				typeParams[0] = "T";
-			else if ("VIEW".equals(types[i]))
+			else if ("VIEW".equals(type))
 				typeParams[1] = "V";
-			else if ("SYNONYM".equals(types[i]))
+			else if ("SYNONYM".equals(type))
 				typeParams[2] = "A";
-			else if ("SYSTEM TABLE".equals(types[i]) ||
-					"SYSTEM_TABLE".equals(types[i])) // Keep SYSTEM_TABLE since this is how we have been testing
-					typeParams[3] = "S";
-			else if ("EXTERNAL TABLE".equals(types[i]) ||
-					"EXTERNAL_TABLE".equals(types[i])) // Keep EXTERNAL_TABLE since this is how we have been testing
+			else if ("SYSTEM TABLE".equals(type) ||
+					"SYSTEM_TABLE".equals(type)) // Keep SYSTEM_TABLE since this is how we have been testing
+				typeParams[3] = "S";
+			else if ("EXTERNAL TABLE".equals(type) ||
+					"EXTERNAL_TABLE".equals(type)) // Keep EXTERNAL_TABLE since this is how we have been testing
 				typeParams[4] = "E";
 
 			// If user puts in other types we simply ignore.
-			}
+		}
 		
 		// 	TABLETYPE IN (?,?,?,?) starts at parameter 4 so we add 4
 		// Set to value passed in or null if no value was given.
@@ -3449,11 +3449,11 @@ public class EmbedDatabaseMetaData extends ConnectionChild
         if ( types == null ) { getClassTypes = java.sql.Types.JAVA_OBJECT; }
         else if ( types.length > 0 )
         {
-            for ( int i=0; i< types.length; i++ )
-            {
-                if ( types[i] == java.sql.Types.JAVA_OBJECT )
-                { getClassTypes = java.sql.Types.JAVA_OBJECT; }
-            }
+			for (int type : types) {
+				if (type == Types.JAVA_OBJECT) {
+					getClassTypes = Types.JAVA_OBJECT;
+				}
+			}
         }
 
   		PreparedStatement s = getPreparedQuery("getUDTs");

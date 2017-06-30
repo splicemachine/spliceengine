@@ -231,7 +231,7 @@ public class Like {
 							SanityManager.THROWASSERT("null result on like(value = "+vStr+", pat = "+pStr+")");
 						}
 					}
-					if (restResult.booleanValue())
+					if (restResult)
 						return restResult;
 
 					n++;

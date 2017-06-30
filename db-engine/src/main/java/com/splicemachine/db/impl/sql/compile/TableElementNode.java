@@ -97,7 +97,7 @@ public class TableElementNode extends QueryTreeNode
 	public void init(Object name, Object elementType)
 	{
 		this.name = (String) name;
-		this.elementType = ((Integer) elementType).intValue();
+		this.elementType = (Integer) elementType;
 	}
 
 	/**

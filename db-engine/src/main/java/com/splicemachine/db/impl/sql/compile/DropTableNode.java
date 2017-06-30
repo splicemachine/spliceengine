@@ -65,7 +65,7 @@ public class DropTableNode extends DDLStatementNode
 		throws StandardException
 	{
 		initAndCheck(dropObjectName);
-		this.dropBehavior = ((Integer) dropBehavior).intValue();
+		this.dropBehavior = (Integer) dropBehavior;
 	}
 
 	/**

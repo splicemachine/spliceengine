@@ -114,7 +114,7 @@ public class CreateTableNode extends DDLStatementNode
 			tableType = TableDescriptor.EXTERNAL_TYPE;
 		else
 			tableType = TableDescriptor.BASE_TABLE_TYPE;
-		this.lockGranularity = ((Character) lockGranularity).charValue();
+		this.lockGranularity = (Character) lockGranularity;
 		implicitCreateSchema = true;
 
 		if (SanityManager.DEBUG)
@@ -164,8 +164,8 @@ public class CreateTableNode extends DDLStatementNode
 		lockGranularity = TableDescriptor.DEFAULT_LOCK_GRANULARITY;
 		implicitCreateSchema = true;
 
-		this.onCommitDeleteRows = ((Boolean) onCommitDeleteRows).booleanValue();
-		this.onRollbackDeleteRows = ((Boolean) onRollbackDeleteRows).booleanValue();
+		this.onCommitDeleteRows = (Boolean) onCommitDeleteRows;
+		this.onRollbackDeleteRows = (Boolean) onRollbackDeleteRows;
 		initAndCheck(newObjectName);
 		this.tableElementList = (TableElementList) tableElementList;
 		this.properties = (Properties) properties;
@@ -560,11 +560,9 @@ public class CreateTableNode extends DDLStatementNode
         boolean table_has_long_column = false; 
         int approxLength = 0;
 
-        for (int i = 0; i < colInfos.length; i++)
-        {
-			DataTypeDescriptor dts = colInfos[i].dataType;
-            if (dts.getTypeId().isLongConcatableTypeId())
-            {
+        for (ColumnInfo colInfo : colInfos) {
+            DataTypeDescriptor dts = colInfo.dataType;
+            if (dts.getTypeId().isLongConcatableTypeId()) {
                 table_has_long_column = true;
                 break;
             }

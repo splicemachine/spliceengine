@@ -33,9 +33,6 @@ package com.splicemachine.db.iapi.sql.dictionary;
 
 import org.joda.time.DateTime;
 
-/**
- * Created by jyuan on 2/6/15.
- */
 public class BackupItemsDescriptor extends TupleDescriptor {
     private long backupId;
     private String item;

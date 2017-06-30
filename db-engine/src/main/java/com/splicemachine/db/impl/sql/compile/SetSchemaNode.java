@@ -69,7 +69,7 @@ public class SetSchemaNode extends MiscellaneousStatementNode
 	{
 		this.name = (String) schemaName;
 		if (type != null)
-			this.type = ((Integer)type).intValue();
+			this.type = (Integer) type;
 	}
 
 	/**

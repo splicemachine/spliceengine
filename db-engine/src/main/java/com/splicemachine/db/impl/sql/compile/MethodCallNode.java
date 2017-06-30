@@ -1020,14 +1020,12 @@ abstract class MethodCallNode extends JavaValueNode
 	protected	boolean	someParametersAreNull()
 	{
 		int		count = signature.length;
-		
-		for ( int ictr = 0; ictr < count; ictr++ )
-		{
-			if ( signature[ictr] == null )
-			{
-				return true;
-			}
-		}
+
+        for (JSQLType aSignature : signature) {
+            if (aSignature == null) {
+                return true;
+            }
+        }
 
 		return false;
 	}
@@ -1230,20 +1228,16 @@ abstract class MethodCallNode extends JavaValueNode
 
 		if (methodParms != null)
 		{
-			for (int parm = 0; parm < methodParms.length; parm++)
-			{
-				if (methodParms[parm] != null)
-				{
-					int paramVariantType =
-						methodParms[parm].getOrderableVariantType();
-					if (paramVariantType < variance)	//return the most variant type
-						variance = paramVariantType;
-				}
-				else
-				{
-					variance = Qualifier.VARIANT;
-				}
-			}
+            for (JavaValueNode methodParm : methodParms) {
+                if (methodParm != null) {
+                    int paramVariantType =
+                            methodParm.getOrderableVariantType();
+                    if (paramVariantType < variance)    //return the most variant type
+                        variance = paramVariantType;
+                } else {
+                    variance = Qualifier.VARIANT;
+                }
+            }
 		}
 
 		return variance;
@@ -1316,12 +1310,12 @@ abstract class MethodCallNode extends JavaValueNode
 
 	@Override
 	public void setHashableJoinColumnReference(ColumnReference cr) {
-		for(int i = 0; i < methodParms.length; ++i) {
-			ColumnReference columnReference = methodParms[i].getHashableJoinColumnReference();
-			if (columnReference != null) {
-				methodParms[i].setHashableJoinColumnReference(cr);
-			}
-		}
+        for (JavaValueNode methodParm : methodParms) {
+            ColumnReference columnReference = methodParm.getHashableJoinColumnReference();
+            if (columnReference != null) {
+                methodParm.setHashableJoinColumnReference(cr);
+            }
+        }
 	}
 
 }

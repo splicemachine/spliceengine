@@ -189,8 +189,8 @@ public final class NumericConstantNode extends ConstantNode
 				     TypeId.getBuiltInTypeId(typeid),
 
 				   precision, 
-				   scal, 
-				   isNullable.booleanValue(), 
+				   scal,
+                isNullable,
 				   maxwidth);
 	}
 

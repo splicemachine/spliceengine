@@ -86,11 +86,8 @@ final class DatabaseContextImpl extends ContextImpl implements DatabaseContext
 	}
 
 	public boolean equals(Object other) {
-		if (other instanceof DatabaseContext) {
-			return ((DatabaseContextImpl) other).db == db;
-		}
-		return false;
-	}
+        return other instanceof DatabaseContext && ((DatabaseContextImpl) other).db == db;
+    }
 
 	public int hashCode() {
 		return db.hashCode();

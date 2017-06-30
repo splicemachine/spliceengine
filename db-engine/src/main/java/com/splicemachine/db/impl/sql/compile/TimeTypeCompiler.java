@@ -91,22 +91,12 @@ public class TimeTypeCompiler extends BaseTypeCompiler
 	 * @param cf		A ClassFactory
 	 * @return true if otherType is storable into this type, else false.
 	 */
-	public boolean storable(TypeId otherType, ClassFactory cf)
-	{
-		int	otherJDBCTypeId = otherType.getJDBCTypeId();
+	public boolean storable(TypeId otherType, ClassFactory cf) {
+        int otherJDBCTypeId = otherType.getJDBCTypeId();
 
-		if (otherJDBCTypeId == Types.TIME ||
-			(otherJDBCTypeId == Types.CHAR) ||
-			(otherJDBCTypeId == Types.VARCHAR) ||
-		(otherJDBCTypeId == Types.TIMESTAMP))
-		{
-			return true;
-		}
+        return otherJDBCTypeId == Types.TIME || (otherJDBCTypeId == Types.CHAR) || (otherJDBCTypeId == Types.VARCHAR) || (otherJDBCTypeId == Types.TIMESTAMP) || cf.getClassInspector().assignableTo(otherType.getCorrespondingJavaTypeName(), "java.sql.Time");
 
-		return cf.getClassInspector().assignableTo(
-			   otherType.getCorrespondingJavaTypeName(),
-			   "java.sql.Time");
-	}
+    }
 
 	/** @see TypeCompiler#interfaceName */
 	public String interfaceName()

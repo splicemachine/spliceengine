@@ -31,9 +31,6 @@
 
 package com.splicemachine.db.iapi.sql.dictionary;
 
-/**
- * Created by jyuan on 2/6/15.
- */
 public class BackupFileSetDescriptor extends TupleDescriptor {
 
     private String backupItem;
@@ -41,7 +38,7 @@ public class BackupFileSetDescriptor extends TupleDescriptor {
     private String fileName;
     private boolean include;
 
-    public BackupFileSetDescriptor(String backupItem, String regionName, String fileName, boolean incldue) {
+    public BackupFileSetDescriptor(String backupItem, String regionName, String fileName, boolean include) {
         this.backupItem = backupItem;
         this.regionName = regionName;
         this.fileName = fileName;

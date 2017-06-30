@@ -151,7 +151,7 @@ public class CreateAliasNode extends DDLStatementNode{
             throws StandardException{
         super(aliasName,cm);
         init(aliasName,targetObject,methodName,
-                aliasSpecificInfo,new Character(aliasType),(Object)Boolean.FALSE);
+                aliasSpecificInfo, aliasType,(Object)Boolean.FALSE);
     }
 
 
@@ -176,7 +176,7 @@ public class CreateAliasNode extends DDLStatementNode{
             Object delimitedIdentifier)
             throws StandardException{
         TableName qn=(TableName)aliasName;
-        this.aliasType=((Character)aliasType).charValue();
+        this.aliasType= (Character) aliasType;
 
         initAndCheck(qn);
 
@@ -207,11 +207,11 @@ public class CreateAliasNode extends DDLStatementNode{
                 break;
 
             case AliasInfo.ALIAS_TYPE_PROCEDURE_AS_CHAR:
-            case AliasInfo.ALIAS_TYPE_FUNCTION_AS_CHAR:{
-                this.javaClassName=(String)targetObject;
-                this.methodName=(String)methodName;
-                this.delimitedIdentifier=
-                        ((Boolean)delimitedIdentifier).booleanValue();
+            case AliasInfo.ALIAS_TYPE_FUNCTION_AS_CHAR: {
+                this.javaClassName = (String) targetObject;
+                this.methodName = (String) methodName;
+                this.delimitedIdentifier =
+                        (Boolean) delimitedIdentifier;
 
                 //routineElements contains the description of the procedure.
                 //
@@ -226,92 +226,88 @@ public class CreateAliasNode extends DDLStatementNode{
                 // 8 - Boolean - CALLED ON NULL INPUT (always TRUE for procedures)
                 // 9 - TypeDescriptor - return type (always NULL for procedures)
 
-                Object[] routineElements=(Object[])aliasSpecificInfo;
-                Object[] parameters=(Object[])routineElements[PARAMETER_ARRAY];
-                int paramCount=((Vector)parameters[0]).size();
+                Object[] routineElements = (Object[]) aliasSpecificInfo;
+                Object[] parameters = (Object[]) routineElements[PARAMETER_ARRAY];
+                int paramCount = ((Vector) parameters[0]).size();
 
-                String[] names=null;
-                TypeDescriptor[] types=null;
-                int[] modes=null;
+                String[] names = null;
+                TypeDescriptor[] types = null;
+                int[] modes = null;
 
-                if(paramCount>Limits.DB2_MAX_PARAMS_IN_STORED_PROCEDURE)
+                if (paramCount > Limits.DB2_MAX_PARAMS_IN_STORED_PROCEDURE)
                     throw StandardException.newException(SQLState.LANG_TOO_MANY_PARAMETERS_FOR_STORED_PROC,
-                            String.valueOf(Limits.DB2_MAX_PARAMS_IN_STORED_PROCEDURE),aliasName,String.valueOf(paramCount));
+                            String.valueOf(Limits.DB2_MAX_PARAMS_IN_STORED_PROCEDURE), aliasName, String.valueOf(paramCount));
 
-                if(paramCount!=0){
+                if (paramCount != 0) {
 
-                    names=new String[paramCount];
-                    ((Vector)parameters[0]).copyInto(names);
+                    names = new String[paramCount];
+                    ((Vector) parameters[0]).copyInto(names);
 
-                    types=new TypeDescriptor[paramCount];
-                    ((Vector)parameters[1]).copyInto(types);
+                    types = new TypeDescriptor[paramCount];
+                    ((Vector) parameters[1]).copyInto(types);
 
-                    modes=new int[paramCount];
-                    for(int i=0;i<paramCount;i++){
-                        int currentMode= (Integer) (((Vector) parameters[2]).get(i));
-                        modes[i]=currentMode;
+                    modes = new int[paramCount];
+                    for (int i = 0; i < paramCount; i++) {
+                        int currentMode = (Integer) (((Vector) parameters[2]).get(i));
+                        modes[i] = currentMode;
 
                         //
                         // We still don't support XML values as parameters.
                         // Presumably, the XML datatype would map to a JDBC java.sql.SQLXML type.
                         // We have no support for that type today.
                         //
-                        if(!types[i].isUserDefinedType()){
-                            if(TypeId.getBuiltInTypeId(types[i].getJDBCTypeId()).isXMLTypeId()){
-                                throw StandardException.newException(SQLState.LANG_LONG_DATA_TYPE_NOT_ALLOWED,names[i]);
+                        if (!types[i].isUserDefinedType()) {
+                            if (TypeId.getBuiltInTypeId(types[i].getJDBCTypeId()).isXMLTypeId()) {
+                                throw StandardException.newException(SQLState.LANG_LONG_DATA_TYPE_NOT_ALLOWED, names[i]);
                             }
                         }
                     }
 
-                    if(paramCount>1){
-                        String[] dupNameCheck=new String[paramCount];
-                        System.arraycopy(names,0,dupNameCheck,0,paramCount);
+                    if (paramCount > 1) {
+                        String[] dupNameCheck = new String[paramCount];
+                        System.arraycopy(names, 0, dupNameCheck, 0, paramCount);
                         java.util.Arrays.sort(dupNameCheck);
-                        for(int dnc=1;dnc<dupNameCheck.length;dnc++){
-                            if(!dupNameCheck[dnc].isEmpty() && dupNameCheck[dnc].equals(dupNameCheck[dnc-1]))
-                                throw StandardException.newException(SQLState.LANG_DB2_DUPLICATE_NAMES,dupNameCheck[dnc],getFullName());
+                        for (int dnc = 1; dnc < dupNameCheck.length; dnc++) {
+                            if (!dupNameCheck[dnc].isEmpty() && dupNameCheck[dnc].equals(dupNameCheck[dnc - 1]))
+                                throw StandardException.newException(SQLState.LANG_DB2_DUPLICATE_NAMES, dupNameCheck[dnc], getFullName());
                         }
                     }
                 }
 
-                Integer drso=(Integer)routineElements[DYNAMIC_RESULT_SET_COUNT];
-                int drs=drso==null?0:drso.intValue();
+                Integer drso = (Integer) routineElements[DYNAMIC_RESULT_SET_COUNT];
+                int drs = drso == null ? 0 : drso;
 
                 short sqlAllowed;
-                Short sqlAllowedObject=(Short)routineElements[SQL_CONTROL];
-                if(sqlAllowedObject!=null)
-                    sqlAllowed=sqlAllowedObject.shortValue();
+                Short sqlAllowedObject = (Short) routineElements[SQL_CONTROL];
+                if (sqlAllowedObject != null)
+                    sqlAllowed = sqlAllowedObject;
                 else
-                    sqlAllowed=(this.aliasType==AliasInfo.ALIAS_TYPE_PROCEDURE_AS_CHAR?
-                            RoutineAliasInfo.MODIFIES_SQL_DATA:RoutineAliasInfo.READS_SQL_DATA);
+                    sqlAllowed = (this.aliasType == AliasInfo.ALIAS_TYPE_PROCEDURE_AS_CHAR ?
+                            RoutineAliasInfo.MODIFIES_SQL_DATA : RoutineAliasInfo.READS_SQL_DATA);
 
-                Boolean isDeterministicO=(Boolean)routineElements[DETERMINISTIC];
-                boolean isDeterministic=(isDeterministicO==null)?false:isDeterministicO.booleanValue();
+                Boolean isDeterministicO = (Boolean) routineElements[DETERMINISTIC];
+                boolean isDeterministic = isDeterministicO != null && isDeterministicO;
 
-                Boolean definersRightsO=
-                        (Boolean)routineElements[ROUTINE_SECURITY_DEFINER];
-                boolean definersRights=
-                        (definersRightsO==null)?false:
-                                definersRightsO.booleanValue();
+                Boolean definersRightsO =
+                        (Boolean) routineElements[ROUTINE_SECURITY_DEFINER];
+                boolean definersRights =
+                        definersRightsO != null && definersRightsO;
 
-                Boolean calledOnNullInputO=(Boolean)routineElements[NULL_ON_NULL_INPUT];
+                Boolean calledOnNullInputO = (Boolean) routineElements[NULL_ON_NULL_INPUT];
                 boolean calledOnNullInput;
-                if(calledOnNullInputO==null)
-                    calledOnNullInput=true;
-                else
-                    calledOnNullInput=calledOnNullInputO.booleanValue();
+                calledOnNullInput = calledOnNullInputO == null || calledOnNullInputO.booleanValue();
 
                 // bind the return type if it is a user defined type. this fills
                 // in the class name.
-                TypeDescriptor returnType=(TypeDescriptor)routineElements[RETURN_TYPE];
-                if(returnType!=null){
-                    DataTypeDescriptor dtd=DataTypeDescriptor.getType(returnType);
+                TypeDescriptor returnType = (TypeDescriptor) routineElements[RETURN_TYPE];
+                if (returnType != null) {
+                    DataTypeDescriptor dtd = DataTypeDescriptor.getType(returnType);
 
-                    dtd=bindUserType(dtd);
-                    returnType=dtd.getCatalogType();
+                    dtd = bindUserType(dtd);
+                    returnType = dtd.getCatalogType();
                 }
 
-                aliasInfo=new RoutineAliasInfo(
+                aliasInfo = new RoutineAliasInfo(
                         this.methodName,
                         paramCount,
                         names,
@@ -319,14 +315,14 @@ public class CreateAliasNode extends DDLStatementNode{
                         modes,
                         drs,
                         // parameter style:
-                        ((Short)routineElements[PARAMETER_STYLE]).shortValue(),
+                        (Short) routineElements[PARAMETER_STYLE],
                         sqlAllowed,
                         isDeterministic,
                         definersRights,
                         calledOnNullInput,
                         returnType);
 
-                implicitCreateSchema=true;
+                implicitCreateSchema = true;
             }
             break;
 
@@ -448,12 +444,11 @@ public class CreateAliasNode extends DDLStatementNode{
             boolean foundConflict=javaClassName.startsWith("com.splicemachine.db.");
 
             if(!foundConflict){
-                for(int i=0;i<systemTypeCount;i++){
-                    TypeId systemType=allSystemTypeIds[i];
-                    String systemTypeName=systemType.getCorrespondingJavaTypeName();
+                for (TypeId systemType : allSystemTypeIds) {
+                    String systemTypeName = systemType.getCorrespondingJavaTypeName();
 
-                    if(systemTypeName.equals(javaClassName)){
-                        foundConflict=true;
+                    if (systemTypeName.equals(javaClassName)) {
+                        foundConflict = true;
                         break;
                     }
                 }
@@ -522,8 +517,8 @@ public class CreateAliasNode extends DDLStatementNode{
         // Additional builtin 1-arg functions which are represented in the grammar
         // as non-reserved keywords.
         //
-        for(int i=0;i<NON_RESERVED_FUNCTION_NAMES.length;i++){
-            if(NON_RESERVED_FUNCTION_NAMES[i].equals(unqualifiedName)){
+        for (String NON_RESERVED_FUNCTION_NAME : NON_RESERVED_FUNCTION_NAMES) {
+            if (NON_RESERVED_FUNCTION_NAME.equals(unqualifiedName)) {
                 throw illegalAggregate();
             }
         }
@@ -532,8 +527,8 @@ public class CreateAliasNode extends DDLStatementNode{
         // Additional SQL Standard aggregate names which are not represented in
         // the Derby grammar as reserved keywords.
         //
-        for(int i=0;i<NON_RESERVED_AGGREGATES.length;i++){
-            if(NON_RESERVED_AGGREGATES[i].equals(unqualifiedName)){
+        for (String NON_RESERVED_AGGREGATE : NON_RESERVED_AGGREGATES) {
+            if (NON_RESERVED_AGGREGATE.equals(unqualifiedName)) {
                 throw illegalAggregate();
             }
         }

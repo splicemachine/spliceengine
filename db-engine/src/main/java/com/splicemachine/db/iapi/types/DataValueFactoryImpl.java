@@ -1099,13 +1099,12 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
     	Locale[] availLocales =  Collator.getAvailableLocales();
     	//Verify that Collator can be instantiated for the given locale.
     	boolean localeFound = false;
-    	for (int i=0; i<availLocales.length;i++)
-    	{
-    		if (availLocales[i].equals(databaseLocale)) {
-    			localeFound = true;
-    			break;
-    		}
-    	}
+        for (Locale availLocale : availLocales) {
+            if (availLocale.equals(databaseLocale)) {
+                localeFound = true;
+                break;
+            }
+        }
     	if (!localeFound)
 			throw StandardException.newException(
 					SQLState.COLLATOR_NOT_FOUND_FOR_LOCALE, 

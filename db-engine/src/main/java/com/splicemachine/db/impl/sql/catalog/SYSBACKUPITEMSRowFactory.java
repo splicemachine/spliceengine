@@ -41,9 +41,6 @@ import com.splicemachine.db.iapi.types.*;
 import org.joda.time.DateTime;
 import java.sql.Types;
 
-/**
- * Created by jyuan on 2/6/15.
- */
 public class SYSBACKUPITEMSRowFactory extends CatalogRowFactory {
 
     private static final String TABLENAME_STRING = "SYSBACKUPITEMS";

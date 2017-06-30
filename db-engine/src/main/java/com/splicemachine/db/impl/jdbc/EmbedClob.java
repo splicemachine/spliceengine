@@ -212,10 +212,10 @@ final class EmbedClob extends ConnectionChild implements Clob, EngineLOB
 
         if (pos < 1)
             throw Util.generateCsSQLException(
-                SQLState.BLOB_BAD_POSITION, new Long(pos));
+                SQLState.BLOB_BAD_POSITION, pos);
         if (length < 0)
             throw Util.generateCsSQLException(
-                SQLState.BLOB_NONPOSITIVE_LENGTH, new Integer(length));
+                SQLState.BLOB_NONPOSITIVE_LENGTH, length);
 
         String result;
         // An exception will be thrown if the position is larger than the Clob.
@@ -225,7 +225,7 @@ final class EmbedClob extends ConnectionChild implements Clob, EngineLOB
                 reader = this.clob.getInternalReader(pos);
             } catch (EOFException eofe) {
                 throw Util.generateCsSQLException(
-                        SQLState.BLOB_POSITION_TOO_LARGE, new Long(pos), eofe);
+                        SQLState.BLOB_POSITION_TOO_LARGE, pos, eofe);
             }
             char[] chars = new char[length];
             int charsRead = 0;
@@ -327,7 +327,7 @@ final class EmbedClob extends ConnectionChild implements Clob, EngineLOB
         checkValidity();
         if (start < 1)
             throw Util.generateCsSQLException(
-                            SQLState.BLOB_BAD_POSITION, new Long(start));
+                            SQLState.BLOB_BAD_POSITION, start);
         if (searchStr == null)
             throw Util.generateCsSQLException(
                             SQLState.BLOB_NULL_PATTERN_OR_SEARCH_STR);
@@ -398,7 +398,6 @@ final class EmbedClob extends ConnectionChild implements Clob, EngineLOB
                                 }
                                 clobOffset = (int) (newStart - pos) - 1;
                                 newStart = -1;
-                                continue;
                             }
                         }
                     }
@@ -443,7 +442,7 @@ final class EmbedClob extends ConnectionChild implements Clob, EngineLOB
         checkValidity();
         if (start < 1)
             throw Util.generateCsSQLException(
-                                SQLState.BLOB_BAD_POSITION, new Long(start));
+                                SQLState.BLOB_BAD_POSITION, start);
         if (searchClob == null)
             throw Util.generateCsSQLException(
                                 SQLState.BLOB_NULL_PATTERN_OR_SEARCH_STR);
@@ -568,7 +567,7 @@ restartScan:
         checkValidity();
         if (pos < 1) {
             throw Util.generateCsSQLException(
-                SQLState.BLOB_BAD_POSITION, new Long(pos));
+                SQLState.BLOB_BAD_POSITION, pos);
         }
         
         if (pos > length() + 1) {
@@ -597,7 +596,7 @@ restartScan:
         if (len + offset > str.length()) {
             throw Util.generateCsSQLException(
                     SQLState.LANG_SUBSTR_START_ADDING_LEN_OUT_OF_RANGE,
-                    new Integer(offset), new Integer(len), str);
+                    offset, len, str);
         }
         
         try {
@@ -612,7 +611,7 @@ restartScan:
         } catch (EOFException eofe) {
             throw Util.generateCsSQLException(
                         SQLState.BLOB_POSITION_TOO_LARGE,
-                        new Long(pos));
+                    pos);
         } catch (IOException e) {
             throw Util.setStreamFailure(e);
         }
@@ -675,7 +674,7 @@ restartScan:
         checkValidity();
         if (len < 0)
             throw Util.generateCsSQLException(
-                SQLState.BLOB_NONPOSITIVE_LENGTH, new Long(len));
+                SQLState.BLOB_NONPOSITIVE_LENGTH, len);
         try {
             if (!clob.isWritable()) {
                 makeWritableClobClone(len);
@@ -687,7 +686,7 @@ restartScan:
         catch (EOFException eofe) {
             throw Util.generateCsSQLException(
                         SQLState.BLOB_LENGTH_TOO_LONG,
-                        new Long(len), eofe);
+                    len, eofe);
         } catch (IOException e) {
             throw Util.setStreamFailure(e);
         }
@@ -748,17 +747,17 @@ restartScan:
         if (pos <= 0) {
             throw Util.generateCsSQLException(
                     SQLState.BLOB_BAD_POSITION,
-                    new Long(pos));
+                    pos);
         }
         if (length < 0) {
             throw Util.generateCsSQLException(
                     SQLState.BLOB_NONPOSITIVE_LENGTH,
-                    new Long(length));
+                    length);
         }
         if (length > (this.length() - (pos -1))) {
             throw Util.generateCsSQLException(
                     SQLState.POS_AND_LENGTH_GREATER_THAN_LOB,
-                    new Long(pos), new Long(length));
+                    pos, length);
         }
         
         try {

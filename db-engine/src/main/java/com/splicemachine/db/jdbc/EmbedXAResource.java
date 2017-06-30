@@ -347,11 +347,8 @@ class EmbedXAResource implements XAResource {
      */
     public final synchronized boolean isSameRM(XAResource xares) 
                                                         throws XAException {
-        checkXAActive();        
-        if (xares instanceof EmbedXAResource) {            
-            return ra == ((EmbedXAResource) xares).ra;
-        }        
-        return false;
+        checkXAActive();
+        return xares instanceof EmbedXAResource && ra == ((EmbedXAResource) xares).ra;
     }
     
     /**
@@ -904,7 +901,7 @@ class EmbedXAResource implements XAResource {
         if (conn != null) {
             try {
                 conn.close();
-            } catch (SQLException sqle) {
+            } catch (SQLException ignored) {
                 
             }
         }

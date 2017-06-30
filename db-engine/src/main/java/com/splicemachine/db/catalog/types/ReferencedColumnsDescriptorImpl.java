@@ -292,10 +292,9 @@ public class ReferencedColumnsDescriptorImpl
             }
             //Write info about trigger action columns referenced through 
             //old/new transient variables
-            out.writeInt(referencedColumnsInTriggerAction.length); 
-            for (int i = 0; i < referencedColumnsInTriggerAction.length; i++) 
-            { 
-                out.writeInt(referencedColumnsInTriggerAction[i]); 
+            out.writeInt(referencedColumnsInTriggerAction.length);
+            for (int aReferencedColumnsInTriggerAction : referencedColumnsInTriggerAction) {
+                out.writeInt(aReferencedColumnsInTriggerAction);
             } 
         } else {
         	//If we are here, then it means there are no references in 
@@ -308,10 +307,9 @@ public class ReferencedColumnsDescriptorImpl
 	private void writeReferencedColumns(ObjectOutput out) throws IOException 
 	{ 
     	//trigger is defined on select columns. Write info about those columns
-        out.writeInt( referencedColumns.length ); 
-        for (int i = 0; i < referencedColumns.length; i++) 
-        { 
-            out.writeInt(referencedColumns[i]); 
+        out.writeInt( referencedColumns.length );
+        for (int referencedColumn : referencedColumns) {
+            out.writeInt(referencedColumn);
         } 
 	}
 

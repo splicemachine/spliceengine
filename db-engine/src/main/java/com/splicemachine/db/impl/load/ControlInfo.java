@@ -104,7 +104,7 @@ class ControlInfo
   public ControlInfo() throws Exception  {
     getCurrentProperties();
     //the field and record separators can't be subset of each other
-    if (getFieldSeparator().indexOf(getRecordSeparator()) != -1) {
+    if (getFieldSeparator().contains(getRecordSeparator())) {
        throw LoadError.fieldAndRecordSeparatorsSubset();
     }
   }
@@ -222,7 +222,7 @@ class ControlInfo
     String beforeSpecialChars;
     String afterSpecialChars;
     int specialCharsPosition;
-    while (aDelimiter.indexOf(specialChars) != -1) {
+    while (aDelimiter.contains(specialChars)) {
       specialCharsPosition = aDelimiter.indexOf(specialChars);
       beforeSpecialChars = aDelimiter.substring(0,specialCharsPosition);
       afterSpecialChars = aDelimiter.substring(specialCharsPosition+2);

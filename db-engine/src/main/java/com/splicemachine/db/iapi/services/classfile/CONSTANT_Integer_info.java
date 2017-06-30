@@ -53,14 +53,10 @@ class CONSTANT_Integer_info extends ConstantPoolEntry {
 
 	public boolean equals(Object other) {
 
-		// check it is the right type
-		if (other instanceof CONSTANT_Integer_info) {
-		
-			return value == ((CONSTANT_Integer_info) other).value;
-		}
+        // check it is the right type
+        return other instanceof CONSTANT_Integer_info && value == ((CONSTANT_Integer_info) other).value;
 
-		return false;
-	}
+    }
 
 	int classFileSize() {
 		// 1 (tag) + 4 (int length)

@@ -46,6 +46,7 @@ import javax.naming.Name;
 import javax.naming.RefAddr;
 import java.util.Hashtable;
 import java.util.Enumeration;
+import java.util.Locale;
 
 /** 
 
@@ -118,7 +119,7 @@ public class ReferenceableDataSource implements
 	*/
 	public final synchronized void setDatabaseName(String databaseName) {
 		this.databaseName = databaseName;
-		if( databaseName!= null && (databaseName.indexOf(";") >= 0)){
+		if( databaseName!= null && (databaseName.contains(";"))){
 			String[] dbShort = databaseName.split(";");
 			this.shortDatabaseName = dbShort[0];
 		}
@@ -359,49 +360,45 @@ public class ReferenceableDataSource implements
 		// Look for all the getXXX methods in the class that take no arguments.
 		Method[] methods = this.getClass().getMethods();
 
-		for (int i = 0; i < methods.length; i++) {
+        for (Method m : methods) {
 
-			Method m = methods[i];
+            // only look for simple getter methods.
+            if (m.getParameterTypes().length != 0)
+                continue;
 
-			// only look for simple getter methods.
-			if (m.getParameterTypes().length != 0)
-				continue;
+            // only non-static methods
+            if (Modifier.isStatic(m.getModifiers()))
+                continue;
 
-			// only non-static methods
-			if (Modifier.isStatic(m.getModifiers()))
-				continue;
-
-			// Only getXXX methods
-			String methodName = m.getName();
-			if ((methodName.length() < 5) || !methodName.startsWith("get"))
-				continue;
+            // Only getXXX methods
+            String methodName = m.getName();
+            if ((methodName.length() < 5) || !methodName.startsWith("get"))
+                continue;
 
 
+            Class returnType = m.getReturnType();
 
-			Class returnType = m.getReturnType();
+            if (Integer.TYPE.equals(returnType) || STRING_ARG[0].equals(returnType) || Boolean.TYPE.equals(returnType)) {
 
-			if (Integer.TYPE.equals(returnType) || STRING_ARG[0].equals(returnType) || Boolean.TYPE.equals(returnType)) {
+                // setSomeProperty
+                // 01234
 
-				// setSomeProperty
-				// 01234
+                String propertyName = methodName.substring(3, 4).toLowerCase(Locale.ENGLISH) + methodName.substring(4);
 
-				String propertyName = methodName.substring(3, 4).toLowerCase(java.util.Locale.ENGLISH) + methodName.substring(4);
+                try {
+                    Object ov = m.invoke(this, null);
 
-				try {
-					Object ov = m.invoke(this, null);
-
-					//Need to check for nullability for all the properties, otherwise
-					//rather than null, "null" string gets stored in jndi.
-					if (ov != null) {
-						ref.add(new StringRefAddr(propertyName, ov.toString()));
-					}
-				} catch (IllegalAccessException iae) {
-				} catch (InvocationTargetException ite) {
-				}
+                    //Need to check for nullability for all the properties, otherwise
+                    //rather than null, "null" string gets stored in jndi.
+                    if (ov != null) {
+                        ref.add(new StringRefAddr(propertyName, ov.toString()));
+                    }
+                } catch (IllegalAccessException | InvocationTargetException ignored) {
+                }
 
 
-			}
-		}
+            }
+        }
 
 		return ref;
 	}

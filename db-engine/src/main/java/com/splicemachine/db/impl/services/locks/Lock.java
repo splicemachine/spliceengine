@@ -233,13 +233,9 @@ class Lock implements Latch, Control {
 
     public boolean isGrantable(boolean noWaitersBeforeMe,
                                CompatibilitySpace compatibilitySpace,
-                               Object requestQualifier)
-    {
-		if ((space == compatibilitySpace) && ref.lockerAlwaysCompatible()) {
-			return true;
-		}
+                               Object requestQualifier) {
+        return (space == compatibilitySpace) && ref.lockerAlwaysCompatible() || ref.requestCompatible(requestQualifier, this.qualifier);
 
-		return ref.requestCompatible(requestQualifier, this.qualifier);
-	}
+    }
 }
 

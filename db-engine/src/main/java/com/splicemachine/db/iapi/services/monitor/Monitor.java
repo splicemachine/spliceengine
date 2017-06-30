@@ -728,7 +728,7 @@ public class Monitor {
 	 */
 	public static boolean isFullUpgrade(Properties startParams, String oldVersionInfo) throws StandardException {
 
-		boolean fullUpgrade = Boolean.valueOf(startParams.getProperty(Attribute.UPGRADE_ATTR)).booleanValue();
+		boolean fullUpgrade = Boolean.valueOf(startParams.getProperty(Attribute.UPGRADE_ATTR));
 
 		ProductVersionHolder engineVersion = Monitor.getMonitor().getEngineVersion();
 
@@ -800,7 +800,7 @@ public class Monitor {
 	  */
 	public static boolean isDesiredCreateType(Properties p, int type)
 	{
-		boolean plainCreate = Boolean.valueOf(p.getProperty(Attribute.CREATE_ATTR)).booleanValue();
+		boolean plainCreate = Boolean.valueOf(p.getProperty(Attribute.CREATE_ATTR));
 
 		if (plainCreate) {
 			return (type & EngineType.STANDALONE_DB) != 0;

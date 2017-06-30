@@ -111,7 +111,7 @@ abstract class SetOperatorNode extends TableOperatorNode
 	{
 		super.init(leftResult, rightResult, tableProperties);
 
-		this.all = ((Boolean) all).booleanValue();
+		this.all = (Boolean) all;
 
 		/* resultColumns cannot be null, so we make a copy of the left RCL
 		 * for now.  At bind() time, we need to recopy the list because there

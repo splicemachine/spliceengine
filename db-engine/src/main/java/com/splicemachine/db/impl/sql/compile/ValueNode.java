@@ -144,10 +144,10 @@ public abstract class ValueNode extends QueryTreeNode
 		setType(
 			new DataTypeDescriptor(
 						(TypeId) typeId,
-						((Integer) precision).intValue(),
-						((Integer) scale).intValue(),
-						((Boolean) isNullable).booleanValue(),
-						((Integer) maximumWidth).intValue()
+                    (Integer) precision,
+                    (Integer) scale,
+                    (Boolean) isNullable,
+                    (Integer) maximumWidth
 					)
 				);
 	}
@@ -174,8 +174,8 @@ public abstract class ValueNode extends QueryTreeNode
 	{
 		setType(new DataTypeDescriptor(
 						(TypeId) typeId,
-						((Boolean) isNullable).booleanValue(),
-						((Integer) maximumWidth).intValue()
+                        (Boolean) isNullable,
+                        (Integer) maximumWidth
 						)
 				);
 	}
@@ -614,17 +614,9 @@ public abstract class ValueNode extends QueryTreeNode
 	 *
 	 * @return		Boolean which reflects validity of the tree.
 	 */
-	boolean verifyEliminateNots()
-	{
-		if (SanityManager.ASSERT)
-		{
-			return (! (this instanceof NotNode));
-		}
-		else
-		{
-			return true;
-		}
-	}
+	boolean verifyEliminateNots() {
+        return !SanityManager.ASSERT || (!(this instanceof NotNode));
+    }
 
 	/**
 	 * Do the 1st step in putting an expression into conjunctive normal
@@ -1302,8 +1294,7 @@ public abstract class ValueNode extends QueryTreeNode
 		{
 			if (resultTable == -1)
 			{
-				for (int i = 0; i < tableColMap.length; i++)
-					tableColMap[i].set(colReference);
+                for (JBitSet aTableColMap : tableColMap) aTableColMap.set(colReference);
 			}
 			else
 				tableColMap[resultTable].set(colReference);
@@ -1478,13 +1469,9 @@ public abstract class ValueNode extends QueryTreeNode
 	 * 
 	 * @return <code>true</code> if the two nodes are of the same type.  
 	 */
-	protected final boolean isSameNodeType(ValueNode other)
-	{
-		if (other != null) {
-			return other.getNodeType() == getNodeType();
-		}
-		return false;
-	}
+	protected final boolean isSameNodeType(ValueNode other) {
+        return other != null && other.getNodeType() == getNodeType();
+    }
 	
 	public abstract List getChildren();
 

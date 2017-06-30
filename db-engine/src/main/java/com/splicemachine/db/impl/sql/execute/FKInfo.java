@@ -198,7 +198,7 @@ public class FKInfo implements Formatable {
 			return null;
 		}
 
-		Vector<FKInfo> newfksVector = new Vector<FKInfo>();
+		Vector<FKInfo> newfksVector = new Vector<>();
 		FKInfo[] newfks = null;
 
 		/*

@@ -575,11 +575,10 @@ public abstract	class ExpressionClassBuilder implements ExpressionClassBuilderIn
 		ColumnOrdering[] ordering = (ColumnOrdering[])orderingHolder.
 										getArray(ColumnOrdering.class);
 		int length = ordering.length;
-		for (int i = 0; i < length; i++)
-		{
-			if (ordering[i].getColumnId() == columnNum)
-				return orderingHolder;
-		}
+        for (ColumnOrdering anOrdering : ordering) {
+            if (anOrdering.getColumnId() == columnNum)
+                return orderingHolder;
+        }
 
 		/*
 		** Didn't find it.  Allocate a bigger array

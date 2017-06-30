@@ -86,7 +86,7 @@ final class BackgroundCleaner implements Serviceable {
      */
     BackgroundCleaner(
             ConcurrentCache cache, DaemonService daemon, int queueSize) {
-        queue = new ArrayBlockingQueue<CacheEntry>(queueSize);
+        queue = new ArrayBlockingQueue<>(queueSize);
         daemonService = daemon;
         cacheManager = cache;
         // subscribe with the onDemandOnly flag

@@ -181,7 +181,7 @@ public final class NativeAuthenticationServiceImpl
         {
             Long    passwordLifetime = parsePasswordLifetime( passwordLifetimeString );
 
-            if ( passwordLifetime != null ) { _passwordLifetimeMillis = passwordLifetime.longValue(); }
+            if ( passwordLifetime != null ) { _passwordLifetimeMillis = passwordLifetime; }
             else
             { _badlyFormattedPasswordProperty = Property.AUTHENTICATION_NATIVE_PASSWORD_LIFETIME; }
         }
@@ -195,7 +195,7 @@ public final class NativeAuthenticationServiceImpl
         {
             Double  expirationThreshold = parsePasswordThreshold( expirationThresholdString );
 
-            if ( expirationThreshold != null ) { _passwordExpirationThreshold = expirationThreshold.doubleValue(); }
+            if ( expirationThreshold != null ) { _passwordExpirationThreshold = expirationThreshold; }
             else
             { _badlyFormattedPasswordProperty = Property.AUTHENTICATION_PASSWORD_EXPIRATION_THRESHOLD; }
         }
@@ -365,10 +365,8 @@ public final class NativeAuthenticationServiceImpl
      * </p>
      */
     private boolean authenticatingInThisService( String canonicalDatabaseName )
-        throws StandardException
-    {
-        if ( _authenticateDatabaseOperationsLocally ) { return true; }
-        else { return isCredentialsService( canonicalDatabaseName ); }
+        throws StandardException {
+        return _authenticateDatabaseOperationsLocally || isCredentialsService(canonicalDatabaseName);
     }
 
     /**
@@ -377,14 +375,12 @@ public final class NativeAuthenticationServiceImpl
      * </p>
      */
     private boolean isCredentialsService( String canonicalDatabaseName )
-        throws StandardException
-    {
-        String  canonicalCredentialsDBName = getCanonicalServiceName( _credentialsDB );
+        throws StandardException {
+        String canonicalCredentialsDBName = getCanonicalServiceName(_credentialsDB);
 
-        String canonicalDB = Monitor.getMonitor().getCanonicalServiceName( canonicalDatabaseName );
+        String canonicalDB = Monitor.getMonitor().getCanonicalServiceName(canonicalDatabaseName);
 
-        if ( canonicalCredentialsDBName == null ) { return false; }
-        else { return canonicalCredentialsDBName.equals( canonicalDatabaseName ); }
+        return canonicalCredentialsDBName != null && canonicalCredentialsDBName.equals(canonicalDatabaseName);
     }
 
     /** Get the canonical name of the current database service */

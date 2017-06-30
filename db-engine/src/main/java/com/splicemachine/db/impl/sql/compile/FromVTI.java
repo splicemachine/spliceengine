@@ -623,10 +623,10 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 
                     if (paramClass.equals(Short.TYPE)) {
                         paramObjects[index] =
-                                new Short(((Integer) paramObjects[index]).shortValue());
+                                ((Integer) paramObjects[index]).shortValue();
                     } else if (paramClass.equals(Byte.TYPE)) {
                         paramObjects[index] =
-                                new Byte(((Integer) paramObjects[index]).byteValue());
+                                ((Integer) paramObjects[index]).byteValue();
                     }
                 }
 
@@ -636,27 +636,27 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                 {
                     if (paramClass.equals(Integer.TYPE))
                     {
-                        paramObjects[index] = new Integer(0);
+                        paramObjects[index] = 0;
                     }
                     else if (paramClass.equals(Short.TYPE))
                     {
-                        paramObjects[index] = new Short((short) 0);
+                        paramObjects[index] = (short) 0;
                     }
                     else if (paramClass.equals(Byte.TYPE))
                     {
-                        paramObjects[index] = new Byte((byte) 0);
+                        paramObjects[index] = (byte) 0;
                     }
                     else if (paramClass.equals(Long.TYPE))
                     {
-                        paramObjects[index] = new Long((long) 0);
+                        paramObjects[index] = (long) 0;
                     }
                     else if (paramClass.equals(Float.TYPE))
                     {
-                        paramObjects[index] = new Float((float) 0);
+                        paramObjects[index] = (float) 0;
                     }
                     else if (paramClass.equals(Double.TYPE))
                     {
-                        paramObjects[index] = new Double((double) 0);
+                        paramObjects[index] = (double) 0;
                     }
                     else if (paramClass.equals(Boolean.TYPE))
                     {
@@ -664,7 +664,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                     }
                     else if (paramClass.equals(Character.TYPE))
                     {
-                        paramObjects[index] = new Character(Character.MIN_VALUE);
+                        paramObjects[index] = Character.MIN_VALUE;
                     }
                 }
             }
@@ -758,7 +758,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
             if (ref.getTableNumber() == -1) {
                 // we need a fake agg list
                 if (aggregateVector == null) {
-                    aggregateVector = new ArrayList<AggregateNode>();
+                    aggregateVector = new ArrayList<>();
                 }
                 ref.bindExpression(fromListParam, subqueryList, aggregateVector);
             }
@@ -1765,12 +1765,11 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 
     @Override
     public String printExplainInformation(String attrDelim, int order) throws StandardException {
-        String sb = spaceToLevel() +
+        return spaceToLevel() +
                 "VTI:" + getName() + "(" +
                 "n=" + order +
                 attrDelim + getFinalCostEstimate().prettyProcessingString(attrDelim) +
                 ")";
-        return sb;
     }
 
     @Override

@@ -63,7 +63,7 @@ public class FormatableBitSetTest {
         Method m = null;
         try {
             m = Integer.class.getMethod("bitCount", new Class[]{Integer.TYPE});
-        } catch (Throwable t) {
+        } catch (Throwable ignored) {
         }
         bitCount = m;
     }
@@ -166,7 +166,7 @@ public class FormatableBitSetTest {
         try {
             FormatableBitSet negBits = new FormatableBitSet(-1);
             fail();
-        } catch (IllegalArgumentException iae) {
+        } catch (IllegalArgumentException ignored) {
         }
     }
 
@@ -228,7 +228,7 @@ public class FormatableBitSetTest {
         try {
             bitset18.grow(-9);
             fail();
-        } catch (IllegalArgumentException iae) {
+        } catch (IllegalArgumentException ignored) {
         }
     }
 
@@ -358,7 +358,7 @@ public class FormatableBitSetTest {
         try {
             bitset18.shrink(25);
             fail();
-        } catch (IllegalArgumentException iae) {
+        } catch (IllegalArgumentException ignored) {
         }
     }
 
@@ -367,7 +367,7 @@ public class FormatableBitSetTest {
         try {
             bitset18.shrink(-9);
             fail();
-        } catch (IllegalArgumentException iae) {
+        } catch (IllegalArgumentException ignored) {
         }
     }
 
@@ -523,17 +523,17 @@ public class FormatableBitSetTest {
         try {
             empty.isSet(-8);
             fail();
-        } catch (IllegalArgumentException iae) {
+        } catch (IllegalArgumentException ignored) {
         }
         try {
             empty.isSet(-1);
             fail();
-        } catch (IllegalArgumentException iae) {
+        } catch (IllegalArgumentException ignored) {
         }
         try {
             empty.isSet(0);
             fail();
-        } catch (IllegalArgumentException iae) {
+        } catch (IllegalArgumentException ignored) {
         }
     }
 
@@ -541,13 +541,13 @@ public class FormatableBitSetTest {
         try {
             bitset18C.isSet(-8);
             fail();
-        } catch (IllegalArgumentException iae) {
+        } catch (IllegalArgumentException ignored) {
         }
 
         try {
             bitset18C.isSet(-1);
             fail();
-        } catch (IllegalArgumentException iae) {
+        } catch (IllegalArgumentException ignored) {
         }
 
         assertFalse(bitset18C.isSet(0));
@@ -571,7 +571,7 @@ public class FormatableBitSetTest {
         try {
             bitset18C.isSet(18);
             fail();
-        } catch (IllegalArgumentException iae) {
+        } catch (IllegalArgumentException ignored) {
         }
     }
 
@@ -580,17 +580,17 @@ public class FormatableBitSetTest {
         try {
             empty.set(-8);
             fail();
-        } catch (IllegalArgumentException iae) {
+        } catch (IllegalArgumentException ignored) {
         }
         try {
             empty.set(-1);
             fail();
-        } catch (IllegalArgumentException iae) {
+        } catch (IllegalArgumentException ignored) {
         }
         try {
             empty.set(0);
             fail();
-        } catch (IllegalArgumentException iae) {
+        } catch (IllegalArgumentException ignored) {
         }
     }
 
@@ -598,12 +598,12 @@ public class FormatableBitSetTest {
         try {
             bitset18.set(-8);
             fail();
-        } catch (IllegalArgumentException iae) {
+        } catch (IllegalArgumentException ignored) {
         }
         try {
             bitset18.set(-1);
             fail();
-        } catch (IllegalArgumentException iae) {
+        } catch (IllegalArgumentException ignored) {
         }
         bitset18.set(0);
         assertTrue(bitset18.invariantHolds());
@@ -612,7 +612,7 @@ public class FormatableBitSetTest {
         try {
             bitset18.set(18);
             fail();
-        } catch (IllegalArgumentException iae) {
+        } catch (IllegalArgumentException ignored) {
         }
     }
 
@@ -621,17 +621,17 @@ public class FormatableBitSetTest {
         try {
             empty.clear(-8);
             fail();
-        } catch (IllegalArgumentException iae) {
+        } catch (IllegalArgumentException ignored) {
         }
         try {
             empty.clear(-1);
             fail();
-        } catch (IllegalArgumentException iae) {
+        } catch (IllegalArgumentException ignored) {
         }
         try {
             empty.clear(0);
             fail();
-        } catch (IllegalArgumentException iae) {
+        } catch (IllegalArgumentException ignored) {
         }
     }
 
@@ -639,12 +639,12 @@ public class FormatableBitSetTest {
         try {
             bitset18.clear(-8);
             fail();
-        } catch (IllegalArgumentException iae) {
+        } catch (IllegalArgumentException ignored) {
         }
         try {
             bitset18.clear(-1);
             fail();
-        } catch (IllegalArgumentException iae) {
+        } catch (IllegalArgumentException ignored) {
         }
         bitset18.clear(0);
         assertTrue(bitset18.invariantHolds());
@@ -653,7 +653,7 @@ public class FormatableBitSetTest {
         try {
             bitset18.clear(18);
             fail();
-        } catch (IllegalArgumentException iae) {
+        } catch (IllegalArgumentException ignored) {
         }
     }
 
@@ -679,12 +679,12 @@ public class FormatableBitSetTest {
         try {
             bitset18.anySetBit(-2);
             fail();
-        } catch (ArrayIndexOutOfBoundsException e) {
+        } catch (ArrayIndexOutOfBoundsException ignored) {
         }
         try {
             bitset18.anySetBit(-3);
             fail();
-        } catch (ArrayIndexOutOfBoundsException e) {
+        } catch (ArrayIndexOutOfBoundsException ignored) {
         }
     }
 
@@ -814,9 +814,9 @@ public class FormatableBitSetTest {
 
     // count one-bits in a byte with Integer.bitCount()
     private static int bitsInByte(byte b) throws Exception {
-        Integer arg = new Integer(b & 0xff);
+        Integer arg = b & 0xff;
         Integer ret = (Integer) bitCount.invoke(null, new Object[]{arg});
-        return ret.intValue();
+        return ret;
     }
 
     // test getNumBitsSet() for a one-byte bit set

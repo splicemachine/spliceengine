@@ -444,19 +444,16 @@ public class NonStaticMethodCallNode extends MethodCallNode
 	 */
 	protected boolean generateReceiver(ExpressionClassBuilder acb,
 											MethodBuilder mb)
-									throws StandardException
-	{
-		/*
+									throws StandardException {
+        /*
 		** Let's pretend that a call to a static method doesn't have a
 		** receiver, since the method call is actually to the class,
 		** and can be made even if the receiver is null (that is, we
 		** always want to call a static method, even if the receiver is null).
 		*/
-		if (isStatic)
-			return false;
-		
-		return generateReceiver(acb, mb, receiver);
-	}
+        return !isStatic && generateReceiver(acb, mb, receiver);
+
+    }
 
 	/**
 	 * Accept the visitor for all visitable children of this node.

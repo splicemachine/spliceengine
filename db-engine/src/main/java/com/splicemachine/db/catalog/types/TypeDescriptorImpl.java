@@ -588,9 +588,9 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable {
 		out.writeBoolean(children != null);
 		if (children!=null) {
 			out.writeInt(children.length);
-			for (int i  =0 ; i< children.length; i++) {
-				out.writeObject(children[i]);
-			}
+            for (TypeDescriptor aChildren : children) {
+                out.writeObject(aChildren);
+            }
 		}
 	}
  

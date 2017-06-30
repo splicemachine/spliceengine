@@ -33,9 +33,6 @@ package com.splicemachine.db.iapi.sql.dictionary;
 
 import org.joda.time.DateTime;
 
-/**
- * Created by jyuan on 6/6/17.
- */
 public class SnapshotDescriptor extends TupleDescriptor
 {
     private String snapshotName;

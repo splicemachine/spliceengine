@@ -85,7 +85,7 @@ public class JDBCBoot {
              * 3. if the module fails to start we want to log a message to the error log and continue as
              *    an embedded database.
              */
-            if( Boolean.valueOf(PropertyUtil.getSystemProperty(Property.START_DRDA)).booleanValue())
+            if(Boolean.valueOf(PropertyUtil.getSystemProperty(Property.START_DRDA)))
             {
                 try
                 {

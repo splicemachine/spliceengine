@@ -44,15 +44,15 @@ public class ReuseFactory {
 	}
 
 	private static final Integer[] staticInts =
-		{new Integer(0), new Integer(1), new Integer(2), new Integer(3),
-		 new Integer(4), new Integer(5), new Integer(6), new Integer(7),
-		 new Integer(8), new Integer(9), new Integer(10), new Integer(11),
-		 new Integer(12), new Integer(13), new Integer(14), new Integer(15),
-		 new Integer(16), new Integer(17), new Integer(18)};
-	private static final Integer FIFTY_TWO = new Integer(52);
-	private static final Integer TWENTY_THREE = new Integer(23);
-	private static final Integer MAXINT = new Integer(Integer.MAX_VALUE);
-	private static final Integer MINUS_ONE = new Integer(-1);
+		{0, 1, 2, 3,
+                4, 5, 6, 7,
+                8, 9, 10, 11,
+                12, 13, 14, 15,
+                16, 17, 18};
+	private static final Integer FIFTY_TWO = 52;
+	private static final Integer TWENTY_THREE = 23;
+	private static final Integer MAXINT = Integer.MAX_VALUE;
+	private static final Integer MINUS_ONE = -1;
 
 	public static Integer getInteger(int i)
 	{
@@ -78,51 +78,51 @@ public class ReuseFactory {
 				return MINUS_ONE;
 
 			  default:
-				return new Integer(i);
+				return i;
 			}
 		}
 	}
 
 	private static final Short[] staticShorts =
-		{new Short((short) 0), new Short((short) 1), new Short((short) 2),
-		 new Short((short) 3), new Short((short) 4), new Short((short) 5),
-		 new Short((short) 6), new Short((short) 7), new Short((short) 8),
-		 new Short((short) 9), new Short((short) 10)};
+		{(short) 0, (short) 1, (short) 2,
+                (short) 3, (short) 4, (short) 5,
+                (short) 6, (short) 7, (short) 8,
+                (short) 9, (short) 10};
 
 	public static Short getShort(short i)
 	{
 		if (i >= 0 && i < staticShorts.length)
 			return staticShorts[i];
 		else
-			return new Short(i);
+			return i;
 	}
 
 	private static final Byte[] staticBytes =
-		{new Byte((byte) 0), new Byte((byte) 1), new Byte((byte) 2),
-		 new Byte((byte) 3), new Byte((byte) 4), new Byte((byte) 5),
-		 new Byte((byte) 6), new Byte((byte) 7), new Byte((byte) 8),
-		 new Byte((byte) 9), new Byte((byte) 10)};
+		{(byte) 0, (byte) 1, (byte) 2,
+                (byte) 3, (byte) 4, (byte) 5,
+                (byte) 6, (byte) 7, (byte) 8,
+                (byte) 9, (byte) 10};
 
 	public static Byte getByte(byte i)
 	{
 		if (i >= 0 && i < staticBytes.length)
 			return staticBytes[i];
 		else
-			return new Byte(i);
+			return i;
 	}
 
 	private static final Long[] staticLongs =
-		{new Long(0), new Long(1), new Long(2),
-		 new Long(3), new Long(4), new Long(5),
-		 new Long(6), new Long(7), new Long(8),
-		 new Long(9), new Long(10)};
+		{0L, 1L, 2L,
+                3L, 4L, 5L,
+                6L, 7L, 8L,
+                9L, 10L};
 
 	public static Long getLong(long i)
 	{
 		if (i >= 0 && i < staticLongs.length)
 			return staticLongs[(int) i];
 		else
-			return new Long(i);
+			return i;
 	}
 
     public static Boolean getBoolean( boolean b)

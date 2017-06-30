@@ -170,17 +170,15 @@ public class RowUtil
 
 		if (qualifiers != null) 
         {
-			for (int i = 0; i < qualifiers.length; i++)
-			{
-                for (int j = 0; j < qualifiers[i].length; j++)
-                {
-                    int colId = qualifiers[i][j].getColumnId();
+            for (Qualifier[] qualifier : qualifiers) {
+                for (int j = 0; j < qualifier.length; j++) {
+                    int colId = qualifier[j].getColumnId();
 
                     // we are about to set bit colId, need length to be colId+1
-                    qualifierColumnList.grow(colId+1);
+                    qualifierColumnList.grow(colId + 1);
                     qualifierColumnList.set(colId);
                 }
-			}
+            }
 		}
 
 		return qualifierColumnList;
@@ -232,13 +230,9 @@ public class RowUtil
 		@return true if row is empty.
 	*/
 	public static boolean isRowEmpty(
-    DataValueDescriptor[]   row) 
-    {
+    DataValueDescriptor[]   row) {
 
-		if (row == null)
-			return true;
-
-        return row.length == 0;
+        return row == null || row.length == 0;
 
     }
 
@@ -408,26 +402,26 @@ public class RowUtil
         if (SanityManager.DEBUG)
         {
 
-            String str = "";
+            StringBuilder str = new StringBuilder();
 
             if (row != null)
             {
                 if (row.length == 0)
                 {
-                    str = "empty row";
+                    str = new StringBuilder("empty row");
                 }
                 else
                 {
                     for (int i = 0; i < row.length; i++)
-                        str += "col[" + i + "]=" + row[i];
+                        str.append("col[").append(i).append("]=").append(row[i]);
                 }
             }
             else
             {
-                str = "row is null";
+                str = new StringBuilder("row is null");
             }
 
-            return(str);
+            return(str.toString());
         }
         else
         {
@@ -449,7 +443,7 @@ public class RowUtil
     {
         if (SanityManager.DEBUG)
         {
-            String str = "";
+            StringBuilder str = new StringBuilder();
 
             Object  row_or_vector;
 
@@ -460,8 +454,8 @@ public class RowUtil
                 if (row_or_vector instanceof Object[])
                 {
                     // it's a row
-                    str += RowUtil.toString((Object[]) row_or_vector);
-                    str += "\n";
+                    str.append(RowUtil.toString((Object[]) row_or_vector));
+                    str.append("\n");
                 }
                 else if (row_or_vector instanceof Vector)
                 {
@@ -470,19 +464,17 @@ public class RowUtil
 
                     for (int i = 0; i < vec.size(); i++)
                     {
-                        str += 
-                            "vec[" + i + "]:" + 
-                            RowUtil.toString((Object[]) vec.get(i));
+                        str.append("vec[").append(i).append("]:").append(RowUtil.toString((Object[]) vec.get(i)));
 
-                        str += "\n";
+                        str.append("\n");
                     }
                 }
                 else
                 {
-                    str += "BAD ENTRY\n";
+                    str.append("BAD ENTRY\n");
                 }
             }
-            return(str);
+            return(str.toString());
         }
         else
         {

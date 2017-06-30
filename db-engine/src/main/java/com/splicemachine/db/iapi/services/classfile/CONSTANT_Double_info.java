@@ -58,14 +58,10 @@ final class CONSTANT_Double_info extends ConstantPoolEntry {
 
 	public boolean equals(Object other) {
 
-		// check it is the right type
-		if (other instanceof CONSTANT_Double_info) {
-		
-			return value == ((CONSTANT_Double_info) other).value;
-		}
+        // check it is the right type
+        return other instanceof CONSTANT_Double_info && value == ((CONSTANT_Double_info) other).value;
 
-		return false;
-	}
+    }
 }
 
 
