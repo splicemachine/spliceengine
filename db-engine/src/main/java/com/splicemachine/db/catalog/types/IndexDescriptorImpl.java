@@ -168,15 +168,19 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable
 	}
 
 	/** @see IndexDescriptor#isAscending */
-	public boolean			isAscending(Integer keyColumnPosition) {
-        int i = keyColumnPosition - 1;
-        return !(i < 0 || i >= baseColumnPositions.length) && isAscending[i];
+	public boolean isAscending(Integer keyColumnPosition) {
+		int i = keyColumnPosition.intValue() - 1;
+		if (i < 0 || i >= baseColumnPositions.length)
+			return false;
+		return isAscending[i];
     }
 
 	/** @see IndexDescriptor#isDescending */
 	public boolean			isDescending(Integer keyColumnPosition) {
-        int i = keyColumnPosition - 1;
-        return !(i < 0 || i >= baseColumnPositions.length) && !isAscending[i];
+		int i = keyColumnPosition.intValue() - 1;
+		if (i < 0 || i >= baseColumnPositions.length)
+			return false;
+		return ! isAscending[i];
     }
 
 	/** @see IndexDescriptor#isAscending */
