@@ -621,7 +621,7 @@ public class ExternalTableIT extends SpliceUnitTest{
 
 
     @Test
-    @Ignore
+    @Ignore // this throws an error because we use spark to infer the datatype of partitioned columns, and it incorrectly determines float is a double.
     public void testWriteReadWithPartitionedByFloatTable() throws Exception {
         String tablePath = getExternalResourceDirectory()+"simple_parquet_with_partition";
         methodWatcher.executeUpdate(String.format("create external table simple_parquet_with_partition (col1 int, col2 varchar(24), col3 float(10) )" +
@@ -636,8 +636,6 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "  1  |XXXX | 3.4567   |\n" +
                 "  2  |YYYY |540.3434  |\n" +
                 "  3  |ZZZZ |590.34344 |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-
-
     }
 
     @Test
