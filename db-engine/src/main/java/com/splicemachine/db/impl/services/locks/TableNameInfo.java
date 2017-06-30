@@ -167,7 +167,7 @@ public class TableNameInfo {
 				type = "?";
 				break;
 			}
-		} else if (conglomId.longValue() > 20)
+		} else if (conglomId > 20)
 		{
 			type = "T";
 		} else {

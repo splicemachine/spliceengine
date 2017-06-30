@@ -103,7 +103,7 @@ public class EmbedConnection40
         // Validate that the timeout has a legal value
         if (timeout < 0) {
             throw Util.generateCsSQLException(SQLState.INVALID_API_PARAMETER,
-                                              new Integer(timeout), "timeout",
+                    timeout, "timeout",
                                               "java.sql.Connection.isValid");
         }
 

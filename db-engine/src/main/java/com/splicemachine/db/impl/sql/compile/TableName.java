@@ -84,8 +84,8 @@ public class TableName extends QueryTreeNode
 	)
 	{
 		init(schemaName, tableName);
-		this.setBeginOffset(((Integer) tokBeginOffset).intValue());
-		this.setEndOffset(((Integer) tokEndOffset).intValue());
+		this.setBeginOffset((Integer) tokBeginOffset);
+		this.setEndOffset((Integer) tokEndOffset);
 	}
 
 	/**

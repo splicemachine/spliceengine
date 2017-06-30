@@ -102,7 +102,7 @@ public final class ClobStreamHeaderGenerator
         // Do not try to determine the version through the cottext service, use
         // the specified value instead.
         this.callbackDVD = null;
-        this.isPreDerbyTenFive = Boolean.valueOf(isPreDerbyTenFive);
+        this.isPreDerbyTenFive = isPreDerbyTenFive;
     }
 
     /**
@@ -121,7 +121,7 @@ public final class ClobStreamHeaderGenerator
             determineHeaderFormat();
         }
         // Expect byte count if older than 10.5, char count otherwise.
-        return !isPreDerbyTenFive.booleanValue();
+        return !isPreDerbyTenFive;
     }
 
     /**
@@ -212,7 +212,7 @@ public final class ClobStreamHeaderGenerator
         if (callbackDVD != null && isPreDerbyTenFive == null) {
             determineHeaderFormat();
         }
-        if (!isPreDerbyTenFive.booleanValue()) {
+        if (!isPreDerbyTenFive) {
             if (valueLength < 0) {
                 System.arraycopy(DERBY_EOF_MARKER, 0,
                                  buffer, offset, DERBY_EOF_MARKER.length);
@@ -239,7 +239,7 @@ public final class ClobStreamHeaderGenerator
         if (callbackDVD != null && isPreDerbyTenFive == null) {
             determineHeaderFormat();
         }
-        if (!isPreDerbyTenFive.booleanValue()) {
+        if (!isPreDerbyTenFive) {
             if (valueLength < 0) {
                 out.write(DERBY_EOF_MARKER);
                 return DERBY_EOF_MARKER.length;

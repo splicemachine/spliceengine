@@ -75,7 +75,7 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
 	 * @param operand	The operand
 	 */
 	public void init(Object field, Object operand) {
-		extractField = ((Integer) field).intValue();
+		extractField = (Integer) field;
 		super.init( operand,
 					"EXTRACT "+fieldName[extractField],
 					fieldMethod[extractField] );

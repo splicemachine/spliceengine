@@ -56,7 +56,7 @@ import java.util.Map;
  * Date: 7/5/13
  */
 public class SpliceASTWalker implements ASTVisitor {
-    private List<ASTVisitor> visitors = new ArrayList<ASTVisitor>();
+    private List<ASTVisitor> visitors = new ArrayList<>();
     public final Map<CompilationPhase, List<Class<? extends ISpliceVisitor>>> visitorClasses;
 
     public SpliceASTWalker(List<Class<? extends ISpliceVisitor>> afterParseClasses,

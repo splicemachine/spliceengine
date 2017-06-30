@@ -10019,12 +10019,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException
      */
     protected PermDescriptor getUncachedGenericPermDescriptor(PermDescriptor key) throws StandardException{
-        int catalogNum=SYSPERMS_CATALOG_NUM;
         int indexNum=SYSPERMSRowFactory.GRANTEE_OBJECTID_GRANTOR_INDEX_NUM;
         if(key.getObjectID()!=null)
             indexNum=SYSPERMSRowFactory.PERMS_UUID_IDX_NUM;
 
-        Object o=getUncachedPermissionsDescriptor(catalogNum,indexNum,key);
+        Object o=getUncachedPermissionsDescriptor(SYSPERMS_CATALOG_NUM,indexNum,key);
         return (PermDescriptor)o;
     } // end of getUncachedGenericPermDescriptor
 

@@ -100,18 +100,13 @@ abstract class BinaryLogicalOperatorNode extends BinaryOperatorNode
 	 *
 	 * @return		Boolean which reflects validity of the tree.
 	 */
-	boolean verifyEliminateNots()
-	{
+	boolean verifyEliminateNots() {
 		if (SanityManager.ASSERT)
-		{
-			return (leftOperand.verifyEliminateNots() &&
-					rightOperand.verifyEliminateNots());
-		}
-		else
-		{
-			return true;
-		}
-	}
+ 		{
+ 			return (leftOperand.verifyEliminateNots() &&
+								rightOperand.verifyEliminateNots());
+		} else {return true;}		
+ 	}
 
 	/**
 	 * Do code generation for this logical binary operator.

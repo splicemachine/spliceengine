@@ -1035,7 +1035,6 @@ public abstract class ResultSetNode extends QueryTreeNode{
         System.out.println("I am a "+getClass());
         if(SanityManager.DEBUG)
             SanityManager.NOTREACHED();
-        return;
     }
 
     /**

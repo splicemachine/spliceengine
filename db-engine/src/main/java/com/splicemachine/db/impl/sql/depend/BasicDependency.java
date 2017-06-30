@@ -81,7 +81,7 @@ class BasicDependency implements Dependency {
 	// class interface
 	//
 	BasicDependency(Dependent d, Provider p) {
-		dependent = new WeakReference<Dependent>(d);
+		dependent = new WeakReference<>(d);
 		provider = p;
 	}
 

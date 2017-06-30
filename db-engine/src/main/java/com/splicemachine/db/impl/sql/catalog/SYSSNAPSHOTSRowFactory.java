@@ -42,9 +42,6 @@ import org.joda.time.DateTime;
 
 import java.sql.Types;
 
-/**
- * Created by jyuan on 6/6/17.
- */
 public class SYSSNAPSHOTSRowFactory extends CatalogRowFactory
 {
     public static final String		TABLENAME_STRING = "SYSSNAPSHOTS";

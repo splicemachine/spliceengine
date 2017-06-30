@@ -254,8 +254,7 @@ public class IndexSetChanger
 		 throws StandardException
 	{
 		openIndexes(ALL_INDEXES);
-		for (int ix = 0; ix < indexChangers.length; ix++)
-			indexChangers[ix].delete(baseRow,baseRowLocation);
+        for (IndexChanger indexChanger : indexChangers) indexChanger.delete(baseRow, baseRowLocation);
 	}
 
 	/**
@@ -272,8 +271,7 @@ public class IndexSetChanger
 		 throws StandardException
 	{
 		openIndexes(ALL_INDEXES);
-		for (int ix = 0; ix < indexChangers.length; ix++)
-			indexChangers[ix].insert(baseRow,baseRowLocation);
+        for (IndexChanger indexChanger : indexChangers) indexChanger.insert(baseRow, baseRowLocation);
 	}
 
 	/**
@@ -307,13 +305,11 @@ public class IndexSetChanger
 	 */
 	public void setBaseCC(ConglomerateController baseCC)
 	{
-		for (int ix = 0; ix < indexChangers.length; ix++)
-		{
-			if (indexChangers[ix] != null)
-			{
-				indexChangers[ix].setBaseCC(baseCC);
-			}
-		}
+        for (IndexChanger indexChanger : indexChangers) {
+            if (indexChanger != null) {
+                indexChanger.setBaseCC(baseCC);
+            }
+        }
 		this.baseCC = baseCC;
 	}
 
@@ -326,13 +322,11 @@ public class IndexSetChanger
 	public void finish()
 		throws StandardException
 	{
-		for (int ix = 0; ix < indexChangers.length; ix++)
-		{
-			if (indexChangers[ix] != null)
-			{
-				indexChangers[ix].finish();
-			}
-		}
+        for (IndexChanger indexChanger : indexChangers) {
+            if (indexChanger != null) {
+                indexChanger.finish();
+            }
+        }
 	}
 		
 	/**
@@ -344,13 +338,11 @@ public class IndexSetChanger
 		throws StandardException
 	{
 		whatIsOpen = NO_INDEXES;
-		for (int ix = 0; ix < indexChangers.length; ix++)
-		{
-			if (indexChangers[ix] != null)
-			{
-				indexChangers[ix].close();
-			}
-		}
+        for (IndexChanger indexChanger : indexChangers) {
+            if (indexChanger != null) {
+                indexChanger.close();
+            }
+        }
 		fixOnUpdate = null;
 		isOpen = false;
 		rowHolder = null;
@@ -380,26 +372,23 @@ public class IndexSetChanger
 				break;
 			}
 
-			String fixOnUpdate_s = "fixOnUpdate=(";
+			StringBuilder fixOnUpdate_s = new StringBuilder("fixOnUpdate=(");
 			for (int ix = 0; ix < fixOnUpdate.length; ix++)
 			{
 				if (ix > 0)
-					fixOnUpdate_s+=",";
+					fixOnUpdate_s.append(",");
 
-                fixOnUpdate_s += fixOnUpdate[ix];
+                fixOnUpdate_s.append(fixOnUpdate[ix]);
 			}
-			fixOnUpdate_s +=")";
+			fixOnUpdate_s.append(")");
 
-			String indexDesc_s = "\n";
+			StringBuilder indexDesc_s = new StringBuilder("\n");
 			for (int ix = 0; ix < indexCIDS.length; ix++)
 			{
 				if (indexChangers[ix] == null)
-					indexDesc_s += "    Index["+ix+"] cid="+
-						indexCIDS[ix]+" closed. \n";
+					indexDesc_s.append("    Index[").append(ix).append("] cid=").append(indexCIDS[ix]).append(" closed. \n");
                 else
-					indexDesc_s +=
-						"    "+
-						indexChangers[ix].toString() + "\n";
+					indexDesc_s.append("    ").append(indexChangers[ix].toString()).append("\n");
 			}
 
 			return "IndexSetChanger: "+

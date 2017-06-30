@@ -77,7 +77,7 @@ public class ClassSize
             catalog = (java.util.Hashtable)
               Class.forName( "com.splicemachine.db.iapi.services.cache.ClassSizeCatalog").newInstance();
         }
-        catch( Exception e){}
+        catch( Exception ignored){}
 
         // Figure out whether this is a 32 or 64 bit machine.
         int tmpRefSize = fetchRefSizeFromSystemProperties();
@@ -150,32 +150,30 @@ public class ClassSize
            Field[] field = cl.getDeclaredFields();
             if( null != field)
             {
-                for( int i = 0; i < field.length; i++)
-                {
-                    if( ! Modifier.isStatic( field[i].getModifiers()))
-                    {
-                        Class fieldClass = field[i].getType();
-                        if( fieldClass.isArray() || ! fieldClass.isPrimitive())
+                for (Field aField : field) {
+                    if (!Modifier.isStatic(aField.getModifiers())) {
+                        Class fieldClass = aField.getType();
+                        if (fieldClass.isArray() || !fieldClass.isPrimitive())
                             coeff[1]++;
                         else // Is simple primitive
                         {
                             String name = fieldClass.getName();
 
-                            if( name.equals( "int") || name.equals( "I"))
+                            if (name.equals("int") || name.equals("I"))
                                 coeff[0] += intSize;
-                            else if( name.equals( "long") || name.equals( "J"))
+                            else if (name.equals("long") || name.equals("J"))
                                 coeff[0] += longSize;
-                            else if( name.equals( "boolean") || name.equals( "Z"))
+                            else if (name.equals("boolean") || name.equals("Z"))
                                 coeff[0] += booleanSize;
-                            else if( name.equals( "short") || name.equals( "S"))
+                            else if (name.equals("short") || name.equals("S"))
                                 coeff[0] += shortSize;
-                            else if( name.equals( "byte") || name.equals( "B"))
+                            else if (name.equals("byte") || name.equals("B"))
                                 coeff[0] += 1;
-                            else if( name.equals( "char") || name.equals( "C"))
+                            else if (name.equals("char") || name.equals("C"))
                                 coeff[0] += charSize;
-                            else if( name.equals( "float") || name.equals( "F"))
+                            else if (name.equals("float") || name.equals("F"))
                                 coeff[0] += floatSize;
-                            else if( name.equals( "double") || name.equals( "D"))
+                            else if (name.equals("double") || name.equals("D"))
                                 coeff[0] += doubleSize;
                             else // What is this??
                                 coeff[1]++; // Make a guess: one reference (?)
@@ -329,7 +327,7 @@ public class ClassSize
         String dataModel = getSystemProperty("sun.arch.data.model");
         try {
             return (Integer.parseInt(dataModel) / 8);
-        } catch (NumberFormatException ignoreNFE) {}
+        } catch (NumberFormatException ignored) {}
 
         // Try 'os.arch'
         String arch = getSystemProperty("os.arch");

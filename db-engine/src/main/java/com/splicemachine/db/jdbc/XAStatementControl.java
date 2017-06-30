@@ -139,7 +139,7 @@ final class XAStatementControl implements BrokeredStatementControl {
  
 			try {
 				realStatement.close();
-			} catch (SQLException sqle) {
+			} catch (SQLException ignored) {
 			}
 
 			realStatement = newStatement;
@@ -180,7 +180,7 @@ final class XAStatementControl implements BrokeredStatementControl {
 
 			try {
 				realPreparedStatement.close();
-			} catch (SQLException sqle) {
+			} catch (SQLException ignored) {
 			}
 
 			realPreparedStatement = newPreparedStatement;
@@ -218,7 +218,7 @@ final class XAStatementControl implements BrokeredStatementControl {
 
 			try {
 				realCallableStatement.close();
-			} catch (SQLException sqle) {
+			} catch (SQLException ignored) {
 			}
 
 			realCallableStatement = newCallableStatement;

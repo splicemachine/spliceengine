@@ -135,8 +135,7 @@ class VTIDeferModPolicy implements Visitor
         tableNumber = targetVTI.getTableNumber();
         if( statementType == DeferModification.UPDATE_STATEMENT && columnNames != null)
         {
-            for( int i = 0; i < columnNames.length; i++)
-                columns.put( columnNames[i], columnNames[i]);
+            for (String columnName : columnNames) columns.put(columnName, columnName);
         }
     }
 

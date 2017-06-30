@@ -75,7 +75,7 @@ public class ConditionalNode extends ValueNode
 	{
 		this.testCondition = (ValueNode) testCondition;
 		this.thenElseList = (ValueNodeList) thenElseList;
-		this.thisIsNullIfNode = ((Boolean) thisIsNullIfNode).booleanValue();
+		this.thisIsNullIfNode = (Boolean) thisIsNullIfNode;
 	}
 
 	/**

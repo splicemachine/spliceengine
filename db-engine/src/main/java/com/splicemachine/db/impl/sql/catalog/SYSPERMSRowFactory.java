@@ -323,7 +323,7 @@ public class SYSPERMSRowFactory extends PermissionsCatalogRowFactory {
                         permission,
                         grantor,
                         grantee,
-                        isGrantable.equals("Y") ? true : false);
+                        isGrantable.equals("Y"));
 
         return descriptor;
     }

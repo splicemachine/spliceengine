@@ -229,8 +229,8 @@ public abstract class GenericConglomerate
      * @return {@code true} if a collation other than UCS BASIC was found.
      */
     public static boolean hasCollatedColumns(int[] collationIds) {
-        for (int i=0; i < collationIds.length; i++) {
-            if (collationIds[i] != StringDataValue.COLLATION_TYPE_UCS_BASIC) {
+        for (int collationId : collationIds) {
+            if (collationId != StringDataValue.COLLATION_TYPE_UCS_BASIC) {
                 return true;
             }
         }

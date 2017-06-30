@@ -57,7 +57,7 @@ class EmbedPooledConnection40 extends EmbedPooledConnection {
      */
     private final CopyOnWriteArrayList<StatementEventListener>
             statementEventListeners =
-                    new CopyOnWriteArrayList<StatementEventListener>();
+            new CopyOnWriteArrayList<>();
 
     EmbedPooledConnection40 (ReferenceableDataSource ds, String user, 
                  String password, boolean requestPassword) throws SQLException {

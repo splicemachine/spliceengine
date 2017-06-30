@@ -79,9 +79,9 @@ public class OptimizerFactoryImpl
 		** optimization.
 		*/
 		ruleBasedOptimization =
-				Boolean.valueOf(
-					PropertyUtil.getSystemProperty(Optimizer.RULE_BASED_OPTIMIZATION)
-								).booleanValue();
+                Boolean.valueOf(
+                        PropertyUtil.getSystemProperty(Optimizer.RULE_BASED_OPTIMIZATION)
+                );
 
 		/*
 		** This property determines whether the optimizer should ever stop
@@ -89,9 +89,9 @@ public class OptimizerFactoryImpl
 		** The default is that it will.
 		*/
 		noTimeout =
-				Boolean.valueOf(
-					PropertyUtil.getSystemProperty(Optimizer.NO_TIMEOUT)
-								).booleanValue();
+                Boolean.valueOf(
+                        PropertyUtil.getSystemProperty(Optimizer.NO_TIMEOUT)
+                );
 
 		/*
 		** This property determines the maximum size of memory (in KB)
@@ -111,7 +111,7 @@ public class OptimizerFactoryImpl
 		
 		String us =	PropertyUtil.getSystemProperty(Optimizer.USE_STATISTICS); 
 		if (us != null)
-			useStatistics = (Boolean.valueOf(us)).booleanValue();
+			useStatistics = Boolean.valueOf(us);
 
 		/* Allocation of joinStrategySet deferred til
 		 * getOptimizer(), even though we only need 1

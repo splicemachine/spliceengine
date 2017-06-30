@@ -502,20 +502,17 @@ public class BinaryRelationalOperatorNode
     /**
      * @see RelationalOperator#usefulStartKey
      */
-    public boolean usefulStartKey(Optimizable optTable){
+    public boolean usefulStartKey(Optimizable optTable) {
 
         BinaryRelationalOperatorNodeUtil.coerceDataTypeIfNecessary(this);
 
 		/*
-		** Determine whether this operator is a useful start operator
+        ** Determine whether this operator is a useful start operator
 		** with knowledge of whether the key column is on the left or right.
 		*/
-        int columnSide=columnOnOneSide(optTable);
+        int columnSide = columnOnOneSide(optTable);
 
-        if(columnSide==NEITHER)
-            return false;
-        else
-            return usefulStartKey(columnSide==LEFT);
+        return columnSide != NEITHER && usefulStartKey(columnSide == LEFT);
     }
 
     /**
@@ -617,17 +614,14 @@ public class BinaryRelationalOperatorNode
     /**
      * @see RelationalOperator#usefulStopKey
      */
-    public boolean usefulStopKey(Optimizable optTable){
-		/*
+    public boolean usefulStopKey(Optimizable optTable) {
+        /*
 		** Determine whether this operator is a useful start operator
 		** with knowledge of whether the key column is on the left or right.
 		*/
-        int columnSide=columnOnOneSide(optTable);
+        int columnSide = columnOnOneSide(optTable);
 
-        if(columnSide==NEITHER)
-            return false;
-        else
-            return usefulStopKey(columnSide==LEFT);
+        return columnSide != NEITHER && usefulStopKey(columnSide == LEFT);
     }
 
     /**
@@ -1369,7 +1363,6 @@ public class BinaryRelationalOperatorNode
                 break;
         }
 
-        return;
     }
 
     /**
@@ -1625,25 +1618,22 @@ public class BinaryRelationalOperatorNode
     @Override
     public boolean optimizableEqualityNode(Optimizable optTable,
                                            int columnNumber,
-                                           boolean isNullOkay) throws StandardException{
-        if(operatorType!=EQUALS_RELOP)
+                                           boolean isNullOkay) throws StandardException {
+        if (operatorType != EQUALS_RELOP)
             return false;
 
 		/* If this rel op is for a probe predicate then we do not treat
-		 * it as an equality node; it's actually a disguised IN-list node.
+         * it as an equality node; it's actually a disguised IN-list node.
 		 */
-        if(isInListProbeNode())
+        if (isInListProbeNode())
             return false;
 
-        ColumnReference cr=getColumnOperand(optTable,
+        ColumnReference cr = getColumnOperand(optTable,
                 columnNumber);
-        if(cr==null)
+        if (cr == null)
             return false;
 
-        if(selfComparison(cr))
-            return false;
-
-        return !implicitVarcharComparison();
+        return !selfComparison(cr) && !implicitVarcharComparison();
 
     }
 
@@ -1659,14 +1649,11 @@ public class BinaryRelationalOperatorNode
      */
 
     private boolean implicitVarcharComparison()
-            throws StandardException{
-        TypeId leftType=leftOperand.getTypeId();
-        TypeId rightType=rightOperand.getTypeId();
+            throws StandardException {
+        TypeId leftType = leftOperand.getTypeId();
+        TypeId rightType = rightOperand.getTypeId();
 
-        if(leftType.isStringTypeId() && !rightType.isStringTypeId())
-            return true;
-
-        return rightType.isStringTypeId() && (!leftType.isStringTypeId());
+        return leftType.isStringTypeId() && !rightType.isStringTypeId() || rightType.isStringTypeId() && (!leftType.isStringTypeId());
 
     }
 
@@ -2048,7 +2035,6 @@ public class BinaryRelationalOperatorNode
         // table numbers beneath the target node.
         btnVis.setTableMap(optBaseTables);
         ft.accept(btnVis);
-        return;
     }
 
     public boolean hasRowId(){

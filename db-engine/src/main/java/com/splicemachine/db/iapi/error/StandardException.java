@@ -537,8 +537,7 @@ public class StandardException extends Exception
 		}
 
         if (t instanceof SQLException && t.getMessage().contains("amazonaws")) {
-            StandardException se = StandardException.newException(SQLState.ACCESSING_S3_EXCEPTION, t.getMessage());
-            return se;
+            return StandardException.newException(SQLState.ACCESSING_S3_EXCEPTION, t.getMessage());
         }
 
         // Look for simple wrappers for 3.0.1 - will be cleaned up in main
@@ -717,13 +716,12 @@ public class StandardException extends Exception
 	*/
 	public String toString() {
 		String msg = getMessage();
-		String buf = "ERROR " + getSQLState() + ": " + msg + "\n" +
+        // Include the Splice Machine version/release information.
+
+		return "ERROR " + getSQLState() + ": " + msg + "\n" +
 				"Splice Machine Release: " + System.getProperty(Property.SPLICE_RELEASE) + "\n" +
 				"Splice Machine Version Hash: " + System.getProperty(Property.SPLICE_VERSION_HASH) + "\n" +
 				"Splice Machine Build Time: " + System.getProperty(Property.SPLICE_BUILD_TIME);
-		// Include the Splice Machine version/release information.
-
-		return buf;
 	}
 
 	/*

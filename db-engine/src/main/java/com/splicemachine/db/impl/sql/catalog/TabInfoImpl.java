@@ -264,16 +264,11 @@ public class TabInfoImpl
      *
      * @return boolean  Whether or not this is fully initialized.
      */
-    boolean isComplete()
-    {
-		/* We are complete when heap conglomerate and all
+    boolean isComplete() {
+        /* We are complete when heap conglomerate and all
 		 * index conglomerates are set.
 		 */
-        if (! heapSet)
-        {
-            return false;
-        }
-        return (indexes == null ||	indexes.length == numIndexesSet);
+        return heapSet && (indexes == null || indexes.length == numIndexesSet);
     }
 
     /**
@@ -1115,8 +1110,7 @@ public class TabInfoImpl
             //Compute the length of streamStorableHeapColIds
             //One entry for each column id.
             DataValueDescriptor[] ra = baseRow.getRowArray();
-            for(int ix=0;ix<ra.length;ix++)
-                if (ra[ix] instanceof StreamStorable) sshcidLen++;
+            for (DataValueDescriptor aRa : ra) if (aRa instanceof StreamStorable) sshcidLen++;
 
             //
             //If we have some streamStorableHeapColIds we

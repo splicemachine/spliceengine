@@ -91,8 +91,8 @@ public class ColumnOrdering{
             Integer col=(Integer)columns.get(i);
             Integer tab=(Integer)tables.get(i);
 
-            if(tab.intValue()==tableNumber &&
-                    col.intValue()==columnNumber){
+            if(tab ==tableNumber &&
+                    col ==columnNumber){
 
                 return true;
             }
@@ -106,8 +106,8 @@ public class ColumnOrdering{
             Integer col=(Integer)columns.get(i);
             Integer tab=(Integer)tables.get(i);
 
-            if(tab.intValue()==tableNumber &&
-                    col.intValue()==columnNumber){
+            if(tab ==tableNumber &&
+                    col ==columnNumber){
 
                 return i;
             }
@@ -130,8 +130,8 @@ public class ColumnOrdering{
      * @param columnNumber The column number in the table (one-based)
      */
     void addColumn(int tableNumber,int columnNumber){
-        tables.add(new Integer(tableNumber));
-        columns.add(new Integer(columnNumber));
+        tables.add(tableNumber);
+        columns.add(columnNumber);
     }
 
     /**
@@ -144,7 +144,7 @@ public class ColumnOrdering{
 		*/
         for(int i=tables.size()-1;i>=0;i--){
             Integer tab=(Integer)tables.get(i);
-            if(tab.intValue()==tableNumber){
+            if(tab ==tableNumber){
                 tables.remove(i);
                 columns.remove(i);
             }
@@ -180,10 +180,10 @@ public class ColumnOrdering{
         if(tables.isEmpty())
             return false;
 
-        for(int i=0;i<tables.size();i++){
-            Integer tab=(Integer)tables.get(i);
+        for (Object table : tables) {
+            Integer tab = (Integer) table;
 
-            if(tab.intValue()==tableNumber)
+            if (tab == tableNumber)
                 return true;
         }
 
@@ -197,10 +197,10 @@ public class ColumnOrdering{
         if(tables.isEmpty())
             return false;
 
-        for(int i=0;i<tables.size();i++){
-            Integer tab=(Integer)tables.get(i);
+        for (Object table : tables) {
+            Integer tab = (Integer) table;
 
-            if(tab.intValue()!=tableNumber)
+            if (tab != tableNumber)
                 return true;
         }
 
@@ -208,18 +208,17 @@ public class ColumnOrdering{
     }
 
     public String toString(){
-        String retval="";
+        StringBuilder retval= new StringBuilder();
 
         if(SanityManager.DEBUG){
-            retval+="Direction: "+myDirection;
+            retval.append("Direction: ").append(myDirection);
 
             for(int i=0;i<columns.size();i++){
-                retval+=" Table "+tables.get(i)+
-                        ", Column "+columns.get(i);
+                retval.append(" Table ").append(tables.get(i)).append(", Column ").append(columns.get(i));
             }
         }
 
-        return retval;
+        return retval.toString();
     }
 
     public int size(){

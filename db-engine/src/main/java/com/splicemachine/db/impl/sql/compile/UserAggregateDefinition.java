@@ -160,10 +160,9 @@ class UserAggregateDefinition implements AggregateDefinition
             // the type bounds of the Aggregator implementation.
             //
             Class[] inputBounds = typeBounds[ INPUT_TYPE ];
-            for ( int i = 0; i < inputBounds.length; i++ )
-            {
+            for (Class inputBound : inputBounds) {
                 vetCompatibility
-                    ( (Class<?>) inputBounds[ i ], expectedInputClass, SQLState.LANG_UDA_WRONG_INPUT_TYPE );
+                        ((Class<?>) inputBound, expectedInputClass, SQLState.LANG_UDA_WRONG_INPUT_TYPE);
             }
             if ( genericParameterTypes[ INPUT_TYPE ] != null )
             {
@@ -176,10 +175,9 @@ class UserAggregateDefinition implements AggregateDefinition
             // the type bounds of the Aggregator implementation.
             //
             Class[] returnBounds = typeBounds[ RETURN_TYPE ];
-            for ( int i = 0; i < returnBounds.length; i++ )
-            {
+            for (Class returnBound : returnBounds) {
                 vetCompatibility
-                    ( returnBounds[ i ], expectedReturnClass, SQLState.LANG_UDA_WRONG_RETURN_TYPE );
+                        (returnBound, expectedReturnClass, SQLState.LANG_UDA_WRONG_RETURN_TYPE);
             }
             if ( genericParameterTypes[ RETURN_TYPE ] != null )
             {

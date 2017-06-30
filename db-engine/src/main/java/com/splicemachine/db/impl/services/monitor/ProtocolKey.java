@@ -73,13 +73,11 @@ class ProtocolKey {
 		try {
 			return new ProtocolKey(Class.forName(className), identifier);
 
-		} catch (ClassNotFoundException cnfe) {
+		} catch (ClassNotFoundException | IllegalArgumentException cnfe) {
 			t = cnfe;
-		} catch (IllegalArgumentException iae) {
-			t = iae;
 		}
 
-		throw Monitor.exceptionStartingModule(t);	
+        throw Monitor.exceptionStartingModule(t);
 	}
 
 	/*

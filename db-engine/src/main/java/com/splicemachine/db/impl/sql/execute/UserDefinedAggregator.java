@@ -107,8 +107,7 @@ public final class UserDefinedAggregator  extends UDTBase implements ExecAggrega
             _aggregator = (Aggregator) udaClass.newInstance();
             _aggregator.init();
         }
-        catch (InstantiationException ie) { logAggregatorInstantiationError( aggregateName, ie ); }
-        catch (IllegalAccessException iae) { logAggregatorInstantiationError( aggregateName, iae ); }
+        catch (InstantiationException | IllegalAccessException ie) { logAggregatorInstantiationError( aggregateName, ie ); }
 
         _resultType = resultType;
     }

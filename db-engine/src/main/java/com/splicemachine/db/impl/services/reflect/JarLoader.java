@@ -137,13 +137,11 @@ public final class JarLoader extends SecureClassLoader {
 			isStream = true;
 			return;
 
-		} catch (IOException ioe) {
+		} catch (IOException | StandardException ioe) {
 			e = ioe;
-		} catch (StandardException se) {
-			e = se;
 		}
 
-		if (vs != null)
+        if (vs != null)
 			vs.println(MessageService.getTextMessage(
 					MessageId.CM_LOAD_JAR_EXCEPTION, getJarName(), e));
 
@@ -299,13 +297,9 @@ public final class JarLoader extends SecureClassLoader {
 		if (e == null)
 			return null;
 
-		InputStream in = jar.getInputStream(e);
-
-		try {
-			return loadClassData(e, in, className, resolve);
-		} finally {
-			in.close();
-		}
+        try (InputStream in = jar.getInputStream(e)) {
+            return loadClassData(e, in, className, resolve);
+        }
 	}
 
     /**
@@ -399,7 +393,7 @@ public final class JarLoader extends SecureClassLoader {
         if (jar != null) {
             try {
                 jar.close();
-            } catch (IOException ioe) {
+            } catch (IOException ignored) {
             }
             jar = null;
 
@@ -472,7 +466,7 @@ public final class JarLoader extends SecureClassLoader {
             if (jarIn != null) {
                 try {
                     jarIn.close();
-                } catch (IOException ioe2) {
+                } catch (IOException ignored) {
                 }
             }            
         }
@@ -525,8 +519,8 @@ public final class JarLoader extends SecureClassLoader {
                 return null;
             }
 
-            for (int i = 0; i < list.length; i++) {
-                if (!(list[i] instanceof X509Certificate)) {
+            for (Certificate aList : list) {
+                if (!(aList instanceof X509Certificate)) {
                     String msg = MessageService.getTextMessage(
                             MessageId.CM_UNKNOWN_CERTIFICATE, className,
                             getJarName());
@@ -534,7 +528,7 @@ public final class JarLoader extends SecureClassLoader {
                     throw new SecurityException(msg);
                 }
 
-                X509Certificate cert = (X509Certificate) list[i];
+                X509Certificate cert = (X509Certificate) aList;
 
                 cert.checkValidity();
             }

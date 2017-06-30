@@ -88,9 +88,9 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
      */
     private Map<ValueNode,Integer> nodesWithMultipleOccurrences(ValueNode pred, int n) throws StandardException {
 
-        Map<ValueNode, Integer> m = new HashMap<ValueNode,Integer>();
+        Map<ValueNode, Integer> m = new HashMap<>();
 
-        List<ValueNode> binNodes = new LinkedList<ValueNode>(RSUtils.collectNodes(pred, BinaryRelationalOperatorNode.class));
+        List<ValueNode> binNodes = new LinkedList<>(RSUtils.collectNodes(pred, BinaryRelationalOperatorNode.class));
         binNodes.addAll(RSUtils.collectNodes(pred, BinaryListOperatorNode.class));
 
         List<NotNode> notNodes = new LinkedList<>(RSUtils.collectNodes(pred, NotNode.class));
@@ -99,9 +99,9 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
 
             if(m.containsKey(node)){
                 Integer count = m.get(node);
-                m.put(node, Integer.valueOf( count.intValue() + 1));
+                m.put(node, count.intValue() + 1);
             }else{
-                m.put(node, Integer.valueOf(1));
+                m.put(node, 1);
             }
         }
 
@@ -112,7 +112,7 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
             Map.Entry<ValueNode,Integer> me = mapIt.next();
             Integer i = me.getValue();
 
-            if(i.intValue() != n){
+            if(i != n){
                 mapIt.remove();
             }
         }
@@ -237,11 +237,8 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
         ValueNode leftChild = ((AndNode) valueNode).getLeftOperand();
         ValueNode rightChild = ((AndNode) valueNode).getRightOperand();
 
-        if (leftChild instanceof OrNode || rightChild instanceof OrNode)
-            return false;
+        return !(leftChild instanceof OrNode || rightChild instanceof OrNode) && (isConjunctiveLiteral(leftChild) && isLiteral(rightChild) || isLiteral(leftChild) && isConjunctiveLiteral(rightChild));
 
-        return  (isConjunctiveLiteral(leftChild) && isLiteral(rightChild) ||
-                isLiteral(leftChild) && isConjunctiveLiteral(rightChild));
     }
 
     private boolean isLiteral(ValueNode valueNode) {

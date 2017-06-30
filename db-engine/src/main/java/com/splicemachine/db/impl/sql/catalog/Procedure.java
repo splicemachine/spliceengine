@@ -310,8 +310,7 @@ public class Procedure {
 
             Arg that = (Arg) o;
 
-            if (!name.equals(that.name)) return false;
-            return type.equals(that.type);
+            return name.equals(that.name) && type.equals(that.type);
 
         }
 

@@ -158,7 +158,6 @@ public abstract class GClass implements ClassBuilder {
 			}
 
 	        // all the checks succeeded, it must be okay.
-	        return;
-	    }
+        }
 	}
 }

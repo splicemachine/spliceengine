@@ -72,7 +72,7 @@ public class CallStatementNode extends DMLStatementNode {
     private static TreeSet<String> xplainTraceProcedures;
 
     static {
-        xplainTraceProcedures = new TreeSet<String>();
+        xplainTraceProcedures = new TreeSet<>();
         xplainTraceProcedures.add("SQLCAMESSAGE");
     }
 

@@ -114,10 +114,7 @@ public class EmbedSQLException extends SQLException implements DerbySQLException
 		return csqle;	
 	}
 	public boolean isSimpleWrapper() {
-		if (getNextException() != null) {
-			return false;
-		}
-		
-		return simpleWrapper;
-	}
+        return getNextException() == null && simpleWrapper;
+
+    }
 }

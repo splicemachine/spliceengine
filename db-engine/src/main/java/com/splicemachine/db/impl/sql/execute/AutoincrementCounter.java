@@ -165,7 +165,7 @@ public class AutoincrementCounter
 				throw StandardException.newException(
 											SQLState.LANG_AI_COUNTER_ERROR);
 			}
-			counter = start.longValue();			
+			counter = start;
 		}	
 		else
 		{
@@ -183,7 +183,7 @@ public class AutoincrementCounter
 	{
 		if (!initialized)
 			return null;
-		return new Long(counter);
+		return counter;
 	}
 	
 	/**

@@ -97,7 +97,7 @@ final class ConcurrentCache implements CacheManager {
      */
     ConcurrentCache(CacheableFactory holderFactory, String name,
                     int initialSize, int maxSize) {
-        cache = new ConcurrentHashMap<Object, CacheEntry>(initialSize);
+        cache = new ConcurrentHashMap<>(initialSize);
         replacementPolicy = new ClockPolicy(this, initialSize, maxSize);
         this.holderFactory = holderFactory;
         this.name = name;
@@ -677,7 +677,7 @@ final class ConcurrentCache implements CacheManager {
      * @return a collection view of the objects in the cache
      */
     public Collection<Cacheable> values() {
-        ArrayList<Cacheable> values = new ArrayList<Cacheable>();
+        ArrayList<Cacheable> values = new ArrayList<>();
         for (CacheEntry entry : cache.values()) {
             entry.lock();
             try {

@@ -85,8 +85,7 @@ class GenericExecutionContext
  				return;
             }
 
-			return;
-		}
+        }
 	}
 
 	//

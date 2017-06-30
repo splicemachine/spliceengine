@@ -111,7 +111,7 @@ public class IntersectOrExceptNode extends SetOperatorNode
         throws StandardException
 	{
         super.init( leftResult, rightResult, all, tableProperties);
-        this.opType = ((Integer) opType).intValue();
+        this.opType = (Integer) opType;
     }
 
     private int getOpType()
@@ -339,7 +339,7 @@ public class IntersectOrExceptNode extends SetOperatorNode
                 newRcl,
                 offset,
                 fetchFirst,
-                Boolean.valueOf( hasJDBClimitClause ),
+                    hasJDBClimitClause,
                 getContextManager());
         }
 

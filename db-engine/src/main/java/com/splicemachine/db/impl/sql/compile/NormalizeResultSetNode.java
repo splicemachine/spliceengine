@@ -576,7 +576,7 @@ public class NormalizeResultSetNode extends SingleChildResultSetNode
 							Object forUpdate) throws StandardException
 	{
 		super.init(childResult, tableProperties);
-		this.forUpdate = ((Boolean)forUpdate).booleanValue();
+		this.forUpdate = (Boolean) forUpdate;
 
 		ResultSetNode rsn  = (ResultSetNode) childResult;
 		ResultColumnList rcl = rsn.getResultColumns();

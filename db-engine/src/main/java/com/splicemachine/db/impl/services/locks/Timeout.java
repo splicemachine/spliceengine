@@ -105,9 +105,8 @@ public final class Timeout
         column[8] = "TABLENAME / CONGLOM_ID                ";
 
         int length = 0;
-        for( int i = 0 ; i < column.length; i++ )
-        {
-            length += column[i].length();
+        for (String aColumn : column) {
+            length += aColumn.length();
         }
         length += column.length; // for the separator
         if( SanityManager.DEBUG )
@@ -303,7 +302,7 @@ public final class Timeout
             if( attributes.get(VirtualLockTable.CONTAINERID) != null && tc != null )
             {   
                 Long value = (Long)attributes.get(VirtualLockTable.CONTAINERID);
-                conglomId = new Long( tc.findConglomid( value.longValue() ) );
+                conglomId = tc.findConglomid(value.longValue());
                 attributes.put( VirtualLockTable.CONGLOMID, conglomId );
             }
         }
@@ -316,7 +315,7 @@ public final class Timeout
             {
                 try
                 {
-                    containerId = new Long( tc.findContainerid( conglomId.longValue() ) );
+                    containerId = tc.findContainerid(conglomId.longValue());
                     attributes.put( VirtualLockTable.CONTAINERID, containerId );
                 }
                 catch( Exception e )

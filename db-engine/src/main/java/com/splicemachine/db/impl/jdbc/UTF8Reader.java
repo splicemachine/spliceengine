@@ -337,9 +337,8 @@ public final class UTF8Reader extends Reader
             if (len > remainingInBuffer)
                 len = remainingInBuffer;
 
-            char[] lbuffer = buffer;
             for (int i = 0; i < len; i++) {
-                char c = lbuffer[readPositionInBuffer + i];
+                char c = buffer[readPositionInBuffer + i];
                 byte cb;
                 if (c <= 255)
                     cb = (byte) c;
@@ -429,7 +428,7 @@ readChars:
                     if (!csd.isPositionAware()) {
                         closeIn();
                     }
-                    break readChars;
+                    break;
                 }
                 throw utfFormatException("Reached EOF prematurely, " +
                     "read " + utfCount + " out of " + utfLen + " bytes");

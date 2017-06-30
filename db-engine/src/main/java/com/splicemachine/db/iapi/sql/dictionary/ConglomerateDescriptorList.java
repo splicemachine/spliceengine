@@ -55,15 +55,13 @@ public class ConglomerateDescriptorList extends ArrayList<ConglomerateDescriptor
 		ConglomerateDescriptor	returnValue = null;
 
 		int size = size();
-		for (int index = 0; index < size; index++)
-		{
-			conglomerateDescriptor = (ConglomerateDescriptor) get(index);
-			if (conglomerateNumber == conglomerateDescriptor.getConglomerateNumber())
-			{
-				returnValue = conglomerateDescriptor;
-				break;
-			}
-		}
+        for (ConglomerateDescriptor conglomerateDescriptor1 : this) {
+            conglomerateDescriptor = (ConglomerateDescriptor) conglomerateDescriptor1;
+            if (conglomerateNumber == conglomerateDescriptor.getConglomerateNumber()) {
+                returnValue = conglomerateDescriptor;
+                break;
+            }
+        }
 
 		return returnValue;
 	}
@@ -85,12 +83,11 @@ public class ConglomerateDescriptorList extends ArrayList<ConglomerateDescriptor
 		int size = size(), j = 0;
 		ConglomerateDescriptor[] draft = new ConglomerateDescriptor[size];
 
-		for (int index = 0; index < size; index++)
-		{
-			conglomerateDescriptor = (ConglomerateDescriptor) get(index);
-			if (conglomerateNumber == conglomerateDescriptor.getConglomerateNumber())
-				draft[j++] = conglomerateDescriptor;
-		}
+        for (ConglomerateDescriptor conglomerateDescriptor1 : this) {
+            conglomerateDescriptor = (ConglomerateDescriptor) conglomerateDescriptor1;
+            if (conglomerateNumber == conglomerateDescriptor.getConglomerateNumber())
+                draft[j++] = conglomerateDescriptor;
+        }
 
 		if (j == size)
 			return draft;
@@ -116,15 +113,13 @@ public class ConglomerateDescriptorList extends ArrayList<ConglomerateDescriptor
 		ConglomerateDescriptor	returnValue = null;
 
 		int size = size();
-		for (int index = 0; index < size; index++)
-		{
-			conglomerateDescriptor = (ConglomerateDescriptor) get(index);
-			if (conglomerateName.equals(conglomerateDescriptor.getConglomerateName()))
-			{
-				returnValue = conglomerateDescriptor;
-				break;
-			}
-		}
+        for (ConglomerateDescriptor conglomerateDescriptor1 : this) {
+            conglomerateDescriptor = (ConglomerateDescriptor) conglomerateDescriptor1;
+            if (conglomerateName.equals(conglomerateDescriptor.getConglomerateName())) {
+                returnValue = conglomerateDescriptor;
+                break;
+            }
+        }
 
 		return returnValue;
 	}
@@ -163,8 +158,8 @@ public class ConglomerateDescriptorList extends ArrayList<ConglomerateDescriptor
     public ConglomerateDescriptor getBaseConglomerateDescriptor() {
         ConglomerateDescriptor conglomerateDescriptor;
         int size = size();
-        for (int index = 0; index < size; index++) {
-            conglomerateDescriptor = (ConglomerateDescriptor) get(index);
+        for (ConglomerateDescriptor conglomerateDescriptor1 : this) {
+            conglomerateDescriptor = (ConglomerateDescriptor) conglomerateDescriptor1;
             if (!conglomerateDescriptor.isIndex()) {
                 return conglomerateDescriptor;
             }

@@ -381,7 +381,7 @@ public final class TransactionResourceImpl
 		} catch (Throwable t) {
 
             if (cm != null) { // something to let us cleanup?
-                cm.cleanupOnError(t, database != null ? isActive() : false);
+                cm.cleanupOnError(t, database != null && isActive());
 			}
 
             InterruptStatus.restoreIntrFlagIfSeen();

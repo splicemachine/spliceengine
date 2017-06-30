@@ -54,7 +54,7 @@ public class TruncateOperatorNode extends BinaryOperatorNode {
     private static final Map<Integer,Pair> TYPES_TO_METHOD_NAMES;
     private static final String TRUNC_DECIMAL = "truncDecimal";
     static {
-        TYPES_TO_METHOD_NAMES = new HashMap<Integer, Pair>(4);
+        TYPES_TO_METHOD_NAMES = new HashMap<>(4);
         TYPES_TO_METHOD_NAMES.put(Types.TIMESTAMP, new Pair(ClassName.DateTimeDataValue, "truncTimestamp"));
         TYPES_TO_METHOD_NAMES.put(Types.DATE, new Pair(ClassName.DateTimeDataValue, "truncDate"));
         TYPES_TO_METHOD_NAMES.put(Types.DECIMAL, new Pair(ClassName.NumberDataValue, TRUNC_DECIMAL));

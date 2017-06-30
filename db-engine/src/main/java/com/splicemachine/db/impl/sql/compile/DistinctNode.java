@@ -134,7 +134,7 @@ public class DistinctNode extends SingleChildResultSetNode
 		 */
 		resultColumns.verifyAllOrderable();
 
-		this.inSortedOrder = ((Boolean) inSortedOrder).booleanValue();
+		this.inSortedOrder = (Boolean) inSortedOrder;
 	}
 
 	/*

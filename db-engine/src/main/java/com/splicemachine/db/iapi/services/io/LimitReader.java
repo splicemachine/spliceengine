@@ -128,8 +128,7 @@ public final class LimitReader extends Reader implements Limit
 	{
 		remainingCharacters = length;
 		limitInPlace = true;
-		return;
-	}
+    }
     
     /**
      * return limit of the stream that can be read without throwing

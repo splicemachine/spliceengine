@@ -123,7 +123,7 @@ public class FormatableHashtable extends Hashtable implements Formatable
 
 	public boolean getBoolean(Object key) {
 
-		return getInt(key) == 0 ? false : true;
+		return getInt(key) != 0;
 
 	}
 
