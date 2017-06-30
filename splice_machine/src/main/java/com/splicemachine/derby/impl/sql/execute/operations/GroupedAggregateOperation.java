@@ -187,15 +187,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
                 operationContext.popScope();
 
-                /**
-                 * With the rows split, the column positions recorded in aggregates are no longer valid,
-                 * so for multiple distinct aggregate case, we need to compose a new aggregates array with
-                 * column ids pointing to the new position in the split row.
-                 *
-                newAggregates = setupNewAggregates(groupedAggregateContext.getGroupingKeys());
-                distinctColumnId = groupedAggregateContext.getGroupingKeys().length + 1;
-                 */
-
                 operationContext.pushScopeForOp(OperationContext.Scope.REDUCE);
                 PairDataSet set3 = set2.reduceByKey(
                         new MergeNonDistinctAggregatesFunctionForMixedRows(operationContext,

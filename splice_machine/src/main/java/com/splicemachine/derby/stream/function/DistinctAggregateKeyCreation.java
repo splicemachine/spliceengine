@@ -20,14 +20,14 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
-public class DistinctAggregateKeyCreation<Op extends SpliceOperation> extends SpliceFunction<Op,LocatedRow, ExecRow> {
+public class DistinctAggregateKeyCreation<Op extends SpliceOperation> extends SpliceFunction<Op,ExecRow, ExecRow> {
 
     private static final long serialVersionUID = 3988079974858059941L;
     private int[] groupByColumns;
@@ -55,7 +55,7 @@ public class DistinctAggregateKeyCreation<Op extends SpliceOperation> extends Sp
     }
 
     @Override
-     public ExecRow call(LocatedRow row) throws Exception {
+     public ExecRow call(ExecRow row) throws Exception {
         int numOfGroupKeys = 0;
         if (groupByColumns != null)
             numOfGroupKeys = groupByColumns.length;
@@ -65,17 +65,17 @@ public class DistinctAggregateKeyCreation<Op extends SpliceOperation> extends Sp
         // copy the first N columns which are groupByColumns + distinct column position + distinct column
         // should we put the more distinct columns first instead? Is there performance difference for hashing?
         for (; position<=numOfGroupKeys; position++) {
-            valueRow.setColumn(position, row.getRow().getColumn(position));
+            valueRow.setColumn(position, row.getColumn(position));
         }
         //read the distinct column id
-        DataValueDescriptor dvd = row.getRow().getColumn(position);
+        DataValueDescriptor dvd = row.getColumn(position);
         valueRow.setColumn(position++, dvd);
         if (dvd.isNull()) {
             // this is a row for non-distinct aggregates, put null value here
             valueRow.setColumn(position, new SQLInteger());
         } else {
             // this is a row corresponding to a distinct aggregate
-            valueRow.setColumn(position, row.getRow().getColumn(numOfGroupKeys+3));
+            valueRow.setColumn(position, row.getColumn(numOfGroupKeys+3));
         }
         return valueRow;
     }

@@ -16,7 +16,6 @@ package com.splicemachine.derby.stream.function;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.GenericAggregateOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.commons.collections.iterators.SingletonIterator;
@@ -30,7 +29,7 @@ import java.util.Iterator;
 /**
  * Created by yxia on 6/27/17.
  */
-public class StitchMixedRowFlatMapFunction<Op extends SpliceOperation> extends SpliceFlatMapFunction<Op, Iterator<LocatedRow>, LocatedRow> {
+public class StitchMixedRowFlatMapFunction<Op extends SpliceOperation> extends SpliceFlatMapFunction<Op, Iterator<ExecRow>, ExecRow> {
     protected boolean initialized;
     protected GenericAggregateOperation op;
     protected SpliceGenericAggregator[] aggregates;
@@ -55,7 +54,7 @@ public class StitchMixedRowFlatMapFunction<Op extends SpliceOperation> extends S
 
     @SuppressWarnings("unchecked")
     @Override
-    public Iterator<LocatedRow> call(Iterator<LocatedRow> locatedRows) throws Exception {
+    public Iterator<ExecRow> call(Iterator<ExecRow> rowIterator) throws Exception {
         if (!initialized) {
             op = (GenericAggregateOperation) getOperation();
             aggregates = op.aggregates;
@@ -70,8 +69,8 @@ public class StitchMixedRowFlatMapFunction<Op extends SpliceOperation> extends S
         }
 
         ExecRow valueRow = op.getSourceExecIndexRow().getClone();
-        while (locatedRows.hasNext()) {
-            ExecRow r2 = locatedRows.next().getRow();
+        while (rowIterator.hasNext()) {
+            ExecRow r2 = rowIterator.next();
             copyRow(valueRow, r2);
         }
 
@@ -82,7 +81,7 @@ public class StitchMixedRowFlatMapFunction<Op extends SpliceOperation> extends S
             aggregator.finish(valueRow);
         }
         op.setCurrentRow(valueRow);
-        return new SingletonIterator(new LocatedRow(valueRow));
+        return new SingletonIterator(valueRow);
     }
 
     private void copyRow(ExecRow valueRow, ExecRow src) throws Exception {

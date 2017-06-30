@@ -18,7 +18,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.GenericAggregateOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 
@@ -31,7 +30,7 @@ import java.util.HashMap;
 /**
  * Created by yxia on 5/28/17.
  */
-public class StitchMixedRowFunction<Op extends SpliceOperation> extends SpliceFunction2<Op, LocatedRow, LocatedRow, LocatedRow> implements Serializable {
+public class StitchMixedRowFunction<Op extends SpliceOperation> extends SpliceFunction2<Op, ExecRow, ExecRow, ExecRow> implements Serializable {
     protected GenericAggregateOperation aggregateOperation;
     protected int[] groupingKeys;
     protected int numOfGroupKeys;
@@ -62,7 +61,7 @@ public class StitchMixedRowFunction<Op extends SpliceOperation> extends SpliceFu
     }
 
     @Override
-    public LocatedRow call(LocatedRow locatedRow1, LocatedRow locatedRow2) throws Exception {
+    public ExecRow call(ExecRow srcRow1, ExecRow srcRow2) throws Exception {
         if (!initialized) {
             aggregateOperation = (GenericAggregateOperation)operationContext.getOperation();
             aggregates = aggregateOperation.aggregates;
@@ -79,29 +78,29 @@ public class StitchMixedRowFunction<Op extends SpliceOperation> extends SpliceFu
         }
         operationContext.recordRead();
 
-        if (locatedRow1 == null) return locatedRow2;
-        if (locatedRow2 == null) return locatedRow1;
+        if (srcRow1 == null) return srcRow2;
+        if (srcRow2 == null) return srcRow1;
 
         ExecRow valueRow;
 
-        if (locatedRow1.size() == numOfGroupKeys + aggregates.length*3) {
-            valueRow = locatedRow1.getRow();
-            if (locatedRow1.size() == locatedRow2.size())
-                mergeRow(valueRow, locatedRow2.getRow());
+        if (srcRow1.size() == numOfGroupKeys + aggregates.length*3) {
+            valueRow = srcRow1;
+            if (srcRow1.size() == srcRow2.size())
+                mergeRow(valueRow, srcRow2);
             else
-                copyRow(valueRow, locatedRow2.getRow());
-        } else if (locatedRow2.size() == numOfGroupKeys + aggregates.length*3) {
-            valueRow = locatedRow2.getRow();
-            copyRow(valueRow, locatedRow1.getRow());
+                copyRow(valueRow, srcRow2);
+        } else if (srcRow2.size() == numOfGroupKeys + aggregates.length*3) {
+            valueRow = srcRow2;
+            copyRow(valueRow, srcRow1);
         } else {
             // neither row is the accumulated row,
             // compose a row with all the aggregates together
             valueRow = aggregateOperation.getExecRowDefinition();
-            copyRow(valueRow, locatedRow1.getRow());
-            copyRow(valueRow, locatedRow2.getRow());
+            copyRow(valueRow, srcRow1);
+            copyRow(valueRow, srcRow2);
         }
 
-        return new LocatedRow(valueRow);
+        return valueRow;
     }
 
     private void copyRow(ExecRow valueRow, ExecRow src) throws Exception {

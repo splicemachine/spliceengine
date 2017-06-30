@@ -15,11 +15,11 @@
 package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.GenericAggregateOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 
@@ -48,7 +48,7 @@ import java.util.Iterator;
  * merge back together
  *
  */
-public class DistinctAggregatesPrepareFunction<Op extends SpliceOperation> extends SpliceFlatMapFunction<Op, LocatedRow, LocatedRow> {
+public class DistinctAggregatesPrepareFunction<Op extends SpliceOperation> extends SpliceFlatMapFunction<Op, ExecRow, ExecRow> {
     private static final long serialVersionUID = 7780564699906451370L;
     private boolean initialized = false;
     protected SpliceGenericAggregator[] aggregates;
@@ -80,12 +80,12 @@ public class DistinctAggregatesPrepareFunction<Op extends SpliceOperation> exten
     }
 
     @Override
-    public Iterator<LocatedRow> call(LocatedRow sourceRow) throws Exception {
+    public Iterator<ExecRow> call(ExecRow sourceRow) throws Exception {
         if (!initialized) {
             setup();
             initialized = true;
         }
-        ArrayList<LocatedRow> list = new ArrayList<>(hasNonDistinctAggregate ? numOfDistinctAggregates+1 : numOfDistinctAggregates);
+        ArrayList<ExecRow> list = new ArrayList<>(hasNonDistinctAggregate ? numOfDistinctAggregates+1 : numOfDistinctAggregates);
         ValueRow valueRow;
 
         for (SpliceGenericAggregator aggregator : aggregates) {
@@ -97,17 +97,17 @@ public class DistinctAggregatesPrepareFunction<Op extends SpliceOperation> exten
             // uniqueColumns are 0-based
             int j=1;
             for (; groupingKeys != null && j<=groupingKeys.length; j++) {
-                valueRow.setColumn(j, sourceRow.getRow().getColumn(groupingKeys[j-1]+1));
+                valueRow.setColumn(j, sourceRow.getColumn(groupingKeys[j-1]+1));
             }
             // add distinct column id
             valueRow.setColumn(j++, new SQLInteger(aggregator.getInputColumnId()));
             // add aggr result field
-            valueRow.setColumn(j++, aggregator.getResultColumnValue(sourceRow.getRow()));
+            valueRow.setColumn(j++, aggregator.getResultColumnValue(sourceRow));
             // add aggr input filed
-            valueRow.setColumn(j++, aggregator.getInputColumnValue(sourceRow.getRow()));
+            valueRow.setColumn(j++, aggregator.getInputColumnValue(sourceRow));
             // add aggr function field
-            valueRow.setColumn(j++, sourceRow.getRow().getColumn(aggregator.getAggregatorColumnId()));
-            list.add(new LocatedRow(valueRow));
+            valueRow.setColumn(j++, sourceRow.getColumn(aggregator.getAggregatorColumnId()));
+            list.add(valueRow);
         }
         // add the row for the non-distinct aggregates
         if (hasNonDistinctAggregate) {
@@ -115,19 +115,19 @@ public class DistinctAggregatesPrepareFunction<Op extends SpliceOperation> exten
             //copy grouping key values
             int j = 1;
             for (; groupingKeys != null && j <= groupingKeys.length; j++) {
-                valueRow.setColumn(j, sourceRow.getRow().getColumn(groupingKeys[j - 1] + 1));
+                valueRow.setColumn(j, sourceRow.getColumn(groupingKeys[j - 1] + 1));
             }
             // add distinct column id
             valueRow.setColumn(j++, new SQLInteger());
             for (SpliceGenericAggregator aggregator : aggregates) {
                 if (aggregator.isDistinct())
                     continue;
-                valueRow.setColumn(j++, aggregator.getResultColumnValue(sourceRow.getRow()));
-                valueRow.setColumn(j++, aggregator.getInputColumnValue(sourceRow.getRow()));
+                valueRow.setColumn(j++, aggregator.getResultColumnValue(sourceRow));
+                valueRow.setColumn(j++, aggregator.getInputColumnValue(sourceRow));
                 // aggregator columnId is 1-based
-                valueRow.setColumn(j++, sourceRow.getRow().getColumn(aggregator.getAggregatorColumnId()));
+                valueRow.setColumn(j++, sourceRow.getColumn(aggregator.getAggregatorColumnId()));
             }
-            list.add(new LocatedRow(valueRow));
+            list.add(valueRow);
         }
 
         return list.iterator();

@@ -19,7 +19,6 @@ import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.AggregatorInfo;
 import com.splicemachine.derby.impl.sql.execute.operations.GenericAggregateOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 
@@ -33,7 +32,7 @@ import java.util.List;
 /**
  * Created by yxia on 5/31/17.
  */
-public class MergeAllAggregatesFunctionForMixedRows<Op extends com.splicemachine.derby.iapi.sql.execute.SpliceOperation> extends SpliceFunction2<Op,LocatedRow,LocatedRow,LocatedRow> implements Serializable {
+public class MergeAllAggregatesFunctionForMixedRows<Op extends com.splicemachine.derby.iapi.sql.execute.SpliceOperation> extends SpliceFunction2<Op,ExecRow,ExecRow,ExecRow> implements Serializable {
     protected SpliceGenericAggregator[] nonDistinctAggregates;
     protected int[] groupingKeys;
     protected boolean initialized;
@@ -61,17 +60,14 @@ public class MergeAllAggregatesFunctionForMixedRows<Op extends com.splicemachine
     }
 
     @Override
-    public LocatedRow call(LocatedRow locatedRow1, LocatedRow locatedRow2) throws Exception {
+    public ExecRow call(ExecRow r1, ExecRow r2) throws Exception {
         if (!initialized) {
             setup();
             initialized = true;
         }
         operationContext.recordRead();
-        if (locatedRow1 == null) return locatedRow2.getClone();
-        if (locatedRow2 == null) return locatedRow1;
-        ExecRow r1 = locatedRow1.getRow();
-        ExecRow r2 = locatedRow2.getRow();
-
+        if (r1 == null) return r2.getClone();
+        if (r2 == null) return r1;
 
         SpliceGenericAggregator aggregator = distinctAggregateMap.get(r1.getColumn(distinctColumnId).getInt());
         if (aggregator != null) {
@@ -100,7 +96,7 @@ public class MergeAllAggregatesFunctionForMixedRows<Op extends com.splicemachine
             }
         }
 
-        return new LocatedRow(locatedRow1.getRowLocation(),r1);
+        return r1;
     }
 
     private void setup() {

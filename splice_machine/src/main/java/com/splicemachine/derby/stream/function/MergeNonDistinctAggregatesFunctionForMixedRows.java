@@ -21,7 +21,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.AggregatorInfo;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.GenericAggregateOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 
@@ -34,7 +33,7 @@ import java.util.List;
 /**
  * Created by yxia on 5/31/17.
  */
-public class MergeNonDistinctAggregatesFunctionForMixedRows<Op extends SpliceOperation> extends SpliceFunction2<Op, LocatedRow, LocatedRow, LocatedRow> implements Serializable {
+public class MergeNonDistinctAggregatesFunctionForMixedRows<Op extends SpliceOperation> extends SpliceFunction2<Op, ExecRow, ExecRow, ExecRow> implements Serializable {
     protected SpliceGenericAggregator[] nonDistinctAggregates;
     protected int distinctColumnId = 0;
     protected int[] groupingKeys;
@@ -62,31 +61,29 @@ public class MergeNonDistinctAggregatesFunctionForMixedRows<Op extends SpliceOpe
     }
 
     @Override
-    public LocatedRow call(LocatedRow locatedRow1, LocatedRow locatedRow2) throws Exception {
+    public ExecRow call(ExecRow r1, ExecRow r2) throws Exception {
         if (!initialized) {
             setup();
             initialized = true;
         }
         operationContext.recordRead();
 
-        if (locatedRow1 == null) return locatedRow2.getClone();
-        if (locatedRow2 == null) return locatedRow1;
-        ExecRow r1 = locatedRow1.getRow();
-        ExecRow r2 = locatedRow2.getRow();
+        if (r1 == null) return r2.getClone();
+        if (r2 == null) return r1;
 
         // only process the mixed rows corresponding to the non-distinct aggregates
         if (nonDistinctAggregates != null && r1.getColumn(distinctColumnId).isNull()) {
             for (SpliceGenericAggregator aggregator : nonDistinctAggregates) {
-                if (!aggregator.isInitialized(locatedRow1.getRow())) {
+                if (!aggregator.isInitialized(r1)) {
                     aggregator.initializeAndAccumulateIfNeeded(r1, r1);
                 }
-                if (!aggregator.isInitialized(locatedRow2.getRow())) {
+                if (!aggregator.isInitialized(r2)) {
                     aggregator.initializeAndAccumulateIfNeeded(r2, r2);
                 }
                 aggregator.merge(r2, r1);
             }
         }
-        return new LocatedRow(locatedRow1.getRowLocation(), r1);
+        return r1;
     }
 
     private void setup() {
@@ -117,8 +114,10 @@ public class MergeNonDistinctAggregatesFunctionForMixedRows<Op extends SpliceOpe
 
             tmpAggregators.add(new SpliceGenericAggregator(newAggInfo, cf));
         }
-        nonDistinctAggregates = new SpliceGenericAggregator[tmpAggregators.size()];
-        tmpAggregators.toArray(nonDistinctAggregates);
+        if (tmpAggregators.size() > 0) {
+            nonDistinctAggregates = new SpliceGenericAggregator[tmpAggregators.size()];
+            tmpAggregators.toArray(nonDistinctAggregates);
+        }
 
         distinctColumnId = numOfGroupKeys + 1;
 
