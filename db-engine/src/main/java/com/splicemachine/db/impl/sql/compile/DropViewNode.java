@@ -31,12 +31,16 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.error.ExceptionSeverity;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import org.apache.spark.sql.catalyst.plans.logical.Except;
 
 /**
  * A DropViewNode is the root of a QueryTree that represents a DROP VIEW
@@ -47,6 +51,9 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 public class DropViewNode extends DDLStatementNode
 {
 
+	private int	dropBehavior;
+	private	TableDescriptor	td;
+
 	/**
 	 * Initializer for a DropViewNode
 	 *
@@ -54,10 +61,11 @@ public class DropViewNode extends DDLStatementNode
 	 *
 	 */
 
-	public void init(Object dropObjectName)
+	public void init(Object dropObjectName, Object dropBehavior)
 		throws StandardException
 	{
 		initAndCheck(dropObjectName);
+		this.dropBehavior = ((Integer) dropBehavior).intValue();
 	}
 
 	public String statementToString()
@@ -76,16 +84,18 @@ public class DropViewNode extends DDLStatementNode
 	{
 		DataDictionary dd = getDataDictionary();
 		CompilerContext cc = getCompilerContext();
-				
-		TableDescriptor td = dd.getTableDescriptor(getRelativeName(), 
+
+		td = dd.getTableDescriptor(getRelativeName(),
 					getSchemaDescriptor(),
-                    getLanguageConnectionContext().getTransactionCompile());
-	
-		/* 
-		 * Statement is dependent on the TableDescriptor 
-		 * If td is null, let execution throw the error like
-		 * it is before.
-		 */
+					getLanguageConnectionContext().getTransactionCompile());
+
+		if (td == null && this.dropBehavior == StatementType.DROP_IF_EXISTS) {
+			StandardException e = StandardException.newException(SQLState.LANG_OBJECT_DOES_NOT_EXIST,
+					statementToString(), this.getFullName());
+			e.setSeverity(ExceptionSeverity.WARNING_SEVERITY);
+			throw e;
+		}
+
 		if (td != null)
 		{
 			cc.createDependency(td);
