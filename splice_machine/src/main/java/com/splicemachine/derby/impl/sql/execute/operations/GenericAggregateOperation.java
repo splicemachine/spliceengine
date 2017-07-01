@@ -15,24 +15,25 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.List;
-import org.sparkproject.guava.base.Strings;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.impl.sql.execute.operations.iapi.AggregateContext;
-import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.DerbyAggregateContext;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.AggregateContext;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
+import org.sparkproject.guava.base.Strings;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.List;
 
 public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 		private static final long serialVersionUID = 1l;
@@ -165,4 +166,9 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
         }
         this.setCurrentRow(row);
     }
+
+	public ExecIndexRow getSourceExecIndexRow() {
+		return sourceExecIndexRow;
+	}
+
 }
