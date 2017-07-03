@@ -79,15 +79,20 @@ public class ScalarAggregateFlatMapFunction
     @SuppressWarnings("unchecked")
     @Override
     public Iterable<LocatedRow> call(Iterator<LocatedRow> locatedRows) throws Exception {
-        if (!locatedRows.hasNext()) {
-            return returnDefault ?
-                Collections.singletonList(new LocatedRow(getOperation().getExecRowDefinition())) :
-                Collections.EMPTY_LIST;
-        }
         if (!initialized) {
             op = getOperation();
             initialized = true;
         }
+
+        if (!locatedRows.hasNext()) {
+            if (returnDefault) {
+                ExecRow valueRow = getOperation().getSourceExecIndexRow().getClone();
+                op.finishAggregation(valueRow);
+                return Collections.singletonList(new LocatedRow(valueRow));
+            } else
+                return Collections.EMPTY_LIST;
+        }
+
         ExecRow r1 = locatedRows.next().getRow();
         if (!op.isInitialized(r1)) {
 //            if (RDDUtils.LOG.isTraceEnabled()) {
