@@ -327,6 +327,8 @@ abstract class BaseTypeCompiler implements TypeCompiler {
 		*/
 		if (otherType.isNumericTypeId()) { return true; }
 
+		if (otherType.isStringTypeId()) { return true; }
+
 		/*
 		** If the other type is user-defined, use the java types to determine
 		** assignability.
