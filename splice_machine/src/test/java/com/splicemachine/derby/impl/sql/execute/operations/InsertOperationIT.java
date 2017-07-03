@@ -114,20 +114,20 @@ public class InsertOperationIT {
     @Test
     public void testInsertCharsIntoBigInt() throws Exception{
         //varchar
-        classWatcher.executeUpdate("create table tab1 (col1 int, col2 varchar(4), col3 bigint)");
-        classWatcher.executeUpdate("create table tab2(c1 int, c2 varchar(4), c3 bigint)");
-        classWatcher.executeUpdate("insert into tab1 values(2,'10',1)");
-        classWatcher.executeUpdate("insert into tab2 (c1, c3) select col1, col2 from tab1");
-        ResultSet res = classWatcher.executeQuery("select c3 from tab2");
+        classWatcher.executeUpdate("create table tt1 (col1 int, col2 varchar(4), col3 bigint)");
+        classWatcher.executeUpdate("create table tt2(c1 int, c2 varchar(4), c3 bigint)");
+        classWatcher.executeUpdate("insert into tt1 values(2,'10',1)");
+        classWatcher.executeUpdate("insert into tt2 (c1, c3) select col1, col2 from tt1");
+        ResultSet res = classWatcher.executeQuery("select c3 from tt2");
         res.next();
         int x = res.getInt("c3");
         Assert.assertEquals("Should have been converted to int correctly", 10, x);
 
         //char
-        classWatcher.executeUpdate("create table tab3 (col1 int, col2 char(4), col3 bigint)");
-        classWatcher.executeUpdate("insert into tab3 values(2,'5',1)");
-        classWatcher.executeUpdate("insert into tab2 (c1, c3) select col1, col2 from tab3");
-        ResultSet res2 = classWatcher.executeQuery("select c3 from tab2 WHERE c3=5");
+        classWatcher.executeUpdate("create table tt3 (col1 int, col2 char(4), col3 bigint)");
+        classWatcher.executeUpdate("insert into tt3 values(2,'5',1)");
+        classWatcher.executeUpdate("insert into tt2 (c1, c3) select col1, col2 from tt3");
+        ResultSet res2 = classWatcher.executeQuery("select c3 from tt2 WHERE c3=5");
         res2.next();
         x = res2.getInt("c3");
         Assert.assertEquals(5, x);
@@ -136,20 +136,20 @@ public class InsertOperationIT {
     @Test
     public void testInsertCharsIntoInt() throws Exception{
         //varchar
-        classWatcher.executeUpdate("create table tab1 (col1 int, col2 varchar(4), col3 bigint)");
-        classWatcher.executeUpdate("create table tab2(c1 int, c2 varchar(4), c3 int)");
-        classWatcher.executeUpdate("insert into tab1 values(2,'10',1)");
-        classWatcher.executeUpdate("insert into tab2 (c1, c3) select col1, col2 from tab1");
-        ResultSet res = classWatcher.executeQuery("select c3 from tab2");
+        classWatcher.executeUpdate("create table table1 (col1 int, col2 varchar(4), col3 bigint)");
+        classWatcher.executeUpdate("create table table2(c1 int, c2 varchar(4), c3 int)");
+        classWatcher.executeUpdate("insert into table1 values(2,'10',1)");
+        classWatcher.executeUpdate("insert into table2 (c1, c3) select col1, col2 from table1");
+        ResultSet res = classWatcher.executeQuery("select c3 from table2");
         res.next();
         int x = res.getInt("c3");
         Assert.assertEquals("Should have been converted to int correctly", 10, x);
 
         //char
-        classWatcher.executeUpdate("create table tab3 (col1 int, col2 char(4), col3 bigint)");
-        classWatcher.executeUpdate("insert into tab3 values(2,'5',1)");
-        classWatcher.executeUpdate("insert into tab2 (c1, c3) select col1, col2 from tab3");
-        ResultSet res2 = classWatcher.executeQuery("select c3 from tab2 WHERE c3=5");
+        classWatcher.executeUpdate("create table table3 (col1 int, col2 char(4), col3 bigint)");
+        classWatcher.executeUpdate("insert into table3 values(2,'5',1)");
+        classWatcher.executeUpdate("insert into table2 (c1, c3) select col1, col2 from table3");
+        ResultSet res2 = classWatcher.executeQuery("select c3 from table2 WHERE c3=5");
         res2.next();
         x = res2.getInt("c3");
         Assert.assertEquals(5, x);
@@ -158,11 +158,11 @@ public class InsertOperationIT {
     @Test
     public void testBadInsertVarcharToInt() throws Exception{
         //varchar
-        classWatcher.executeUpdate("create table tab1 (col1 int, col2 varchar(4), col3 bigint)");
-        classWatcher.executeUpdate("create table tab2(c1 int, c2 varchar(4), c3 int)");
-        classWatcher.executeUpdate("insert into tab1 values(2,'abc',1)");
+        classWatcher.executeUpdate("create table tabb1 (col1 int, col2 varchar(4), col3 bigint)");
+        classWatcher.executeUpdate("create table tabb2(c1 int, c2 varchar(4), c3 int)");
+        classWatcher.executeUpdate("insert into tabb1 values(2,'abc',1)");
         try {
-            classWatcher.executeUpdate("insert into tab2 (c1, c3) select col1, col2 from tab1");
+            classWatcher.executeUpdate("insert into tabb2 (c1, c3) select col1, col2 from tabb1");
             Assert.fail("Query should fail as we are inserting a varchar that cannot be converted into an int (abc) into an int field");
         }
         catch(SQLDataException e){
