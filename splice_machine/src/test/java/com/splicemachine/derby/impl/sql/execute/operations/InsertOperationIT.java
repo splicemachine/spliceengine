@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.reference.SQLState;
 import org.spark_project.guava.collect.Maps;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -30,6 +31,7 @@ import java.util.*;
 
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.getBaseDirectory;
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.getResourceDirectory;
+import static com.splicemachine.derby.test.framework.SpliceUnitTest.rowsContainsQuery;
 
 public class InsertOperationIT {
 
@@ -86,6 +88,116 @@ public class InsertOperationIT {
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
+
+    @Test
+    public void testInsertCharsIntoSmallInt() throws Exception{
+        //Varchar
+        classWatcher.executeUpdate("create table tab1 (col1 int, col2 varchar(4), col3 smallint)");
+        classWatcher.executeUpdate("create table tab2(c1 int, c2 varchar(4), c3 smallint)");
+        classWatcher.executeUpdate("insert into tab1 values(2,'10',1)");
+        classWatcher.executeUpdate("insert into tab2 (c1, c3) select col1, col2 from tab1");
+        ResultSet res = classWatcher.executeQuery("select c3 from tab2");
+        res.next();
+        int x = res.getInt("c3");
+        Assert.assertEquals("Should have been converted to int correctly", 10, x);
+
+        //Char
+        classWatcher.executeUpdate("create table tab3 (col1 int, col2 char(4), col3 smallint)");
+        classWatcher.executeUpdate("insert into tab3 values(2,'5',1)");
+        classWatcher.executeUpdate("insert into tab2 (c1, c3) select col1, col2 from tab3");
+        ResultSet res2 = classWatcher.executeQuery("select c3 from tab2 WHERE c3=5");
+        res2.next();
+        x = res2.getInt("c3");
+        Assert.assertEquals(5, x);
+    }
+
+    @Test
+    public void testInsertCharsIntoBigInt() throws Exception{
+        //varchar
+        classWatcher.executeUpdate("create table tab1 (col1 int, col2 varchar(4), col3 bigint)");
+        classWatcher.executeUpdate("create table tab2(c1 int, c2 varchar(4), c3 bigint)");
+        classWatcher.executeUpdate("insert into tab1 values(2,'10',1)");
+        classWatcher.executeUpdate("insert into tab2 (c1, c3) select col1, col2 from tab1");
+        ResultSet res = classWatcher.executeQuery("select c3 from tab2");
+        res.next();
+        int x = res.getInt("c3");
+        Assert.assertEquals("Should have been converted to int correctly", 10, x);
+
+        //char
+        classWatcher.executeUpdate("create table tab3 (col1 int, col2 char(4), col3 bigint)");
+        classWatcher.executeUpdate("insert into tab3 values(2,'5',1)");
+        classWatcher.executeUpdate("insert into tab2 (c1, c3) select col1, col2 from tab3");
+        ResultSet res2 = classWatcher.executeQuery("select c3 from tab2 WHERE c3=5");
+        res2.next();
+        x = res2.getInt("c3");
+        Assert.assertEquals(5, x);
+    }
+
+    @Test
+    public void testInsertCharsIntoInt() throws Exception{
+        //varchar
+        classWatcher.executeUpdate("create table tab1 (col1 int, col2 varchar(4), col3 bigint)");
+        classWatcher.executeUpdate("create table tab2(c1 int, c2 varchar(4), c3 int)");
+        classWatcher.executeUpdate("insert into tab1 values(2,'10',1)");
+        classWatcher.executeUpdate("insert into tab2 (c1, c3) select col1, col2 from tab1");
+        ResultSet res = classWatcher.executeQuery("select c3 from tab2");
+        res.next();
+        int x = res.getInt("c3");
+        Assert.assertEquals("Should have been converted to int correctly", 10, x);
+
+        //char
+        classWatcher.executeUpdate("create table tab3 (col1 int, col2 char(4), col3 bigint)");
+        classWatcher.executeUpdate("insert into tab3 values(2,'5',1)");
+        classWatcher.executeUpdate("insert into tab2 (c1, c3) select col1, col2 from tab3");
+        ResultSet res2 = classWatcher.executeQuery("select c3 from tab2 WHERE c3=5");
+        res2.next();
+        x = res2.getInt("c3");
+        Assert.assertEquals(5, x);
+    }
+
+    @Test
+    public void testBadInsertVarcharToInt() throws Exception{
+        //varchar
+        classWatcher.executeUpdate("create table tab1 (col1 int, col2 varchar(4), col3 bigint)");
+        classWatcher.executeUpdate("create table tab2(c1 int, c2 varchar(4), c3 int)");
+        classWatcher.executeUpdate("insert into tab1 values(2,'abc',1)");
+        try {
+            classWatcher.executeUpdate("insert into tab2 (c1, c3) select col1, col2 from tab1");
+            Assert.fail("Query should fail as we are inserting a varchar that cannot be converted into an int (abc) into an int field");
+        }
+        catch(SQLDataException e){
+            Assert.assertEquals(e.getSQLState(), SQLState.LANG_FORMAT_EXCEPTION);
+        }
+    }
+
+    //Fix does not support inserting int types into varchar fields
+    @Ignore
+    public void testInsertIntsToChars() throws Exception{
+        classWatcher.executeUpdate("create table varcharTab(c1 int, c2 varchar(4))"); // varchar to put ints into
+        classWatcher.executeUpdate("create table charTab(c1 int, c2 char(4))");    // char to put ints into
+
+        classWatcher.executeUpdate("create table smallintTab(col1 int, col2 smallint)"); // smallint
+        classWatcher.executeUpdate("create table intTab(col1 int, col2 int)");      // int
+        classWatcher.executeUpdate("create table bigintTab(col1 int, col2 bigint)");   // bigint
+
+        //smallint to varchar
+        classWatcher.executeUpdate("insert into varcharTab (c1, c2) select col1, col2 from smallintTab");
+
+        //smallint to char
+        classWatcher.executeUpdate("insert into charTab (c1, c2) select col1, col2 from smallintTab");
+
+        //int to varchar
+        classWatcher.executeUpdate("insert into varcharTab (c1, c2) select col1, col2 from intTab");
+
+        //int to char
+        classWatcher.executeUpdate("insert into charTab (c1, c2) select col1, col2 from intTab");
+
+        //bigint to varchar
+        classWatcher.executeUpdate("insert into varcharTab (c1, c2) select col1, col2 from bigintTab");
+
+        //bigint to char
+        classWatcher.executeUpdate("insert into charTab (c1, c2) select col1, col2 from bigintTab");
+    }
 
     @Test
     public void testInsertOverMergeSortOuterJoinIsCorrect() throws Exception {
