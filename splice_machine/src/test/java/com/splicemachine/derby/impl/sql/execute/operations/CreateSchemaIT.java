@@ -29,6 +29,7 @@ import org.junit.rules.TestRule;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 
 /**
  * Tests around creating schemas
@@ -62,6 +63,42 @@ public class CreateSchemaIT {
             count++;
         }
         Assert.assertEquals("Incorrect row count", 2, count);
+    }
+
+    @Test
+    //SPLICE-1739
+    public void testCreateSchemaIfNotExists() throws Exception {
+        methodWatcher.executeUpdate("CREATE SCHEMA TESTFOO");
+        methodWatcher.executeUpdate("CREATE SCHEMA IF NOT EXISTS TESTFOO1");
+        methodWatcher.executeUpdate("CREATE SCHEMA TESTFOO2 IF NOT EXISTS");
+        ResultSet rs = methodWatcher.executeQuery("SELECT SCHEMANAME FROM SYS.SYSSCHEMAS WHERE SCHEMANAME LIKE 'TEST%'");
+        rs.next();
+        Assert.assertTrue("Schema should now exist", rs.getString(1).equals("TESTFOO"));
+        rs.next();
+        Assert.assertTrue("Schema should now exist", rs.getString(1).equals("TESTFOO1"));
+        rs.next();
+        Assert.assertTrue("Schema should now exist", rs.getString(1).equals("TESTFOO2"));
+    }
+
+    @Test
+    //SPLICE-1739
+    public void testCreateSchemaIfNotExistsWhenExists() throws Exception {
+        methodWatcher.executeUpdate("CREATE SCHEMA TESTFOO");
+        try {
+            methodWatcher.executeUpdate("CREATE SCHEMA IF NOT EXISTS TESTFOO");
+        }
+        catch(SQLException e){
+            Assert.fail("Shouldn't have thrown an error. CREATE SCHEMA IF NOT EXISTS <schemaname> SHOULD BE HANDLED");
+        }
+        try{
+            methodWatcher.executeUpdate("CREATE SCHEMA TESTFOO IF NOT EXISTS");
+        }
+        catch (SQLException e){
+            Assert.fail("Shouldn't have thrown an error. CREATE SCHEMA <schemaname> IF NOT EXISTS SHOULD BE HANDLED");
+        }
+        ResultSet rs = methodWatcher.executeQuery("SELECT SCHEMANAME FROM SYS.SYSSCHEMAS WHERE SCHEMANAME LIKE 'TEST%'");
+        rs.next();
+        Assert.assertTrue("Schema should now exist", rs.getString(1).equals("TESTFOO"));
     }
 
     @Test
