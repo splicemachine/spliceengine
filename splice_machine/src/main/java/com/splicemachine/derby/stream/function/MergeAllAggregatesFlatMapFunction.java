@@ -58,6 +58,7 @@ public class MergeAllAggregatesFlatMapFunction<Op extends com.splicemachine.derb
 
     @SuppressWarnings("unchecked")
     @Override
+
     public Iterator<ExecRow> call(Iterator<ExecRow> locatedRows) throws Exception {
         if (!locatedRows.hasNext()) {
             return returnDefault ?
@@ -70,6 +71,7 @@ public class MergeAllAggregatesFlatMapFunction<Op extends com.splicemachine.derb
             initialized = true;
         }
         ExecRow r1 = locatedRows.next();
+
         for (SpliceGenericAggregator aggregator:aggregates) {
             if (!aggregator.isInitialized(r1)) {
 //                if (RDDUtils.LOG.isTraceEnabled()) {

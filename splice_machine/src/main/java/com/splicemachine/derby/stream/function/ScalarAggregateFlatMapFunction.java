@@ -88,6 +88,7 @@ public class ScalarAggregateFlatMapFunction
             initialized = true;
         }
         ExecRow r1 = locatedRows.next();
+
         if (!op.isInitialized(r1)) {
 //            if (RDDUtils.LOG.isTraceEnabled()) {
 //                RDDUtils.LOG.trace(String.format("Initializing and accumulating %s", r1));
