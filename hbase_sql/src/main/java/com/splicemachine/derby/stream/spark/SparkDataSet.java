@@ -40,17 +40,19 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.hadoop.mapred.InvalidJobConfException;
-import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.security.TokenCache;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
+import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.Column;
-import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.SaveMode;
+import org.apache.spark.sql.types.DataType;
 import org.apache.spark.storage.StorageLevel;
 import scala.Tuple2;
 import java.io.IOException;
@@ -58,7 +60,8 @@ import java.io.OutputStream;
 import java.util.*;
 import java.util.concurrent.Future;
 import java.util.zip.GZIPOutputStream;
-import static org.apache.spark.sql.functions.*;
+
+import static org.apache.spark.sql.functions.broadcast;
 
 /**
  *
@@ -79,6 +82,7 @@ public class SparkDataSet<V> implements DataSet<V> {
     }
 
     public SparkDataSet(JavaRDD<V> rdd, String rddname) {
+  //      Dataset<V> set;
         this.rdd = rdd;
         if (rdd != null && rddname != null) this.rdd.setName(rddname);
     }

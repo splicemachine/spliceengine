@@ -200,4 +200,6 @@ public class SpliceGenericAggregator implements Serializable{
     public int getAggregatorColumnId() {
         return aggregatorColumnId;
     }
+
+	public int getInputColumnId() { return inputColumnId; }
 }
