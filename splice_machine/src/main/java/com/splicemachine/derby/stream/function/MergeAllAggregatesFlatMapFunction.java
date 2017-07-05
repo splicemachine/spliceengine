@@ -60,23 +60,24 @@ public class MergeAllAggregatesFlatMapFunction<Op extends com.splicemachine.derb
     @Override
 
     public Iterator<ExecRow> call(Iterator<ExecRow> locatedRows) throws Exception {
-        if (!locatedRows.hasNext()) {
-            return returnDefault ?
-                new SingletonIterator(getOperation().getExecRowDefinition()) :
-                Collections.EMPTY_LIST.iterator();
-        }
         if (!initialized) {
             op = (GenericAggregateOperation) getOperation();
             aggregates = op.aggregates;
             initialized = true;
         }
+        if (!locatedRows.hasNext()) {
+            if (returnDefault) {
+                ExecRow valueRow = op.getSourceExecIndexRow().getClone();
+                op.finishAggregation(valueRow);
+                return new SingletonIterator(valueRow);
+            } else
+                return Collections.EMPTY_LIST.iterator();
+        }
+
         ExecRow r1 = locatedRows.next();
 
         for (SpliceGenericAggregator aggregator:aggregates) {
             if (!aggregator.isInitialized(r1)) {
-//                if (RDDUtils.LOG.isTraceEnabled()) {
-//                    RDDUtils.LOG.trace(String.format("Initializing and accumulating %s", r1));
-//                }
                 aggregator.initializeAndAccumulateIfNeeded(r1, r1);
             }
         }
