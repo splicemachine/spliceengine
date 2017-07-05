@@ -12,7 +12,7 @@
  * Some parts of this source code are based on Apache Derby, and the following notices apply to
  * Apache Derby:
  *
- * Apache Derby is a subproject of the Apache DB project, and is licensed under
+ * Apache Derby is a subproject of the Apache DB project, and is licensed under`
  * the Apache License, Version 2.0 (the "License"); you may not use these files
  * except in compliance with the License. You may obtain a copy of the License at:
  *
@@ -7635,6 +7635,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == COALESCE ||
                 getToken(1).kind == NVL ||
                 getToken(1).kind == VALUE ||
+                getToken(1).kind == IDENTITY_VAL_LOCAL ||
                 getToken(1).kind == SUBSTRING ||
                 getToken(1).kind == SUBSTR ||
                 getToken(1).kind == REPLACE ||
