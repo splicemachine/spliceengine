@@ -63,7 +63,8 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
         // memstoreAware is injected into the request, where the blocking logic lives, and where compaction
         // count will be incremented and decremented.
         scr.setMemstoreAware(memstoreAware);
-
+        HRegion region = (HRegion) e.getEnvironment().getRegion();
+        scr.setRegion(region);
         return scanner;
     }
 
