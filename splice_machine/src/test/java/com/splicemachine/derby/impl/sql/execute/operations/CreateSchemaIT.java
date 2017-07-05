@@ -68,7 +68,7 @@ public class CreateSchemaIT {
     @Test
     //SPLICE-1739
     public void testCreateSchemaIfNotExists() throws Exception {
-        methodWatcher.executeUpdate("CREATE SCHEMA TESTFOO");
+        methodWatcher.executeUpdate("CREATE SCHEMA IF NOT EXISTS TESTFOO");
         methodWatcher.executeUpdate("CREATE SCHEMA IF NOT EXISTS TESTFOO1");
         methodWatcher.executeUpdate("CREATE SCHEMA TESTFOO2 IF NOT EXISTS");
         ResultSet rs = methodWatcher.executeQuery("SELECT SCHEMANAME FROM SYS.SYSSCHEMAS WHERE SCHEMANAME LIKE 'TEST%'");
@@ -83,22 +83,22 @@ public class CreateSchemaIT {
     @Test
     //SPLICE-1739
     public void testCreateSchemaIfNotExistsWhenExists() throws Exception {
-        methodWatcher.executeUpdate("CREATE SCHEMA TESTFOO");
+        methodWatcher.executeUpdate("CREATE SCHEMA IF NOT EXISTS EXISTINGSCHEMA");
         try {
-            methodWatcher.executeUpdate("CREATE SCHEMA IF NOT EXISTS TESTFOO");
+            methodWatcher.executeUpdate("CREATE SCHEMA IF NOT EXISTS EXISTINGSCHEMA");
         }
         catch(SQLException e){
             Assert.fail("Shouldn't have thrown an error. CREATE SCHEMA IF NOT EXISTS <schemaname> SHOULD BE HANDLED");
         }
         try{
-            methodWatcher.executeUpdate("CREATE SCHEMA TESTFOO IF NOT EXISTS");
+            methodWatcher.executeUpdate("CREATE SCHEMA EXISTINGSCHEMA IF NOT EXISTS");
         }
         catch (SQLException e){
             Assert.fail("Shouldn't have thrown an error. CREATE SCHEMA <schemaname> IF NOT EXISTS SHOULD BE HANDLED");
         }
-        ResultSet rs = methodWatcher.executeQuery("SELECT SCHEMANAME FROM SYS.SYSSCHEMAS WHERE SCHEMANAME LIKE 'TEST%'");
+        ResultSet rs = methodWatcher.executeQuery("SELECT SCHEMANAME FROM SYS.SYSSCHEMAS WHERE SCHEMANAME LIKE 'EXISTINGSCHEMA%'");
         rs.next();
-        Assert.assertTrue("Schema should now exist", rs.getString(1).equals("TESTFOO"));
+        Assert.assertTrue("Schema should now exist", rs.getString(1).equals("EXISTINGSCHEMA"));
     }
 
     @Test
