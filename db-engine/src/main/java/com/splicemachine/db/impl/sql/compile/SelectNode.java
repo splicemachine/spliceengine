@@ -32,12 +32,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.Vector;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -49,6 +43,8 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.JBitSet;
+
+import java.util.*;
 
 /**
  * A SelectNode represents the result set for any of the basic DML
@@ -611,15 +607,6 @@ public class SelectNode extends ResultSetNode{
         if((groupByList!=null || !selectAggregates.isEmpty())){
             VerifyAggregateExpressionsVisitor visitor= new VerifyAggregateExpressionsVisitor(groupByList);
             resultColumns.accept(visitor);
-        }
-
-		/*
-		** RESOLVE: for now, only one distinct aggregate is supported
-		** in the select list.
-		*/
-        numDistinctAggs=numDistinctAggregates(selectAggregates);
-        if(numDistinctAggs>1){
-            throw StandardException.newException(SQLState.LANG_USER_AGGREGATE_MULTIPLE_DISTINCTS);
         }
     }
 
