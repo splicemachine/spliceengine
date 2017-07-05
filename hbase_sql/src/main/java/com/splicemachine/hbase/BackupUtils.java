@@ -13,15 +13,12 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionFileSystem;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZooDefs;
 
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -160,13 +157,14 @@ public class BackupUtils {
             RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
             String spliceBackupPath = HConfiguration.getConfiguration().getBackupPath();
             if (zooKeeper.exists(spliceBackupPath, false) != null) {
-                byte[] backupType = ZkUtils.getData(spliceBackupPath);
-                if (Bytes.compareTo(backupType, BackupRestoreConstants.BACKUP_TYPE_FULL_BYTES) == 0) {
+                byte[] data = ZkUtils.getData(spliceBackupPath);
+                BackupJobStatus backupJobStatus = BackupJobStatus.parseFrom(data);
+                if (!backupJobStatus.isIncremental()) {
                     if (!preparing && zooKeeper.exists(path, false) != null) {
                         byte[] status = ZkUtils.getData(path);
                         if (Bytes.compareTo(status, HConfiguration.BACKUP_DONE) == 0) {
                             if (LOG.isDebugEnabled()) {
-                                SpliceLogUtils.debug(LOG, "Table %s is in full backup", tableName);
+                                SpliceLogUtils.debug(LOG, "%s is in full backup", path);
                                 SpliceLogUtils.debug(LOG, "Region %s:%s has just finished full backup", tableName,
                                         region.getRegionInfo().getEncodedName());
                             }
@@ -175,11 +173,17 @@ public class BackupUtils {
                     }
                 }
                 else {
+                    if (LOG.isDebugEnabled()) {
+                        SpliceLogUtils.debug(LOG, "%s is in incremental backup", path);
+                    }
                     shouldRegister = true;
                 }
 
             }
             else if (BackupUtils.existsDatabaseBackup(fs, rootDir)) {
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "There exists a full or incremental backup");
+                }
                 shouldRegister = true;
             }
             if (shouldRegister) {
