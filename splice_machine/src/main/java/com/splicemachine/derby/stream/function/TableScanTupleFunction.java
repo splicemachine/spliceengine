@@ -20,7 +20,6 @@ import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.Scans;
@@ -38,7 +37,7 @@ import java.util.Iterator;
  *
  */
 
-public class TableScanTupleFunction<Op extends SpliceOperation> extends SpliceFlatMapFunction<Op,Tuple2<RowLocation,ExecRow>,LocatedRow> implements Serializable {
+public class TableScanTupleFunction<Op extends SpliceOperation> extends SpliceFlatMapFunction<Op,Tuple2<RowLocation,ExecRow>,ExecRow> implements Serializable {
     protected boolean initialized;
     protected ScanOperation op;
     protected ExecutionFactory executionFactory;
@@ -72,7 +71,7 @@ public class TableScanTupleFunction<Op extends SpliceOperation> extends SpliceFl
     }
 
     @Override
-    public Iterator<LocatedRow> call(Tuple2<RowLocation,ExecRow> from) throws Exception {
+    public Iterator<ExecRow> call(Tuple2<RowLocation,ExecRow> from) throws Exception {
         if (!initialized) {
             initialized = true;
             op = (ScanOperation) getOperation();
@@ -83,13 +82,14 @@ public class TableScanTupleFunction<Op extends SpliceOperation> extends SpliceFl
             }
         }
         if (qualifiers == null || rowIdKey || Scans.qualifyRecordFromRow(from._2().getRowArray(), qualifiers,baseColumnMap,optionalProbeValue)) {
-            LocatedRow locatedRow = new LocatedRow(from._1(), from._2());
             this.operationContext.recordRead();
-            if (op!=null)
-                op.setCurrentLocatedRow(locatedRow);
-            return new SingletonIterator(locatedRow);
+            if (op!=null) {
+                op.setCurrentRow(from._2());
+                op.setCurrentRowLocation(from._1());
+            }
+            return new SingletonIterator(from._2());
         }
         this.operationContext.recordFilter();
-        return Collections.<LocatedRow>emptyList().iterator();
+        return Collections.<ExecRow>emptyList().iterator();
     }
 }

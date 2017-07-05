@@ -34,9 +34,11 @@ public class JoinUtils {
         if (wasRightOuterJoin) {
             System.arraycopy(rightRowArray, 0, mergedRowArray, 0, rightRowArray.length);
             System.arraycopy(leftRowArray, 0, mergedRowArray, rightRowArray.length, leftRowArray.length);
+            mergedRow.setKey(rightRow.getKey());
         } else {
             System.arraycopy(leftRowArray, 0, mergedRowArray, 0, leftRowArray.length);
             System.arraycopy(rightRowArray, 0, mergedRowArray, leftRowArray.length, rightRowArray.length);
+            mergedRow.setKey(leftRow.getKey());
         }
         return mergedRow;
     }

@@ -264,7 +264,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
     }
 
     @Override
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if(readerBuilder==null){
             SConfiguration configuration=EngineDriver.driver().getConfiguration();
             int indexBatchSize = configuration.getIndexBatchSize();

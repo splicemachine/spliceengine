@@ -239,7 +239,7 @@ public class DistinctScanOperation extends ScanOperation {
      * @return
      * @throws StandardException
      */
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         assert currentTemplate != null: "Current Template Cannot Be Null";
         int[] execRowTypeFormatIds = new int[currentTemplate.nColumns()];
         for (int i = 0; i< currentTemplate.nColumns(); i++) {
@@ -256,7 +256,7 @@ public class DistinctScanOperation extends ScanOperation {
         } else {
             colMap = keyColumns;
         }
-        return dsp.<DistinctScanOperation,LocatedRow>newScanSet(this,tableName)
+        return dsp.<DistinctScanOperation,ExecRow>newScanSet(this,tableName)
                 .tableDisplayName(this.tableDisplayName)
                 .activation(activation)
                 .transaction(getCurrentTransaction())

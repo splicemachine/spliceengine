@@ -20,7 +20,6 @@ import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.impl.sql.catalog.SYSTABLESTATISTICSRowFactory;
 import com.splicemachine.db.impl.sql.execute.StatisticsRow;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.StatisticsAdmin;
@@ -34,7 +33,7 @@ import java.util.Iterator;
 import java.util.List;
 
 public class StatisticsFlatMapFunction
-    extends SpliceFlatMapFunction<StatisticsOperation, Iterator<LocatedRow>, LocatedRow> {
+    extends SpliceFlatMapFunction<StatisticsOperation, Iterator<ExecRow>, ExecRow> {
     private static final long serialVersionUID = 844136943916989111L;
     protected boolean initialized;
     protected StatisticsRow statisticsRow;
@@ -78,19 +77,19 @@ public class StatisticsFlatMapFunction
 
     @SuppressWarnings("unchecked")
     @Override
-    public Iterator<LocatedRow> call(Iterator<LocatedRow> locatedRows) throws Exception {
-        List<LocatedRow> rows;
+    public Iterator<ExecRow> call(Iterator<ExecRow> locatedRows) throws Exception {
+        List<ExecRow> rows;
         long rowCount = 0l;
         long rowWidth = 0l;
         while (locatedRows.hasNext()) {
-            LocatedRow locatedRow = locatedRows.next();
+            ExecRow execRow = locatedRows.next();
             if (!initialized) {
-                statisticsRow = new StatisticsRow(locatedRow.getRow());
+                statisticsRow = new StatisticsRow(execRow);
                 initialized = true;
             }
-            rowWidth += locatedRow.getRow().getRowSize();
+            rowWidth += execRow.getRowSize();
             rowCount++;
-            statisticsRow.setExecRow(locatedRow.getRow());
+            statisticsRow.setExecRow(execRow);
         }
         if (statisticsRow!=null) {
             int meanRowWidth = (int) ( ((double) rowWidth)/ ((double) rowCount));
@@ -99,10 +98,10 @@ public class StatisticsFlatMapFunction
             for(int i=0;i<itemStatistics.length;i++){
                 if(itemStatistics[i]==null)
                     continue;
-                rows.add(new LocatedRow(StatisticsAdmin.generateRowFromStats(conglomId,SITableScanner.regionId.get(),columnPositionMap[i],itemStatistics[i])));
+                rows.add(StatisticsAdmin.generateRowFromStats(conglomId,SITableScanner.regionId.get(),columnPositionMap[i],itemStatistics[i]));
             }
-            rows.add(new LocatedRow(StatisticsAdmin.generateRowFromStats(conglomId,SITableScanner.regionId.get(),rowCount,rowCount*((long)meanRowWidth),meanRowWidth,1l,
-                    useSample? SYSTABLESTATISTICSRowFactory.SAMPLE_NONMERGED_STATS:SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS, useSample?sampleFraction:0.0d)));
+            rows.add(StatisticsAdmin.generateRowFromStats(conglomId,SITableScanner.regionId.get(),rowCount,rowCount*((long)meanRowWidth),meanRowWidth,1l,
+                    useSample? SYSTABLESTATISTICSRowFactory.SAMPLE_NONMERGED_STATS:SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS, useSample?sampleFraction:0.0d));
             return rows.iterator();
         } else {
             rows = new ArrayList<>(columnPositionMap.length);
@@ -110,11 +109,11 @@ public class StatisticsFlatMapFunction
                 if (columnPositionMap[i] == -1)
                     break;
                 if (template.getColumn(i+1) !=null)
-                    rows.add(new LocatedRow(StatisticsAdmin.generateRowFromStats(conglomId, SITableScanner.regionId.get(), columnPositionMap[i], new ColumnStatisticsImpl(template.getColumn(i+1)) )));
+                    rows.add(StatisticsAdmin.generateRowFromStats(conglomId, SITableScanner.regionId.get(), columnPositionMap[i], new ColumnStatisticsImpl(template.getColumn(i+1)) ));
             }
-            rows.add(new LocatedRow(
+            rows.add(
                     StatisticsAdmin.generateRowFromStats(conglomId,SITableScanner.regionId.get(),0,0,0,1L,
-                            useSample?SYSTABLESTATISTICSRowFactory.SAMPLE_NONMERGED_STATS:SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS, useSample?sampleFraction:0.0d)));
+                            useSample?SYSTABLESTATISTICSRowFactory.SAMPLE_NONMERGED_STATS:SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS, useSample?sampleFraction:0.0d));
             return rows.iterator();
         }
     }

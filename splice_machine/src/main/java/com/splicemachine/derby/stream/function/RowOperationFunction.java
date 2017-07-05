@@ -14,14 +14,14 @@
 
 package com.splicemachine.derby.stream.function;
 
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.RowOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 
 /**
  * Created by jleach on 5/19/15.
  */
-public class RowOperationFunction extends SpliceFunction<RowOperation,LocatedRow,LocatedRow> {
+public class RowOperationFunction extends SpliceFunction<RowOperation,ExecRow,ExecRow> {
 
     public RowOperationFunction() {
         super();
@@ -32,9 +32,9 @@ public class RowOperationFunction extends SpliceFunction<RowOperation,LocatedRow
     }
 
     @Override
-    public LocatedRow call(LocatedRow o) throws Exception {
+    public ExecRow call(ExecRow o) throws Exception {
         RowOperation rowOp = operationContext.getOperation();
-        return new LocatedRow(rowOp.getRow());
+        return rowOp.getRow();
     }
 
 }

@@ -23,7 +23,6 @@ import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.*;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.stream.function.ExportFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -179,10 +178,10 @@ public class ExportOperation extends SpliceBaseOperation {
 
     @SuppressWarnings("unchecked")
     @Override
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "getDataSet(): begin");
-        DataSet<LocatedRow> dataset = source.getDataSet(dsp);
+        DataSet<ExecRow> dataset = source.getDataSet(dsp);
         OperationContext<ExportOperation> operationContext = dsp.createOperationContext(this);
         DataSetWriter writer = dataset.writeToDisk()
             .directory(exportParams.getDirectory())
@@ -192,7 +191,7 @@ public class ExportOperation extends SpliceBaseOperation {
             SpliceLogUtils.trace(LOG, "getDataSet(): writing");
         operationContext.pushScope();
         try {
-            DataSet<LocatedRow> resultDs = writer.write();
+            DataSet<ExecRow> resultDs = writer.write();
             if (LOG.isTraceEnabled())
                 SpliceLogUtils.trace(LOG, "getDataSet(): done");
             return resultDs;

@@ -16,7 +16,6 @@ package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.ScalarAggregateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -29,7 +28,7 @@ import java.util.Collections;
 import java.util.Iterator;
 
 public class ScalarAggregateFlatMapFunction
-    extends SpliceFlatMapFunction<ScalarAggregateOperation, Iterator<LocatedRow>, LocatedRow> {
+    extends SpliceFlatMapFunction<ScalarAggregateOperation, Iterator<ExecRow>, ExecRow> {
     
     private static final long serialVersionUID = 844136943916989111L;
     
@@ -78,21 +77,18 @@ public class ScalarAggregateFlatMapFunction
 
     @SuppressWarnings("unchecked")
     @Override
-    public Iterator<LocatedRow> call(Iterator<LocatedRow> locatedRows) throws Exception {
+    public Iterator<ExecRow> call(Iterator<ExecRow> locatedRows) throws Exception {
+        if (!locatedRows.hasNext()) {
+            return returnDefault ?
+                new SingletonIterator(getOperation().getExecRowDefinition()) :
+                Collections.EMPTY_LIST.iterator();
+        }
         if (!initialized) {
             op = getOperation();
             initialized = true;
         }
+        ExecRow r1 = locatedRows.next();
 
-        if (!locatedRows.hasNext()) {
-            if (returnDefault) {
-                ExecRow valueRow = getOperation().getSourceExecIndexRow().getClone();
-                op.finishAggregation(valueRow);
-                return new SingletonIterator(new LocatedRow(valueRow));
-            } else
-                return Collections.EMPTY_LIST.iterator();
-        }
-        ExecRow r1 = locatedRows.next().getRow();
         if (!op.isInitialized(r1)) {
 //            if (RDDUtils.LOG.isTraceEnabled()) {
 //                RDDUtils.LOG.trace(String.format("Initializing and accumulating %s", r1));
@@ -100,7 +96,7 @@ public class ScalarAggregateFlatMapFunction
             op.initializeVectorAggregation(r1);
         }
         while (locatedRows.hasNext()) {
-            ExecRow r2 = locatedRows.next().getRow();                                                                                                            
+            ExecRow r2 = locatedRows.next();
             if (!op.isInitialized(r2)) {
                 accumulate(r2, r1);                                                                                                                                                      
             } else {
@@ -108,6 +104,6 @@ public class ScalarAggregateFlatMapFunction
             }
         }
         op.finishAggregation(r1); // calls setCurrentRow
-        return new SingletonIterator(new LocatedRow(r1));
+        return new SingletonIterator(r1);
     }
 }

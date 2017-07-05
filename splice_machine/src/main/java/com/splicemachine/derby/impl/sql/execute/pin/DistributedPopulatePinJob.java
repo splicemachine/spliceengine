@@ -15,9 +15,9 @@
 package com.splicemachine.derby.impl.sql.execute.pin;
 
 import com.splicemachine.concurrent.Clock;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import java.io.Externalizable;
 import java.io.IOException;
@@ -31,13 +31,13 @@ import java.util.concurrent.Callable;
  */
 public class DistributedPopulatePinJob extends DistributedJob implements Externalizable {
     String jobGroup;
-    ScanSetBuilder<LocatedRow> scanSetBuilder;
+    ScanSetBuilder<ExecRow> scanSetBuilder;
     String scope;
     String prefix;
     long conglomID;
 
     public DistributedPopulatePinJob() {}
-    public DistributedPopulatePinJob(ScanSetBuilder<LocatedRow> scanSetBuilder, String scope,
+    public DistributedPopulatePinJob(ScanSetBuilder<ExecRow> scanSetBuilder, String scope,
                                        String jobGroup, String prefix, long conglomID) {
         this.scanSetBuilder = scanSetBuilder;
         this.scope = scope;
@@ -67,7 +67,7 @@ public class DistributedPopulatePinJob extends DistributedJob implements Externa
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        scanSetBuilder = (ScanSetBuilder<LocatedRow>) in.readObject();
+        scanSetBuilder = (ScanSetBuilder<ExecRow>) in.readObject();
         scope = in.readUTF();
         jobGroup = in.readUTF();
         prefix = in.readUTF();

@@ -17,7 +17,6 @@ package com.splicemachine.derby.vti.iapi;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -38,7 +37,7 @@ public interface DatasetProvider {
      * @return
      * @throws StandardException
      */
-     DataSet<LocatedRow> getDataSet(SpliceOperation op, DataSetProcessor dsp,ExecRow execRow) throws StandardException;
+     DataSet<ExecRow> getDataSet(SpliceOperation op, DataSetProcessor dsp,ExecRow execRow) throws StandardException;
 
     /**
      *

@@ -19,7 +19,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.vti.VTICosting;
 import com.splicemachine.db.vti.VTIEnvironment;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
@@ -28,7 +27,6 @@ import com.splicemachine.derby.stream.spark.SparkDataSet;
 import com.splicemachine.derby.vti.iapi.DatasetProvider;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-
 import java.sql.*;
 
 /**
@@ -46,7 +44,7 @@ public class SpliceDatasetVTI implements DatasetProvider, VTICosting {
     }
 
     @Override
-    public DataSet<LocatedRow> getDataSet(SpliceOperation op,DataSetProcessor dsp,  ExecRow execRow) throws StandardException {
+    public DataSet<ExecRow> getDataSet(SpliceOperation op,DataSetProcessor dsp,  ExecRow execRow) throws StandardException {
         operationContext = dsp.createOperationContext(op);
         if (datasetThreadLocal.get() == null)
             throw new RuntimeException("dataset is null");

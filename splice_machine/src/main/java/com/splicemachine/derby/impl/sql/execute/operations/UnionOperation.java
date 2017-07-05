@@ -150,12 +150,12 @@ public class UnionOperation extends SpliceBaseOperation {
 
     @SuppressWarnings("rawtypes")
     @Override
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
 		OperationContext operationContext = dsp.createOperationContext(this);
-		DataSet<LocatedRow> left = leftResultSet.getDataSet(dsp);
-		DataSet<LocatedRow> right = rightResultSet.getDataSet(dsp);
+		DataSet<ExecRow> left = leftResultSet.getDataSet(dsp);
+		DataSet<ExecRow> right = rightResultSet.getDataSet(dsp);
 		operationContext.pushScope();
-		DataSet<LocatedRow> result = left
+		DataSet<ExecRow> result = left
 		    .union(right)
 		    .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext), true);
 		operationContext.popScope();

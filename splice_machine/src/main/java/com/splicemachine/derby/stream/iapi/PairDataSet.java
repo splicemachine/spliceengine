@@ -18,8 +18,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
-import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
-import com.splicemachine.derby.stream.output.UpdateDataSetWriterBuilder;
 import org.apache.spark.api.java.Optional;
 import scala.Tuple2;
 import java.util.Comparator;
@@ -164,9 +162,7 @@ public interface PairDataSet<K,V> {
     <W> PairDataSet<K,Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet,String name);
     PairDataSet<K,V> union(PairDataSet<K, V> dataSet);
     <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op, Iterator<Tuple2<K, V>>, U> f);
-    DataSetWriterBuilder deleteData(OperationContext operationContext) throws StandardException;
-    InsertDataSetWriterBuilder insertData(OperationContext operationContext) throws StandardException;
-    UpdateDataSetWriterBuilder updateData(OperationContext operationContext) throws StandardException;
-    DataSetWriterBuilder directWriteData() throws StandardException;
     String toString();
+    DataSetWriterBuilder directWriteData() throws StandardException;
+
 }

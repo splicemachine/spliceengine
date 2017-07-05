@@ -133,6 +133,11 @@ class SpliceTestPlatformConfig {
             config.set("hbase.rootdir", hbaseRootDirUri);
         }
 
+
+        //config.set("fs.maprfs.impl","org.apache.hadoop.fs.LocalFileSystem");
+        //config.set("fs.hdfs.impl","org.apache.hadoop.fs.LocalFileSystem");
+        //config.set("fs.AbstractFileSystem.splice.impll","com.splicemachine.fs.SpliceFs");
+
         //
         // Threads, timeouts
         //

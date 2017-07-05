@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.stream.function.CountJoinedLeftFunction;
 import com.splicemachine.derby.stream.function.merge.MergeAntiJoinFlatMapFunction;
@@ -107,9 +108,9 @@ public class MergeJoinOperation extends JoinOperation {
     }
 
     @Override
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext<JoinOperation> operationContext = dsp.<JoinOperation>createOperationContext(this);
-        DataSet<LocatedRow> left = leftResultSet.getDataSet(dsp);
+        DataSet<ExecRow> left = leftResultSet.getDataSet(dsp);
         
         operationContext.pushScope();
         try {

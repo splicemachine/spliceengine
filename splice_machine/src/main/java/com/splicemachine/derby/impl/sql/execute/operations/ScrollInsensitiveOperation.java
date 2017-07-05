@@ -266,10 +266,10 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext operationContext = dsp.createOperationContext(this);
         // we are returning data to the client, get a resultDataSet
-        DataSet<LocatedRow> sourceSet = source.getResultDataSet(dsp);
+        DataSet<ExecRow> sourceSet = source.getResultDataSet(dsp);
 
         dsp.setSchedulerPool("query");
         operationContext.pushScope();

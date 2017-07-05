@@ -20,7 +20,6 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.kvpair.KVPair;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -32,7 +31,7 @@ import java.util.List;
 /**
  * Created by jyuan on 10/16/15.
  */
-public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceFunction<Op,LocatedRow,KVPair> {
+public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceFunction<Op,ExecRow,KVPair> {
     private boolean initialized;
     private DDLMessage.TentativeIndex tentativeIndex;
     private int[] projectedMapping;
@@ -56,16 +55,16 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
     }
 
     @Override
-    public KVPair call(LocatedRow locatedRow) throws Exception {
+    public KVPair call(ExecRow execRow) throws Exception {
         if (!initialized)
             init();
-        ExecRow misMatchedRow = locatedRow.getRow();
+        ExecRow misMatchedRow = execRow;
         ExecRow row = new ValueRow(misMatchedRow.nColumns());
         for (int i = 0; i<projectedMapping.length;i++) {
               row.setColumn(i+1,misMatchedRow.getColumn(projectedMapping[i]+1));
         }
-        locatedRow.setRow(row);
-        return transformer.writeDirectIndex(locatedRow);
+        row.setKey(misMatchedRow.getKey());
+        return transformer.writeDirectIndex(row);
     }
 
     private void init() {

@@ -32,7 +32,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.spark.WholeTextInputFormat;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
@@ -282,7 +281,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
     @Override
-    public Partitioner getPartitioner(DataSet<LocatedRow> dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder, int[] rightHashKeys) {
+    public Partitioner getPartitioner(DataSet<ExecRow> dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder, int[] rightHashKeys) {
         return new HBasePartitioner(dataSet, template, keyDecodingMap, keyOrder, rightHashKeys);
     }
 
@@ -474,7 +473,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
     @Override
-    public <V> DataSet<LocatedRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
+    public <V> DataSet<ExecRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
                                       OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow,
                                                 boolean useSample, double sampleFraction) throws StandardException {
         try {

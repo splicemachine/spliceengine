@@ -166,19 +166,19 @@ public class ExplainOperation extends SpliceBaseOperation {
         }
     }
 
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext operationContext = dsp.createOperationContext(this);
         operationContext.pushScope();
         try {
-            return dsp.createDataSet(Iterators.transform(explainString.iterator(), new Function<String, LocatedRow>() {
+            return dsp.createDataSet(Iterators.transform(explainString.iterator(), new Function<String, ExecRow>() {
                                                              @Nullable
                                                              @Override
-                                                             public LocatedRow apply(@Nullable String n) {
+                                                             public ExecRow apply(@Nullable String n) {
                                                                  try {
                                                                      currentTemplate.resetRowArray();
                                                                      DataValueDescriptor[] dvds = currentTemplate.getRowArray();
                                                                      dvds[0].setValue(n);
-                                                                     return new LocatedRow(currentTemplate.getClone());
+                                                                     return currentTemplate.getClone();
                                                                  } catch (Exception e) {
                                                                      throw new RuntimeException(e);
                                                                  }

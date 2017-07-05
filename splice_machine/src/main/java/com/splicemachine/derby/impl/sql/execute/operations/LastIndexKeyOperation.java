@@ -113,8 +113,8 @@ public class LastIndexKeyOperation extends ScanOperation {
     }
 
     @Override
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        DataSet<LocatedRow> scan = dsp.<LastIndexKeyOperation,LocatedRow>newScanSet(this,tableName)
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        DataSet<ExecRow> scan = dsp.<LastIndexKeyOperation,ExecRow>newScanSet(this,tableName)
                 .tableDisplayName(tableDisplayName)
                 .transaction(getCurrentTransaction())
                 .scan(getReversedNonSIScan())
@@ -131,9 +131,9 @@ public class LastIndexKeyOperation extends ScanOperation {
                 .buildDataSet(this);
 
         OperationContext<SpliceOperation> operationContext = dsp.<SpliceOperation>createOperationContext(this);
-        return scan.take(new TakeFunction<SpliceOperation, LocatedRow>(operationContext,1))
+        return scan.take(new TakeFunction<SpliceOperation, ExecRow>(operationContext,1))
                 .coalesce(1,false)
-                .take(new TakeFunction<SpliceOperation, LocatedRow>(operationContext,1));
+                .take(new TakeFunction<SpliceOperation, ExecRow>(operationContext,1));
     }
 }
 

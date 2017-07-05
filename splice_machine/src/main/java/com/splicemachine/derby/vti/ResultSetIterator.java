@@ -15,7 +15,7 @@
 package com.splicemachine.derby.vti;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.Closeable;
 import java.io.IOException;
@@ -29,7 +29,7 @@ import java.util.Iterator;
  *
  */
 @NotThreadSafe
-public class ResultSetIterator implements Iterable<LocatedRow>, Iterator<LocatedRow>, Closeable {
+public class ResultSetIterator implements Iterable<ExecRow>, Iterator<ExecRow>, Closeable {
     private ExecRow execRow;
     private ResultSet resultSet;
     private boolean[] isNullable;
@@ -58,7 +58,7 @@ public class ResultSetIterator implements Iterable<LocatedRow>, Iterator<Located
     }
 
     @Override
-    public Iterator<LocatedRow> iterator() {
+    public Iterator<ExecRow> iterator() {
         return this;
     }
 
@@ -72,13 +72,13 @@ public class ResultSetIterator implements Iterable<LocatedRow>, Iterator<Located
     }
 
     @Override
-    public LocatedRow next() {
+    public ExecRow next() {
         try {
             ExecRow returnRow = execRow.getClone();
             for (int i = 1; i <= execRow.nColumns(); i++) {
                 returnRow.getColumn(i).setValueFromResultSet(resultSet,i,isNullable[i-1]);
             }
-            return new LocatedRow(returnRow);
+            return returnRow;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

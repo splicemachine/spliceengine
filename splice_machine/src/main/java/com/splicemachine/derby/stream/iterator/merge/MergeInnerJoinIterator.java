@@ -16,8 +16,6 @@ package com.splicemachine.derby.stream.iterator.merge;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.PeekingIterator;
@@ -35,8 +33,8 @@ public class MergeInnerJoinIterator extends AbstractMergeJoinIterator {
      * @param rightKeys     Join Key(s) on which right side is sorted
      * @param operationContext
      */
-    public MergeInnerJoinIterator(Iterator<LocatedRow> leftRS,
-                                  PeekingIterator<LocatedRow> rightRS,
+    public MergeInnerJoinIterator(Iterator<ExecRow> leftRS,
+                                  PeekingIterator<ExecRow> rightRS,
                                   int[] leftKeys, int[] rightKeys,
                                   JoinOperation mergeJoinOperation, OperationContext<JoinOperation> operationContext) {
         super(leftRS,rightRS,leftKeys,rightKeys,mergeJoinOperation, operationContext);
@@ -48,8 +46,8 @@ public class MergeInnerJoinIterator extends AbstractMergeJoinIterator {
             if (left != null) {
                 while (currentRightIterator.hasNext()) {
                     ExecRow right = currentRightIterator.next();
-                    currentLocatedRow = mergeRows(left, right);
-                    if (mergeJoinOperation.getRestriction().apply(currentLocatedRow.getRow())) {
+                    currentExecRow = mergeRows(left, right);
+                    if (mergeJoinOperation.getRestriction().apply(currentExecRow)) {
                         return true;
                     }
                     operationContext.recordFilter();
@@ -57,10 +55,10 @@ public class MergeInnerJoinIterator extends AbstractMergeJoinIterator {
             }
             while (leftRS.hasNext()) {
                 left = leftRS.next();
-                currentRightIterator = rightsForLeft(left.getRow());
+                currentRightIterator = rightsForLeft(left);
                 while (currentRightIterator.hasNext()) {
-                    currentLocatedRow = mergeRows(left, currentRightIterator.next());
-                    if (mergeJoinOperation.getRestriction().apply(currentLocatedRow.getRow())) {
+                    currentExecRow = mergeRows(left, currentRightIterator.next());
+                    if (mergeJoinOperation.getRestriction().apply(currentExecRow)) {
                         if (mergeJoinOperation.isOneRowRightSide()) {
                             left = null; // only one joined row needed, force iteration on left side next time
                         }

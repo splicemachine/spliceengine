@@ -114,14 +114,14 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext operationContext = dsp.createOperationContext(this);
-        DataSet<LocatedRow> dataSet = source.getDataSet(dsp);
-        DataSet<LocatedRow> ds2 = dataSet.keyBy(new KeyerFunction(operationContext, keyColumns), null, true, "Prepare Keys")
+        DataSet<ExecRow> dataSet = source.getDataSet(dsp);
+        DataSet<ExecRow> ds2 = dataSet.keyBy(new KeyerFunction(operationContext, keyColumns), null, true, "Prepare Keys")
             .reduceByKey(new MergeNonDistinctAggregatesFunction(operationContext), false, true, "Reduce")
             .values(null, false, operationContext, true, "Read Values");
-        DataSet<LocatedRow> ds3 = ds2.mapPartitions(new MergeAllAggregatesFlatMapFunction(operationContext, false), false, true, "First Aggregation");
-        DataSet<LocatedRow> ds4 = ds3.coalesce(1, true, false, operationContext, true, "Coalesce");
+        DataSet<ExecRow> ds3 = ds2.mapPartitions(new MergeAllAggregatesFlatMapFunction(operationContext, false), false, true, "First Aggregation");
+        DataSet<ExecRow> ds4 = ds3.coalesce(1, true, false, operationContext, true, "Coalesce");
         return ds4.mapPartitions(new MergeAllAggregatesFlatMapFunction(operationContext, true), true, true, "Final Aggregation");
     }
 }

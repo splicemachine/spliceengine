@@ -23,11 +23,11 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.sql.execute.pin.DistributedPopulatePinJob;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -176,7 +176,7 @@ public class CreatePinConstantOperation implements ConstantAction, ScopeNamed {
         for (int i = 0; i < conglomerate.getColumnOrdering().length; i++) {
             accessedKeyCols.set(i);
         }
-        ScanSetBuilder<LocatedRow> builder = dsp.newScanSet(null,Long.toString(td.getHeapConglomerateId()));
+        ScanSetBuilder<ExecRow> builder = dsp.newScanSet(null,Long.toString(td.getHeapConglomerateId()));
             builder.tableDisplayName(tableName)
                 .transaction(parentTxn)
                 .scan(DDLUtils.createFullScan())
