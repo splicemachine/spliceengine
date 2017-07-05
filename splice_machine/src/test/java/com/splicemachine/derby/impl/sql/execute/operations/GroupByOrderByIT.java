@@ -14,13 +14,12 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -29,11 +28,15 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.homeless.TestUtils;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  *
@@ -99,6 +102,13 @@ public class GroupByOrderByIT {
                 String.format("SELECT EMPNUM,PNUM, HOURS FROM %1$s GROUP BY PNUM,EMPNUM,HOURS", t1Watcher.toString()));
         System.out.println("testSelectAllColumnsGroupBy");
         Assert.assertEquals(12, verifyColumns(rs, Arrays.asList("EMPNUM", "PNUM", "HOURS"), Arrays.asList("HOURS"), true));
+
+        /* test group by position number */
+        rs = methodWatcher.executeQuery(
+                String.format("SELECT EMPNUM,PNUM, HOURS FROM %1$s GROUP BY 2,1,3", t1Watcher.toString()));
+        System.out.println("testSelectAllColumnsGroupBy");
+        Assert.assertEquals(12, verifyColumns(rs, Arrays.asList("EMPNUM", "PNUM", "HOURS"), Arrays.asList("HOURS"), true));
+
     }
 
     @Test
@@ -107,6 +117,13 @@ public class GroupByOrderByIT {
                 String.format("SELECT EMPNUM,PNUM, sum(HOURS) AS SUM_HOURS FROM %1$s GROUP BY PNUM,EMPNUM", t1Watcher.toString()));
         System.out.println("testSelectAllColumnsGroupBySum");
         Assert.assertEquals(12, verifyColumns(rs, Arrays.asList("EMPNUM", "PNUM", "SUM_HOURS"), Arrays.asList("SUM_HOURS"), true));
+
+        /* test group by position number */
+        rs = methodWatcher.executeQuery(
+                String.format("SELECT EMPNUM,PNUM, sum(HOURS) AS SUM_HOURS FROM %1$s GROUP BY 2,1", t1Watcher.toString()));
+        System.out.println("testSelectAllColumnsGroupBySum");
+        Assert.assertEquals(12, verifyColumns(rs, Arrays.asList("EMPNUM", "PNUM", "SUM_HOURS"), Arrays.asList("SUM_HOURS"), true));
+
     }
 
     @Test
@@ -125,6 +142,108 @@ public class GroupByOrderByIT {
                         "PNUM, EMPNUM, HOURS", t1Watcher.toString()));
         System.out.println("testSelectAllColumnsGroupByOrderBy");
         Assert.assertEquals(12, verifyColumns(rs, Arrays.asList("EMPNUM", "PNUM", "HOURS"), Arrays.asList("HOURS"), true));
+
+        /* test group by position number */
+        rs = methodWatcher.executeQuery(
+                String.format("SELECT EMPNUM,PNUM,HOURS FROM %1$s GROUP BY 2,1,3 ORDER BY " +
+                        "PNUM, EMPNUM, HOURS", t1Watcher.toString()));
+        System.out.println("testSelectAllColumnsGroupByOrderBy");
+        Assert.assertEquals(12, verifyColumns(rs, Arrays.asList("EMPNUM", "PNUM", "HOURS"), Arrays.asList("HOURS"), true));
+    }
+
+    @Test
+    public void testGroupByPositionNumber() throws Exception {
+        /* Q1 */
+        String sqlText = String.format("SELECT EMPNUM, sum(HOURS), PNUM, count(*) AS SUM_HOURS FROM %1$s GROUP BY 3,1 order by 1,3", t1Watcher.toString());
+        String expected = "EMPNUM | 2 |PNUM | SUM_HOURS |\n" +
+                "------------------------------\n" +
+                "  E1   |40 | P1  |     1     |\n" +
+                "  E1   |20 | P2  |     1     |\n" +
+                "  E1   |80 | P3  |     1     |\n" +
+                "  E1   |20 | P4  |     1     |\n" +
+                "  E1   |12 | P5  |     1     |\n" +
+                "  E1   |12 | P6  |     1     |\n" +
+                "  E2   |40 | P1  |     1     |\n" +
+                "  E2   |80 | P2  |     1     |\n" +
+                "  E3   |20 | P2  |     1     |\n" +
+                "  E4   |20 | P2  |     1     |\n" +
+                "  E4   |40 | P4  |     1     |\n" +
+                "  E4   |80 | P5  |     1     |";
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q2 */
+        sqlText = String.format("SELECT EMPNUM, sum(HOURS), count(*) AS SUM_HOURS FROM %1$s GROUP BY 1 order by 1", t1Watcher.toString());
+        expected = "EMPNUM | 2  | SUM_HOURS |\n" +
+                "-------------------------\n" +
+                "  E1   |184 |     6     |\n" +
+                "  E2   |120 |     2     |\n" +
+                "  E3   |20  |     1     |\n" +
+                "  E4   |140 |     3     |";
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q3 test expression */
+        sqlText = String.format("SELECT EMPNUM || '-' || PNUM, sum(HOURS), count(*) AS SUM_HOURS FROM %1$s GROUP BY 1 order by 1", t1Watcher.toString());
+        expected = "1   | 2 | SUM_HOURS |\n" +
+                "-----------------------\n" +
+                "E1-P1 |40 |     1     |\n" +
+                "E1-P2 |20 |     1     |\n" +
+                "E1-P3 |80 |     1     |\n" +
+                "E1-P4 |20 |     1     |\n" +
+                "E1-P5 |12 |     1     |\n" +
+                "E1-P6 |12 |     1     |\n" +
+                "E2-P1 |40 |     1     |\n" +
+                "E2-P2 |80 |     1     |\n" +
+                "E3-P2 |20 |     1     |\n" +
+                "E4-P2 |20 |     1     |\n" +
+                "E4-P4 |40 |     1     |\n" +
+                "E4-P5 |80 |     1     |";
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q4 test rollup */
+        sqlText = String.format("SELECT EMPNUM, sum(HOURS), PNUM, count(*) AS SUM_HOURS FROM %1$s GROUP BY rollup(1,3) order by 1,3", t1Watcher.toString());
+        expected = "EMPNUM | 2  |PNUM | SUM_HOURS |\n" +
+                "-------------------------------\n" +
+                "  E1   |40  | P1  |     1     |\n" +
+                "  E1   |20  | P2  |     1     |\n" +
+                "  E1   |80  | P3  |     1     |\n" +
+                "  E1   |20  | P4  |     1     |\n" +
+                "  E1   |12  | P5  |     1     |\n" +
+                "  E1   |12  | P6  |     1     |\n" +
+                "  E1   |184 |NULL |     6     |\n" +
+                "  E2   |40  | P1  |     1     |\n" +
+                "  E2   |80  | P2  |     1     |\n" +
+                "  E2   |120 |NULL |     2     |\n" +
+                "  E3   |20  | P2  |     1     |\n" +
+                "  E3   |20  |NULL |     1     |\n" +
+                "  E4   |20  | P2  |     1     |\n" +
+                "  E4   |40  | P4  |     1     |\n" +
+                "  E4   |80  | P5  |     1     |\n" +
+                "  E4   |140 |NULL |     3     |\n" +
+                " NULL  |464 |NULL |    12     |";
+        rs = methodWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+
+        /* Q4 negative test case */
+        sqlText = String.format("SELECT EMPNUM || '-' || PNUM, sum(HOURS), count(*) AS SUM_HOURS FROM %1$s GROUP BY 2", t1Watcher.toString());
+        expected = "";
+        try {
+            methodWatcher.executeQuery(sqlText);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLException e) {
+            Assert.assertEquals(e.getSQLState(), SQLState.LANG_AGGREGATE_IN_GROUPBY_LIST);
+        }
+
     }
 
     private static int verifyColumns(ResultSet rs, List<String> expectedColNames,
