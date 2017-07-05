@@ -90,9 +90,11 @@ public class SpliceSequenceIT {
         methodWatcher.executeUpdate(String.format("create table t2(c1 int generated always as identity(start with 1, increment by 1), c2 int)"));
         methodWatcher.executeUpdate(String.format("insert into t2(c2) values (8)"));
         methodWatcher.executeUpdate(String.format("insert into t2(c2) values (IDENTITY_VAL_LOCAL())"));
-        methodWatcher.executeUpdate(String.format("insert into t2(c2) values (IDENTITY_VAL_LOCAL()) --splice-properties useSpark=true"));
+        methodWatcher.executeUpdate(String.format("insert into t2(c2) --splice-properties useSpark=true \n values (IDENTITY_VAL_LOCAL()) "));
 
     }
+
+
 /*
     @Test
     public void testSparkSequenceGenerationWithCreateAndDrops() throws Exception {
