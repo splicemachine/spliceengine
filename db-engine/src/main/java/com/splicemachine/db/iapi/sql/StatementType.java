@@ -64,6 +64,9 @@ public interface StatementType
 	int SET_SCHEMA_DYNAMIC = 2;
 
     int SET_ROLE_DYNAMIC = 1;
+
+	int CREATE_IF_NOT_EXISTS = 7;
+	int CREATE_DEFAULT = 8;
 }
 
 

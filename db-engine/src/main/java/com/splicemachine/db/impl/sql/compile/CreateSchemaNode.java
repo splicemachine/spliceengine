@@ -31,10 +31,15 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 
 /**
@@ -47,6 +52,8 @@ public class CreateSchemaNode extends DDLStatementNode
 {
 	private String 	name;
 	private String	aid;
+	private int createBehavior;
+	private SchemaDescriptor sd;
 	
 	/**
 	 * Initializer for a CreateSchemaNode
@@ -58,7 +65,8 @@ public class CreateSchemaNode extends DDLStatementNode
 	 */
 	public void init(
 			Object	schemaName,
-			Object	aid)
+			Object	aid,
+			Object createBehavior)
 		throws StandardException
 	{
 		/*
@@ -70,6 +78,7 @@ public class CreateSchemaNode extends DDLStatementNode
 	
 		this.name = (String) schemaName;
 		this.aid = (String) aid;
+		this.createBehavior = ((Integer) createBehavior).intValue();
 	}
 
 	/**
@@ -99,7 +108,15 @@ public class CreateSchemaNode extends DDLStatementNode
 	 */
 	public void bindStatement() throws StandardException
 	{
+		DataDictionary dd = getDataDictionary();
+		sd = dd.getSchemaDescriptor(name, getLanguageConnectionContext().getTransactionCompile(), false);
 		CompilerContext cc = getCompilerContext();
+		if(sd != null && createBehavior == StatementType.CREATE_IF_NOT_EXISTS){
+			StandardException e = StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS,
+					statementToString(), name);
+			e.setSeverity(ExceptionSeverity.WARNING_SEVERITY);
+			throw e;
+		}
 		if (isPrivilegeCollectionRequired())
 			cc.addRequiredSchemaPriv(name, aid, Authorizer.CREATE_SCHEMA_PRIV);
 
