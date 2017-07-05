@@ -107,6 +107,33 @@ public class GroupByList extends OrderedColumnList{
 		/* Bind the grouping column */
         for(int index=0;index<size;index++){
             GroupByColumn groupByCol=(GroupByColumn)elementAt(index);
+            if (OrderByColumn.isReferedColByNum(groupByCol.getColumnExpression())) {
+                ResultColumnList targetCols = select.getResultColumns();
+                int columnPosition = (Integer) groupByCol.getColumnExpression().getConstantValueAsObject();
+                ResultColumn resultCol = targetCols.getResultColumn(columnPosition);
+
+			    /* Column is out of range if either a) resultCol is null, OR
+			     * b) resultCol points to a column that is not visible to the
+			     * user (i.e. it was generated internally).
+			    */
+                if ((resultCol == null) ||
+                        (resultCol.getColumnPosition() > targetCols.visibleSize()))
+                {
+                    throw StandardException.newException(SQLState.LANG_COLUMN_OUT_OF_RANGE,
+                            String.valueOf(columnPosition));
+                }
+
+                               /* Aggregates not allowed in group by */
+                HasNodeVisitor visitor =
+                        new HasNodeVisitor(AggregateNode.class);
+                resultCol.expression.accept(visitor);
+                if (visitor.hasNode())
+                {
+                    throw StandardException.newException(SQLState.LANG_AGGREGATE_IN_GROUPBY_LIST);
+                }
+
+                groupByCol.setColumnExpression(resultCol.expression);
+            }
             groupByCol.bindExpression(fromList,
                     dummySubqueryList,aggregateVector);
         }
