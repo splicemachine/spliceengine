@@ -15,6 +15,7 @@
 package com.splicemachine.hbase;
 
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -49,8 +50,19 @@ public class SpliceHFileCleaner extends BaseHFileCleanerDelegate {
             */
             if (BackupUtils.existsDatabaseBackup(fs, rootDir)) {
                 String p = BackupUtils.getBackupFilePath(fStat.getPath().toString());
-                if (fs.exists(new Path(p)))
+                if (fs.exists(new Path(p))) {
+                    if (LOG.isDebugEnabled()) {
+                        SpliceLogUtils.debug(LOG, "File %s should be kept for incremental backup",
+                                fStat.getPath().toString());
+                    }
                     deletable = false;
+                }
+                else {
+                    if (LOG.isDebugEnabled()) {
+                        SpliceLogUtils.debug(LOG, "File %s can be removed",
+                                fStat.getPath().toString());
+                    }
+                }
             }
         }
         catch(Exception e) {
