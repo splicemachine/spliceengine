@@ -15403,8 +15403,8 @@ dropPinStatement() throws StandardException :
 											C_NodeTypes.DROP_PIN_NODE,
 											tableName,
 											(ifExists ?
-											  new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
-											  new Integer(StatementType.CREATE_DEFAULT)),
+											  new Integer(StatementType.DROP_IF_EXISTS) :
+											  new Integer(StatementType.DROP_DEFAULT)),
 											getContextManager());
         return deleteNode;
 	}
