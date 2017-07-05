@@ -171,6 +171,28 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
     }
 
+    @Test
+    public void testControlConnection() throws Exception {
+        String url = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=false";
+        Connection connection = DriverManager.getConnection(url, new Properties());
+        connection.setSchema(CLASS_NAME.toUpperCase());
+        Statement s = connection.createStatement();
+        ResultSet rs = s.executeQuery("explain select * from A");
+        Assert.assertTrue(rs.next());
+        Assert.assertTrue("expect explain plan contains useSpark=false", rs.getString(1).contains("engine=control"));
+    }
+
+    @Test
+    public void testControlQuery() throws Exception {
+        String url = "jdbc:splice://localhost:1527/splicedb;user=splice;password=admin";
+        Connection connection = DriverManager.getConnection(url, new Properties());
+        connection.setSchema(CLASS_NAME.toUpperCase());
+        Statement s = connection.createStatement();
+        ResultSet rs = s.executeQuery("explain select * from A --SPLICE-PROPERTIES useSpark=false");
+        Assert.assertTrue(rs.next());
+        Assert.assertTrue("expect explain plan contains useSpark=false", rs.getString(1).contains("engine=control"));
+    }
+
     //DB-5743
     @Test
     public void testPredicatePushDownAfterOJ2IJ() throws Exception {
