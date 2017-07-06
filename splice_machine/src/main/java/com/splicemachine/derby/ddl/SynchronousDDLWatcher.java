@@ -86,8 +86,13 @@ public class SynchronousDDLWatcher implements DDLWatcher, CommunicationListener{
     }
 
     @Override
-    public boolean canUseCache(TransactionManager xact_mgr){
-        return refresher.canUseCache(xact_mgr);
+    public boolean canWriteCache(TransactionManager xact_mgr){
+        return refresher.canWriteCache(xact_mgr);
+    }
+
+    @Override
+    public boolean canReadCache(TransactionManager xact_mgr){
+        return refresher.canReadCache(xact_mgr);
     }
 
     @Override

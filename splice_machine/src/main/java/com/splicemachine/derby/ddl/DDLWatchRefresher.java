@@ -162,9 +162,14 @@ public class DDLWatchRefresher{
         return true;
     }
 
-    public boolean canUseCache(TransactionManager xact_mgr) {
+    public boolean canWriteCache(TransactionManager xact_mgr) {
         return cacheIsValid() && canSeeDDLDemarcationPoint(xact_mgr);
     }
+
+    public boolean canReadCache(TransactionManager xact_mgr) {
+        return canSeeDDLDemarcationPoint(xact_mgr);
+    }
+
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
