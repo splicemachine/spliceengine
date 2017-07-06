@@ -16,14 +16,12 @@ package com.splicemachine.derby.impl.sql.execute.sequence;
 
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test_tools.TableCreator;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import static com.splicemachine.test_tools.Rows.row;
@@ -79,13 +77,70 @@ public class SpliceSequenceIT {
         methodWatcher.executeUpdate("drop sequence SMALLSEQ restrict");
     }
 
-    @Ignore
+    @Test
     public void testIdentityValLocal() throws Exception{
-        methodWatcher.executeUpdate(String.format("create table t1(c1 int generated always as identity, c2 int)"));
-        methodWatcher.executeUpdate(String.format("insert into t1(c2) values (8)"));
-        methodWatcher.executeUpdate(String.format("insert into t1(c2) values (IDENTITY_VAL_LOCAL())"));
+        //Simple use of IDENTITY_VAL_LOCAL
+        try {
+            methodWatcher.executeUpdate(String.format("create table t1(c1 int generated always as identity, c2 int)"));
+            methodWatcher.executeUpdate(String.format("insert into t1(c2) values (8)"));
+            methodWatcher.executeUpdate(String.format("insert into t1(c2) values (IDENTITY_VAL_LOCAL())"));
+            ResultSet r = methodWatcher.executeQuery("select c2 from t1");
+            r.next();
+            Assert.assertEquals("Value was not correctly inserted", 8, r.getInt(1));
+            r.next();
+            Assert.assertEquals("Value was not correctly inserted using IDENTITY_VAL_LOCAL", 2, r.getInt(1));
 
+        }
+        catch(Exception e){
+            Assert.fail("Should not throw exception, IDENTITY_VAL_LOCAL should be valid");
+        }
 
+        //Inserting with IDENTITY_VAL_LOCAL when useSpark=true
+        try {
+            methodWatcher.executeUpdate(String.format("create table t2(c1 int generated always as identity, c2 int)"));
+            methodWatcher.executeUpdate(String.format("insert into t2(c2) values (8)"));
+            methodWatcher.executeUpdate(String.format("insert into t2(c2) --splice-properties useSpark=true \n values (IDENTITY_VAL_LOCAL())"));
+            ResultSet r = methodWatcher.executeQuery("select c2 from t2");
+            r.next();
+            Assert.assertEquals("Value was not correctly inserted", 8, r.getInt(1));
+            r.next();
+            Assert.assertEquals("Value was not correctly inserted using IDENTITY_VAL_LOCAL", 2, r.getInt(1));
+        }
+        catch(Exception e){
+            Assert.fail("Should not throw exception, IDENTITY_VAL_LOCAL should be valid when useSpark = true");
+        }
+
+        //inserting with useSpark=true, using IDENTITY_VAL_LOCAL local
+        try {
+            methodWatcher.executeUpdate(String.format("create table t3(c1 int generated always as identity, c2 int)"));
+            methodWatcher.executeUpdate(String.format("insert into t3(c2) --splice-properties useSpark=true \n values (8)"));
+            methodWatcher.executeUpdate(String.format("insert into t3(c2) values (IDENTITY_VAL_LOCAL())"));
+            ResultSet r = methodWatcher.executeQuery("select c2 from t3");
+            r.next();
+            Assert.assertEquals("Value was not correctly inserted", 8, r.getInt(1));
+            r.next();
+            Assert.assertEquals("Value was not correctly inserted using IDENTITY_VAL_LOCAL", 2, r.getInt(1));
+        }
+        catch(Exception e){
+            System.out.println(e.getMessage());
+            Assert.fail("Should not throw exception, IDENTITY_VAL_LOCAL should be valid when useSpark = true");
+        }
+
+        //inserting both values with useSpark=true
+        try {
+            methodWatcher.executeUpdate(String.format("create table t4(c1 int generated always as identity, c2 int)"));
+            methodWatcher.executeUpdate(String.format("insert into t4(c2) --splice-properties useSpark=true \n values (8)"));
+            methodWatcher.executeUpdate(String.format("insert into t4(c2) --splice-properties useSpark=true \n values (IDENTITY_VAL_LOCAL())"));
+            ResultSet r = methodWatcher.executeQuery("select c2 from t4");
+            r.next();
+            Assert.assertEquals("Value was not correctly inserted", 8, r.getInt(1));
+            r.next();
+            Assert.assertEquals("Value was not correctly inserted using IDENTITY_VAL_LOCAL", 2, r.getInt(1));
+        }
+        catch(Exception e){
+            System.out.println(e.getMessage());
+            Assert.fail("Should not throw exception, IDENTITY_VAL_LOCAL should be valid when useSpark = true");
+        }
     }
 /*
     @Test

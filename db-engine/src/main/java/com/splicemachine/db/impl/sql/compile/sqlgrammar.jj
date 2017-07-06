@@ -7635,6 +7635,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == COALESCE ||
                 getToken(1).kind == NVL ||
                 getToken(1).kind == VALUE ||
+                getToken(1).kind == IDENTITY_VAL_LOCAL ||
                 getToken(1).kind == SUBSTRING ||
                 getToken(1).kind == SUBSTR ||
                 getToken(1).kind == REPLACE ||
