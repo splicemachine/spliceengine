@@ -22,9 +22,8 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLSyntaxErrorException;
 import java.sql.Statement;
-/**
- * Created by jyuan on 7/30/15.
- */
+import java.util.logging.Logger;
+
 public class AnalyzeTableIT {
     private static final String SCHEMA = AnalyzeTableIT.class.getSimpleName();
     private static SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);
@@ -86,6 +85,12 @@ public class AnalyzeTableIT {
             Assert.assertTrue(schema.compareToIgnoreCase(SCHEMA) == 0);
         }
         Assert.assertEquals(1, count);
+    }
+
+    @Test
+    public void analyzeTableCaseSensitive() throws Exception{
+        classWatcher.executeUpdate("create schema if not exists \"alextest\"");
+        classWatcher.executeQuery("analyze schema \"alextest\"");
     }
 
     @Test

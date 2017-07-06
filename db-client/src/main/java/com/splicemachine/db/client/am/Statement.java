@@ -2373,11 +2373,11 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
                 firstToken.equalsIgnoreCase("explain") ||
                 firstToken.equalsIgnoreCase("with") ||
                 firstToken.equalsIgnoreCase("export") ||
+                firstToken.equalsIgnoreCase("analyze") ||
                 firstToken.equalsIgnoreCase("values")) // captures <values-clause> production
         {
             sqlMode_ = isQuery__;
-        } else if (firstToken.equalsIgnoreCase("call") ||
-                firstToken.equalsIgnoreCase("analyze")) // captures CALL...and ?=CALL...
+        } else if (firstToken.equalsIgnoreCase("call")) // captures CALL...and ?=CALL...
         {
             sqlMode_ = isCall__;
         } else {
