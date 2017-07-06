@@ -71,7 +71,24 @@ public interface DDLWatcher {
 
     void unregisterDDLListener(DDLListener listener);
 
-    boolean canUseCache(TransactionManager xact_mgr);
+    /**
+     *
+     * You cannot write to the cache if there are current ddl transactions
+     * or your txn is behind the state of of the ddl view.
+     *
+     * @param xact_mgr
+     * @return
+     */
+    boolean canWriteCache(TransactionManager xact_mgr);
+
+    /**
+     *
+     * You cannot read from the cache if your txn is behind the state of of the ddl view.
+     *
+     * @param xact_mgr
+     * @return
+     */
+    boolean canReadCache(TransactionManager xact_mgr);
 
     boolean canUseSPSCache(TransactionManager txnMgr);
 }

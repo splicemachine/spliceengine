@@ -125,7 +125,7 @@ public class DataDictionaryCache {
     }
 
     public TableDescriptor nameTdCacheFind(TableKey tableKey) throws StandardException {
-        if (!dd.canUseCache(null))
+        if (!dd.canReadCache(null))
             return null;
         if (LOG.isDebugEnabled())
             LOG.debug("nameTdCacheFind " + tableKey);
@@ -133,7 +133,7 @@ public class DataDictionaryCache {
     }
 
     public void nameTdCacheAdd(TableKey tableKey, TableDescriptor td) throws StandardException {
-        if (!dd.canUseCache(null))
+        if (!dd.canWriteCache(null))
             return;
         if (LOG.isDebugEnabled())
             LOG.debug("nameTdCacheAdd " + tableKey + " : " + td);
@@ -150,7 +150,7 @@ public class DataDictionaryCache {
     }
 
     public TableDescriptor oidTdCacheFind(UUID tableID) throws StandardException {
-        if (!dd.canUseCache(null))
+        if (!dd.canReadCache(null))
             return null;
         TableDescriptor td =  oidTdCache.getIfPresent(tableID);
         if (LOG.isDebugEnabled())
@@ -161,7 +161,7 @@ public class DataDictionaryCache {
     }
 
     public void oidTdCacheAdd(UUID tableID, TableDescriptor td) throws StandardException {
-        if (!dd.canUseCache(null))
+        if (!dd.canWriteCache(null))
             return;
         if (LOG.isDebugEnabled())
             LOG.debug("oidTdCacheAdd " + tableID + " : " + td);
@@ -178,7 +178,7 @@ public class DataDictionaryCache {
 
 
     public List<PartitionStatisticsDescriptor> partitionStatisticsCacheFind(Long conglomID) throws StandardException {
-        if (!dd.canUseCache(null))
+        if (!dd.canReadCache(null))
             return null;
         if (LOG.isDebugEnabled())
             LOG.debug("partitionStatisticsCacheFind " + conglomID);
@@ -186,7 +186,7 @@ public class DataDictionaryCache {
     }
 
     public void partitionStatisticsCacheAdd(Long conglomID, List<PartitionStatisticsDescriptor> list) throws StandardException {
-        if (!dd.canUseCache(null))
+        if (!dd.canWriteCache(null))
             return;
         if (LOG.isDebugEnabled())
             LOG.debug("partitionStatisticsCacheAdd " + conglomID);
@@ -200,7 +200,7 @@ public class DataDictionaryCache {
     }
 
     public void permissionCacheAdd(PermissionsDescriptor key, PermissionsDescriptor permissions) throws StandardException {
-        if (!dd.canUseCache(null))
+        if (!dd.canWriteCache(null))
             return;
         if (LOG.isDebugEnabled())
             LOG.debug("permissionCacheAdd " + key);
@@ -216,7 +216,7 @@ public class DataDictionaryCache {
     }
 
     public PermissionsDescriptor permissionCacheFind(PermissionsDescriptor desc) throws StandardException {
-        if (!dd.canUseCache(null))
+        if (!dd.canReadCache(null))
             return null;
         if (LOG.isDebugEnabled())
             LOG.debug("permissionCacheFind " + desc);
@@ -240,7 +240,7 @@ public class DataDictionaryCache {
     }
 
     public void storedPreparedStatementCacheAdd(SPSDescriptor desc) throws StandardException {
-        if (!dd.canUseCache(null))
+        if (!dd.canWriteCache(null))
             return;
         if (LOG.isDebugEnabled())
             LOG.debug("storedPreparedStatementCacheAdd " + desc);
@@ -248,7 +248,7 @@ public class DataDictionaryCache {
     }
 
     public SPSDescriptor storedPreparedStatementCacheFind(UUID uuid) throws StandardException {
-        if (!dd.canUseCache(null))
+        if (!dd.canReadCache(null))
             return null;
         if (LOG.isDebugEnabled())
             LOG.debug("storedPreparedStatementCacheFind " + uuid);
@@ -257,7 +257,7 @@ public class DataDictionaryCache {
 
 
     public Conglomerate conglomerateCacheFind(TransactionController xactMgr,Long conglomId) throws StandardException {
-        if (!dd.canUseCache(xactMgr) && conglomId>=DataDictionary.FIRST_USER_TABLE_NUMBER)
+        if (!dd.canReadCache(xactMgr) && conglomId>=DataDictionary.FIRST_USER_TABLE_NUMBER)
             // Use cache even if dd says we can't as long as it's a system table (conglomID is < FIRST_USER_TABLE_NUMBER)
             return null;
         if (LOG.isDebugEnabled())
@@ -270,7 +270,7 @@ public class DataDictionaryCache {
     }
 
     public void conglomerateCacheAdd(Long conglomId, Conglomerate conglomerate,TransactionController xactMgr) throws StandardException {
-        if (!dd.canUseCache(xactMgr))
+        if (!dd.canWriteCache(xactMgr))
             return;
         if (LOG.isDebugEnabled())
             LOG.debug("conglomerateCacheAdd " + conglomId + " : " + conglomerate);
@@ -289,7 +289,7 @@ public class DataDictionaryCache {
 
 
     public SchemaDescriptor schemaCacheFind(String schemaName) throws StandardException {
-        if (!dd.canUseCache(null))
+        if (!dd.canReadCache(null))
             return null;
         if (LOG.isDebugEnabled())
             LOG.debug("schemaCacheFind " + schemaName);
@@ -297,7 +297,7 @@ public class DataDictionaryCache {
     }
 
     public void schemaCacheAdd(String schemaName, SchemaDescriptor descriptor) throws StandardException {
-        if (!dd.canUseCache(null))
+        if (!dd.canWriteCache(null))
             return;
         if (LOG.isDebugEnabled())
             LOG.debug("schemaCacheAdd " + schemaName + " : " + descriptor);
@@ -323,7 +323,7 @@ public class DataDictionaryCache {
     }
 
     public SequenceUpdater sequenceGeneratorCacheFind(String uuid) throws StandardException {
-        if (!dd.canUseCache(null))
+        if (!dd.canReadCache(null))
             return null;
         if (LOG.isDebugEnabled())
             LOG.debug("sequenceGeneratorCacheFind " + uuid);
@@ -375,7 +375,7 @@ public class DataDictionaryCache {
     }
 
     public void statementCacheAdd(GenericStatement gs, GenericStorablePreparedStatement gsp) throws StandardException {
-        if (!dd.canUseCache(null))
+        if (!dd.canWriteCache(null))
             return;
         if (LOG.isDebugEnabled())
             LOG.debug("statementCacheAdd " + gs.toString());
@@ -383,7 +383,7 @@ public class DataDictionaryCache {
     }
 
     public GenericStorablePreparedStatement statementCacheFind(GenericStatement gs) throws StandardException {
-        if (!dd.canUseCache(null))
+        if (!dd.canReadCache(null))
             return null;
         GenericStorablePreparedStatement gsps = statementCache.getIfPresent(gs);
         if (LOG.isDebugEnabled())
@@ -392,7 +392,7 @@ public class DataDictionaryCache {
     }
 
     public void roleCacheAdd(String roleName, Optional<RoleGrantDescriptor> optional) throws StandardException {
-        if (!dd.canUseCache(null))
+        if (!dd.canWriteCache(null))
             return;
         if (LOG.isDebugEnabled())
             LOG.debug("roleCacheAdd " + roleName);
@@ -400,7 +400,7 @@ public class DataDictionaryCache {
     }
 
     public Optional<RoleGrantDescriptor> roleCacheFind(String roleName) throws StandardException {
-        if (!dd.canUseCache(null))
+        if (!dd.canReadCache(null))
             return null;
         if (LOG.isDebugEnabled())
             LOG.debug("roleCacheFind " + roleName);
