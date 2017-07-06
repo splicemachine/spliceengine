@@ -102,10 +102,9 @@ public final class CharTypeCompiler extends BaseTypeCompiler
 
         public boolean storable(TypeId otherType, ClassFactory cf)
         {
-				// Same rules as cast except we can't assign from numbers
+				// Same rules as cast
 				if (convertible(otherType,false) && 
-					!otherType.isBlobTypeId() &&
-					!otherType.isNumericTypeId())
+					!otherType.isBlobTypeId())
 						return true;
 
                 /*

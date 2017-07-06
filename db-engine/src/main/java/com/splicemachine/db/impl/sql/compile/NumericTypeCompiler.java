@@ -457,7 +457,6 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 			*/
 			val = this.getScale(operator, leftType, rightType) +
 					Math.max(lprec - lscale, rprec - rscale) + 1;
-
 			if (val > Limits.DB2_MAX_DECIMAL_PRECISION_SCALE)
 			// then, like DB2, just set it to the max possible.
 				val = Limits.DB2_MAX_DECIMAL_PRECISION_SCALE;
