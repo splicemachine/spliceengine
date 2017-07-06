@@ -2092,7 +2092,9 @@ public interface DataDictionary{
 
     DataDictionaryCache getDataDictionaryCache();
 
-    boolean canUseCache(TransactionController xactMgr) throws StandardException;
+    boolean canWriteCache(TransactionController xactMgr) throws StandardException;
+
+    boolean canReadCache(TransactionController xactMgr) throws StandardException;
 
     boolean canUseSPSCache() throws StandardException;
 

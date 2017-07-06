@@ -832,7 +832,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     @Override
-    public boolean canUseCache(TransactionController xactMgr) throws StandardException {
+    public boolean canWriteCache(TransactionController xactMgr) throws StandardException {
         // Only enable dictionary cache for region server.
         // TODO - enable it for master and spark executor
         if (!SpliceClient.isRegionServer) {
@@ -844,7 +844,23 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         DDLWatcher ddlWatcher=driver.ddlWatcher();
         if(xactMgr==null)
             xactMgr = getTransactionCompile();
-        return ddlWatcher.canUseCache((TransactionManager)xactMgr);
+        return ddlWatcher.canWriteCache((TransactionManager)xactMgr);
+    }
+
+    @Override
+    public boolean canReadCache(TransactionController xactMgr) throws StandardException {
+        // Only enable dictionary cache for region server.
+        // TODO - enable it for master and spark executor
+        if (!SpliceClient.isRegionServer) {
+            SpliceLogUtils.debug(LOG, "Cannot use dictionary cache.");
+            return false;
+        }
+        DDLDriver driver=DDLDriver.driver();
+        if(driver==null) return false;
+        DDLWatcher ddlWatcher=driver.ddlWatcher();
+        if(xactMgr==null)
+            xactMgr = getTransactionCompile();
+        return ddlWatcher.canReadCache((TransactionManager)xactMgr);
     }
 
     @Override
