@@ -19,7 +19,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
 import com.carrotsearch.hppc.LongOpenHashSet;
+
 import com.google.common.collect.Iterables;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.PartitionAdmin;
@@ -28,6 +30,7 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.TableDescriptor;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
@@ -74,6 +77,7 @@ public class Vacuum{
         try{
             ps = connection.prepareStatement("select conglomeratenumber from sys.sysconglomerates");
             rs = ps.executeQuery();
+
             while(rs.next()){
                 activeConglomerates.add(rs.getLong(1));
             }
@@ -101,6 +105,12 @@ public class Vacuum{
                         continue;
                     }
                     long tableConglom = Long.parseLong(tableName[1]);
+                    if(tableConglom < DataDictionary.FIRST_USER_TABLE_NUMBER) {
+                        if (LOG.isTraceEnabled()) {
+                            LOG.trace("Ignoring system table: " + table.getTableName());
+                        }
+                        continue; //ignore system tables
+                    }
                     if(!activeConglomerates.contains(tableConglom)){
                         LOG.info("Deleting inactive table: " + table.getTableName());
                         partitionAdmin.deleteTable(tableName[1]);
