@@ -50,6 +50,8 @@ public class OlapStatusHandler extends AbstractOlapHandler{
                 case SUBMITTED:
                 case RUNNING:
                     status.wait(waitTime, TimeUnit.MILLISECONDS);
+                default:
+                    // fall-through, send response without blocking
             }
         }
 
