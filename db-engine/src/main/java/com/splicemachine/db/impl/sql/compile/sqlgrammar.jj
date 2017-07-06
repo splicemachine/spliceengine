@@ -3878,6 +3878,7 @@ preparableDeleteStatement() throws StandardException :
 	StatementNode qtn;
 }
 {
+	[ <WITH> withClauseList(parameterList) ]
 	<DELETE> qtn = deleteBody()
 	{
 		return qtn;
