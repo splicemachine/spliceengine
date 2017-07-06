@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
+import com.carrotsearch.hppc.LongOpenHashSet;
+import com.splicemachine.db.impl.db.BasicDatabase;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Function;
@@ -100,7 +102,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     protected final AliasDescriptor[] sysfunDescriptors=new AliasDescriptor[SYSFUN_FUNCTIONS.length];
 
     // the structure that holds all the core table info
-    protected TabInfoImpl[] coreInfo;
+    volatile protected TabInfoImpl[] coreInfo;
 
     /*
     ** SchemaDescriptors for system and app schemas.  Both
@@ -139,7 +141,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 	*/
 
     // the structure that holds all the noncore info
-    protected TabInfoImpl[] noncoreInfo;
+    volatile protected TabInfoImpl[] noncoreInfo;
 
     // no other system tables have id's in the configuration.
 
@@ -538,6 +540,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         setDependencyManager();
         booting=false;
+
     }
 
     /**
@@ -1375,7 +1378,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         if (retval!=null) {
             ConglomerateDescriptor[] conglomerateDescriptors = retval.getConglomerateDescriptors();
             if (conglomerateDescriptors.length > 0 &&
-                    conglomerateDescriptors[0].getConglomerateNumber() < DataDictionary.FIRST_USER_TABLE_NUMBER)
+                    BasicDatabase.isSystemConglomerate(conglomerateDescriptors[0].getConglomerateNumber()))
                 retval.setVersion(SYSTABLESRowFactory.ORIGINAL_TABLE_VERSION);
             dataDictionaryCache.nameTdCacheAdd(tableKey, retval);
         }
@@ -6160,7 +6163,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 // to allow it to be garbage-collected. The idea
                 // is that a running database might never need to
                 // reference a non-core table after it was created.
-                clearNoncoreTable(noncoreCtr);
+                //clearNoncoreTable(noncoreCtr);
             }catch(Exception e){
                 e.printStackTrace();
                 System.out.println("Dictionary Table Failure - exiting");
@@ -7339,6 +7342,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             }
             initSystemIndexVariables(retval);
             noncoreInfo[nonCoreNum]=retval;
+            // Lazy Path for database re-boot
+            populateSystemConglomerates(new TabInfoImpl[]{retval});
         }
 
         return retval;
@@ -10249,4 +10254,27 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             ti.updateRow(keyRow,row,SYSSOURCECODERowFactory.SYSSOURCECODE_INDEX1_ID,bArray,colsToUpdate,tc);
         }
     }
+
+    @Override
+    public TabInfoImpl[] getNoncoreInfo() {
+        return noncoreInfo;
+    }
+
+    @Override
+    public TabInfoImpl[] getCoreInfo() {
+        return coreInfo;
+    }
+
+    public static void populateSystemConglomerates(TabInfoImpl[] tabInfos) {
+        for (TabInfoImpl tabInfo: tabInfos) {
+            if (tabInfo!=null && !BasicDatabase.systemConglomerates.contains(tabInfo.getHeapConglomerate())) {
+                BasicDatabase.systemConglomerates.add(tabInfo.getHeapConglomerate());
+                for (int i = 0; i< tabInfo.getNumberOfIndexes();i++) {
+                    BasicDatabase.systemConglomerates.add(tabInfo.getIndexConglomerate(i));
+                }
+            }
+        }
+    }
+
+
 }

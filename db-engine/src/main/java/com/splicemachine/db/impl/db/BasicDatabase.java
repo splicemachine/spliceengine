@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.db;
 
+import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.db.iapi.reference.*;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
@@ -66,6 +67,8 @@ import com.splicemachine.db.iapi.services.property.PropertySetCallback;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.jdbc.AuthenticationService;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
+import com.splicemachine.db.impl.sql.catalog.TabInfoImpl;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.io.StorageFile;
 import com.splicemachine.db.catalog.UUID;
@@ -96,6 +99,7 @@ import java.text.DateFormat;
 
 public class BasicDatabase implements ModuleControl, ModuleSupportable, PropertySetCallback, Database, JarReader
 {
+	public static LongOpenHashSet systemConglomerates = new LongOpenHashSet();;
 	protected boolean	active;
 	private AuthenticationService authenticationService;
 	protected AccessFactory af;
@@ -224,6 +228,9 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 
 		active = true;
 
+		// Populate System Conglomerates, used to tell if you are a system conglomerate.
+		DataDictionaryImpl.populateSystemConglomerates(getDataDictionary().getCoreInfo());
+		DataDictionaryImpl.populateSystemConglomerates(getDataDictionary().getNoncoreInfo());
     }
 
 	public void stop() {
@@ -860,6 +867,19 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 			util.notifyLoader(true);
 		}
 
-
 	}
+
+	/**
+	 *
+	 * Allows Splice Machine to handle upgrades where system conglomerate numbers are generated after
+	 * system tables.
+	 *
+	 * @param conglomerateId
+	 * @return
+     */
+	public static boolean isSystemConglomerate(long conglomerateId) {
+		// system conglomerates are null during boot upgrades...
+		return systemConglomerates == null || systemConglomerates.contains(conglomerateId);
+	}
+
 }
