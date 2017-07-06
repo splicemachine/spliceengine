@@ -77,14 +77,14 @@ public class SpliceSequenceIT {
         methodWatcher.executeUpdate("drop sequence SMALLSEQ restrict");
     }
 
-    @Test
+    @Ignore
     public void testIdentityValLocal() throws Exception{
         //Simple use of IDENTITY_VAL_LOCAL
         try {
             methodWatcher.executeUpdate(String.format("create table t1(c1 int generated always as identity, c2 int)"));
             methodWatcher.executeUpdate(String.format("insert into t1(c2) values (8)"));
             methodWatcher.executeUpdate(String.format("insert into t1(c2) values (IDENTITY_VAL_LOCAL())"));
-            ResultSet r = methodWatcher.executeQuery("select c2 from t1");
+            ResultSet r = methodWatcher.executeQuery("select c2 from t1 order by c1");
             r.next();
             Assert.assertEquals("Value was not correctly inserted", 8, r.getInt(1));
             r.next();
@@ -100,7 +100,7 @@ public class SpliceSequenceIT {
             methodWatcher.executeUpdate(String.format("create table t2(c1 int generated always as identity, c2 int)"));
             methodWatcher.executeUpdate(String.format("insert into t2(c2) values (8)"));
             methodWatcher.executeUpdate(String.format("insert into t2(c2) --splice-properties useSpark=true \n values (IDENTITY_VAL_LOCAL())"));
-            ResultSet r = methodWatcher.executeQuery("select c2 from t2");
+            ResultSet r = methodWatcher.executeQuery("select c2 from t2 order by c1");
             r.next();
             Assert.assertEquals("Value was not correctly inserted", 8, r.getInt(1));
             r.next();
@@ -115,7 +115,7 @@ public class SpliceSequenceIT {
             methodWatcher.executeUpdate(String.format("create table t3(c1 int generated always as identity, c2 int)"));
             methodWatcher.executeUpdate(String.format("insert into t3(c2) --splice-properties useSpark=true \n values (8)"));
             methodWatcher.executeUpdate(String.format("insert into t3(c2) values (IDENTITY_VAL_LOCAL())"));
-            ResultSet r = methodWatcher.executeQuery("select c2 from t3");
+            ResultSet r = methodWatcher.executeQuery("select c2 from t3 order by c1");
             r.next();
             Assert.assertEquals("Value was not correctly inserted", 8, r.getInt(1));
             r.next();
@@ -131,7 +131,7 @@ public class SpliceSequenceIT {
             methodWatcher.executeUpdate(String.format("create table t4(c1 int generated always as identity, c2 int)"));
             methodWatcher.executeUpdate(String.format("insert into t4(c2) --splice-properties useSpark=true \n values (8)"));
             methodWatcher.executeUpdate(String.format("insert into t4(c2) --splice-properties useSpark=true \n values (IDENTITY_VAL_LOCAL())"));
-            ResultSet r = methodWatcher.executeQuery("select c2 from t4");
+            ResultSet r = methodWatcher.executeQuery("select c2 from t4 order by c1");
             r.next();
             Assert.assertEquals("Value was not correctly inserted", 8, r.getInt(1));
             r.next();
