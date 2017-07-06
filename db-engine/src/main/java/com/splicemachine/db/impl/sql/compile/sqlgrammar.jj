@@ -2061,6 +2061,7 @@ public class SQLParser
 				tokenKind == DELETE ||
 				tokenKind == INSERT ||
 				tokenKind == UPDATE ||
+				tokenKind == WITH ||
 				tokenKind == REFERENCES ||
 				tokenKind == EXECUTE ||
 				tokenKind == USAGE ||
