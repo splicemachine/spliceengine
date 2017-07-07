@@ -131,8 +131,10 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
   override def beforeAll() {
     sc = new SparkContext(conf)
     splicemachineContext = new SplicemachineContext(defaultJDBCURL)
+    /*
     createTimeline(internalTN)
     dropAndCreateTable(TOTable,TOColumnsWithPrimaryKey,TOIndex1,TOIndex1Columns,TOIndex2,TOIndex2Columns)
+    */
   }
 
   override def afterAll() {
@@ -221,6 +223,9 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
   val TOTable = schema + "." + "TransferOrders"
   val TOETable = schema + "." + "TO_DELIVERY_CHG_EVENT"
   val FeatureTable = schema +"." + "FEATURES"
+  val InventoryTable = schema +"." + "Timeline_int"
+  val stockoutTable = schema + "." + "STOCKOUTS"
+
 
   val TOColumnsWithPrimaryKey = "(" +
     "TO_Id bigint, " +
@@ -401,7 +406,21 @@ trait TimeLineWrapper extends BeforeAndAfterAll {
     City("San Jose", 37.3382082, -121.8863286, "California")
   )
 
+  val sotable = s"""create table TIMELINE.STOCKOUTS(
+    TO_ID   BIGINT,
+    Timeline_Id BIGINT,
+    ST          TIMESTAMP,
+    primary key (TO_ID,ST)
+    )"""
 
 
+    val createPredictions = s"""create table TIMELINE.PREDICTIONS(
+    TO_ID   BIGINT,
+    ZERO_DAYLATE DOUBLE,
+    ONE_DAYLATE DOUBLE,
+    FIVE_DAYLATE DOUBLE,
+    TEN_DAYLATE DOUBLE,
+    primary key (TO_ID)
+    )"""
 
 }
