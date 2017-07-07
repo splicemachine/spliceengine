@@ -21,12 +21,10 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 
 import java.sql.CallableStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import static com.splicemachine.test_tools.Rows.row;
@@ -84,7 +82,17 @@ public class DeleteOperationIT extends SpliceUnitTest {
                 .withIndex("create index ix_b on tableB(col4,col3)")
                 .withIndex("create index ix_c on tableB(col7)").create();
 
+        new TableCreator(connection)
+                .withCreate("create table a(i int)")
+                .withInsert("insert into a values(?)")
+                .withRows(rows(row(1), row(2)))
+                .create();
 
+        new TableCreator(connection)
+                .withCreate("create table b(i int)")
+                .withInsert("insert into b values(?)")
+                .withRows(rows(row(2), row(3)))
+                .create();
     }
 
     @Rule
@@ -171,5 +179,11 @@ public class DeleteOperationIT extends SpliceUnitTest {
         fourthRowContainsQuery("explain delete from tableb where col3='01-01-1976' and col4 in ('dfsfd','sdfsdfsdf','sdfsdfdsfs','sdf')","MultiProbeIndexScan",methodWatcher);
     }
 
-
+    @Test
+    public void testDeleteOverAny() throws Exception {
+        methodWatcher.execute("delete from a where i<ANY(select i from b)");
+        ResultSet rs = methodWatcher.executeQuery("select count(*) from a");
+        rs.next();
+        Assert.assertEquals(0, rs.getInt(1));
+    }
 }
