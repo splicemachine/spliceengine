@@ -19,6 +19,7 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.IterableJoinFunction;
@@ -108,8 +109,9 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                 currentOperationContext = result.getFirst();
                 rightSideNLJIterator = result.getSecond();
                 leftRow = currentOperationContext.getOperation().getLeftOperation().getCurrentRow();
-                leftRowLocation = currentOperationContext.getOperation().getLeftOperation().getCurrentRowLocation();
+                leftRowLocation = new HBaseRowLocation(leftRow.getKey());
                 operationContext.getOperation().getLeftOperation().setCurrentRow(getLeftLocatedRow());
+                operationContext.getOperation().getLeftOperation().setCurrentRowLocation(getLeftRowLocation());
                 nLeftRows--;
             }
         }
@@ -147,8 +149,9 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                     currentOperationContext = result.getFirst();
                     rightSideNLJIterator = result.getSecond();
                     leftRow = currentOperationContext.getOperation().getLeftOperation().getCurrentRow();
-                    leftRowLocation = currentOperationContext.getOperation().getLeftOperation().getCurrentRowLocation();
+                    leftRowLocation = new HBaseRowLocation(leftRow.getKey());
                     operationContext.getOperation().getLeftOperation().setCurrentRow(getLeftLocatedRow());
+                    operationContext.getOperation().getLeftOperation().setCurrentRowLocation(getLeftRowLocation());
                 }
             }
 
