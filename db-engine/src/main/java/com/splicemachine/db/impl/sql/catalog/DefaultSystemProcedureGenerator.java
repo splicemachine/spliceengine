@@ -55,6 +55,7 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import org.apache.hadoop.util.ProtoUtil;
 
 /**
  * @author Scott Fines
@@ -179,7 +180,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     	String schemaIdStr = schemaId.toString();
     	AliasDescriptor ad = dictionary.getAliasDescriptor(schemaIdStr, procName, AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR);
     	if (ad != null) {  // Drop the procedure if it already exists.
-    		dictionary.dropAliasDescriptor(ad, tc);
+			dictionary.dropAliasDescriptor(ad, tc);
     	}
     }
 

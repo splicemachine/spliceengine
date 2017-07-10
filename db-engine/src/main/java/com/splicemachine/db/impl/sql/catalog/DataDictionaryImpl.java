@@ -5814,6 +5814,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         DataValueDescriptor UUIDStringOrderable;
         TabInfoImpl ti=getNonCoreTI(SYSALIASES_CATALOG_NUM);
 
+        AliasDescriptor aliasDescriptor = dataDictionaryCache.aliasUUIDDescriptorCacheFind(uuid);
+        if (aliasDescriptor != null)
+            return aliasDescriptor;
+
 		/* Use UUIDStringOrderable in both start and stop positions for scan */
         UUIDStringOrderable=getIDValueAsCHAR(uuid);
 
@@ -5821,13 +5825,17 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         ExecIndexRow keyRow=exFactory.getIndexableRow(1);
         keyRow.setColumn(1,UUIDStringOrderable);
 
-        return (AliasDescriptor)getDescriptorViaIndex(SYSALIASESRowFactory.SYSALIASES_INDEX2_ID,
+        aliasDescriptor= (AliasDescriptor)getDescriptorViaIndex(SYSALIASESRowFactory.SYSALIASES_INDEX2_ID,
                 keyRow,
                 null,
                 ti,
                 null,
                 null,
                 false);
+
+        if (aliasDescriptor != null)
+            dataDictionaryCache.setAliasUUIDDescriptorCacheAdd(uuid,aliasDescriptor);
+        return aliasDescriptor;
     }
 
     /**
@@ -5846,8 +5854,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         DataValueDescriptor nameSpaceOrderable;
         TabInfoImpl ti=getNonCoreTI(SYSALIASES_CATALOG_NUM);
 
-		/* Use aliasNameOrderable and aliasTypeOrderable in both start 
-		 * and stop position for scan. 
+		/* Use aliasNameOrderable and aliasTypeOrderable in both start
+		 * and stop position for scan.
 		 */
         aliasNameOrderable=new SQLVarchar(aliasName);
         char[] charArray=new char[1];
@@ -5860,13 +5868,18 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         keyRow.setColumn(2,aliasNameOrderable);
         keyRow.setColumn(3,nameSpaceOrderable);
 
-        return (AliasDescriptor)getDescriptorViaIndex(SYSALIASESRowFactory.SYSALIASES_INDEX1_ID,
+        Optional<AliasDescriptor> optional = dataDictionaryCache.aliasRowDescriptorCacheFind(keyRow);
+        if (optional != null)
+            return optional.orNull();
+        AliasDescriptor ad = (AliasDescriptor)getDescriptorViaIndex(SYSALIASESRowFactory.SYSALIASES_INDEX1_ID,
                 keyRow,
                 null,
                 ti,
                 null,
                 null,
                 false);
+        dataDictionaryCache.setAliasRowDescriptorCacheAdd(keyRow,ad==null?Optional.<AliasDescriptor>absent():Optional.of(ad));
+        return ad;
     }
 
     /**
@@ -5950,22 +5963,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     @Override
     public void dropAliasDescriptor(AliasDescriptor ad,TransactionController tc) throws StandardException{
         TabInfoImpl ti=getNonCoreTI(SYSALIASES_CATALOG_NUM);
-
-		/* Use aliasNameOrderable and nameSpaceOrderable in both start 
-		 * and stop position for index 1 scan. 
-		 */
-
-        char[] charArray=new char[1];
-        charArray[0]=ad.getNameSpace();
-
-		/* Set up the start/stop position for the scan */
-        ExecIndexRow keyRow1=exFactory.getIndexableRow(3);
-        keyRow1.setColumn(1,getIDValueAsCHAR(ad.getSchemaUUID()));
-        keyRow1.setColumn(2,new SQLVarchar(ad.getDescriptorName()));
-        keyRow1.setColumn(3,new SQLChar(new String(charArray)));
-
-        ti.deleteRow(tc,keyRow1,SYSALIASESRowFactory.SYSALIASES_INDEX1_ID);
-
+        ExecIndexRow execIndexRow = ad.generateSYSAliasKeyScan();
+        ti.deleteRow(tc,execIndexRow,SYSALIASESRowFactory.SYSALIASES_INDEX1_ID);
     }
 
     @Override
@@ -6842,7 +6841,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      *
      * @return the UUID converted to an DataValueDescriptor
      */
-    protected static SQLChar getIDValueAsCHAR(UUID uuid){
+    public static SQLChar getIDValueAsCHAR(UUID uuid){
         String uuidString=uuid.toString();
         return new SQLChar(uuidString);
     }
@@ -9623,7 +9622,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public RoleGrantDescriptor getRoleDefinitionDescriptor(String roleName) throws StandardException{
 
         Optional<RoleGrantDescriptor> optional = dataDictionaryCache.roleCacheFind(roleName);
-        if (optional!=null && optional.isPresent())
+        if (optional!=null)
             return optional.orNull();
 
         DataValueDescriptor roleNameOrderable;
@@ -9783,43 +9782,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         grantPublicAccessToSystemRoutines(newlyCreatedRoutines,tc,authorizationDatabaseOwner);
     }
 
-    /**
-     * Drop a system stored procedure.
-     * PLEASE NOTE:
-     * This method is currently not used, but will be used when Splice Machine has a SYS_DEBUG schema available
-     * with tools to debug and repair databases and data dictionaries.
-     *
-     * @param schemaName name of the system schema
-     * @param procName   name of the system stored procedure
-     * @param tc         TransactionController to use
-     * @throws StandardException
-     */
-    @Override
-    public void dropSystemProcedure(String schemaName,String procName,TransactionController tc) throws StandardException{
-        HashSet newlyCreatedRoutines=new HashSet();
-        SystemProcedureGenerator procedureGenerator=getSystemProcedures();
-
-        procedureGenerator.dropProcedure(schemaName,procName,tc,newlyCreatedRoutines);
-        grantPublicAccessToSystemRoutines(newlyCreatedRoutines,tc,authorizationDatabaseOwner);
-    }
-
-    /**
-     * Create or update a system stored procedure.  If the system stored procedure alreadys exists in the data dictionary,
-     * the stored procedure will be dropped and then created again.
-     *
-     * @param schemaName the schema where the procedure does and/or will reside
-     * @param procName   the procedure to create or update
-     * @param tc         the xact
-     * @throws StandardException
-     */
-    @Override
-    public void createOrUpdateSystemProcedure(String schemaName,String procName,TransactionController tc) throws StandardException{
-        HashSet newlyCreatedRoutines=new HashSet();
-        SystemProcedureGenerator procedureGenerator=getSystemProcedures();
-
-        procedureGenerator.createOrUpdateProcedure(schemaName,procName,tc,newlyCreatedRoutines);
-        grantPublicAccessToSystemRoutines(newlyCreatedRoutines,tc,authorizationDatabaseOwner);
-    }
 
     /**
      * Create or update all system stored procedures.  If the system stored procedure alreadys exists in the data dictionary,

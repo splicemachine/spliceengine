@@ -26,6 +26,9 @@ import java.util.concurrent.TimeUnit;
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
+import com.splicemachine.db.iapi.types.SQLChar;
+import com.splicemachine.db.iapi.types.SQLVarchar;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.access.api.SConfiguration;
@@ -550,6 +553,9 @@ public class DDLUtils {
                 AliasDescriptor ad=dd.getAliasDescriptor(dropAlias.getSchemaName(),dropAlias.getAliasName(),dropAlias.getNamespace().charAt(0));
                 if(ad==null) // Table Descriptor transaction never committed
                     return;
+                ExecIndexRow execIndexRow = ad.generateSYSAliasKeyScan();
+                dd.getDataDictionaryCache().aliasRowDescriptorCacheRemove(execIndexRow);
+                dd.getDataDictionaryCache().aliasUUIDDescriptorCacheRemove(ad.getUUID());
                 DropAliasConstantOperation.invalidate(ad,dm,transactionResource.getLcc());
             }finally{
                 if(prepared)
@@ -684,6 +690,25 @@ public class DDLUtils {
         }
     }
 
+    public static void preCreateRole(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preCreateTrigger with change=%s",change);
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+            boolean prepared = false;
+            try{
+                prepared=transactionResource.marshallTransaction(txn);
+                String roleName=change.getCreateRole().getRoleName();
+                dd.getDataDictionaryCache().roleCacheRemove(roleName);
+            }finally{
+                if(prepared)
+                    transactionResource.close();
+            }
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
 
 
     public static void preCreateTrigger(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {

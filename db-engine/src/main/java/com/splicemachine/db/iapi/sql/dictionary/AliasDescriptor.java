@@ -49,7 +49,11 @@ import com.splicemachine.db.catalog.UUID;
 import	com.splicemachine.db.catalog.DependableFinder;
 import	com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
+import com.splicemachine.db.iapi.types.SQLChar;
+import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.iapi.util.IdUtil;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
 
 /**
  * This class represents an Alias Descriptor. 
@@ -501,5 +505,20 @@ public final class AliasDescriptor
 				") not expected to get called");
 		}
 	}
-    
+
+
+	/** Use aliasNameOrderable and nameSpaceOrderable in both start
+	 * and stop position for index 1 scan.
+	 */
+	public ExecIndexRow generateSYSAliasKeyScan() {
+		char[] charArray=new char[1];
+		charArray[0]=getNameSpace();
+		/* Set up the start/stop position for the scan */
+		ExecIndexRow keyRow1=dataDictionary.getExecutionFactory().getIndexableRow(3);
+		keyRow1.setColumn(1, DataDictionaryImpl.getIDValueAsCHAR(getSchemaUUID()));
+		keyRow1.setColumn(2,new SQLVarchar(getDescriptorName()));
+		keyRow1.setColumn(3,new SQLChar(new String(charArray)));
+		return keyRow1;
+	}
+
 }
