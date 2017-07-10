@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.EngineDriver;
 import org.spark_project.guava.collect.Lists;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -29,7 +30,6 @@ import com.splicemachine.storage.*;
 import com.splicemachine.storage.util.MapAttributes;
 import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.util.ArrayList;
@@ -37,7 +37,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 /**
@@ -49,7 +48,6 @@ import java.util.concurrent.Future;
  */
 public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
     protected static Logger LOG=Logger.getLogger(IndexRowReader.class);
-    private final ExecutorService lookupService;
     private final int batchSize;
     private final int numBlocks;
     private final ExecRow outputTemplate;
@@ -71,8 +69,7 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
     private ExecRow heapRowToReturn;
     private ExecRow indexRowToReturn;
 
-    IndexRowReader(ExecutorService lookupService,
-                   Iterator<ExecRow> sourceIterator,
+    IndexRowReader(Iterator<ExecRow> sourceIterator,
                    ExecRow outputTemplate,
                    TxnView txn,
                    int lookupBatchSize,
@@ -84,7 +81,6 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
                    int[] indexCols,
                    TxnOperationFactory operationFactory,
                    PartitionFactory tableFactory){
-        this.lookupService=lookupService;
         this.sourceIterator=sourceIterator;
         this.outputTemplate=outputTemplate;
         this.txn=txn;
@@ -105,7 +101,6 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
         keyDecoder.close();
         if(entryDecoder!=null)
             entryDecoder.close();
-        lookupService.shutdownNow();
     }
 
     @Override
@@ -172,7 +167,7 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
         if(!sourceRows.isEmpty()){
             //submit to the background thread
             Lookup task=new Lookup(sourceRows);
-            resultFutures.add(lookupService.submit(task));
+            resultFutures.add(EngineDriver.driver().getExecutorService().submit(task));
         }
 
         //if there is only one submitted future, call this again to set off an additional background process
