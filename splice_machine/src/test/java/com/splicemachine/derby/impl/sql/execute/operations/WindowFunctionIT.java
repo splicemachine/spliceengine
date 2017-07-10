@@ -2638,7 +2638,6 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("DB-2170 - window function over view. (works periodically, why?)")
     public void testDB2170RankOverViewMissingKey() throws Exception {
         String sqlText =
                 String.format("select rank() over ( partition by yr order by hiredate ) as EMPRANK, ename," +
@@ -2951,7 +2950,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         rs.close();
     }
 
-    @Test @Ignore("DB-3927: found possible frame processing problem while implementing first_value()")
+    @Test
     public void testFirstValueWithAggregateArgument() throws Exception {
         // DB-3927
 
