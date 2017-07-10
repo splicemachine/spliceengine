@@ -59,7 +59,8 @@ public class EngineDriver{
     }
 
     public static void shutdownDriver() {
-        driver().threadPool.shutdownNow();
+        if (INSTANCE != null)
+            INSTANCE.threadPool.shutdownNow();
         INSTANCE = null;
     }
 
