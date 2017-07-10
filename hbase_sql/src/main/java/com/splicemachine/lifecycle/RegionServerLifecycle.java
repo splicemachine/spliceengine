@@ -16,16 +16,21 @@ package com.splicemachine.lifecycle;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
+import java.net.SocketTimeoutException;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.hadoop.hbase.DoNotRetryIOException;
+import com.splicemachine.pipeline.InitializationCompleted;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.PleaseHoldException;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.TableNotEnabledException;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.RegionOfflineException;
+import org.apache.hadoop.hbase.client.RetriesExhaustedException;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.ipc.RemoteException;
 import org.apache.zookeeper.KeeperException;
 
 import com.splicemachine.access.configuration.SQLConfiguration;
@@ -63,15 +68,7 @@ public class RegionServerLifecycle implements DistributedDerbyStartup{
                     // triggers the creation of the "SPLICE_*" HBase tables.  This is an asynchronous call and so we "loop" via a
                     // "please hold" exception and a recursive call to bootDatabase() along with a sleep.
                     admin.createTable(desc);
-                }catch(PleaseHoldException pe){
-                    onHold=true;
-                    try{
-                        clock.sleep(1,TimeUnit.SECONDS);
-                    }catch(InterruptedException e){
-                        //startup was interrupted, so throw an InterruptedIOException
-                        throw new InterruptedIOException();
-                    }
-                }catch(DoNotRetryIOException dnre){
+                }catch(InitializationCompleted ic){
                     /*
                      * The exception signaling the start of a successfully running Splice Engine will be a SpliceDoNotRetryIOException.
                      * When this is returned, it means that a connection to HBase and the creation (or previous existence) of the
@@ -94,11 +91,38 @@ public class RegionServerLifecycle implements DistributedDerbyStartup{
                     }catch(KeeperException e){
                         throw new IOException(e);
                     }
+                } catch(Exception ex){
+                    if (!causeIsPleaseHold(ex))
+                        throw ex;
+                    onHold = true;
+                    try {
+                        clock.sleep(1, TimeUnit.SECONDS);
+                    } catch (InterruptedException e) {
+                        //startup was interrupted, so throw an InterruptedIOException
+                        throw new InterruptedIOException();
+                    }
                 }
             }while(onHold);
         }
         //register splice metrics
         new SpliceMetrics();
+    }
+
+    private boolean causeIsPleaseHold(Throwable e) {
+        if (e instanceof PleaseHoldException)
+            return true;
+        if (e instanceof TableNotEnabledException)
+            return true;
+        if (e instanceof RegionOfflineException)
+            return true;
+        if (e instanceof RetriesExhaustedException || e instanceof SocketTimeoutException) {
+            if (e.getCause() instanceof RemoteException) {
+                RemoteException re = (RemoteException) e.getCause();
+                if (PleaseHoldException.class.getName().equals(re.getClassName()))
+                    return true;
+            }
+        }
+        return false;
     }
 
     @Override

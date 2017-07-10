@@ -16,6 +16,7 @@ package com.splicemachine.hbase;
 
 import java.io.IOException;
 
+import com.splicemachine.pipeline.InitializationCompleted;
 import com.splicemachine.si.data.hbase.ZkUpgradeK2;
 import com.splicemachine.timestamp.impl.TimestampOracle;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
@@ -127,7 +128,7 @@ public class SpliceMasterObserver extends BaseMasterObserver {
                 case BOOTING_SERVER:
                     throw new PleaseHoldException("Please Hold - Starting");
                 case RUNNING:
-                    throw new DoNotRetryIOException("Success");
+                    throw new InitializationCompleted("Success");
                 case STARTUP_FAILED:
                 case SHUTTING_DOWN:
                 case SHUTDOWN:

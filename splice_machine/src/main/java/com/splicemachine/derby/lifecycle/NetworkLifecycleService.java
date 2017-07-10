@@ -32,7 +32,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 public class NetworkLifecycleService implements DatabaseLifecycleService{
     private static final Logger LOG=Logger.getLogger(NetworkLifecycleService.class);
     private final SConfiguration config;
-    private NetworkServerControl server;
+    private volatile NetworkServerControl server;
 
     public NetworkLifecycleService(SConfiguration config){
         this.config=config;
@@ -61,6 +61,7 @@ public class NetworkLifecycleService implements DatabaseLifecycleService{
 
     @Override
     public void shutdown() throws Exception{
-        server.shutdown();
+        if (server != null)
+            server.shutdown();
     }
 }
