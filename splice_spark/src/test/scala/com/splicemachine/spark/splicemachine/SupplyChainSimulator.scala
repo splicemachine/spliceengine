@@ -13,13 +13,21 @@
  */
 package com.splicemachine.spark.splicemachine
 
+import java.sql.{Connection, Timestamp}
+import com.splicemachine.si.api.txn.WriteConflict
 import org.apache.spark.sql.execution.datasources.jdbc.JDBCOptions
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.{DataFrame, SQLContext}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
+import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
+import org.junit.Assert._
 
+import com.splicemachine.spark.splicemachine.Timeline
 import scala.util.Random
-
-
+import scala.collection.mutable.Queue
+import org.joda.time.format.DateTimeFormat
+import org.joda.time.format.DateTimeFormatter
 
 
 @RunWith(classOf[JUnitRunner])
@@ -28,17 +36,17 @@ class SupplyChainSimulator extends Timeline  {
 
 	//Utility Class for Random Number generation
 	object RandomGen {
-	  private var random = new util.Random
-	
-	  // Returns a random integer in range [0,range-1]
-	  def rand(range: Int): Int = random.nextInt(range)
-	
-	  // Returns a random integer in range [first,last]
-	  def randBetween(first: Int, last: Int): Int = first + rand(last-first+1)
-	
-	  // Create a new random number generator with the given Int "seed".
-	  def setRandSeed(seed: Int)  { random = new Random(seed) }
-	 
+		private var random = new util.Random
+
+		// Returns a random integer in range [0,range-1]
+		def rand(range: Int): Int = random.nextInt(range)
+
+		// Returns a random integer in range [first,last]
+		def randBetween(first: Int, last: Int): Int = first + rand(last-first+1)
+
+		// Create a new random number generator with the given Int "seed".
+		def setRandSeed(seed: Int)  { random = new Random(seed) }
+
 	}
 	/**
 		*Baseclass for all Order Events
@@ -305,20 +313,20 @@ class SupplyChainSimulator extends Timeline  {
 	}
 
 	class TOObjectChangeDeliveryEvent (source: Int, destination: Int, shippingDate: String, deliveryDate: String, newDeliveryDate: String, qty: Long,
-														 TO_Id: Integer,
-														 supplier: Integer,
-														  modeOfTransport: Integer,
-														 carrier: Integer,
-														 fromWeather: Integer,
-														 toWeather: Integer,
-														 sourceCity: Integer,
-														 destinationCity: Integer,
+																		 TO_Id: Integer,
+																		 supplier: Integer,
+																		 modeOfTransport: Integer,
+																		 carrier: Integer,
+																		 fromWeather: Integer,
+																		 toWeather: Integer,
+																		 sourceCity: Integer,
+																		 destinationCity: Integer,
 																		 TO_event_Id: Integer) extends Event(source, shippingDate, deliveryDate, qty) {
 		def processEvent {
 			println("START TOObj Change Event")
 			println( this.toString )
 			TransferOrder.changeDelivery(source, destination, shippingDate, deliveryDate, newDeliveryDate, qty, 0, TO_Id,
-			supplier, modeOfTransport, carrier, fromWeather, toWeather, sourceCity, destinationCity, TO_event_Id)
+				supplier, modeOfTransport, carrier, fromWeather, toWeather, sourceCity, destinationCity, TO_event_Id)
 
 		}
 
@@ -348,12 +356,12 @@ class SupplyChainSimulator extends Timeline  {
 
 		val fmt   = org.joda.time.format.DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
 
-		val BEGIN_ORDER_DATE  ="2017-08-05 00:00:00"    // beginning of simulation
+		val BEGIN_ORDER_DATE  ="2016-08-05 00:00:00"    // beginning of simulation
 		val TOTAL_TICKS     = 10  // Number of ticks in simulation
-		val TICK_LENGTH_DAYS  = 1 // Lenght in days between each Tick in realtime
+		val TICK_LENGTH_DAYS  = 5 // Lenght in days between each Tick in realtime
 		val TICKINTERVAL  =10 // UI interval between ticks
 
-		val BEGIN_TO_ID  =900   // TO ids starting ID be in sequence of
+		val BEGIN_TO_ID  =100   // TO ids starting ID be in sequence of
 
 
 		val MIN_ENDDAYS    = 1    // minimum delivery duration from orderdate
@@ -373,7 +381,7 @@ class SupplyChainSimulator extends Timeline  {
 		val MIN_CNT = 1
 		val MAX_CNT = 999999999
 
-		val parts = Array(100, 200, 300, 400, 500)
+		val parts = Array(100, 200, 300, 400, 500, 600, 700, 800, 900, 1000)
 		val partsCnt = parts.length
 
 		val suppliers = Array(10000, 11000, 12000, 13000, 14000)
@@ -388,7 +396,7 @@ class SupplyChainSimulator extends Timeline  {
 
 		val theSimulation = new Simulation()
 
-		def simulate (pTotalTicks :Int, pEventTypes :String, pInit :String) {
+		def simulate (pTotalTicks :Int, pEventTypes :String, pInit :String, pBegDate: String) {
 			//println("START SIMULATE")
 			var totalTicks = pTotalTicks
 			if(totalTicks == 0)
@@ -415,8 +423,18 @@ class SupplyChainSimulator extends Timeline  {
 
 			// load queue with some number of events
 			var t = 0
-			var curOrderDate = org.joda.time.DateTime.parse(BEGIN_ORDER_DATE, fmt)
-		  var to_id = BEGIN_TO_ID;
+			var begOrderDate = pBegDate;
+			if(begOrderDate== null || begOrderDate.length ==0)
+				begOrderDate = BEGIN_ORDER_DATE
+			var curOrderDate = org.joda.time.DateTime.parse(begOrderDate, fmt)
+
+			/*
+			var to_id = pTOStartId
+			if(to_id ==0)
+				to_id = BEGIN_TO_ID;
+				*/
+
+			var to_id =BEGIN_TO_ID
 
 			//println("START Creating events")
 			while (t < totalTicks) {
@@ -544,10 +562,10 @@ class SupplyChainSimulator extends Timeline  {
 							if(part !=destination ) {
 								var snowevent = (RandomGen.randBetween(0,100) > 25 )
 								var toObject =generateTOObject(to_id, part,destination, curOrderDate,snowevent )
-									to_id = to_id+1
-									theSimulation.scheduleEvent(toObject)
-								 if(snowevent)
-									 theSimulation.scheduleEvent(generateTODeliveryChgEventObject(part,destination, curOrderDate,toObject ))
+								to_id = to_id+1
+								theSimulation.scheduleEvent(toObject)
+								if(snowevent)
+									theSimulation.scheduleEvent(generateTODeliveryChgEventObject(part,destination, curOrderDate,toObject ))
 							}
 						}
 					}
@@ -620,8 +638,8 @@ class SupplyChainSimulator extends Timeline  {
 			}
 
 
-				new TOObjectCreateEvent(part, destination,shippingDate, deliveryDate, qty, toId, supplier, asn, container,
-					modeOfTransport, carrier,fromWeather, toWeather, latitude,longitude, srcCity,destCity, poId, deliveryDate )
+			new TOObjectCreateEvent(part, destination,shippingDate, deliveryDate, qty, toId, supplier, asn, container,
+				modeOfTransport, carrier,fromWeather, toWeather, latitude,longitude, srcCity,destCity, poId, deliveryDate )
 		}
 
 
@@ -660,96 +678,9 @@ class SupplyChainSimulator extends Timeline  {
 				toId, supplier, modeOfTransport, carrier,fromWeather, toWeather, srcCity,destCity, TO_event_Id )
 		}
 
-	/*
 
-	def generateTODeliveryChgEventObject (part : Int, destination :Int, curOrderDate : org.joda.time.DateTime) :TOObjectChangeDeliveryEvent = {
-
-		println("START GEN")
-		var shippingDate = curOrderDate.toString(fmt)
-		var deliveryDate = (curOrderDate.plusDays(RandomGen.randBetween(MIN_ENDDAYS,MAX_ENDDAYS))).toString(fmt)
-		var newDeliveryDate = (curOrderDate.plusDays(RandomGen.randBetween(MIN_ENDDAYS,MAX_ENDDAYS))).toString(fmt)
-		var qty = RandomGen.randBetween(MIN_QTY,MAX_QTY)
-		var toId = RandomGen.randBetween(MIN_OID, MAX_OID)
-		var TO_event_Id = RandomGen.randBetween(MIN_OID, MAX_OID)
-
-		var supplier = suppliers(RandomGen.randBetween(0,suppliers.length-1))
-
-		var carrier = carriers(RandomGen.randBetween(0,carriers.length-1))
-
-		var srcCity = RandomGen.randBetween(0,cities.length-1)
-		var destCity  = RandomGen.randBetween(0,cities.length-1)
-
-		//var latitude = cities(srcCity).Latitude
-		//var longitude = cities(srcCity).Latitude
-		var modeOfTransport = modesOfTransport(RandomGen.randBetween(0,modesOfTransport.length-1))
-
-		//For Change Date Event, 90% of cases should have one of the weather as either
-		// heavy snow
-
-
-		var fromWeather = weatherList(RandomGen.randBetween(0,weatherList.length-1))
-		var toWeather = weatherList(RandomGen.randBetween(0,weatherList.length-1))
-
-
-		if(RandomGen.randBetween(0,100) >10 ) {
-		// change one of the weather
-			val snow = weatherList(weatherList.length-1)
-			val  prob = RandomGen.randBetween(0,100)
-			if (prob < 45)
-				fromWeather =snow
-			else if (prob >=45 && prob  < 90)
-				toWeather =snow
-			else {
-				toWeather =snow
-				fromWeather =snow
-			}
-
-		}
-
-		new TOObjectChangeDeliveryEvent(part, destination,shippingDate, deliveryDate, newDeliveryDate, qty,
-			toId, supplier, modeOfTransport, carrier,fromWeather, toWeather, srcCity,destCity, TO_event_Id )
-	}
-	*/
-}
-
-test("Supply Chain Simulator TOObject Change Delivery ") {
-
-
-		//Generate Purchase Orders for 1 day, after clearing database
-		var noOfDays = 200
-		var eventTypes = "10"
-		var clearDB = "1"
-
-
-		//println("RUN TEST TO")
-		SupplyChain.simulate(noOfDays,eventTypes ,clearDB )
-		val optionMap = Map(
-			JDBCOptions.JDBC_TABLE_NAME -> TODelviraryChgEventTable,
-			JDBCOptions.JDBC_URL -> defaultJDBCURL
-		)
-		var df = sqlContext.read.options(optionMap).splicemachine
-		assert(df.count > 0)
 	}
 
-
-	ignore("Supply Chain Simulator TOObject ") {
-
-
-		//Generate Purchase Orders for 1 day, after clearing database
-		var noOfDays = 1
-		var eventTypes = "10"
-		var clearDB = "1"
-
-
-		//println("RUN TEST TO")
-		SupplyChain.simulate(noOfDays,eventTypes ,clearDB )
-		val optionMap = Map(
-			JDBCOptions.JDBC_TABLE_NAME -> TOTable,
-			JDBCOptions.JDBC_URL -> defaultJDBCURL
-		)
-		var df = sqlContext.read.options(optionMap).splicemachine
-		assert(df.count > 0)
-	}
 
 
 
@@ -760,6 +691,8 @@ test("Supply Chain Simulator TOObject Change Delivery ") {
 		var noOfDays = 1
 		var eventTypes = "1"
 		var clearDB = "1"
+		var begDate = "2016-06-05 00:00:00"
+
 
 		var df = sqlContext.read.options(internalOptions).splicemachine
 		assert(df.count > 0)
@@ -768,7 +701,7 @@ test("Supply Chain Simulator TOObject Change Delivery ") {
 		noOfDays = 2
 		eventTypes = "1"
 		clearDB = "1"
-		SupplyChain.simulate(noOfDays,eventTypes ,clearDB )
+		SupplyChain.simulate(noOfDays,eventTypes ,clearDB , begDate)
 		df = sqlContext.read.options(internalOptions).splicemachine
 		assert(df.count > 0)
 
@@ -778,7 +711,7 @@ test("Supply Chain Simulator TOObject Change Delivery ") {
 		noOfDays = 1
 		eventTypes = "1"
 		clearDB = "2"
-		SupplyChain.simulate(noOfDays,eventTypes ,clearDB )
+		SupplyChain.simulate(noOfDays,eventTypes ,clearDB, begDate)
 		df = sqlContext.read.options(internalOptions).splicemachine
 		assert(df.count > 0)
 
@@ -786,11 +719,30 @@ test("Supply Chain Simulator TOObject Change Delivery ") {
 		noOfDays = 1
 		eventTypes = "1,7"
 		clearDB = "1"
-		SupplyChain.simulate(noOfDays,eventTypes ,clearDB )
+		SupplyChain.simulate(noOfDays,eventTypes ,clearDB ,begDate)
 		df = sqlContext.read.options(internalOptions).splicemachine
 		assert(df.count > 0)
 
 
+	}
+
+	test("Supply Chain Simulator TOObject Change Delivery ") {
+
+
+		//Generate Purchase Orders for 1 day, after clearing database
+		var noOfDays = 2
+		var eventTypes = "10"
+		var clearDB = "1"
+		var begDate = "2017-06-1 00:00:00"
+
+		//println("RUN TEST TO")
+		SupplyChain.simulate(noOfDays,eventTypes ,clearDB , begDate)
+		val optionMap = Map(
+			JDBCOptions.JDBC_TABLE_NAME -> TODelviraryChgEventTable,
+			JDBCOptions.JDBC_URL -> defaultJDBCURL
+		)
+		var df = sqlContext.read.options(optionMap).splicemachine
+		assert(df.count > 0)
 	}
 
 
