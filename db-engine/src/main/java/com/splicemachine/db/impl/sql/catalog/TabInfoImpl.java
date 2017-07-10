@@ -559,7 +559,7 @@ public class TabInfoImpl
      *         this may be more than one.
      * @exception StandardException        Thrown on failure
      */
-    int deleteRow( TransactionController tc, ExecIndexRow key, int indexNumber )
+    public int deleteRow( TransactionController tc, ExecIndexRow key, int indexNumber )
             throws StandardException
     {
         // Always row locking

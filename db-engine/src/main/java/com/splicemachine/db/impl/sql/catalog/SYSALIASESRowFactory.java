@@ -91,7 +91,7 @@ public class SYSALIASESRowFactory extends CatalogRowFactory
 	private static final int		SYSALIASES_SPECIFIC_NAME = 9;
 
  
-	protected static final int		SYSALIASES_INDEX1_ID = 0;
+	public static final int		SYSALIASES_INDEX1_ID = 0;
 
 	protected static final int		SYSALIASES_INDEX2_ID = 1;
 

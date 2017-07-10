@@ -341,6 +341,9 @@ public class SpliceDatabase extends BasicDatabase{
                     case CREATE_TRIGGER:
                         DDLUtils.preCreateTrigger(change,dataDictionary,dependencyManager);
                         break;
+                    case CREATE_ROLE:
+                        DDLUtils.preCreateRole(change,dataDictionary,dependencyManager);
+                        break;
                     case DROP_TRIGGER:
                         DDLUtils.preDropTrigger(change,dataDictionary,dependencyManager);
                         break;

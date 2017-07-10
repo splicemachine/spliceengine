@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.impl.sql.GenericStatement;
@@ -50,7 +51,6 @@ import org.spark_project.guava.cache.Cache;
 import org.spark_project.guava.cache.CacheBuilder;
 import org.spark_project.guava.cache.RemovalListener;
 import org.spark_project.guava.cache.RemovalNotification;
-
 import javax.management.MXBean;
 import java.util.List;
 import java.util.Properties;
@@ -72,7 +72,8 @@ public class DataDictionaryCache {
     private Cache<Long,Conglomerate> conglomerateCache;
     private Cache<GenericStatement,GenericStorablePreparedStatement> statementCache;
     private Cache<String,SchemaDescriptor> schemaCache;
-    private Cache<String,AliasDescriptor> aliasDescriptorCache;
+    private Cache<ExecIndexRow,Optional<AliasDescriptor>> aliasRowDescriptorCache;
+    private Cache<UUID,AliasDescriptor> aliasUUIDDescriptorCache;
     private Cache<String,Optional<RoleGrantDescriptor>> roleCache;
     private int tdCacheSize;
     private int stmtCacheSize;
@@ -120,7 +121,8 @@ public class DataDictionaryCache {
         conglomerateCache = CacheBuilder.newBuilder().maximumSize(1024).build();
         statementCache = CacheBuilder.newBuilder().maximumSize(1024).removalListener(dependentInvalidator).build();
         schemaCache = CacheBuilder.newBuilder().maximumSize(1024).build();
-        aliasDescriptorCache = CacheBuilder.newBuilder().maximumSize(1024).build();
+        aliasRowDescriptorCache = CacheBuilder.newBuilder().maximumSize(1024).build();
+        aliasUUIDDescriptorCache = CacheBuilder.newBuilder().maximumSize(1024).build();
         roleCache = CacheBuilder.newBuilder().maximumSize(100).build();
         permissionsCache=CacheBuilder.newBuilder().maximumSize(permissionsCacheSize).build();
         this.dd = dd;
@@ -415,6 +417,49 @@ public class DataDictionaryCache {
         roleCache.invalidate(roleName);
     }
 
+    public void setAliasRowDescriptorCacheAdd(ExecIndexRow execIndexRow, Optional<AliasDescriptor> optional) throws StandardException {
+        if (!dd.canWriteCache(null))
+            return;
+        if (LOG.isDebugEnabled())
+            LOG.debug("setAliasRowDescriptorCacheAdd " + execIndexRow);
+        aliasRowDescriptorCache.put(execIndexRow,optional);
+    }
+
+    public Optional<AliasDescriptor> aliasRowDescriptorCacheFind(ExecIndexRow execIndexRow) throws StandardException {
+        if (!dd.canReadCache(null))
+            return null;
+        if (LOG.isDebugEnabled())
+            LOG.debug("roleCacheFind " + execIndexRow);
+        return aliasRowDescriptorCache.getIfPresent(execIndexRow);
+    }
+
+    public void aliasRowDescriptorCacheRemove(ExecIndexRow execIndexRow) throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("roleCacheRemove " + execIndexRow);
+        aliasRowDescriptorCache.invalidate(execIndexRow);
+    }
+
+    public void setAliasUUIDDescriptorCacheAdd(UUID uuid, AliasDescriptor aliasDescriptor) throws StandardException {
+        if (!dd.canWriteCache(null))
+            return;
+        if (LOG.isDebugEnabled())
+            LOG.debug("setAliasUUIDDescriptorCacheAdd " + uuid);
+        aliasUUIDDescriptorCache.put(uuid,aliasDescriptor);
+    }
+
+    public AliasDescriptor aliasUUIDDescriptorCacheFind(UUID uuid) throws StandardException {
+        if (!dd.canReadCache(null))
+            return null;
+        if (LOG.isDebugEnabled())
+            LOG.debug("aliasUUIDDescriptorCacheFind " + uuid);
+        return aliasUUIDDescriptorCache.getIfPresent(uuid);
+    }
+
+    public void aliasUUIDDescriptorCacheRemove(UUID uuid) throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("aliasUUIDDescriptorCacheRemove " + uuid);
+        aliasUUIDDescriptorCache.invalidate(uuid);
+    }
 
 
     @MXBean

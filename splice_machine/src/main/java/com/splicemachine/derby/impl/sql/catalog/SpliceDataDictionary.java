@@ -29,6 +29,7 @@ import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
@@ -38,7 +39,9 @@ import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.*;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
+import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLDriver;
+import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.derby.impl.sql.catalog.upgrade.SpliceCatalogUpgradeScripts;
 import com.splicemachine.derby.impl.sql.depend.SpliceDependencyManager;
@@ -49,6 +52,7 @@ import com.splicemachine.derby.lifecycle.EngineLifecycleService;
 import com.splicemachine.management.Manager;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.tools.version.ManifestReader;
@@ -56,10 +60,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.sql.Types;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * @author Scott Fines
@@ -900,5 +901,60 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         return manager.isEnabled()?manager.getColPermsManager().getColumnPermissions(this,tableUUID,privType,forGrant,authorizationId):null;
     } // end of getColumnPermissions
 
+
+    /**
+     * Drop a system stored procedure.
+     * PLEASE NOTE:
+     * This method is currently not used, but will be used when Splice Machine has a SYS_DEBUG schema available
+     * with tools to debug and repair databases and data dictionaries.
+     *
+     * @param schemaName name of the system schema
+     * @param procName   name of the system stored procedure
+     * @param tc         TransactionController to use
+     * @throws StandardException
+     */
+    @Override
+    public void dropSystemProcedure(String schemaName,String procName,TransactionController tc) throws StandardException{
+        HashSet newlyCreatedRoutines=new HashSet();
+        SystemProcedureGenerator procedureGenerator=getSystemProcedures();
+
+        procedureGenerator.dropProcedure(schemaName,procName,tc,newlyCreatedRoutines);
+        grantPublicAccessToSystemRoutines(newlyCreatedRoutines,tc,authorizationDatabaseOwner);
+    }
+
+    /**
+     * Create or update a system stored procedure.  If the system stored procedure alreadys exists in the data dictionary,
+     * the stored procedure will be dropped and then created again.
+     *
+     * @param schemaName the schema where the procedure does and/or will reside
+     * @param procName   the procedure to create or update
+     * @param tc         the xact
+     * @throws StandardException
+     */
+    @Override
+    public void createOrUpdateSystemProcedure(String schemaName,String procName,TransactionController tc) throws StandardException{
+        HashSet newlyCreatedRoutines=new HashSet();
+        SystemProcedureGenerator procedureGenerator=getSystemProcedures();
+
+        procedureGenerator.createOrUpdateProcedure(schemaName,procName,tc,newlyCreatedRoutines);
+        grantPublicAccessToSystemRoutines(newlyCreatedRoutines,tc,authorizationDatabaseOwner);
+    }
+
+    /**
+     * Drop a AliasDescriptor from the DataDictionary
+     *
+     * @param ad The AliasDescriptor to drop
+     * @param tc The TransactionController
+     * @throws StandardException Thrown on failure
+     */
+    @Override
+    public void dropAliasDescriptor(AliasDescriptor ad,TransactionController tc) throws StandardException{
+        DDLMessage.DDLChange change = ProtoUtil.dropAlias(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),ad.getSchemaName(),ad.getName(),String.valueOf(ad.getNameSpace()));
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(change));
+
+        TabInfoImpl ti=getNonCoreTI(SYSALIASES_CATALOG_NUM);
+        ExecIndexRow execIndexRow = ad.generateSYSAliasKeyScan();
+        ti.deleteRow(tc,execIndexRow,SYSALIASESRowFactory.SYSALIASES_INDEX1_ID);
+    }
 
 }
