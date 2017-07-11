@@ -302,22 +302,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             Dataset<Row> table = null;
             try {
                 table = SpliceSpark.getSession().read().parquet(location);
-                // fix the schema if there was a partitioned column:
+                // reorder schema if there was a partitioned column:
                 if (partitionColumnMap.length > 0) {
-                    StructField[] fixSchema = table.queryExecution().logical().schema().fields();
-                    for (int i = 0; i < fixSchema.length; i++){
-                        if (i != Integer.parseInt(fixSchema[i].name().substring(1))){
-                            // this means the partitioned column is out of place, located at the end of the schema array
-                            StructField partitionCol = fixSchema[fixSchema.length - 1];
-                            for (int j = fixSchema.length - 1; j > i; j--){
-                                fixSchema[j] = fixSchema[j-1];
-                            }
-                            fixSchema[i] = partitionCol;
-                            break;
-                        }
-                    }
+                    reorderSchema(table.queryExecution().logical().schema().fields());
                 }
-
             } catch (Exception e) {
                 return handleExceptionInCaseOfEmptySet(e,location);
             }
@@ -350,20 +338,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 SparkSession spark = SpliceSpark.getSession();
                 // Creates a DataFrame from a specified file
                 table = spark.read().format("com.databricks.spark.avro").load(location);
-                // fix the schema if there was a partitioned column:
+                // reorder schema if there was a partitioned column:
                 if (partitionColumnMap.length > 0) {
-                    StructField[] fixSchema = table.queryExecution().logical().schema().fields();
-                    for (int i = 0; i < fixSchema.length; i++){
-                        if (i != Integer.parseInt(fixSchema[i].name().substring(1))){
-                            // this means the partitioned column is out of place, located at the end of the schema array
-                            StructField partitionCol = fixSchema[fixSchema.length - 1];
-                            for (int j = fixSchema.length - 1; j > i; j--){
-                                fixSchema[j] = fixSchema[j-1];
-                            }
-                            fixSchema[i] = partitionCol;
-                            break;
-                        }
-                    }
+                    reorderSchema(table.queryExecution().logical().schema().fields());
                 }
             } catch (Exception e) {
                 return handleExceptionInCaseOfEmptySet(e,location);
@@ -698,6 +675,21 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         }
         return andCols;
     }
+
+    public void reorderSchema(StructField[] fixSchema){
+        for (int i = 0; i < fixSchema.length; i++){
+            if (i != Integer.parseInt(fixSchema[i].name().substring(1))){
+                // this means the partitioned column is out of place, located at the end of the schema array
+                StructField partitionCol = fixSchema[fixSchema.length - 1];
+                for (int j = fixSchema.length - 1; j > i; j--){
+                    fixSchema[j] = fixSchema[j-1];
+                }
+                fixSchema[i] = partitionCol;
+                break;
+            }
+        }
+    }
+
 
     @Override
     public void refreshTable(String location) {
