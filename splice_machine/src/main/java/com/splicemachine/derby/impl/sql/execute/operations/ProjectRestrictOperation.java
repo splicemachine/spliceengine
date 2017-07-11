@@ -14,31 +14,33 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.*;
-import org.spark_project.guava.base.Strings;
+import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
+import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.Restriction;
 import com.splicemachine.derby.stream.function.ProjectRestrictFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
-import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.derby.utils.EngineUtils;
 import org.apache.log4j.Logger;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.SpliceMethod;
+import org.spark_project.guava.base.Strings;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Arrays;
+import java.util.List;
 
 public class ProjectRestrictOperation extends SpliceBaseOperation {
 		private static Logger LOG = Logger.getLogger(ProjectRestrictOperation.class);
@@ -207,9 +209,9 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				if(execRowDefinition==null){
 						ExecRow def = source.getExecRowDefinition();
 						ExecRow clone = def !=null? def.getClone(): null;
-						// Set the default values to 1.  This is to avoid division by zero if any of the projected columns have
-						// division or modulus operators.  The delegate classes will need to reset the values to 0.
-                        if(clone!=null) EngineUtils.populateDefaultValues(clone.getRowArray(),1);
+						// In case the source's ExecRow has value set to 0 which may cause trouble for division,
+					    // set the value to null, the numeric data types have logic to handle null as divisor
+                        if(clone!=null) EngineUtils.resultValuesToNull(clone.getRowArray());
                         // Keeps Sequences from incrementing when doing an execRowDefiniton evaluation: hack
                         ((BaseActivation) activation).setIgnoreSequence(true);
 						source.setCurrentRow(clone);

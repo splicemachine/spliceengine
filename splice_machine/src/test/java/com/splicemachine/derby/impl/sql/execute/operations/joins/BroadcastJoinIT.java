@@ -15,14 +15,20 @@
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.Statement;
+
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.assertEquals;
 
 /**
  * @author Scott Fines
@@ -37,7 +43,7 @@ public class BroadcastJoinIT{
     public static final SpliceTableWatcher t1= new SpliceTableWatcher("t1",schemaWatcher.schemaName,"(a1 int, b1 int, c1 int)");
     public static final SpliceTableWatcher t2= new SpliceTableWatcher("t2",schemaWatcher.schemaName,"(a2 int, b2 int)");
 
-    public static final SpliceWatcher classWatcher = new SpliceWatcher();
+    public static final SpliceWatcher classWatcher = new SpliceWatcher(BroadcastJoinIT.class.getSimpleName().toUpperCase());
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
             .around(schemaWatcher)
@@ -117,6 +123,44 @@ public class BroadcastJoinIT{
         conn = classWatcher.getOrCreateConnection();
     }
 
+    public static void createData(Connection conn, String schemaName) throws Exception {
+        new TableCreator(conn)
+                .withCreate("create table t3 (a3 int, b3 int, c3 int, d3 int)")
+                .withInsert("insert into t3 values(?,?,?,?)")
+                .withRows(rows(
+                        row(1095236,0,37770,0)))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table t4 (a4 int, b4 int, c4 numeric(31,0) not null, d4 numeric(31,0) not null, primary key(c4,d4))")
+                .withInsert("insert into t4 values(?,?,?,?)")
+                .withRows(rows(
+                        row(1,1,1,1),
+                        row(2,2,2,2),
+                        row(3,3,3,3),
+                        row(4,4,4,4),
+                        row(5,5,5,5),
+                        row(6,6,6,6),
+                        row(7,7,7,7),
+                        row(8,8,8,8),
+                        row(9,9,9,9),
+                        row(10,10,10,10)))
+                .create();
+
+        int factor = 10;
+        for (int i = 1; i <= 12; i++) {
+            classWatcher.executeUpdate(SpliceUnitTest.format("insert into t4 select a4, b4,c4+%d, d4 from t4", factor));
+            factor = factor * 2;
+        }
+
+        conn.commit();
+    }
+
+    @BeforeClass
+    public static void createDataSet() throws Exception {
+        createData(classWatcher.getOrCreateConnection(), schemaWatcher.toString());
+    }
+
     @Test
     @Ignore("Takes a super long time to work, and then knocks over the region server with an OOM")
     public void testBroadcastJoinDoesNotCauseRegionServerToCollapse() throws Exception{
@@ -171,6 +215,22 @@ public class BroadcastJoinIT{
         Assert.assertTrue("incorrect result:", rs.wasNull());
         int a2 = rs.getInt(2);
         Assert.assertTrue("incorrect result:", (a2==4));
+        rs.close();
+    }
+
+    @Test
+    public void testBroadCastJoinWithIntToNumericCast() throws Exception {
+        String sqlText = "select c4 from --splice-properties joinOrder=fixed\n" +
+                "t4 t --splice-properties useSpark=true\n" +
+                ",t3 c --splice-properties joinStrategy=broadcast\n" +
+                "where c.c3=t.c4 and t.c4 >=37770 and t.c4 <37771";
+        String expected = "C4   |\n" +
+                "-------\n" +
+                "37770 |";
+
+        ResultSet rs = classWatcher.executeQuery(sqlText);
+        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
         rs.close();
     }
 }
