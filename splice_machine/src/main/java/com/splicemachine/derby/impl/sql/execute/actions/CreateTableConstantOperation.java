@@ -458,10 +458,25 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                 if(fileInfo.exists() && fileInfo.isDirectory() && fileInfo.fileCount() > 0 && storedAs.compareToIgnoreCase("t") != 0) {
                     GetSchemaExternalResult result = EngineDriver.driver().getOlapClient().execute(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs));
                     StructType externalSchema = result.getSchema();
-
                     //Make sure we have the same amount of attributes in the definition compared to the external file
                     if (externalSchema.fields().length != template.length()) {
                         throw StandardException.newException(SQLState.INCONSISTENT_NUMBER_OF_ATTRIBUTE, template.length(), externalSchema.fields().length, location);
+                    }
+
+                    // reorder externalSchema if the partitioned column is out of place
+                    if (partitionby.length > 0) {
+                        StructField[] fixSchema = externalSchema.fields();
+                        for (int i = 0; i < fixSchema.length; i++){
+                            if (i != Integer.parseInt(fixSchema[i].name().substring(1))){
+                                // the partitioned column is incorrectly located at the end of the schema array
+                                StructField partitionCol = fixSchema[fixSchema.length - 1];
+                                for (int j = fixSchema.length - 1; j > i; j--){
+                                    fixSchema[j] = fixSchema[j-1];
+                                }
+                                fixSchema[i] = partitionCol;
+                                break;
+                            }
+                        }
                     }
 
                     // test types equivalence. Make sure that the type defined correspond
