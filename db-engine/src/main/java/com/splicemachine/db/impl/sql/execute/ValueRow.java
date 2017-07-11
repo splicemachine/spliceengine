@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.sun.tools.javac.util.Assert;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -631,6 +632,7 @@ public class ValueRow implements ExecRow, Externalizable {
 		for(int i = 0; i < baseColumnMap.length; i++){
 			if (baseColumnMap[i] != -1){
 				// put the selected columns, designated in baseColumnMap, in field
+				Assert.check(j < fields.length);
 				fields[j] = getColumn(j+1).getStructField(getNamedColumn(i));
 				j++;
 			}
