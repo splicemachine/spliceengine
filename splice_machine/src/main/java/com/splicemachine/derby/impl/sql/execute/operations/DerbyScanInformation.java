@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -121,7 +122,8 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
 
     @Override
     public boolean isKeyed() throws StandardException {
-        return getConglomerate().getTypeFormatId() == IndexConglomerate.FORMAT_NUMBER;
+        return getConglomerate().getTypeFormatId() == StoredFormatIds.ACCESS_B2I_V6_ID ||
+                getConglomerate().getTypeFormatId() == StoredFormatIds.ACCESS_B2I_V5_ID;
     }
 
     public SpliceConglomerate getConglomerate() throws StandardException {

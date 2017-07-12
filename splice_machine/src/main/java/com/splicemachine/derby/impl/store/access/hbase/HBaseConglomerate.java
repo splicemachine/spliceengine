@@ -276,14 +276,6 @@ public class HBaseConglomerate extends SpliceConglomerate{
                 qualifier,stopKeyValue,stopSearchOperator,rawtran,false,opFactory,partitionFactory);
     }
 
-    public void purgeConglomerate(TransactionManager xact_manager,Transaction rawtran) throws StandardException{
-        SpliceLogUtils.trace(LOG,"purgeConglomerate: %s",containerId);
-    }
-
-    public void compressConglomerate(TransactionManager xact_manager,Transaction rawtran) throws StandardException{
-        SpliceLogUtils.trace(LOG,"compressConglomerate: %s",containerId);
-    }
-
     /**************************************************************************
      * Public Methods of StaticCompiledOpenConglomInfo Interface:
      **************************************************************************

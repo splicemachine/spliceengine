@@ -54,7 +54,7 @@ import java.util.Properties;
 
 public class IndexConglomerate extends SpliceConglomerate{
     private static final Logger LOG=Logger.getLogger(IndexConglomerate.class);
-    public static final int FORMAT_NUMBER=StoredFormatIds.ACCESS_B2I_V5_ID;
+    public static final int FORMAT_NUMBER=StoredFormatIds.ACCESS_B2I_V6_ID;
     public static final String PROPERTY_UNIQUE_WITH_DUPLICATE_NULLS="uniqueWithDuplicateNulls";
     private static final long serialVersionUID=4l;
     protected static final String PROPERTY_BASECONGLOMID="baseConglomerateId";
@@ -63,7 +63,8 @@ public class IndexConglomerate extends SpliceConglomerate{
     protected static final String PROPERTY_NKEYFIELDS="nKeyFields";
     protected static final String PROPERTY_NUNIQUECOLUMNS="nUniqueColumns";
     protected static final String PROPERTY_PARENTLINKS="maintainParentLinks";
-    protected static int BASE_MEMORY_USAGE=ClassSize.estimateBaseFromCatalog(IndexConglomerate.class);
+    protected static final String PROPERTY_EXCLUDENULLS="excludeNulls";
+    protected static final String PROPERTY_EXCLUDEDEFAULTS="excludeDefaults";
 
     public long baseConglomerateId;
     protected int rowLocationColumn;
@@ -73,6 +74,9 @@ public class IndexConglomerate extends SpliceConglomerate{
     protected boolean allowDuplicates;
     protected boolean maintainParentLinks;
     protected boolean uniqueWithDuplicateNulls=false;
+    protected boolean excludeNulls = false;
+    protected boolean excludeDefaults = false;
+
 
 
     public IndexConglomerate(){
@@ -145,21 +149,20 @@ public class IndexConglomerate extends SpliceConglomerate{
         property_value=properties.getProperty(PROPERTY_UNIQUE_WITH_DUPLICATE_NULLS,"false");
         uniqueWithDuplicateNulls=Boolean.valueOf(property_value);
         maintainParentLinks=Boolean.valueOf(properties.getProperty(PROPERTY_PARENTLINKS,"true"));
+        property_value = properties.getProperty(PROPERTY_EXCLUDEDEFAULTS,"false");
+        excludeDefaults = Boolean.valueOf(property_value);
+        property_value = properties.getProperty(PROPERTY_EXCLUDENULLS,"false");
+        excludeNulls = Boolean.valueOf(property_value);
 
         if(SanityManager.DEBUG){
             SanityManager.ASSERT((nUniqueColumns==nKeyFields) || (nUniqueColumns==(nKeyFields-1)));
         }
-        try{
-//            ((SpliceTransaction)rawtran).elevate(Bytes.toBytes(Long.toString(containerId)));
-            ConglomerateUtils.createConglomerate(isExternal,
-                containerId,
-                this,
-                ((SpliceTransaction)rawtran).getTxn(),
-                properties.getProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR),
-                properties.getProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR));
-        }catch(Exception e){
-            LOG.error(e.getMessage(),e);
-        }
+        ConglomerateUtils.createConglomerate(isExternal,
+            containerId,
+            this,
+            ((SpliceTransaction)rawtran).getTxn(),
+            properties.getProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR),
+            properties.getProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR));
     }
 
 	/*
@@ -335,18 +338,6 @@ public class IndexConglomerate extends SpliceConglomerate{
         return uniqueRowKey;
     }
 
-    public void purgeConglomerate(
-            TransactionManager xact_manager,
-            Transaction rawtran) throws StandardException{
-        SpliceLogUtils.trace(LOG,"purgeConglomerate: %s",containerId);
-    }
-
-    public void compressConglomerate(
-            TransactionManager xact_manager,
-            Transaction rawtran) throws StandardException{
-        SpliceLogUtils.trace(LOG,"compressConglomerate: %s",containerId);
-    }
-
     /**
      * Print this hbase.
      **/
@@ -381,7 +372,7 @@ public class IndexConglomerate extends SpliceConglomerate{
      */
 
     public int getTypeFormatId(){
-        return StoredFormatIds.ACCESS_B2I_V5_ID;
+        return StoredFormatIds.ACCESS_B2I_V6_ID;
     }
 
 
@@ -438,7 +429,8 @@ public class IndexConglomerate extends SpliceConglomerate{
         // First part of ACCESS_B2I_V4_ID format is the ACCESS_B2I_V3_ID format.
         writeExternal_v10_2(out);
         if(conglom_format_id==StoredFormatIds.ACCESS_B2I_V4_ID
-                || conglom_format_id==StoredFormatIds.ACCESS_B2I_V5_ID){
+                || conglom_format_id==StoredFormatIds.ACCESS_B2I_V5_ID || conglom_format_id==StoredFormatIds.ACCESS_B2I_V6_ID
+                ){
             // Now append sparse array of collation ids
             ConglomerateUtil.writeCollationIdArray(collation_ids,out);
         }
@@ -458,12 +450,16 @@ public class IndexConglomerate extends SpliceConglomerate{
         if(LOG.isTraceEnabled())
             LOG.trace("writeExternal");
         writeExternal_v10_3(out);
-        if(conglom_format_id==StoredFormatIds.ACCESS_B2I_V5_ID)
+        if(conglom_format_id==StoredFormatIds.ACCESS_B2I_V5_ID || conglom_format_id==StoredFormatIds.ACCESS_B2I_V6_ID )
             out.writeBoolean(isUniqueWithDuplicateNulls());
         int len=(columnOrdering!=null && columnOrdering.length>0)?columnOrdering.length:0;
         out.writeInt(len);
         if(len>0){
             ConglomerateUtil.writeFormatIdArray(columnOrdering,out);
+        }
+        if (conglom_format_id==StoredFormatIds.ACCESS_B2I_V6_ID) {
+            out.writeBoolean(excludeNulls);
+            out.writeBoolean(excludeDefaults);
         }
     }
 
@@ -503,7 +499,8 @@ public class IndexConglomerate extends SpliceConglomerate{
         // below when read from disk.  For version ACCESS_B2I_V3_ID and
         // ACCESS_B2I_V4_ID, this is the default and no resetting is necessary.
         setUniqueWithDuplicateNulls(false);
-        if(conglom_format_id==StoredFormatIds.ACCESS_B2I_V4_ID || conglom_format_id==StoredFormatIds.ACCESS_B2I_V5_ID){
+        if(conglom_format_id==StoredFormatIds.ACCESS_B2I_V4_ID || conglom_format_id==StoredFormatIds.ACCESS_B2I_V5_ID
+                || conglom_format_id==StoredFormatIds.ACCESS_B2I_V6_ID){
             // current format id, read collation info from disk
             if(SanityManager.DEBUG){
                 // length must include row location column and at least
@@ -525,13 +522,17 @@ public class IndexConglomerate extends SpliceConglomerate{
                         "Unexpected format id: "+conglom_format_id);
             }
         }
-        if(conglom_format_id==StoredFormatIds.ACCESS_B2I_V5_ID){
+        if(conglom_format_id==StoredFormatIds.ACCESS_B2I_V5_ID || conglom_format_id==StoredFormatIds.ACCESS_B2I_V6_ID){
             setUniqueWithDuplicateNulls(in.readBoolean());
         }
         int len=in.readInt();
         columnOrdering=ConglomerateUtil.readFormatIdArray(len,in);
         partitionFactory =SIDriver.driver().getTableFactory();
         opFactory = SIDriver.driver().getOperationFactory();
+        if (conglom_format_id==StoredFormatIds.ACCESS_B2I_V6_ID) {
+            excludeNulls = in.readBoolean();
+            excludeDefaults = in.readBoolean();
+        }
     }
 
     /**
@@ -597,7 +598,7 @@ public class IndexConglomerate extends SpliceConglomerate{
 
     @Override
     public StructField getStructField(String columnName) {
-        throw new RuntimeException("Not Implemented");
+        throw new UnsupportedOperationException("Not Implemented");
     }
 
 }
