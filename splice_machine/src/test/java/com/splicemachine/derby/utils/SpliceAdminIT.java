@@ -238,6 +238,41 @@ public class SpliceAdminIT extends SpliceUnitTest{
     }
 
     @Test
+    public void testGetExecInfo() throws Exception {
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_EXEC_SERVICE_INFO()");
+        ResultSet rs = cs.executeQuery();
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_EXEC_SERVICE_INFO()", rs);
+        System.out.println(fr.toString());
+        Assert.assertTrue(fr.size()>=1);
+        DbUtils.closeQuietly(rs);
+    }
+
+    @Test
+    public void testGetCacheInfo() throws Exception {
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_CACHE_INFO()");
+        ResultSet rs = cs.executeQuery();
+        while(rs.next()){
+            double hitRate = rs.getDouble("HitRate");
+            double missRate = rs.getDouble("MissRate");
+            Assert.assertTrue((hitRate >= 0.0) && (hitRate <= 1.0));
+            Assert.assertTrue(missRate <= 1-hitRate + .0001 && missRate >= 1-hitRate - .0001);
+        }
+        DbUtils.closeQuietly(rs);
+    }
+
+    @Test
+    public void testGetTotalCacheInfo() throws Exception {
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_TOTAL_CACHE_INFO()");
+        ResultSet rs = cs.executeQuery();
+        rs.next();
+        double hitRate = rs.getDouble("HitRate");
+        double missRate = rs.getDouble("MissRate");
+        Assert.assertTrue((hitRate >= 0.0) && (hitRate <= 1.0));
+        Assert.assertTrue(missRate <= 1-hitRate + .0001 && missRate >= 1-hitRate - .0001);
+        DbUtils.closeQuietly(rs);
+    }
+
+    @Test
     public void testGetRequests() throws Exception {
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_REQUESTS()");
         ResultSet rs = cs.executeQuery();
@@ -366,5 +401,4 @@ public class SpliceAdminIT extends SpliceUnitTest{
             Assert.assertEquals("Message Mismatch","Table 'SPLICEADMINIT.IAMNOTHERE' does not exist.  ",e.getMessage());
         }
     }
-
 }

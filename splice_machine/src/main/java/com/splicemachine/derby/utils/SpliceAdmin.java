@@ -158,6 +158,19 @@ public class SpliceAdmin extends BaseAdminProcedures{
         PipelineAdmin.SYSCS_GET_WRITE_INTAKE_INFO(resultSets);
     }
 
+    public static void SYSCS_GET_EXEC_SERVICE_INFO(ResultSet[] resultSets) throws SQLException{
+        EngineDriver.SYSCS_GET_EXEC_SERVICE_INFO(resultSets);
+    }
+
+    public static void SYSCS_GET_CACHE_INFO(ResultSet[] resultSets) throws SQLException{
+        EngineDriver.SYSCS_GET_CACHE_INFO(resultSets);
+    }
+
+    public static void SYSCS_GET_TOTAL_CACHE_INFO(ResultSet[] resultSets) throws SQLException{
+        EngineDriver.SYSCS_GET_TOTAL_CACHE_INFO(resultSets);
+    }
+
+
     public static void SYSCS_KILL_TRANSACTION(final long transactionId) throws SQLException{
         /*
          * We have to leave this method in place, because Derby will actually STORE a string
