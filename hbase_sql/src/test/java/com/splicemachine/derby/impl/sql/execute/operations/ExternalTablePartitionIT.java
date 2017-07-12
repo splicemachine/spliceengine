@@ -153,37 +153,37 @@ public class ExternalTablePartitionIT {
     }
 
     @Test @Ignore // SPLICE-1764
-    public void testParquetPartitionFirst2() throws Exception {
+    public void testParquetPartitionFirst() throws Exception {
         try {
-            String tablePath = getExternalResourceDirectory()+"/parquet_partition_first2";
-            methodWatcher.executeUpdate(String.format("create external table parquet_part_1st_2 (col1 int, col2 int, col3 varchar(10)) " +
+            String tablePath = getExternalResourceDirectory()+"/parquet_partition_first";
+            methodWatcher.executeUpdate(String.format("create external table parquet_part_1st (col1 int, col2 int, col3 varchar(10)) " +
                     "partitioned by (col1) STORED AS PARQUET LOCATION '%s'",tablePath));
-            methodWatcher.executeUpdate("insert into parquet_part_1st_2 values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
-            ResultSet rs = methodWatcher.executeQuery("select * from parquet_part_1st_2");
+            methodWatcher.executeUpdate("insert into parquet_part_1st values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
+            ResultSet rs = methodWatcher.executeQuery("select * from parquet_part_1st");
             Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
                     "------------------\n" +
                     "  1  |  2  | AAA |\n" +
                     "  3  |  4  | BBB |\n" +
                     "  5  |  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-            ResultSet rs1 = methodWatcher.executeQuery("select col1 from parquet_part_1st_2");
+            ResultSet rs1 = methodWatcher.executeQuery("select col1 from parquet_part_1st");
             Assert.assertEquals("COL1 |\n" +
                     "------\n" +
                     "  1  |\n" +
                     "  3  |\n" +
                     "  5  |",TestUtils.FormattedResult.ResultFactory.toString(rs1));
-            ResultSet rs2 = methodWatcher.executeQuery("select col2 from parquet_part_1st_2");
+            ResultSet rs2 = methodWatcher.executeQuery("select col2 from parquet_part_1st");
             Assert.assertEquals("COL2 |\n" +
                     "------\n" +
                     "  2  |\n" +
                     "  4  |\n" +
                     "  6  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
-            ResultSet rs3 = methodWatcher.executeQuery("select col3 from parquet_part_1st_2");
+            ResultSet rs3 = methodWatcher.executeQuery("select col3 from parquet_part_1st");
             Assert.assertEquals("COL3 |\n" +
                     "------\n" +
                     " AAA |\n" +
                     " BBB |\n" +
                     " CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
-            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from parquet_part_1st_2");
+            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from parquet_part_1st");
             Assert.assertEquals("COL2 |COL3 |\n" +
                     "------------\n" +
                     "  2  | AAA |\n" +
@@ -193,39 +193,40 @@ public class ExternalTablePartitionIT {
             Assert.fail("An exception should not be thrown");
         }
     }
+
 
     @Test @Ignore // SPLICE-1765
-    public void testAvroPartitionFirst2() throws Exception {
+    public void testAvroPartitionFirst() throws Exception {
         try {
-            String tablePath = getExternalResourceDirectory()+"/avro_partition_first2";
-            methodWatcher.executeUpdate(String.format("create external table avro_part_1st_2 (col1 int, col2 int, col3 varchar(10)) " +
+            String tablePath = getExternalResourceDirectory()+"/avro_partition_first";
+            methodWatcher.executeUpdate(String.format("create external table avro_part_1st_ (col1 int, col2 int, col3 varchar(10)) " +
                     "partitioned by (col1) STORED AS AVRO LOCATION '%s'",tablePath));
-            methodWatcher.executeUpdate("insert into avro_part_1st_2 values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
-            ResultSet rs = methodWatcher.executeQuery("select * from avro_part_1st_2");
+            methodWatcher.executeUpdate("insert into avro_part_1st values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
+            ResultSet rs = methodWatcher.executeQuery("select * from avro_part_1st");
             Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
                     "------------------\n" +
                     "  1  |  2  | AAA |\n" +
                     "  3  |  4  | BBB |\n" +
                     "  5  |  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-            ResultSet rs1 = methodWatcher.executeQuery("select col1 from avro_part_1st_2");
+            ResultSet rs1 = methodWatcher.executeQuery("select col1 from avro_part_1st");
             Assert.assertEquals("COL1 |\n" +
                     "------\n" +
                     "  1  |\n" +
                     "  3  |\n" +
                     "  5  |",TestUtils.FormattedResult.ResultFactory.toString(rs1));
-            ResultSet rs2 = methodWatcher.executeQuery("select col2 from avro_part_1st_2");
+            ResultSet rs2 = methodWatcher.executeQuery("select col2 from avro_part_1st");
             Assert.assertEquals("COL2 |\n" +
                     "------\n" +
                     "  2  |\n" +
                     "  4  |\n" +
                     "  6  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
-            ResultSet rs3 = methodWatcher.executeQuery("select col3 from avro_part_1st_2");
+            ResultSet rs3 = methodWatcher.executeQuery("select col3 from avro_part_1st");
             Assert.assertEquals("COL3 |\n" +
                     "------\n" +
                     " AAA |\n" +
                     " BBB |\n" +
                     " CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
-            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from avro_part_1st_2");
+            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from avro_part_1st");
             Assert.assertEquals("COL2 |COL3 |\n" +
                     "------------\n" +
                     "  2  | AAA |\n" +
@@ -237,37 +238,37 @@ public class ExternalTablePartitionIT {
     }
 
     @Test
-    public void testOrcPartitionFirst2() throws Exception {
+    public void testOrcPartitionFirst() throws Exception {
         try {
-            String tablePath = getExternalResourceDirectory()+"/orc_partition_first2";
-            methodWatcher.executeUpdate(String.format("create external table orc_part_1st_2 (col1 int, col2 int, col3 varchar(10)) " +
+            String tablePath = getExternalResourceDirectory()+"/orc_partition_first";
+            methodWatcher.executeUpdate(String.format("create external table orc_part_1st (col1 int, col2 int, col3 varchar(10)) " +
                     "partitioned by (col1) STORED AS ORC LOCATION '%s'",tablePath));
-            methodWatcher.executeUpdate("insert into orc_part_1st_2 values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
-            ResultSet rs = methodWatcher.executeQuery("select * from orc_part_1st_2");
+            methodWatcher.executeUpdate("insert into orc_part_1st values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
+            ResultSet rs = methodWatcher.executeQuery("select * from orc_part_1st");
             Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
                     "------------------\n" +
                     "  1  |  2  | AAA |\n" +
                     "  3  |  4  | BBB |\n" +
                     "  5  |  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-            ResultSet rs1 = methodWatcher.executeQuery("select col1 from orc_part_1st_2");
+            ResultSet rs1 = methodWatcher.executeQuery("select col1 from orc_part_1st");
             Assert.assertEquals("COL1 |\n" +
                     "------\n" +
                     "  1  |\n" +
                     "  3  |\n" +
                     "  5  |",TestUtils.FormattedResult.ResultFactory.toString(rs1));
-            ResultSet rs2 = methodWatcher.executeQuery("select col2 from orc_part_1st_2");
+            ResultSet rs2 = methodWatcher.executeQuery("select col2 from orc_part_1st");
             Assert.assertEquals("COL2 |\n" +
                     "------\n" +
                     "  2  |\n" +
                     "  4  |\n" +
                     "  6  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
-            ResultSet rs3 = methodWatcher.executeQuery("select col3 from orc_part_1st_2");
+            ResultSet rs3 = methodWatcher.executeQuery("select col3 from orc_part_1st");
             Assert.assertEquals("COL3 |\n" +
                     "------\n" +
                     " AAA |\n" +
                     " BBB |\n" +
                     " CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
-            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from orc_part_1st_2");
+            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from orc_part_1st");
             Assert.assertEquals("COL2 |COL3 |\n" +
                     "------------\n" +
                     "  2  | AAA |\n" +
@@ -279,37 +280,37 @@ public class ExternalTablePartitionIT {
     }
 
     @Test
-    public void testTextfilePartitionFirst2() throws Exception {
+    public void testTextfilePartitionFirst() throws Exception {
         try {
-            String tablePath = getExternalResourceDirectory()+"/textfile_partition_first2";
-            methodWatcher.executeUpdate(String.format("create external table textfile_part_1st_2 (col1 int, col2 int, col3 varchar(10)) " +
+            String tablePath = getExternalResourceDirectory()+"/textfile_partition_first";
+            methodWatcher.executeUpdate(String.format("create external table textfile_part_1st (col1 int, col2 int, col3 varchar(10)) " +
                     "partitioned by (col1) STORED AS TEXTFILE LOCATION '%s'",tablePath));
-            methodWatcher.executeUpdate("insert into textfile_part_1st_2 values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
-            ResultSet rs = methodWatcher.executeQuery("select * from textfile_part_1st_2");
+            methodWatcher.executeUpdate("insert into textfile_part_1st values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
+            ResultSet rs = methodWatcher.executeQuery("select * from textfile_part_1st");
             Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
                     "------------------\n" +
                     "  1  |  2  | AAA |\n" +
                     "  3  |  4  | BBB |\n" +
                     "  5  |  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-            ResultSet rs1 = methodWatcher.executeQuery("select col1 from textfile_part_1st_2");
+            ResultSet rs1 = methodWatcher.executeQuery("select col1 from textfile_part_1st");
             Assert.assertEquals("COL1 |\n" +
                     "------\n" +
                     "  1  |\n" +
                     "  3  |\n" +
                     "  5  |",TestUtils.FormattedResult.ResultFactory.toString(rs1));
-            ResultSet rs2 = methodWatcher.executeQuery("select col2 from textfile_part_1st_2");
+            ResultSet rs2 = methodWatcher.executeQuery("select col2 from textfile_part_1st");
             Assert.assertEquals("COL2 |\n" +
                     "------\n" +
                     "  2  |\n" +
                     "  4  |\n" +
                     "  6  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
-            ResultSet rs3 = methodWatcher.executeQuery("select col3 from textfile_part_1st_2");
+            ResultSet rs3 = methodWatcher.executeQuery("select col3 from textfile_part_1st");
             Assert.assertEquals("COL3 |\n" +
                     "------\n" +
                     " AAA |\n" +
                     " BBB |\n" +
                     " CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
-            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from textfile_part_1st_2");
+            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from textfile_part_1st");
             Assert.assertEquals("COL2 |COL3 |\n" +
                     "------------\n" +
                     "  2  | AAA |\n" +
@@ -321,37 +322,37 @@ public class ExternalTablePartitionIT {
     }
 
     @Test @Ignore // SPLICE-1764
-    public void testParquetPartitionSecond2() throws Exception {
+    public void testParquetPartitionFirstSecond() throws Exception {
         try {
-            String tablePath = getExternalResourceDirectory()+"/parquet_partition_second_2";
-            methodWatcher.executeUpdate(String.format("create external table parquet_part_2nd_2 (col1 int, col2 int, col3 varchar(10)) " +
-                    "partitioned by (col2) STORED AS PARQUET LOCATION '%s'",tablePath));
-            methodWatcher.executeUpdate("insert into parquet_part_2nd_2 values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
-            ResultSet rs = methodWatcher.executeQuery("select * from parquet_part_2nd_2");
+            String tablePath = getExternalResourceDirectory()+"/parquet_partition_first_second";
+            methodWatcher.executeUpdate(String.format("create external table parquet_part_1st_2nd (col1 int, col2 int, col3 varchar(10)) " +
+                    "partitioned by (col1,col2) STORED AS PARQUET LOCATION '%s'",tablePath));
+            methodWatcher.executeUpdate("insert into parquet_part_1st_2nd values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
+            ResultSet rs = methodWatcher.executeQuery("select * from parquet_part_1st_2nd");
             Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
                     "------------------\n" +
                     "  1  |  2  | AAA |\n" +
                     "  3  |  4  | BBB |\n" +
                     "  5  |  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-            ResultSet rs1 = methodWatcher.executeQuery("select col1 from parquet_part_2nd_2");
+            ResultSet rs1 = methodWatcher.executeQuery("select col1 from parquet_part_1st_2nd");
             Assert.assertEquals("COL1 |\n" +
                     "------\n" +
                     "  1  |\n" +
                     "  3  |\n" +
                     "  5  |",TestUtils.FormattedResult.ResultFactory.toString(rs1));
-            ResultSet rs2 = methodWatcher.executeQuery("select col2 from parquet_part_2nd_2");
+            ResultSet rs2 = methodWatcher.executeQuery("select col2 from parquet_part_1st_2nd");
             Assert.assertEquals("COL2 |\n" +
                     "------\n" +
                     "  2  |\n" +
                     "  4  |\n" +
                     "  6  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
-            ResultSet rs3 = methodWatcher.executeQuery("select col3 from parquet_part_2nd_2");
+            ResultSet rs3 = methodWatcher.executeQuery("select col3 from parquet_part_1st_2nd");
             Assert.assertEquals("COL3 |\n" +
                     "------\n" +
                     " AAA |\n" +
                     " BBB |\n" +
                     " CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
-            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from parquet_part_2nd_2");
+            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from parquet_part_1st_2nd");
             Assert.assertEquals("COL2 |COL3 |\n" +
                     "------------\n" +
                     "  2  | AAA |\n" +
@@ -361,40 +362,207 @@ public class ExternalTablePartitionIT {
             Assert.fail("An exception should not be thrown");
         }
     }
-
 
     @Test @Ignore // SPLICE-1765
-    public void testAvroPartitionSecond2() throws Exception {
+    public void testAvroPartitionFirstSecond() throws Exception {
         try {
-            String tablePath = getExternalResourceDirectory()+"/avro_partition_second_2";
+            String tablePath = getExternalResourceDirectory()+"/avro_partition_first_second";
+            methodWatcher.executeUpdate(String.format("create external table avro_part_1st_2nd (col1 int, col2 int, col3 varchar(10)) " +
+                    "partitioned by (col1,col2) STORED AS AVRO LOCATION '%s'",tablePath));
+            methodWatcher.executeUpdate("insert into avro_part_1st_2nd values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
+            ResultSet rs = methodWatcher.executeQuery("select * from avro_part_1st_2nd");
+            Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
+                    "------------------\n" +
+                    "  1  |  2  | AAA |\n" +
+                    "  3  |  4  | BBB |\n" +
+                    "  5  |  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+            ResultSet rs1 = methodWatcher.executeQuery("select col1 from avro_part_1st_2nd");
+            Assert.assertEquals("COL1 |\n" +
+                    "------\n" +
+                    "  1  |\n" +
+                    "  3  |\n" +
+                    "  5  |",TestUtils.FormattedResult.ResultFactory.toString(rs1));
+            ResultSet rs2 = methodWatcher.executeQuery("select col2 from avro_part_1st_2nd");
+            Assert.assertEquals("COL2 |\n" +
+                    "------\n" +
+                    "  2  |\n" +
+                    "  4  |\n" +
+                    "  6  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+            ResultSet rs3 = methodWatcher.executeQuery("select col3 from avro_part_1st_2nd");
+            Assert.assertEquals("COL3 |\n" +
+                    "------\n" +
+                    " AAA |\n" +
+                    " BBB |\n" +
+                    " CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
+            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from avro_part_1st_2nd");
+            Assert.assertEquals("COL2 |COL3 |\n" +
+                    "------------\n" +
+                    "  2  | AAA |\n" +
+                    "  4  | BBB |\n" +
+                    "  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs4));
+        } catch (SQLException e) {
+            Assert.fail("An exception should not be thrown");
+        }
+    }
+
+    @Test
+    public void testOrcPartitionFirstSecond() throws Exception {
+        try {
+            String tablePath = getExternalResourceDirectory()+"/orc_partition_first_second";
+            methodWatcher.executeUpdate(String.format("create external table orc_part_1st_2nd (col1 int, col2 int, col3 varchar(10)) " +
+                    "partitioned by (col1,col2) STORED AS ORC LOCATION '%s'",tablePath));
+            methodWatcher.executeUpdate("insert into orc_part_1st_2nd values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
+            ResultSet rs = methodWatcher.executeQuery("select * from orc_part_1st_2nd");
+            Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
+                    "------------------\n" +
+                    "  1  |  2  | AAA |\n" +
+                    "  3  |  4  | BBB |\n" +
+                    "  5  |  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+            ResultSet rs1 = methodWatcher.executeQuery("select col1 from orc_part_1st_2nd");
+            Assert.assertEquals("COL1 |\n" +
+                    "------\n" +
+                    "  1  |\n" +
+                    "  3  |\n" +
+                    "  5  |",TestUtils.FormattedResult.ResultFactory.toString(rs1));
+            ResultSet rs2 = methodWatcher.executeQuery("select col2 from orc_part_1st_2nd");
+            Assert.assertEquals("COL2 |\n" +
+                    "------\n" +
+                    "  2  |\n" +
+                    "  4  |\n" +
+                    "  6  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+            ResultSet rs3 = methodWatcher.executeQuery("select col3 from orc_part_1st_2nd");
+            Assert.assertEquals("COL3 |\n" +
+                    "------\n" +
+                    " AAA |\n" +
+                    " BBB |\n" +
+                    " CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
+            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from orc_part_1st_2nd");
+            Assert.assertEquals("COL2 |COL3 |\n" +
+                    "------------\n" +
+                    "  2  | AAA |\n" +
+                    "  4  | BBB |\n" +
+                    "  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs4));
+        } catch (SQLException e) {
+            Assert.fail("An exception should not be thrown");
+        }
+    }
+
+    @Test
+    public void testTextfilePartitionFirstSecond() throws Exception {
+        try {
+            String tablePath = getExternalResourceDirectory()+"/textfile_partition_first_second";
+            methodWatcher.executeUpdate(String.format("create external table textfile_part_1st_2nd (col1 int, col2 int, col3 varchar(10)) " +
+                    "partitioned by (col1,col2) STORED AS TEXTFILE LOCATION '%s'",tablePath));
+            methodWatcher.executeUpdate("insert into textfile_part_1st_2nd values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
+            ResultSet rs = methodWatcher.executeQuery("select * from textfile_part_1st_2nd");
+            Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
+                    "------------------\n" +
+                    "  1  |  2  | AAA |\n" +
+                    "  3  |  4  | BBB |\n" +
+                    "  5  |  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+            ResultSet rs1 = methodWatcher.executeQuery("select col1 from textfile_part_1st_2nd");
+            Assert.assertEquals("COL1 |\n" +
+                    "------\n" +
+                    "  1  |\n" +
+                    "  3  |\n" +
+                    "  5  |",TestUtils.FormattedResult.ResultFactory.toString(rs1));
+            ResultSet rs2 = methodWatcher.executeQuery("select col2 from textfile_part_1st_2nd");
+            Assert.assertEquals("COL2 |\n" +
+                    "------\n" +
+                    "  2  |\n" +
+                    "  4  |\n" +
+                    "  6  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+            ResultSet rs3 = methodWatcher.executeQuery("select col3 from textfile_part_1st_2nd");
+            Assert.assertEquals("COL3 |\n" +
+                    "------\n" +
+                    " AAA |\n" +
+                    " BBB |\n" +
+                    " CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
+            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from textfile_part_1st_2nd");
+            Assert.assertEquals("COL2 |COL3 |\n" +
+                    "------------\n" +
+                    "  2  | AAA |\n" +
+                    "  4  | BBB |\n" +
+                    "  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs4));
+        } catch (SQLException e) {
+            Assert.fail("An exception should not be thrown");
+        }
+    }
+
+    @Test @Ignore // SPLICE-1764
+    public void testParquetPartitionSecond() throws Exception {
+        try {
+            String tablePath = getExternalResourceDirectory()+"/parquet_partition_second";
+            methodWatcher.executeUpdate(String.format("create external table parquet_part_2nd (col1 int, col2 int, col3 varchar(10)) " +
+                    "partitioned by (col2) STORED AS PARQUET LOCATION '%s'",tablePath));
+            methodWatcher.executeUpdate("insert into parquet_part_2nd values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
+            ResultSet rs = methodWatcher.executeQuery("select * from parquet_part_2nd");
+            Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
+                    "------------------\n" +
+                    "  1  |  2  | AAA |\n" +
+                    "  3  |  4  | BBB |\n" +
+                    "  5  |  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+            ResultSet rs1 = methodWatcher.executeQuery("select col1 from parquet_part_2nd");
+            Assert.assertEquals("COL1 |\n" +
+                    "------\n" +
+                    "  1  |\n" +
+                    "  3  |\n" +
+                    "  5  |",TestUtils.FormattedResult.ResultFactory.toString(rs1));
+            ResultSet rs2 = methodWatcher.executeQuery("select col2 from parquet_part_2nd");
+            Assert.assertEquals("COL2 |\n" +
+                    "------\n" +
+                    "  2  |\n" +
+                    "  4  |\n" +
+                    "  6  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+            ResultSet rs3 = methodWatcher.executeQuery("select col3 from parquet_part_2nd");
+            Assert.assertEquals("COL3 |\n" +
+                    "------\n" +
+                    " AAA |\n" +
+                    " BBB |\n" +
+                    " CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
+            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from parquet_part_2nd");
+            Assert.assertEquals("COL2 |COL3 |\n" +
+                    "------------\n" +
+                    "  2  | AAA |\n" +
+                    "  4  | BBB |\n" +
+                    "  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs4));
+        } catch (SQLException e) {
+            Assert.fail("An exception should not be thrown");
+        }
+    }
+
+    @Test @Ignore // SPLICE-1765
+    public void testAvroPartitionSecond() throws Exception {
+        try {
+            String tablePath = getExternalResourceDirectory()+"/avro_partition_second";
             methodWatcher.executeUpdate(String.format("create external table avro_part_2nd_2 (col1 int, col2 int, col3 varchar(10)) " +
                     "partitioned by (col2) STORED AS AVRO LOCATION '%s'",tablePath));
-            methodWatcher.executeUpdate("insert into avro_part_2nd_2 values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
-            ResultSet rs = methodWatcher.executeQuery("select * from avro_part_2nd_2");
+            methodWatcher.executeUpdate("insert into avro_part_2nd values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
+            ResultSet rs = methodWatcher.executeQuery("select * from avro_part_2nd");
             Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
                     "------------------\n" +
                     "  1  |  2  | AAA |\n" +
                     "  3  |  4  | BBB |\n" +
                     "  5  |  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-            ResultSet rs1 = methodWatcher.executeQuery("select col1 from avro_part_2nd_2");
+            ResultSet rs1 = methodWatcher.executeQuery("select col1 from avro_part_2nd");
             Assert.assertEquals("COL1 |\n" +
                     "------\n" +
                     "  1  |\n" +
                     "  3  |\n" +
                     "  5  |",TestUtils.FormattedResult.ResultFactory.toString(rs1));
-            ResultSet rs2 = methodWatcher.executeQuery("select col2 from avro_part_2nd_2");
+            ResultSet rs2 = methodWatcher.executeQuery("select col2 from avro_part_2nd");
             Assert.assertEquals("COL2 |\n" +
                     "------\n" +
                     "  2  |\n" +
                     "  4  |\n" +
                     "  6  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
-            ResultSet rs3 = methodWatcher.executeQuery("select col3 from avro_part_2nd_2");
+            ResultSet rs3 = methodWatcher.executeQuery("select col3 from avro_part_2nd");
             Assert.assertEquals("COL3 |\n" +
                     "------\n" +
                     " AAA |\n" +
                     " BBB |\n" +
                     " CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
-            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from avro_part_2nd_2");
+            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from avro_part_2nd");
             Assert.assertEquals("COL2 |COL3 |\n" +
                     "------------\n" +
                     "  2  | AAA |\n" +
@@ -407,37 +575,37 @@ public class ExternalTablePartitionIT {
 
 
     @Test
-    public void testOrcPartitionSecond2() throws Exception {
+    public void testOrcPartitionSecond() throws Exception {
         try {
-            String tablePath = getExternalResourceDirectory()+"/orc_partition_second_2";
-            methodWatcher.executeUpdate(String.format("create external table orc_part_2nd_2 (col1 int, col2 int, col3 varchar(10)) " +
+            String tablePath = getExternalResourceDirectory()+"/orc_partition_second";
+            methodWatcher.executeUpdate(String.format("create external table orc_part_2nd (col1 int, col2 int, col3 varchar(10)) " +
                     "partitioned by (col2) STORED AS ORC LOCATION '%s'",tablePath));
-            methodWatcher.executeUpdate("insert into orc_part_2nd_2 values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
-            ResultSet rs = methodWatcher.executeQuery("select * from orc_part_2nd_2");
+            methodWatcher.executeUpdate("insert into orc_part_2nd values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
+            ResultSet rs = methodWatcher.executeQuery("select * from orc_part_2nd");
             Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
                     "------------------\n" +
                     "  1  |  2  | AAA |\n" +
                     "  3  |  4  | BBB |\n" +
                     "  5  |  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-            ResultSet rs1 = methodWatcher.executeQuery("select col1 from orc_part_2nd_2");
+            ResultSet rs1 = methodWatcher.executeQuery("select col1 from orc_part_2nd");
             Assert.assertEquals("COL1 |\n" +
                     "------\n" +
                     "  1  |\n" +
                     "  3  |\n" +
                     "  5  |",TestUtils.FormattedResult.ResultFactory.toString(rs1));
-            ResultSet rs2 = methodWatcher.executeQuery("select col2 from orc_part_2nd_2");
+            ResultSet rs2 = methodWatcher.executeQuery("select col2 from orc_part_2nd");
             Assert.assertEquals("COL2 |\n" +
                     "------\n" +
                     "  2  |\n" +
                     "  4  |\n" +
                     "  6  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
-            ResultSet rs3 = methodWatcher.executeQuery("select col3 from orc_part_2nd_2");
+            ResultSet rs3 = methodWatcher.executeQuery("select col3 from orc_part_2nd");
             Assert.assertEquals("COL3 |\n" +
                     "------\n" +
                     " AAA |\n" +
                     " BBB |\n" +
                     " CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
-            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from orc_part_2nd_2");
+            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from orc_part_2nd");
             Assert.assertEquals("COL2 |COL3 |\n" +
                     "------------\n" +
                     "  2  | AAA |\n" +
@@ -450,37 +618,37 @@ public class ExternalTablePartitionIT {
 
 
     @Test
-    public void testTextfilePartitionSecond2() throws Exception {
+    public void testTextfilePartitionSecond() throws Exception {
         try {
-            String tablePath = getExternalResourceDirectory()+"/textfile_partition_second_2";
-            methodWatcher.executeUpdate(String.format("create external table textfile_part_2nd_2 (col1 int, col2 int, col3 varchar(10)) " +
+            String tablePath = getExternalResourceDirectory()+"/textfile_partition_second_";
+            methodWatcher.executeUpdate(String.format("create external table textfile_part_2nd (col1 int, col2 int, col3 varchar(10)) " +
                     "partitioned by (col2) STORED AS TEXTFILE LOCATION '%s'",tablePath));
-            methodWatcher.executeUpdate("insert into textfile_part_2nd_2 values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
-            ResultSet rs = methodWatcher.executeQuery("select * from textfile_part_2nd_2");
+            methodWatcher.executeUpdate("insert into textfile_part_2nd values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
+            ResultSet rs = methodWatcher.executeQuery("select * from textfile_part_2nd");
             Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
                     "------------------\n" +
                     "  1  |  2  | AAA |\n" +
                     "  3  |  4  | BBB |\n" +
                     "  5  |  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-            ResultSet rs1 = methodWatcher.executeQuery("select col1 from textfile_part_2nd_2");
+            ResultSet rs1 = methodWatcher.executeQuery("select col1 from textfile_part_2nd");
             Assert.assertEquals("COL1 |\n" +
                     "------\n" +
                     "  1  |\n" +
                     "  3  |\n" +
                     "  5  |",TestUtils.FormattedResult.ResultFactory.toString(rs1));
-            ResultSet rs2 = methodWatcher.executeQuery("select col2 from textfile_part_2nd_2");
+            ResultSet rs2 = methodWatcher.executeQuery("select col2 from textfile_part_2nd");
             Assert.assertEquals("COL2 |\n" +
                     "------\n" +
                     "  2  |\n" +
                     "  4  |\n" +
                     "  6  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
-            ResultSet rs3 = methodWatcher.executeQuery("select col3 from textfile_part_2nd_2");
+            ResultSet rs3 = methodWatcher.executeQuery("select col3 from textfile_part_2nd");
             Assert.assertEquals("COL3 |\n" +
                     "------\n" +
                     " AAA |\n" +
                     " BBB |\n" +
                     " CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
-            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from textfile_part_2nd_2");
+            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from textfile_part_2nd");
             Assert.assertEquals("COL2 |COL3 |\n" +
                     "------------\n" +
                     "  2  | AAA |\n" +
@@ -492,37 +660,37 @@ public class ExternalTablePartitionIT {
     }
 
     @Test
-    public void testParquetPartitionLast2() throws Exception {
+    public void testParquetPartitionLast() throws Exception {
         try {
-            String tablePath = getExternalResourceDirectory()+"/parquet_partition_last_2";
-            methodWatcher.executeUpdate(String.format("create external table parquet_part_last_2 (col1 int, col2 int, col3 varchar(10)) " +
+            String tablePath = getExternalResourceDirectory()+"/parquet_partition_last";
+            methodWatcher.executeUpdate(String.format("create external table parquet_part_last (col1 int, col2 int, col3 varchar(10)) " +
                     "partitioned by (col3) STORED AS PARQUET LOCATION '%s'",tablePath));
-            methodWatcher.executeUpdate("insert into parquet_part_last_2 values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
-            ResultSet rs = methodWatcher.executeQuery("select * from parquet_part_last_2");
+            methodWatcher.executeUpdate("insert into parquet_part_last values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
+            ResultSet rs = methodWatcher.executeQuery("select * from parquet_part_last");
             Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
                     "------------------\n" +
                     "  1  |  2  | AAA |\n" +
                     "  3  |  4  | BBB |\n" +
                     "  5  |  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-            ResultSet rs1 = methodWatcher.executeQuery("select col1 from parquet_part_last_2");
+            ResultSet rs1 = methodWatcher.executeQuery("select col1 from parquet_part_last");
             Assert.assertEquals("COL1 |\n" +
                     "------\n" +
                     "  1  |\n" +
                     "  3  |\n" +
                     "  5  |",TestUtils.FormattedResult.ResultFactory.toString(rs1));
-            ResultSet rs2 = methodWatcher.executeQuery("select col2 from parquet_part_last_2");
+            ResultSet rs2 = methodWatcher.executeQuery("select col2 from parquet_part_last");
             Assert.assertEquals("COL2 |\n" +
                     "------\n" +
                     "  2  |\n" +
                     "  4  |\n" +
                     "  6  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
-            ResultSet rs3 = methodWatcher.executeQuery("select col3 from parquet_part_last_2");
+            ResultSet rs3 = methodWatcher.executeQuery("select col3 from parquet_part_last");
             Assert.assertEquals("COL3 |\n" +
                     "------\n" +
                     " AAA |\n" +
                     " BBB |\n" +
                     " CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
-            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from parquet_part_last_2");
+            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from parquet_part_last");
             Assert.assertEquals("COL2 |COL3 |\n" +
                     "------------\n" +
                     "  2  | AAA |\n" +
@@ -535,37 +703,37 @@ public class ExternalTablePartitionIT {
 
 
     @Test
-    public void testAvroPartitionLast2() throws Exception {
+    public void testAvroPartitionLast() throws Exception {
         try {
-            String tablePath = getExternalResourceDirectory()+"/avro_partition_last_2";
-            methodWatcher.executeUpdate(String.format("create external table avro_part_last_2 (col1 int, col2 int, col3 varchar(10)) " +
+            String tablePath = getExternalResourceDirectory()+"/avro_partition_last";
+            methodWatcher.executeUpdate(String.format("create external table avro_part_last (col1 int, col2 int, col3 varchar(10)) " +
                     "partitioned by (col3) STORED AS AVRO LOCATION '%s'",tablePath));
-            methodWatcher.executeUpdate("insert into avro_part_last_2 values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
-            ResultSet rs = methodWatcher.executeQuery("select * from avro_part_last_2");
+            methodWatcher.executeUpdate("insert into avro_part_last values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
+            ResultSet rs = methodWatcher.executeQuery("select * from avro_part_last");
             Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
                     "------------------\n" +
                     "  1  |  2  | AAA |\n" +
                     "  3  |  4  | BBB |\n" +
                     "  5  |  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-            ResultSet rs1 = methodWatcher.executeQuery("select col1 from avro_part_last_2");
+            ResultSet rs1 = methodWatcher.executeQuery("select col1 from avro_part_last");
             Assert.assertEquals("COL1 |\n" +
                     "------\n" +
                     "  1  |\n" +
                     "  3  |\n" +
                     "  5  |",TestUtils.FormattedResult.ResultFactory.toString(rs1));
-            ResultSet rs2 = methodWatcher.executeQuery("select col2 from avro_part_last_2");
+            ResultSet rs2 = methodWatcher.executeQuery("select col2 from avro_part_last");
             Assert.assertEquals("COL2 |\n" +
                     "------\n" +
                     "  2  |\n" +
                     "  4  |\n" +
                     "  6  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
-            ResultSet rs3 = methodWatcher.executeQuery("select col3 from avro_part_last_2");
+            ResultSet rs3 = methodWatcher.executeQuery("select col3 from avro_part_last");
             Assert.assertEquals("COL3 |\n" +
                     "------\n" +
                     " AAA |\n" +
                     " BBB |\n" +
                     " CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
-            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from avro_part_last_2");
+            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from avro_part_last");
             Assert.assertEquals("COL2 |COL3 |\n" +
                     "------------\n" +
                     "  2  | AAA |\n" +
@@ -577,37 +745,37 @@ public class ExternalTablePartitionIT {
     }
 
     @Test
-    public void testOrcPartitionLast2() throws Exception {
+    public void testOrcPartitionLast() throws Exception {
         try {
-            String tablePath = getExternalResourceDirectory()+"/orc_partition_last_2";
-            methodWatcher.executeUpdate(String.format("create external table orc_part_last_2 (col1 int, col2 int, col3 varchar(10)) " +
+            String tablePath = getExternalResourceDirectory()+"/orc_partition_last";
+            methodWatcher.executeUpdate(String.format("create external table orc_part_last (col1 int, col2 int, col3 varchar(10)) " +
                     "partitioned by (col3) STORED AS ORC LOCATION '%s'",tablePath));
-            methodWatcher.executeUpdate("insert into orc_part_last_2 values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
-            ResultSet rs = methodWatcher.executeQuery("select * from orc_part_last_2");
+            methodWatcher.executeUpdate("insert into orc_part_last values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
+            ResultSet rs = methodWatcher.executeQuery("select * from orc_part_last");
             Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
                     "------------------\n" +
                     "  1  |  2  | AAA |\n" +
                     "  3  |  4  | BBB |\n" +
                     "  5  |  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-            ResultSet rs1 = methodWatcher.executeQuery("select col1 from orc_part_last_2");
+            ResultSet rs1 = methodWatcher.executeQuery("select col1 from orc_part_last");
             Assert.assertEquals("COL1 |\n" +
                     "------\n" +
                     "  1  |\n" +
                     "  3  |\n" +
                     "  5  |",TestUtils.FormattedResult.ResultFactory.toString(rs1));
-            ResultSet rs2 = methodWatcher.executeQuery("select col2 from orc_part_last_2");
+            ResultSet rs2 = methodWatcher.executeQuery("select col2 from orc_part_last");
             Assert.assertEquals("COL2 |\n" +
                     "------\n" +
                     "  2  |\n" +
                     "  4  |\n" +
                     "  6  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
-            ResultSet rs3 = methodWatcher.executeQuery("select col3 from orc_part_last_2");
+            ResultSet rs3 = methodWatcher.executeQuery("select col3 from orc_part_last");
             Assert.assertEquals("COL3 |\n" +
                     "------\n" +
                     " AAA |\n" +
                     " BBB |\n" +
                     " CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
-            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from orc_part_last_2");
+            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from orc_part_last");
             Assert.assertEquals("COL2 |COL3 |\n" +
                     "------------\n" +
                     "  2  | AAA |\n" +
@@ -619,37 +787,37 @@ public class ExternalTablePartitionIT {
     }
 
     @Test
-    public void testTextfilePartitionLast2() throws Exception {
+    public void testTextfilePartitionLast() throws Exception {
         try {
-            String tablePath = getExternalResourceDirectory()+"/textfile_partition_last_2";
-            methodWatcher.executeUpdate(String.format("create external table textfile_part_last_2 (col1 int, col2 int, col3 varchar(10)) " +
+            String tablePath = getExternalResourceDirectory()+"/textfile_partition_last";
+            methodWatcher.executeUpdate(String.format("create external table textfile_part_last (col1 int, col2 int, col3 varchar(10)) " +
                     "partitioned by (col3) STORED AS TEXTFILE LOCATION '%s'",tablePath));
-            methodWatcher.executeUpdate("insert into textfile_part_last_2 values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
-            ResultSet rs = methodWatcher.executeQuery("select * from textfile_part_last_2");
+            methodWatcher.executeUpdate("insert into textfile_part_last values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
+            ResultSet rs = methodWatcher.executeQuery("select * from textfile_part_last");
             Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
                     "------------------\n" +
                     "  1  |  2  | AAA |\n" +
                     "  3  |  4  | BBB |\n" +
                     "  5  |  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-            ResultSet rs1 = methodWatcher.executeQuery("select col1 from textfile_part_last_2");
+            ResultSet rs1 = methodWatcher.executeQuery("select col1 from textfile_part_last");
             Assert.assertEquals("COL1 |\n" +
                     "------\n" +
                     "  1  |\n" +
                     "  3  |\n" +
                     "  5  |",TestUtils.FormattedResult.ResultFactory.toString(rs1));
-            ResultSet rs2 = methodWatcher.executeQuery("select col2 from textfile_part_last_2");
+            ResultSet rs2 = methodWatcher.executeQuery("select col2 from textfile_part_last");
             Assert.assertEquals("COL2 |\n" +
                     "------\n" +
                     "  2  |\n" +
                     "  4  |\n" +
                     "  6  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
-            ResultSet rs3 = methodWatcher.executeQuery("select col3 from textfile_part_last_2");
+            ResultSet rs3 = methodWatcher.executeQuery("select col3 from textfile_part_last");
             Assert.assertEquals("COL3 |\n" +
                     "------\n" +
                     " AAA |\n" +
                     " BBB |\n" +
                     " CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
-            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from textfile_part_last_2");
+            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from textfile_part_last");
             Assert.assertEquals("COL2 |COL3 |\n" +
                     "------------\n" +
                     "  2  | AAA |\n" +
@@ -659,6 +827,175 @@ public class ExternalTablePartitionIT {
             Assert.fail("An exception should not be thrown");
         }
     }
+
+    @Test @Ignore // SPLICE-1764
+    public void testParquetPartitionThirdSecond() throws Exception {
+        try {
+            String tablePath = getExternalResourceDirectory()+"/parquet_partition_third_second";
+            methodWatcher.executeUpdate(String.format("create external table parquet_part_3rd_2nd (col1 int, col2 int, col3 varchar(10)) " +
+                    "partitioned by (col3,col2) STORED AS PARQUET LOCATION '%s'",tablePath));
+            methodWatcher.executeUpdate("insert into parquet_part_3rd_2nd values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
+            ResultSet rs = methodWatcher.executeQuery("select * from parquet_part_3rd_2nd");
+            Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
+                    "------------------\n" +
+                    "  1  |  2  | AAA |\n" +
+                    "  3  |  4  | BBB |\n" +
+                    "  5  |  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+            ResultSet rs1 = methodWatcher.executeQuery("select col1 from parquet_part_3rd_2nd");
+            Assert.assertEquals("COL1 |\n" +
+                    "------\n" +
+                    "  1  |\n" +
+                    "  3  |\n" +
+                    "  5  |",TestUtils.FormattedResult.ResultFactory.toString(rs1));
+            ResultSet rs2 = methodWatcher.executeQuery("select col2 from parquet_part_3rd_2nd");
+            Assert.assertEquals("COL2 |\n" +
+                    "------\n" +
+                    "  2  |\n" +
+                    "  4  |\n" +
+                    "  6  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+            ResultSet rs3 = methodWatcher.executeQuery("select col3 from parquet_part_3rd_2nd");
+            Assert.assertEquals("COL3 |\n" +
+                    "------\n" +
+                    " AAA |\n" +
+                    " BBB |\n" +
+                    " CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
+            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from parquet_part_3rd_2nd");
+            Assert.assertEquals("COL2 |COL3 |\n" +
+                    "------------\n" +
+                    "  2  | AAA |\n" +
+                    "  4  | BBB |\n" +
+                    "  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs4));
+        } catch (SQLException e) {
+            Assert.fail("An exception should not be thrown");
+        }
+    }
+
+    @Test @Ignore // SPLICE-1765
+    public void testAvroPartitionThirdSecond() throws Exception {
+        try {
+            String tablePath = getExternalResourceDirectory()+"/avro_partition_third_second";
+            methodWatcher.executeUpdate(String.format("create external table avro_part_3rd_2nd (col1 int, col2 int, col3 varchar(10)) " +
+                    "partitioned by (col3,col2) STORED AS AVRO LOCATION '%s'",tablePath));
+            methodWatcher.executeUpdate("insert into avro_part_3rd_2nd values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
+            ResultSet rs = methodWatcher.executeQuery("select * from avro_part_3rd_2nd");
+            Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
+                    "------------------\n" +
+                    "  1  |  2  | AAA |\n" +
+                    "  3  |  4  | BBB |\n" +
+                    "  5  |  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+            ResultSet rs1 = methodWatcher.executeQuery("select col1 from avro_part_3rd_2nd");
+            Assert.assertEquals("COL1 |\n" +
+                    "------\n" +
+                    "  1  |\n" +
+                    "  3  |\n" +
+                    "  5  |",TestUtils.FormattedResult.ResultFactory.toString(rs1));
+            ResultSet rs2 = methodWatcher.executeQuery("select col2 from avro_part_3rd_2nd");
+            Assert.assertEquals("COL2 |\n" +
+                    "------\n" +
+                    "  2  |\n" +
+                    "  4  |\n" +
+                    "  6  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+            ResultSet rs3 = methodWatcher.executeQuery("select col3 from avro_part_3rd_2nd");
+            Assert.assertEquals("COL3 |\n" +
+                    "------\n" +
+                    " AAA |\n" +
+                    " BBB |\n" +
+                    " CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
+            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from avro_part_3rd_2nd");
+            Assert.assertEquals("COL2 |COL3 |\n" +
+                    "------------\n" +
+                    "  2  | AAA |\n" +
+                    "  4  | BBB |\n" +
+                    "  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs4));
+        } catch (SQLException e) {
+            Assert.fail("An exception should not be thrown");
+        }
+    }
+
+    @Test
+    public void testOrcPartitionThirdSecond() throws Exception {
+        try {
+            String tablePath = getExternalResourceDirectory()+"/orc_partition_third_second";
+            methodWatcher.executeUpdate(String.format("create external table orc_part_3rd_2nd (col1 int, col2 int, col3 varchar(10)) " +
+                    "partitioned by (col3,col2) STORED AS ORC LOCATION '%s'",tablePath));
+            methodWatcher.executeUpdate("insert into orc_part_3rd_2nd values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
+            ResultSet rs = methodWatcher.executeQuery("select * from orc_part_3rd_2nd");
+            Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
+                    "------------------\n" +
+                    "  1  |  2  | AAA |\n" +
+                    "  3  |  4  | BBB |\n" +
+                    "  5  |  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+            ResultSet rs1 = methodWatcher.executeQuery("select col1 from orc_part_3rd_2nd");
+            Assert.assertEquals("COL1 |\n" +
+                    "------\n" +
+                    "  1  |\n" +
+                    "  3  |\n" +
+                    "  5  |",TestUtils.FormattedResult.ResultFactory.toString(rs1));
+            ResultSet rs2 = methodWatcher.executeQuery("select col2 from orc_part_3rd_2nd");
+            Assert.assertEquals("COL2 |\n" +
+                    "------\n" +
+                    "  2  |\n" +
+                    "  4  |\n" +
+                    "  6  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+            ResultSet rs3 = methodWatcher.executeQuery("select col3 from orc_part_3rd_2nd");
+            Assert.assertEquals("COL3 |\n" +
+                    "------\n" +
+                    " AAA |\n" +
+                    " BBB |\n" +
+                    " CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
+            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from orc_part_3rd_2nd");
+            Assert.assertEquals("COL2 |COL3 |\n" +
+                    "------------\n" +
+                    "  2  | AAA |\n" +
+                    "  4  | BBB |\n" +
+                    "  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs4));
+        } catch (SQLException e) {
+            Assert.fail("An exception should not be thrown");
+        }
+    }
+
+    @Test
+    public void testTextfilePartitionThirdSecond() throws Exception {
+        try {
+            String tablePath = getExternalResourceDirectory()+"/textfile_partition_third_second";
+            methodWatcher.executeUpdate(String.format("create external table textfile_part_3rd_2nd (col1 int, col2 int, col3 varchar(10)) " +
+                    "partitioned by (col3,col2) STORED AS TEXTFILE LOCATION '%s'",tablePath));
+            methodWatcher.executeUpdate("insert into textfile_part_3rd_2nd values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
+            ResultSet rs = methodWatcher.executeQuery("select * from textfile_part_3rd_2nd");
+            Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
+                    "------------------\n" +
+                    "  1  |  2  | AAA |\n" +
+                    "  3  |  4  | BBB |\n" +
+                    "  5  |  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+            ResultSet rs1 = methodWatcher.executeQuery("select col1 from textfile_part_3rd_2nd");
+            Assert.assertEquals("COL1 |\n" +
+                    "------\n" +
+                    "  1  |\n" +
+                    "  3  |\n" +
+                    "  5  |",TestUtils.FormattedResult.ResultFactory.toString(rs1));
+            ResultSet rs2 = methodWatcher.executeQuery("select col2 from textfile_part_3rd_2nd");
+            Assert.assertEquals("COL2 |\n" +
+                    "------\n" +
+                    "  2  |\n" +
+                    "  4  |\n" +
+                    "  6  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+            ResultSet rs3 = methodWatcher.executeQuery("select col3 from textfile_part_3rd_2nd");
+            Assert.assertEquals("COL3 |\n" +
+                    "------\n" +
+                    " AAA |\n" +
+                    " BBB |\n" +
+                    " CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
+            ResultSet rs4 = methodWatcher.executeQuery("select col2, col3 from textfile_part_3rd_2nd");
+            Assert.assertEquals("COL2 |COL3 |\n" +
+                    "------------\n" +
+                    "  2  | AAA |\n" +
+                    "  4  | BBB |\n" +
+                    "  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs4));
+        } catch (SQLException e) {
+            Assert.fail("An exception should not be thrown");
+        }
+    }
+
 
     public static String getExternalResourceDirectory() {
         return SpliceUnitTest.getHBaseDirectory()+"/target/external/";
