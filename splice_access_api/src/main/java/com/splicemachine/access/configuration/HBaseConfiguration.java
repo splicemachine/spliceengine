@@ -115,7 +115,7 @@ public class HBaseConfiguration implements ConfigurationDefault {
 
 
     public static final String REGION_LOAD_UPDATE_INTERVAL = "splice.statistics.regionLoadUpdateInterval";
-    public static final long DEFAULT_REGION_LOAD_UPDATE_INTERVAL = 5;
+    public static final long DEFAULT_REGION_LOAD_UPDATE_INTERVAL = 900;
 
     protected static final String REGION_MAX_FILE_SIZE = StorageConfiguration.REGION_MAX_FILE_SIZE;
     protected static final String TRANSACTION_LOCK_STRIPES = SIConfigurations.TRANSACTION_LOCK_STRIPES;
