@@ -2820,6 +2820,7 @@ TOKEN [IGNORE_CASE] :
 |	<DETERMINISTIC: "deterministic">
 |   <DYNAMIC: "dynamic">
 |   <EXTRACT: "extract">
+|   <EXCLUDE: "exclude">
 |	<FORTRAN: "fortran">
 |   <GENERATED: "generated">
 |	<IDENTITY_VAL_LOCAL: "identity_val_local">
@@ -2829,6 +2830,7 @@ TOKEN [IGNORE_CASE] :
 |   <INOUT: "inout">
 |	<INTERVAL: "interval">
 |	<INVOKER: "invoker">
+|   <KEYS: "keys">
 |	<LANGUAGE: "language">
 |	<LARGE: "large">
 |	<LENGTH: "length">
@@ -12074,6 +12076,8 @@ StatementNode
 indexDefinition() throws StandardException :
 {
 	Boolean		unique = Boolean.FALSE;
+	Boolean     excludeNulls = Boolean.FALSE;
+	Boolean     excludeDefaults = Boolean.FALSE;
 	Properties	properties = null;
 	TableName	indexName;
 	TableName	tableName;
@@ -12088,6 +12092,9 @@ indexDefinition() throws StandardException :
 		indexName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) <ON> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
 				<LEFT_PAREN> indexColumnList(indexColumnList) <RIGHT_PAREN>
 		[ properties = propertyList(false) <CHECK_PROPERTIES>]
+		[ <EXCLUDE> <NULL> <KEYS> { excludeNulls = false;} ]
+		[ <EXCLUDE> <_DEFAULT> <KEYS> { excludeDefaults = false;} ]
+
 	{
 		/* User allowed to specify schema name on table and index.
 		 * If no schema name specified for index, then it "inherits" 
@@ -12124,6 +12131,8 @@ indexDefinition() throws StandardException :
 								tableName,
 								indexColumnList,
 								properties,
+								excludeNulls,
+								excludeDefaults,
 								getContextManager());
 	}
 }
@@ -16503,6 +16512,7 @@ nonReservedKeyword()  :
 	|	tok = <EACH>
 	|	tok = <EMPTY>
 	|   tok = <ESTIMATE>
+	|	tok = <EXCLUDE>
 	|	tok = <EXCLUSIVE>
 	|	tok = <EXTRACT>
 	|	tok = <FIRSTVALUE>
@@ -16518,6 +16528,7 @@ nonReservedKeyword()  :
 // SQL92 says it is reserved, but we want it to be non-reserved.
 	|	tok = <INTERVAL>
 	|   tok = <JAVA>
+	|   tok = <KEYS>
 	|	tok = <LAG>
 	|	tok = <LANGUAGE>
 	|	tok = <LARGE>
