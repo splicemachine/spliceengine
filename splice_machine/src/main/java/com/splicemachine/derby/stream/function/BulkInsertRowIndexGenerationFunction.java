@@ -19,7 +19,6 @@ import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
@@ -35,8 +34,8 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.IntArrays;
 import org.apache.commons.collections.iterators.EmptyListIterator;
+import org.spark_project.guava.primitives.Ints;
 import scala.Tuple2;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -58,6 +57,8 @@ public class BulkInsertRowIndexGenerationFunction extends  RowAndIndexGenerator 
     protected SpliceSequence[] spliceSequences;
     protected PairEncoder encoder;
     protected byte[] destinationTable;
+    protected ExecRow[] indexRows;
+    protected int[][] sortedIndexRowColMap;
 
     public BulkInsertRowIndexGenerationFunction() {
 
@@ -127,8 +128,14 @@ public class BulkInsertRowIndexGenerationFunction extends  RowAndIndexGenerator 
             encoder = new PairEncoder(getKeyEncoder(), getRowHash(), dataType);
             int i = 0;
             indexTransformFunctions = new IndexTransformFunction[tentativeIndices.size()];
+            indexRows = new ExecRow[tentativeIndices.size()]; // Index Rows for reuse
+            sortedIndexRowColMap = new int[tentativeIndices.size()][];
             for (DDLMessage.TentativeIndex index: tentativeIndices) {
                 indexTransformFunctions[i] = new IndexTransformFunction(index);
+                indexRows[i] = new ValueRow(indexTransformFunctions[i].getIndexColsToMainColMapList().size());
+                List<Integer> sortedList = new ArrayList<>(indexTransformFunctions[i].getIndexColsToMainColMapList());
+                Collections.sort(sortedList);
+                sortedIndexRowColMap[i] = Ints.toArray(sortedList);
                 i++;
             }
             initialized = true;
@@ -139,7 +146,7 @@ public class BulkInsertRowIndexGenerationFunction extends  RowAndIndexGenerator 
             KVPair mainRow = encoder.encode(execRow);
             list.add(new Tuple2<>(heapConglom,new Tuple2<>(mainRow.getRowKey(), mainRow.getValue())));
             for (int i = 0; i< indexTransformFunctions.length; i++) {
-                ExecRow indexRow = getIndexRow(indexTransformFunctions[i], execRow);
+                ExecRow indexRow = getIndexRow(i, execRow);
                 indexRow.setKey(mainRow.rowKeySlice().array());
                 Long indexConglomerate = indexTransformFunctions[i].getIndexConglomerateId();
                 KVPair indexKVPair = indexTransformFunctions[i].call(indexRow);
@@ -159,18 +166,14 @@ public class BulkInsertRowIndexGenerationFunction extends  RowAndIndexGenerator 
     /**
      * Strip off all non-index columns from a main table row
      */
-    private ExecRow getIndexRow(IndexTransformFunction indexTransformFunction, ExecRow locatedRow) throws StandardException {
-        List<Integer> indexColToMainCol = indexTransformFunction.getIndexColsToMainColMapList();
-        List<Integer> sortedList = new ArrayList<>(indexColToMainCol);
-        Collections.sort(sortedList);
-        ExecRow row = new ValueRow(indexColToMainCol.size());
+    private ExecRow getIndexRow(int i, ExecRow locatedRow) throws StandardException {
         int col = 1;
-        for (Integer n : sortedList) {
-            row.setColumn(col, locatedRow.getColumn(n));
+        for (int j = 0; i< sortedIndexRowColMap[i].length;j++) {
+            indexRows[i].setColumn(col, locatedRow.getColumn(sortedIndexRowColMap[i][j]));
             col++;
         }
-	row.setKey(locatedRow.getKey());
-        return row;
+        indexRows[i].setKey(locatedRow.getKey());
+        return indexRows[i];
     }
 
 
