@@ -203,7 +203,7 @@ public class SqlProcedureColsIT extends SpliceUnitTest {
         }
     }
 
-    @Test
+    @Ignore
     public void testSYSIBMSQLTABLES() throws Exception {
         try(Statement s = conn.createStatement()){
             try(ResultSet rs=s.executeQuery("CALL SYSIBM.SQLTABLES(null,null,null,null,null)")){

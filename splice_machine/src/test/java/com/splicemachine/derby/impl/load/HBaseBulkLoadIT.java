@@ -352,7 +352,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
                 " where l_orderkey = o_orderkey and l_shipdate > date('1995-03-15') and o_orderdate > date('1995-03-15')","preds=[(L_SHIPDATE[2:2] > 1995-03-15)]",methodWatcher);
     }
 
-    @Test
+    @Ignore
     public void testComputeTableSplitKeys() throws Exception {
         if (notSupported)
             return;
@@ -389,7 +389,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
         Assert.assertEquals(expected, s);
     }
 
-    @Test
+    @Ignore
     public void testComputeIndexSplitKeys() throws Exception {
         if (notSupported)
             return;
