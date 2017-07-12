@@ -3122,7 +3122,7 @@ Guide.
 
             <msg>
                 <name>42ZD0</name>
-		<text>Surpassed limit of proces rows in control mode, plase resubmit as Spark query</text>
+		<text>Surpassed limit of buffered rows in control mode, please resubmit as Spark query</text>
             </msg>
 
             <msg>
