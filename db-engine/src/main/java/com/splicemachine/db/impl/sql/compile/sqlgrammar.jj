@@ -12092,8 +12092,8 @@ indexDefinition() throws StandardException :
 		indexName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) <ON> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
 				<LEFT_PAREN> indexColumnList(indexColumnList) <RIGHT_PAREN>
 		[ properties = propertyList(false) <CHECK_PROPERTIES>]
-		[ <EXCLUDE> <NULL> <KEYS> { excludeNulls = false;} ]
-		[ <EXCLUDE> <_DEFAULT> <KEYS> { excludeDefaults = false;} ]
+		[ <EXCLUDE> <NULL> <KEYS> { excludeNulls = true;} ]
+		[ <EXCLUDE> <_DEFAULT> <KEYS> { excludeDefaults = true;} ]
 
 	{
 		/* User allowed to specify schema name on table and index.

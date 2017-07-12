@@ -63,8 +63,8 @@ public class IndexConglomerate extends SpliceConglomerate{
     protected static final String PROPERTY_NKEYFIELDS="nKeyFields";
     protected static final String PROPERTY_NUNIQUECOLUMNS="nUniqueColumns";
     protected static final String PROPERTY_PARENTLINKS="maintainParentLinks";
-    protected static final String PROPERTY_EXCLUDENULLS="excludeNulls";
-    protected static final String PROPERTY_EXCLUDEDEFAULTS="excludeDefaults";
+    public static final String PROPERTY_EXCLUDENULLS="excludeNulls";
+    public static final String PROPERTY_EXCLUDEDEFAULTS="excludeDefaults";
 
     public long baseConglomerateId;
     protected int rowLocationColumn;

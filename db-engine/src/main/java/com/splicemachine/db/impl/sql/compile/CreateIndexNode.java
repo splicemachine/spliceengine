@@ -103,6 +103,11 @@ public class CreateIndexNode extends DDLStatementNode {
 		this.properties = (Properties) properties;
 		this.excludeNulls = (Boolean) excludeNulls;
 		this.excludeDefaults = (Boolean) excludeDefaults;
+		if (this.properties==null)
+			this.properties = new Properties();
+		this.properties.setProperty("excludeNulls",Boolean.toString(this.excludeNulls));
+		this.properties.setProperty("excludeDefaults",Boolean.toString(this.excludeDefaults));
+
 	}
 
 	/**
