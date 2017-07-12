@@ -109,7 +109,7 @@ public interface ExecRow extends Row, KeyableRow, org.apache.spark.sql.Row, Comp
 	 */
 	void getNewObjectArray();
 
-	StructType createStructType(int[] baseColumnMap);
+	StructType createStructType();
 
 	org.apache.spark.sql.Row getSparkRow();
 
