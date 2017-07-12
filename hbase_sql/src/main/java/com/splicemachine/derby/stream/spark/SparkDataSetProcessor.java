@@ -302,6 +302,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             Dataset<Row> table = null;
             try {
                 table = SpliceSpark.getSession().read().parquet(location);
+                // reorder schema if there was a partitioned column:
+                if (partitionColumnMap.length > 0) {
+                    reorderSchema(table.queryExecution().logical().schema().fields());
+                }
             } catch (Exception e) {
                 return handleExceptionInCaseOfEmptySet(e,location);
             }
@@ -334,6 +338,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 SparkSession spark = SpliceSpark.getSession();
                 // Creates a DataFrame from a specified file
                 table = spark.read().format("com.databricks.spark.avro").load(location);
+                // reorder schema if there was a partitioned column:
+                if (partitionColumnMap.length > 0) {
+                    reorderSchema(table.queryExecution().logical().schema().fields());
+                }
             } catch (Exception e) {
                 return handleExceptionInCaseOfEmptySet(e,location);
             }
@@ -667,6 +675,13 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         }
         return andCols;
     }
+
+    public void reorderSchema(StructField[] fixSchema){
+        Arrays.sort(fixSchema, (field1, field2) -> field1.name().compareTo(field2.name())
+        );
+
+    }
+
 
     @Override
     public void refreshTable(String location) {
