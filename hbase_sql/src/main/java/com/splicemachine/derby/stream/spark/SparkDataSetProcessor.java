@@ -677,17 +677,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
     public void reorderSchema(StructField[] fixSchema){
-        for (int i = 0; i < fixSchema.length; i++){
-            if (i != Integer.parseInt(fixSchema[i].name().substring(1))){
-                // this means the partitioned column is out of place, located at the end of the schema array
-                StructField partitionCol = fixSchema[fixSchema.length - 1];
-                for (int j = fixSchema.length - 1; j > i; j--){
-                    fixSchema[j] = fixSchema[j-1];
-                }
-                fixSchema[i] = partitionCol;
-                break;
-            }
-        }
+        Arrays.sort(fixSchema, (field1, field2) -> field1.name().compareTo(field2.name())
+        );
+
     }
 
 

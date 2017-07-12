@@ -446,7 +446,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         tc.prepareDataDictionaryChange(DDLDriver.driver().ddlController().notifyMetadataChange(change));
 
         // is this a external file ?
-        // if yest get the partitions, and sen a command to create a external empty file
+        // if yes get the partitions, and send a command to create an external empty file
         String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
         int[] partitionby = activation.getDDLTableDescriptor().getPartitionBy();
         String jobGroup = userId + " <" +txnId +">";
@@ -465,18 +465,8 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 
                     // reorder externalSchema if the partitioned column is out of place
                     if (partitionby.length > 0) {
-                        StructField[] fixSchema = externalSchema.fields();
-                        for (int i = 0; i < fixSchema.length; i++){
-                            if (i != Integer.parseInt(fixSchema[i].name().substring(1))){
-                                // the partitioned column is incorrectly located at the end of the schema array
-                                StructField partitionCol = fixSchema[fixSchema.length - 1];
-                                for (int j = fixSchema.length - 1; j > i; j--){
-                                    fixSchema[j] = fixSchema[j-1];
-                                }
-                                fixSchema[i] = partitionCol;
-                                break;
-                            }
-                        }
+                        Arrays.sort(externalSchema.fields(), (field1, field2) -> field1.name().compareTo(field2.name())
+                        );
                     }
 
                     // test types equivalence. Make sure that the type defined correspond
