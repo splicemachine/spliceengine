@@ -59,7 +59,8 @@ public class EngineDriver{
     }
 
     public static void shutdownDriver() {
-        driver().threadPool.shutdownNow();
+        if (INSTANCE != null)
+            INSTANCE.threadPool.shutdownNow();
         INSTANCE = null;
     }
 
@@ -95,7 +96,7 @@ public class EngineDriver{
 
         /* Create a general purpose thread pool */
         final AtomicLong count = new AtomicLong(0);
-        this.threadPool = new ThreadPoolExecutor(0, config.getThreadPoolMaxSize(),
+        this.threadPool = new ThreadPoolExecutor(20, config.getThreadPoolMaxSize(),
                 60L, TimeUnit.SECONDS,
                 new SynchronousQueue<>(),
                 (runnable) -> {
@@ -104,6 +105,8 @@ public class EngineDriver{
                     return t;
                 },
                 new ThreadPoolExecutor.CallerRunsPolicy());
+        ((ThreadPoolExecutor)threadPool).allowCoreThreadTimeOut(false);
+        ((ThreadPoolExecutor)threadPool).prestartAllCoreThreads();
     }
 
     public DatabaseAdministrator dbAdministrator(){

@@ -157,6 +157,24 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
         compressHeapCC.getInternalTablePropertySet(properties);
         compressHeapCC.close();
 
+            /*
+		    ** Inform the data dictionary that we are about to write to it.
+		    ** There are several calls to data dictionary "get" methods here
+		    ** that might be done in "read" mode in the data dictionary, but
+		    ** it seemed safer to do this whole operation in "write" mode.
+		    **
+		    ** We tell the data dictionary we're done writing at the end of
+		    ** the transaction.
+		     */
+        dd.startWriting(lcc);
+
+
+        // Invalidate cache
+        DDLMessage.DDLChange change = ProtoUtil.createTruncateTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) tableId);
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(change));
+
+
+
         //create new conglomerate
         newHeapConglom =
                 tc.createConglomerate(
@@ -171,16 +189,6 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
 		    /* Set up index info to perform truncate on them*/
         int numIndexes = getAffectedIndexes(td);
 
-		    /*
-		    ** Inform the data dictionary that we are about to write to it.
-		    ** There are several calls to data dictionary "get" methods here
-		    ** that might be done in "read" mode in the data dictionary, but
-		    ** it seemed safer to do this whole operation in "write" mode.
-		    **
-		    ** We tell the data dictionary we're done writing at the end of
-		    ** the transaction.
-		     */
-        dd.startWriting(lcc);
 
         // If the table has foreign key, drop the old foreign key write handler
         ConstraintDescriptorList constraintDescriptors = td.getConstraintDescriptorList();
@@ -210,9 +218,6 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
                 new FkJobSubmitter(dd, (SpliceTransactionManager) tc, referencedConstraint, conDesc, DDLChangeType.ADD_FOREIGN_KEY,lcc).submit();
             }
         }
-        // Invalidate cache
-        DDLMessage.DDLChange change = ProtoUtil.createTruncateTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) tableId);
-        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(change));
 
         // Update the DataDictionary
         // Get the ConglomerateDescriptor for the heap

@@ -27,6 +27,10 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.jdbc.authentication.BasicAuthenticationServiceImpl;
 import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.protobuf.ProtoUtil;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;
@@ -95,6 +99,10 @@ public class CreateRoleConstantOperation extends DDLConstantOperation {
                 newException(SQLState.LANG_OBJECT_ALREADY_EXISTS,
                              "User", roleName);
         }
+
+        DDLMessage.DDLChange change = ProtoUtil.createRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), roleName);
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(change));
+
 
         rdDef = ddg.newRoleGrantDescriptor(
             dd.getUUIDFactory().createUUID(),

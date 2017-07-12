@@ -14,8 +14,20 @@
 
 package com.splicemachine.hbase;
 
-import java.io.IOException;
-
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.concurrent.SystemClock;
+import com.splicemachine.derby.lifecycle.EngineLifecycleService;
+import com.splicemachine.lifecycle.DatabaseLifecycleManager;
+import com.splicemachine.lifecycle.MasterLifecycle;
+import com.splicemachine.olap.OlapServer;
+import com.splicemachine.pipeline.InitializationCompleted;
+import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.timestamp.api.TimestampBlockManager;
+import com.splicemachine.timestamp.hbase.ZkTimestampBlockManager;
+import com.splicemachine.timestamp.impl.TimestampServer;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -29,19 +41,7 @@ import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.access.HConfiguration;
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.concurrent.SystemClock;
-import com.splicemachine.derby.lifecycle.EngineLifecycleService;
-import com.splicemachine.lifecycle.DatabaseLifecycleManager;
-import com.splicemachine.lifecycle.MasterLifecycle;
-import com.splicemachine.olap.OlapServer;
-import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
-import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.timestamp.api.TimestampBlockManager;
-import com.splicemachine.timestamp.hbase.ZkTimestampBlockManager;
-import com.splicemachine.timestamp.impl.TimestampServer;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
 
 /**
  * Responsible for actions (create system tables, restore tables) that should only happen on one node.
@@ -113,7 +113,7 @@ public class SpliceMasterObserver extends BaseMasterObserver {
                 case BOOTING_SERVER:
                     throw new PleaseHoldException("Please Hold - Starting");
                 case RUNNING:
-                    throw new DoNotRetryIOException("Success");
+                    throw new InitializationCompleted("Success");
                 case STARTUP_FAILED:
                 case SHUTTING_DOWN:
                 case SHUTDOWN:

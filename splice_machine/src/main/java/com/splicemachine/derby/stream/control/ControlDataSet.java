@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.stream.control;
 
+
+import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -230,33 +232,13 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public DataSet<V> union(DataSet< V> dataSet) {
-        ThreadPoolExecutor tpe = null;
         try {
-
-        ThreadFactory factory=new ThreadFactoryBuilder()
-                .setNameFormat("union-begin-query-%d")
-                .setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler(){
-                    @Override
-                    public void uncaughtException(Thread t,Throwable e){
-                        e.printStackTrace();
-                    }
-                })
-                .build();
-        tpe=new ThreadPoolExecutor(2,2,
-                60, TimeUnit.SECONDS,new SynchronousQueue<Runnable>(),factory,
-                new ThreadPoolExecutor.CallerRunsPolicy());
-        tpe.allowCoreThreadTimeOut(false);
-        tpe.prestartAllCoreThreads();
-        Future<Iterator<V>> leftSideFuture = tpe.submit(new NonLazy(iterator));
-        Future<Iterator<V>> rightSideFuture = tpe.submit(new NonLazy(((ControlDataSet<V>) dataSet).iterator));
-
-        return new ControlDataSet<>(Iterators.concat(leftSideFuture.get(), rightSideFuture.get()));
+            ExecutorService es = EngineDriver.driver().getExecutorService();
+            Future<Iterator<V>> leftSideFuture = es.submit(new NonLazy(iterator));
+            Future<Iterator<V>> rightSideFuture = es.submit(new NonLazy(((ControlDataSet<V>) dataSet).iterator));
+            return new ControlDataSet<>(Iterators.concat(leftSideFuture.get(), rightSideFuture.get()));
         } catch (Exception e) {
             throw new RuntimeException(e);
-        }
-        finally {
-        if (tpe!=null)
-            tpe.shutdown();
         }
     }
 

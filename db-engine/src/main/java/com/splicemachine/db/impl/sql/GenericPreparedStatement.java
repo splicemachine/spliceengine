@@ -740,6 +740,7 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
             switch (action) {
                 case DependencyManager.INTERNAL_RECOMPILE_REQUEST:
                 case DependencyManager.DROP_TABLE:
+                case DependencyManager.TRUNCATE_TABLE:
                 case DependencyManager.ALTER_TABLE:
                 case DependencyManager.CHANGED_CURSOR: {
                 /*

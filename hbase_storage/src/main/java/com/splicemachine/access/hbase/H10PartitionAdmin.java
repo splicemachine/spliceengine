@@ -165,11 +165,12 @@ public class H10PartitionAdmin implements PartitionAdmin{
 
     @Override
     public Collection<PartitionServer> allServers() throws IOException{
-        Collection<ServerName> servers=admin.getClusterStatus().getServers();
+        ClusterStatus clusterStatus = admin.getClusterStatus();
+        Collection<ServerName> servers = clusterStatus.getServers();
         return Collections2.transform(servers,new Function<ServerName, PartitionServer>(){
             @Override
             public PartitionServer apply(ServerName input){
-                return new HServer(input,admin);
+                return new HServer(input, clusterStatus);
             }
         });
     }

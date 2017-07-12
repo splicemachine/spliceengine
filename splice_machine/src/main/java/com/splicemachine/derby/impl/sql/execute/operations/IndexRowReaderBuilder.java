@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.EngineDriver;
 import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.SameThreadExecutorService;
@@ -162,26 +163,6 @@ public class IndexRowReaderBuilder implements Externalizable{
         assert outputTemplate!=null:"No output template specified!";
         assert source!=null:"No source specified";
         assert indexCols!=null:"No index columns specified!";
-        ExecutorService lookupService;
-        if(numConcurrentLookups<0)
-            lookupService=SameThreadExecutorService.instance();
-        else{
-            ThreadFactory factory=new ThreadFactoryBuilder()
-                    .setNameFormat("index-lookup-%d")
-                    .setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler(){
-                        @Override
-                        public void uncaughtException(Thread t,Throwable e){
-                            e.printStackTrace();
-                        }
-                    })
-                    .build();
-            ThreadPoolExecutor tpe=new ThreadPoolExecutor(1,numConcurrentLookups,
-                    60,TimeUnit.SECONDS,new SynchronousQueue<Runnable>(),factory,
-                    new ThreadPoolExecutor.CallerRunsPolicy());
-            tpe.allowCoreThreadTimeOut(false);
-            tpe.prestartAllCoreThreads();
-            lookupService=tpe;
-        }
 
         BitSet rowFieldsToReturn=new BitSet(mainTableAccessedRowColumns.getNumBitsSet());
         for(int i=mainTableAccessedRowColumns.anySetBit();i>=0;i=mainTableAccessedRowColumns.anySetBit(i)){
@@ -209,7 +190,7 @@ public class IndexRowReaderBuilder implements Externalizable{
         SIDriver driver=SIDriver.driver();
         TxnOperationFactory txnOperationFactory =driver.getOperationFactory();
         PartitionFactory tableFactory = driver.getTableFactory();
-        return new IndexRowReader(lookupService,
+        return new IndexRowReader(
                 source,
                 outputTemplate,
                 txn,

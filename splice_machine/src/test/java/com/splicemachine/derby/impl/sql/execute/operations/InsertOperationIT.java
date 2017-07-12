@@ -171,32 +171,62 @@ public class InsertOperationIT {
     }
 
     //Fix does not support inserting int types into varchar fields
-    @Ignore
+    @Test
     public void testInsertIntsToChars() throws Exception{
-        classWatcher.executeUpdate("create table varcharTab(c1 int, c2 varchar(4))"); // varchar to put ints into
-        classWatcher.executeUpdate("create table charTab(c1 int, c2 char(4))");    // char to put ints into
+        classWatcher.executeUpdate("create table varcharTab(c1 int, c2 varchar(10))"); // varchar to put ints into
+        classWatcher.executeUpdate("create table charTab(c1 int, c2 char(10))");    // char to put ints into
 
         classWatcher.executeUpdate("create table smallintTab(col1 int, col2 smallint)"); // smallint
+        classWatcher.executeUpdate("insert into smallintTab values(1,123)");
+
         classWatcher.executeUpdate("create table intTab(col1 int, col2 int)");      // int
+        classWatcher.executeUpdate("insert into intTab values(1,1234)");
+
         classWatcher.executeUpdate("create table bigintTab(col1 int, col2 bigint)");   // bigint
+        classWatcher.executeUpdate("insert into bigintTab values(1,123123123)");
 
         //smallint to varchar
         classWatcher.executeUpdate("insert into varcharTab (c1, c2) select col1, col2 from smallintTab");
+        ResultSet r = classWatcher.executeQuery("select c2 from varcharTab");
+        r.next();
+        Assert.assertEquals(r.getString(1),"123");
+        classWatcher.executeUpdate("delete from varcharTab");
 
         //smallint to char
         classWatcher.executeUpdate("insert into charTab (c1, c2) select col1, col2 from smallintTab");
+        r = classWatcher.executeQuery("select c2 from charTab");
+        r.next();
+        Assert.assertEquals(r.getString(1),"123       ");
+        classWatcher.executeUpdate("delete from charTab");
 
         //int to varchar
         classWatcher.executeUpdate("insert into varcharTab (c1, c2) select col1, col2 from intTab");
+        r = classWatcher.executeQuery("select c2 from varcharTab");
+        r.next();
+        Assert.assertEquals(r.getString(1),"1234");
+        classWatcher.executeUpdate("delete from varcharTab");
 
         //int to char
         classWatcher.executeUpdate("insert into charTab (c1, c2) select col1, col2 from intTab");
+        r = classWatcher.executeQuery("select c2 from charTab");
+        r.next();
+        Assert.assertEquals(r.getString(1),"1234      ");
+        classWatcher.executeUpdate("delete from charTab");
 
         //bigint to varchar
         classWatcher.executeUpdate("insert into varcharTab (c1, c2) select col1, col2 from bigintTab");
+        r = classWatcher.executeQuery("select c2 from varcharTab");
+        r.next();
+        Assert.assertEquals(r.getString(1),"123123123");
+        classWatcher.executeUpdate("delete from varcharTab");
+
 
         //bigint to char
         classWatcher.executeUpdate("insert into charTab (c1, c2) select col1, col2 from bigintTab");
+        r = classWatcher.executeQuery("select c2 from charTab");
+        r.next();
+        Assert.assertEquals(r.getString(1),"123123123 ");
+        classWatcher.executeUpdate("delete from charTab");
     }
 
     @Test
