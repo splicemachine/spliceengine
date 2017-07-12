@@ -35,6 +35,7 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
     private boolean initialized;
     private DDLMessage.TentativeIndex tentativeIndex;
     private int[] projectedMapping;
+    private ExecRow indexRow;
 
     private transient IndexTransformer transformer;
 
@@ -57,19 +58,19 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
     @Override
     public KVPair call(ExecRow execRow) throws Exception {
         if (!initialized)
-            init();
+            init(execRow);
         ExecRow misMatchedRow = execRow;
-        ExecRow row = new ValueRow(misMatchedRow.nColumns());
         for (int i = 0; i<projectedMapping.length;i++) {
-              row.setColumn(i+1,misMatchedRow.getColumn(projectedMapping[i]+1));
+            indexRow.setColumn(i+1,misMatchedRow.getColumn(projectedMapping[i]+1));
         }
-        row.setKey(misMatchedRow.getKey());
-        return transformer.writeDirectIndex(row);
+        indexRow.setKey(misMatchedRow.getKey());
+        return transformer.writeDirectIndex(indexRow);
     }
 
-    private void init() {
+    private void init(ExecRow execRow) {
         transformer = new IndexTransformer(tentativeIndex);
         initialized = true;
+        indexRow = new ValueRow(execRow.nColumns());
     }
 
     @Override
