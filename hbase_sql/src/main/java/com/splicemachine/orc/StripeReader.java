@@ -416,8 +416,8 @@ public class StripeReader
         Set<Integer> includes = new LinkedHashSet<>();
 
         OrcType root = types.get(0);
-        for (int includedColumn : includedColumns) {
-            includeOrcColumnsRecursive(types, includes, root.getFieldTypeIndex(includedColumn));
+        for (int i = 0; i < root.getFieldCount(); i++) {
+            includeOrcColumnsRecursive(types, includes, root.getFieldTypeIndex(i));
         }
 
         return includes;

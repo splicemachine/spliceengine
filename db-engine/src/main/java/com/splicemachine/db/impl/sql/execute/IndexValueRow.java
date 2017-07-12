@@ -378,16 +378,8 @@ public class IndexValueRow implements ExecIndexRow, Serializable {
     }
 
 	@Override
-	public StructType createStructType() {
-		try {
-			StructField[] fields = new StructField[length()];
-			for (int i = 0; i < length(); i++) {
-				fields[i] = getColumn(i + 1).getStructField("" + i);
-			}
-			return DataTypes.createStructType(fields);
-		} catch (StandardException se) {
-			throw new RuntimeException(se);
-		}
+	public StructType createStructType(int[] baseColumnMap) {
+		return valueRow.createStructType(baseColumnMap);
 	}
 
 	@Override

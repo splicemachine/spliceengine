@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.sun.tools.javac.util.Assert;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -616,13 +617,20 @@ public class ValueRow implements ExecRow, Externalizable {
 	}
 
 	@Override
-	public StructType createStructType() {
+	public StructType createStructType(int[] baseColumnMap) {
 		StructField[] fields = new StructField[length()];
-		for (int i = 0; i < length(); i++) {
-			fields[i] = getColumn(i + 1).getStructField(getNamedColumn(i));
+		int j = 0;
+		for(int i = 0; i < baseColumnMap.length; i++){
+			if (baseColumnMap[i] != -1){
+				// put the selected columns, designated in baseColumnMap, in field
+				Assert.check(j < fields.length);
+				fields[j] = getColumn(j+1).getStructField(getNamedColumn(i));
+				j++;
+			}
 		}
 		return DataTypes.createStructType(fields);
 	}
+
 	@Override
 	public int compare(ExecRow o1, ExecRow o2) {
 		return o1.compareTo(o2);
