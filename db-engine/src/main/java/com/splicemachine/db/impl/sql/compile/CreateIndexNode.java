@@ -34,20 +34,15 @@ package com.splicemachine.db.impl.sql.compile;
 import java.util.Hashtable;
 import java.util.Properties;
 import java.util.Vector;
-
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
 /**
  * A CreateIndexNode is the root of a QueryTree that represents a CREATE INDEX
@@ -55,8 +50,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
  *
  */
 
-public class CreateIndexNode extends DDLStatementNode
-{
+public class CreateIndexNode extends DDLStatementNode {
 	boolean				unique;
 	boolean				uniqueWithDuplicateNulls;
 	DataDictionary		dd = null;
@@ -84,6 +78,8 @@ public class CreateIndexNode extends DDLStatementNode
 	 * @param columnNameList	A list of column names, in the order they
 	 *							appear in the index.
 	 * @param properties	The optional properties list associated with the index.
+	 * @param excludeNulls	Exclude Nulls from the index.
+	 * @param excludeDefaults	Exclude defaults from the index.
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
@@ -116,19 +112,18 @@ public class CreateIndexNode extends DDLStatementNode
 	 * @return	This object as a String
 	 */
 
-	public String toString()
-	{
-		if (SanityManager.DEBUG)
-		{
+	public String toString() {
+		if (SanityManager.DEBUG) {
 			return super.toString() +
 				"unique: " + unique + "\n" +
 				"indexType: " + indexType + "\n" +
 				"indexName: " + indexName + "\n" +
 				"tableName: " + tableName + "\n" +
-				"properties: " + properties + "\n";
+				"properties: " + properties + "\n + " +
+				"excludeNulls: " + excludeNulls + "\n" +
+				"excludeDefaults: " + excludeDefaults + "\n";
 		}
-		else
-		{
+		else {
 			return "";
 		}
 	}
@@ -162,39 +157,19 @@ public class CreateIndexNode extends DDLStatementNode
 	 * @exception StandardException		Thrown on error
 	 */
 
-	public void bindStatement() throws StandardException
-	{
-		CompilerContext			cc = getCompilerContext();
-		SchemaDescriptor		sd;
+	public void bindStatement() throws StandardException {
 		int						columnCount;
-
-		sd = getSchemaDescriptor();
-
 		td = getTableDescriptor(tableName);
-
-		//If total number of indexes on the table so far is more than 32767, then we need to throw an exception
-/*		if (td.getTotalNumberOfIndexes() > Limits.DB2_MAX_INDEXES_ON_TABLE)
-		{
-			throw StandardException.newException(SQLState.LANG_TOO_MANY_INDEXES_ON_TABLE,
-				String.valueOf(td.getTotalNumberOfIndexes()),
-				tableName,
-				String.valueOf(Limits.DB2_MAX_INDEXES_ON_TABLE));
-		}
-*/
 		/* Validate the column name list */
 		verifyAndGetUniqueNames();
-
 		columnCount = columnNames.length;
 		boundColumnIDs = new int[ columnCount ];
 
 		// Verify that the columns exist
-		for (int i = 0; i < columnCount; i++)
-		{
+		for (int i = 0; i < columnCount; i++) {
 			ColumnDescriptor			columnDescriptor;
-
 			columnDescriptor = td.getColumnDescriptor(columnNames[i]);
-			if (columnDescriptor == null)
-			{
+			if (columnDescriptor == null) {
 				throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND_IN_TABLE,
 															columnNames[i],
 															tableName);
@@ -206,30 +181,11 @@ public class CreateIndexNode extends DDLStatementNode
 
 			// Don't allow a column to be created on a non-orderable type
 			if ( ! columnDescriptor.getType().getTypeId().
-												orderable(getClassFactory()))
-			{
+												orderable(getClassFactory())) {
 				throw StandardException.newException(SQLState.LANG_COLUMN_NOT_ORDERABLE_DURING_EXECUTION,
 					columnDescriptor.getType().getTypeId().getSQLTypeName());
 			}
 		}
-
-		/* Check for number of key columns to be less than 16 to match DB2 */
-/*		if (columnCount > 16)
-			throw StandardException.newException(SQLState.LANG_TOO_MANY_INDEX_KEY_COLS);
-*/
-		/* See if the index already exists in this schema.
-		 * NOTE: We still need to check at execution time
-		 * since the index name is only unique to the schema,
-		 * not the table.
-		 */
-//  		if (dd.getConglomerateDescriptor(indexName.getTableName(), sd, false) != null)
-//  		{
-//  			throw StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
-//  												 "Index",
-//  												 indexName.getTableName(),
-//  												 "schema",
-//  												 sd.getSchemaName());
-//  		}
 
 		/* Statement is dependent on the TableDescriptor */
 		getCompilerContext().createDependency(td);
@@ -244,8 +200,7 @@ public class CreateIndexNode extends DDLStatementNode
 	 * @exception StandardException		Thrown on error
 	 */
 	public boolean referencesSessionSchema()
-		throws StandardException
-	{
+		throws StandardException {
 		//If create index is on a SESSION schema table, then return true.
 		return isSessionSchema(td.getSchemaName());
 	}
@@ -255,51 +210,8 @@ public class CreateIndexNode extends DDLStatementNode
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public ConstantAction	makeConstantAction() throws StandardException
-	{
+	public ConstantAction	makeConstantAction() throws StandardException {
 		SchemaDescriptor		sd = getSchemaDescriptor();
-
-		int columnCount = columnNames.length;
-		int approxLength = 0;
-		boolean index_has_long_column = false;
-
-
-		// bump the page size for the index,
-		// if the approximate sizes of the columns in the key are
-		// greater than the bump threshold.
-		// Ideally, we would want to have atleast 2 or 3 keys fit in one page
-		// With fix for beetle 5728, indexes on long types is not allowed
-		// so we do not have to consider key columns of long types
-        for (String columnName : columnNames) {
-            ColumnDescriptor columnDescriptor = td.getColumnDescriptor(columnName);
-            DataTypeDescriptor dts = columnDescriptor.getType();
-            approxLength += dts.getTypeId().getApproximateLengthInBytes(dts);
-        }
-
-
-        if (approxLength > Property.IDX_PAGE_SIZE_BUMP_THRESHOLD)
-        {
-
-            if (((properties == null) ||
-                 (properties.get(Property.PAGE_SIZE_PARAMETER) == null)) &&
-                (PropertyUtil.getServiceProperty(
-                     getLanguageConnectionContext().getTransactionCompile(),
-                     Property.PAGE_SIZE_PARAMETER) == null))
-            {
-                // do not override the user's choice of page size, whether it
-                // is set for the whole database or just set on this statement.
-
-                if (properties == null)
-                    properties = new Properties();
-
-                properties.put(
-                    Property.PAGE_SIZE_PARAMETER,
-                    Property.PAGE_SIZE_DEFAULT_LONG);
-
-            }
-        }
-
-
 		return getGenericConstantActionFactory().getCreateIndexConstantAction(
                     false, // not for CREATE TABLE
                     unique,
@@ -323,21 +235,18 @@ public class CreateIndexNode extends DDLStatementNode
 	 *											duplicate name.
 	 */
 	private void verifyAndGetUniqueNames()
-				throws StandardException
-	{
+				throws StandardException {
 		int size = columnNameList.size();
 		Hashtable	ht = new Hashtable(size + 2, (float) .999);
 		columnNames = new String[size];
 		isAscending = new boolean[size];
 
-		for (int index = 0; index < size; index++)
-		{
+		for (int index = 0; index < size; index++) {
 			/* Verify that this column's name is unique within the list
 			 * Having a space at the end meaning descending on the column
 			 */
 			columnNames[index] = (String) columnNameList.get(index);
-			if (columnNames[index].endsWith(" "))
-			{
+			if (columnNames[index].endsWith(" ")) {
 				columnNames[index] = columnNames[index].substring(0, columnNames[index].length() - 1);
 				isAscending[index] = false;
 			}
@@ -347,8 +256,7 @@ public class CreateIndexNode extends DDLStatementNode
 			Object object = ht.put(columnNames[index], columnNames[index]);
 
 			if (object != null &&
-				((String) object).equals(columnNames[index]))
-			{
+				((String) object).equals(columnNames[index])) {
 				throw StandardException.newException(SQLState.LANG_DUPLICATE_COLUMN_NAME_CREATE_INDEX, columnNames[index]);
 			}
 		}
