@@ -889,45 +889,6 @@ public class SpliceTransactionManager implements XATransactionController,
         return (sm);
     }
 
-    /**
-     * Purge all committed deleted rows from the conglomerate.
-     * <p>
-     * This call will purge committed deleted rows from the conglomerate, that
-     * space will be available for future inserts into the conglomerate.
-     * <p>
-     *
-     * @param conglomId
-     *            Id of the conglomerate to purge.
-     *
-     * @exception StandardException
-     *                Standard exception policy.
-     **/
-    public void purgeConglomerate(long conglomId) throws StandardException {
-        if (LOG.isTraceEnabled())
-            LOG.trace("purgeConglomerate conglomId " + conglomId);
-        findExistingConglomerate(conglomId).purgeConglomerate(this, rawtran);
-    }
-
-    /**
-     * Return free space from the conglomerate back to the OS.
-     * <p>
-     * Returns free space from the conglomerate back to the OS. Currently only
-     * the sequential free pages at the "end" of the conglomerate can be
-     * returned to the OS.
-     * <p>
-     *
-     * @param conglomId
-     *            Id of the conglomerate to purge.
-     *
-     * @exception StandardException
-     *                Standard exception policy.
-     **/
-    public void compressConglomerate(long conglomId) throws StandardException {
-        if (LOG.isTraceEnabled())
-            LOG.trace("compressConglomerate conglomId " + conglomId);
-        findExistingConglomerate(conglomId).compressConglomerate(this, rawtran);
-    }
-
     public ScanController openScan(long conglomId, boolean hold, int open_mode,
                                    int lock_level, int isolation_level,
                                    FormatableBitSet scanColumnList,

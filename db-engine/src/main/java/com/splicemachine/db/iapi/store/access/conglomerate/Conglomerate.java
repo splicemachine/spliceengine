@@ -283,14 +283,5 @@ public interface Conglomerate extends Storable, DataValueDescriptor
             DynamicCompiledOpenConglomInfo  dynamic_info)
             throws StandardException;
 
-    void purgeConglomerate(
-            TransactionManager              xact_manager,
-            Transaction                     rawtran)
-            throws StandardException;
-
-    void compressConglomerate(
-            TransactionManager              xact_manager,
-            Transaction                     rawtran)
-            throws StandardException;
 
 }
