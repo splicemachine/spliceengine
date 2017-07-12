@@ -17,6 +17,7 @@ package com.splicemachine.access.hbase;
 import com.splicemachine.storage.HServerLoad;
 import com.splicemachine.storage.PartitionServer;
 import com.splicemachine.storage.PartitionServerLoad;
+import org.apache.hadoop.hbase.ClusterStatus;
 import org.apache.hadoop.hbase.ServerLoad;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.Admin;
@@ -29,11 +30,11 @@ import java.io.IOException;
  */
 public class HServer implements PartitionServer{
     private final ServerName serverName;
-    private final Admin admin;
+    private final ClusterStatus clusterStatus;
 
-    public HServer(ServerName serverName,Admin admin){
-        this.serverName=serverName;
-        this.admin=admin;
+    public HServer(ServerName serverName, ClusterStatus clusterStatus) {
+        this.serverName = serverName;
+        this.clusterStatus = clusterStatus;
     }
 
     @Override
@@ -53,7 +54,7 @@ public class HServer implements PartitionServer{
 
     @Override
     public PartitionServerLoad getLoad() throws IOException{
-        ServerLoad load=admin.getClusterStatus().getLoad(serverName);
+        ServerLoad load = clusterStatus.getLoad(serverName);
         return new HServerLoad(load);
     }
 
