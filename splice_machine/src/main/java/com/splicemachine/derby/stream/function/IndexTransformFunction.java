@@ -38,7 +38,6 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
     private DDLMessage.TentativeIndex tentativeIndex;
     private int[] projectedMapping;
     private ExecRow indexRow;
-    private boolean excludeNulls;
 
     private transient IndexTransformer transformer;
 
@@ -48,7 +47,6 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
 
     public IndexTransformFunction(DDLMessage.TentativeIndex tentativeIndex) {
         this.tentativeIndex = tentativeIndex;
-        this.excludeNulls = tentativeIndex.getIndex().getExcludeNulls();
         List<Integer> actualList = tentativeIndex.getIndex().getIndexColsToMainColMapList();
         List<Integer> sortedList = new ArrayList<>(actualList);
         Collections.sort(sortedList);
@@ -65,11 +63,6 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
             init(execRow);
         ExecRow misMatchedRow = execRow;
         for (int i = 0; i<projectedMapping.length;i++) {
-            if (    excludeNulls &&
-                    i==0 &&
-                    (misMatchedRow.getColumn(projectedMapping[i]+1) ==null
-                    || misMatchedRow.getColumn(projectedMapping[i]+1).isNull()) )
-                return null;
             indexRow.setColumn(i+1,misMatchedRow.getColumn(projectedMapping[i]+1));
         }
         indexRow.setKey(misMatchedRow.getKey());

@@ -3639,4 +3639,20 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 return true;
         return false;
     }
+    public boolean canSupportExcludedColumns(ConglomerateDescriptor cd) throws StandardException {
+        int size = size();
+        if (size == 0)
+            return false;
+        boolean canSupportExcludedColumns = false;
+        for(int index=0;index<size;index++){
+            Predicate pred=elementAt(index);
+            if(pred.isOrList()){
+                return false;
+            }else {
+                canSupportExcludedColumns = true;
+            }
+        }
+        return canSupportExcludedColumns;
+    }
+
 }

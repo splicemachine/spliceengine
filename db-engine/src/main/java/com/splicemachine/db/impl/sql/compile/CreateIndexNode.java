@@ -230,6 +230,8 @@ public class CreateIndexNode extends DDLStatementNode {
                     isAscending,
                     false,
                     null,
+				excludeNulls,
+				excludeDefaults,
                     properties);
 	}
 

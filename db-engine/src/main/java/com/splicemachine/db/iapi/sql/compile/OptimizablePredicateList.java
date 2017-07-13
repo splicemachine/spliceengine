@@ -331,4 +331,15 @@ public interface OptimizablePredicateList {
 	void adjustForSortElimination(RequiredRowOrdering ordering) throws StandardException;
 
     boolean isRowIdScan();
+
+	/**
+	 *
+	 * Evaluates whether the index conglomerate can be scanned by there predicates.
+	 *
+	 * @param cd
+	 * @return
+	 * @throws StandardException
+     */
+	boolean canSupportExcludedColumns(ConglomerateDescriptor cd) throws StandardException;
+
 }

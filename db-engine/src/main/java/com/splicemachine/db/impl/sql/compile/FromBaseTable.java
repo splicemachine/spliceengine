@@ -425,9 +425,11 @@ public class FromBaseTable extends FromTable {
                 }
             }
         }
-
+        if (currentConglomerateDescriptor !=null && currentConglomerateDescriptor.isIndex() && currentConglomerateDescriptor.getIndexDescriptor().excludeNulls()
+                && !predList.canSupportExcludedColumns(currentConglomerateDescriptor)) {
+                currentConglomerateDescriptor = null; // Null out this conglomerate descriptor
+        }
         ap.setConglomerateDescriptor(currentConglomerateDescriptor);
-
         return currentConglomerateDescriptor!=null;
     }
 

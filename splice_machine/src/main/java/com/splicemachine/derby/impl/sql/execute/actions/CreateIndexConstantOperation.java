@@ -159,6 +159,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
     private UUID			conglomerateUUID;
     private Properties		properties;
     private ExecRow indexTemplateRow;
+    private boolean excludeNulls;
+    private boolean excludeDefaults;
 
     /** Conglomerate number for the conglomerate created by this
      * constant action; -1L if this constant action has not been
@@ -225,6 +227,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             boolean[]		isAscending,
             boolean			isConstraint,
             UUID			conglomerateUUID,
+            boolean 		excludeNulls,
+            boolean			excludeDefaults,
             Properties		properties) {
         super(tableId, indexName, tableName, schemaName);
         SpliceLogUtils.trace(LOG, "CreateIndexConstantOperation for table %s.%s with index named %s for columns %s",schemaName,tableName,indexName,Arrays.toString(columnNames));
@@ -239,6 +243,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         this.properties                 = properties;
         this.conglomId                  = -1L;
         this.droppedConglomNum          = -1L;
+        this.excludeDefaults            = excludeDefaults;
+        this.excludeNulls               = excludeNulls;
     }
 
     /**
@@ -285,6 +291,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         this.conglomerateUUID = srcCD.getUUID();
         this.properties = properties;
         this.conglomId = -1L;
+        this.excludeNulls = irg.excludeNulls();
+        this.excludeDefaults = irg.excludeDefaults();
 
 		/* The ConglomerateDescriptor may not know the names of
 		 * the columns it includes.  If that's true (which seems
@@ -468,7 +476,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                                     indexType, unique, uniqueWithDuplicateNulls,
                                     baseColumnPositions,
                                     isAscending,
-                                    baseColumnPositions.length);
+                                    baseColumnPositions.length,excludeNulls,excludeDefaults);
 
                     //DERBY-655 and DERBY-1343
                     // Sharing indexes will have unique logical conglomerate UUIDs.
@@ -691,7 +699,9 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                     uniqueWithDuplicateNulls,
                     baseColumnPositions,
                     isAscending,
-                    baseColumnPositions.length);
+                    baseColumnPositions.length,
+                    excludeNulls,
+                    excludeDefaults);
         }
         return existingGenerator;
     }

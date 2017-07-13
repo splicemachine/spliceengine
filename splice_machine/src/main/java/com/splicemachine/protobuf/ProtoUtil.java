@@ -242,7 +242,9 @@ public class ProtoUtil {
         Index.Builder builder=Index.newBuilder()
                 .setConglomerate(conglomerate)
                 .setUniqueWithDuplicateNulls(indexDescriptor.isUniqueWithDuplicateNulls())
-                .setUnique(indexDescriptor.isUnique());
+                .setUnique(indexDescriptor.isUnique())
+                .setExcludeDefaults(indexDescriptor.excludeDefaults())
+                .setExcludeNulls(indexDescriptor.excludeNulls());
         for(int i=0;i<ascColumns.length;i++){
             builder = builder.addDescColumns(!ascColumns[i]);
         }

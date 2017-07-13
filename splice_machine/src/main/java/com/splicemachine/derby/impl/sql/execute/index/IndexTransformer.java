@@ -79,6 +79,7 @@ public class IndexTransformer {
     private byte[] indexConglomBytes;
     private int[] indexFormatIds;
     private DescriptorSerializer[] serializers;
+    private boolean excludeNulls;
 
 
     private transient DataGet baseGet = null;
@@ -88,6 +89,7 @@ public class IndexTransformer {
         index = tentativeIndex.getIndex();
         table = tentativeIndex.getTable();
         checkArgument(!index.getUniqueWithDuplicateNulls() || index.getUniqueWithDuplicateNulls(), "isUniqueWithDuplicateNulls only for use with unique indexes");
+        excludeNulls = index.getExcludeNulls();
         this.typeProvider = VersionedSerializers.typesForVersion(table.getTableVersion());
         List<Integer> indexColsList = index.getIndexColsToMainColMapList();
         indexedCols = DDLUtils.getIndexedCols(Ints.toArray(indexColsList));
@@ -162,6 +164,8 @@ public class IndexTransformer {
         boolean hasNullKeyFields = false;
         for (int i = 0; i< execRow.nColumns();i++) {
             if (execRow.getColumn(i+1) == null || execRow.getColumn(i+1).isNull()) {
+                if (i == 0 && excludeNulls) // Pass along null for exclusion...
+                    return null;
                 hasNullKeyFields = true;
                 accumulateNull(keyAccumulator,
                     i,
@@ -314,6 +318,9 @@ public class IndexTransformer {
                 keyAccumulator.add(indexColumnPosition, new byte[]{}, 0, 0);
             }
         }
+
+        if (hasNullKeyFields)
+            return null;
 
         //add the row key to the end of the index key
         byte[] srcRowKey = Encoding.encodeBytesUnsorted(mutation.getRowKey());
