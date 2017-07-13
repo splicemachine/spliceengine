@@ -78,22 +78,6 @@ public final class PropertyInfo
 		return	PropertyInfo.getConglomerateProperties( schemaName, tableName, false );
 	}
 
-    /**
-     * Get the Properties associated with a given index.
-     *
-	 * @param schemaName    The name of the schema that the index is in.
-	 * @param indexName     The name of the index.
-	 * 
-	 * @return Properties   The Properties associated with the specified index.
-     *                      (An empty Properties is returned if the index does not exist.)
-     * @exception SQLException on error
-     */
-    public static Properties getIndexProperties(String schemaName, String indexName)
-        throws SQLException
-	{
-		return	PropertyInfo.getConglomerateProperties( schemaName, indexName, true );
-	}
-
 	/**
 		Set or delete the value of a property of the database on the current connection.
 
