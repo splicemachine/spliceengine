@@ -120,6 +120,26 @@
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka_2.11</artifactId>  <!-- MZ: TBD - parameterize property -->
+            <version>0.9.0-kafka-2.0.2</version> <!-- MZ: TBD - parameterize property -->
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId> <!-- MZ: TBD - parameterize property -->
+            <version>0.9.0-kafka-2.0.2</version> <!-- MZ: TBD - parameterize property -->
+        </dependency>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>splice_si_api</artifactId>
+            <version>2.6.0.1722-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>splice_machine</artifactId>
+            <version>2.6.0.1722-SNAPSHOT</version>
+        </dependency>
     </dependencies>
     <build>
         <!-- Enable build variable substitution ("filtering") for files in resource directory. -->
@@ -261,6 +281,34 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <plugin>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <version>3.2.0</version>
+                <configuration>
+                    <charset>${project.build.sourceEncoding}</charset>
+                    <scalaVersion>${scala.version}</scalaVersion>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>scala-compile-first</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>scala-test-compile</id>
+                        <phase>process-test-resources</phase>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
         </plugins>
     </build>
 </project>
