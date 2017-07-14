@@ -118,7 +118,7 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
      *
      * @return
      */
-    DataSet<V> distinct(OperationContext context);
+    DataSet<V> distinct();
 
     /**
      *
@@ -199,11 +199,11 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
 
     <Op extends SpliceOperation> DataSet<V> filter(SplicePredicateFunction<Op,V> f, boolean isLast, boolean pushScope, String scopeDetail);
 
-    DataSet<V> intersect(DataSet<V> dataSet, OperationContext context);
+    DataSet<V> intersect(DataSet<V> dataSet);
 
     DataSet<V> intersect(DataSet<V> dataSet, String name, OperationContext context, boolean pushScope, String scopeDetail);
 
-    DataSet<V> subtract(DataSet<V> dataSet, OperationContext context);
+    DataSet<V> subtract(DataSet<V> dataSet);
 
     DataSet<V> subtract(DataSet<V> dataSet, String name, OperationContext context, boolean pushScope, String scopeDetail);
 

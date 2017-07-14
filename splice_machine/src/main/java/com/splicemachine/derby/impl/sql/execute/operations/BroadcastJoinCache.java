@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.db.iapi.sql.conn.ResubmitDistributedException;
 import org.spark_project.guava.cache.Cache;
 import org.spark_project.guava.cache.CacheBuilder;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -26,6 +25,7 @@ import com.splicemachine.stream.Stream;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -43,7 +43,7 @@ public class BroadcastJoinCache{
         JoinTable.Factory load(Callable<Stream<ExecRow>> streamLoader,
                                int[] innerHashKeys,
                                int[] outerHashKeys,
-                               ExecRow outerTemplateRow) throws Exception;
+                               ExecRow outerTemplateRow) throws ExecutionException;
     }
 
     public BroadcastJoinCache(){
@@ -69,12 +69,10 @@ public class BroadcastJoinCache{
             ReferenceCountingFactory joinTable=cache.get(operationId,callable);
             joinTable.refCount.incrementAndGet();
             return joinTable;
-        }catch(Exception e){
+        }catch(ExecutionException e){
             Throwable c = e.getCause();
             if(c instanceof StandardException)
                 throw (StandardException)c;
-            else if (c instanceof ResubmitDistributedException)
-                throw (ResubmitDistributedException)c;
             else if(c instanceof IOException)
                 throw (IOException)c;
             else throw Exceptions.getIOException(c);
@@ -105,7 +103,7 @@ public class BroadcastJoinCache{
         }
 
         @Override
-        public ReferenceCountingFactory call() throws Exception {
+        public ReferenceCountingFactory call() throws Exception{
             JoinTable.Factory load=loader.load(streamLoader,innerHashKeys,outerHashKeys,outerTemplateRow);
             return new ReferenceCountingFactory(load,operationId);
         }

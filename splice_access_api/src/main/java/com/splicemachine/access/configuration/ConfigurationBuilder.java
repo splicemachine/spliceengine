@@ -142,7 +142,6 @@ public class ConfigurationBuilder {
     public int olapClientRetries;
     public double bulkImportSampleFraction;
     public int bulkImportTasksPerRegion;
-    public long controlExecutionRowLimit;
 
     /**
      * Build the {@link SConfiguration} given the list of subsystem defaults and the configuration source.<br/>

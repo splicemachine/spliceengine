@@ -14,8 +14,6 @@
 
 package com.splicemachine.derby.stream.control;
 
-import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiter;
-import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.collect.*;
 import scala.Tuple2;
@@ -48,36 +46,5 @@ public class ControlUtils {
             newMap.put(t._1(), t._2());
         }
         return newMap;
-    }
-
-    public static <E> Iterator<E> limit(Iterator<E> delegate, OperationContext context) {
-        if (context == null) {
-            // no context, iterator is unlimited
-            return delegate;
-        }
-        ControlExecutionLimiter limiter = context.getActivation().getLanguageConnectionContext().getControlExecutionLimiter();
-        return new LimitedIterator<E>(delegate, limiter);
-    }
-
-
-    private static class LimitedIterator<E> implements Iterator<E> {
-        private final Iterator<E> delegate;
-        private final ControlExecutionLimiter limiter;
-
-        public LimitedIterator(Iterator<E> delegate, ControlExecutionLimiter limiter) {
-            this.delegate = delegate;
-            this.limiter = limiter;
-        }
-
-        @Override
-        public boolean hasNext() {
-            return delegate.hasNext();
-        }
-
-        @Override
-        public E next() {
-            limiter.addAccumulatedRows(1);
-            return delegate.next();
-        }
     }
 }

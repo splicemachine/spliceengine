@@ -14,76 +14,50 @@
 
 package com.splicemachine.derby.stream.control;
 
-
 import com.splicemachine.EngineDriver;
-import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiter;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
-import com.splicemachine.derby.stream.control.output.ControlExportDataSetWriter;
-import com.splicemachine.derby.stream.function.KeyerFunction;
-import com.splicemachine.derby.stream.function.MergeWindowFunction;
-import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
-import com.splicemachine.derby.stream.function.SpliceFunction;
-import com.splicemachine.derby.stream.function.SpliceFunction2;
-import com.splicemachine.derby.stream.function.SplicePairFunction;
-import com.splicemachine.derby.stream.function.SplicePredicateFunction;
-import com.splicemachine.derby.stream.function.TakeFunction;
-import com.splicemachine.derby.stream.iapi.DataSet;
-import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.iapi.PairDataSet;
-import com.splicemachine.derby.stream.output.BulkDeleteDataSetWriterBuilder;
-import com.splicemachine.derby.stream.output.BulkInsertDataSetWriterBuilder;
-import com.splicemachine.derby.stream.output.DataSetWriter;
-import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
-import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
-import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
-import com.splicemachine.derby.stream.output.UpdateDataSetWriterBuilder;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.derby.stream.output.*;
 import com.splicemachine.derby.stream.output.delete.DeletePipelineWriter;
 import com.splicemachine.derby.stream.output.delete.DeleteTableWriterBuilder;
+import com.splicemachine.derby.stream.output.direct.DirectDataSetWriter;
+import com.splicemachine.derby.stream.output.direct.DirectPipelineWriter;
+import com.splicemachine.derby.stream.output.direct.DirectTableWriterBuilder;
 import com.splicemachine.derby.stream.output.insert.InsertPipelineWriter;
 import com.splicemachine.derby.stream.output.insert.InsertTableWriterBuilder;
 import com.splicemachine.derby.stream.output.update.UpdatePipelineWriter;
 import com.splicemachine.derby.stream.output.update.UpdateTableWriterBuilder;
-import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.impl.driver.SIDriver;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import com.splicemachine.kvpair.KVPair;
 import org.apache.commons.collections.IteratorUtils;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.base.Predicate;
-import org.spark_project.guava.collect.Iterators;
-import org.spark_project.guava.collect.Multimaps;
-import org.spark_project.guava.collect.Sets;
-import org.spark_project.guava.io.Closeables;
+import org.spark_project.guava.collect.*;
 import org.spark_project.guava.util.concurrent.Futures;
+import com.splicemachine.access.api.DistributedFileSystem;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.stream.control.output.ControlExportDataSetWriter;
+import com.splicemachine.derby.stream.function.*;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.impl.driver.SIDriver;
+import org.spark_project.guava.io.Closeables;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
 import scala.Tuple2;
-
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.OutputStream;
 import java.nio.file.StandardOpenOption;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
+import java.util.concurrent.*;
 
 import static com.splicemachine.derby.stream.control.ControlUtils.entryToTuple;
-import static com.splicemachine.derby.stream.control.ControlUtils.limit;
 
 /**
  *
@@ -119,7 +93,7 @@ public class ControlDataSet<V> implements DataSet<V> {
         try {
             return new ControlDataSet<>(f.call(iterator));
         } catch (Exception e) {
-            throw Exceptions.getRuntimeException(e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -133,31 +107,14 @@ public class ControlDataSet<V> implements DataSet<V> {
         return mapPartitions(f);
     }
 
-    public static <E> HashSet<E> newHashSet(Iterator<? extends E> elements, OperationContext context) {
-        ControlExecutionLimiter limiter;
-        if (context == null) {
-            limiter = ControlExecutionLimiter.NO_OP;
-        } else {
-            limiter = context.getActivation().getLanguageConnectionContext().getControlExecutionLimiter();
-        }
-        HashSet set = Sets.newHashSet();
-
-        while(elements.hasNext()) {
-            if (set.add(elements.next()))
-                limiter.addAccumulatedRows(1);
-        }
-
-        return set;
-    }
-
     @Override
-    public DataSet<V> distinct(OperationContext context) {
-        return new ControlDataSet<>(newHashSet(iterator, context).iterator());
+    public DataSet<V> distinct() {
+        return new ControlDataSet<>(Sets.<V>newHashSet(iterator).iterator());
     }
 
     @Override
     public DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
-        return distinct(context);
+        return distinct();
     }
 
     public <Op extends SpliceOperation, K,U>PairDataSet<K, U> index(final SplicePairFunction<Op,V,K,U> function) {
@@ -206,7 +163,7 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation, K> PairDataSet<K, V> keyBy(final SpliceFunction<Op, V, K> function) {
-        return new ControlPairDataSet<>(entryToTuple(Multimaps.index(limit(iterator, function.operationContext),function).entries()));
+        return new ControlPairDataSet<>(entryToTuple(Multimaps.index(iterator,function).entries()));
     }
 
     @Override
@@ -260,13 +217,13 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public DataSet<V> intersect(DataSet<V> dataSet, String name, OperationContext context, boolean pushScope, String scopeDetail){
-        return intersect(dataSet, context);
+        return intersect(dataSet);
     }
 
     @Override
-    public DataSet< V> intersect(DataSet<V> dataSet, OperationContext context) {
-        Set<V> left=newHashSet(iterator, context);
-        Set<V> right=newHashSet(((ControlDataSet<V>)dataSet).iterator, context);
+    public DataSet< V> intersect(DataSet< V> dataSet) {
+        Set<V> left=Sets.newHashSet(iterator);
+        Set<V> right=Sets.newHashSet(((ControlDataSet<V>)dataSet).iterator);
         Sets.SetView<V> intersection=Sets.intersection(left,right);
         return new ControlDataSet<>(intersection.iterator());
     }
@@ -274,14 +231,14 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public DataSet<V> subtract(DataSet<V> dataSet, String name, OperationContext context, boolean pushScope, String scopeDetail){
-        return subtract(dataSet, context);
+        return subtract(dataSet);
     }
 
 
     @Override
-    public DataSet< V> subtract(DataSet<V> dataSet, OperationContext context) {
-        Set<V> left=newHashSet(iterator, context);
-        Set<V> right=newHashSet(((ControlDataSet<V>)dataSet).iterator, context);
+    public DataSet< V> subtract(DataSet< V> dataSet) {
+        Set<V> left=Sets.newHashSet(iterator);
+        Set<V> right=Sets.newHashSet(((ControlDataSet<V>)dataSet).iterator);
         return new ControlDataSet<>(Sets.difference(left,right).iterator());
     }
 
@@ -444,7 +401,7 @@ public class ControlDataSet<V> implements DataSet<V> {
         operationContext.popScope();
 
         operationContext.pushScopeForOp(OperationContext.Scope.GROUP_AGGREGATE_KEYER);
-        pair = pair.groupByKey("Group Values For Each Key", operationContext);
+        pair = pair.groupByKey("Group Values For Each Key");
         operationContext.popScope();
 
         operationContext.pushScopeForOp(OperationContext.Scope.EXECUTE);

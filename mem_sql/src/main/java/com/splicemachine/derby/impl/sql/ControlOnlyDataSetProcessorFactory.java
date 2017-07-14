@@ -16,7 +16,6 @@ package com.splicemachine.derby.impl.sql;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiter;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -99,11 +98,6 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
                 // no-op
             }
         };
-    }
-
-    @Override
-    public ControlExecutionLimiter getControlExecutionLimiter() {
-        return ControlExecutionLimiter.NO_OP;
     }
 
     private static class DistributedWrapper extends ForwardingDataSetProcessor implements DistributedDataSetProcessor{

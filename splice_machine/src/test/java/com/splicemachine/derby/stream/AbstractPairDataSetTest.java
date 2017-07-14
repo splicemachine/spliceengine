@@ -23,6 +23,7 @@ import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction2;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
+import org.apache.spark.api.java.Optional;
 import org.junit.Assert;
 import org.junit.Test;
 import scala.Tuple2;
@@ -88,7 +89,7 @@ public abstract class AbstractPairDataSetTest extends BaseStreamTest {
     public void testCogroup() throws StandardException {
         PairDataSet<ExecRow, ExecRow> set1 = getTenRows();
         PairDataSet<ExecRow, ExecRow> set2 = getTenRows();
-        PairDataSet<ExecRow, Tuple2<Iterable<ExecRow>, Iterable<ExecRow>>> returnValues = set1.cogroup(set2, null);
+        PairDataSet<ExecRow, Tuple2<Iterable<ExecRow>, Iterable<ExecRow>>> returnValues = set1.cogroup(set2);
         Iterator<Tuple2<Iterable<ExecRow>, Iterable<ExecRow>>> it = returnValues.values().toLocalIterator();
         int i = 0;
         while (it.hasNext()) {
@@ -132,7 +133,7 @@ public abstract class AbstractPairDataSetTest extends BaseStreamTest {
     @Test
     public void testSortByKey() throws StandardException {
         PairDataSet<ExecRow, ExecRow> set1 = getTenRows();
-        Iterator<ExecRow> rowIT = set1.sortByKey(new RowComparator(), null).keys().toLocalIterator();
+        Iterator<ExecRow> rowIT = set1.sortByKey(new RowComparator()).keys().toLocalIterator();
         int i = 0;
         while (rowIT.hasNext()) {
             if (i < 5)
@@ -144,10 +145,27 @@ public abstract class AbstractPairDataSetTest extends BaseStreamTest {
     }
 
     @Test
+    public void testHashLeftOuterJoin() throws StandardException {
+        PairDataSet<ExecRow, ExecRow> set1 = getTenRows();
+        PairDataSet<ExecRow, ExecRow> set2 = getEvenRows();
+        Iterator<Tuple2<ExecRow,Optional<ExecRow>>> it = set1.hashLeftOuterJoin(set2).values().toLocalIterator();
+        int i =0;
+        while (it.hasNext()) {
+            Tuple2<ExecRow,Optional<ExecRow>> tuple = it.next();
+            if (tuple._1.getColumn(1).getInt()%2==0)
+                Assert.assertTrue("Join Issue", tuple._2.isPresent());
+            else
+                Assert.assertTrue("Join Issue", !tuple._2.isPresent());
+            i++;
+        }
+        Assert.assertEquals("Incorrect Number of Rows", 30, i);
+    }
+
+    @Test
     public void testHashJoin() throws StandardException {
         PairDataSet<ExecRow, ExecRow> set1 = getTenRows();
         PairDataSet<ExecRow, ExecRow> set2 = getEvenRows();
-        Iterator<Tuple2<ExecRow,ExecRow>> it = set1.hashJoin(set2, null).values().toLocalIterator();
+        Iterator<Tuple2<ExecRow,ExecRow>> it = set1.hashJoin(set2).values().toLocalIterator();
         int i =0;
         while (it.hasNext()) {
             Tuple2<ExecRow,ExecRow> tuple = it.next();
@@ -166,7 +184,7 @@ public abstract class AbstractPairDataSetTest extends BaseStreamTest {
     public void testSubtractByKey() throws StandardException {
         PairDataSet<ExecRow, ExecRow> set1 = getTenRows();
         PairDataSet<ExecRow, ExecRow> set2 = getEvenRows();
-        Iterator<ExecRow> it = set1.subtractByKey(set2, null).values().toLocalIterator();
+        Iterator<ExecRow> it = set1.subtractByKey(set2).values().toLocalIterator();
         int i =0;
         while (it.hasNext()) {
             ExecRow row = it.next();
@@ -195,7 +213,7 @@ public abstract class AbstractPairDataSetTest extends BaseStreamTest {
     public void testBroadcastCogroup() throws StandardException {
         PairDataSet<ExecRow, ExecRow> set1 = getTenRows();
         PairDataSet<ExecRow, ExecRow> set2 = getTenRows();
-        PairDataSet<ExecRow, Tuple2<Iterable<ExecRow>, Iterable<ExecRow>>> returnValues = set1.cogroup(set2, null);
+        PairDataSet<ExecRow, Tuple2<Iterable<ExecRow>, Iterable<ExecRow>>> returnValues = set1.cogroup(set2);
         Iterator<Tuple2<Iterable<ExecRow>, Iterable<ExecRow>>> it = returnValues.values().toLocalIterator();
         int i = 0;
         while (it.hasNext()) {

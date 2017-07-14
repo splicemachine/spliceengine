@@ -218,7 +218,7 @@ public class SortOperation extends SpliceBaseOperation{
 
         //operationContext.pushScopeForOp(OperationContext.Scope.SHUFFLE);
         PairDataSet sortedByKey=pair.sortByKey(new RowComparator(descColumns,nullsOrderedLow),
-            OperationContext.Scope.SORT.displayName(), operationContext);
+            OperationContext.Scope.SORT.displayName());
         //operationContext.popScope();
 
         //operationContext.pushScopeForOp(OperationContext.Scope.READ_SORTED);

@@ -14,28 +14,24 @@
 
 package com.splicemachine.derby.stream.function.broadcast;
 
+import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
+import com.splicemachine.derby.stream.function.InnerJoinNullFilterFunction;
+import org.spark_project.guava.base.Function;
+import org.spark_project.guava.collect.FluentIterable;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiter;
-import com.splicemachine.db.iapi.sql.conn.ResubmitDistributedException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.impl.sql.JoinTable;
 import com.splicemachine.derby.impl.sql.execute.operations.BroadcastJoinCache;
-import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
-import com.splicemachine.derby.stream.function.InnerJoinNullFilterFunction;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.Streams;
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.collect.FluentIterable;
-
 import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 /**
@@ -57,16 +53,7 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
     @Override
     public final Iterator<Out> call(Iterator<In> locatedRows) throws Exception {
         init();
-        JoinTable table;
-        try {
-            table = joinTable.get();
-        } catch (ExecutionException ee) {
-            Throwable c = ee.getCause();
-            if (c instanceof ResubmitDistributedException) {
-                throw (ResubmitDistributedException) c;
-            }
-            throw ee;
-        }
+        JoinTable table = joinTable.get();
         Iterator<Out> it = call(locatedRows, table).iterator();
         return new Iterator<Out>() {
             @Override
@@ -94,7 +81,6 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
         init = true;
         joinTable = EngineDriver.driver().getExecutorService().submit(() -> {
             operation = getOperation();
-            ControlExecutionLimiter limiter = operation.getActivation().getLanguageConnectionContext().getControlExecutionLimiter();
             Callable<Stream<ExecRow>> rhsLoader = () -> {
                 DataSetProcessorFactory dataSetProcessorFactory=EngineDriver.driver().processorFactory();
                 final DataSetProcessor dsp =dataSetProcessorFactory.bulkProcessor(getActivation(),operation.getRightOperation());
@@ -109,7 +95,6 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
                     @Override
                     public ExecRow apply(@Nullable ExecRow locatedRow) {
                         assert locatedRow!=null;
-                        limiter.addAccumulatedRows(1);
                         operationContext.recordJoinedRight();
                         return locatedRow;
                     }
