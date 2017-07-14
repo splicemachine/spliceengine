@@ -15,6 +15,7 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiter;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
@@ -70,4 +71,6 @@ public interface DataSetProcessorFactory{
     DistributedDataSetProcessor distributedProcessor();
 
     RemoteQueryClient getRemoteQueryClient(SpliceBaseOperation operation);
+
+    ControlExecutionLimiter getControlExecutionLimiter();
 }
