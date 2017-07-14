@@ -183,7 +183,7 @@ public class CallStatementOperationIT extends SpliceUnitTest {
             Assert.assertTrue("incorrect count returned!",count>0);
     }
 
-    @Test
+    @Ignore
     public void testGetTables() throws Exception {
            Statement s = methodWatcher.getStatement();
            ResultSet rs = s.executeQuery("SELECT " +

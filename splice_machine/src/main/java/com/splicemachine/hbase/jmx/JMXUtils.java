@@ -25,6 +25,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import com.splicemachine.db.impl.sql.catalog.ManagedCacheMBean;
+import com.splicemachine.hbase.JMXThreadPool;
 import org.spark_project.guava.collect.Lists;
 
 import com.splicemachine.EngineDriver;
@@ -45,6 +47,8 @@ public class JMXUtils {
     public static final String MONITORED_THREAD_POOL = "com.splicemachine.writer.async:type=ThreadPoolStatus";
 	public static final String STATEMENT_MANAGEMENT_BASE = "com.splicemachine.statement:type=StatementManagement";
     public static final String ACTIVE_WRITE_HANDLERS = "com.splicemachine.derby.hbase:type=ActiveWriteHandlers";
+    public static final String EXECUTOR_SERVICE =  "com.splicemachine.derby.lifecycle:type=ExecutorService";
+    public static final String MANAGED_CACHE =  "com.splicemachine.db.impl.sql.catalog:type=";
     public static final String SPLICEMACHINE_VERSION = "com.splicemachine.version:type=DatabaseVersion";
     public static final String TIMESTAMP_MASTER_MANAGEMENT = "com.splicemachine.si.client.timestamp.generator:type=TimestampMasterManagement";
     public static final String TIMESTAMP_REGION_MANAGEMENT = "com.splicemachine.si.client.timestamp.request:type=TimestampRegionManagement";
@@ -90,6 +94,22 @@ public class JMXUtils {
         }
         return activeWrites;
     }
+    public static List<JMXThreadPool> getExecutorService(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
+        List<JMXThreadPool> jmxThreadList =new ArrayList<>();
+        for (Pair<String,JMXConnector> mbsc: mbscArray) {
+            jmxThreadList.add(getNewMBeanProxy(mbsc.getSecond(),EXECUTOR_SERVICE, JMXThreadPool.class));
+        }
+        return jmxThreadList;
+    }
+    public static List<ManagedCacheMBean> getManagedCache(List<Pair<String,JMXConnector>> mbscArray, String [] mc) throws MalformedObjectNameException, IOException {
+	    int i = 0;
+        List<ManagedCacheMBean> managedCache =new ArrayList<>();
+        for (Pair<String,JMXConnector> mbsc: mbscArray) {
+            managedCache.add(getNewMBeanProxy(mbsc.getSecond(),MANAGED_CACHE+mc[i], ManagedCacheMBean.class));
+            i++;
+        }
+        return managedCache;
+    }
 
     public static List<DatabaseVersion> getSpliceMachineVersion(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
         List<DatabaseVersion> versions =new ArrayList<>();
@@ -99,7 +119,7 @@ public class JMXUtils {
         return versions;
     }
 
-	public static List<Pair<String,StatementManagement>> getStatementManagers(List<Pair<String, JMXConnector>> connections) throws IOException, MalformedObjectNameException {
+	public static List<Pair<String,StatementManagement>> getStatementManagers(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException {
 		List<Pair<String,StatementManagement>> managers = Lists.newArrayListWithCapacity(connections.size());
 		for(Pair<String,JMXConnector> connectorPair:connections){
 				managers.add(Pair.newPair(connectorPair.getFirst(),getNewMXBeanProxy(connectorPair.getSecond(),STATEMENT_MANAGEMENT_BASE,StatementManagement.class)));

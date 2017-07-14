@@ -238,6 +238,26 @@ public class SpliceAdminIT extends SpliceUnitTest{
     }
 
     @Test
+    public void testGetExecInfo() throws Exception {
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_EXEC_SERVICE_INFO()");
+        ResultSet rs = cs.executeQuery();
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_EXEC_SERVICE_INFO()", rs);
+        System.out.println(fr.toString());
+        Assert.assertTrue(fr.size()>=1);
+        DbUtils.closeQuietly(rs);
+    }
+
+    @Test
+    public void testGetCacheInfo() throws Exception {
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_CACHE_INFO()");
+        ResultSet rs = cs.executeQuery();
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_CACHE_INFO()", rs);
+        System.out.println(fr.toString());
+        Assert.assertTrue(fr.size()>=1);
+        DbUtils.closeQuietly(rs);
+    }
+
+    @Test
     public void testGetRequests() throws Exception {
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_REQUESTS()");
         ResultSet rs = cs.executeQuery();
