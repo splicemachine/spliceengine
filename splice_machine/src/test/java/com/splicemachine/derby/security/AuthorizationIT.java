@@ -34,15 +34,15 @@ public class AuthorizationIT {
 
     private static final String SCHEMA = AuthorizationIT.class.getSimpleName().toUpperCase();
 
-    protected static final String USER1 = "john";
+    protected static final String USER1 = "ait_john";
     protected static final String PASSWORD1 = "jleach";
     protected static final String ROLE1 = "super_user";
 
-    protected static final String USER2 = "jim";
+    protected static final String USER2 = "ait_jim";
     protected static final String PASSWORD2 = "bo";
     protected static final String ROLE2 = "read_only";
 
-    protected static final String USER3 = "suzy";
+    protected static final String USER3 = "ait_suzy";
     protected static final String PASSWORD3 = "X)X)X";
     protected static final String ROLE3 = "app_user";
 
