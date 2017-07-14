@@ -22,6 +22,7 @@ import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import org.apache.log4j.Logger;
 import scala.concurrent.duration.FiniteDuration;
 
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -37,7 +38,8 @@ public class OlapJobStatus implements OlapStatus{
     private final long tickTime;
 
     private volatile AtomicReference<OlapStatus.State> currentState = new AtomicReference<>(State.NOT_SUBMITTED);
-    private volatile OlapResult results;
+    private ArrayBlockingQueue<OlapResult> results;
+    private volatile OlapResult cachedResult;
 
     public OlapJobStatus(long tickTime,int numTicks){
         //TODO -sf- remove the constants
@@ -48,6 +50,7 @@ public class OlapJobStatus implements OlapStatus{
         failureDetector = new PhiAccrualFailureDetector(10,128,stdDev,maxHeartbeatInterval,firstTick,
                 FailureDetector$.MODULE$.defaultClock());
         this.tickTime = tickTime;
+        this.results = new ArrayBlockingQueue<>(1);
     }
 
     public State checkState(){
@@ -55,7 +58,7 @@ public class OlapJobStatus implements OlapStatus{
         return currentState.get();
     }
 
-    public OlapResult getResult(){
+    public OlapResult getResult() {
         State curState = currentState();
         switch(curState){
             case NOT_SUBMITTED:
@@ -64,8 +67,18 @@ public class OlapJobStatus implements OlapStatus{
             case RUNNING:
                 return new ProgressResult();
             default:
-                return results;
+                return cacheResult();
         }
+    }
+
+    private OlapResult cacheResult() {
+        assert currentState.get() == State.COMPLETE;
+        if (cachedResult != null) {
+            return cachedResult;
+        }
+        cachedResult = results.poll();
+        assert cachedResult != null;
+        return cachedResult;
     }
 
     public void cancel(){
@@ -81,7 +94,7 @@ public class OlapJobStatus implements OlapStatus{
             }
             shouldContinue = !currentState.compareAndSet(currState,State.CANCELED);
         }while(shouldContinue);
-        results = new CancelledResult();
+        results.offer(new CancelledResult());
     }
 
     public boolean isAvailable(){
@@ -115,12 +128,12 @@ public class OlapJobStatus implements OlapStatus{
                 case FAILED:
                     return;
                 case COMPLETE: //we've marked it complete twice
-                    assert results == result: "Programmer error: marked complete twice with two different results";
+                    assert results.peek() == result: "Programmer error: marked complete twice with two different results";
                     return;
             }
             shouldContinue = !currentState.compareAndSet(currState,State.COMPLETE);
         }while(shouldContinue);
-        results = result;
+        results.offer(result);
     }
 
     public boolean markRunning(){
@@ -145,6 +158,15 @@ public class OlapJobStatus implements OlapStatus{
          * Returns true if the job is still considered to be running (i.e. the client is still checking in regularly)
          */
         return currentState()==State.RUNNING;
+    }
+
+    @Override
+    public boolean wait(long time, TimeUnit unit) throws InterruptedException {
+        OlapResult result = results.poll(time, unit);
+        if (result != null) {
+            cachedResult = result;
+        }
+        return cachedResult != null;
     }
 
     /*package-private methods*/
@@ -172,7 +194,7 @@ public class OlapJobStatus implements OlapStatus{
              * or not.
              */
             if(!failureDetector.isAvailable()){
-                results=new FailedOlapResult(new TimeoutException("Client timed out response, assuming it died"));
+                results.offer(new FailedOlapResult(new TimeoutException("Client timed out response, assuming it died")));
                 currentState.compareAndSet(curState,State.FAILED); //all other states don't have to be marked failed
                 curState=State.FAILED;
             }

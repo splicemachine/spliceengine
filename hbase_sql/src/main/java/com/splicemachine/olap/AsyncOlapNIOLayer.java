@@ -164,6 +164,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         private volatile int notFound;
         private volatile Throwable cause=null;
         private volatile long tickTimeNanos=TimeUnit.MILLISECONDS.toNanos(1000L);
+        private volatile long waitTimeMillis = 1000;
         private ScheduledFuture<?> keepAlive;
         private final ByteString data;
 
@@ -370,11 +371,15 @@ public class AsyncOlapNIOLayer implements JobExecutor{
                 LOG.trace("Status check job " + olapFuture.job.getUniqueName());
             }
 
-            OlapMessage.Status status=OlapMessage.Status.newBuilder().build();
+            OlapMessage.Status.Builder status=OlapMessage.Status.newBuilder();
+            if (olapFuture.waitTimeMillis > 0) {
+                status.setWaitTimeMillis(olapFuture.waitTimeMillis);
+                olapFuture.waitTimeMillis = 0;
+            }
             OlapMessage.Command cmd=OlapMessage.Command.newBuilder()
                     .setUniqueName(olapFuture.job.getUniqueName())
                     .setType(OlapMessage.Command.Type.STATUS)
-                    .setExtension(OlapMessage.Status.command,status).build();
+                    .setExtension(OlapMessage.Status.command,status.build()).build();
             ChannelFuture writeFuture=c.writeAndFlush(cmd);
             writeFuture.addListener(new GenericFutureListener<Future<Void>>(){
                 @Override
