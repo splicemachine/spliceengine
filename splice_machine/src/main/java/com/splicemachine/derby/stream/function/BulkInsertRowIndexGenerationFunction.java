@@ -168,7 +168,7 @@ public class BulkInsertRowIndexGenerationFunction extends  RowAndIndexGenerator 
      */
     private ExecRow getIndexRow(int i, ExecRow locatedRow) throws StandardException {
         int col = 1;
-        for (int j = 0; i< sortedIndexRowColMap[i].length;j++) {
+        for (int j = 0; j< sortedIndexRowColMap[i].length;j++) {
             indexRows[i].setColumn(col, locatedRow.getColumn(sortedIndexRowColMap[i][j]));
             col++;
         }
