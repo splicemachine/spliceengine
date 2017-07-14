@@ -127,7 +127,7 @@ public class EngineDriver extends BaseAdminProcedures{
 
         /* Create a general purpose thread pool */
         final AtomicLong count = new AtomicLong(0);
-        this.threadPool = new ManagedThreadPool(new ThreadPoolExecutor(0, config.getThreadPoolMaxSize(),
+        ThreadPoolExecutor tpe = new ThreadPoolExecutor(0, config.getThreadPoolMaxSize(),
                 60L, TimeUnit.SECONDS,
                 new SynchronousQueue<>(),
                 (runnable) -> {
@@ -136,8 +136,9 @@ public class EngineDriver extends BaseAdminProcedures{
                     return t;
                 },
                 new ThreadPoolExecutor.CallerRunsPolicy()));
-        ((ThreadPoolExecutor)threadPool).allowCoreThreadTimeOut(false);
-        ((ThreadPoolExecutor)threadPool).prestartAllCoreThreads();
+        tpe.allowCoreThreadTimeOut(false);
+        tpe.prestartAllCoreThreads();
+        this.threadPool = new ManagedThreadPool(tpe);
     }
 
     public DatabaseAdministrator dbAdministrator(){
