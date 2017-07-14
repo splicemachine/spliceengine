@@ -38,6 +38,7 @@ import com.splicemachine.db.impl.jdbc.EmbedResultSet;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.catalog.ManagedCacheMBean;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
@@ -281,10 +282,7 @@ public class EngineDriver extends BaseAdminProcedures{
         operate(new BaseAdminProcedures.JMXServerOperation() {
             @Override
             public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
-                String [] managedCaches = new String [] { "oidTdCache", "nameTdCache", "spsNameCache", "sequenceGeneratorCache", "sequenceGeneratorCache", "permissionsCache",
-                "partitionStatisticsCache", "storedPreparedStatementCache", "statementCache", "schemaCache", "aliasDescriptorCache", "roleCache"};
-
-                List<ManagedCacheMBean> executorService = JMXUtils.getManagedCache(connections, managedCaches);
+                List<ManagedCacheMBean> executorService = JMXUtils.getManagedCache(connections, DataDictionaryCache.cacheNames);
                 ExecRow template = buildExecRow(MANAGED_CACHE_COLUMNS);
                 List<ExecRow> rows = Lists.newArrayListWithExpectedSize(executorService.size());
                 int i=0;

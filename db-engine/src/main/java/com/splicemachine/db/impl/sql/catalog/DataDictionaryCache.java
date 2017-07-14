@@ -82,6 +82,8 @@ public class DataDictionaryCache {
     private int stmtCacheSize;
     private int permissionsCacheSize;
     private DataDictionary dd;
+    public static String [] cacheNames = new String[] {"oidTdCache", "nameTdCache", "spsNameCache", "sequenceGeneratorCache", "permissionsCache", "partitionStatisticsCache",
+            "storedPreparedStatementCache", "conglomerateCache", "statementCache", "schemaCache", "aliasDescriptorCache", "roleCache"};
 
 
     public DataDictionaryCache(Properties startParams,DataDictionary dd) throws StandardException {
@@ -429,14 +431,12 @@ public class DataDictionaryCache {
 
     public void registerJMX(MBeanServer mbs) throws Exception{
         try{
-            Pair[] mc = new Pair[]{ new Pair("oidTdCache",oidTdCache), new Pair("nameTdCache",nameTdCache),
-                    new Pair("spsNameCache",spsNameCache), new Pair("sequenceGeneratorCache",sequenceGeneratorCache), new Pair("permissionsCache", permissionsCache),
-                    new Pair("partitionStatisticsCache", partitionStatisticsCache), new Pair("storedPreparedStatementCache", storedPreparedStatementCache),
-                    new Pair("conglomerateCache", conglomerateCache), new Pair("statementCache", statementCache),
-                    new Pair("schemaCache", schemaCache), new Pair("aliasDescriptorCache", aliasDescriptorCache), new Pair("roleCache", roleCache) };
-            for(Pair m : mc){
-                ObjectName cacheName = new ObjectName("com.splicemachine.db.impl.sql.catalog:type="+m.getFirst());
-                mbs.registerMBean(m.getSecond(),cacheName);
+            ManagedCache [] mc = new ManagedCache[] {oidTdCache, nameTdCache, spsNameCache, sequenceGeneratorCache, permissionsCache, partitionStatisticsCache, storedPreparedStatementCache,
+                    conglomerateCache, statementCache, schemaCache, aliasDescriptorCache, roleCache};
+            //Passing in objects from mc array and names of objects from cacheNames array (static above)
+            for(int i = 0; i < mc.length; i++){
+                ObjectName cacheName = new ObjectName("com.splicemachine.db.impl.sql.catalog:type="+cacheNames[i]);
+                mbs.registerMBean(mc[i],cacheName);
             }
         }catch(InstanceAlreadyExistsException ignored){
             /*
