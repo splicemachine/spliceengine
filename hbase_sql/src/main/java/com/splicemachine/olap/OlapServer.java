@@ -18,13 +18,18 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.utils.SpliceLogUtils;
+import io.netty.bootstrap.ChannelFactory;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelInboundHandler;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.apache.log4j.Logger;
-import org.jboss.netty.bootstrap.ServerBootstrap;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFactory;
-import org.jboss.netty.channel.ChannelHandler;
-import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -35,40 +40,48 @@ public class OlapServer {
 
     private int port;
     private Clock clock;
-    private ChannelFactory factory;
     private Channel channel;
+    private EventLoopGroup bossGroup;
+    private EventLoopGroup workerGroup;
 
     public OlapServer(int port,Clock clock) {
         this.port = port;
         this.clock=clock;
     }
 
-    public void startServer(SConfiguration config) {
+    public void startServer(SConfiguration config) throws IOException {
 
         ScheduledExecutorService executor = Executors.newScheduledThreadPool(15, new ThreadFactoryBuilder().setNameFormat("OlapServer-%d").setDaemon(true).build());
-        this.factory = new NioServerSocketChannelFactory(executor, 2, executor, 10);
 
         SpliceLogUtils.info(LOG, "Olap Server starting (binding to port %s)...", port);
 
-        ServerBootstrap bootstrap = new ServerBootstrap(factory);
+        ServerBootstrap bootstrap = new ServerBootstrap();
 
         // Instantiate handler once and share it
         OlapJobRegistry registry = new MappedJobRegistry(config.getOlapClientTickTime(),
                 config.getOlapServerTickLimit(),
                 TimeUnit.MILLISECONDS);
-        ChannelHandler submitHandler = new OlapRequestHandler(config,
+        ChannelInboundHandler submitHandler = new OlapRequestHandler(config,
                 registry,clock,config.getOlapClientTickTime());
-        ChannelHandler statusHandler = new OlapStatusHandler(registry);
-        ChannelHandler cancelHandler = new OlapCancelHandler(registry);
+        ChannelInboundHandler statusHandler = new OlapStatusHandler(registry);
+        ChannelInboundHandler cancelHandler = new OlapCancelHandler(registry);
 
-        bootstrap.setPipelineFactory(new OlapPipelineFactory(submitHandler,cancelHandler,statusHandler));
-        bootstrap.setOption("tcpNoDelay", false);
-        bootstrap.setOption("child.tcpNoDelay", false);
-        bootstrap.setOption("child.keepAlive", true);
-        bootstrap.setOption("child.reuseAddress", true);
+        bossGroup = new NioEventLoopGroup(2, new ThreadFactoryBuilder().setNameFormat("OlapServer-boss-%d").setDaemon(true).build());
+        workerGroup = new NioEventLoopGroup(15, new ThreadFactoryBuilder().setNameFormat("OlapServer-%d").setDaemon(true).build());
+        bootstrap.group(bossGroup, workerGroup);
+        bootstrap.channel(NioServerSocketChannel.class);
+        bootstrap.childHandler(new OlapPipelineFactory(submitHandler,cancelHandler,statusHandler));
+        bootstrap.option(ChannelOption.TCP_NODELAY, false);
+        bootstrap.childOption(ChannelOption.TCP_NODELAY, false);
+        bootstrap.childOption(ChannelOption.SO_KEEPALIVE, true);
+        bootstrap.childOption(ChannelOption.SO_REUSEADDR, true);
 
-        this.channel = bootstrap.bind(new InetSocketAddress(getPortNumber()));
-        ((InetSocketAddress)channel.getLocalAddress()).getPort();
+        try {
+            this.channel = bootstrap.bind(new InetSocketAddress(getPortNumber())).sync().channel();
+        } catch (InterruptedException e) {
+            throw new IOException(e);
+        }
+        ((InetSocketAddress)channel.localAddress()).getPort();
 
         SpliceLogUtils.info(LOG, "Olap Server started.");
 
@@ -79,19 +92,20 @@ public class OlapServer {
     }
 
     int getBoundPort() {
-        return ((InetSocketAddress) channel.getLocalAddress()).getPort();
+        return ((InetSocketAddress) channel.localAddress()).getPort();
     }
 
     String getBoundHost() {
-        return ((InetSocketAddress) channel.getLocalAddress()).getHostName();
+        return ((InetSocketAddress) channel.localAddress()).getHostName();
     }
 
     void stopServer() {
         try {
-            this.channel.close().await(5000);
+            this.channel.close();
         } catch (Exception e) {
             LOG.error("unexpected exception during stop server", e);
         }
-        this.factory.shutdown();
+        workerGroup.shutdownGracefully();
+        bossGroup.shutdownGracefully();
     }
 }
