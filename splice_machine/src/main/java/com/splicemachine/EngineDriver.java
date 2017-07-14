@@ -135,7 +135,7 @@ public class EngineDriver extends BaseAdminProcedures{
                     t.setDaemon(true);
                     return t;
                 },
-                new ThreadPoolExecutor.CallerRunsPolicy()));
+                new ThreadPoolExecutor.CallerRunsPolicy());
         tpe.allowCoreThreadTimeOut(false);
         tpe.prestartAllCoreThreads();
         this.threadPool = new ManagedThreadPool(tpe);
