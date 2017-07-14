@@ -20,7 +20,6 @@ message Status{
     extend Command{
         required Status command = 100;
     }
-    optional int64 waitTimeMillis = 10;
 }
 
 message Cancel{

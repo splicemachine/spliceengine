@@ -14,7 +14,9 @@
 
 package com.splicemachine.olap;
 
-import io.netty.channel.ChannelHandlerContext;
+import com.splicemachine.olap.OlapMessage;
+import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.MessageEvent;
 
 /**
  * @author Scott Fines
@@ -28,13 +30,14 @@ public class OlapCancelHandler extends AbstractOlapHandler{
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, OlapMessage.Command command) throws Exception {
-        if(command.getType()!=OlapMessage.Command.Type.CANCEL){
-            ctx.fireChannelRead(command);
+    public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception{
+        OlapMessage.Command cmd=(OlapMessage.Command)e.getMessage();
+        if(cmd.getType()!=OlapMessage.Command.Type.CANCEL){
+            ctx.sendUpstream(e);
             return;
         }
 
-        jobRegistry.clear(command.getUniqueName());
+        jobRegistry.clear(cmd.getUniqueName());
         //no response is needed for cancellation
     }
 }

@@ -14,17 +14,15 @@
 
 package com.splicemachine.olap;
 
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerContext;
+import com.splicemachine.olap.OlapMessage;
 import org.apache.log4j.Logger;
-
-import java.util.concurrent.TimeUnit;
+import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.MessageEvent;
 
 /**
  * @author Scott Fines
  *         Date: 4/1/16
  */
-@ChannelHandler.Sharable
 public class OlapStatusHandler extends AbstractOlapHandler{
     private static final Logger LOG = Logger.getLogger(OlapStatusHandler.class);
 
@@ -33,34 +31,22 @@ public class OlapStatusHandler extends AbstractOlapHandler{
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, OlapMessage.Command cmd) throws Exception {
+    public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception{
+        OlapMessage.Command cmd = (OlapMessage.Command)e.getMessage();
         if (LOG.isTraceEnabled()) {
             LOG.trace("Received " + cmd);
         }
         if(cmd.getType()!=OlapMessage.Command.Type.STATUS){
-            ctx.fireChannelRead(cmd);
+            ctx.sendUpstream(e);
             return;
         }
         OlapJobStatus status = jobRegistry.getStatus(cmd.getUniqueName());
-
-        OlapMessage.Status statusMsg = cmd.getExtension(OlapMessage.Status.command);
-        if (statusMsg.hasWaitTimeMillis() && status != null) {
-            long waitTime = statusMsg.getWaitTimeMillis();
-            switch (status.checkState()) {
-                case SUBMITTED:
-                case RUNNING:
-                    status.wait(waitTime, TimeUnit.MILLISECONDS);
-                default:
-                    // fall-through, send response without blocking
-            }
-        }
-
-
-        writeResponse(ctx.channel(),cmd.getUniqueName(),status);
+        writeResponse(e,cmd.getUniqueName(),status);
 
         if (LOG.isTraceEnabled()) {
             LOG.trace("Status " + status);
         }
 
+        super.messageReceived(ctx,e);
     }
 }

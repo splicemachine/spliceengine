@@ -15,29 +15,29 @@
 package com.splicemachine.olap;
 
 import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.olap.OlapMessage;
 import com.splicemachine.utils.SpliceLogUtils;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandler;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelPipeline;
-import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
-import io.netty.handler.codec.LengthFieldPrepender;
-import io.netty.handler.codec.protobuf.ProtobufDecoder;
-import io.netty.handler.codec.protobuf.ProtobufEncoder;
 import org.apache.log4j.Logger;
+import org.jboss.netty.channel.ChannelHandler;
+import org.jboss.netty.channel.ChannelPipeline;
+import org.jboss.netty.channel.ChannelPipelineFactory;
+import org.jboss.netty.channel.Channels;
+import org.jboss.netty.handler.codec.frame.LengthFieldBasedFrameDecoder;
+import org.jboss.netty.handler.codec.frame.LengthFieldPrepender;
+import org.jboss.netty.handler.codec.protobuf.ProtobufDecoder;
+import org.jboss.netty.handler.codec.protobuf.ProtobufEncoder;
 
-public class OlapPipelineFactory extends ChannelInitializer {
+public class OlapPipelineFactory implements ChannelPipelineFactory {
 
     private static final Logger LOG = Logger.getLogger(OlapPipelineFactory.class);
 
-    private final ChannelInboundHandler submitHandler;
-    private final ChannelInboundHandler cancelHandler;
-    private final ChannelInboundHandler statusHandler;
+    private final ChannelHandler submitHandler;
+    private final ChannelHandler cancelHandler;
+    private final ChannelHandler statusHandler;
 
     private final ProtobufDecoder decoder;
 
-    public OlapPipelineFactory(ChannelInboundHandler submitHandler, ChannelInboundHandler cancelHandler, ChannelInboundHandler statusHandler){
+    public OlapPipelineFactory(ChannelHandler submitHandler,ChannelHandler cancelHandler,ChannelHandler statusHandler){
         this.submitHandler=submitHandler;
         this.cancelHandler=cancelHandler;
         this.statusHandler=statusHandler;
@@ -45,18 +45,11 @@ public class OlapPipelineFactory extends ChannelInitializer {
         this.decoder = new ProtobufDecoder(OlapMessage.Command.getDefaultInstance(),buildExtensionRegistry());
     }
 
-    private ExtensionRegistry buildExtensionRegistry(){
-        ExtensionRegistry er = ExtensionRegistry.newInstance();
-        er.add(OlapMessage.Submit.command);
-        er.add(OlapMessage.Status.command);
-        er.add(OlapMessage.Cancel.command);
-        return er;
-    }
 
     @Override
-    protected void initChannel(Channel channel) throws Exception {
+    public ChannelPipeline getPipeline() throws Exception {
         SpliceLogUtils.trace(LOG, "Creating new channel pipeline...");
-        ChannelPipeline pipeline = channel.pipeline();
+        ChannelPipeline pipeline = Channels.pipeline();
         pipeline.addLast("frameDecoder",new LengthFieldBasedFrameDecoder(1<<30,0,4,0,4)); //max frame size is 1GB=2^30 bytes
         pipeline.addLast("protobufDecoder",decoder);
         pipeline.addLast("frameEncoder",new LengthFieldPrepender(4));
@@ -65,5 +58,15 @@ public class OlapPipelineFactory extends ChannelInitializer {
         pipeline.addLast("submitHandler", submitHandler);
         pipeline.addLast("cancelHandler",cancelHandler);
         SpliceLogUtils.trace(LOG, "Done creating channel pipeline");
+        return pipeline;
+    }
+
+
+    private ExtensionRegistry buildExtensionRegistry(){
+        ExtensionRegistry er = ExtensionRegistry.newInstance();
+        er.add(OlapMessage.Submit.command);
+        er.add(OlapMessage.Status.command);
+        er.add(OlapMessage.Cancel.command);
+        return er;
     }
 }

@@ -16,10 +16,12 @@ package com.splicemachine.olap;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.olap.OlapMessage;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
-import io.netty.channel.ChannelHandlerContext;
 import org.apache.log4j.Logger;
+import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.MessageEvent;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -49,10 +51,11 @@ class OlapRequestHandler extends AbstractOlapHandler{
 
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, OlapMessage.Command jobRequest) throws Exception {
+    public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception{
+        final OlapMessage.Command jobRequest=((OlapMessage.Command)e.getMessage());
         assert jobRequest!=null;
         if(jobRequest.getType()!=OlapMessage.Command.Type.SUBMIT){
-            ctx.fireChannelRead(jobRequest);
+            ctx.sendUpstream(e);
             return;
         }
         OlapMessage.Submit extension=jobRequest.getExtension(OlapMessage.Submit.command);
@@ -71,7 +74,8 @@ class OlapRequestHandler extends AbstractOlapHandler{
             case COMPLETE:
                 if(LOG.isTraceEnabled())
                     LOG.trace("Job "+jobRequest.getUniqueName()+" already in progress, with state "+ state+", returning");
-                writeResponse(ctx.channel(),jr.getUniqueName(),jobStatus);
+                writeResponse(e,jr.getUniqueName(),jobStatus);
+                super.messageReceived(ctx,e);
                 return;
             case NOT_SUBMITTED:
                 if(LOG.isTraceEnabled())
@@ -79,7 +83,8 @@ class OlapRequestHandler extends AbstractOlapHandler{
                 if(!jobStatus.markSubmitted()){
                     if(LOG.isTraceEnabled())
                         LOG.trace("Job submission for job "+jobRequest.getUniqueName()+" did not succeed, returning response");
-                    writeResponse(ctx.channel(),jr.getUniqueName(),jobStatus);
+                    writeResponse(e,jr.getUniqueName(),jobStatus);
+                    super.messageReceived(ctx,e);
                     return;
                 }
                 break;
@@ -92,7 +97,7 @@ class OlapRequestHandler extends AbstractOlapHandler{
         // it might send the result before we send the confirmation
         if(LOG.isTraceEnabled())
             LOG.trace("Job "+ jobRequest.getUniqueName()+" successfully submitted");
-        writeResponse(ctx.channel(),jr.getUniqueName(),jobStatus);
+        writeResponse(e,jr.getUniqueName(),jobStatus);
 
         executionPool.submit(new Callable<Void>() {
             @Override
@@ -121,6 +126,4 @@ class OlapRequestHandler extends AbstractOlapHandler{
         ThreadFactory tf =new ThreadFactoryBuilder().setDaemon(true).setNameFormat("olap-worker-%d").build();
         return Executors.newCachedThreadPool(tf);
     }
-
-
 }

@@ -15,22 +15,15 @@
 package com.splicemachine.olap;
 
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.SimpleChannelInboundHandler;
 import org.apache.log4j.Logger;
-
+import org.jboss.netty.channel.*;
 import java.io.IOException;
 
 /**
  * @author Scott Fines
  *         Date: 4/4/16
  */
-@ChannelHandler.Sharable
-public abstract class AbstractOlapHandler extends SimpleChannelInboundHandler<OlapMessage.Command> {
+public abstract class AbstractOlapHandler extends SimpleChannelUpstreamHandler {
 
     protected final OlapJobRegistry jobRegistry;
 
@@ -39,25 +32,26 @@ public abstract class AbstractOlapHandler extends SimpleChannelInboundHandler<Ol
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        Logger.getLogger(this.getClass()).warn("Unexpected error caught in Olap pipeline: ",cause);
-        Channel c = ctx.channel();
-        ChannelFuture futureResponse = c.write(OlapSerializationUtils.buildError(cause));
+    public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception{
+        Logger.getLogger(this.getClass()).warn("Unexpected error caught in Olap pipeline: ",e.getCause());
+        final Throwable t = e.getCause();
+        Channel c = e.getChannel();
+        ChannelFuture futureResponse = c.write(OlapSerializationUtils.buildError(t));
         futureResponse.addListener(new ChannelFutureListener(){
             @Override
             public void operationComplete(ChannelFuture future) throws Exception{
-                if(shouldDisconnect(cause))
-                    future.channel().close();
+                if(shouldDisconnect(t))
+                    future.getChannel().close();
             }
         });
     }
 
-
     /* ****************************************************************************************************************/
     /*Protected convenience methods*/
-    protected void writeResponse(Channel c,final String requestId,OlapStatus status) throws IOException{
+    protected void writeResponse(MessageEvent e,final String requestId,OlapStatus status) throws IOException{
+        Channel c = e.getChannel();
         final boolean[] shouldRemove= {false};
-        ChannelFuture futureResponse = c.writeAndFlush(OlapSerializationUtils.buildResponse(status,shouldRemove,jobRegistry.tickTime()));
+        ChannelFuture futureResponse = c.write(OlapSerializationUtils.buildResponse(status,shouldRemove,jobRegistry.tickTime()));
 
         futureResponse.addListener(new ChannelFutureListener(){
                                        @Override
@@ -65,7 +59,7 @@ public abstract class AbstractOlapHandler extends SimpleChannelInboundHandler<Ol
                                            if(!cf.isSuccess()){
                                                throw new IOException(
                                                        "Failed to respond successfully to message "+requestId,
-                                                       cf.cause());
+                                                       cf.getCause());
                                            }else if (shouldRemove[0]){
                                                jobRegistry.clear(requestId);
                                            }

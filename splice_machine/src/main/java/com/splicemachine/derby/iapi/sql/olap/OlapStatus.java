@@ -14,8 +14,6 @@
 
 package com.splicemachine.derby.iapi.sql.olap;
 
-import java.util.concurrent.TimeUnit;
-
 /**
  * @author Scott Fines
  *         Date: 4/1/16
@@ -53,6 +51,4 @@ public interface OlapStatus{
     boolean markRunning();
 
     boolean isRunning();
-
-    boolean wait(long time, TimeUnit unit) throws InterruptedException;
 }
