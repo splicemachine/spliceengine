@@ -135,6 +135,8 @@ public class EngineDriver extends BaseAdminProcedures{
                     return t;
                 },
                 new ThreadPoolExecutor.CallerRunsPolicy()));
+        ((ThreadPoolExecutor)threadPool).allowCoreThreadTimeOut(false);
+        ((ThreadPoolExecutor)threadPool).prestartAllCoreThreads();
     }
 
     public DatabaseAdministrator dbAdministrator(){

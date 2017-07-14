@@ -12,7 +12,13 @@ public class TotalManagedCache<K, V> implements ManagedCacheMBean<K, V>{
     public TotalManagedCache(List<ManagedCache<K, V>> managedCache){
         this.managedCache = managedCache;
     }
-    @Override public long getSize(){ return managedCache.size(); }
+    @Override public long getSize(){
+        long size = 0;
+        for(ManagedCache<K, V> mc : managedCache){
+            size += mc.getSize();
+        }
+        return size;
+    }
     @Override public long getHitCount(){
         long hitCount = 0;
         for(ManagedCache<K, V> mc : managedCache){
@@ -32,14 +38,14 @@ public class TotalManagedCache<K, V> implements ManagedCacheMBean<K, V>{
         for(ManagedCache<K, V> mc : managedCache){
             hitRate += mc.getHitRate();
         }
-        return hitRate;
+        return hitRate/managedCache.size();
     }
     @Override public double getMissRate(){
         double missRate = 0;
         for(ManagedCache<K, V> mc : managedCache){
             missRate += mc.getMissRate();
         }
-        return missRate;
+        return missRate/managedCache.size();
     }
     @Override public void invalidateAll(){
         for(ManagedCache<K, V> mc : managedCache){
