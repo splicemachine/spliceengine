@@ -19,14 +19,16 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 
 
-public class SourceCodeUpgradeScript extends UpgradeScriptBase {
-    public SourceCodeUpgradeScript(SpliceDataDictionary sdd, TransactionController tc) {
+public class UpgradeScriptFor260 extends UpgradeScriptBase {
+    public UpgradeScriptFor260(SpliceDataDictionary sdd, TransactionController tc) {
         super(sdd, tc);
     }
 
     @Override
     protected void upgradeSystemTables() throws StandardException {
         sdd.createSourceCodeTable(tc);
+        sdd.createSnapshotTable(tc);
+        sdd.upgradeSystablesFor260(tc);
+        sdd.upgradeSysStatsTableFor260(tc);
     }
-
 }
