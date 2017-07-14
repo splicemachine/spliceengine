@@ -538,12 +538,15 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable {
 		
 		isNullable = in.readBoolean();
 		maximumWidth = in.readInt();
-		if (in.readBoolean()) {
-			children = new TypeDescriptorImpl[in.readInt()];
-			for (int i = 0; i< children.length;i++) {
-				children[i] = (TypeDescriptorImpl)in.readObject();
-			}
-		}
+		if (typeId.getJDBCTypeId() == Types.ARRAY) {
+            if (in.readBoolean()) {
+                // if it's not the end of stream, check
+                children = new TypeDescriptorImpl[in.readInt()];
+                for (int i = 0; i < children.length; i++) {
+                    children[i] = (TypeDescriptorImpl) in.readObject();
+                }
+            }
+        }
 	}
 
 	/**
@@ -585,13 +588,15 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable {
 		
 		out.writeBoolean( isNullable );
 		out.writeInt( maximumWidth );
-		out.writeBoolean(children != null);
-		if (children!=null) {
-			out.writeInt(children.length);
-            for (TypeDescriptor aChildren : children) {
-                out.writeObject(aChildren);
+		if (typeId.getJDBCTypeId() == Types.ARRAY) {
+            out.writeBoolean(children != null);
+            if (children != null) {
+                out.writeInt(children.length);
+                for (TypeDescriptor aChildren : children) {
+                    out.writeObject(aChildren);
+                }
             }
-		}
+        }
 	}
  
 	/**
