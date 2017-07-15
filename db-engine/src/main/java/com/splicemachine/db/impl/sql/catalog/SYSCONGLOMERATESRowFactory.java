@@ -219,39 +219,7 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
 	{
 		return makeRow(null, null);
 	}
-
-
-	/**
-	 * Get the Properties associated with creating the heap.
-	 *
-	 * @return The Properties associated with creating the heap.
-	 */
-	public Properties getCreateHeapProperties()
-	{
-		Properties properties = new Properties();
-		// keep page size at 4K since its a big table
-		properties.put("derby.storage.pageSize","4096");
-		// default properties for system tables:
-		properties.put("derby.storage.pageReservedSpace","0");
-		properties.put("derby.storage.minimumRecordSize","1");
-		return properties;
-	}
-
-	/**
-	 * Get the Properties associated with creating the specified index.
-	 *
-	 * @param indexNumber	The specified index number.
-	 *
-	 * @return The Properties associated with creating the specified index.
-	 */
-	public Properties getCreateIndexProperties(int indexNumber)
-	{
-		Properties properties = new Properties();
-		// keep page size for all indexes at 4K since its a big table
-		properties.put("derby.storage.pageSize","4096");
-		return properties;
-	}
-
+	
 	///////////////////////////////////////////////////////////////////////////
 	//
 	//	ABSTRACT METHODS TO BE IMPLEMENTED BY CHILDREN OF CatalogRowFactory

@@ -6432,7 +6432,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public void makeCatalog(TabInfoImpl ti,SchemaDescriptor sd,TransactionController tc,ColumnOrdering[] columnOrder) throws StandardException{
         DataDescriptorGenerator ddg=getDataDescriptorGenerator();
 
-        Properties heapProperties=ti.getCreateHeapProperties();
+        Properties heapProperties=new Properties();
         heapProperties.setProperty("tableDisplayName", ti.getTableName());
         ti.setHeapConglomerate(
                 createConglomerate(
@@ -6652,7 +6652,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         // Describe the properties of the index to the store using Properties
         // RESOLVE: The following properties assume a BTREE index.
-        Properties indexProperties=ti.getCreateIndexProperties(indexNumber);
+        Properties indexProperties=new Properties();
 
         // Tell it the conglomerate id of the base table
         indexProperties.put("baseConglomerateId",Long.toString(heapConglomerateNumber));
@@ -10089,7 +10089,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 cm.pushContext(ec);
                 ContextService.getFactory().setCurrentContextManager(cm);
                 TabInfoImpl ti=coreInfo[coreCtr];
-                Properties heapProperties=ti.getCreateHeapProperties();
+                Properties heapProperties=new Properties();
                 heapProperties.setProperty("tableDisplayName", ti.getTableName());
                 ExecRow rowTemplate=ti.getCatalogRowFactory().makeEmptyRow();
                 long conglomerate=createConglomerate(tc,rowTemplate,heapProperties);

@@ -423,23 +423,4 @@ public class SYSSTATEMENTSRowFactory extends CatalogRowFactory
 
 	}
 
-	/**
-	 * Get the Properties associated with creating the heap.
-	 *
-	 * @return The Properties associated with creating the heap.
-	 */
-	public Properties getCreateHeapProperties()
-	{
-		Properties properties = new Properties();
-
-		// keep page size at 2K since most stmts are that size
-		// anyway
-		properties.put(Property.PAGE_SIZE_PARAMETER,"2048");
-
-		// default properties for system tables:
-		properties.put(RawStoreFactory.PAGE_RESERVED_SPACE_PARAMETER,"0");
-		properties.put(RawStoreFactory.MINIMUM_RECORD_SIZE_PARAMETER,"1");
-		return properties;
-	}
-
 }

@@ -253,28 +253,6 @@ public abstract	class CatalogRowFactory
 	}
 
 	/**
-	 * Get the Properties associated with creating the heap.
-	 *
-	 * @return The Properties associated with creating the heap.
-	 */
-	public Properties getCreateHeapProperties()
-	{
-		return new Properties();
-	}
-
-	/**
-	 * Get the Properties associated with creating the specified index.
-	 *
-	 * @param indexNumber	The specified index number.
-	 *
-	 * @return The Properties associated with creating the specified index.
-	 */
-	public Properties getCreateIndexProperties(int indexNumber)
-	{
-		return new Properties();
-	}
-
-	/**
 	  *	Get the index number for the primary key index on this catalog.
 	  *
 	  *	@return	a 0-based number

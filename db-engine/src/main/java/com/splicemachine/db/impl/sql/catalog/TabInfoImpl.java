@@ -1023,28 +1023,6 @@ public class TabInfoImpl
     }
 
     /**
-     * Get the Properties associated with creating the heap.
-     *
-     * @return The Properties associated with creating the heap.
-     */
-    public Properties getCreateHeapProperties()
-    {
-        return crf.getCreateHeapProperties();
-    }
-
-    /**
-     * Get the Properties associated with creating the specified index.
-     *
-     * @param indexNumber	The specified index number.
-     *
-     * @return The Properties associated with creating the specified index.
-     */
-    Properties getCreateIndexProperties(int indexNumber)
-    {
-        return crf.getCreateIndexProperties(indexNumber);
-    }
-
-    /**
      *	Gets a row changer for this catalog.
      *
      *	@param	tc	transaction controller
