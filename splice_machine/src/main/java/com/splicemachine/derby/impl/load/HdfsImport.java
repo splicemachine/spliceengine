@@ -14,32 +14,15 @@
 
 package com.splicemachine.derby.impl.load;
 
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.nio.charset.UnsupportedCharsetException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Types;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
+import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.db.catalog.DefaultInfo;
+import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.*;
-import com.splicemachine.derby.vti.SpliceFileVTI;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
-
-import com.splicemachine.access.api.FileInfo;
-import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -55,8 +38,20 @@ import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.derby.vti.SpliceFileVTI;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.charset.UnsupportedCharsetException;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Imports a delimiter-separated file located in HDFS in a parallel way.
@@ -104,6 +99,15 @@ public class HdfsImport {
         new GenericColumnDescriptor("failedLog", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR))
     };
 
+    private static final ResultColumnDescriptor[] MERGE_RESULT_COLUMNS = new GenericColumnDescriptor[]{
+            new GenericColumnDescriptor("rowsUpdated", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+            new GenericColumnDescriptor("rowsInserted", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+            new GenericColumnDescriptor("failedRows", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+            new GenericColumnDescriptor("files", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+            new GenericColumnDescriptor("dataSize", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+            new GenericColumnDescriptor("failedLog", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR))
+    };
+
     public static void COMPUTE_SPLIT_KEY(String schemaName,
                                          String tableName,
                                          String indexName,
@@ -145,6 +149,7 @@ public class HdfsImport {
                 null,
                 "TRUE",
                 null,
+                false,
                 results);
     }
 
@@ -186,6 +191,7 @@ public class HdfsImport {
                 "TRUE",
                 null,
                 "FALSE",
+                false,
                 results);
     }
 
@@ -247,6 +253,7 @@ public class HdfsImport {
                 null,
                 null,
                 skipSampling,
+                false,
                 results);
     }
     /**
@@ -340,6 +347,7 @@ public class HdfsImport {
                 null,
                 null,
                 null,
+                false,
                 results);
    }
 
@@ -427,6 +435,7 @@ public class HdfsImport {
                 null,
                 null,
                 null,
+                false,
                 results);
     }
 
@@ -467,9 +476,51 @@ public class HdfsImport {
                 null,
                 null,
                 null,
+                false,
                 results);
     }
 
+
+    public static void MERGE_DATA_FROM_FILE(String schemaName,
+                                             String tableName,
+                                             String insertColumnList,
+                                             String fileName,
+                                             String columnDelimiter,
+                                             String characterDelimiter,
+                                             String timestampFormat,
+                                             String dateFormat,
+                                             String timeFormat,
+                                             long badRecordsAllowed,
+                                             String badRecordDirectory,
+                                             String oneLineRecords,
+                                             String charset,
+                                             ResultSet[] results
+    ) throws SQLException {
+        doImport(schemaName,
+                tableName,
+                null,
+                insertColumnList,
+                fileName,
+                columnDelimiter,
+                characterDelimiter,
+                timestampFormat,
+                dateFormat,
+                timeFormat,
+                badRecordsAllowed,
+                badRecordDirectory,
+                oneLineRecords,
+                charset,
+                false,
+                false,
+                false,
+                false,
+                null,
+                null,
+                null,
+                null,
+                true,
+                results);
+    }
 
     @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION",justification = "Intentional")
     private static void doImport(String schemaName,
@@ -494,15 +545,16 @@ public class HdfsImport {
                                  String samplingOnly,
                                  String outputKeysOnly,
                                  String skipSampling,
+                                 boolean isMerge,
                                  ResultSet[] results) throws SQLException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "doImport {schemaName=%s, tableName=%s, insertColumnList=%s, fileName=%s, " +
                                      "columnDelimiter=%s, characterDelimiter=%s, timestampFormat=%s, dateFormat=%s, " +
                 "timeFormat=%s, badRecordsAllowed=%d, badRecordDirectory=%s, oneLineRecords=%s, charset=%s, " +
-                "isUpsert=%s, isCheckScan=%s, skipConflictDetection=%b, skipWAL=%b}",
+                "isUpsert=%s, isCheckScan=%s, skipConflictDetection=%b, skipWAL=%b, isMerge=%b}",
                                  schemaName, tableName, insertColumnListString, fileName, columnDelimiter, characterDelimiter,
                                  timestampFormat, dateFormat, timeFormat, badRecordsAllowed, badRecordDirectory,
-                                 oneLineRecords, charset, isUpsert, isCheckScan, skipConflictDetection, skipWAL);
+                                 oneLineRecords, charset, isUpsert, isCheckScan, skipConflictDetection, skipWAL, isMerge);
 
         if (charset == null) {
             charset = StandardCharsets.UTF_8.name();
@@ -590,17 +642,57 @@ public class HdfsImport {
 
             if (skipSampling == null)
                 skipSampling = "false";
+
+            LanguageConnectionContext lcc = ((EmbedConnection)conn).getLanguageConnection();
+
             ColumnInfo columnInfo = new ColumnInfo(conn, schemaName, tableName, insertColumnList);
+            String selectList = generateColumnList(lcc,schemaName,tableName,insertColumnList, true);
+            String vtiTable = importVTI + " AS importVTI (" + columnInfo.getImportAsColumns() + ")";
             String insertSql = "INSERT INTO " + entityName + "(" + columnInfo.getInsertColumnNames() + ") " +
                     "--splice-properties useSpark=true , insertMode=" + (isUpsert ? "UPSERT" : "INSERT") + ", statusDirectory=" +
                     badRecordDirectory + ", badRecordsAllowed=" + badRecordsAllowed + ", bulkImportDirectory=" + bulkImportDirectory
                     + ", samplingOnly=" + samplingOnly + ", outputKeysOnly=" + outputKeysOnly + ", skipSampling=" + skipSampling
                     + (skipConflictDetection ? ", skipConflictDetection=true" : "") + (skipWAL ? ", skipWAL=true" : "")
                     + (indexName !=null ? (", index=" + indexName):"") + "\n" +
-                    " SELECT "+
-                    generateColumnList(((EmbedConnection)conn).getLanguageConnection(),schemaName,tableName,insertColumnList) +
-                    " from " +
-                    importVTI + " AS importVTI (" + columnInfo.getImportAsColumns() + ")";
+                    " SELECT "+ selectList +
+                    " from " + vtiTable;
+
+            long rowsUpdated = 0;
+            if (isMerge) {
+                //get the PK from the target table
+                String[] pkColums = getPKList(lcc, schemaName, tableName);
+
+                //Error out if PK is not available
+                if (pkColums == null)
+                    throw PublicAPI.wrapStandardException(ErrorState.UPSERT_NO_PRIMARY_KEYS.newException(""+schemaName +"." + tableName +""));
+
+                // Error out if PK does not appear in the insertColumnList
+                for (String pk : pkColums) {
+                    if (!columnInfo.getImportColumns().contains(pk))
+                        throw PublicAPI.wrapStandardException(ErrorState.IMPORT_MISSING_NOT_NULL_KEY.newException("" + schemaName + "." + tableName + "." + pk + ""));
+                }
+                //compose the PK condition list
+                String pkConditions = getPKConditions(tableName, pkColums);
+
+                // In the SET clause, even for column with default value, we don't want to use the case expression but
+                // just need the column name
+                String setColumnList = generateColumnList(lcc,schemaName,tableName,insertColumnList, false);
+                String updateSql = "UPDATE " + entityName +
+                        "\n set (" + setColumnList + ") = \n" +
+                        "(SELECT "+ selectList + " from " + vtiTable + " " +
+                        pkConditions + ")";
+
+                //update for rows that has match for PK
+                try (PreparedStatement ips = conn.prepareStatement(updateSql)) {
+                    ips.executeUpdate();
+                    rowsUpdated = ips.getUpdateCount();
+                } catch (Exception e) {
+                    throw new SQLException(e);
+                }
+
+                //update the insertSQL with conditions
+                insertSql += " WHERE not exists (select 1 from " + entityName + " " + pkConditions + ")";
+            }
 
             //prepare the import statement to hit any errors before locking the table
             //execute the import operation.
@@ -609,15 +701,28 @@ public class HdfsImport {
                 ips.executeUpdate();
                 String badFileName = ((EmbedConnection) conn).getLanguageConnection().getBadFile();
                 ExecRow result = new ValueRow(5);
-                result.setRowArray(new DataValueDescriptor[]{
-                    new SQLLongint(((EmbedConnection) conn).getLanguageConnection().getRecordsImported()),
-                    new SQLLongint(((EmbedConnection) conn).getLanguageConnection().getFailedRecords()),
-                    new SQLLongint(contentSummary.fileCount()),
-                    new SQLLongint(contentSummary.size()),
-                    new SQLVarchar((badFileName == null || badFileName.isEmpty() ? "NONE" : badFileName))
-                });
+                if (isMerge) {
+                    result.setRowArray(new DataValueDescriptor[]{
+                            new SQLLongint(rowsUpdated),
+                            new SQLLongint(((EmbedConnection) conn).getLanguageConnection().getRecordsImported()),
+                            new SQLLongint(((EmbedConnection) conn).getLanguageConnection().getFailedRecords()),
+                            new SQLLongint(contentSummary.fileCount()),
+                            new SQLLongint(contentSummary.size()),
+                            new SQLVarchar((badFileName == null || badFileName.isEmpty() ? "NONE" : badFileName))
+                    });
+                } else {
+                    result.setRowArray(new DataValueDescriptor[]{
+                            new SQLLongint(((EmbedConnection) conn).getLanguageConnection().getRecordsImported()),
+                            new SQLLongint(((EmbedConnection) conn).getLanguageConnection().getFailedRecords()),
+                            new SQLLongint(contentSummary.fileCount()),
+                            new SQLLongint(contentSummary.size()),
+                            new SQLVarchar((badFileName == null || badFileName.isEmpty() ? "NONE" : badFileName))
+                    });
+                }
                 Activation act = ((EmbedConnection) conn).getLanguageConnection().getLastActivation();
-                IteratorNoPutResultSet rs =
+                IteratorNoPutResultSet rs = isMerge ?
+                    new IteratorNoPutResultSet(Collections.singletonList(result), MERGE_RESULT_COLUMNS, act)
+                        :
                     new IteratorNoPutResultSet(Collections.singletonList(result),
                                                (isCheckScan ? CHECK_RESULT_COLUMNS : IMPORT_RESULT_COLUMNS), act);
                 rs.open();
@@ -638,7 +743,8 @@ public class HdfsImport {
     private static String generateColumnList(LanguageConnectionContext lcc,
                                              String schemaName,
                                              String tableName,
-                                             List<String> insertColumnList) throws SQLException{
+                                             List<String> insertColumnList,
+                                             boolean genCaseExp) throws SQLException{
         DataDictionary dd = lcc.getDataDictionary();
         StringBuilder colListStr = new StringBuilder();
         try{
@@ -656,14 +762,14 @@ public class HdfsImport {
                     ColumnDescriptor cd = columnDescriptorList.getColumnDescriptor(td.getUUID(),col);
                     if(cd==null)
                         throw StandardException.newException(SQLState.COLUMN_NOT_FOUND,tableName+"."+col); //shouldn't happen, but just in case
-                    colListStr = writeColumn(cd,colListStr);
+                    colListStr = writeColumn(cd,colListStr,genCaseExp);
                 }
             }else{
                 boolean isFirst = true;
                 for(ColumnDescriptor cd: columnDescriptorList){
                     if(isFirst) isFirst = false;
                     else colListStr = colListStr.append(",");
-                    colListStr = writeColumn(cd,colListStr);
+                    colListStr = writeColumn(cd,colListStr,genCaseExp);
                 }
             }
 
@@ -673,10 +779,10 @@ public class HdfsImport {
         }
     }
 
-    private static StringBuilder writeColumn(ColumnDescriptor cd,StringBuilder text) throws StandardException{
+    private static StringBuilder writeColumn(ColumnDescriptor cd,StringBuilder text, boolean genCaseExpr) throws StandardException{
         String colName = sqlFormat(cd.getColumnName());
         DefaultInfo di = cd.getDefaultInfo();
-        if(di!=null){
+        if(di!=null && genCaseExpr){
             text = text.append("CASE WHEN (")
                     .append(colName)
                     .append(" IS NULL) THEN ")
@@ -799,4 +905,54 @@ public class HdfsImport {
         return unescaped.toString();
     }
 
+    private static String[] getPKList(LanguageConnectionContext lcc,
+                                   String schemaName,
+                                   String tableName) throws SQLException {
+        DataDictionary dd = lcc.getDataDictionary();
+        String[] pkNames = null;
+
+        try {
+            SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, lcc.getTransactionExecute(), true);
+            TableDescriptor td = dd.getTableDescriptor(tableName, sd, lcc.getTransactionExecute());
+            ConglomerateDescriptorList cdl = td.getConglomerateDescriptorList();
+
+            int[] pkList = null;
+            for(int i=0;i<cdl.size();i++){
+                ConglomerateDescriptor cd = cdl.get(i);
+                if(cd.isPrimaryKey()){
+                     pkList = cd.getIndexDescriptor().baseColumnPositions();
+                     break;
+                }
+            }
+
+            if (pkList != null) {
+                ColumnDescriptorList columnDescriptorList=td.getColumnDescriptorList();
+                pkNames = new String[pkList.length];
+                for (int i=0; i< pkList.length; i++) {
+                    pkNames[i] = columnDescriptorList.getColumnDescriptor(td.getUUID(),pkList[i]).getColumnName();
+                }
+            }
+        } catch (StandardException e) {
+            throw PublicAPI.wrapStandardException(e);
+        }
+        return pkNames;
+    }
+
+    private static String getPKConditions(String tableName, String[] pkColumns) {
+        StringBuffer sb = new StringBuffer();
+        sb.append("WHERE ");
+        boolean first = true;
+        for (int i=0; i<pkColumns.length; i++) {
+            if (!first)
+                sb.append(" AND ");
+            else
+                first = false;
+            sb.append(IdUtil.normalToDelimited(tableName));
+            sb.append(".");
+            sb.append(IdUtil.normalToDelimited(pkColumns[i]));
+            sb.append(" = importVTI.");
+            sb.append(IdUtil.normalToDelimited(pkColumns[i]));
+        }
+        return sb.toString();
+    }
 }

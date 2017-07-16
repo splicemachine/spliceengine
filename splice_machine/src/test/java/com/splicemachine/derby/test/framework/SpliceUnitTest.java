@@ -326,6 +326,13 @@ public class SpliceUnitTest {
         Assert.assertEquals("Incorrect number of bad records reported!", bad, resultSet.getInt(2));
     }
 
+    protected static void validateMergeResults(ResultSet resultSet, int updated,int inserted, int bad) throws SQLException {
+        Assert.assertTrue("No rows returned!",resultSet.next());
+        Assert.assertEquals("Incorrect number of rows reported!",updated,resultSet.getInt(1));
+        Assert.assertEquals("Incorrect number of rows reported!",inserted,resultSet.getInt(2));
+        Assert.assertEquals("Incorrect number of files reported!",1,resultSet.getInt(4));
+        Assert.assertEquals("Incorrect number of bad records reported!", bad, resultSet.getInt(3));
+    }
     public static String printMsgSQLState(String testName, SQLException e) {
         // useful for debugging import errors
         StringBuilder buf =new StringBuilder(testName);
