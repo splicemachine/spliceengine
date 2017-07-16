@@ -821,7 +821,8 @@
                         <configuration>
                             <excludedGroups>com.splicemachine.test.SerialTest, com.splicemachine.test.RestoreTest, ${excluded.categories}</excludedGroups>
                             <parallel>classes</parallel>
-                            <threadCount>8</threadCount>
+                            <threadCount>4</threadCount>
+                            <!-- -sf- single-threaded for now -->
                             <perCoreThreadCount>false</perCoreThreadCount>
                             <argLine>-Xmx4g</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
