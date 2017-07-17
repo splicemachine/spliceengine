@@ -9,8 +9,18 @@ else
     RLWRAP=
 fi
 
+
 echo "Running Splice Machine SQL shell"
 echo "For help: \"splice> help;\""
 
-cd splice_machine ; ${RLWRAP} mvn exec:java ; cd ${DIR}
+if [ -z "${CLIENT_SSL_KEYSTORE}" ]; then
+  cd splice_machine ; ${RLWRAP} mvn  exec:java ; cd ${DIR}
+else
+  cd splice_machine ; ${RLWRAP} mvn  exec:java \
+    -Djavax.net.ssl.keyStore=${CLIENT_SSL_KEYSTORE} \
+    -Djavax.net.ssl.keyStorePassword=${CLIENT_SSL_KEYSTOREPASSWD} \
+    -Djavax.net.ssl.trustStore=${CLIENT_SSL_TRUSTSTORE} \
+    -Djavax.netDjavax.net.ssl.trustStore.ssl.trustStorePassword=${CLIENT_SSL_TRUSTSTOREPASSWD} \
+    ; cd ${DIR}
+fi
 

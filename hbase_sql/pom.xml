@@ -1515,5 +1515,140 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <id>spliceFastSSL</id>
+            <activation>
+                <property>
+                    <name>spliceFastSSL</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <classpathScope>test</classpathScope>
+                            <executable>java</executable>
+                            <arguments>
+                                <!-- <argument>-verbose:gc</argument> -->
+                                <argument>-classpath</argument>
+                                <classpath/>
+                                <argument>-Xdebug</argument>
+                                <!-- <argument>-XX:+UnlockCommercialFeatures</argument>
+                                <argument>-XX:+FlightRecorder</argument> -->
+                                <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
+                                <argument>-Djava.net.preferIPv4Stack=true</argument>
+                                <argument>-Djava.awt.headless=true</argument>
+                                <argument>-Dzookeeper.sasl.client=false</argument>
+                                <argument>-Dcom.sun.management.jmxremote.ssl=false</argument>
+                                <argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
+                                <argument>-Dcom.sun.management.jmxremote.port=10102</argument>
+                                <argument>-Dsplice.authentication=NATIVE</argument>
+                                <argument>-Dcom.splicemachine.enableLegacyAsserts=true</argument>
+				<argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
+                                <argument>-Xmx6g</argument>
+                                <argument>-Xms1g</argument>
+                                <!-- Spark Sys props -->
+                                <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
+                                <argument>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse</argument>
+                                <!--                                <argument>-Dsplice.spark.broadcast.factory=org.apache.spark.broadcast.HttpBroadcastFactory</argument> -->
+                                <argument>-Dsplice.spark.driver.host=localhost</argument>
+                                <argument>-Dsplice.spark.driver.cores=1</argument>
+                                <argument>
+                                    -Dsplice.spark.driver.extraClassPath=${project.build.directory}/classes:${project.build.directory}/dependency/*
+                                </argument>
+                                <argument>-Dsplice.spark.driver.maxResultSize=1g</argument>
+                                <argument>-Dsplice.spark.driver.memory=1g</argument>
+                                <argument>-Dsplice.spark.enabled=true</argument>
+                                <!--<argument>-Dsplice.spark.eventLog.dir=hdfs:///user/spark/applicationHistory</argument>-->
+                                <!--<argument>-Dsplice.spark.eventLog.enabled=true</argument>-->
+                                <argument>-Dsplice.spark.executor.cores=3</argument>
+                                <argument>
+                                    -Dsplice.spark.executor.extraClassPath=${project.build.directory}/classes:${project.build.directory}/dependency/*
+                                </argument>
+                                <argument>-Dspark.executor.extraLibraryPath=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}</argument>
+                                <argument>
+                                    -Dspark.yarn.jars=${project.build.directory}/classes,${project.build.directory}/dependency/*
+                                </argument>
+
+				<argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
+
+                                <argument>-Dsplice.spark.executor.instances=1</argument>
+                                <argument>-Dsplice.spark.executor.memory=2g</argument>
+                                <argument>-Dsplice.spark.io.compression.lz4.blockSize=32k</argument>
+
+                                <argument>-Dspark.broadcast.compress=true</argument>
+
+                                <argument>-Dsplice.spark.kryo.referenceTracking=false</argument>
+                                <argument>
+                                    -Dsplice.spark.kryo.registrator=com.splicemachine.derby.impl.SpliceSparkKryoRegistrator
+                                </argument>
+                                <argument>-Dsplice.spark.kryoserializer.buffer.max=512m</argument>
+                                <argument>-Dsplice.spark.kryoserializer.buffer=4m</argument>
+                                <argument>-Dsplice.spark.locality.wait=60s</argument>
+                                <argument>-Dsplice.spark.logConf=true</argument>
+                                <argument>-Dsplice.spark.master=yarn-client</argument>
+                                <argument>
+                                    -Dsplice.spark.scheduler.allocation.file=${project.basedir}/src/main/resources/fairscheduler.xml
+                                </argument>
+                                <argument>-Dsplice.spark.scheduler.mode=FAIR</argument>
+                                <argument>-Dsplice.spark.serializer=com.splicemachine.serializer.SpliceKryoSerializer</argument>
+                                <argument>-Dsplice.spark.shuffle.compress=false</argument>
+                                <argument>-Dsplice.spark.executor.extraJavaOptions=
+                                    -Dhbase.rootdir=${project.build.directory}/hbase
+                                    -Dlog4j.configuration=${log4j.config.uri}
+                                    -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020
+                                    -enableassertions
+                                </argument>
+                                <argument>-Dsplice.spark.shuffle.file.buffer=128k</argument>
+                                <argument>-Dsplice.spark.shuffle.memoryFraction=0.7</argument>
+                                <argument>-Dsplice.spark.shuffle.service.enabled=true</argument>
+                                <argument>-Dsplice.spark.storage.memoryFraction=0.1</argument>
+                                <argument>-Dsplice.spark.yarn.am.waitTime=10s</argument>
+                                <!-- CMS Garbage Collection -->
+                                <argument>-Xmn128m</argument>
+                                <argument>-XX:+UseConcMarkSweepGC</argument>
+                                <argument>-XX:+UseParNewGC</argument>
+                                <argument>-XX:NewSize=128m</argument>
+                                <argument>-XX:MaxNewSize=128m</argument>
+                                <argument>-XX:CMSInitiatingOccupancyFraction=70</argument>
+                                <argument>-XX:+UseCMSInitiatingOccupancyOnly</argument>
+                                <argument>-XX:MaxGCPauseMillis=100</argument>
+                                <argument>-XX:+CMSClassUnloadingEnabled</argument>
+                                <argument>-XX:MaxDirectMemorySize=1g</argument>
+                                <argument>-enableassertions</argument>
+                                <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
+                                <!-- Setting the updateSystemProcs option to true causes all of the system stored procedures to be re-created on server startup. -->
+                                <argument>-Dderby.language.updateSystemProcs=false</argument>
+                                <!-- Setting the logStatementText option to true enables logging of all statements. -->
+                                <argument>-Dderby.language.logStatementText=false</argument>
+                                <argument>-Dderby.infolog.append=true</argument>
+                                <argument>-Dderby.drda.sslMode=${SERVER_SSLMODE}</argument>
+                                <argument>-Djavax.net.ssl.keyStore=${SERVER_SSL_KEYSTORE}</argument>
+                                <argument>-Djavax.net.ssl.keyStorePassword=${SERVER_SSL_KEYSTOREPASSWD}</argument>
+                                <argument>-Djavax.net.ssl.trustStore=${SERVER_SSL_TRUSTSTORE}</argument>
+                                <argument>-Djavax.net.ssl.trustStorePassword=${SERVER_SSL_TRUSTSTOREPASSWD}</argument>
+                                <argument>com.splicemachine.test.SpliceTestPlatform</argument>
+                                <argument>file://${project.build.directory}/hbase</argument>
+                                <argument>60000</argument>
+                                <argument>60010</argument>
+                                <argument>60020</argument>
+                                <argument>60030</argument>
+                                <argument>1527</argument>
+                                <argument>${failTasksRandomly}</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 </project>
