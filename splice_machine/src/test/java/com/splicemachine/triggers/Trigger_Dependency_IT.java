@@ -39,7 +39,6 @@ import static org.junit.Assert.fail;
 /**
  * Tests that triggers are dropped when the table or column(s) they depend on are dropped.
  */
-@Category(value = {SerialTest.class})
 @RunWith(Parameterized.class)
 public class Trigger_Dependency_IT {
 

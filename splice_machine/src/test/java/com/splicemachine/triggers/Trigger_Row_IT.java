@@ -37,7 +37,6 @@ import static org.junit.Assert.*;
 /**
  * Test ROW triggers.
  */
-@Category(value = {SerialTest.class})
 @RunWith(Parameterized.class)
 public class Trigger_Row_IT {
 

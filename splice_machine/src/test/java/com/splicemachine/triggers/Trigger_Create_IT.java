@@ -40,7 +40,6 @@ import static org.junit.Assert.fail;
 /**
  * Tests creating/defining triggers.
  */
-@Category(value = {SerialTest.class})
 @RunWith(Parameterized.class)
 public class Trigger_Create_IT {
 

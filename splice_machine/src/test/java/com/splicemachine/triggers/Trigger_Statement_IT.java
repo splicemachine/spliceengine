@@ -38,7 +38,6 @@ import static org.junit.Assert.fail;
 /**
  * Test STATEMENT triggers.
  */
-@Category(value = {SerialTest.class})
 @RunWith(Parameterized.class)
 public class Trigger_Statement_IT {
 
