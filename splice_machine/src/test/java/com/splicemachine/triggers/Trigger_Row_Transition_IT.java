@@ -36,6 +36,7 @@ import static org.junit.Assert.*;
 /**
  * Test ROW triggers with transition variables.
  */
+@Category(value = {SerialTest.class})
 @RunWith(Parameterized.class)
 public class Trigger_Row_Transition_IT {
 

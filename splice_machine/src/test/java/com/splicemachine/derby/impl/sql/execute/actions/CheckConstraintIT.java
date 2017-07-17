@@ -44,6 +44,7 @@ import org.spark_project.guava.collect.Lists;
  * 
  * @author Walt Koetke
  */
+@Category(value = {SerialTest.class})
 @RunWith(Parameterized.class)
 public class CheckConstraintIT extends SpliceUnitTest {
     public static final String CLASS_NAME = CheckConstraintIT.class.getSimpleName().toUpperCase();

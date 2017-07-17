@@ -29,6 +29,8 @@ import java.sql.*;
  * @author Scott Fines
  *         Date: 6/27/16
  */
+// SPLICE-894 Remove Serial
+@Category(value = {SerialTest.class})
 public class ForeignKeyMetadataIT{
     private static final String SCHEMA = ForeignKeyMetadataIT.class.getSimpleName().toUpperCase();
 
