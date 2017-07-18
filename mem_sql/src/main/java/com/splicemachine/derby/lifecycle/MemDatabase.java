@@ -24,6 +24,7 @@ import com.splicemachine.access.configuration.ConfigurationDefault;
 import com.splicemachine.access.configuration.ConfigurationSource;
 import com.splicemachine.access.configuration.HConfigurationDefaultsList;
 import com.splicemachine.access.util.ReflectingConfigurationSource;
+import com.splicemachine.client.SpliceClient;
 import com.splicemachine.concurrent.ConcurrentTicker;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.si.MemSIEnvironment;
@@ -39,6 +40,7 @@ public class MemDatabase{
 
     public static void main(String...args) throws Exception{
         //load SI
+        SpliceClient.isRegionServer = true;
         MPipelinePartitionFactory tableFactory=new MPipelinePartitionFactory(new MTxnPartitionFactory(new MPartitionFactory()));
         MemSIEnvironment env=new MemSIEnvironment(tableFactory,new ConcurrentTicker(0L));
         MemSIEnvironment.INSTANCE = env;
