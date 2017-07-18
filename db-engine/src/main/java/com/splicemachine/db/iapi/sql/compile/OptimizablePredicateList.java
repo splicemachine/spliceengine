@@ -331,4 +331,25 @@ public interface OptimizablePredicateList {
 	void adjustForSortElimination(RequiredRowOrdering ordering) throws StandardException;
 
     boolean isRowIdScan();
+
+	/**
+	 *
+	 * Evaluates whether the index conglomerate can be scanned by the predicates.
+	 *
+	 * @param cd
+	 * @return
+	 * @throws StandardException
+     */
+	boolean canSupportIndexExcludedNulls(int tableNumber, ConglomerateDescriptor cd) throws StandardException;
+
+	/**
+	 *
+	 * Evaluates whether the index conglomerate can be scanned by the predicates.
+	 *
+	 * @param cd
+	 * @return
+	 * @throws StandardException
+	 */
+	boolean canSupportIndexExcludedDefaults(int tableNumber, ConglomerateDescriptor cd) throws StandardException;
+
 }

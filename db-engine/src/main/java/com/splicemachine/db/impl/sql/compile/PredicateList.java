@@ -3639,4 +3639,30 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 return true;
         return false;
     }
+    @Override
+    public boolean canSupportIndexExcludedNulls(int tableNumber, ConglomerateDescriptor cd) throws StandardException {
+        int size = size();
+        if (size == 0)
+            return false;
+        int[] baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
+        ExcludedIndexColumnVisitor excludedIndexColumnVisitor = new ExcludedIndexColumnVisitor(0,baseColumnPositions[0]);
+        boolean canSupportExcludedColumns = false;
+        for(int index=0;index<size;index++){
+            Predicate pred=elementAt(index);
+            if(pred.isOrList()){
+                return false;
+            }else {
+                pred.accept(excludedIndexColumnVisitor);
+                if (excludedIndexColumnVisitor.isValid)
+                    canSupportExcludedColumns = true;
+            }
+        }
+        return canSupportExcludedColumns;
+    }
+
+    @Override
+    public boolean canSupportIndexExcludedDefaults(int tableNumber, ConglomerateDescriptor cd) throws StandardException {
+        return canSupportIndexExcludedNulls(tableNumber,cd);
+    }
+
 }

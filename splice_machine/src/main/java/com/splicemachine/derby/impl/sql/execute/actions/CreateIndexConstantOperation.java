@@ -54,9 +54,10 @@ import org.apache.log4j.Logger;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Properties;
-
+import java.util.List;
 
 /**
  * Creates an Index transactionally.
@@ -159,6 +160,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
     private UUID			conglomerateUUID;
     private Properties		properties;
     private ExecRow indexTemplateRow;
+    private boolean excludeNulls;
+    private boolean excludeDefaults;
 
     /** Conglomerate number for the conglomerate created by this
      * constant action; -1L if this constant action has not been
@@ -225,6 +228,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             boolean[]		isAscending,
             boolean			isConstraint,
             UUID			conglomerateUUID,
+            boolean 		excludeNulls,
+            boolean			excludeDefaults,
             Properties		properties) {
         super(tableId, indexName, tableName, schemaName);
         SpliceLogUtils.trace(LOG, "CreateIndexConstantOperation for table %s.%s with index named %s for columns %s",schemaName,tableName,indexName,Arrays.toString(columnNames));
@@ -239,6 +244,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         this.properties                 = properties;
         this.conglomId                  = -1L;
         this.droppedConglomNum          = -1L;
+        this.excludeDefaults            = excludeDefaults;
+        this.excludeNulls               = excludeNulls;
     }
 
     /**
@@ -285,6 +292,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         this.conglomerateUUID = srcCD.getUUID();
         this.properties = properties;
         this.conglomId = -1L;
+        this.excludeNulls = irg.excludeNulls();
+        this.excludeDefaults = irg.excludeDefaults();
 
 		/* The ConglomerateDescriptor may not know the names of
 		 * the columns it includes.  If that's true (which seems
@@ -365,7 +374,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             // Translate the base column names to column positions
             IndexRowGenerator			indexRowGenerator = null;
             int[]	baseColumnPositions = new int[columnNames.length];
-            int maxBaseColumnPosition = getBaseColumnPositions(lcc, td, baseColumnPositions);
+            int maxBaseColumnPosition = td.getBaseColumnPositions(lcc, baseColumnPositions, columnNames);
 
             /* The code below tries to determine if the index that we're about
              * to create can "share" a conglomerate with an existing index.
@@ -468,7 +477,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                                     indexType, unique, uniqueWithDuplicateNulls,
                                     baseColumnPositions,
                                     isAscending,
-                                    baseColumnPositions.length);
+                                    baseColumnPositions.length,excludeNulls,excludeDefaults);
 
                     //DERBY-655 and DERBY-1343
                     // Sharing indexes will have unique logical conglomerate UUIDs.
@@ -524,6 +533,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             // Fill the partial row with nulls of the correct type
             ColumnDescriptorList cdl = td.getColumnDescriptorList();
             int	cdlSize = cdl.size();
+            List<DataValueDescriptor> defaultValues = new ArrayList<>();
             for (int index = 0, numSet = 0; index < cdlSize; index++) {
                 if (! zeroBasedBitSet.get(index)) {
                     continue;
@@ -531,7 +541,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                 numSet++;
                 ColumnDescriptor cd = cdl.elementAt(index);
                 DataTypeDescriptor dts = cd.getType();
-
+                defaultValues.add(cd.getDefaultValue());
                 DataValueDescriptor colDescriptor = dts.getNull();
                 baseRow.setColumn(index+1, colDescriptor);
                 compactBaseRow.setColumn(numSet,colDescriptor);
@@ -576,7 +586,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             //
             if(!alreadyHaveConglomDescriptor){
                 long indexCId=createConglomerateDescriptor(dd,userTransaction,sd,td,indexRowGenerator,ddg);
-                createAndPopulateIndex(activation,userTransaction,td,indexCId,heapConglomerateId,indexRowGenerator);
+                createAndPopulateIndex(activation,userTransaction,td,indexCId,heapConglomerateId,indexRowGenerator,defaultValues);
             }
         }catch (Throwable t) {
             throw Exceptions.parseException(t);
@@ -631,55 +641,6 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
     /****************************************************************************************************************/
     /*private helper methods*/
 
-    private int getBaseColumnPositions(LanguageConnectionContext lcc,
-                                         TableDescriptor td , int[] baseColumnPositions) throws StandardException {
-        /*
-         * Get an int[] mapping the column position of the indexed columns in the main table
-         * to it's location in the index table. The values are placed in the provided baseColumnPositions array,
-         * and the highest baseColumnPosition is returned.
-         */
-        int maxBaseColumnPosition = Integer.MIN_VALUE;
-        ClassFactory cf = lcc.getLanguageConnectionFactory().getClassFactory();
-        for (int i = 0; i < columnNames.length; i++) {
-            // Look up the column in the data dictionary --main table column
-            ColumnDescriptor columnDescriptor = td.getColumnDescriptor(columnNames[i]);
-            if (columnDescriptor == null) {
-                throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND_IN_TABLE, columnNames[i],tableName);
-            }
-
-            TypeId typeId = columnDescriptor.getType().getTypeId();
-
-            // Don't allow a column to be created on a non-orderable type
-            boolean isIndexable = typeId.orderable(cf);
-
-            if (isIndexable && typeId.userType()) {
-                String userClass = typeId.getCorrespondingJavaTypeName();
-
-                // Don't allow indexes to be created on classes that
-                // are loaded from the database. This is because recovery
-                // won't be able to see the class and it will need it to
-                // run the compare method.
-                try {
-                    if (cf.isApplicationClass(cf.loadApplicationClass(userClass)))
-                        isIndexable = false;
-                } catch (ClassNotFoundException cnfe) {
-                    // shouldn't happen as we just check the class is orderable
-                    isIndexable = false;
-                }
-            }
-
-            if (!isIndexable)
-                throw StandardException.newException(SQLState.LANG_COLUMN_NOT_ORDERABLE_DURING_EXECUTION, typeId.getSQLTypeName());
-
-            // Remember the position in the base table of each column
-            baseColumnPositions[i] = columnDescriptor.getPosition();
-
-            if (maxBaseColumnPosition < baseColumnPositions[i])
-                maxBaseColumnPosition = baseColumnPositions[i];
-        }
-        return maxBaseColumnPosition;
-    }
-
     private IndexRowGenerator getIndexRowGenerator(int[] baseColumnPositions,
                                                      @Nullable IndexRowGenerator existingGenerator,
                                                      boolean shareExisting) throws StandardException {
@@ -691,7 +652,9 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                     uniqueWithDuplicateNulls,
                     baseColumnPositions,
                     isAscending,
-                    baseColumnPositions.length);
+                    baseColumnPositions.length,
+                    excludeNulls,
+                    excludeDefaults);
         }
         return existingGenerator;
     }
@@ -786,7 +749,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                                           TableDescriptor td,
                                           long indexConglomId,
                                           long heapConglomerateId,
-                                          IndexDescriptor indexDescriptor) throws StandardException, IOException {
+                                          IndexDescriptor indexDescriptor,
+                                            List<DataValueDescriptor> defaultValues) throws StandardException, IOException {
         /*
          * Manages the Create and Populate index phases
          */
@@ -805,7 +769,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         }
         DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(tentativeTransaction.getTxnId(),
                 activation.getLanguageConnectionContext(),
-                td.getHeapConglomerateId(), indexConglomId, td, indexDescriptor);
+                td.getHeapConglomerateId(), indexConglomId, td, indexDescriptor, defaultValues);
         String changeId = DDLUtils.notifyMetadataChange(ddlChange);
         tc.prepareDataDictionaryChange(changeId);
         Txn indexTransaction = DDLUtils.getIndexTransaction(tc, tentativeTransaction, td.getHeapConglomerateId(),indexName);

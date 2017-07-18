@@ -1107,7 +1107,7 @@ public class TableElementList extends QueryTreeNodeVector {
 							contains_nullable_columns,
 						null, constraintDN,
 						columnNames, true, tableSd, tableName,
-						constraintType, dd);
+						constraintType, false,false,dd);
 				} 
                 else 
                 {
@@ -1116,7 +1116,7 @@ public class TableElementList extends QueryTreeNodeVector {
 						constraintDN.requiresUniqueIndex(), false,
 						null, constraintDN,
 						columnNames, true, tableSd, tableName,
-						constraintType, dd);
+						constraintType, false,false, dd);
 				}
 			}
 
@@ -1248,6 +1248,8 @@ public class TableElementList extends QueryTreeNodeVector {
     SchemaDescriptor            sd,
     String                      tableName,
     int                         constraintType,
+	boolean						excludeNulls,
+	boolean 					excludeDefaults,
     DataDictionary              dd)
 		throws StandardException
 	{
@@ -1293,6 +1295,8 @@ public class TableElementList extends QueryTreeNodeVector {
                     isAscending,
                     isConstraint,
                     cdn.getBackingIndexUUID(),
+					excludeNulls,
+					excludeDefaults,
                     checkIndexPageSizeProperty(cdn));
 		}
 	}

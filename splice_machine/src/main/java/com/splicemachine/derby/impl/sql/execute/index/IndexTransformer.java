@@ -17,7 +17,10 @@ package com.splicemachine.derby.impl.sql.execute.index;
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.store.ExecRowAccumulator;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import org.apache.commons.lang.SerializationUtils;
 import org.spark_project.guava.primitives.Ints;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.ddl.DDLMessage;
@@ -79,15 +82,21 @@ public class IndexTransformer {
     private byte[] indexConglomBytes;
     private int[] indexFormatIds;
     private DescriptorSerializer[] serializers;
-
-
+    private boolean excludeNulls;
+    private boolean excludeDefaultValues;
+    private ValueRow defaultValues;
+    private ValueRow defaultValuesExecRow;
+    private ExecRowAccumulator execRowAccumulator;
     private transient DataGet baseGet = null;
     private transient DataResult baseResult = null;
+    private boolean ignore;
 
     public IndexTransformer(DDLMessage.TentativeIndex tentativeIndex) {
         index = tentativeIndex.getIndex();
         table = tentativeIndex.getTable();
         checkArgument(!index.getUniqueWithDuplicateNulls() || index.getUniqueWithDuplicateNulls(), "isUniqueWithDuplicateNulls only for use with unique indexes");
+        excludeNulls = index.getExcludeNulls();
+        excludeDefaultValues = index.getExcludeDefaults();
         this.typeProvider = VersionedSerializers.typesForVersion(table.getTableVersion());
         List<Integer> indexColsList = index.getIndexColsToMainColMapList();
         indexedCols = DDLUtils.getIndexedCols(Ints.toArray(indexColsList));
@@ -97,6 +106,10 @@ public class IndexTransformer {
         indexFormatIds = new int[indexColsList.size()];
         for (int i = 0; i < indexColsList.size(); i++) {
             indexFormatIds[i] = allFormatIds.get(indexColsList.get(i)-1);
+        }
+        if ( index.getDefaultValues() != null && excludeDefaultValues) {
+            defaultValues = (ValueRow)SerializationUtils.deserialize(index.getDefaultValues().toByteArray());
+            defaultValuesExecRow = (ValueRow)defaultValues.getClone();
         }
     }
 
@@ -131,9 +144,6 @@ public class IndexTransformer {
     public KVPair createIndexDelete(KVPair mutation, WriteContext ctx, BitSet indexedColumns) throws IOException {
         // do a Get() on all the indexed columns of the base table
         DataResult result =fetchBaseRow(mutation,ctx,indexedColumns);
-//        EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, new ObjectArrayList<Predicate>(),true);
-//        get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
-//        DataResult result = ctx.getRegion().get(get);
         if(result==null||result.size()<=0){
             // we can't find the old row, may have been deleted already
             return null;
@@ -162,6 +172,8 @@ public class IndexTransformer {
         boolean hasNullKeyFields = false;
         for (int i = 0; i< execRow.nColumns();i++) {
             if (execRow.getColumn(i+1) == null || execRow.getColumn(i+1).isNull()) {
+                if (i == 0 && excludeNulls) // Pass along null for exclusion...
+                    return null;
                 hasNullKeyFields = true;
                 accumulateNull(keyAccumulator,
                     i,
@@ -211,6 +223,8 @@ public class IndexTransformer {
         EntryAccumulator keyAccumulator = getKeyAccumulator();
         keyAccumulator.reset();
         boolean hasNullKeyFields = false;
+
+        ignore = false;
 
         /*
          * Handle index columns from the source table's primary key.
@@ -315,6 +329,10 @@ public class IndexTransformer {
             }
         }
 
+        if (ignore) {
+            return null;
+        }
+
         //add the row key to the end of the index key
         byte[] srcRowKey = Encoding.encodeBytesUnsorted(mutation.getRowKey());
 
@@ -403,6 +421,8 @@ public class IndexTransformer {
      * a length-0 array, but for floats and doubles it will put the proper type into place.
      */
     private void accumulateNull(EntryAccumulator keyAccumulator, int pos, int type){
+        if (excludeNulls && pos == 0) // Exclude Nulls
+            ignore = true;
         if (typeProvider.isScalar(type))
             keyAccumulator.addScalar(pos,SIConstants.EMPTY_BYTE_ARRAY,0,0);
         else if (typeProvider.isDouble(type))
@@ -429,6 +449,23 @@ public class IndexTransformer {
             }
             off = 0;
         }
+        if (excludeDefaultValues && pos == 0) { // Exclude Default Values
+            ExecRowAccumulator era =  getExecRowAccumulator();
+            if (typeProvider.isScalar(type))
+                era.addScalar(pos, data, off, length);
+            else if (typeProvider.isDouble(type))
+                era.addDouble(pos, data, off, length);
+            else if (typeProvider.isFloat(type))
+                era.addFloat(pos, data, off, length);
+            else
+                era.add(pos, data, off, length);
+            if (defaultValues != null && defaultValues.getColumn(1) !=null
+                    && defaultValues.getColumn(1).equals(defaultValuesExecRow.getColumn(1))) {
+                ignore = true;
+            }
+
+        }
+
         if (typeProvider.isScalar(type))
             keyAccumulator.addScalar(pos, data, off, length);
         else if (typeProvider.isDouble(type))
@@ -437,7 +474,6 @@ public class IndexTransformer {
             keyAccumulator.addFloat(pos, data, off, length);
         else
             keyAccumulator.add(pos, data, off, length);
-
     }
 
     private boolean skip(MultiFieldDecoder keyDecoder, int sourceKeyColumnType) {
@@ -475,6 +511,14 @@ public class IndexTransformer {
         }
 
         return indexKeyAccumulator;
+    }
+
+    private ExecRowAccumulator getExecRowAccumulator() {
+        if (execRowAccumulator == null) {
+            execRowAccumulator = ExecRowAccumulator.newAccumulator(EntryPredicateFilter.emptyPredicate(), false,
+                    defaultValuesExecRow, new int[]{0}, table.getTableVersion());
+        }
+        return execRowAccumulator;
     }
 
     private EntryDecoder getSrcValueDecoder() {

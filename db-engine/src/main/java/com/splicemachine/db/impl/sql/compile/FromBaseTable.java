@@ -425,9 +425,17 @@ public class FromBaseTable extends FromTable {
                 }
             }
         }
-
+        if (currentConglomerateDescriptor !=null && currentConglomerateDescriptor.isIndex()) {
+            if (currentConglomerateDescriptor.getIndexDescriptor().excludeNulls()
+                    && (predList == null || !predList.canSupportIndexExcludedNulls(tableNumber,currentConglomerateDescriptor))) {
+                currentConglomerateDescriptor = null;
+            }
+            else if (currentConglomerateDescriptor.getIndexDescriptor().excludeDefaults()
+                    && (predList == null || !predList.canSupportIndexExcludedDefaults(tableNumber,currentConglomerateDescriptor))) {
+                currentConglomerateDescriptor = null;
+            }
+        }
         ap.setConglomerateDescriptor(currentConglomerateDescriptor);
-
         return currentConglomerateDescriptor!=null;
     }
 

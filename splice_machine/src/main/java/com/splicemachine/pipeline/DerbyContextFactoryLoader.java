@@ -14,6 +14,10 @@
 
 package com.splicemachine.pipeline;
 
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.execute.RowUtil;
+import com.splicemachine.derby.utils.FormatableBitSetUtils;
 import org.spark_project.guava.base.Optional;
 import org.spark_project.guava.collect.Iterables;
 import org.spark_project.guava.collect.Multimap;
@@ -44,15 +48,15 @@ import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
-
+import java.util.ArrayList;
 import static com.splicemachine.pipeline.ConglomerateDescriptors.*;
+import java.util.List;
 
 /**
  * @author Scott Fines
@@ -318,8 +322,27 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
                     ConglomerateDescriptor srcConglomDesc=uniqueIndexConglom.isPresent()?uniqueIndexConglom.get():currentCongloms.iterator().next();
                     IndexDescriptor indexDescriptor=srcConglomDesc.getIndexDescriptor().getIndexDescriptor();
 
+                    ConglomerateDescriptor bcd = td.getBaseConglomerateDescriptor();
+                    int[] baseColumnPositions = indexDescriptor.baseColumnPositions();
+                    // Create the FormatableBitSet for mapping the partial to full base row
+                    FormatableBitSet bitSet = FormatableBitSetUtils.fromIntArray(td.getNumberOfColumns()+1,baseColumnPositions);
+                    FormatableBitSet zeroBasedBitSet = RowUtil.shift(bitSet, 1);
+
+                    // Fill the partial row with nulls of the correct type
+                    ColumnDescriptorList cdl = td.getColumnDescriptorList();
+                    int	cdlSize = cdl.size();
+                    List<DataValueDescriptor> defaultValues = new ArrayList<>();
+                    for (int index = 0, numSet = 0; index < cdlSize; index++) {
+                        if (! zeroBasedBitSet.get(index)) {
+                            continue;
+                        }
+                        numSet++;
+                        ColumnDescriptor cdItem = cdl.elementAt(index);
+                        defaultValues.add(cdItem.getDefaultValue());
+                    }
+
                     DDLMessage.TentativeIndex ti=ProtoUtil.createTentativeIndex(lcc,td.getBaseConglomerateDescriptor().getConglomerateNumber(),
-                            indexConglom.get().getConglomerateNumber(),td,indexDescriptor);
+                            indexConglom.get().getConglomerateNumber(),td,indexDescriptor,defaultValues);
                     IndexFactory indexFactory=IndexFactory.create(ti);
                     indexFactories.replace(indexFactory);
                 }
