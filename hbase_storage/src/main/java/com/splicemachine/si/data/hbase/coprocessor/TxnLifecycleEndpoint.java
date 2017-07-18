@@ -171,7 +171,13 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
     public void getTransaction(RpcController controller,TxnMessage.TxnRequest request,RpcCallback<TxnMessage.Txn> done){
         try{
             long txnId=request.getTxnId();
-            TxnMessage.Txn transaction = lifecycleStore.getTransaction(txnId);
+            boolean isOld = request.hasIsOld() && request.getIsOld();
+            TxnMessage.Txn transaction;
+            if (isOld) {
+                transaction = lifecycleStore.getOldTransaction(txnId);
+            } else {
+                transaction = lifecycleStore.getTransaction(txnId);
+            }
             done.run(transaction);
         }catch(IOException ioe){
             ResponseConverter.setControllerException(controller,ioe);
