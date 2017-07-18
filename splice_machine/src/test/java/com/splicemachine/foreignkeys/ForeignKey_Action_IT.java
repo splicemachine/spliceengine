@@ -38,8 +38,6 @@ import static org.junit.Assert.fail;
  * ON UPDATE NO ACTION
  */
 //
-// SPLICE-894 Remove Serial
-@Category(value = {SerialTest.class})
 public class ForeignKey_Action_IT {
 
     private static final String SCHEMA = ForeignKey_Action_IT.class.getSimpleName();
