@@ -26,6 +26,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
+import org.apache.zookeeper.ZKUtil;
 
 /**
  * Created by jyuan on 10/14/14.
@@ -38,7 +39,7 @@ public class SpliceCatalogUpgradeScripts{
     TransactionController tc;
     TreeMap<Splice_DD_Version, UpgradeScript> scripts;
     Comparator<Splice_DD_Version> ddComparator;
-
+    
     public SpliceCatalogUpgradeScripts(SpliceDataDictionary sdd,Splice_DD_Version catalogVersion,TransactionController tc){
         this.sdd=sdd;
         this.catalogVersion=catalogVersion;

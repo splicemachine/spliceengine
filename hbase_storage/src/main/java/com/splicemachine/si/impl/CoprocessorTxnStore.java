@@ -53,6 +53,8 @@ import java.util.concurrent.atomic.AtomicLong;
 public class CoprocessorTxnStore implements TxnStore {
     private final TxnNetworkLayerFactory tableFactory;
     private TxnSupplier cache; //a transaction store which uses a global cache for us
+    private volatile long oldTransactions;
+    
     @ThreadSafe
     private final TimestampSource timestampSource;
 
@@ -238,20 +240,41 @@ public class CoprocessorTxnStore implements TxnStore {
     @Override
     public TxnView getTransaction(long txnId,boolean getDestinationTables) throws IOException{
         lookups.incrementAndGet(); //we are performing a lookup, so increment the counter
+        if (txnId < oldTransactions) {
+            return getOldTransaction(txnId, getDestinationTables);
+        }
+
         byte[] rowKey=getTransactionRowKey(txnId );
         TxnMessage.TxnRequest request=TxnMessage.TxnRequest.newBuilder().setTxnId(txnId).build();
 
         try (TxnNetworkLayer table = tableFactory.accessTxnNetwork()){
-//            TxnMessage.TxnLifecycleService service=getLifecycleService(table,rowKey);
-//            SpliceRpcController controller=new SpliceRpcController();
-//            BlockingRpcCallback<TxnMessage.Txn> done=new BlockingRpcCallback<>();
-//            service.getTransaction(controller,request,done);
-//            dealWithError(controller);
+
             TxnMessage.Txn messageTxn=table.getTxn(rowKey,request);
             return decode(messageTxn);
         } catch(Throwable throwable){
             throw new IOException(throwable);
         }
+    }
+
+    public TxnView getOldTransaction(long txnId, boolean getDestinationTables) throws IOException {
+        byte[] rowKey = getOldTransactionRowKey(txnId);
+        TxnMessage.TxnRequest request = TxnMessage.TxnRequest.newBuilder().setTxnId(txnId).setIsOld(true).build();
+
+        try (TxnNetworkLayer table = tableFactory.accessTxnNetwork()){
+            TxnMessage.Txn messageTxn=table.getTxn(rowKey,request);
+            return decode(messageTxn);
+        } catch(Throwable throwable){
+            throw new IOException(throwable);
+        }
+    }
+
+    private static byte[] getOldTransactionRowKey(long txnId){
+        return TxnUtils.getOldRowKey(txnId);
+    }
+
+    @Override
+    public void setOldTransactions(long oldTransactions) {
+        this.oldTransactions = oldTransactions;
     }
 
     /*caching methods--since we don't have a cache, these are no-ops*/
