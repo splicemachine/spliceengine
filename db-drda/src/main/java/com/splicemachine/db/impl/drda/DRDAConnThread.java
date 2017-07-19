@@ -785,7 +785,10 @@ class DRDAConnThread extends Thread {
 			correlationID = reader.readDssHeader();
 			int codePoint = reader.readLengthAndCodePoint( false );
 			int writerMark = writer.markDSSClearPoint();
-			
+
+			// Clear the interrupted state in case the thread was interrupted while we were waiting for commands
+			Thread.currentThread().interrupted();
+
 			if (checkSecurityCodepoint)
 				verifyInOrderACCSEC_SECCHK(codePoint,session.getRequiredSecurityCodepoint());
 

@@ -143,6 +143,11 @@ public class SingleRowCursorResultSet implements CursorResultSet {
     }
 
     @Override
+    public boolean isKilled() {
+        return false;
+    }
+
+    @Override
     public void finish() throws StandardException {
 
     }
