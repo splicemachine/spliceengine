@@ -688,7 +688,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
                                                                    newBaseConglom,
                                                                    newIndexCongloms[index],
                                                                    td,
-                                                                   cd.getIndexDescriptor());
+                                                                   cd.getIndexDescriptor(),null);
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
     }
 
@@ -859,7 +859,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
                 ascending[i] = true;
             }
             IndexDescriptor indexDescriptor =
-                new IndexDescriptorImpl("PRIMARYKEY",true,false,pkColumns,ascending,pkColumns.length);
+                new IndexDescriptorImpl("PRIMARYKEY",true,false,pkColumns,ascending,pkColumns.length,false,false);
             IndexRowGenerator irg = new IndexRowGenerator(indexDescriptor);
 
             // Replace old table conglomerate with new one with the new PK conglomerate

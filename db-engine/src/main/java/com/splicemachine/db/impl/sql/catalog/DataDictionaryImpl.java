@@ -6710,7 +6710,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         boolean isUnique=ti.isIndexUnique(indexNumber);
         //Splice is always higher than 10.4
-        IndexRowGenerator irg=new IndexRowGenerator("DENSE",isUnique,false,baseColumnPositions,isAscending,baseColumnLength);
+        IndexRowGenerator irg=new IndexRowGenerator("DENSE",isUnique,false,baseColumnPositions,isAscending,baseColumnLength,false,false);
 
         // For now, assume that all index columns are ordered columns
         ti.setIndexRowGenerator(indexNumber,irg);

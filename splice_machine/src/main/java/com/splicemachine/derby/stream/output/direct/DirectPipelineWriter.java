@@ -79,7 +79,8 @@ public class DirectPipelineWriter implements TableWriter<KVPair>,AutoCloseable{
     @Override
     public void write(KVPair row) throws StandardException{
         try{
-            writeBuffer.add(row);
+            if (row != null)
+                writeBuffer.add(row);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
