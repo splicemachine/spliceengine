@@ -34,6 +34,11 @@ public class SpliceIndexWatcher extends TestWatcher {
 	protected String indexName;
 	protected String indexSchemaName;
 	protected String create = "create";
+	protected boolean excludeNulls;
+	protected boolean excludeDefaults;
+	private static final String EXCLUDE_NULL_KEYS = "exclude null keys";
+	private static final String EXCLUDE_DEFAULT_KEYS = "exclude default keys";
+
 	protected static String SELECT_SPECIFIC_INDEX = "select c.conglomeratename from sys.sysconglomerates c inner join sys.sysschemas s on " + 
 									"c.schemaid = s.schemaid where c.isindex = 'TRUE' and s.schemaname = ? and c.conglomeratename = ?";
 	
@@ -43,6 +48,11 @@ public class SpliceIndexWatcher extends TestWatcher {
 	}
 
 	public SpliceIndexWatcher(String tableName, String tableSchemaName, String indexName, String indexSchemaName, String createString, boolean unique) {
+		this(tableName,tableSchemaName, indexName, indexSchemaName, createString, unique, false, false);
+	}
+
+	public SpliceIndexWatcher(String tableName, String tableSchemaName, String indexName, String indexSchemaName, String createString, boolean unique,
+							  boolean excludeNulls, boolean excludeDefaults) {
 		this.tableName = tableName.toUpperCase();
 		this.tableSchemaName = tableSchemaName.toUpperCase();
 		this.createString = createString;
@@ -50,6 +60,8 @@ public class SpliceIndexWatcher extends TestWatcher {
 		this.indexSchemaName = indexSchemaName.toUpperCase();
 		if (unique)
 			create = create+" unique";
+		this.excludeNulls = excludeNulls;
+		this.excludeDefaults = excludeDefaults;
 	}
 
 	@Override
@@ -70,7 +82,10 @@ public class SpliceIndexWatcher extends TestWatcher {
 			}
 			connection.commit();
 			statement2 = connection.createStatement();
-			statement2.execute(String.format("%s index %s.%s on %s.%s %s",create,indexSchemaName,indexName,tableSchemaName,tableName,createString));
+			statement2.execute(String.format("%s index %s.%s on %s.%s %s %s %s",create,indexSchemaName,indexName,tableSchemaName,tableName,createString,
+					excludeNulls?EXCLUDE_NULL_KEYS:"",
+					excludeDefaults?EXCLUDE_DEFAULT_KEYS:""
+					));
 			connection.commit();
 		} catch (Exception e) {
 			LOG.error("Create index statement is invalid ");
@@ -104,7 +119,6 @@ public class SpliceIndexWatcher extends TestWatcher {
         PreparedStatement statement = null;
         ResultSet rs = null;
         try {
-//            connection = SpliceNetConnection.getConnection();
             statement = connection.prepareStatement(SELECT_SPECIFIC_INDEX);
             statement.setString(1, schemaName);
             statement.setString(2, indexName);

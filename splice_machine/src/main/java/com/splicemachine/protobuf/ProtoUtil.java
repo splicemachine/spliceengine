@@ -14,6 +14,9 @@
 
 package com.splicemachine.protobuf;
 
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+import org.apache.commons.lang.SerializationUtils;
 import org.spark_project.guava.base.Function;
 import com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory;
 import org.spark_project.guava.base.Joiner;
@@ -237,12 +240,20 @@ public class ProtoUtil {
                 .build();
     }
 
-    public static Index createIndex(long conglomerate, IndexDescriptor indexDescriptor) {
+    public static Index createIndex(long conglomerate, IndexDescriptor indexDescriptor, ValueRow defaultValue) {
+        byte [] defaultValuesBytes = null;
+        if (defaultValue!=null) {
+            defaultValuesBytes = SerializationUtils.serialize(defaultValue);
+        }
         boolean[] ascColumns = indexDescriptor.isAscending();
         Index.Builder builder=Index.newBuilder()
                 .setConglomerate(conglomerate)
                 .setUniqueWithDuplicateNulls(indexDescriptor.isUniqueWithDuplicateNulls())
-                .setUnique(indexDescriptor.isUnique());
+                .setUnique(indexDescriptor.isUnique())
+                .setExcludeDefaults(indexDescriptor.excludeDefaults())
+                .setExcludeNulls(indexDescriptor.excludeNulls());
+        if (defaultValuesBytes != null)
+            builder.setDefaultValues(ByteString.copyFrom(defaultValuesBytes));
         for(int i=0;i<ascColumns.length;i++){
             builder = builder.addDescColumns(!ascColumns[i]);
         }
@@ -271,10 +282,10 @@ public class ProtoUtil {
     }
 
     public static DDLChange createTentativeIndexChange(long txnId, LanguageConnectionContext lcc, long baseConglomerate, long indexConglomerate,
-                                                       TableDescriptor td, IndexDescriptor indexDescriptor) throws StandardException {
+                                                       TableDescriptor td, IndexDescriptor indexDescriptor, ValueRow defaultValues) throws StandardException {
         SpliceLogUtils.trace(LOG, "create Tentative Index {baseConglomerate=%d, indexConglomerate=%d");
         return DDLChange.newBuilder().setTentativeIndex(TentativeIndex.newBuilder()
-                .setIndex(createIndex(indexConglomerate, indexDescriptor))
+                .setIndex(createIndex(indexConglomerate, indexDescriptor,defaultValues))
                 .setTable(createTable(baseConglomerate,td,lcc))
                 .build())
                 .setTxnId(txnId)
@@ -283,10 +294,10 @@ public class ProtoUtil {
     }
 
     public static TentativeIndex createTentativeIndex(LanguageConnectionContext lcc, long baseConglomerate, long indexConglomerate,
-                                                       TableDescriptor td, IndexDescriptor indexDescriptor) throws StandardException {
+                                                       TableDescriptor td, IndexDescriptor indexDescriptor, ValueRow defaultValue) throws StandardException {
         SpliceLogUtils.trace(LOG, "create Tentative Index {baseConglomerate=%d, indexConglomerate=%d");
         return TentativeIndex.newBuilder()
-                .setIndex(createIndex(indexConglomerate,indexDescriptor))
+                .setIndex(createIndex(indexConglomerate,indexDescriptor,defaultValue))
                 .setTable(createTable(baseConglomerate,td,lcc))
                 .build();
     }
