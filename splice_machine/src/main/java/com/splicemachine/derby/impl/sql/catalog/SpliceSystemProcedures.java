@@ -528,6 +528,27 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     procedures.add(disableStatsForColumn);
 
 
+        			/*
+        			 * Procedure to get a list of running operations
+        			 */
+                    Procedure runningOperations = Procedure.newBuilder().name("SYSCS_GET_RUNNING_OPERATIONS")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(runningOperations);
+
+
+        			/*
+        			 * Procedure to kill an executing operation
+        			 */
+                    Procedure killOperation = Procedure.newBuilder().name("SYSCS_KILL_OPERATION")
+                            .numOutputParams(0)
+                            .varchar("uuid",128)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(killOperation);
+
 
                     /*
                      * Procedure to elevate a transaction
