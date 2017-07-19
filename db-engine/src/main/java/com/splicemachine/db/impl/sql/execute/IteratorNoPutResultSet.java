@@ -180,7 +180,12 @@ public class IteratorNoPutResultSet implements NoPutResultSet {
 
 		@Override public boolean isClosed() { return nextRow ==null; }
 
-		@Override public void finish() throws StandardException { close(); }
+	@Override
+	public boolean isKilled() {
+		return false;
+	}
+
+	@Override public void finish() throws StandardException { close(); }
 
 		@Override public long getExecuteTime() { return 0; }
 
