@@ -254,6 +254,36 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(getWriteIntakeInfo);
 
+                    /*
+        			 * Procedure get exec service info
+        			 */
+                    Procedure getExecServiceInfo = Procedure.newBuilder().name("SYSCS_GET_EXEC_SERVICE_INFO")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(getExecServiceInfo);
+
+                    /*
+        			 * Procedure get each individual cache info
+        			 */
+                    Procedure getCacheInfo = Procedure.newBuilder().name("SYSCS_GET_CACHE_INFO")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(getCacheInfo);
+
+                    /*
+        			 * Procedure get total cache info
+        			 */
+                    Procedure getTotalCacheInfo = Procedure.newBuilder().name("SYSCS_GET_TOTAL_CACHE_INFO")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(getTotalCacheInfo);
+
         			/*
         			 * Procedures to kill stale transactions
         			 */

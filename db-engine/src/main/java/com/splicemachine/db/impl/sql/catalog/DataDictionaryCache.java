@@ -45,13 +45,18 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.cache.Cache;
 import org.spark_project.guava.cache.CacheBuilder;
 import org.spark_project.guava.cache.RemovalListener;
 import org.spark_project.guava.cache.RemovalNotification;
 
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.MBeanServer;
 import javax.management.MXBean;
+import javax.management.ObjectName;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
@@ -62,21 +67,24 @@ import java.util.Properties;
  */
 public class DataDictionaryCache {
     private static Logger LOG = Logger.getLogger(DataDictionaryCache.class);
-    private Cache<UUID,TableDescriptor> oidTdCache;
-    private Cache<TableKey,TableDescriptor> nameTdCache;
-    private Cache<TableKey,SPSDescriptor> spsNameCache;
-    private Cache<String,SequenceUpdater> sequenceGeneratorCache;
-    private Cache<PermissionsDescriptor,PermissionsDescriptor> permissionsCache;
-    private Cache<Long,List<PartitionStatisticsDescriptor>> partitionStatisticsCache;
-    private Cache<UUID, SPSDescriptor> storedPreparedStatementCache;
-    private Cache<Long,Conglomerate> conglomerateCache;
-    private Cache<GenericStatement,GenericStorablePreparedStatement> statementCache;
-    private Cache<String,SchemaDescriptor> schemaCache;
-    private Cache<String,Optional<RoleGrantDescriptor>> roleCache;
+    private ManagedCache<UUID,TableDescriptor> oidTdCache;
+    private ManagedCache<TableKey,TableDescriptor> nameTdCache;
+    private ManagedCache<TableKey,SPSDescriptor> spsNameCache;
+    private ManagedCache<String,SequenceUpdater> sequenceGeneratorCache;
+    private ManagedCache<PermissionsDescriptor,PermissionsDescriptor> permissionsCache;
+    private ManagedCache<Long,List<PartitionStatisticsDescriptor>> partitionStatisticsCache;
+    private ManagedCache<UUID, SPSDescriptor> storedPreparedStatementCache;
+    private ManagedCache<Long,Conglomerate> conglomerateCache;
+    private ManagedCache<GenericStatement,GenericStorablePreparedStatement> statementCache;
+    private ManagedCache<String,SchemaDescriptor> schemaCache;
+    private ManagedCache<String,AliasDescriptor> aliasDescriptorCache;
+    private ManagedCache<String,Optional<RoleGrantDescriptor>> roleCache;
     private int tdCacheSize;
     private int stmtCacheSize;
     private int permissionsCacheSize;
     private DataDictionary dd;
+    public static final String [] cacheNames = new String[] {"oidTdCache", "nameTdCache", "spsNameCache", "sequenceGeneratorCache", "permissionsCache", "partitionStatisticsCache",
+            "storedPreparedStatementCache", "conglomerateCache", "statementCache", "schemaCache", "aliasDescriptorCache", "roleCache"};
 
 
     public DataDictionaryCache(Properties startParams,DataDictionary dd) throws StandardException {
@@ -108,19 +116,20 @@ public class DataDictionaryCache {
                 }
             }
         };
-        oidTdCache = CacheBuilder.newBuilder().maximumSize(tdCacheSize).build();
-        nameTdCache = CacheBuilder.newBuilder().maximumSize(tdCacheSize).build();
+        oidTdCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(tdCacheSize).build());
+        nameTdCache = new ManagedCache<>(CacheBuilder.newBuilder().maximumSize(tdCacheSize).build());
         if(stmtCacheSize>0){
-            spsNameCache = CacheBuilder.newBuilder().maximumSize(stmtCacheSize).removalListener(dependentInvalidator).build();
-            storedPreparedStatementCache = CacheBuilder.newBuilder().maximumSize(stmtCacheSize).removalListener(dependentInvalidator).build();
+            spsNameCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(stmtCacheSize).removalListener(dependentInvalidator).build());
+            storedPreparedStatementCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(stmtCacheSize).removalListener(dependentInvalidator).build());
         }
-        sequenceGeneratorCache=CacheBuilder.newBuilder().maximumSize(seqgenCacheSize).build();
-        partitionStatisticsCache = CacheBuilder.newBuilder().maximumSize(8092).build();
-        conglomerateCache = CacheBuilder.newBuilder().maximumSize(1024).build();
-        statementCache = CacheBuilder.newBuilder().maximumSize(1024).removalListener(dependentInvalidator).build();
-        schemaCache = CacheBuilder.newBuilder().maximumSize(1024).build();
-        roleCache = CacheBuilder.newBuilder().maximumSize(100).build();
-        permissionsCache=CacheBuilder.newBuilder().maximumSize(permissionsCacheSize).build();
+        sequenceGeneratorCache=new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(seqgenCacheSize).build());
+        partitionStatisticsCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(8092).build());
+        conglomerateCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(1024).build());
+        statementCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(1024).removalListener(dependentInvalidator).build());
+        schemaCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(1024).build());
+        aliasDescriptorCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(1024).build());
+        roleCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(100).build());
+        permissionsCache=new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(permissionsCacheSize).build());
         this.dd = dd;
     }
 
@@ -418,6 +427,29 @@ public class DataDictionaryCache {
     @MXBean
     @SuppressWarnings("UnusedDeclaration")
     public interface DataDictionaryCacheIFace {
+
+    }
+
+    public void registerJMX(MBeanServer mbs) throws Exception{
+        try{
+            ManagedCache [] mc = new ManagedCache[] {oidTdCache, nameTdCache, spsNameCache, sequenceGeneratorCache, permissionsCache, partitionStatisticsCache, storedPreparedStatementCache,
+                    conglomerateCache, statementCache, schemaCache, aliasDescriptorCache, roleCache};
+            //Passing in objects from mc array and names of objects from cacheNames array (static above)
+            for(int i = 0; i < mc.length; i++){
+                ObjectName cacheName = new ObjectName("com.splicemachine.db.impl.sql.catalog:type="+cacheNames[i]);
+                mbs.registerMBean(mc[i],cacheName);
+            }
+            ObjectName totCache = new ObjectName("com.splicemachine.db.impl.sql.catalog:type=TotalManagedCache");
+            TotalManagedCache tm = new TotalManagedCache(Arrays.asList(mc));
+            mbs.registerMBean(tm, totCache);
+        }catch(InstanceAlreadyExistsException ignored){
+            /*
+             * For most purposes, this should never happen. However, it's possible to happen
+             * when you are booting a regionserver and master in the same JVM (e.g. for testing purposes); Since
+             * we can only really have one version of the software on a single node at one time, we just ignore
+             * this exception and don't worry about it too much.
+             */
+        }
 
     }
 
