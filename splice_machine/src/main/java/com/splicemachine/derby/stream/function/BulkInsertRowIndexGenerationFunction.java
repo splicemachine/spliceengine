@@ -143,7 +143,8 @@ public class BulkInsertRowIndexGenerationFunction extends  RowAndIndexGenerator 
                 indexRow.setKey(mainRow.rowKeySlice().array());
                 Long indexConglomerate = indexTransformFunctions[i].getIndexConglomerateId();
                 KVPair indexKVPair = indexTransformFunctions[i].call(indexRow);
-                list.add(new Tuple2<>(indexConglomerate, new Tuple2<>(indexKVPair.getRowKey(), indexKVPair.getValue())));
+                if (indexKVPair != null) // Supports Null and Default Expression Indexes
+                    list.add(new Tuple2<>(indexConglomerate, new Tuple2<>(indexKVPair.getRowKey(), indexKVPair.getValue())));
             }
             return list.iterator();
 
