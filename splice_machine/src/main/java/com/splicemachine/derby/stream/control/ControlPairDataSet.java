@@ -69,8 +69,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
         return new ControlDataSet<>(Iterators.transform(source,new Function<Tuple2<K,V>, V>() {
             @Nullable @Override
             public V apply(@Nullable Tuple2<K,V>t) {
-                assert t!=null;
-                return t._2();
+                return t==null?null:t._2();
             }
         }));
     }

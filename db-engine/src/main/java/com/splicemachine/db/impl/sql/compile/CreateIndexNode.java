@@ -68,6 +68,8 @@ public class CreateIndexNode extends DDLStatementNode
 	String[]			columnNames = null;
 	boolean[]			isAscending;
 	int[]				boundColumnIDs;
+	boolean 			excludeNulls;
+	boolean				excludeDefaults;
 
 	TableDescriptor		td;
 
@@ -90,6 +92,8 @@ public class CreateIndexNode extends DDLStatementNode
 					Object indexName,
 					Object tableName,
 					Object columnNameList,
+					Object excludeNulls,
+					Object excludeDefaults,
 					Object properties)
 		throws StandardException
 	{
@@ -100,6 +104,8 @@ public class CreateIndexNode extends DDLStatementNode
 		this.tableName = (TableName) tableName;
 		this.columnNameList = (Vector) columnNameList;
 		this.properties = (Properties) properties;
+		this.excludeNulls = (Boolean) excludeNulls;
+		this.excludeDefaults = (Boolean) excludeDefaults;
 	}
 
 	/**
@@ -306,6 +312,8 @@ public class CreateIndexNode extends DDLStatementNode
                     isAscending,
                     false,
                     null,
+				excludeNulls,
+				excludeDefaults,
                     properties);
 	}
 
