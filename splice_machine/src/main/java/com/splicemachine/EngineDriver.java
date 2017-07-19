@@ -23,7 +23,6 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
-import com.splicemachine.derby.iapi.sql.execute.OperationManager;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
@@ -52,7 +51,6 @@ public class EngineDriver{
     private final SqlExceptionFactory exceptionFactory;
     private final DatabaseAdministrator dbAdmin;
     private final OlapClient olapClient;
-    private final OperationManager operationManager;
     private final SqlEnvironment environment;
     private final ExecutorService threadPool;
 
@@ -81,7 +79,6 @@ public class EngineDriver{
         this.olapClient = environment.getOlapClient();
         this.propertyManager = environment.getPropertyManager();
         this.exceptionFactory = environment.exceptionFactory();
-        this.operationManager = environment.getOperationManager();
         this.dbAdmin = environment.databaseAdministrator();
         this.sequencePool=CachedResourcePool.Builder.<SpliceSequence, SequenceKey>newBuilder()
                 .expireAfterAccess(1,TimeUnit.MINUTES)
@@ -167,6 +164,4 @@ public class EngineDriver{
     public ExecutorService getExecutorService() {
         return threadPool;
     }
-
-    public OperationManager getOperationManager() { return operationManager; }
 }

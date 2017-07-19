@@ -47,7 +47,6 @@ MEMBERS=2
 DEBUG_PATH=""
 
 MVN='mvn -B'
-MVNDBG='mvnDebug -B'
 
 usage() {
     # $1 is an error, if any
@@ -131,9 +130,8 @@ pushd "${RUN_DIR}" > /dev/null
 
 # Run IN MEMORY
 if [[ ${PROFILE} == ${IN_MEM_PROFILE} ]]; then
-  MEM_LOG="${RUN_DIR}/spliceMem.log"
-  echo "Starting MEM. Log file is ${MEM_LOG}"
-  (${MVN} exec:java > ${MEM_LOG} 2>&1) &    ## IN MEMORY
+    echo "Starting MEM. Log file is the splice-derby.log<n> in ${RUN_DIR}"
+  (${MVN} exec:java > /dev/null 2>&1) &    ## IN MEMORY
   exit 0;
 fi
 

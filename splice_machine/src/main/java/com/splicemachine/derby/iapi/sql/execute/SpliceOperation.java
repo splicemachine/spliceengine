@@ -379,11 +379,4 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
      * @return
      */
     String getVTIFileName();
-
-    /**
-     * Forcefully close operation and mark it as killed
-     * @throws StandardException
-     * @throws IOException
-     */
-    void kill() throws StandardException;
 }

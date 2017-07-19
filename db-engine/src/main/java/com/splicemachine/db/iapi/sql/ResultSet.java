@@ -277,13 +277,6 @@ public interface ResultSet
 	boolean isClosed();
 
 	/**
-	 Find out if the ResultSet is killed or not.
-
-	 @return true if the ResultSet has been killed.
-	 */
-	boolean isKilled();
-
-	/**
 	 * Tells the system that there will be no more access
 	 * to any database information via this result set;
 	 * in particular, no more calls to open().

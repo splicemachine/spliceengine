@@ -601,11 +601,6 @@ implements NoPutResultSet
 	    return ( ! isOpen );
 	}
 
-	@Override
-	public boolean isKilled() {
-		return false;
-	}
-
 	public void	finish() throws StandardException
 	{
 		finishAndRTS();

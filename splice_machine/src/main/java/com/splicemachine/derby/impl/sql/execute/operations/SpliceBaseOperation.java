@@ -54,7 +54,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.UUID;
 
 public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed, Externalizable{
     private static final long serialVersionUID=4l;
@@ -70,7 +69,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     protected RowLocation currentRowLocation;
     protected boolean executed=false;
     protected OperationContext operationContext;
-    protected volatile boolean isOpen=true;
+    protected boolean isOpen=true;
     protected int resultSetNumber;
     protected OperationInformation operationInformation;
     protected ExecRow locatedRow;
@@ -82,8 +81,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     protected RemoteQueryClient remoteQueryClient;
     protected long modifiedRowCount = 0;
     protected long badRecords = 0;
-    private UUID uuid = null;
-    private volatile boolean isKilled = false;
 
     public SpliceBaseOperation(){
         super();
@@ -188,9 +185,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     }
 
     @Override
-    public void close() throws StandardException {
-        if (uuid != null)
-            EngineDriver.driver().getOperationManager().unregisterOperation(uuid);
+    public void close() throws StandardException{
         try{
             if(LOG_CLOSE.isTraceEnabled())
                 LOG_CLOSE.trace(String.format("closing operation %s",this));
@@ -372,36 +367,25 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     }
 
     public void openCore(DataSetProcessor dsp) throws StandardException{
-        try {
-            if (LOG.isTraceEnabled())
-                LOG.trace(String.format("openCore %s", this));
-            isOpen = true;
-            String sql = activation.getPreparedStatement().getSource();
+        try{
+            if(LOG.isTraceEnabled())
+                LOG.trace(String.format("openCore %s",this));
+            isOpen=true;
+            String sql=activation.getPreparedStatement().getSource();
             if (!(this instanceof ExplainOperation || activation.isMaterialized()))
                 activation.materialize();
-            long txnId = getCurrentTransaction().getTxnId();
-            sql = sql == null ? this.toString() : sql;
-            String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+            long txnId=getCurrentTransaction().getTxnId();
+            sql=sql==null?this.toString():sql;
+            String userId=activation.getLanguageConnectionContext().getCurrentUserId(activation);
             if (dsp.getType() == DataSetProcessor.Type.SPARK) { // Only do this for spark jobs
                 this.jobName = userId + " <" + txnId + ">";
                 dsp.setJobGroup(jobName, sql);
             }
             dsp.clearBroadcastedOperation();
-            this.execRowIterator = getDataSet(dsp).toLocalIterator();
-        }catch(Exception e){ // This catches all the iterator errors for things that are not lazy
-            checkInterruptedException(e);
+            this.execRowIterator =getDataSet(dsp).toLocalIterator();
+        }catch(Exception e){ // This catches all the iterator errors for things that are not lazy.
             throw Exceptions.parseException(e);
         }
-    }
-
-    // When we kill an operation we close it abruptly and weird exceptions might pop up, mask them with the cancellation message
-    private void checkInterruptedException(Exception e) throws StandardException {
-        // we might have been killed, check the flag
-        if (isKilled) {
-            LOG.warn("Exception ignored because operation was explicitly killed", e);
-            throw StandardException.newException(SQLState.LANG_CANCELLATION_EXCEPTION);
-        }
-        // otherwise deal with it normally
     }
 
     protected boolean isOlapServer() {
@@ -410,19 +394,13 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
 
     @Override
     public void openCore() throws StandardException{
-        try {
-            uuid = EngineDriver.driver().getOperationManager().registerOperation(this, Thread.currentThread());
-            DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation, this);
-            if (dsp.getType() == DataSetProcessor.Type.SPARK && !isOlapServer() && !SpliceClient.isClient) {
-                remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
-                remoteQueryClient.submit();
-                execRowIterator = remoteQueryClient.getIterator();
-            } else {
-                openCore(dsp);
-            }
-        } catch (Exception e) {
-            checkInterruptedException(e);
-            throw e;
+        DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation,this);
+        if (dsp.getType() == DataSetProcessor.Type.SPARK && !isOlapServer() && !SpliceClient.isClient) {
+            remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
+            remoteQueryClient.submit();
+            execRowIterator = remoteQueryClient.getIterator();
+        } else {
+            openCore(dsp);
         }
     }
 
@@ -460,7 +438,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
                 SpliceLogUtils.trace(LOG,"getNextRowCore %s locatedRow=%s",this,locatedRow);
             return null;
         }catch(Exception e){
-            checkInterruptedException(e);
             throw Exceptions.parseException(e);
         }
     }
@@ -546,8 +523,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     public ExecRow getNextRow() throws StandardException{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"getNextRow");
-        if(isKilled)
-            throw StandardException.newException(SQLState.LANG_CANCELLATION_EXCEPTION);
         if(!isOpen)
             throw StandardException.newException(SQLState.LANG_RESULT_SET_NOT_OPEN,NEXT);
         attachStatementContext();
@@ -587,11 +562,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     @Override
     public boolean isClosed(){
         return !isOpen;
-    }
-
-    @Override
-    public boolean isKilled() {
-        return isKilled;
     }
 
     @Override
@@ -820,11 +790,5 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     @Override
     public DataSet<ExecRow> getResultDataSet(DataSetProcessor dsp) throws StandardException {
         return getDataSet(dsp);
-    }
-
-    @Override
-    public void kill() throws StandardException {
-        this.isKilled = true;
-        close();
     }
 }

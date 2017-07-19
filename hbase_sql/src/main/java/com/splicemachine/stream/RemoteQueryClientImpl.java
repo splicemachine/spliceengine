@@ -138,6 +138,5 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
     @Override
     public void close() throws Exception {
         streamListener.stopAllStreams();
-        olapFuture.cancel(true);
     }
 }

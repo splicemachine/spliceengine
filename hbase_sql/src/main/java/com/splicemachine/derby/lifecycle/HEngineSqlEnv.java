@@ -26,8 +26,6 @@ import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.PropertyManagerService;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
-import com.splicemachine.derby.iapi.sql.execute.OperationManager;
-import com.splicemachine.derby.iapi.sql.execute.OperationManagerImpl;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.impl.sql.HSqlExceptionFactory;
 import com.splicemachine.hbase.HBaseRegionLoads;
@@ -52,7 +50,6 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
     private SqlExceptionFactory exceptionFactory;
     private DatabaseAdministrator dbAdmin;
     private OlapClient olapClient;
-    private OperationManager operationManager;
 
     @Override
     public void initialize(SConfiguration config,
@@ -67,7 +64,6 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         this.exceptionFactory = new HSqlExceptionFactory(SIDriver.driver().getExceptionFactory());
         this.dbAdmin = new JmxDatabaseAdminstrator();
         this.olapClient = initializeOlapClient(config,driver.getClock());
-        this.operationManager = new OperationManagerImpl();
     }
 
     @Override
@@ -125,10 +121,5 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
     @Override
     public void refreshEnterpriseFeatures() {
         ManagerLoader.clear();
-    }
-
-    @Override
-    public OperationManager getOperationManager() {
-        return operationManager;
     }
 }

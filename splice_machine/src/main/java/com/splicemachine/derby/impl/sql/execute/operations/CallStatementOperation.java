@@ -122,12 +122,64 @@ public class CallStatementOperation extends NoRowsOperation {
 			activation.getLanguageConnectionContext().getStatementContext());
 		if (!isOpen)
 			return;
-		try {
-			super.close();
-		} catch (Exception e) {
-			throw new RuntimeException(e);
+        if (1!=2)
+            return;
+
+        /*
+		ResultSet[][] dynamicResults = activation.getDynamicResults();
+		if (dynamicResults != null) {
+
+			ConnectionContext jdbcContext = null;
+
+			for (int i = 0; i < dynamicResults.length; i++)
+			{
+				ResultSet[] param = dynamicResults[i];
+				ResultSet drs = null;
+				if (param != null) drs = param[0];
+
+				// Can be null if the procedure never set this parameter
+				// or if the dynamic results were processed by JDBC (EmbedStatement).
+				if (drs == null)
+				    continue;
+
+				if (jdbcContext == null)
+					jdbcContext = (ConnectionContext)activation.getLanguageConnectionContext().getContextManager().getContext(ConnectionContext.CONTEXT_ID);
+
+				try {
+					// Is this a valid, open dynamic result set for this connection?
+					if (!jdbcContext.processInaccessibleDynamicResult(drs))
+							continue;
+
+					drs.close();
+				} catch (SQLException e) {
+					SpliceLogUtils.error(LOG, e);
+				} finally {
+					// Remove any reference to the ResultSet to allow
+					// it and any associated resources to be garbage collected.
+					param[0] = null;
+				}
+			}
 		}
 
+		try {
+        	int staLength = (subqueryTrackingArray == null) ? 0 : subqueryTrackingArray.length;
+        
+        	for (int index = 0; index < staLength; index++)
+        	{
+    			if (subqueryTrackingArray[index] == null || subqueryTrackingArray[index].isClosed())
+					continue;
+    
+    			subqueryTrackingArray[index].close();
+        	}
+        
+        	isOpen = false;
+        
+        	if (activation.isSingleExecution())
+        		activation.close();
+		} catch (Exception e) {
+			SpliceLogUtils.error(LOG, e);
+		}
+        */
 
     }
 

@@ -883,11 +883,6 @@ class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cl
         return !isOpen;
     }
 
-    @Override
-    public boolean isKilled() {
-        return false;
-    }
-
     /**
      * Tells the system that there will be no more access
      * to any database information via this result set;
