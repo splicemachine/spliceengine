@@ -82,14 +82,18 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 								boolean isUniqueWithDuplicateNulls,
 								int[] baseColumnPositions,
 								boolean[] isAscending,
-								int numberOfOrderedColumns)
+								int numberOfOrderedColumns,
+							 	boolean excludeNulls,
+							    boolean excludeDefaults)
 	{
 		id = new IndexDescriptorImpl(indexType,
 									isUnique,
 									isUniqueWithDuplicateNulls,
 									baseColumnPositions,
 									isAscending,
-									numberOfOrderedColumns);
+									numberOfOrderedColumns,
+									excludeNulls,
+									excludeDefaults);
 
 		if (SanityManager.DEBUG)
 		{
@@ -379,6 +383,10 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 	{
 		return id.isDescending(keyColumnPosition);
 	}
+
+	@Override public boolean excludeNulls() {return id.excludeNulls();}
+
+	@Override public boolean excludeDefaults() {return id.excludeDefaults();}
 
 	/** @see IndexDescriptor#isAscending */
 	public boolean[]		isAscending()
