@@ -1439,5 +1439,23 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         return tableType == EXTERNAL_TYPE;
     }
 
+    /**
+     *
+     * Retrieve the index from the conglomerate descriptor list by name.
+     *
+     * @param indexName
+     * @return
+     */
+    public ConglomerateDescriptor getIndexConglomerate(String indexName) {
+        ConglomerateDescriptorList cdl = getConglomerateDescriptorList();
+        for (ConglomerateDescriptor cd: cdl) {
+            if (cd.isIndex() && !cd.isPrimaryKey() && indexName != null &&
+                    cd.getObjectName().compareToIgnoreCase(indexName) == 0) {
+                return cd;
+            }
+        }
+        return null;
+    }
+
 }
 

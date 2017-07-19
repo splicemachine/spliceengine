@@ -138,7 +138,6 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
         DataDictionary dd = activation.getLanguageConnectionContext().getDataDictionary();
         ConglomerateDescriptor cd = dd.getConglomerateDescriptor(heapConglom);
         TableDescriptor td = dd.getTableDescriptor(cd.getTableID());
-        ConglomerateDescriptorList list = td.getConglomerateDescriptorList();
         List<Long> allCongloms = Lists.newArrayList();
         allCongloms.add(td.getHeapConglomerateId());
         ArrayList<DDLMessage.TentativeIndex> tentativeIndexList = new ArrayList();
@@ -147,27 +146,22 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
             // This option is for calculating split row keys in HBase format, provided that split row keys are
             // stored in a csv file
             long indexConglom = -1;
-            for (ConglomerateDescriptor searchCD :list) {
-                if (searchCD.isIndex() && !searchCD.isPrimaryKey() && indexName != null &&
-                        searchCD.getObjectName().compareToIgnoreCase(indexName) == 0) {
-                    indexConglom = searchCD.getConglomerateNumber();
-                    DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(txn.getTxnId(),
-                            activation.getLanguageConnectionContext(),
-                            td.getHeapConglomerateId(), searchCD.getConglomerateNumber(),
-                            td, searchCD.getIndexDescriptor());
-                    tentativeIndexList.add(ddlChange.getTentativeIndex());
-                    allCongloms.add(searchCD.getConglomerateNumber());
-                    break;
-                }
-            }
+            ConglomerateDescriptor indexCD = td.getIndexConglomerate(indexName); // Where do we test that this exists?
+            DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(txn.getTxnId(),
+                    activation.getLanguageConnectionContext(),
+                    td.getHeapConglomerateId(), indexCD.getConglomerateNumber(),
+                    td, indexCD.getIndexDescriptor());
+            tentativeIndexList.add(ddlChange.getTentativeIndex());
+            allCongloms.add(indexCD.getConglomerateNumber());
             RowAndIndexGenerator rowAndIndexGenerator =
                     new BulkInsertRowIndexGenerationFunction(pkCols, tableVersion, execRow, autoIncrementRowLocationArray,
                             spliceSequences, heapConglom, txn, operationContext, tentativeIndexList);
             DataSet rowAndIndexes = dataSet.flatMap(rowAndIndexGenerator);
             DataSet keys = rowAndIndexes.mapPartitions(new RowKeyGenerator(bulkImportDirectory, heapConglom, indexConglom));
-            List<String> files = keys.collect();
+            keys.collect();
         }
         else {
+            ConglomerateDescriptorList list = td.getConglomerateDescriptorList();
             for (ConglomerateDescriptor searchCD :list) {
                 if (searchCD.isIndex() && !searchCD.isPrimaryKey()) {
                     DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(txn.getTxnId(),
