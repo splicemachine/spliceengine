@@ -1961,7 +1961,8 @@ public interface SQLState {
 	String EXISTS_CONCURRENT_BACKUP                                = "BR014";
 	String BACKUP_TIMEOUT                                          = "BR016";
 	String INCOMPATIBLE_BACKUP                                     = "BR017";
-
+	String MISSING_BACKUP                                          = "BR018";
+	String BACKUP_NOT_IN_CHAIN                                     = "BR019";
 
 	String ROW_FORMAT_NOT_ALLOWED_WITH_PARQUET					   	= "EXT01";
 	String ROW_FORMAT_NOT_ALLOWED_WITH_ORC						   	= "EXT02";
