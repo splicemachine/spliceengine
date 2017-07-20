@@ -14,23 +14,25 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.List;
-import com.splicemachine.derby.iapi.sql.execute.*;
-import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.Restriction;
-import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Strings;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
@@ -355,5 +357,10 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 
 	public long getSequenceId() {
 		throw new UnsupportedOperationException("Not supported");
+	}
+
+	@Override
+	public String getVTIFileName() {
+		return getSubOperations().get(0).getVTIFileName();
 	}
 }
