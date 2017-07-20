@@ -52,7 +52,7 @@ import java.io.ObjectOutput;
  * 1. (inner,join,no restriction)
  *     Flow:  leftDataSet -> hashJoin (rightDataSet) -> map (InnerJoinFunction)
  *
- * @see com.splicemachine.derby.stream.iapi.PairDataSet#hashJoin(com.splicemachine.derby.stream.iapi.PairDataSet)
+ * @see PairDataSet#hashJoin(PairDataSet, OperationContext)
  * @see com.splicemachine.derby.stream.function.InnerJoinFunction
  *
  * 2. (inner,join,restriction)
@@ -66,7 +66,7 @@ import java.io.ObjectOutput;
  * 3. (inner,antijoin,no restriction)
  *     Flow:  leftDataSet -> subtractByKey (rightDataSet) -> map (AntiJoinFunction)
  *
- * @see com.splicemachine.derby.stream.iapi.PairDataSet#subtractByKey(com.splicemachine.derby.stream.iapi.PairDataSet)
+ * @see PairDataSet#subtractByKey(PairDataSet, OperationContext)
  * @see com.splicemachine.derby.stream.function.AntiJoinFunction
  *
  * 4. (inner,antijoin,restriction)
@@ -229,30 +229,30 @@ public class MergeSortJoinOperation extends JoinOperation {
         PairDataSet<ExecRow, ExecRow> rightDataSet) {
 
         if (isOuterJoin) { // Outer Join
-            return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right")
+            return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right", operationContext)
                         .flatmap(new CogroupOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
                         .map(new SetCurrentLocatedRowFunction<>(operationContext));
         }
         else {
             if (this.notExistsRightSide) { // antijoin
                 if (restriction !=null) { // with restriction
-                    return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right").values()
+                    return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right", operationContext).values()
                         .flatMap(new CogroupAntiJoinRestrictionFlatMapFunction(operationContext));
                 } else { // No Restriction
-                    return leftDataSet.subtractByKey(rightDataSet)
+                    return leftDataSet.subtractByKey(rightDataSet, operationContext)
                             .map(new AntiJoinFunction(operationContext));
                 }
             } else { // Inner Join
                 if (isOneRowRightSide()) {
-                    return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right").values()
+                    return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right", operationContext).values()
                         .flatMap(new CogroupInnerJoinRestrictionFlatMapFunction(operationContext));
                 }
                 if (restriction !=null) { // with restriction
-                    return leftDataSet.hashJoin(rightDataSet)
+                    return leftDataSet.hashJoin(rightDataSet, operationContext)
                             .map(new InnerJoinFunction<SpliceOperation>(operationContext))
                             .filter(new JoinRestrictionPredicateFunction(operationContext));
                 } else { // No Restriction
-                    return leftDataSet.hashJoin(rightDataSet)
+                    return leftDataSet.hashJoin(rightDataSet, operationContext)
                             .map(new InnerJoinFunction<SpliceOperation>(operationContext));
                 }
             }

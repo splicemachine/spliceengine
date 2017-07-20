@@ -105,7 +105,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	private String cursorName;
 	
 	protected int numSubqueries;
-    protected boolean useSpark = false;
+    protected int datasetProcessorType;
 
 	private boolean singleExecution;
 
@@ -318,6 +318,9 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 			// get the result set description
    			resultDescription = ps.getResultDescription();
 			this.scrollable = scrollable;
+			if (ps.datasetProcessorType() != null) {
+				setDatasetProcessorType(ps.datasetProcessorType().ordinal());
+			}
 			
 			// Initialize the parameter set to have allocated
 			// DataValueDescriptor objects for each parameter.
@@ -510,9 +513,13 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 		return numSubqueries;
 	}
 
-    public boolean useSpark() {
-        return useSpark;
+    public CompilerContext.DataSetProcessorType datasetProcessorType() {
+        return CompilerContext.DataSetProcessorType.values()[datasetProcessorType];
     }
+
+	public void setDatasetProcessorType(int datasetProcessorType) {
+		this.datasetProcessorType = datasetProcessorType;
+	}
 
 	/**
 	 * @see Activation#isCursorActivation
@@ -1701,8 +1708,4 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
         scanKeys = keys;
     }
 
-	public boolean willRunInSpark() {
-		return useSpark() || getLanguageConnectionContext().getDataSetProcessorType()
-				.equals(CompilerContext.DataSetProcessorType.FORCED_SPARK);
-	}
 }

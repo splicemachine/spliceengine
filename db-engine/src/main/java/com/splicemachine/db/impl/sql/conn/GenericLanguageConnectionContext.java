@@ -300,6 +300,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      */
     private boolean restoreMode=false;
 
+    /**
+     * Allows fallback to distributed mode when we read too many rows on control mode
+     */
+    private ControlExecutionLimiter limiter;
+
     /* constructor */
     public GenericLanguageConnectionContext(
             ContextManager cm,
@@ -338,6 +343,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         lockEscalationThreshold=Property.DEFAULT_LOCKS_ESCALATION_THRESHOLD;
         stmtValidators=new ArrayList<>();
         triggerTables=new ArrayList<>();
+        limiter=ControlExecutionLimiter.NO_OP;
     }
 
     /**
@@ -3507,5 +3513,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public void popWithStack() {
         withDescriptors = null;
+    }
+
+    @Override
+    public ControlExecutionLimiter getControlExecutionLimiter() {
+        return limiter;
+    }
+
+    @Override
+    public void setControlExecutionLimiter(ControlExecutionLimiter executionLimiter) {
+        limiter = executionLimiter;
     }
 }
