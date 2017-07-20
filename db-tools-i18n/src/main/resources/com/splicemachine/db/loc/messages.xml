@@ -3121,6 +3121,11 @@ Guide.
             </msg>
 
             <msg>
+                <name>42ZD0</name>
+		<text>Surpassed limit of buffered rows in control mode, please resubmit as Spark query</text>
+            </msg>
+
+            <msg>
                 <name>43001</name>
                 <text>The truncate function was provided a null operand.</text>
             </msg>
