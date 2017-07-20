@@ -18,7 +18,9 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.olap.OlapMessage;
 import org.apache.commons.io.FileUtils;
+import org.apache.spark.sql.catalyst.plans.logical.Except;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -999,9 +1001,181 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    // tests for creating an external table from an existing file
+    @Test
+    public void testParquetAggressive2() throws Exception{
+        try{
+            String format = "parquet";
+            String tablePath0 = String.format(getExternalResourceDirectory()+"/%s_aggressive_2_0",format);
+            String tablePath1 = String.format(getExternalResourceDirectory()+"/%s_aggressive_2_1",format);
+            String tablePath2 = String.format(getExternalResourceDirectory()+"/%s_aggressive_2_2",format);
 
-    @Test @Ignore
+            methodWatcher.executeUpdate(String.format("create external table %s_aggressive_2_0 (col1 varchar(10), col2 double, col3 int, col4 varchar(10), col5 int) " +
+            "partitioned by (col1, col2, col4, col5) stored as %s location '%s'",format,format,tablePath0));
+            methodWatcher.executeUpdate(String.format("insert into %s_aggressive_2_0 values " +
+                "('whoa',77.7,444,'crazy',21),('hey',11.11,222,'crazier',10)",format));
+            ResultSet rs0 = methodWatcher.executeQuery(String.format("select col4, col2, col3 from %s_aggressive_2_0 where col5 = 21",format));
+            Assert.assertEquals("COL4  |COL2 |COL3 |\n" +
+                    "-------------------\n" +
+                    "crazy |77.7 | 444 |",TestUtils.FormattedResult.ResultFactory.toString(rs0));
+
+            methodWatcher.executeUpdate(String.format("create external table %s_aggressive_2_1 (col1 int, col2 double, col3 char, col4 varchar(10), col5 int) " +
+                    "partitioned by (col3, col1, col2) stored as %s location '%s'",format,format,tablePath1));
+            methodWatcher.executeUpdate(String.format("insert into %s_aggressive_2_1 values " +
+            "(666,66.666,'z','zing',20),(555,55.555,'y','yowza',40),(1,1.1,'g','garish',7)",format));
+            ResultSet rs1 = methodWatcher.executeQuery(String.format("select col2,col4 from %s_aggressive_2_1",format));
+            Assert.assertEquals("COL2  | COL4  |\n" +
+                    "----------------\n" +
+                    "  1.1  |garish |\n" +
+                    "55.555 | yowza |\n" +
+                    "66.666 | zing  |",TestUtils.FormattedResult.ResultFactory.toString(rs1));
+
+            methodWatcher.executeUpdate(String.format("create external table %s_aggressive_2_2 (col1 varchar(10), col2 double, col3 varchar(10), col4 varchar(10), col5 int) " +
+                    "partitioned by (col5, col4, col3) stored as %s location '%s'",format,format,tablePath2));
+            methodWatcher.executeUpdate(String.format("insert into %s_aggressive_2_2 values " +
+            "('hello',1.1,'goodbye','farewell',1),('hello',1.1,'goodbye','farewell',1),('hello',1.1,'goodbye','farewell',1)",format));
+            ResultSet rs2 = methodWatcher.executeQuery(String.format("select col2 from %s_aggressive_2_2",format));
+            Assert.assertEquals("COL2 |\n" +
+                    "------\n" +
+                    " 1.1 |\n" +
+                    " 1.1 |\n" +
+                    " 1.1 |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+        } catch (SQLException e) {
+            Assert.fail("An exception should not be thrown. Error: " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void testAvroAggressive2() throws Exception{
+        try{
+            String format = "avro";
+            String tablePath0 = String.format(getExternalResourceDirectory()+"/%s_aggressive_2_0",format);
+            String tablePath1 = String.format(getExternalResourceDirectory()+"/%s_aggressive_2_1",format);
+            String tablePath2 = String.format(getExternalResourceDirectory()+"/%s_aggressive_2_2",format);
+
+            methodWatcher.executeUpdate(String.format("create external table %s_aggressive_2_0 (col1 varchar(10), col2 double, col3 int, col4 varchar(10), col5 int) " +
+                    "partitioned by (col1, col2, col4, col5) stored as %s location '%s'",format,format,tablePath0));
+            methodWatcher.executeUpdate(String.format("insert into %s_aggressive_2_0 values " +
+                    "('whoa',77.7,444,'crazy',21),('hey',11.11,222,'crazier',10)",format));
+            ResultSet rs0 = methodWatcher.executeQuery(String.format("select col4, col2, col3 from %s_aggressive_2_0 where col5 = 21",format));
+            Assert.assertEquals("COL4  |COL2 |COL3 |\n" +
+                    "-------------------\n" +
+                    "crazy |77.7 | 444 |",TestUtils.FormattedResult.ResultFactory.toString(rs0));
+
+            methodWatcher.executeUpdate(String.format("create external table %s_aggressive_2_1 (col1 int, col2 double, col3 char, col4 varchar(10), col5 int) " +
+                    "partitioned by (col3, col1, col2) stored as %s location '%s'",format,format,tablePath1));
+            methodWatcher.executeUpdate(String.format("insert into %s_aggressive_2_1 values " +
+                    "(666,66.666,'z','zing',20),(555,55.555,'y','yowza',40),(1,1.1,'g','garish',7)",format));
+            ResultSet rs1 = methodWatcher.executeQuery(String.format("select col2,col4 from %s_aggressive_2_1",format));
+            Assert.assertEquals("COL2  | COL4  |\n" +
+                    "----------------\n" +
+                    "  1.1  |garish |\n" +
+                    "55.555 | yowza |\n" +
+                    "66.666 | zing  |",TestUtils.FormattedResult.ResultFactory.toString(rs1));
+
+            methodWatcher.executeUpdate(String.format("create external table %s_aggressive_2_2 (col1 varchar(10), col2 double, col3 varchar(10), col4 varchar(10), col5 int) " +
+                    "partitioned by (col5, col4, col3) stored as %s location '%s'",format,format,tablePath2));
+            methodWatcher.executeUpdate(String.format("insert into %s_aggressive_2_2 values " +
+                    "('hello',1.1,'goodbye','farewell',1),('hello',1.1,'goodbye','farewell',1),('hello',1.1,'goodbye','farewell',1)",format));
+            ResultSet rs2 = methodWatcher.executeQuery(String.format("select col2 from %s_aggressive_2_2",format));
+            Assert.assertEquals("COL2 |\n" +
+                    "------\n" +
+                    " 1.1 |\n" +
+                    " 1.1 |\n" +
+                    " 1.1 |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+        } catch (SQLException e) {
+            Assert.fail("An exception should not be thrown. Error: " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void testOrcAggressive2() throws Exception{
+        try{
+            String format = "orc";
+            String tablePath0 = String.format(getExternalResourceDirectory()+"/%s_aggressive_2_0",format);
+            String tablePath1 = String.format(getExternalResourceDirectory()+"/%s_aggressive_2_1",format);
+            String tablePath2 = String.format(getExternalResourceDirectory()+"/%s_aggressive_2_2",format);
+
+            methodWatcher.executeUpdate(String.format("create external table %s_aggressive_2_0 (col1 varchar(10), col2 double, col3 int, col4 varchar(10), col5 int) " +
+                    "partitioned by (col1, col2, col4, col5) stored as %s location '%s'",format,format,tablePath0));
+            methodWatcher.executeUpdate(String.format("insert into %s_aggressive_2_0 values " +
+                    "('whoa',77.7,444,'crazy',21),('hey',11.11,222,'crazier',10)",format));
+            ResultSet rs0 = methodWatcher.executeQuery(String.format("select col4, col2, col3 from %s_aggressive_2_0 where col5 = 21",format));
+            Assert.assertEquals("COL4  |COL2 |COL3 |\n" +
+                    "-------------------\n" +
+                    "crazy |77.7 | 444 |",TestUtils.FormattedResult.ResultFactory.toString(rs0));
+
+            methodWatcher.executeUpdate(String.format("create external table %s_aggressive_2_1 (col1 int, col2 double, col3 char, col4 varchar(10), col5 int) " +
+                    "partitioned by (col3, col1, col2) stored as %s location '%s'",format,format,tablePath1));
+            methodWatcher.executeUpdate(String.format("insert into %s_aggressive_2_1 values " +
+                    "(666,66.666,'z','zing',20),(555,55.555,'y','yowza',40),(1,1.1,'g','garish',7)",format));
+            ResultSet rs1 = methodWatcher.executeQuery(String.format("select col2,col4 from %s_aggressive_2_1",format));
+            Assert.assertEquals("COL2  | COL4  |\n" +
+                    "----------------\n" +
+                    "  1.1  |garish |\n" +
+                    "55.555 | yowza |\n" +
+                    "66.666 | zing  |",TestUtils.FormattedResult.ResultFactory.toString(rs1));
+
+            methodWatcher.executeUpdate(String.format("create external table %s_aggressive_2_2 (col1 varchar(10), col2 double, col3 varchar(10), col4 varchar(10), col5 int) " +
+                    "partitioned by (col5, col4, col3) stored as %s location '%s'",format,format,tablePath2));
+            methodWatcher.executeUpdate(String.format("insert into %s_aggressive_2_2 values " +
+                    "('hello',1.1,'goodbye','farewell',1),('hello',1.1,'goodbye','farewell',1),('hello',1.1,'goodbye','farewell',1)",format));
+            ResultSet rs2 = methodWatcher.executeQuery(String.format("select col2 from %s_aggressive_2_2",format));
+            Assert.assertEquals("COL2 |\n" +
+                    "------\n" +
+                    " 1.1 |\n" +
+                    " 1.1 |\n" +
+                    " 1.1 |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+        } catch (SQLException e) {
+            Assert.fail("An exception should not be thrown. Error: " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void testTextfileAggressive2() throws Exception{
+        try{
+            String format = "textfile";
+            String tablePath0 = String.format(getExternalResourceDirectory()+"/%s_aggressive_2_0",format);
+            String tablePath1 = String.format(getExternalResourceDirectory()+"/%s_aggressive_2_1",format);
+            String tablePath2 = String.format(getExternalResourceDirectory()+"/%s_aggressive_2_2",format);
+
+            methodWatcher.executeUpdate(String.format("create external table %s_aggressive_2_0 (col1 varchar(10), col2 double, col3 int, col4 varchar(10), col5 int) " +
+                    "partitioned by (col1, col2, col4, col5) stored as %s location '%s'",format,format,tablePath0));
+            methodWatcher.executeUpdate(String.format("insert into %s_aggressive_2_0 values " +
+                    "('whoa',77.7,444,'crazy',21),('hey',11.11,222,'crazier',10)",format));
+            ResultSet rs0 = methodWatcher.executeQuery(String.format("select col4, col2, col3 from %s_aggressive_2_0 where col5 = 21",format));
+            Assert.assertEquals("COL4  |COL2 |COL3 |\n" +
+                    "-------------------\n" +
+                    "crazy |77.7 | 444 |",TestUtils.FormattedResult.ResultFactory.toString(rs0));
+
+            methodWatcher.executeUpdate(String.format("create external table %s_aggressive_2_1 (col1 int, col2 double, col3 char, col4 varchar(10), col5 int) " +
+                    "partitioned by (col3, col1, col2) stored as %s location '%s'",format,format,tablePath1));
+            methodWatcher.executeUpdate(String.format("insert into %s_aggressive_2_1 values " +
+                    "(666,66.666,'z','zing',20),(555,55.555,'y','yowza',40),(1,1.1,'g','garish',7)",format));
+            ResultSet rs1 = methodWatcher.executeQuery(String.format("select col2,col4 from %s_aggressive_2_1",format));
+            Assert.assertEquals("COL2  | COL4  |\n" +
+                    "----------------\n" +
+                    "  1.1  |garish |\n" +
+                    "55.555 | yowza |\n" +
+                    "66.666 | zing  |",TestUtils.FormattedResult.ResultFactory.toString(rs1));
+
+            methodWatcher.executeUpdate(String.format("create external table %s_aggressive_2_2 (col1 varchar(10), col2 double, col3 varchar(10), col4 varchar(10), col5 int) " +
+                    "partitioned by (col5, col4, col3) stored as %s location '%s'",format,format,tablePath2));
+            methodWatcher.executeUpdate(String.format("insert into %s_aggressive_2_2 values " +
+                    "('hello',1.1,'goodbye','farewell',1),('hello',1.1,'goodbye','farewell',1),('hello',1.1,'goodbye','farewell',1)",format));
+            ResultSet rs2 = methodWatcher.executeQuery(String.format("select col2 from %s_aggressive_2_2",format));
+            Assert.assertEquals("COL2 |\n" +
+                    "------\n" +
+                    " 1.1 |\n" +
+                    " 1.1 |\n" +
+                    " 1.1 |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+        } catch (SQLException e) {
+            Assert.fail("An exception should not be thrown. Error: " + e.getMessage());
+        }
+    }
+
+    // tests for creating an external table from an existing file:
+
+    @Test @Ignore // SPLICE-1807
     public void testParquetPartitionExisting() throws Exception {
         try {
             methodWatcher.executeUpdate(String.format("create external table parquet_partition_existing (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col char)" +
@@ -1023,7 +1197,7 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test @Ignore
+    @Test @Ignore // SPLICE-1807
     public void testAvroPartitionExisting() throws Exception {
         try {
             methodWatcher.executeUpdate(String.format("create external table avro_partition_existing (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char)" +
@@ -1045,7 +1219,7 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test @Ignore
+    @Test @Ignore // SPLICE-1807
     public void testOrcPartitionExisting() throws Exception {
         try {
             methodWatcher.executeUpdate(String.format("create external table orc_partition_existing (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char)" +
@@ -1072,19 +1246,19 @@ public class ExternalTablePartitionIT {
         try {
 
             methodWatcher.executeUpdate(String.format("create external table textfile_partition_existing (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char)" +
-                    "partitioned by (col4, col2, col1) STORED AS TEXTFILE LOCATION '%s'", SpliceUnitTest.getResourceDirectory()+"textfile_partition_existing"));
+                    "partitioned by (col4, col2, col1) STORED AS TEXTFILE LOCATION '%s'", SpliceUnitTest.getResourceDirectory() + "textfile_partition_existing"));
             ResultSet rs = methodWatcher.executeQuery("select * from textfile_partition_existing");
             Assert.assertEquals("COL1 |COL2 |COL3  |COL4 |COL5 |COL6 |\n" +
                     "-------------------------------------\n" +
                     " 111 | AAA |true  | 111 | 1.1 |  a  |\n" +
                     " 222 | BBB |false | 222 | 2.2 |  b  |\n" +
-                    " 333 | CCC |true  | 333 | 3.3 |  c  |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+                    " 333 | CCC |true  | 333 | 3.3 |  c  |", TestUtils.FormattedResult.ResultFactory.toString(rs));
             ResultSet rs2 = methodWatcher.executeQuery("select col5, col2, col6 from textfile_partition_existing");
             Assert.assertEquals("COL5 |COL2 |COL6 |\n" +
                     "------------------\n" +
                     " 1.1 | AAA |  a  |\n" +
                     " 2.2 | BBB |  b  |\n" +
-                    " 3.3 | CCC |  c  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+                    " 3.3 | CCC |  c  |", TestUtils.FormattedResult.ResultFactory.toString(rs2));
         } catch (SQLException e) {
             Assert.fail("An exception should not be thrown. Error: " + e.getMessage());
         }
