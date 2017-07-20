@@ -25,8 +25,14 @@ import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.conn.ResubmitDistributedException;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
-import com.splicemachine.db.iapi.sql.execute.*;
+import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
+import com.splicemachine.db.iapi.sql.execute.RowChanger;
+import com.splicemachine.db.iapi.sql.execute.TargetResultSet;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
@@ -38,7 +44,11 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.derby.stream.iapi.*;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iapi.RemoteQueryClient;
+import com.splicemachine.derby.stream.iapi.ScopeNamed;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
@@ -47,13 +57,19 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
-import java.io.*;
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 
 public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed, Externalizable{
     private static final long serialVersionUID=4l;
@@ -69,7 +85,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     protected RowLocation currentRowLocation;
     protected boolean executed=false;
     protected OperationContext operationContext;
-    protected boolean isOpen=true;
+    protected volatile boolean isOpen=true;
     protected int resultSetNumber;
     protected OperationInformation operationInformation;
     protected ExecRow locatedRow;
@@ -81,6 +97,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     protected RemoteQueryClient remoteQueryClient;
     protected long modifiedRowCount = 0;
     protected long badRecords = 0;
+    protected boolean returnedRows = false;
+    private volatile UUID uuid = null;
+    private volatile boolean isKilled = false;
 
     public SpliceBaseOperation(){
         super();
@@ -185,7 +204,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     }
 
     @Override
-    public void close() throws StandardException{
+    public void close() throws StandardException {
+        if (uuid != null)
+            EngineDriver.driver().getOperationManager().unregisterOperation(uuid);
         try{
             if(LOG_CLOSE.isTraceEnabled())
                 LOG_CLOSE.trace(String.format("closing operation %s",this));
@@ -367,40 +388,77 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     }
 
     public void openCore(DataSetProcessor dsp) throws StandardException{
-        try{
-            if(LOG.isTraceEnabled())
-                LOG.trace(String.format("openCore %s",this));
-            isOpen=true;
-            String sql=activation.getPreparedStatement().getSource();
+        try {
+            if (LOG.isTraceEnabled())
+                LOG.trace(String.format("openCore %s", this));
+            isOpen = true;
+            String sql = activation.getPreparedStatement().getSource();
             if (!(this instanceof ExplainOperation || activation.isMaterialized()))
                 activation.materialize();
             long txnId=getCurrentTransaction().getTxnId();
             sql=sql==null?this.toString():sql;
             String userId=activation.getLanguageConnectionContext().getCurrentUserId(activation);
+
+            activation.getLanguageConnectionContext().setControlExecutionLimiter(EngineDriver.driver().processorFactory().getControlExecutionLimiter(activation));
+            returnedRows = false;
             if (dsp.getType() == DataSetProcessor.Type.SPARK) { // Only do this for spark jobs
                 this.jobName = userId + " <" + txnId + ">";
                 dsp.setJobGroup(jobName, sql);
             }
             dsp.clearBroadcastedOperation();
             this.execRowIterator =getDataSet(dsp).toLocalIterator();
-        }catch(Exception e){ // This catches all the iterator errors for things that are not lazy.
+        } catch (ResubmitDistributedException e) {
+            resubmitDistributed(e);
+        }catch(Exception e){ // This catches all the iterator errors for things that are not lazy
+            checkInterruptedException(e);
             throw Exceptions.parseException(e);
         }
+    }
+
+    protected void resubmitDistributed(ResubmitDistributedException e) throws StandardException {
+        LOG.warn("The query consumed too many resources running in control mode, resubmitting in Spark");
+        close();
+        activation.getPreparedStatement().setDatasetProcessorType(CompilerContext.DataSetProcessorType.FORCED_SPARK);
+        openDistributed();
+    }
+
+    // When we kill an operation we close it abruptly and weird exceptions might pop up, mask them with the cancellation message
+    private void checkInterruptedException(Exception e) throws StandardException {
+        // we might have been killed, check the flag
+        if (isKilled) {
+            LOG.warn("Exception ignored because operation was explicitly killed", e);
+            throw StandardException.newException(SQLState.LANG_CANCELLATION_EXCEPTION);
+        }
+        // otherwise deal with it normally
     }
 
     protected boolean isOlapServer() {
         return Thread.currentThread().currentThread().getName().startsWith("olap-worker");
     }
 
+    private void openDistributed() throws StandardException{
+        isOpen = true;
+        remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
+        remoteQueryClient.submit();
+        execRowIterator = remoteQueryClient.getIterator();
+    }
+
     @Override
     public void openCore() throws StandardException{
-        DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation,this);
-        if (dsp.getType() == DataSetProcessor.Type.SPARK && !isOlapServer() && !SpliceClient.isClient) {
-            remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
-            remoteQueryClient.submit();
-            execRowIterator = remoteQueryClient.getIterator();
-        } else {
-            openCore(dsp);
+        try {
+            uuid = EngineDriver.driver().getOperationManager().registerOperation(this, Thread.currentThread());
+            DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation, this);
+            if (dsp.getType() == DataSetProcessor.Type.SPARK && !isOlapServer() && !SpliceClient.isClient) {
+                remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
+                remoteQueryClient.submit();
+                execRowIterator = remoteQueryClient.getIterator();
+            } else {
+                openCore(dsp);
+            }
+        } catch (Exception e) {
+            EngineDriver.driver().getOperationManager().unregisterOperation(uuid);
+            checkInterruptedException(e);
+            throw e;
         }
     }
 
@@ -426,19 +484,32 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
 
     @Override
     public ExecRow getNextRowCore() throws StandardException{
-        try{
-            if(execRowIterator.hasNext()){
-                locatedRow= execRowIterator.next();
-                if(LOG.isTraceEnabled())
-                    SpliceLogUtils.trace(LOG,"getNextRowCore %s locatedRow=%s",this,locatedRow);
-                return locatedRow;
+        try {
+            if (execRowIterator.hasNext()) {
+                locatedRow = execRowIterator.next();
+                if (LOG.isTraceEnabled())
+                    SpliceLogUtils.trace(LOG, "getNextRowCore %s locatedRow=%s", this, locatedRow);
+                ExecRow result = locatedRow;
+                returnedRows = true;
+                return result;
             }
-            locatedRow=null;
-            if(LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG,"getNextRowCore %s locatedRow=%s",this,locatedRow);
+            locatedRow = null;
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG, "getNextRowCore %s locatedRow=%s", this, locatedRow);
             return null;
-        }catch(Exception e){
-            throw Exceptions.parseException(e);
+        } catch(Exception e){
+            checkInterruptedException(e);
+            StandardException se = Exceptions.parseException(e);
+            if (se instanceof ResubmitDistributedException) {
+                ResubmitDistributedException re = (ResubmitDistributedException) se;
+                if (!returnedRows) {
+                    resubmitDistributed(re);
+                    return getNextRowCore();
+                } else {
+                    // we have already returned some rows, return error to user so he can resubmit the query to spark
+                    throw StandardException.newException(SQLState.LANG_RESUBMIT_DISTRIBUTED);
+                }
+            } else throw se;
         }
     }
 
@@ -523,6 +594,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     public ExecRow getNextRow() throws StandardException{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"getNextRow");
+        if(isKilled)
+            throw StandardException.newException(SQLState.LANG_CANCELLATION_EXCEPTION);
         if(!isOpen)
             throw StandardException.newException(SQLState.LANG_RESULT_SET_NOT_OPEN,NEXT);
         attachStatementContext();
@@ -562,6 +635,11 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     @Override
     public boolean isClosed(){
         return !isOpen;
+    }
+
+    @Override
+    public boolean isKilled() {
+        return isKilled;
     }
 
     @Override
@@ -790,5 +868,11 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     @Override
     public DataSet<ExecRow> getResultDataSet(DataSetProcessor dsp) throws StandardException {
         return getDataSet(dsp);
+    }
+
+    @Override
+    public void kill() throws StandardException {
+        this.isKilled = true;
+        close();
     }
 }

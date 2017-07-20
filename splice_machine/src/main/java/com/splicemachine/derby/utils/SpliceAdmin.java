@@ -18,10 +18,13 @@ import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
+import com.splicemachine.db.impl.sql.catalog.SYSTABLESTATISTICSRowFactory;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.joda.time.DateTime;
 import org.spark_project.guava.collect.Lists;
@@ -71,6 +74,9 @@ import java.io.IOException;
 import java.sql.*;
 import java.util.*;
 import java.util.Map.Entry;
+
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INVALID_FUNCTION_ARGUMENT;
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_NO_SUCH_RUNNING_OPERATION;
 
 /**
  * @author Jeff Cunningham
@@ -1246,4 +1252,71 @@ public class SpliceAdmin extends BaseAdminProcedures{
             admin.deleteSnapshot(snapshot);
         }
     }
+
+    private static final ResultColumnDescriptor[] GET_RUNNING_OPERATIONS_OUTPUT_COLUMNS = new GenericColumnDescriptor[]{
+            new GenericColumnDescriptor("uuid", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
+            new GenericColumnDescriptor("user", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
+            new GenericColumnDescriptor("sql", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
+    };
+
+
+    public static void SYSCS_GET_RUNNING_OPERATIONS(final ResultSet[] resultSet) throws SQLException{
+        EmbedConnection conn = (EmbedConnection)getDefaultConn();
+        LanguageConnectionContext lcc = conn.getLanguageConnection();
+        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
+        String userId = lastActivation.getLanguageConnectionContext().getCurrentUserId(lastActivation);
+        if (userId.equals(lastActivation.getLanguageConnectionContext().getDataDictionary().getAuthorizationDatabaseOwner())) {
+            userId = null;
+        }
+
+        List<Pair<UUID, SpliceOperation>> operations = EngineDriver.driver().getOperationManager().runningOperations(userId);
+
+        List<ExecRow> rows = new ArrayList<>(operations.size());
+        for (Pair<UUID, SpliceOperation> pair : operations) {
+            ExecRow row = new ValueRow(2);
+            Activation activation = pair.getSecond().getActivation();
+            row.setColumn(1, new SQLVarchar(pair.getFirst().toString()));
+            row.setColumn(2, new SQLVarchar(activation.getLanguageConnectionContext().getCurrentUserId(activation)));
+            row.setColumn(3, new SQLVarchar(activation.getPreparedStatement().getSource()));
+            rows.add(row);
+        }
+
+        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, new GenericColumnDescriptor[]{
+                new GenericColumnDescriptor("uuid", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
+                new GenericColumnDescriptor("user", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
+                new GenericColumnDescriptor("sql", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
+        },
+                lastActivation);
+        try {
+            resultsToWrap.openCore();
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
+        resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
+    }
+
+    public static void SYSCS_KILL_OPERATION(final String uuidString) throws SQLException{
+        EmbedConnection conn = (EmbedConnection)getDefaultConn();
+        LanguageConnectionContext lcc = conn.getLanguageConnection();
+        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
+
+        String userId = lcc.getCurrentUserId(lastActivation);
+
+        UUID uuid;
+        try {
+            uuid = UUID.fromString(uuidString);
+        } catch (IllegalArgumentException e) {
+            throw  PublicAPI.wrapStandardException(StandardException.newException(LANG_INVALID_FUNCTION_ARGUMENT, uuidString, "SYSCS_KILL_OPERATION"));
+        }
+        boolean killed;
+        try {
+            killed = EngineDriver.driver().getOperationManager().killOperation(uuid, userId);
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
+
+        if (!killed)
+            throw  PublicAPI.wrapStandardException(StandardException.newException(LANG_NO_SUCH_RUNNING_OPERATION, uuidString));
+    }
+
 }

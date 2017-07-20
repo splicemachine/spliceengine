@@ -47,6 +47,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
+import com.splicemachine.derby.iapi.sql.execute.OperationManager;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
@@ -85,6 +86,7 @@ public class EngineDriver extends BaseAdminProcedures{
     private final SqlExceptionFactory exceptionFactory;
     private final DatabaseAdministrator dbAdmin;
     private final OlapClient olapClient;
+    private final OperationManager operationManager;
     private final SqlEnvironment environment;
     private final ExecutorService threadPool;
 
@@ -113,6 +115,7 @@ public class EngineDriver extends BaseAdminProcedures{
         this.olapClient = environment.getOlapClient();
         this.propertyManager = environment.getPropertyManager();
         this.exceptionFactory = environment.exceptionFactory();
+        this.operationManager = environment.getOperationManager();
         this.dbAdmin = environment.databaseAdministrator();
         this.sequencePool=CachedResourcePool.Builder.<SpliceSequence, SequenceKey>newBuilder()
                 .expireAfterAccess(1,TimeUnit.MINUTES)
@@ -200,7 +203,6 @@ public class EngineDriver extends BaseAdminProcedures{
         return threadPool;
     }
 
-
     private static final ResultColumnDescriptor[] EXEC_SERVICE_COLUMNS= {
             new GenericColumnDescriptor("Host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
             new GenericColumnDescriptor("CurrentPoolSize",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
@@ -216,7 +218,7 @@ public class EngineDriver extends BaseAdminProcedures{
     };
     private static final ResultColumnDescriptor[] MANAGED_CACHE_COLUMNS= {
             new GenericColumnDescriptor("Host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
-            new GenericColumnDescriptor("name",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
+            new GenericColumnDescriptor("Name",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
             new GenericColumnDescriptor("Size",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
             new GenericColumnDescriptor("MissCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
             new GenericColumnDescriptor("MissRate",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE)),
@@ -224,7 +226,7 @@ public class EngineDriver extends BaseAdminProcedures{
             new GenericColumnDescriptor("HitRate",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE)),
     };
     private static final ResultColumnDescriptor[] TOTAL_MANAGED_CACHE_COLUMNS= {
-            new GenericColumnDescriptor("name",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
+            new GenericColumnDescriptor("Name",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
             new GenericColumnDescriptor("Size",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
             new GenericColumnDescriptor("MissCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
             new GenericColumnDescriptor("MissRate",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE)),
@@ -371,4 +373,5 @@ public class EngineDriver extends BaseAdminProcedures{
             }
         });
     }
+    public OperationManager getOperationManager() { return operationManager; }
 }

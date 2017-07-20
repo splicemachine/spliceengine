@@ -31,22 +31,18 @@
 
 package com.splicemachine.db.impl.load;
 
-import java.io.ObjectOutputStream;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
 import com.splicemachine.db.iapi.jdbc.EngineConnection;
 import com.splicemachine.db.iapi.reference.JDBC40Translation;
 import com.splicemachine.db.iapi.services.io.DynamicByteArrayOutputStream;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.StringUtil;
+
+import java.io.ObjectOutputStream;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.*;
 
 /**
  *	
@@ -417,7 +413,10 @@ public class ColumnInfo {
 
 		return (HashMap) ImportAbstract.destringifyObject( stringVersion );
     }
-    
+
+    public ArrayList getImportColumns() {
+    	return insertColumnNames;
+	}
 }
 
 

@@ -20,6 +20,8 @@ import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+
+import com.splicemachine.db.iapi.sql.conn.ResubmitDistributedException;
 import org.spark_project.guava.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
@@ -161,4 +163,8 @@ public class AnyOperation extends SpliceBaseOperation {
         return dsp.singleRowDataSet(getRowWithNulls());
     }
 
+    @Override
+    protected void resubmitDistributed(ResubmitDistributedException e) throws StandardException {
+        throw e;
+    }
 }

@@ -483,6 +483,24 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(upport);
 
+                    Procedure merge = Procedure.newBuilder().name("MERGE_DATA_FROM_FILE")
+                            .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .varchar("insertColumnList",32672)
+                            .varchar("fileName",32672)
+                            .varchar("columnDelimiter",5)
+                            .varchar("characterDelimiter", 5)
+                            .varchar("timestampFormat",32672)
+                            .varchar("dateFormat",32672)
+                            .varchar("timeFormat",32672)
+                            .bigint("maxBadRecords")
+                            .varchar("badRecordDirectory",32672)
+                            .varchar("oneLineRecords",5)
+                            .varchar("charset",32672)
+                            .build();
+                    procedures.add(merge);
+
                     Procedure getAutoIncLocs = Procedure.newBuilder().name("SYSCS_GET_AUTO_INCREMENT_ROW_LOCATIONS")
                             .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
                             .catalog("schemaName")
@@ -539,6 +557,27 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(disableStatsForColumn);
 
+
+        			/*
+        			 * Procedure to get a list of running operations
+        			 */
+                    Procedure runningOperations = Procedure.newBuilder().name("SYSCS_GET_RUNNING_OPERATIONS")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(runningOperations);
+
+
+        			/*
+        			 * Procedure to kill an executing operation
+        			 */
+                    Procedure killOperation = Procedure.newBuilder().name("SYSCS_KILL_OPERATION")
+                            .numOutputParams(0)
+                            .varchar("uuid",128)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(killOperation);
 
 
                     /*
