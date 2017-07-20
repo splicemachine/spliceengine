@@ -23,6 +23,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test.SerialTest;
 import org.apache.log4j.Logger;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -90,6 +91,42 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
 
+
+    @BeforeClass
+    public static void killRunningOperations() throws Exception {
+        String sql= "call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS()";
+
+        ResultSet rs = spliceClassWatcher.executeQuery(sql);
+        int killed = 0;
+        while (rs.next()) {
+            String uuid = rs.getString(1);
+
+            // kill the cursor
+            String killCall = "call SYSCS_UTIL.SYSCS_KILL_OPERATION('"+uuid+"')";
+            try {
+                System.out.println("Going to run: " + killCall);
+                spliceClassWatcher.getOrCreateConnection().execute(killCall);
+                killed++;
+            } catch (SQLException se) {
+                System.out.println("Failed");
+                if("4251P".equals(se.getSQLState())) {
+                    // ignore, operation already finished
+                } else {
+                    throw se;
+                }
+            }
+        }
+        System.out.println("Killed " + killed +" operations.");
+
+        // make sure no operations are running
+        rs = spliceClassWatcher.executeQuery(sql);
+        int count = 0;
+        while (rs.next()) {
+            System.out.println("Running " + rs.getString(3));
+            count++;
+        }
+        assertEquals(1, count); // only the GET_RUNNING_OPS should be running
+    }
 
     @Test
     public void testRunningOperations() throws Exception {

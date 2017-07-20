@@ -456,6 +456,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
                 openCore(dsp);
             }
         } catch (Exception e) {
+            EngineDriver.driver().getOperationManager().unregisterOperation(uuid);
             checkInterruptedException(e);
             throw e;
         }
