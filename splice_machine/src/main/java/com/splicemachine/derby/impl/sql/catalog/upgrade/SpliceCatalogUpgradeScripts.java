@@ -18,14 +18,15 @@ import java.util.Comparator;
 import java.util.NavigableSet;
 import java.util.TreeMap;
 
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.EngineDriver;
-import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
+import org.apache.zookeeper.ZKUtil;
 
 /**
  * Created by jyuan on 10/14/14.
@@ -38,7 +39,7 @@ public class SpliceCatalogUpgradeScripts{
     TransactionController tc;
     TreeMap<Splice_DD_Version, UpgradeScript> scripts;
     Comparator<Splice_DD_Version> ddComparator;
-
+    
     public SpliceCatalogUpgradeScripts(SpliceDataDictionary sdd,Splice_DD_Version catalogVersion,TransactionController tc){
         this.sdd=sdd;
         this.catalogVersion=catalogVersion;
@@ -61,22 +62,16 @@ public class SpliceCatalogUpgradeScripts{
         scripts=new TreeMap<>(ddComparator);
         scripts.put(new Splice_DD_Version(sdd,1,0,0),new UpgradeScriptForFuji(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,1,1,1),new LassenUpgradeScript(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,2,6,0),new SourceCodeUpgradeScript(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,2,6,0),new UpgradeScriptFor260(sdd,tc));
     }
 
     public void run() throws StandardException{
 
-        if(LOG.isInfoEnabled()) LOG.info("Creating/updating system procedures");
-        sdd.createOrUpdateAllSystemProcedures(tc);
-        if(LOG.isInfoEnabled()) LOG.info("Updating system prepared statements");
-        sdd.updateMetadataSPSes(tc);
-
         // Set the current version to upgrade from.
         // This flag should only be true for the master server.
         Splice_DD_Version currentVersion=catalogVersion;
-        SConfiguration configuration=EngineDriver.driver().getConfiguration();
+        SConfiguration configuration= SIDriver.driver().getConfiguration();
         if(configuration.upgradeForced()) {
-//        if (SpliceConstants.upgradeForced) {
             currentVersion=new Splice_DD_Version(null,configuration.getUpgradeForcedFrom());
         }
 

@@ -46,6 +46,7 @@ public class SimpleDatabaseVersion implements DatabaseVersion{
     private final int majorVersion;
     private final int minorVersion;
     private final int patchVersion;
+    private final int sprintVersion;
 
     SimpleDatabaseVersion(Map<String, String> manifestProps) {
         release = safeGet(manifestProps, "Release");
@@ -57,6 +58,7 @@ public class SimpleDatabaseVersion implements DatabaseVersion{
         majorVersion = versionParts.hasNext() ? safeParseInt(versionParts.next()) : UNKNOWN_INT;
         minorVersion = versionParts.hasNext() ? safeParseInt(versionParts.next()) : UNKNOWN_INT;
         patchVersion = versionParts.hasNext() ? safeParseInt(versionParts.next()) : UNKNOWN_INT;
+        sprintVersion = versionParts.hasNext() ? safeParseInt(versionParts.next()) : 0;
     }
 
     @Override
@@ -117,6 +119,11 @@ public class SimpleDatabaseVersion implements DatabaseVersion{
         } catch (NumberFormatException nfe) {
             return UNKNOWN_INT;
         }
+    }
+
+    @Override
+    public int getSprintVersionNumber() {
+        return sprintVersion;
     }
 
     /**

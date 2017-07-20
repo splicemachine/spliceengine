@@ -170,6 +170,19 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
         }
     }
 
+    @Override
+    public TxnMessage.Txn getOldTransaction(long txnId) throws IOException {
+        Lock lock = lockStriper.get(txnId).readLock();
+        acquireLock(lock);
+        try {
+            TxnMessage.Txn txn = baseStore.getTransactionV1(txnId);
+            if (txn == null)
+                txn = NONEXISTENT_TXN;
+            return txn;
+        } finally {
+            unlock(lock);
+        }
+    }
 
     @Override
     public TxnMessage.Txn getTransaction(long txnId) throws IOException{
