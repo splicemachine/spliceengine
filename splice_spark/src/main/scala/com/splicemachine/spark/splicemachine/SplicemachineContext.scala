@@ -77,11 +77,11 @@ class SplicemachineContext(url: String) extends Serializable {
   }
 
   def tableExists(schemaName: String, tableName: String): Boolean = {
-    tableExists(schemaName+"."+tableName)
+    tableExists(s"$schemaName.$tableName")
   }
 
   def dropTable(schemaName: String, tableName: String): Unit = {
-    dropTable(schemaName+"."+tableName)
+    dropTable(s"$schemaName.$tableName")
   }
 
 
@@ -140,9 +140,8 @@ class SplicemachineContext(url: String) extends Serializable {
     SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
     val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
     val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema,url)
-    val sqlText = "insert into " + schemaTableName + " (" + columnList + ") " + "--splice-properties useSpark=true\n" +  " select "+columnList+" from " +
-      "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
-      "as SpliceDatasetVTI (" + schemaString + ")"
+    val sqlText = s"insert into $schemaTableName  ($columnList) --splice-properties useSpark=true\n select $columnList from " +
+      s"new com.splicemachine.derby.vti.SpliceDatasetVTI() as SpliceDatasetVTI ($schemaString)"
     internalConnection.createStatement().executeUpdate(sqlText)
   }
 
@@ -154,9 +153,9 @@ class SplicemachineContext(url: String) extends Serializable {
     val keys = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
     val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
     val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema,url)
-    val sqlText = "delete from " + schemaTableName + " where exists (select 1 from " +
+    val sqlText = s"delete from $schemaTableName where exists (select 1 from " +
       "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
-      "as SDVTI (" + schemaString + ") where "
+      s"as SDVTI ($schemaString) where "
     val dialect = JdbcDialects.get(url)
     val whereClause = keys.map(x => schemaTableName+"."+dialect.quoteIdentifier(x) + " = SDVTI."++dialect.quoteIdentifier(x)).mkString(" AND ")
     val combinedText = sqlText+whereClause+")"
@@ -172,11 +171,11 @@ class SplicemachineContext(url: String) extends Serializable {
     val prunedFields = dataFrame.schema.fieldNames.filter((p: String) => keys.indexOf(p) == -1)
     val columnList = SpliceJDBCUtil.listColumns(prunedFields)
     val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema,url)
-    val sqlText = "update " + schemaTableName + " " +
-      "set ("+ columnList +") = (" +
-      "select " + columnList + " from " +
+    val sqlText = s"update $schemaTableName" + " " +
+      s"set ($columnList) = (" +
+      s"select $columnList from " +
       "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
-      "as SDVTI (" + schemaString + ") where "
+      s"as SDVTI ($schemaString) where "
     val dialect = JdbcDialects.get(url)
     val whereClause = keys.map(x => schemaTableName+"."+dialect.quoteIdentifier(x) + " = SDVTI."++dialect.quoteIdentifier(x)).mkString(" AND ")
     val combinedText = sqlText+whereClause+")"
@@ -196,12 +195,12 @@ class SplicemachineContext(url: String) extends Serializable {
     val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema,url)
     var properties = "--SPLICE-PROPERTIES "
     options foreach(option => properties += option._1 + "=" + option._2 +",")
-    properties = properties.substring(0, properties.length-1)
+    properties = properties.substring(0, properties.length-1) // what is this doing?
 
-    val sqlText = "insert into " + schemaTableName + " (" + columnList + ") " + properties + "\n" +
-      "select "+columnList+" from " +
+    val sqlText = s"insert into $schemaTableName ($columnList) $properties + "\n" +
+      s"select $columnList from " +
       "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
-      "as SpliceDatasetVTI (" + schemaString + ")"
+      s"as SpliceDatasetVTI ($schemaString)"
     internalConnection.createStatement().executeUpdate(sqlText)
   }
 
