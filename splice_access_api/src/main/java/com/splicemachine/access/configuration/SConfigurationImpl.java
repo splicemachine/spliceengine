@@ -147,6 +147,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  String upgradeForcedFrom;
     private final String storageFactoryHome;
     private final int nestedLoopJoinBatchSize;
+    private final long controlExecutionRowLimit;
 
     // StatsConfiguration
     private final  double fallbackNullFraction;
@@ -709,6 +710,7 @@ public final class SConfigurationImpl implements SConfiguration {
         reservedSlotsTimeout = builder.reservedSlotsTimeout;
         storageFactoryHome = builder.storageFactoryHome;
         nestedLoopJoinBatchSize = builder.nestedLoopJoinBatchSize;
+        controlExecutionRowLimit = builder.controlExecutionRowLimit;
         bulkImportSampleFraction = builder.bulkImportSampleFraction;
         bulkImportTasksPerRegion = builder.bulkImportTasksPerRegion;
     }
@@ -759,6 +761,11 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getOlapServerTickLimit(){
         return olapServerTickLimit;
+    }
+
+    @Override
+    public long getControlExecutionRowLimit() {
+        return controlExecutionRowLimit;
     }
 
 }
