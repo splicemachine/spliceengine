@@ -197,7 +197,7 @@ class SplicemachineContext(url: String) extends Serializable {
     options foreach(option => properties += option._1 + "=" + option._2 +",")
     properties = properties.substring(0, properties.length-1) // what is this doing?
 
-    val sqlText = s"insert into $schemaTableName ($columnList) $properties + "\n" +
+    val sqlText = s"insert into $schemaTableName ($columnList) $properties \n " +
       s"select $columnList from " +
       "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
       s"as SpliceDatasetVTI ($schemaString)"
