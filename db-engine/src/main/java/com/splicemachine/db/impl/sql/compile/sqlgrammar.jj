@@ -948,12 +948,18 @@ public class SQLParser
             // String columnName = rc.getName();
             ResultColumn innerResultColumn = ((ResultColumn)innerRCL.elementAt(index));
             String innerColumnName = innerResultColumn.getName();
-            ValueNode colRef = (ValueNode) getNodeFactory().getNode(
-                C_NodeTypes.COLUMN_REFERENCE,
-                innerColumnName,
-                ((FromTable)innerFromEntries.get(0)).getTableName(),
-                getContextManager());
-            rc.setExpression(colRef);
+            if (innerColumnName != null) {
+               // source is a case of single column
+               ValueNode colRef = (ValueNode) getNodeFactory().getNode(
+                    C_NodeTypes.COLUMN_REFERENCE,
+                    innerColumnName,
+                    ((FromTable)innerFromEntries.get(0)).getTableName(),
+                    getContextManager());
+               rc.setExpression(colRef);
+            } else {
+               // source is an expression
+               rc.setExpression(innerResultColumn.getExpression());
+            }
         }
 
         SelectNode resultSet = (SelectNode) nodeFactory.getNode(

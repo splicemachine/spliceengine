@@ -646,7 +646,7 @@ public class HdfsImport {
             LanguageConnectionContext lcc = ((EmbedConnection)conn).getLanguageConnection();
 
             ColumnInfo columnInfo = new ColumnInfo(conn, schemaName, tableName, insertColumnList);
-            String selectList = generateColumnList(lcc,schemaName,tableName,insertColumnList, true);
+            String selectList = generateColumnList(lcc,schemaName,tableName,insertColumnList, true, null);
             String vtiTable = importVTI + " AS importVTI (" + columnInfo.getImportAsColumns() + ")";
             String insertSql = "INSERT INTO " + entityName + "(" + columnInfo.getInsertColumnNames() + ") " +
                     "--splice-properties useSpark=true , insertMode=" + (isUpsert ? "UPSERT" : "INSERT") + ", statusDirectory=" +
@@ -676,10 +676,12 @@ public class HdfsImport {
 
                 // In the SET clause, even for column with default value, we don't want to use the case expression but
                 // just need the column name
-                String setColumnList = generateColumnList(lcc,schemaName,tableName,insertColumnList, false);
+                String setColumnList = generateColumnList(lcc,schemaName,tableName,insertColumnList, false, null);
+                String subqSelect = generateColumnList(lcc,schemaName,tableName,insertColumnList, true, "importVTI");
+
                 String updateSql = "UPDATE " + entityName +
                         "\n set (" + setColumnList + ") = \n" +
-                        "(SELECT "+ selectList + " from " + vtiTable + " " +
+                        "(SELECT "+ subqSelect + " from " + vtiTable + " " +
                         pkConditions + ")";
 
                 //update for rows that has match for PK
@@ -744,7 +746,8 @@ public class HdfsImport {
                                              String schemaName,
                                              String tableName,
                                              List<String> insertColumnList,
-                                             boolean genCaseExp) throws SQLException{
+                                             boolean genCaseExp,
+                                             String qualifierName) throws SQLException{
         DataDictionary dd = lcc.getDataDictionary();
         StringBuilder colListStr = new StringBuilder();
         try{
@@ -762,14 +765,14 @@ public class HdfsImport {
                     ColumnDescriptor cd = columnDescriptorList.getColumnDescriptor(td.getUUID(),col);
                     if(cd==null)
                         throw StandardException.newException(SQLState.COLUMN_NOT_FOUND,tableName+"."+col); //shouldn't happen, but just in case
-                    colListStr = writeColumn(cd,colListStr,genCaseExp);
+                    colListStr = writeColumn(cd,colListStr,genCaseExp, qualifierName);
                 }
             }else{
                 boolean isFirst = true;
                 for(ColumnDescriptor cd: columnDescriptorList){
                     if(isFirst) isFirst = false;
                     else colListStr = colListStr.append(",");
-                    colListStr = writeColumn(cd,colListStr,genCaseExp);
+                    colListStr = writeColumn(cd,colListStr,genCaseExp, qualifierName);
                 }
             }
 
@@ -779,9 +782,11 @@ public class HdfsImport {
         }
     }
 
-    private static StringBuilder writeColumn(ColumnDescriptor cd,StringBuilder text, boolean genCaseExpr) throws StandardException{
+    private static StringBuilder writeColumn(ColumnDescriptor cd,StringBuilder text, boolean genCaseExpr, String qualifierName) throws StandardException{
         String colName = sqlFormat(cd.getColumnName());
         DefaultInfo di = cd.getDefaultInfo();
+        if (qualifierName != null)
+            colName = qualifierName + "." + colName;
         if(di!=null && genCaseExpr){
             text = text.append("CASE WHEN (")
                     .append(colName)
