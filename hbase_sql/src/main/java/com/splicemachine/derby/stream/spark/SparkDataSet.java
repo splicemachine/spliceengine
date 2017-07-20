@@ -25,12 +25,26 @@ import com.splicemachine.derby.impl.sql.execute.operations.export.ExportExecRowW
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
-import com.splicemachine.derby.stream.function.*;
+import com.splicemachine.derby.stream.function.AbstractSpliceFunction;
+import com.splicemachine.derby.stream.function.CountWriteFunction;
+import com.splicemachine.derby.stream.function.ExportFunction;
+import com.splicemachine.derby.stream.function.LocatedRowToRowFunction;
+import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
+import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
+import com.splicemachine.derby.stream.function.SpliceFunction;
+import com.splicemachine.derby.stream.function.SpliceFunction2;
+import com.splicemachine.derby.stream.function.SplicePairFunction;
+import com.splicemachine.derby.stream.function.SplicePredicateFunction;
+import com.splicemachine.derby.stream.function.TakeFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
-import com.splicemachine.derby.stream.output.*;
-import com.splicemachine.derby.utils.StatisticsOperation;
+import com.splicemachine.derby.stream.output.BulkDeleteDataSetWriterBuilder;
+import com.splicemachine.derby.stream.output.BulkInsertDataSetWriterBuilder;
+import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
+import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
+import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
+import com.splicemachine.derby.stream.output.UpdateDataSetWriterBuilder;
 import com.splicemachine.utils.ByteDataInput;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
@@ -54,10 +68,15 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.storage.StorageLevel;
-import scala.Tuple2;
+
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.zip.GZIPOutputStream;
 
@@ -175,8 +194,8 @@ public class SparkDataSet<V> implements DataSet<V> {
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
-    public DataSet<V> distinct() {
-        return distinct("Remove Duplicates", false, null, false, null);
+    public DataSet<V> distinct(OperationContext context) {
+        return distinct("Remove Duplicates", false, context, false, null);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -308,8 +327,8 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
-    public DataSet< V> intersect(DataSet< V> dataSet) {
-        return intersect(dataSet,"Intersect Operator",null,false,null);
+    public DataSet< V> intersect(DataSet<V> dataSet, OperationContext context) {
+        return intersect(dataSet,"Intersect Operator",context,false,null);
     }
 
     /**
@@ -397,8 +416,8 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
-    public DataSet<V> subtract(DataSet<V> dataSet){
-        return subtract(dataSet,"Substract/Except Operator",null,false,null);
+    public DataSet<V> subtract(DataSet<V> dataSet, OperationContext context){
+        return subtract(dataSet,"Substract/Except Operator",context,false,null);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })

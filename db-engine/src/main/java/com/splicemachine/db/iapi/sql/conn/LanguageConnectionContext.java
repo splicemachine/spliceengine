@@ -1339,5 +1339,16 @@ public interface LanguageConnectionContext extends Context {
 	 */
 	void popWithStack();
 
+	/**
+	 * Gets the current control execution limiter
+	 * @return
+     */
+	ControlExecutionLimiter getControlExecutionLimiter();
+
+	/**
+	 * Sets the current control execution limiter
+	 * @return
+	 */
+	void setControlExecutionLimiter(ControlExecutionLimiter executionLimiter);
 
 }

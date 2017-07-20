@@ -50,10 +50,10 @@ public class TotalManagedCache<K, V> implements ManagedCacheMBean, GenericManage
         return missCount;
     }
     @Override public double getHitRate(){
-        return (getHitCount()*1.0)/getRequestCount();
+        return getRequestCount()>0?((getHitCount()*1.0)/getRequestCount()):0;
     }
     @Override public double getMissRate(){
-        return (getMissCount()*1.0)/getRequestCount();
+        return getRequestCount()>0?((getMissCount()*1.0)/getRequestCount()):0;
     }
     @Override public long getRequestCount(){
         long requestCount = 0;

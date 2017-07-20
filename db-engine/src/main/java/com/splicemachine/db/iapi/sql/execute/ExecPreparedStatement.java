@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 
 import com.splicemachine.db.iapi.sql.PreparedStatement;
@@ -191,5 +192,16 @@ public interface ExecPreparedStatement
 	 *         the database does not use SQL standard authorization
 	 */
 	List getRequiredPermissionsList();
+
+	/**
+	 * @return dataset processor type if overriden, otherwise null
+	 */
+	CompilerContext.DataSetProcessorType datasetProcessorType();
+
+	/**
+	 * @return override datasetprocessortype
+	 */
+	void setDatasetProcessorType(CompilerContext.DataSetProcessorType type);
+
 }
 

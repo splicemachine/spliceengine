@@ -184,26 +184,10 @@ public class ActivationClassBuilder	extends	ExpressionClassBuilder {
                 currentType.equals(CompilerContext.DataSetProcessorType.FORCED_SPARK))
             return; // Already Forced
         myCompCtx.setDataSetProcessorType(type);
-        switch (type) {
-            case FORCED_CONTROL:
-                constructor.pushThis();
-                constructor.push(false);
-                constructor.putField(ClassName.BaseActivation, "useSpark", "boolean");
-                constructor.endStatement();
-                break;
-            case SPARK:
-                constructor.pushThis();
-                constructor.push(true);
-                constructor.putField(ClassName.BaseActivation, "useSpark", "boolean");
-                constructor.endStatement();
-                break;
-            case FORCED_SPARK:
-                constructor.pushThis();
-                constructor.push(true);
-                constructor.putField(ClassName.BaseActivation, "useSpark", "boolean");
-                constructor.endStatement();
-                break;
-        }
+		constructor.pushThis();
+		constructor.push(type.ordinal());
+		constructor.putField(ClassName.BaseActivation, "datasetProcessorType", "int");
+		constructor.endStatement();
     }
 
 	///////////////////////////////////////////////////////////////////////

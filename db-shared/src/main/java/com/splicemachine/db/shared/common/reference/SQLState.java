@@ -811,6 +811,8 @@ public interface SQLState {
 	String DBO_FIRST                                                                    = "4251K";
 	String BAD_CREDENTIALS_DB_NAME                                          = "4251L";
 	String AUTH_NO_TABLE_PERMISSION_FOR_ANALYZE                        = "4251M";
+	String AUTH_NO_PERMISSION_FOR_KILLING_OPERATION                    = "4251N";
+	String LANG_NO_SUCH_RUNNING_OPERATION                              = "4251P";
 	String LANG_DB2_NOT_NULL_COLUMN_INVALID_DEFAULT                    = "42601";
 	String LANG_DB2_INVALID_HEXADECIMAL_CONSTANT                    = "42606";
 	String LANG_DB2_STRING_CONSTANT_TOO_LONG                    = "54002";
@@ -1159,6 +1161,8 @@ public interface SQLState {
 	String LANG_UDA_WRONG_INPUT_TYPE                                   = "42ZC6";
 	String LANG_UDA_WRONG_RETURN_TYPE                                  = "42ZC7";
 	String LANG_UDA_INSTANTIATION                                      = "42ZC8";
+
+	String LANG_RESUBMIT_DISTRIBUTED                                    = "42ZD0";
 	
 	//following 3 matches the DB2 sql states
 	String LANG_DECLARED_GLOBAL_TEMP_TABLE_ONLY_IN_SESSION_SCHEMA = "428EK";
@@ -1935,6 +1939,7 @@ public interface SQLState {
     String REPLICATION_STOPSLAVE_NOT_INITIATED                     = "XRE43";
 
 	//general SPlice errors
+	String LANG_CANCELLATION_EXCEPTION							   = "SE008";
 	String LANG_INVALID_DAY										   = "SE022";
 	String ERROR_PARSING_EXCEPTION								   = "SE023";
 	/*
