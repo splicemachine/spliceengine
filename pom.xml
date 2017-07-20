@@ -78,7 +78,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.useIncrementalCompilation>false</maven.compiler.useIncrementalCompilation>
         <scala.binary.version>2.11</scala.binary.version>
-        <spark.version>2.1.1</spark.version>
+        <spark.version>2.2.0</spark.version>
     </properties>
     <scm>
         <connection>scm:git:git@github.com:splicemachine/${project.artifactId}.git</connection>
@@ -760,7 +760,7 @@
                 <hadoop.version>2.6.0</hadoop.version>
                 <hive.version>1.1.0</hive.version>
                 <zookeeper.version>3.4.6</zookeeper.version>
-                <spark.version>2.1.1</spark.version>
+                <spark.version>2.2.0</spark.version>
                 <kafka.version>0.8.2.0-kafka-1.2.0</kafka.version>
                 <hadoop.tools.version>1.2.1</hadoop.tools.version>
             </properties>
@@ -786,7 +786,7 @@
                 <hbase.version>1.1.2.2.4.2.0-258</hbase.version>
                 <hive.version>1.2.1000.2.4.2.0-258</hive.version>
                 <zookeeper.version>3.4.6.2.4.2.0-258</zookeeper.version>
-                <spark.version>2.1.1</spark.version>
+                <spark.version>2.2.0</spark.version>
                 <kafka.version>0.9.0.2.4.2.0-258</kafka.version>
             </properties>
             <modules>
@@ -811,7 +811,7 @@
                 <hbase.version>1.1.2.2.4.3.0-227</hbase.version>
                 <hive.version>1.2.1000.2.4.3.0-227</hive.version>
                 <zookeeper.version>3.4.6.2.4.3.0-227</zookeeper.version>
-                <spark.version>2.1.1</spark.version>
+                <spark.version>2.2.0</spark.version>
                 <kafka.version>0.9.0.2.4.3.0-227</kafka.version>
             </properties>
             <modules>
@@ -835,7 +835,7 @@
                 <hbase.version>1.1.2.2.5.0.0-1245</hbase.version>
                 <hive.version>1.2.1000.2.5.0.0-1245</hive.version>
                 <zookeeper.version>3.4.6.2.5.0.0-1245</zookeeper.version>
-                <spark.version>2.1.1</spark.version>
+                <spark.version>2.2.0</spark.version>
                 <kafka.version>0.9.0.2.4.2.0-258</kafka.version>
                 <!-- kafka.version>0.10.0.2.5.0.0-1245</kafka.version -->
             </properties>
@@ -860,7 +860,7 @@
                 <hbase.version>1.1.2.2.5.3.0-37</hbase.version>
                 <hive.version>1.2.1000.2.5.3.0-37</hive.version>
                 <zookeeper.version>3.4.6.2.5.3.0-37</zookeeper.version>
-                <spark.version>2.1.1</spark.version>
+                <spark.version>2.2.0</spark.version>
                 <kafka.version>0.9.0.2.4.2.0-258</kafka.version>
                 <!-- <kafka.version>0.10.0.2.5.3.0-37</kafka.version> -->
             </properties>
@@ -886,7 +886,7 @@
                 <hive.version>1.2.1000.2.5.5.7-1</hive.version>
                 <zookeeper.version>3.4.6.2.5.5.7-1</zookeeper.version>
                 <spark-assembly-id>spark-assembly-hadoop2.7.3.2.5.5.7-1</spark-assembly-id>
-                <spark.version>2.1.1</spark.version>
+                <spark.version>2.2.0</spark.version>
                 <kafka.version>0.9.0.2.4.2.0-258</kafka.version>
                 <!-- <kafka.version>0.10.0.2.5.5.7-1</kafka.version> -->
             </properties>
@@ -912,7 +912,7 @@
                 <hbase.version>1.0.0-cdh5.6.0</hbase.version>
                 <hive.version>1.1.0-cdh5.6.0</hive.version>
                 <zookeeper.version>3.4.5-cdh5.6.0</zookeeper.version>
-                <spark.version>2.1.1</spark.version>
+                <spark.version>2.2.0</spark.version>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
             <modules>
@@ -937,7 +937,7 @@
                 <hbase.version>1.0.0-cdh5.6.1</hbase.version>
                 <hive.version>1.1.0-cdh5.6.1</hive.version>
                 <zookeeper.version>3.4.5-cdh5.6.1</zookeeper.version>
-                <spark.version>2.1.1</spark.version>
+                <spark.version>2.2.0</spark.version>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
             <modules>
@@ -962,7 +962,7 @@
                 <hbase.version>1.2.0-cdh5.7.2</hbase.version>
                 <hive.version>1.1.0-cdh5.7.2</hive.version>
                 <zookeeper.version>3.4.5-cdh5.7.2</zookeeper.version>
-                <spark.version>2.1.1</spark.version>
+                <spark.version>2.2.0</spark.version>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
             <modules>
@@ -987,7 +987,7 @@
                 <hbase.version>1.2.0-cdh5.7.3</hbase.version>
                 <hive.version>1.1.0-cdh5.7.3</hive.version>
                 <zookeeper.version>3.4.5-cdh5.7.3</zookeeper.version>
-                <spark.version>2.1.1</spark.version>
+                <spark.version>2.2.0</spark.version>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
             <modules>
@@ -1012,7 +1012,7 @@
                 <hbase.version>1.2.0-cdh5.7.4</hbase.version>
                 <hive.version>1.1.0-cdh5.7.4</hive.version>
                 <zookeeper.version>3.4.5-cdh5.7.4</zookeeper.version>
-                <spark.version>2.1.1</spark.version>
+                <spark.version>2.2.0</spark.version>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
             <modules>
@@ -1037,7 +1037,7 @@
                 <hbase.version>1.2.0-cdh5.7.5</hbase.version>
                 <hive.version>1.1.0-cdh5.7.5</hive.version>
                 <zookeeper.version>3.4.5-cdh5.7.5</zookeeper.version>
-                <spark.version>2.1.1</spark.version>
+                <spark.version>2.2.0</spark.version>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
             <modules>
@@ -1062,7 +1062,7 @@
                 <hbase.version>1.2.0-cdh5.8.0</hbase.version>
                 <hive.version>1.1.0-cdh5.8.0</hive.version>
                 <zookeeper.version>3.4.5-cdh5.8.0</zookeeper.version>
-                <spark.version>2.1.1</spark.version>
+                <spark.version>2.2.0</spark.version>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
             <modules>
@@ -1087,7 +1087,7 @@
                 <hbase.version>1.2.0-cdh5.8.2</hbase.version>
                 <hive.version>1.1.0-cdh5.8.2</hive.version>
                 <zookeeper.version>3.4.5-cdh5.8.2</zookeeper.version>
-                <spark.version>2.1.1</spark.version>
+                <spark.version>2.2.0</spark.version>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
             <modules>
@@ -1112,7 +1112,7 @@
                 <hbase.version>1.2.0-cdh5.8.3</hbase.version>
                 <hive.version>1.1.0-cdh5.8.3</hive.version>
                 <zookeeper.version>3.4.5-cdh5.8.3</zookeeper.version>
-                <spark.version>2.1.1</spark.version>
+                <spark.version>2.2.0</spark.version>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
             <modules>
@@ -1138,7 +1138,7 @@
                 <hbase.version>1.2.0-cdh5.8.5</hbase.version>
                 <hive.version>1.1.0-cdh5.8.5</hive.version>
                 <zookeeper.version>3.4.5-cdh5.8.5</zookeeper.version>
-                <spark.version>2.1.1</spark.version>
+                <spark.version>2.2.0</spark.version>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
             <modules>
@@ -1164,7 +1164,7 @@
                 <hbase.version>1.2.0-cdh5.12.0</hbase.version>
                 <hive.version>1.1.0-cdh5.12.0</hive.version>
                 <zookeeper.version>3.4.5-cdh5.12.0</zookeeper.version>
-                <spark.version>2.1.1</spark.version>
+                <spark.version>2.2.0</spark.version>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
             <modules>
@@ -1190,7 +1190,7 @@
                 <hive.version>0.13.0-mapr-1602</hive.version>
                 <zookeeper.version>3.4.5-mapr-1503</zookeeper.version>
                 <maprfs.version>5.1.0-mapr</maprfs.version>
-                <spark.version>2.1.1</spark.version>
+                <spark.version>2.2.0</spark.version>
                 <kafka.version>0.9.0.0-mapr-1607</kafka.version>
             </properties>
             <modules>
@@ -1216,7 +1216,7 @@
                 <hive.version>0.13.0-mapr-1602</hive.version>
                 <zookeeper.version>3.4.5-mapr-1604</zookeeper.version>
                 <maprfs.version>5.2.0-mapr</maprfs.version>
-                <spark.version>2.1.1</spark.version>
+                <spark.version>2.2.0</spark.version>
                 <kafka.version>0.9.0.0-mapr-1607</kafka.version>
             </properties>
             <modules>
