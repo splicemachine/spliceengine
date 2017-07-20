@@ -70,7 +70,7 @@ class SplicemachineContext(url: String) extends Serializable {
     val jdbcOptions = new JDBCOptions(spliceOptions)
     val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
     try {
-      JdbcUtils.tableExists(conn, jdbcOptions.url, jdbcOptions.table)
+      JdbcUtils.tableExists(conn, jdbcOptions)
     } finally {
       conn.close()
     }
@@ -99,7 +99,7 @@ class SplicemachineContext(url: String) extends Serializable {
   }
 
     def createTable(tableName: String,
-                    structType: StructType,
+                    df: DataFrame,
                   keys: Seq[String],
                   createTableOptions: String): Unit = {
     val spliceOptions = Map(
@@ -108,7 +108,7 @@ class SplicemachineContext(url: String) extends Serializable {
     val jdbcOptions = new JDBCOptions(spliceOptions)
     val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
     try {
-      val schemaString = JdbcUtils.schemaString(structType,jdbcOptions.url)
+      val schemaString = JdbcUtils.schemaString(df,jdbcOptions.url)
       val keyArray = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
       val primaryKeyString = new StringBuilder()
       val dialect = JdbcDialects.get(jdbcOptions.url)
