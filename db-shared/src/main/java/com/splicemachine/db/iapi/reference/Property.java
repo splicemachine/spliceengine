@@ -1198,4 +1198,11 @@ public interface Property {
      */
     String SERVER_STARTED_FROM_CMD_LINE =
             "derby.__serverStartedFromCmdLine";
+
+	/**
+	 * By default, this property is set to false or NULL(which is the same as false),
+	 * and stats will be collected on all columns excluding those explicitly disabled.
+	 * When it is set to true, stats will be collected only on index columns.
+	 */
+	String COLLECT_INDEX_STATS_ONLY = "derby.database.collectIndexStatsOnly";
 }
