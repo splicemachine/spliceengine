@@ -123,6 +123,9 @@ public class RowCountOperationIT {
                 .withRows(rows(tableBRows)).create();
 
 
+        new TableCreator(conn)
+                .withCreate("create table C (a bigint)").create();
+
         conn.collectStats(spliceSchemaWatcher.schemaName,"A");
 
     }
@@ -622,11 +625,82 @@ public class RowCountOperationIT {
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
+    // over multiple partitions (union in Spark)
+    //
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    private static final String multiPartitions =
+            "(select a from A union all select a from A union all select a from A union all select a from A) A (a)";
+
+    @Test
+    public void smallLimitMultiPartitionsOrdered() throws Exception {
+        validateOrdered("" +
+                "A |\n" +
+                "----\n" +
+                "10 |\n" +
+                "10 |", "select * from " + multiPartitions +" order by a {limit 2}");
+    }
+    @Test
+    public void smallLimitMultiPartitionsUnordered() throws Exception {
+        validateUnOrdered(2, "select * from " + multiPartitions +" {limit 2}", true);
+    }
+
+
+    @Test
+    public void largeLimitMultiPartitionsUnordered() throws Exception {
+        validateUnOrdered(40, "select * from " + multiPartitions +" {limit 40}", true);
+    }
+
+
+    @Test
+    public void insertSmallLimitMultiPartitionsOrdered() throws Exception {
+        int count = conn.createStatement().executeUpdate("insert into C select * from " + multiPartitions +" order by a {limit 2}");
+        assertEquals(2, count);
+
+    }
+    @Test
+    public void insertSmallLimitMultiPartitionsUnordered() throws Exception {
+        int count = conn.createStatement().executeUpdate("insert into C select * from " + multiPartitions +" {limit 2}");
+        assertEquals(2, count);
+    }
+
+
+    @Test
+    public void insertLargeLimitMultiPartitionsUnordered() throws Exception {
+        int count = conn.createStatement().executeUpdate("insert into C select * from " + multiPartitions +" {limit 40}");
+        assertEquals(40, count);
+    }
+
+    @Test
+    public void insertSmallOffsetLimitMultiPartitionsOrdered() throws Exception {
+        int count = conn.createStatement().executeUpdate("insert into C select * from " + multiPartitions +" order by a offset 2 rows fetch first 3 rows only");
+        assertEquals(3, count);
+
+    }
+    @Test
+    public void insertSmallOffsetLimitMultiPartitionsUnordered() throws Exception {
+        int count = conn.createStatement().executeUpdate("insert into C select * from " + multiPartitions +" order by a offset 2 rows fetch first 3 rows only");
+        assertEquals(3, count);
+    }
+
+
+    @Test
+    public void insertLargeOffsetLimitMultiPartitionsUnordered() throws Exception {
+        int count = conn.createStatement().executeUpdate("insert into C select * from " + multiPartitions +" order by a offset 40 rows fetch first 30 rows only");
+        assertEquals(30, count);
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    //
     // test utils
     //
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     private void validateUnOrdered(int expectedRowCount, String query) throws Exception {
+        validateUnOrdered(expectedRowCount, query, false);
+    }
+
+    private void validateUnOrdered(int expectedRowCount, String query, boolean duplicates) throws Exception {
         Statement statement = conn.createStatement();
         ResultSet resultSet = statement.executeQuery(query);
 
@@ -639,7 +713,8 @@ public class RowCountOperationIT {
             rowCount++;
         }
         assertEquals("Row count does not match expectation", expectedRowCount, rowCount);
-        assertEquals("Did not expect resultset to contain duplicates", rowCount, uniqueValues.size());
+        if (!duplicates)
+            assertEquals("Did not expect resultset to contain duplicates", rowCount, uniqueValues.size());
     }
 
     private void validateOrdered(String expectedResult, String query) throws Exception {
