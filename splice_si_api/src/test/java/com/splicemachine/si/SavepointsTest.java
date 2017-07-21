@@ -27,6 +27,7 @@ import com.splicemachine.si.testenv.ArchitectureSpecific;
 import com.splicemachine.si.testenv.SITestEnv;
 import com.splicemachine.si.testenv.SITestEnvironment;
 import com.splicemachine.si.testenv.TestTransactionSetup;
+import com.splicemachine.si.testenv.TransactorTestUtility;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -51,6 +52,7 @@ public class SavepointsTest {
     private TxnLifecycleManager control;
     private final List<Txn> createdParentTxns= Lists.newArrayList();
     private TxnStore txnStore;
+    private TransactorTestUtility testUtility;
 
     @Before
     public void setUp() throws Exception{
@@ -64,7 +66,9 @@ public class SavepointsTest {
                 createdParentTxns.add(txn);
             }
         };
+        testUtility = new TransactorTestUtility(true,testEnv, transactorSetup);
         txnStore=transactorSetup.txnStore;
+        transactorSetup.timestampSource.rememberTimestamp(transactorSetup.timestampSource.nextTimestamp());
     }
 
     @After
@@ -153,10 +157,10 @@ public class SavepointsTest {
         transaction.elevate(DESTINATION_TABLE);
         Txn second = transaction.getTxn();
 
-        // release first, we shouldn't do anything
+        // release first, the stack should shrink
         res = transaction.releaseSavePoint("first", null);
 
-        Assert.assertEquals("Wrong txn stack size", 3, res);
+        Assert.assertEquals("Wrong txn stack size", 1, res);
     }
 
 
@@ -204,11 +208,11 @@ public class SavepointsTest {
         Assert.assertTrue(transaction.getTxn().allowsWrites());
 
         res = transaction.releaseSavePoint("second", null);
-        Assert.assertEquals("Wrong txn stack size", 3, res);
+        Assert.assertEquals("Wrong txn stack size", 2, res);
         Assert.assertTrue(transaction.getTxn().allowsWrites());
 
         res = transaction.releaseSavePoint("first", null);
-        Assert.assertEquals("Wrong txn stack size", 3, res);
+        Assert.assertEquals("Wrong txn stack size", 1, res);
         Assert.assertTrue(transaction.getTxn().allowsWrites());
 
         transaction.commit();
@@ -231,8 +235,85 @@ public class SavepointsTest {
                 older.getTxnId() <= parent.getTxnId() + 0x400);
         Assert.assertTrue("We didnt have persisted savepoints", older.getTxnId() > parent.getTxnId() + 0x300);
 
-        transaction.commit();
-        older.commit();
+    }
+
+    @Test
+    public void testRollbackWithSomePersistedTxns() throws Exception{
+        Txn parent=control.beginTransaction();
+        TransactionImpl t1 = new TransactionImpl("user", parent, false, control);
+        t1.elevate(DESTINATION_TABLE);
+
+        Assert.assertEquals("dan90 absent", testUtility.read(t1.getTxn(), "dan90"));
+        testUtility.insertAge(t1.getTxn(), "dan90", 20);
+        Assert.assertEquals("dan90 age=20 job=null", testUtility.read(t1.getTxn(), "dan90"));
+
+        t1.setSavePoint("first", null);
+
+        // Create some persisted txns
+        for (int i = 0; i < SIConstants.TRASANCTION_INCREMENT * 3; ++i) {
+            int res = t1.setSavePoint("test" + i, null);
+            t1.elevate(DESTINATION_TABLE);
+            Assert.assertEquals("Wrong txn stack size", 3 + i, res);
+        }
+
+        testUtility.insertAge(t1.getTxn(), "dan90", 30);
+        Assert.assertEquals("dan90 age=30 job=null", testUtility.read(t1.getTxn(), "dan90"));
+
+        // rollback past the persisted txns
+        t1.rollbackToSavePoint("first", null);
+        t1.elevate(DESTINATION_TABLE);
+
+
+        testUtility.insertAge(t1.getTxn(), "dan90", 20);
+        Assert.assertEquals("dan90 age=20 job=null", testUtility.read(t1.getTxn(), "dan90"));
+    }
+
+    @Test
+    public void testReleaseUserTxnWithSomePersistedTxns() throws Exception{
+        Txn parent=control.beginTransaction();
+        TransactionImpl t1 = new TransactionImpl("user", parent, false, control);
+        t1.elevate(DESTINATION_TABLE);
+
+        Assert.assertEquals("dan92 absent", testUtility.read(t1.getTxn(), "dan92"));
+        testUtility.insertAge(t1.getTxn(), "dan92", 20);
+        Assert.assertEquals("dan92 age=20 job=null", testUtility.read(t1.getTxn(), "dan92"));
+
+        t1.setSavePoint("first", null);
+
+        // Create some persisted txns
+        for (int i = 0; i < SIConstants.TRASANCTION_INCREMENT * 3; ++i) {
+            int res = t1.setSavePoint("test" + i, null);
+            t1.elevate(DESTINATION_TABLE);
+            Assert.assertTrue("Wrong txn stack size", res <= 4);
+            res = t1.releaseSavePoint("test" + i, null);
+            Assert.assertTrue("Wrong txn stack size", res <= 3);
+        }
+
+        testUtility.insertAge(t1.getTxn(), "dan92", 30);
+        Assert.assertEquals("dan92 age=30 job=null", testUtility.read(t1.getTxn(), "dan92"));
+
+        // release past the persisted txns
+        t1.releaseSavePoint("first", null);
+
+        // Create some more persisted txns
+        for (int i = 0; i < SIConstants.TRASANCTION_INCREMENT * 3; ++i) {
+            int res = t1.setSavePoint("test" + i, null);
+            t1.elevate(DESTINATION_TABLE);
+            Assert.assertTrue("Wrong txn stack size", res <= 4);
+            res = t1.releaseSavePoint("test" + i, null);
+            Assert.assertTrue("Wrong txn stack size", res <= 3);
+        }
+
+
+        int res = t1.setSavePoint("second", null);
+        Assert.assertTrue("Wrong txn stack size", res <= 3);
+
+        t1.elevate(DESTINATION_TABLE);
+
+
+        Assert.assertEquals("dan92 age=30 job=null", testUtility.read(t1.getTxn(), "dan92"));
+        testUtility.insertAge(t1.getTxn(), "dan92", 20);
+        Assert.assertEquals("dan92 age=20 job=null", testUtility.read(t1.getTxn(), "dan92"));
     }
 
 }
