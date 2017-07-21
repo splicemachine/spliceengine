@@ -54,7 +54,7 @@ import java.util.Properties;
 
 public class IndexConglomerate extends SpliceConglomerate{
     private static final Logger LOG=Logger.getLogger(IndexConglomerate.class);
-    public static final int FORMAT_NUMBER=StoredFormatIds.ACCESS_B2I_V5_ID;
+    public static final int FORMAT_NUMBER=StoredFormatIds.ACCESS_B2I_V6_ID;
     public static final String PROPERTY_UNIQUE_WITH_DUPLICATE_NULLS="uniqueWithDuplicateNulls";
     private static final long serialVersionUID=4l;
     protected static final String PROPERTY_BASECONGLOMID="baseConglomerateId";
@@ -381,7 +381,7 @@ public class IndexConglomerate extends SpliceConglomerate{
      */
 
     public int getTypeFormatId(){
-        return StoredFormatIds.ACCESS_B2I_V5_ID;
+        return StoredFormatIds.ACCESS_B2I_V6_ID;
     }
 
 
@@ -438,7 +438,8 @@ public class IndexConglomerate extends SpliceConglomerate{
         // First part of ACCESS_B2I_V4_ID format is the ACCESS_B2I_V3_ID format.
         writeExternal_v10_2(out);
         if(conglom_format_id==StoredFormatIds.ACCESS_B2I_V4_ID
-                || conglom_format_id==StoredFormatIds.ACCESS_B2I_V5_ID){
+                || conglom_format_id==StoredFormatIds.ACCESS_B2I_V5_ID
+                || conglom_format_id==StoredFormatIds.ACCESS_B2I_V6_ID){
             // Now append sparse array of collation ids
             ConglomerateUtil.writeCollationIdArray(collation_ids,out);
         }
@@ -458,7 +459,7 @@ public class IndexConglomerate extends SpliceConglomerate{
         if(LOG.isTraceEnabled())
             LOG.trace("writeExternal");
         writeExternal_v10_3(out);
-        if(conglom_format_id==StoredFormatIds.ACCESS_B2I_V5_ID)
+        if(conglom_format_id==StoredFormatIds.ACCESS_B2I_V5_ID || conglom_format_id==StoredFormatIds.ACCESS_B2I_V6_ID)
             out.writeBoolean(isUniqueWithDuplicateNulls());
         int len=(columnOrdering!=null && columnOrdering.length>0)?columnOrdering.length:0;
         out.writeInt(len);
@@ -503,7 +504,9 @@ public class IndexConglomerate extends SpliceConglomerate{
         // below when read from disk.  For version ACCESS_B2I_V3_ID and
         // ACCESS_B2I_V4_ID, this is the default and no resetting is necessary.
         setUniqueWithDuplicateNulls(false);
-        if(conglom_format_id==StoredFormatIds.ACCESS_B2I_V4_ID || conglom_format_id==StoredFormatIds.ACCESS_B2I_V5_ID){
+        if(conglom_format_id==StoredFormatIds.ACCESS_B2I_V4_ID
+                || conglom_format_id==StoredFormatIds.ACCESS_B2I_V5_ID
+                || conglom_format_id==StoredFormatIds.ACCESS_B2I_V6_ID){
             // current format id, read collation info from disk
             if(SanityManager.DEBUG){
                 // length must include row location column and at least
@@ -525,7 +528,7 @@ public class IndexConglomerate extends SpliceConglomerate{
                         "Unexpected format id: "+conglom_format_id);
             }
         }
-        if(conglom_format_id==StoredFormatIds.ACCESS_B2I_V5_ID){
+        if(conglom_format_id==StoredFormatIds.ACCESS_B2I_V5_ID || conglom_format_id==StoredFormatIds.ACCESS_B2I_V6_ID){
             setUniqueWithDuplicateNulls(in.readBoolean());
         }
         int len=in.readInt();

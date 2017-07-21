@@ -23,6 +23,7 @@ import com.splicemachine.derby.lifecycle.ManagerLoader;
 import com.splicemachine.lifecycle.PipelineEnvironmentLoadService;
 import com.splicemachine.pipeline.PipelineEnvironment;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
+import com.splicemachine.si.data.hbase.ZkUpgrade;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionServerObserver;
@@ -102,6 +103,8 @@ public class RegionServerLifecycleObserver extends BaseRegionServerObserver{
                     return HBasePipelineEnvironment.loadEnvironment(new SystemClock(),cfDriver);
                 }
             });
+            
+            env.txnStore().setOldTransactions(ZkUpgrade.getOldTransactions(config));
 
             //register the network boot service
             manager.registerNetworkService(new NetworkLifecycleService(config));

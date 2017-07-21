@@ -20,6 +20,7 @@ import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.si.data.hbase.ZkUpgrade;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -118,9 +119,10 @@ public class SpliceSpark {
                     @Override public boolean connectAsFirstTime(){ return false; }
                 },config,false).start();
 
+                
                 EngineDriver engineDriver = EngineDriver.driver();
                 assert engineDriver!=null: "Not booted yet!";
-
+                env.txnStore().setOldTransactions(ZkUpgrade.getOldTransactions(config));
                 // Create a static statement context to enable nested connections
                 EmbedConnection internalConnection = (EmbedConnection)engineDriver.getInternalConnection();
                 StatementContext statementContext = internalConnection.getLanguageConnection()

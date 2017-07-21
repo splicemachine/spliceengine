@@ -390,7 +390,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         DatabaseVersion databaseVersion=(new ManifestReader()).createVersion();
         if(!databaseVersion.isUnknown()){
             spliceSoftwareVersion=new Splice_DD_Version(this,databaseVersion.getMajorVersionNumber(),
-                    databaseVersion.getMinorVersionNumber(),databaseVersion.getPatchVersionNumber());
+                    databaseVersion.getMinorVersionNumber(),databaseVersion.getPatchVersionNumber(),
+                    databaseVersion.getSprintVersionNumber());
         }
         if(create){
             SpliceAccessManager af=(SpliceAccessManager)Monitor.findServiceModule(this,AccessFactory.MODULE);
@@ -544,26 +545,10 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             tc.setProperty(SPLICE_DATA_DICTIONARY_VERSION,spliceSoftwareVersion,true);
             tc.commit();
         }
-        // TODO - include the following in an upgrade script
-        if (spliceSoftwareVersion.toLong() >= 2005000) {
-            upgradeSystables(tc);
-            upgradeSysStatsTable(tc);
-        }
     }
 
-    private void upgradeSystables(TransactionController tc) throws StandardException {
+    public void upgradeSystablesFor260(TransactionController tc) throws StandardException {
         addNewColumToSystables(tc);
-        SchemaDescriptor sd = getSystemSchemaDescriptor();
-        TableDescriptor td = getTableDescriptor(SYSSNAPSHOTSRowFactory.TABLENAME_STRING, sd, tc);
-        if (td == null)
-        {
-            tc.elevate("dictionary");
-            createSnapshotTable(tc);
-            SpliceLogUtils.info(LOG, "Catalog upgraded: added SYS.SYSSNAPSHOTS table.");
-        }
-        createOrUpdateAllSystemProcedures(tc);
-
-        updateSysTableStatsView1(tc);
     }
 
     private void addNewColumToSystables(TransactionController tc) throws StandardException {
@@ -606,7 +591,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
     }
 
-    private void upgradeSysStatsTable(TransactionController tc) throws StandardException {
+    public void upgradeSysStatsTableFor260(TransactionController tc) throws StandardException {
         SchemaDescriptor sd = getSystemSchemaDescriptor();
         TableDescriptor td = getTableDescriptor(SYSTABLESTATISTICSRowFactory.TABLENAME_STRING, sd, tc);
         ColumnDescriptor cd = td.getColumnDescriptor("SAMPLEFRACTION");
@@ -669,8 +654,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             SpliceLogUtils.info(LOG, "SYS.SYSTABLESTATS upgraded: added columns: NUMPARTITIONS, STATSTYPE, SAMPLEFRACTION.");
 
             updateSysTableStatsView(tc);
-            createOrUpdateAllSystemProcedures(tc);
-
         }
     }
 
