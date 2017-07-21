@@ -30,6 +30,19 @@
             <artifactId>hbase_sql-${envClassifier}</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-core_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-mesos_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
+        </dependency>
+
+
+
     </dependencies>
     <properties>
         <jenkins.build.number>1</jenkins.build.number>
@@ -93,6 +106,8 @@
                                     <exclude>com.splicemachine:db-tools-ij</exclude>
                                     <exclude>com.splicemachine:db-shared</exclude>
                                     <exclude>com.splicemachine:db-drda</exclude>
+                                    <exclude>org.apache.spark:spark-mesos_2.11</exclude>
+                                    <exclude>org.apache.spark:spark-core_2.11</exclude>
                                 </excludes>
                             </artifactSet>
 
