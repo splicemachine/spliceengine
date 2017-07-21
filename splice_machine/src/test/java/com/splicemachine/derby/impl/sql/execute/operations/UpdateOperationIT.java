@@ -231,6 +231,24 @@ public class UpdateOperationIT {
                 TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
+    @Test
+    public void testUpdateFromSubquerywithExpression() throws Exception {
+        new TableCreator(methodWatcher.getOrCreateConnection())
+                .withCreate("create table b1 (num int, addr varchar(50), zip char(5))")
+                .withInsert("insert into b1 values(?,?,?)")
+                .withRows(rows(row(25, "100", "94114")))
+                .create();
+
+        int updated = methodWatcher.getStatement().executeUpdate("update b1 set (num, zip) =(select LOCATION.num+1, LOCATION.zip from LOCATION where LOCATION.zip = b1.zip)");
+        assertEquals("Incorrect num rows updated!", 1, updated);
+        ResultSet rs = methodWatcher.executeQuery("select num, zip from b1");
+        assertEquals("" +
+                        "NUM | ZIP  |\n" +
+                        "-------------\n" +
+                        " 101 |94114 |",
+                TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
     /* Regression test for Bug 682. */
     @Test
     public void testUpdateSetNullValues() throws Exception {
