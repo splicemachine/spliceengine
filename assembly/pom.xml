@@ -31,15 +31,13 @@
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-core_${scala.binary.version}p</artifactId>
+            <artifactId>spark-core_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
-            <classifier>CNI</classifier>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-mesos_${scala.binary.version}p</artifactId>
+            <artifactId>spark-mesos_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
-            <classifier>CNI</classifier>
         </dependency>
 
 
