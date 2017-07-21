@@ -33,7 +33,7 @@ public class TransactionImpl extends BaseTransaction {
     private boolean ignoreSavePoints;
     private TxnLifecycleManager lifecycleManager;
 
-    private Deque<Pair<String, Txn>> txnStack=new LinkedList<>();
+    private Deque<TransactionState> txnStack=new LinkedList<>();
 
     public TransactionImpl(String transName, boolean ignoreSavePoints, TxnLifecycleManager lifecycleManager){
         SpliceLogUtils.trace(LOG,"Instantiating Splice transaction");
@@ -47,7 +47,7 @@ public class TransactionImpl extends BaseTransaction {
         SpliceLogUtils.trace(LOG,"Instantiating Splice transaction");
         this.transName=transName;
         this.state=ACTIVE;
-        txnStack.push(Pair.newPair(transName,txn));
+        txnStack.push(new TransactionState(transName,txn));
         this.ignoreSavePoints=ignoreSavePoints;
         this.lifecycleManager = lifecycleManager;
     }
@@ -61,24 +61,78 @@ public class TransactionImpl extends BaseTransaction {
         }
 
         setActiveState(false,false,null); //make sure that we are active
-        Txn currentTxn=getTxn();
-        Txn child=lifecycleManager.beginChildTransaction(currentTxn,null);
-        txnStack.push(Pair.newPair(name,child));
+        TransactionState currentTxn=txnStack.peek();
+        while(!currentTxn.txn.allowsSubtransactions() && currentTxn.released) {
+            // We have some transactions that were released and are no longer useful (they don't allow subtransactions)
+            // so we finish processing them and pop them from the stack
+            currentTxn.txn.commit();
+            txnStack.pop();
+            currentTxn=txnStack.peek();
+        }
+        // if the current transaction doesn't allow subtransactions the child transaction we create here is going to be
+        // a persisted transaction, we want to keep it around after we release the savepoint to be able to create subtransactions
+        // out of it
+        boolean keep = !currentTxn.txn.allowsSubtransactions();
+        Txn child=lifecycleManager.beginChildTransaction(currentTxn.txn,null);
+        txnStack.push(new TransactionState(name,child,keep));
         return txnStack.size();
     }
 
     @Override
     public int releaseSavePoint(String name,Object kindOfSavepoint) throws IOException{
-        // Don't do anything, we'll release the savepoints when we commit the parent transaction
+        if(kindOfSavepoint!=null && BATCH_SAVEPOINT.equals(kindOfSavepoint)){
+            ignoreSavePoints=false;
+        }
+        if(ignoreSavePoints)
+            return 0;
+        if(LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"Before releaseSavePoint: name=%s, savePointStack=\n%s",name,getSavePointStackString());
+
+
+        /*
+         * Check first to ensure such a save point exists before we attempt to release anything
+         */
+        boolean found=false;
+        for(TransactionState savePoint : txnStack){
+            if(savePoint.name.equals(name)){
+                found=true;
+                break;
+            }
+        }
+        if(!found)
+            throw new SavePointNotFoundException(name);
+
+        /*
+         * Pop all the transactions up until the last that allows subtransactions
+         * We might leave transactions in the stack (1 for every 256 created) but we allow
+         * the creation of subtransactions in memory
+         */
+        TransactionState savePoint;
+        boolean keep = false;
+        Iterator<TransactionState> it = txnStack.iterator();
+        do {
+            savePoint = it.next();
+            keep |= savePoint.keep;
+            // if we are to keep this transaction (or some txn earlier in the stack) we mark it as released but defer
+            // committing it and removing it from the stack until later
+            if (keep) {
+                savePoint.released = true;
+            } else {
+                doCommit(savePoint);
+                it.remove();
+            }
+        } while(!savePoint.name.equals(name));
+        if(LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"After releaseSavePoint: name=%s, savePointStack=\n%s",name,getSavePointStackString());
         return txnStack.size();
     }
 
     public String getActiveStateTxnName(){
-        return txnStack.peek().getFirst();
+        return txnStack.peek().name;
     }
 
-    private void doCommit(Pair<String, Txn> savePoint) throws IOException{
-        savePoint.getSecond().commit();
+    private void doCommit(TransactionState savePoint) throws IOException{
+        savePoint.txn.commit();
     }
 
     @Override
@@ -91,8 +145,8 @@ public class TransactionImpl extends BaseTransaction {
          * Check first to ensure such a save point exists before we attempt to release anything
          */
         boolean found=false;
-        for(Pair<String, Txn> savePoint : txnStack){
-            if(savePoint.getFirst().equals(name)){
+        for(TransactionState savePoint : txnStack){
+            if(savePoint.name.equals(name)){
                 found=true;
                 break;
             }
@@ -109,11 +163,11 @@ public class TransactionImpl extends BaseTransaction {
          * case--rows written with these savePoints will be immediately seen as rolled back, and
          * no navigation will be required.
          */
-        Pair<String, Txn> savePoint;
+        TransactionState savePoint;
         do{
             savePoint=txnStack.pop();
-            savePoint.getSecond().rollback(); //rollback the child transaction
-        }while(!savePoint.getFirst().equals(name));
+            savePoint.txn.rollback(); //rollback the child transaction
+        }while(!savePoint.name.equals(name));
 
         /*
          * In effect, we've removed the save point (because we've rolled it back). Thus,
@@ -132,17 +186,17 @@ public class TransactionImpl extends BaseTransaction {
             SpliceLogUtils.debug(LOG,"Before commit: state=%s, savePointStack=\n%s",getTransactionStatusAsString(),getSavePointStackString());
         if(state==IDLE){
             if(LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG,"The transaction is in idle state and there is nothing to commit, transID="+(txnStack.peekLast()==null?"null":txnStack.getLast().getSecond()));
+                SpliceLogUtils.trace(LOG,"The transaction is in idle state and there is nothing to commit, transID="+(txnStack.peekLast()==null?"null":txnStack.getLast().txn));
             return;
         }
         if(state==CLOSED){
             throw new IOException("Transaction has already closed and cannot commit again");
         }
         if(LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"commit, state="+state+" for transaction "+(txnStack.peekLast()==null?"null":txnStack.getLast().getSecond()));
+            SpliceLogUtils.trace(LOG,"commit, state="+state+" for transaction "+(txnStack.peekLast()==null?"null":txnStack.getLast().txn));
 
         while(!txnStack.isEmpty()){
-            Pair<String, Txn> userPair=txnStack.pop();
+            TransactionState userPair=txnStack.pop();
             doCommit(userPair);
         }
 
@@ -162,7 +216,7 @@ public class TransactionImpl extends BaseTransaction {
         if(state!=ACTIVE)
             return;
         while(!txnStack.isEmpty()){
-            txnStack.pop().getSecond().rollback();
+            txnStack.pop().txn.rollback();
         }
         state=IDLE;
         if(LOG.isDebugEnabled())
@@ -173,7 +227,7 @@ public class TransactionImpl extends BaseTransaction {
         SpliceLogUtils.debug(LOG,"getActiveStateTxIdString");
         setActiveState(false,false,null);
         if(!txnStack.isEmpty())
-            return txnStack.peek().getSecond().toString();
+            return txnStack.peek().txn.toString();
         else
             return null;
     }
@@ -181,7 +235,7 @@ public class TransactionImpl extends BaseTransaction {
     public Txn getActiveStateTxn(){
         setActiveState(false,false,null);
         if(!txnStack.isEmpty())
-            return txnStack.peek().getSecond();
+            return txnStack.peek().txn;
         else
             return null;
     }
@@ -201,7 +255,7 @@ public class TransactionImpl extends BaseTransaction {
                     else
                         txn=lifecycleManager.beginTransaction();
 
-                    txnStack.push(Pair.newPair(transName,txn));
+                    txnStack.push(new TransactionState(transName,txn));
                     state=ACTIVE;
                 }
             }catch(Exception e){
@@ -216,12 +270,12 @@ public class TransactionImpl extends BaseTransaction {
 
     public Txn getTxn(){
         if(!txnStack.isEmpty())
-            return txnStack.peek().getSecond();
+            return txnStack.peek().txn;
         return null;
     }
 
     public void setTxn(Txn txn){
-        this.txnStack.peek().setSecond(txn);
+        this.txnStack.peek().txn = txn;
     }
 
     public Txn elevate(byte[] writeTable) throws IOException{
@@ -232,17 +286,17 @@ public class TransactionImpl extends BaseTransaction {
          * stack has been elevated first.
          */
         setActiveState(false,false,null);
-        Iterator<Pair<String, Txn>> parents=txnStack.descendingIterator();
+        Iterator<TransactionState> parents=txnStack.descendingIterator();
         Txn lastTxn=null;
         while(parents.hasNext()){
-            Pair<String, Txn> next=parents.next();
-            Txn n=doElevate(writeTable,next.getSecond(),lastTxn);
-            next.setSecond(n);
+            TransactionState next=parents.next();
+            Txn n=doElevate(writeTable,next.txn,lastTxn);
+            next.txn = n;
             lastTxn=n;
         }
         if(LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"After elevate: state=%s, savePointStack=\n%s",getTransactionStatusAsString(),getSavePointStackString());
-        return txnStack.peek().getSecond();
+        return txnStack.peek().txn;
     }
 
     @Override
@@ -281,8 +335,8 @@ public class TransactionImpl extends BaseTransaction {
      */
     private String getSavePointStackString(){
         StringBuilder sb=new StringBuilder();
-        for(Pair<String, Txn> savePoint : txnStack){
-            sb.append(String.format("name=%s, txn=%s%n",savePoint.getFirst(),savePoint.getSecond()));
+        for(TransactionState savePoint : txnStack){
+            sb.append(String.format("name=%s, txn=%s%n",savePoint.name,savePoint.txn));
         }
         return sb.toString();
     }
@@ -303,5 +357,39 @@ public class TransactionImpl extends BaseTransaction {
             currentTxn=currentTxn.elevateToWritable(writeTable);
         }
         return currentTxn;
+    }
+
+    private static class TransactionState {
+        /** Savepoint name */
+        String name;
+        /** Transaction associated with it */
+        Txn txn;
+        /** Have we already released this savepoint, even though it's still int the stack? */
+        boolean released;
+        /** Whether to keep this transaction in the stack instead of committing and removing it from the stack when the savepoint
+         * is released
+         */
+        boolean keep;
+
+        public TransactionState(String name, Txn txn, boolean keep) {
+            this(name, txn);
+            this.keep = keep;
+        }
+
+        public TransactionState(String name, Txn txn) {
+            this.name = name;
+            this.txn = txn;
+            this.released = false;
+        }
+
+        @Override
+        public String toString() {
+            return "TransactionState{" +
+                    "name='" + name + '\'' +
+                    ", txn=" + txn +
+                    ", released=" + released +
+                    ", keep=" + keep +
+                    '}';
+        }
     }
 }
