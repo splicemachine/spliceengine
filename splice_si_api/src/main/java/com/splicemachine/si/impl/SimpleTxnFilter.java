@@ -211,7 +211,10 @@ public class SimpleTxnFilter implements TxnFilter{
 
     private boolean isVisible(long txnId) throws IOException{
         TxnView toCompare=fetchTransaction(txnId);
-        return myTxn.canSee(toCompare);
+        // If the database is restored from a backup, it may contain data that were written by a transaction which
+        // is not present in SPLICE_TXN table, because SPLICE_TXN table is copied before the transaction begins.
+        // However, the table written by the txn was copied
+        return toCompare != null ? myTxn.canSee(toCompare) : false;
     }
 
     private TxnView fetchTransaction(long txnId) throws IOException{

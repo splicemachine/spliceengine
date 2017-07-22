@@ -120,6 +120,12 @@ public class SICompactionState {
      */
     private boolean mutateCommitTimestamp(long timestamp,Cell element) throws IOException {
         TxnView transaction = transactionStore.getTransaction(timestamp);
+        if (transaction == null) {
+            // If the database is restored from a backup, it may contain data that were written by a transaction which
+            // is not present in SPLICE_TXN table, because SPLICE_TXN table is copied before the transaction begins.
+            // However, the table written by the txn was copied 
+            return false;
+        }
         if(transaction.getEffectiveState()== Txn.State.ROLLEDBACK){
             /*
              * This transaction has been rolled back, so just remove the data

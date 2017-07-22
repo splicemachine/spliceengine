@@ -17,6 +17,7 @@ package com.splicemachine.hbase;
 
 import com.google.common.collect.ImmutableList;
 import com.splicemachine.coprocessor.SpliceMessage;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
@@ -37,6 +38,7 @@ import org.apache.hadoop.hbase.regionserver.wal.HLogKey;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.hadoop.hbase.wal.WALKey;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
@@ -46,6 +48,8 @@ import java.util.NavigableSet;
  * Created by jyuan on 2/18/16.
  */
 public abstract class BackupBaseRegionObserver extends SpliceMessage.BackupCoprocessorService implements RegionObserver {
+
+    private static final Logger LOG=Logger.getLogger(BackupBaseRegionObserver.class);
 
     public void start(CoprocessorEnvironment e) throws IOException {
     }
@@ -107,6 +111,13 @@ public abstract class BackupBaseRegionObserver extends SpliceMessage.BackupCopro
     }
 
     public void postSplit(ObserverContext<RegionCoprocessorEnvironment> e, HRegion l, HRegion r) throws IOException {
+        if (LOG.isDebugEnabled()) {
+            HRegion region = (HRegion)e.getEnvironment().getRegion();
+            SpliceLogUtils.debug(LOG, "split %s:%s into %s and %s",
+                    region.getRegionInfo().getTable().getNameAsString(),
+                    region.getRegionInfo().getEncodedName(), l.getRegionInfo().getEncodedName(),
+                    r.getRegionInfo().getEncodedName());
+        }
     }
 
     public void preCompactSelection(ObserverContext<RegionCoprocessorEnvironment> c, Store store, List<StoreFile> candidates) throws IOException {

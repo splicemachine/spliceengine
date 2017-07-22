@@ -1947,6 +1947,9 @@ public interface SQLState {
 	String PARENT_BACKUP_MISSING                                   = "BR013";
 	String EXISTS_CONCURRENT_BACKUP                                = "BR014";
 	String BACKUP_TIMEOUT                                          = "BR016";
+	String INCOMPATIBLE_BACKUP                                     = "BR017";
+	String MISSING_BACKUP                                          = "BR018";
+	String BACKUP_NOT_IN_CHAIN                                     = "BR019";
 
 	String FILESYSTEM_URI_EXCEPTION				    				= "EXT25";
 	String FILESYSTEM_IO_EXCEPTION				    				= "EXT26";

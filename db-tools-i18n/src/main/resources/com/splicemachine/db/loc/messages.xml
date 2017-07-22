@@ -8867,12 +8867,24 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <arg>regionName</arg>
            </msg>
            <msg>
+               <name>BR017</name>
+               <text>Incompatible backup. Please follow Splice Machine documentation to modify the backup.</text>
+           </msg>
+           <msg>
+               <name>BR018</name>
+               <text>Incremental Backup(s) {0} is(are) not included.</text>
+               <arg>backupIds</arg>
+           </msg>
+           <msg>
+               <name>BR019</name>
+               <text>Backup(s) {0} is(are) not valid incremental parent backup(s)</text>
+               <arg>backupIds</arg>
+           </msg>
+           <msg>
                <name>EXT25</name>
                <text>URIException '{0}' when accessing directory</text>
                <arg>exception</arg>
            </msg>
-
-
            <msg>
                <name>EXT26</name>
                <text>IOException '{0}' when accessing directory</text>
