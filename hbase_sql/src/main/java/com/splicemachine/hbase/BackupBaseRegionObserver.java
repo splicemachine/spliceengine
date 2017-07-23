@@ -110,8 +110,8 @@ public abstract class BackupBaseRegionObserver extends SpliceMessage.BackupCopro
     }
 
     public void postSplit(ObserverContext<RegionCoprocessorEnvironment> e, HRegion l, HRegion r) throws IOException {
-        HRegion region = (HRegion) ((RegionCoprocessorEnvironment) e).getRegion();
         if (LOG.isDebugEnabled()) {
+            HRegion region = (HRegion)e.getEnvironment().getRegion();
             SpliceLogUtils.debug(LOG, "split %s:%s into %s and %s",
                     region.getRegionInfo().getTable().getNameAsString(),
                     region.getRegionInfo().getEncodedName(), l.getRegionInfo().getEncodedName(),
