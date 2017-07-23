@@ -17,7 +17,9 @@ package com.splicemachine.derby.utils;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
@@ -26,7 +28,6 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
-import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
@@ -418,7 +419,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                                      TableDescriptor table,
                                                      TxnView txn) throws StandardException{
 
-        List<ColumnDescriptor> colsToCollect = getCollectedColumns(table);
+        List<ColumnDescriptor> colsToCollect = getCollectedColumns(conn, table);
         ExecRow row = new ValueRow(colsToCollect.size());
   //      int[] execRowFormatIds = new int[colsToCollect.size()];
         BitSet accessedColumns = new BitSet(table.getMaxStorageColumnID());
@@ -568,15 +569,40 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         }
     };
 
-    private static List<ColumnDescriptor> getCollectedColumns(TableDescriptor td) throws StandardException {
+    private static List<ColumnDescriptor> getCollectedColumns(EmbedConnection conn, TableDescriptor td) throws StandardException {
         ColumnDescriptorList columnDescriptorList = td.getColumnDescriptorList();
         List<ColumnDescriptor> toCollect = new ArrayList<>(columnDescriptorList.size());
+
+        /* check the default collect stats behavior, whether to collect stats on all columns or just index columns */
+        String collectStatsMode = PropertyUtil.getServiceProperty(conn.getLanguageConnection().getTransactionCompile(),
+                Property.COLLECT_INDEX_STATS_ONLY);
+        boolean collectIndexStatsOnly = Boolean.valueOf(collectStatsMode);
+
+        boolean[] indexColumns = new boolean[columnDescriptorList.size()];
+
+        IndexLister indexLister = td.getIndexLister();
+        if (collectIndexStatsOnly) {
+            // get all other index columns
+            if (indexLister != null) {
+                IndexRowGenerator[] indexRowGenerators = indexLister.getIndexRowGenerators();
+                for (IndexRowGenerator irg : indexRowGenerators) {
+                    int[] keyColumns = irg.getIndexDescriptor().baseColumnPositions();
+                    for (int keyColumn : keyColumns) {
+                        indexColumns[keyColumn - 1] = true;
+                    }
+                }
+            }
+        }
+
+
         /*
          * Get all the enabled statistics columns
          */
         for (ColumnDescriptor columnDescriptor : columnDescriptorList) {
-            if (columnDescriptor.collectStatistics())
-                toCollect.add(columnDescriptor);
+            if (!collectIndexStatsOnly || indexColumns[columnDescriptor.getPosition()-1]) {
+                if (columnDescriptor.collectStatistics())
+                    toCollect.add(columnDescriptor);
+            }
         }
         /*
          * Add in any disabled key columns.
@@ -586,7 +612,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
          * for some reason, we should still collect them. Of course, we should also not be able to disable
          * keyed columns, but that's a to-do for now.
          */
-        IndexLister indexLister = td.getIndexLister();
         if (indexLister != null) {
             IndexRowGenerator[] distinctIndexRowGenerators = indexLister.getDistinctIndexRowGenerators();
             for (IndexRowGenerator irg : distinctIndexRowGenerators) {
@@ -603,6 +628,23 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 }
             }
         }
+
+        // we should always include primary key if it exists
+        ReferencedKeyConstraintDescriptor keyDescriptor = td.getPrimaryKey();
+        if (keyDescriptor != null) {
+            int[] pkColumns = keyDescriptor.getReferencedColumns();
+            for (int keyColumn : pkColumns) {
+                for (ColumnDescriptor cd : columnDescriptorList) {
+                    if (cd.getPosition() == keyColumn) {
+                        if (!toCollect.contains(cd)) {
+                            toCollect.add(cd);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
         Collections.sort(toCollect, order); //sort the columns into adjacent position order
         return toCollect;
     }
