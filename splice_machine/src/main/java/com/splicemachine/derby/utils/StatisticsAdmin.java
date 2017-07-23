@@ -146,7 +146,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         new GenericColumnDescriptor("schemaName", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
         new GenericColumnDescriptor("tableName", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
         new GenericColumnDescriptor("partition", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
-        new GenericColumnDescriptor("rowsCollected", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+        new GenericColumnDescriptor("rowsCollected", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
         new GenericColumnDescriptor("partitionSize", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
         new GenericColumnDescriptor("partitionCount", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
         new GenericColumnDescriptor("statsType", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
