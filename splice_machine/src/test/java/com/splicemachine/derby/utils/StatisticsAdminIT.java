@@ -19,6 +19,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
@@ -31,6 +32,7 @@ import java.sql.*;
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.format;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.assertEquals;
 
 /**
  * @author Scott Fines
@@ -158,6 +160,15 @@ public class StatisticsAdminIT{
 
         new TableCreator(conn4)
                 .withCreate("create table "+TABLE_EMPTY1+" (a1 int, b1 int, c1 int, d1 int, e1 int, f1 int)")
+                .create();
+
+        new TableCreator(conn4)
+                .withCreate("create table t3 (a3 int, b3 int, c3 int, d3 int, e3 int, f3 int, primary key (b3,c3))")
+                .withInsert("insert into t3 values (?,?,?,?,?,?)")
+                .withRows(rows(
+                        row(1,1,1,1,1,1),
+                        row(2,2,2,2,2,2),
+                        row(3,3,3,3,3,3)))
                 .create();
 
 
@@ -832,6 +843,72 @@ public class StatisticsAdminIT{
                 "group by cs.partition_id", TABLE_EMPTY1, SCHEMA4));
         Assert.assertTrue("Unable to find column statistics for table!", rs.next());
         Assert.assertEquals("Incorrect row count!", 3, rs.getLong(2));
+    }
+
+    @Test
+    public void testCollectIndexStatsOnlyProperty() throws Exception{
+        /* 1. create an index */
+        methodWatcher4.executeUpdate(String.format("create index ind_t3_1 on %s.t3(a3, e3)", SCHEMA4));
+
+        /* 2. set the database property splice.database.collectIndexStatsOnly to true */
+        methodWatcher4.executeUpdate("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.collectIndexStatsOnly', 'true')");
+
+        /* 3. confirm the setting */
+        String expected = "1  |\n" +
+                "------\n" +
+                "true |";
+        ResultSet rs = methodWatcher4.executeQuery("values SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('derby.database.collectIndexStatsOnly')");
+        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("Expect the property derby.database.collectIndexStatsOnly to be true, actual is " + resultString, expected, resultString);
+        rs.close();
+
+        /* 4. collect stats */
+        methodWatcher4.executeQuery(String.format("analyze table %s.t3", SCHEMA4));
+
+        /* 5. Verify stats collected, we should expect
+           stats to be collected on just 4 columns, a3, b3, c3, e3, where (b3,c3) are primary keys,
+           (a3, e3) are index columns
+         */
+        rs = methodWatcher4.executeQuery(String.format("select distinct columnname from sys.syscolumnstatistics where schemaname='%s' and tablename='T3' order by 1", SCHEMA4));
+        expected = "COLUMNNAME |\n" +
+                "------------\n" +
+                "    A3     |\n" +
+                "    B3     |\n" +
+                "    C3     |\n" +
+                "    E3     |";
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("List of columns where stats are collected does not match.", expected, resultString);
+        rs.close();
+
+        /* 6. change the property to default */
+        methodWatcher4.executeUpdate("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.collectIndexStatsOnly', 'false')");
+
+        /* 7. confirm the setting */
+        expected = "1   |\n" +
+                "-------\n" +
+                "false |";
+        rs = methodWatcher4.executeQuery("values SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('derby.database.collectIndexStatsOnly')");
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("Expect the property derby.database.collectIndexStatsOnly to be false, actual is " + resultString, expected, resultString);
+        rs.close();
+
+        /* 8. collect stats */
+        methodWatcher4.executeQuery(String.format("analyze table %s.t3", SCHEMA4));
+
+        /* 9. Verify stats collected, we should expect stats to be collected on all 6 columns
+         */
+        rs = methodWatcher4.executeQuery(String.format("select distinct columnname from sys.syscolumnstatistics where schemaname='%s' and tablename='T3' order by 1", SCHEMA4));
+        expected = "COLUMNNAME |\n" +
+                "------------\n" +
+                "    A3     |\n" +
+                "    B3     |\n" +
+                "    C3     |\n" +
+                "    D3     |\n" +
+                "    E3     |\n" +
+                "    F3     |";
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("List of columns where stats are collected does not match.", expected, resultString);
+        rs.close();
     }
 
     /* ****************************************************************************************************************/
