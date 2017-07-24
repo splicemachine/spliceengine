@@ -242,9 +242,9 @@ public class SavepointsTest {
         TransactionImpl t1 = new TransactionImpl("user", parent, false, control);
         t1.elevate(DESTINATION_TABLE);
 
-        Assert.assertEquals("joe90 absent", testUtility.read(t1.getTxn(), "joe90"));
-        testUtility.insertAge(t1.getTxn(), "joe90", 20);
-        Assert.assertEquals("joe90 age=20 job=null", testUtility.read(t1.getTxn(), "joe90"));
+        Assert.assertEquals("dan90 absent", testUtility.read(t1.getTxn(), "dan90"));
+        testUtility.insertAge(t1.getTxn(), "dan90", 20);
+        Assert.assertEquals("dan90 age=20 job=null", testUtility.read(t1.getTxn(), "dan90"));
 
         t1.setSavePoint("first", null);
 
@@ -255,16 +255,16 @@ public class SavepointsTest {
             Assert.assertEquals("Wrong txn stack size", 3 + i, res);
         }
 
-        testUtility.insertAge(t1.getTxn(), "joe90", 30);
-        Assert.assertEquals("joe90 age=30 job=null", testUtility.read(t1.getTxn(), "joe90"));
+        testUtility.insertAge(t1.getTxn(), "dan90", 30);
+        Assert.assertEquals("dan90 age=30 job=null", testUtility.read(t1.getTxn(), "dan90"));
 
         // rollback past the persisted txns
         t1.rollbackToSavePoint("first", null);
         t1.elevate(DESTINATION_TABLE);
 
 
-        testUtility.insertAge(t1.getTxn(), "joe90", 20);
-        Assert.assertEquals("joe90 age=20 job=null", testUtility.read(t1.getTxn(), "joe90"));
+        testUtility.insertAge(t1.getTxn(), "dan90", 20);
+        Assert.assertEquals("dan90 age=20 job=null", testUtility.read(t1.getTxn(), "dan90"));
     }
 
     @Test
@@ -273,9 +273,9 @@ public class SavepointsTest {
         TransactionImpl t1 = new TransactionImpl("user", parent, false, control);
         t1.elevate(DESTINATION_TABLE);
 
-        Assert.assertEquals("joe92 absent", testUtility.read(t1.getTxn(), "joe92"));
-        testUtility.insertAge(t1.getTxn(), "joe92", 20);
-        Assert.assertEquals("joe92 age=20 job=null", testUtility.read(t1.getTxn(), "joe92"));
+        Assert.assertEquals("dan92 absent", testUtility.read(t1.getTxn(), "dan92"));
+        testUtility.insertAge(t1.getTxn(), "dan92", 20);
+        Assert.assertEquals("dan92 age=20 job=null", testUtility.read(t1.getTxn(), "dan92"));
 
         t1.setSavePoint("first", null);
 
@@ -288,8 +288,8 @@ public class SavepointsTest {
             Assert.assertTrue("Wrong txn stack size", res <= 3);
         }
 
-        testUtility.insertAge(t1.getTxn(), "joe92", 30);
-        Assert.assertEquals("joe92 age=30 job=null", testUtility.read(t1.getTxn(), "joe92"));
+        testUtility.insertAge(t1.getTxn(), "dan92", 30);
+        Assert.assertEquals("dan92 age=30 job=null", testUtility.read(t1.getTxn(), "dan92"));
 
         // release past the persisted txns
         t1.releaseSavePoint("first", null);
@@ -310,9 +310,9 @@ public class SavepointsTest {
         t1.elevate(DESTINATION_TABLE);
 
 
-        Assert.assertEquals("joe92 age=30 job=null", testUtility.read(t1.getTxn(), "joe92"));
-        testUtility.insertAge(t1.getTxn(), "joe92", 20);
-        Assert.assertEquals("joe92 age=20 job=null", testUtility.read(t1.getTxn(), "joe92"));
+        Assert.assertEquals("dan92 age=30 job=null", testUtility.read(t1.getTxn(), "dan92"));
+        testUtility.insertAge(t1.getTxn(), "dan92", 20);
+        Assert.assertEquals("dan92 age=20 job=null", testUtility.read(t1.getTxn(), "dan92"));
     }
 
 }
