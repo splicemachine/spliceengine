@@ -28,7 +28,6 @@ import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.hbase.ManagedThreadPool;
-import com.splicemachine.derby.utils.BaseAdminProcedures;
 import com.splicemachine.management.DatabaseAdministrator;
 import com.splicemachine.management.Manager;
 import com.splicemachine.tools.CachedResourcePool;
@@ -39,7 +38,7 @@ import com.splicemachine.uuid.UUIDGenerator;
  * @author Scott Fines
  *         Date: 1/6/16
  */
-public class EngineDriver extends BaseAdminProcedures{
+public class EngineDriver{
     private static volatile EngineDriver INSTANCE;
 
     private final Connection internalConnection;
