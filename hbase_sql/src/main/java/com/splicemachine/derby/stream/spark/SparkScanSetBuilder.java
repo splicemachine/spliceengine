@@ -19,6 +19,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
@@ -82,8 +83,10 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
                 locatedRows = dsp.readTextFile(op,location,escaped,delimited,baseColumnMap,operationContext,qualifiers,null,execRow, useSample, sampleFraction);
             else if (storedAs.equals("P"))
                 locatedRows = dsp.readParquetFile(baseColumnMap,partitionByColumns,location,operationContext,qualifiers,null,execRow, useSample, sampleFraction);
-            else if (storedAs.equals("A"))
-                locatedRows = dsp.readAvroFile(baseColumnMap,partitionByColumns,location,operationContext,qualifiers,null,execRow, useSample, sampleFraction);
+            else if (storedAs.equals("A")) {
+                supportAvroDate(execRow);
+                locatedRows = dsp.readAvroFile(baseColumnMap, partitionByColumns, location, operationContext, qualifiers, null, execRow, useSample, sampleFraction);
+            }
             else if (storedAs.equals("O"))
                 locatedRows = dsp.readORCFile(baseColumnMap,partitionByColumns,location,operationContext,qualifiers,null,execRow, useSample, sampleFraction, false);
             else {
@@ -138,4 +141,13 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         this.dsp = (SparkDataSetProcessor)in.readObject();
         this.op = (SpliceOperation)in.readObject();
     }
+
+    public void supportAvroDate(ExecRow execRow) throws StandardException {
+        for(int i=0; i < execRow.size(); i++){
+            if (execRow.getColumn(i + 1).getTypeName().equals("DATE")) {
+                execRow.setColumn(i + 1, new SQLVarchar());
+            }
+        }
+    }
+
 }

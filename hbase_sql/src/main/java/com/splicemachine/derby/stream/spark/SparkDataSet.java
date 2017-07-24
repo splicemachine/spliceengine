@@ -29,6 +29,7 @@ import com.splicemachine.derby.stream.function.AbstractSpliceFunction;
 import com.splicemachine.derby.stream.function.CountWriteFunction;
 import com.splicemachine.derby.stream.function.ExportFunction;
 import com.splicemachine.derby.stream.function.LocatedRowToRowFunction;
+import com.splicemachine.derby.stream.function.LocatedRowToRowAvroFunction;
 import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction;
@@ -67,6 +68,9 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
 import org.apache.spark.storage.StorageLevel;
 
 import java.io.IOException;
@@ -740,9 +744,13 @@ public class SparkDataSet<V> implements DataSet<V> {
     public DataSet<ExecRow> writeAvroFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
                                                 OperationContext context) {
         try {
+
+            StructType newSchema = context.getOperation().getExecRowDefinition().schema();
+            supportAvroDateType(newSchema);
+
             Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
-                    rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowFunction()),
-                    context.getOperation().getExecRowDefinition().schema());
+                    rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowAvroFunction()),
+                    newSchema);
 
             List<Column> cols = new ArrayList();
             for (int i = 0; i < baseColumnMap.length; i++) {
@@ -760,6 +768,17 @@ public class SparkDataSet<V> implements DataSet<V> {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public StructType supportAvroDateType(StructType schema){
+            for (int i = 0; i < schema.size(); i++) {
+                StructField column = schema.fields()[i];
+                if (column.dataType().equals(DataTypes.DateType)) {
+                    StructField replace = DataTypes.createStructField(column.name(), DataTypes.StringType, column.nullable(), column.metadata());
+                    schema.fields()[i] = replace;
+                }
+            }
+        return schema;
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
