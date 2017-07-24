@@ -24,19 +24,15 @@ import com.splicemachine.si.impl.HMissedSplitException;
 import com.splicemachine.storage.Partition;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
-import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
-import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author Scott Fines
@@ -46,92 +42,64 @@ public class HBaseSubregionSplitter implements SubregionSplitter{
     private static final Logger LOG = Logger.getLogger(HBaseSubregionSplitter.class);
     @Override
     public List<InputSplit> getSubSplits(Table table, List<Partition> splits, final byte[] scanStartRow, final byte[] scanStopRow) throws HMissedSplitException {
-        List<InputSplit> results = new ArrayList<>();
-        final HBaseTableInfoFactory infoFactory = HBaseTableInfoFactory.getInstance(HConfiguration.getConfiguration());
-        for (final Partition split : splits) {
-            try {
-                byte[] probe;
-                byte[] start = split.getStartKey();
-                if (start.length == 0) {
-                    // first region, pick smallest rowkey possible
-                    probe = new byte[]{0};
-                } else {
-                    // any other region, pick start row
-                    probe = start;
-                }
+        final List<InputSplit> results = new ArrayList<>();
+        try {
+            SpliceMessage.SpliceSplitServiceRequest message = SpliceMessage.SpliceSplitServiceRequest.newBuilder()
+                    .setBeginKey(ZeroCopyLiteralByteString.wrap(scanStartRow))
+                    .setEndKey(ZeroCopyLiteralByteString.wrap(scanStopRow)).build();
 
-                Map<byte[], List<InputSplit>> splitResults = table.coprocessorService(SpliceMessage.SpliceDerbyCoprocessorService.class, probe, probe,
-                        new Batch.Call<SpliceMessage.SpliceDerbyCoprocessorService, List<InputSplit>>() {
-                            @Override
-                            public List<InputSplit> call(SpliceMessage.SpliceDerbyCoprocessorService instance) throws IOException {
-                                ServerRpcController controller = new ServerRpcController();
-                                byte[] startKey = split.getStartKey();
-                                byte[] stopKey = split.getEndKey();
-
-                                if (LOG.isDebugEnabled()) {
-                                    LOG.debug(String.format("Original split [%s,%s] with scan [%s,%s]",
-                                            CellUtils.toHex(startKey), CellUtils.toHex(stopKey),
-                                            CellUtils.toHex(scanStartRow), CellUtils.toHex(scanStopRow)));
-
-                                }
-
-                                SpliceMessage.SpliceSplitServiceRequest message = SpliceMessage.SpliceSplitServiceRequest.newBuilder()
-                                        .setBeginKey(ZeroCopyLiteralByteString.wrap(scanStartRow))
-                                        .setEndKey(ZeroCopyLiteralByteString.wrap(scanStopRow))
-                                        .setRegionEndKey(ZeroCopyLiteralByteString.wrap(stopKey)).build();
-
-                                BlockingRpcCallback<SpliceMessage.SpliceSplitServiceResponse> rpcCallback = new BlockingRpcCallback<>();
-                                instance.computeSplits(controller, message, rpcCallback);
-                                SpliceMessage.SpliceSplitServiceResponse response = rpcCallback.get();
-                                if (controller.failed()) {
-                                    throw controller.getFailedOn();
-                                }
-                                List<InputSplit> result = new ArrayList<>();
-                                Iterator<ByteString> it = response.getCutPointList().iterator();
+            table.batchCoprocessorService(com.splicemachine.coprocessor.SpliceMessage.
+                    SpliceDerbyCoprocessorService.getDescriptor().findMethodByName("computeSplits"),message,
+                    scanStartRow,scanStopRow,SpliceMessage.SpliceSplitServiceResponse.getDefaultInstance(),
+                    new Batch.Callback<SpliceMessage.SpliceSplitServiceResponse>() {
+                        @Override
+                        public void update(byte[] region, byte[] row, SpliceMessage.SpliceSplitServiceResponse result) {
+                            try {
+                                Iterator<ByteString> it = result.getCutPointList().iterator();
                                 byte[] first = it.next().toByteArray();
                                 while (it.hasNext()) {
                                     byte[] end = it.next().toByteArray();
                                     if (Arrays.equals(first, end) && first != null && first.length > 0) {
                                         // We have two cutpoints that are the same, that's only OK when the whole table fits into
                                         // a single partition: ([], [])
-                                        LOG.warn(String.format("Two cutpoints are equal: %s for split: %s", Bytes.toStringBinary(first), split));
+                                        LOG.warn(String.format("Two cutpoints are equal: %s", Bytes.toStringBinary(first)));
                                         continue; // skip this cutpoint
                                     }
-                                    result.add(new SMSplit(
+                                    results.add(new SMSplit(
                                             new TableSplit(
-                                                    infoFactory.getTableInfo(split.getTableName()),
+                                                    table.getName(),
                                                     first,
                                                     end,
-                                                    split.owningServer().getHostname())));
+                                                    result.getHostName())));
 
                                     if (LOG.isDebugEnabled()) {
                                         LOG.debug(String.format("New split [%s,%s]", CellUtils.toHex(first), CellUtils.toHex(end)));
                                     }
                                     first = end;
                                 }
-                                return result;
+                            } catch (IOException ioe) {
+                                throw new RuntimeException(ioe);
                             }
-                        });
-                for (List<InputSplit> value : splitResults.values()) {
-                    results.addAll(value);
-                }
-            } catch (HMissedSplitException ms) {
-                throw ms;
-            } catch (Throwable throwable) {
+                        }
+                    });
+    } catch (Throwable throwable) {
                 LOG.error("Error while computing cutpoints, falling back to whole region partition", throwable);
+
                 try {
-                    results.add(new SMSplit(
-                            new TableSplit(
-                                    infoFactory.getTableInfo(split.getTableName()),
-                                    split.getStartKey(),
-                                    split.getEndKey(),
-                                    split.owningServer().getHostname())));
+                    final HBaseTableInfoFactory infoFactory = HBaseTableInfoFactory.getInstance(HConfiguration.getConfiguration());
+                    for (final Partition split : splits) {
+                        results.add(new SMSplit(
+                                new TableSplit(
+                                        infoFactory.getTableInfo(split.getTableName()),
+                                        split.getStartKey(),
+                                        split.getEndKey(),
+                                        split.owningServer().getHostname())));
+                    }
                 } catch (IOException e) {
                     // Failed to add split, bail out
                     throw new RuntimeException(e);
                 }
             }
-        }
         return results;
     }
 }
