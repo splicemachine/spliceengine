@@ -27,13 +27,13 @@ import com.splicemachine.derby.iapi.sql.execute.OperationManager;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
+import com.splicemachine.hbase.ManagedThreadPool;
 import com.splicemachine.management.DatabaseAdministrator;
 import com.splicemachine.management.Manager;
 import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.ResourcePool;
 import com.splicemachine.uuid.Snowflake;
 import com.splicemachine.uuid.UUIDGenerator;
-
 /**
  * @author Scott Fines
  *         Date: 1/6/16
@@ -99,7 +99,7 @@ public class EngineDriver{
 
         /* Create a general purpose thread pool */
         final AtomicLong count = new AtomicLong(0);
-        this.threadPool = new ThreadPoolExecutor(20, config.getThreadPoolMaxSize(),
+        ThreadPoolExecutor tpe = new ThreadPoolExecutor(20, config.getThreadPoolMaxSize(),
                 60L, TimeUnit.SECONDS,
                 new SynchronousQueue<>(),
                 (runnable) -> {
@@ -108,8 +108,9 @@ public class EngineDriver{
                     return t;
                 },
                 new ThreadPoolExecutor.CallerRunsPolicy());
-        ((ThreadPoolExecutor)threadPool).allowCoreThreadTimeOut(false);
-        ((ThreadPoolExecutor)threadPool).prestartAllCoreThreads();
+        tpe.allowCoreThreadTimeOut(false);
+        tpe.prestartAllCoreThreads();
+        this.threadPool = new ManagedThreadPool(tpe);
     }
 
     public DatabaseAdministrator dbAdministrator(){
@@ -167,6 +168,5 @@ public class EngineDriver{
     public ExecutorService getExecutorService() {
         return threadPool;
     }
-
     public OperationManager getOperationManager() { return operationManager; }
 }
