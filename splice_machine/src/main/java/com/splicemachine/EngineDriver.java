@@ -14,12 +14,36 @@
 
 package com.splicemachine;
 
+import java.io.IOException;
 import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.db.iapi.error.PublicAPI;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.PermissionsDescriptor;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.db.impl.jdbc.EmbedResultSet;
+import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
+import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
+import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
+import com.splicemachine.db.impl.sql.catalog.ManagedCache;
+import com.splicemachine.db.impl.sql.catalog.ManagedCacheMBean;
+import com.splicemachine.db.impl.sql.catalog.TotalManagedCache;
+import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
@@ -27,18 +51,28 @@ import com.splicemachine.derby.iapi.sql.execute.OperationManager;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
+import com.splicemachine.derby.utils.BaseAdminProcedures;
+import com.splicemachine.hbase.JMXThreadPool;
+import com.splicemachine.hbase.ManagedThreadPool;
+import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.management.DatabaseAdministrator;
 import com.splicemachine.management.Manager;
 import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.ResourcePool;
+import com.splicemachine.utils.Pair;
 import com.splicemachine.uuid.Snowflake;
 import com.splicemachine.uuid.UUIDGenerator;
+import org.spark_project.guava.cache.Cache;
+import org.spark_project.guava.collect.Lists;
+
+import javax.management.MalformedObjectNameException;
+import javax.management.remote.JMXConnector;
 
 /**
  * @author Scott Fines
  *         Date: 1/6/16
  */
-public class EngineDriver{
+public class EngineDriver {
     private static volatile EngineDriver INSTANCE;
 
     private final Connection internalConnection;
@@ -99,7 +133,7 @@ public class EngineDriver{
 
         /* Create a general purpose thread pool */
         final AtomicLong count = new AtomicLong(0);
-        this.threadPool = new ThreadPoolExecutor(20, config.getThreadPoolMaxSize(),
+        ThreadPoolExecutor tpe = new ThreadPoolExecutor(20, config.getThreadPoolMaxSize(),
                 60L, TimeUnit.SECONDS,
                 new SynchronousQueue<>(),
                 (runnable) -> {
@@ -108,8 +142,9 @@ public class EngineDriver{
                     return t;
                 },
                 new ThreadPoolExecutor.CallerRunsPolicy());
-        ((ThreadPoolExecutor)threadPool).allowCoreThreadTimeOut(false);
-        ((ThreadPoolExecutor)threadPool).prestartAllCoreThreads();
+        tpe.allowCoreThreadTimeOut(false);
+        tpe.prestartAllCoreThreads();
+        this.threadPool = new ManagedThreadPool(tpe);
     }
 
     public DatabaseAdministrator dbAdministrator(){
@@ -167,6 +202,7 @@ public class EngineDriver{
     public ExecutorService getExecutorService() {
         return threadPool;
     }
+
 
     public OperationManager getOperationManager() { return operationManager; }
 }
