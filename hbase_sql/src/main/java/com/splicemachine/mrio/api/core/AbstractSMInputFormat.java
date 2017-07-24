@@ -103,7 +103,22 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
                 }
                 SubregionSplitter splitter = new HBaseSubregionSplitter();
 
-                return splitter.getSubSplits(table, splits, s.getStartRow(), s.getStopRow());
+                List<InputSplit> lss= splitter.getSubSplits(table, splits, s.getStartRow(), s.getStopRow());
+                //check if split count changed in-between
+                List<Partition>  newSplits = clientPartition.subPartitions(s.getStartRow(), s.getStopRow(), true);
+                if (splits.size() != newSplits.size()) {
+                    // retry
+                    refresh = true;
+                    LOG.warn("mismatched splits: earlier [" + splits.size() + "], later [" + newSplits.size() + "] for region " + clientPartition);
+                    retryCounter++;
+                    if (retryCounter > MAX_RETRIES) {
+                        throw new RuntimeException("MAX_RETRIES exceeded during getSplits");
+                    }
+                } else {
+                   return lss;
+                }
+
+
             } catch (HMissedSplitException e) {
                 // retry;
                 refresh = true;
