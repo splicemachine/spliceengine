@@ -66,7 +66,6 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
     private DatabaseVersion spliceVersion;
     private ManifestReader manifestReader;
     private Logging logging;
-    private SpliceDatabase db;
 
     public EngineLifecycleService(DistributedDerbyStartup startup,SConfiguration configuration,boolean isMaster){
         this.startup=startup;
@@ -119,23 +118,18 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
 
         //initialize the DDLDriver
         DDLDriver.loadDriver(DDLEnvironmentLoader.loadEnvironment(configuration,EngineDriver.driver().getExceptionFactory()));
-        db = (SpliceDatabase)((EmbedConnection)internalConnection).getLanguageConnection().getDatabase();
+        SpliceDatabase db = (SpliceDatabase)((EmbedConnection)internalConnection).getLanguageConnection().getDatabase();
         db.registerDDL();
-
         logging = new LogManager();
     }
 
     @Override
     public void registerJMX(MBeanServer mbs) throws Exception{
         manifestReader.registerJMX(mbs);
+
         try{
             ObjectName on=new ObjectName("com.splicemachine.utils.logging:type=LogManager");
-            ObjectName execServ = new ObjectName("com.splicemachine.derby.lifecycle:type=ExecutorService");
             mbs.registerMBean(logging,on);
-            mbs.registerMBean(EngineDriver.driver().getExecutorService(),execServ);
-            db.getDataDictionary().getDataDictionaryCache().registerJMX(mbs);
-
-
         }catch(InstanceAlreadyExistsException ignored){
             /*
              * For most purposes, this should never happen. However, it's possible to happen
