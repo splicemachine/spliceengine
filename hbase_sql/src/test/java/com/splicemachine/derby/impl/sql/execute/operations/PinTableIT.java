@@ -170,4 +170,10 @@ public class PinTableIT extends SpliceUnitTest{
             Assert.assertEquals("Wrong Exception","EXT35",e.getSQLState());
         }
     }
+
+    @Test
+    public void testDecimalIntoPinnedTable() throws Exception {
+        try{
+            methodWatcher.executeUpdate("create table")
+    }
 }
