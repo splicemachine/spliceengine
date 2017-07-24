@@ -161,7 +161,7 @@ public class ManagedThreadPool implements ExecutorService,JMXThreadPool {
 
     @Override
     public int getPendingTasks(){
-        return 0; //TODO -sf- implement
+        return (int)(pool.getTaskCount() - pool.getCompletedTaskCount());
     }
 
     @Override
