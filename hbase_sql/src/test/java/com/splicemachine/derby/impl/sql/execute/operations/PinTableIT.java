@@ -47,7 +47,7 @@ public class PinTableIT extends SpliceUnitTest{
     private static final SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher("PinTable6",SCHEMA_NAME,"(col1 int)");
     private static final SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher("PinTable7",SCHEMA_NAME,"(col1 int)");
     private static final SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher("PinTable8",SCHEMA_NAME,"(col1 int)");
-    private static final SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher("PinTable9",SCHEMA_NAME,"(col1 double, col2 double)");
+    private static final SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher("PinTable9",SCHEMA_NAME,"(col1 DECIMAL, col2 decimal)");
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA_NAME);
@@ -175,12 +175,13 @@ public class PinTableIT extends SpliceUnitTest{
 
     @Test
     public void testDecimalIntoPinnedTable() throws Exception {
-        methodWatcher.executeUpdate("insert into PinTable9 values (2.31, 2.87)");
+        methodWatcher.executeUpdate("insert into PinTable9 values (0.31, 2.87)");
         methodWatcher.executeUpdate("pin table PinTable9");
         ResultSet rs = methodWatcher.executeQuery("select * from PinTable9 --splice-properties pin=true");
         rs.next();
         double x = rs.getDouble("col1");
-        Assert.assertEquals("values not equal", x, 2.31, 0.0);
+        System.out.println(x);
+        Assert.assertEquals("values not equal", x, 0.31, 0.0);
         x = rs.getDouble("col2");
         Assert.assertEquals("values not equal", x, 2.87, 0.0);
     }
