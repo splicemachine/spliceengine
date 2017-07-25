@@ -79,8 +79,12 @@ public class OffsetFunction<Op extends SpliceOperation,V> extends SpliceFlatMapF
                 }
             };
             // if limit, apply it
+            int localLimit = (int) (offset - index + limit);
             if (limit > 0) {
-                result = Iterables.limit(result, (int) (offset - index + limit));
+                if (localLimit > 0)
+                    result = Iterables.limit(result, localLimit);
+                else
+                    result = Collections.emptyList();
             }
             // take only the values
             return Iterables.transform(result, new Function<Tuple2<V, Long>, V>() {
