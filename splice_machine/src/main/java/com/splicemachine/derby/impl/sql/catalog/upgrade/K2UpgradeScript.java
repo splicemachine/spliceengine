@@ -15,9 +15,11 @@
 
 package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
+import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.DefaultInfoImpl;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -27,6 +29,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.SQLBoolean;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.pipeline.ErrorState;
+import org.apache.log4j.Logger;
 
 import java.sql.Types;
 
@@ -35,6 +38,7 @@ import java.sql.Types;
  *         Date: 2/25/15
  */
 public class K2UpgradeScript extends UpgradeScriptBase {
+    private static final Logger LOG = Logger.getLogger(K2UpgradeScript.class);
     public K2UpgradeScript(SpliceDataDictionary sdd, TransactionController tc) {
         super(sdd, tc);
     }
@@ -46,6 +50,14 @@ public class K2UpgradeScript extends UpgradeScriptBase {
         sdd.getSystemAggregateGenerator().createAggregates(tc);
         sdd.dropStatisticsTables(tc);
         sdd.createStatisticsTables(tc);
+        sdd.createSchemasPermsTables(tc);
 
+        // drop STATS_TOP_K procedure
+        AliasDescriptor procedure = sdd.getAliasDescriptor(sdd.getSysFunSchemaDescriptor().getUUID().toString(), "STATS_TOP_K", AliasInfo.ALIAS_NAME_SPACE_FUNCTION_AS_CHAR);
+        if (procedure != null) {
+            sdd.dropAliasDescriptor(procedure, tc);
+        } else {
+            LOG.warn("We couldn't remove the 'STATS_TOP_K' procedure");
+        }
     }
 }
