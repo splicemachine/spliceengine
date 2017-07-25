@@ -176,10 +176,13 @@ public class PinTableIT extends SpliceUnitTest{
     @Test
     public void testDecimalIntoPinnedTable() throws Exception {
         methodWatcher.executeUpdate("insert into PinTable9 values (2.31, 2.87)");
+        methodWatcher.executeUpdate("pin table PinTable9");
         ResultSet rs = methodWatcher.executeQuery("select * from PinTable9 --splice-properties pin=true");
         rs.next();
         double x = rs.getDouble("col1");
         Assert.assertEquals("values not equal", x, 2.31, 0.0);
+        x = rs.getDouble("col2");
+        Assert.assertEquals("values not equal", x, 2.87, 0.0);
     }
 
 }
