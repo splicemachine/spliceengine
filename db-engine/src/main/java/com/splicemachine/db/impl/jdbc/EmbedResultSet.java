@@ -4349,6 +4349,9 @@ public abstract class EmbedResultSet extends ConnectionChild
                 markClosed();
 			}
 
+			if (theResults.isKilled()) {
+				throw newSQLException(SQLState.LANG_CANCELLATION_EXCEPTION);
+			}
 			throw newSQLException(SQLState.LANG_RESULT_SET_NOT_OPEN,operation);
 		}
 	}
