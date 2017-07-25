@@ -15,12 +15,16 @@
 package com.splicemachine.derby.impl;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.si.data.hbase.ZkUpgradeK2;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.security.SecurityUtil;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -174,13 +178,30 @@ public class SpliceSpark {
         conf.set("driver.source.splice-machine.class", "com.splicemachine.derby.stream.spark.SpliceMachineSource");
 
         // pull out Kerberos and set Yarn properties
-        if((HConfiguration.unwrapDelegate().get("hbase.master.kerberos.principal") != null) ||
-           (HConfiguration.unwrapDelegate().get("hbase.regionserver.kerberos.principal") != null)){
-            if(HConfiguration.unwrapDelegate().get("hbase.master.kerberos.principal") != null){
-                conf.set("spark.yarn.principal", HConfiguration.unwrapDelegate().get("hbase.master.kerberos.principal"));
-            } else if(HConfiguration.unwrapDelegate().get("hbase.regionserver.kerberos.principal") != null){
-                conf.set("spark.yarn.principal", HConfiguration.unwrapDelegate().get("hbase.regionserver.kerberos.principal"));
+        try {
+            String principal = null;
+            String p = null;
+            String hostname = HConfiguration.unwrapDelegate().get("hbase.master.hostname");
+            if (hostname == null) {
+                hostname = InetAddress.getLocalHost().getHostName();
+                SpliceLogUtils.warn(LOG, "Trying to get local hostname. This could be problem for host with multiple interfaces.");
+                SpliceLogUtils.warn(LOG, "For machine with multiple interfaces, please set hbase.master.hostname.");
             }
+            if ((HConfiguration.unwrapDelegate().get("hbase.master.kerberos.principal") != null) ||
+                    (HConfiguration.unwrapDelegate().get("hbase.regionserver.kerberos.principal") != null)) {
+                if (HConfiguration.unwrapDelegate().get("hbase.master.kerberos.principal") != null) {
+                    p = HConfiguration.unwrapDelegate().get("hbase.master.kerberos.principal");
+                } else if (HConfiguration.unwrapDelegate().get("hbase.regionserver.kerberos.principal") != null) {
+                    p = HConfiguration.unwrapDelegate().get("hbase.regionserver.kerberos.principal");
+                }
+                principal = SecurityUtil.getServerPrincipal(p, hostname);
+                conf.set("spark.yarn.principal", principal);
+                SpliceLogUtils.info(LOG, "principal = %s", principal);
+            }
+        } catch (UnknownHostException e) {
+            SpliceLogUtils.warn(LOG,"Could not resolve local host name : %s", e.getMessage());
+        } catch (IOException e) {
+            SpliceLogUtils.warn(LOG, "Could not replace _HOST: %s", e.getMessage());
         }
 
         if((HConfiguration.unwrapDelegate().get("hbase.master.keytab.file") != null) ||
