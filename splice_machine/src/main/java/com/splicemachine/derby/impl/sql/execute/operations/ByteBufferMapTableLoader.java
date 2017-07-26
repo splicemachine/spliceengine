@@ -44,7 +44,7 @@ class ByteBufferMapTableLoader implements BroadcastJoinCache.JoinTableLoader{
     private ByteBufferMapTableLoader(){} //singleton class
 
     @Override
-    public JoinTable.Factory load(Callable<Stream<ExecRow>> streamLoader,int[] innerHashKeys,int[] outerHashKeys, ExecRow outerTemplateRow) throws ExecutionException{
+    public JoinTable.Factory load(Callable<Stream<ExecRow>> streamLoader,int[] innerHashKeys,int[] outerHashKeys, ExecRow outerTemplateRow) throws Exception {
         Map<ByteBuffer, List<ExecRow>> table=new HashMap<>();
 
         DescriptorSerializer[] innerSerializers=null;
@@ -67,13 +67,18 @@ class ByteBufferMapTableLoader implements BroadcastJoinCache.JoinTableLoader{
                 }
                 rows.add(right.getClone());
             }
-        }catch(StreamException e){
-           throw new ExecutionException(e.getCause());
         }catch(Exception e){
-            if(e instanceof ExecutionException) throw (ExecutionException)e;
-            else throw new ExecutionException(e);
+            throw getException(e);
         }
 
         return new ByteBufferMappedJoinTable.Factory(table,outerHashKeys,outerTemplateRow);
+    }
+
+    private Exception getException(Throwable parent) {
+        if (parent.getCause() instanceof Exception)
+            return (Exception)parent.getCause();
+        if (parent instanceof Exception)
+            return (Exception)parent;
+        return new ExecutionException(parent);
     }
 }

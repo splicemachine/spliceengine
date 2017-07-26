@@ -83,7 +83,7 @@ public class HalfMergeSortJoinOperation extends MergeJoinOperation {
             PairDataSet leftDataSet = left.map(new CountJoinedLeftFunction(operationContext))
                     .keyBy(new KeyerFunction<ExecRow, JoinOperation>(operationContext, leftHashKeys));
 
-            DataSet<ExecRow> sorted = leftDataSet.partitionBy(getPartitioner(dsp), new RowComparator(getRightOrder())).values();
+            DataSet<ExecRow> sorted = leftDataSet.partitionBy(getPartitioner(dsp), new RowComparator(getRightOrder()), operationContext).values();
             if (isOuterJoin)
                 return sorted.mapPartitions(new MergeOuterJoinFlatMapFunction(operationContext));
             else {
