@@ -1798,6 +1798,18 @@ public class ExternalTableIT extends SpliceUnitTest{
         Assert.assertTrue(i == 1);
     }
 
+    @Test
+    public void testSmallIntOrcReader() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"/ShortIntOrc";
+        methodWatcher.executeUpdate(String.format("create external table t_small (c1 smallint, c2 int array) " +
+                "STORED AS ORC LOCATION '%s'",tablePath));
+        methodWatcher.executeUpdate("insert into t_small values(1, [1,1,1])");
+        ResultSet rs = methodWatcher.executeQuery("select * from t_small where c1=1");
+        rs.next();
+        int i = rs.getInt(1);
+        Assert.assertTrue(i == 1);
+    }
+
     /**
      *
      *
