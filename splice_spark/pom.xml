@@ -21,7 +21,7 @@
     </parent>
 
     <artifactId>splicemachine-${envClassifier}-${spark.version.label}_${scala.binary.version}</artifactId>
-    <name>Splicemachine Spark Bindings</name>
+    <name>splice_spark</name>
     <properties>
         <!--Skip server startup-->
         <server.skip.start>skipServerStart</server.skip.start>

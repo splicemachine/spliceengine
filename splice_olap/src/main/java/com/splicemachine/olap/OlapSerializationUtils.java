@@ -16,9 +16,7 @@ package com.splicemachine.olap;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ZeroCopyLiteralByteString;
-import com.splicemachine.olap.OlapMessage;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
-
 import java.io.*;
 
 /**

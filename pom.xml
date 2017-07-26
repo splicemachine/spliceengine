@@ -727,6 +727,10 @@
                 <module>splice_access_api</module>
                 <module>splice_machine</module>
                 <module>splice_aws</module>
+                <module>splice_s3</module>
+                <module>splice_orc</module>
+                <module>splice_fs</module>
+                <module>splice_olap</module>
             </modules>
         </profile>
         <profile>

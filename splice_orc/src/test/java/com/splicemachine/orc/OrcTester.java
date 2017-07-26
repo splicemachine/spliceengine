@@ -42,8 +42,6 @@ import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.*;
 import org.apache.spark.sql.types.StructField;
 import org.joda.time.DateTimeZone;
-import shapeless.DataT;
-
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -55,7 +53,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.Map.Entry;
-
 import static com.splicemachine.orc.OrcTester.Compression.NONE;
 import static com.splicemachine.orc.OrcTester.Compression.ZLIB;
 import static com.splicemachine.orc.OrcTester.Format.DWRF;
