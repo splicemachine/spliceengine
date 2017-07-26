@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.*;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
@@ -157,6 +158,8 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
     private boolean isAutoTraced;
 
     private boolean hasXPlainTableOrProcedure;
+
+    private CompilerContext.DataSetProcessorType datasetProcessorType;
     //
     // constructors
     //
@@ -1133,5 +1136,14 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
     @Override
     public void setXPlainTableOrProcedure(boolean val) {
         hasXPlainTableOrProcedure = val;
+    }
+
+
+    public CompilerContext.DataSetProcessorType datasetProcessorType() {
+        return datasetProcessorType;
+    }
+
+    public void setDatasetProcessorType(CompilerContext.DataSetProcessorType datasetProcessorType) {
+        this.datasetProcessorType = datasetProcessorType;
     }
 }

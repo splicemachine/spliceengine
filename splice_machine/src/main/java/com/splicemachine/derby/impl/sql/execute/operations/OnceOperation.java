@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.sql.conn.ResubmitDistributedException;
 import org.spark_project.guava.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -251,4 +252,8 @@ public class OnceOperation extends SpliceBaseOperation {
         return dsp.singleRowDataSet(result);
     }
 
+	@Override
+	protected void resubmitDistributed(ResubmitDistributedException e) throws StandardException {
+		throw e;
+	}
 }

@@ -16,10 +16,14 @@ package com.splicemachine.derby.stream.iapi;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.stream.function.*;
+import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
+import com.splicemachine.derby.stream.function.Partitioner;
+import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
+import com.splicemachine.derby.stream.function.SpliceFunction;
+import com.splicemachine.derby.stream.function.SpliceFunction2;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
-import org.apache.spark.api.java.Optional;
 import scala.Tuple2;
+
 import java.util.Comparator;
 import java.util.Iterator;
 
@@ -124,9 +128,10 @@ public interface PairDataSet<K,V> {
      * @see Comparator
      *
      * @param comparator
+     * @param operationContext
      * @return
      */
-    PairDataSet<K,V> sortByKey(Comparator<K> comparator);
+    PairDataSet<K,V> sortByKey(Comparator<K> comparator, OperationContext operationContext);
     /**
      *
      * Sort by key utilizing the comparator provided.  The name can
@@ -135,9 +140,10 @@ public interface PairDataSet<K,V> {
      * @see Comparator
      *
      * @param comparator
+     * @param operationContext
      * @return
      */
-    PairDataSet<K,V> sortByKey(Comparator<K> comparator,String name);
+    PairDataSet<K,V> sortByKey(Comparator<K> comparator, String name, OperationContext operationContext);
     /**
      *
      * Partition the pair DataSet via a custom partitioner and comparator.
@@ -147,19 +153,18 @@ public interface PairDataSet<K,V> {
      *
      * @param partitioner
      * @param comparator
+     * @param operationContext
      * @return
      */
-    PairDataSet<K, V> partitionBy(Partitioner<K> partitioner, Comparator<K> comparator);
-    PairDataSet<K, Iterable<V>> groupByKey();
-    PairDataSet<K, Iterable<V>> groupByKey(String name);
-    <W> PairDataSet<K,Tuple2<V,Optional<W>>> hashLeftOuterJoin(PairDataSet<K, W> rightDataSet);
-    <W> PairDataSet<K,Tuple2<Optional<V>,W>> hashRightOuterJoin(PairDataSet<K, W> rightDataSet);
-    <W> PairDataSet<K,Tuple2<V,W>> hashJoin(PairDataSet<K, W> rightDataSet);
-    <W> PairDataSet<K,Tuple2<V,W>> hashJoin(PairDataSet<K, W> rightDataSet,String name);
-    <W> PairDataSet<K,V> subtractByKey(PairDataSet<K, W> rightDataSet);
-    <W> PairDataSet<K,V> subtractByKey(PairDataSet<K, W> rightDataSet,String name);
-    <W> PairDataSet<K,Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet);
-    <W> PairDataSet<K,Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet,String name);
+    PairDataSet<K, V> partitionBy(Partitioner<K> partitioner, Comparator<K> comparator, OperationContext<JoinOperation> operationContext);
+    PairDataSet<K, Iterable<V>> groupByKey(OperationContext context);
+    PairDataSet<K, Iterable<V>> groupByKey(String name, OperationContext context);
+    <W> PairDataSet<K,Tuple2<V,W>> hashJoin(PairDataSet<K, W> rightDataSet, OperationContext operationContext);
+    <W> PairDataSet<K,Tuple2<V,W>> hashJoin(PairDataSet<K, W> rightDataSet, String name, OperationContext operationContext);
+    <W> PairDataSet<K,V> subtractByKey(PairDataSet<K, W> rightDataSet, OperationContext operationContext);
+    <W> PairDataSet<K,V> subtractByKey(PairDataSet<K, W> rightDataSet, String name, OperationContext operationContext);
+    <W> PairDataSet<K,Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet, OperationContext operationContext);
+    <W> PairDataSet<K,Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet, String name, OperationContext operationContext);
     PairDataSet<K,V> union(PairDataSet<K, V> dataSet);
     <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op, Iterator<Tuple2<K, V>>, U> f);
     String toString();

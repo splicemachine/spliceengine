@@ -19,6 +19,7 @@ import com.google.common.collect.Multimap;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
+import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -27,7 +28,6 @@ import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.UpdateDataSetWriterBuilder;
 import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.Optional;
 import scala.Tuple2;
 import scala.util.Either;
 import java.util.Comparator;
@@ -102,20 +102,20 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
     }
 
     @Override
-    public PairDataSet<K, V> sortByKey(Comparator<K> comparator){
-        return sortByKey(comparator, "Sort By Key");
+    public PairDataSet<K, V> sortByKey(Comparator<K> comparator, OperationContext operationContext){
+        return sortByKey(comparator, "Sort By Key", operationContext);
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
-    public PairDataSet< K, V> sortByKey(Comparator<K> comparator, String name) {
+    public PairDataSet< K, V> sortByKey(Comparator<K> comparator, String name, OperationContext operationContext) {
         JavaPairRDD rdd2 = rdd.sortByKey(comparator);
         rdd2.setName(name);
      return new SparkPairDataSet<>(rdd2);
     }
 
     @Override
-    public PairDataSet<K, V> partitionBy(Partitioner<K> partitioner, Comparator<K> comparator) {
+    public PairDataSet<K, V> partitionBy(Partitioner<K> partitioner, Comparator<K> comparator, OperationContext<JoinOperation> operationContext) {
         partitioner.initialize();
         JavaPairRDD rdd2 = rdd.repartitionAndSortWithinPartitions((org.apache.spark.Partitioner) partitioner, comparator);
         return new SparkPairDataSet<>(rdd2);
@@ -123,13 +123,13 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
 
 
     @Override
-    public PairDataSet<K, Iterable<V>> groupByKey() {
-        return groupByKey("Group By Key");
+    public PairDataSet<K, Iterable<V>> groupByKey(OperationContext context) {
+        return groupByKey("Group By Key", context);
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
-    public PairDataSet<K, Iterable<V>> groupByKey(String name) {
+    public PairDataSet<K, Iterable<V>> groupByKey(String name, OperationContext context) {
         JavaPairRDD rdd1 = rdd.groupByKey();
         rdd1.setName(name);
         SparkUtils.setAncestorRDDNames(rdd1, 1, new String[]{"Shuffle Data"}, null);
@@ -137,22 +137,12 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
     }
 
     @Override
-    public <W> PairDataSet<K, Tuple2<V, Optional<W>>> hashLeftOuterJoin(PairDataSet<K, W> rightDataSet){
-        return new SparkPairDataSet<>(rdd.leftOuterJoin(((SparkPairDataSet<K,W>)rightDataSet).rdd));
+    public <W> PairDataSet<K, Tuple2<V, W>> hashJoin(PairDataSet<K, W> rightDataSet, OperationContext operationContext){
+        return hashJoin(rightDataSet,"Hash Join", operationContext);
     }
 
     @Override
-    public <W> PairDataSet<K, Tuple2<Optional<V>, W>> hashRightOuterJoin(PairDataSet<K, W> rightDataSet){
-        return new SparkPairDataSet<>(rdd.rightOuterJoin(((SparkPairDataSet<K,W>)rightDataSet).rdd));
-    }
-
-    @Override
-    public <W> PairDataSet<K, Tuple2<V, W>> hashJoin(PairDataSet<K, W> rightDataSet){
-        return hashJoin(rightDataSet,"Hash Join");
-    }
-
-    @Override
-    public <W> PairDataSet<K, Tuple2<V, W>> hashJoin(PairDataSet<K, W> rightDataSet,String name){
+    public <W> PairDataSet<K, Tuple2<V, W>> hashJoin(PairDataSet<K, W> rightDataSet, String name, OperationContext operationContext){
         JavaPairRDD<K, Tuple2<V, W>> rdd1=rdd.join(((SparkPairDataSet<K, W>)rightDataSet).rdd);
         rdd1.setName(name);
         SparkUtils.setAncestorRDDNames(rdd1,2,new String[]{"Map Left to Right","Coalesce"}, null);
@@ -173,12 +163,12 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
     }
 
     @Override
-    public <W> PairDataSet<K, V> subtractByKey(PairDataSet<K, W> rightDataSet){
-        return subtractByKey(rightDataSet,RDDName.SUBTRACT_BY_KEY.displayName());
+    public <W> PairDataSet<K, V> subtractByKey(PairDataSet<K, W> rightDataSet, OperationContext operationContext){
+        return subtractByKey(rightDataSet,RDDName.SUBTRACT_BY_KEY.displayName(), operationContext);
     }
 
     @Override
-    public <W> PairDataSet<K, V> subtractByKey(PairDataSet<K, W> rightDataSet,String name){
+    public <W> PairDataSet<K, V> subtractByKey(PairDataSet<K, W> rightDataSet, String name, OperationContext operationContext){
         return new SparkPairDataSet<>(rdd.subtractByKey(((SparkPairDataSet<K,W>)rightDataSet).rdd),name);
     }
 
@@ -193,12 +183,12 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
     }
 
     @Override
-    public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet){
+    public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet, OperationContext operationContext){
         return new SparkPairDataSet<>(rdd.cogroup(((SparkPairDataSet<K,W>)rightDataSet).rdd));
     }
 
     @Override
-    public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet,String name){
+    public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet, String name, OperationContext operationContext){
         JavaPairRDD<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup=rdd.cogroup(((SparkPairDataSet<K, W>)rightDataSet).rdd);
         return new SparkPairDataSet<>(cogroup,name);
     }

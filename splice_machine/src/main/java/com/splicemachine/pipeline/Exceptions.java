@@ -89,6 +89,10 @@ public class Exceptions {
         return getIOException(t,PipelineDriver.driver().exceptionFactory());
     }
 
+    public static RuntimeException getRuntimeException(Throwable t){
+        return t instanceof RuntimeException ? (RuntimeException) t : new RuntimeException(t);
+    }
+
     public static void throwAsRuntime(Throwable t) {
         Exceptions.<RuntimeException> doThrow(t);
     }
