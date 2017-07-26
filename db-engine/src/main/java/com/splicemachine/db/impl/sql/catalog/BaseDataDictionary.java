@@ -109,6 +109,8 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 			{"SIGN", "INTEGER", "com.splicemachine.db.catalog.SystemProcedures", "SIGN(double)",  "true", "DOUBLE"},
             {"RANDOM", "DOUBLE", "java.lang.StrictMath", "random()",  "false" },
 			{"RAND", "DOUBLE", "com.splicemachine.db.catalog.SystemProcedures", "RAND(int)",  "false", "INTEGER"}, // Escape function spec.
+			{"ROUND", "BIGINT", "java.lang.StrictMath", "round(double)", "true", "DOUBLE"},
+			{"ROUND", "DOUBLE", "com.splicemachine.db.catalog.SystemProcedures", "ROUND(double,int)", "true", "DOUBLE", "INTEGER"},
 			{"COT", "DOUBLE", "com.splicemachine.db.catalog.SystemProcedures", "COT(double)",  "true", "DOUBLE"},
 			{"COSH", "DOUBLE", "com.splicemachine.db.catalog.SystemProcedures", "COSH(double)",  "true", "DOUBLE"},
 			{"SINH", "DOUBLE", "com.splicemachine.db.catalog.SystemProcedures", "SINH(double)",  "true", "DOUBLE"},
