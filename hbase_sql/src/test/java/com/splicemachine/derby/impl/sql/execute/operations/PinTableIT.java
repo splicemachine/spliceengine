@@ -47,7 +47,7 @@ public class PinTableIT extends SpliceUnitTest{
     private static final SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher("PinTable6",SCHEMA_NAME,"(col1 int)");
     private static final SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher("PinTable7",SCHEMA_NAME,"(col1 int)");
     private static final SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher("PinTable8",SCHEMA_NAME,"(col1 int)");
-    private static final SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher("PinTable9",SCHEMA_NAME,"(col1 DECIMAL, col2 decimal)");
+    private static final SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher("PinTable9",SCHEMA_NAME,"(col1 DECIMAL(4,2), col2 decimal)");
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA_NAME);
