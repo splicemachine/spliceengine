@@ -71,23 +71,6 @@ public interface GenericScanController extends RowCountable,AutoCloseable{
     void close() throws StandardException;
 
     /**
-     * Return ScanInfo object which describes performance of scan.
-     * <p/>
-     * Return ScanInfo object which contains information about the current
-     * state of the scan.
-     * <p/>
-     * The statistics gathered by the scan are not reset to 0 by a reopenScan(),
-     * rather they continue to accumulate.
-     * <p/>
-     *
-     * @return The ScanInfo object which contains info about current scan.
-     * @throws StandardException Standard exception policy.
-     * @see ScanInfo
-     */
-    ScanInfo getScanInfo()
-            throws StandardException;
-
-    /**
      * Return whether this is a keyed conglomerate.
      * <p/>
      *

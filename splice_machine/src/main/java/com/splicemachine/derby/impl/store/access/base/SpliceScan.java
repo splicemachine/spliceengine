@@ -19,7 +19,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
-import com.splicemachine.db.iapi.store.access.ScanInfo;
 import com.splicemachine.db.iapi.store.access.conglomerate.ScanManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -246,10 +245,6 @@ public class SpliceScan implements ScanManager, LazyScan{
         if(LOG.isTraceEnabled())
             LOG.trace("isTableLocked");
         return false;
-    }
-
-    public ScanInfo getScanInfo() throws StandardException{
-        return new SpliceScanInfo(this);
     }
 
     public RowLocation newRowLocationTemplate() throws StandardException{
