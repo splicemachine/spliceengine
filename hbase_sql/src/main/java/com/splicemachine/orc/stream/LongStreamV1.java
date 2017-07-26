@@ -246,4 +246,53 @@ public class LongStreamV1
             }
         }
     }
+
+    @Override
+    public void nextShortVector(int items, short[] vector)
+            throws IOException
+    {
+        for (int i = 0; i < items; i++) {
+            vector[i] = (short)next();
+        }
+    }
+
+    @Override
+    public void nextShortVector(int items, short[] vector, boolean[] isNull)
+            throws IOException
+    {
+        for (int i = 0; i < items; i++) {
+            if (!isNull[i]) {
+                vector[i] = (short)next();
+            }
+        }
+    }
+
+    @Override
+    public void nextShortVector(DataType type, int items, ColumnVector columnVector)
+            throws IOException {
+        for (int i = 0, j = 0; i < items; i++) {
+            while (columnVector.isNullAt(i+j)) {
+                columnVector.appendNull();
+                j++;
+            }
+            columnVector.appendShort((short)next());
+        }
+    }
+
+    @Override
+    public void nextShortVector(DataType type, int items, ColumnVector columnVector, boolean[] isNull)
+            throws IOException {
+        for (int i = 0, j = 0; i < items; i++) {
+            while (columnVector.isNullAt(i+j)) {
+                columnVector.appendNull();
+                j++;
+            }
+            if (isNull[i]) {
+                columnVector.appendNull();
+            }
+            else {
+                columnVector.appendShort((short)next());
+            }
+        }
+    }
 }

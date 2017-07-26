@@ -49,6 +49,18 @@ public interface LongStream
     void nextIntVector(DataType type, int items, ColumnVector columnVector, boolean[] isNull)
             throws IOException;
 
+    void nextShortVector(int items, short[] vector)
+            throws IOException;
+
+    void nextShortVector(int items, short[] vector, boolean[] isNull)
+            throws IOException;
+
+    void nextShortVector(DataType type, int items, ColumnVector columnVector)
+            throws IOException;
+
+    void nextShortVector(DataType type, int items, ColumnVector columnVector, boolean[] isNull)
+            throws IOException;
+
     long sum(int items)
             throws IOException;
 }
