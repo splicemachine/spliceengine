@@ -122,6 +122,11 @@ public class SpliceMasterObserver extends BaseMasterObserver {
         }
     }
 
+    @Override
+    public void postStartMaster(ObserverContext<MasterCoprocessorEnvironment> ctx) throws IOException {
+        boot();
+    }
+
     private synchronized void boot() throws IOException{
         //make sure the SIDriver is booted
         if (! manager.getState().equals(DatabaseLifecycleManager.State.NOT_STARTED))
