@@ -56,6 +56,7 @@ public class HTableOutputFormat extends OutputFormat<byte[],Either<Exception, KV
         try {
             if (outputCommitter == null)
                 getOutputCommitter(taskAttemptContext);
+            assert taskAttemptContext != null && taskAttemptContext.getConfiguration() != null:"configuration passed in is null";
             DataSetWriterBuilder tableWriter =TableWriterUtils.deserializeTableWriter(taskAttemptContext.getConfiguration());
             TxnView childTxn = outputCommitter.getChildTransaction(taskAttemptContext.getTaskAttemptID());
             if (childTxn == null)
