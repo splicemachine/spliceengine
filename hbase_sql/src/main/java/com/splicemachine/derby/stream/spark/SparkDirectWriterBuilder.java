@@ -51,6 +51,7 @@ public class SparkDirectWriterBuilder<K,V> extends DirectTableWriterBuilder{
     public DataSetWriter build() throws StandardException{
         try{
             Configuration conf=new Configuration(HConfiguration.unwrapDelegate());
+            conf.set("mapreduce.output.fileoutputformat.outputdir","/tmp"); // What should this be?
             TableWriterUtils.serializeHTableWriterBuilder(conf,this);
             conf.setClass(JobContext.OUTPUT_FORMAT_CLASS_ATTR,HTableOutputFormat.class,HTableOutputFormat.class);
             JavaSparkContext context=SpliceSpark.getContext();
