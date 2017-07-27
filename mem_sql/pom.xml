@@ -275,6 +275,9 @@
                                     <jvmarg value="-XX:+CMSPermGenSweepingEnabled"/>
                                     <jvmarg value="-XX:+CMSClassUnloadingEnabled"/>
                                     <sysproperty key="log4j.configuration" value="file://${basedir}/src/main/resources/log4j.properties"/>
+                                    <sysproperty key="com.sun.management.jmxremote.ssl" value="false"/>
+                                    <sysproperty key="com.sun.management.jmxremote.authenticate" value="false"/>
+                                    <sysproperty key="com.sun.management.jmxremote.port" value="10102"/>
                                 </java>
                                 <java classname="com.splicemachine.test.SpliceTestPlatformWait" classpath="${classpath.test}" spawn="false">
                                     <arg value="localhost"/>
