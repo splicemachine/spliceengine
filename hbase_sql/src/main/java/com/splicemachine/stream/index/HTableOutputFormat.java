@@ -36,7 +36,6 @@ public class HTableOutputFormat extends OutputFormat<byte[],Either<Exception, KV
     private static Logger LOG = Logger.getLogger(HTableOutputFormat.class);
     protected Configuration conf;
     protected SpliceOutputCommitter outputCommitter;
-    protected TxnView parentTxn;
 
     public HTableOutputFormat() {
         super();
@@ -55,6 +54,8 @@ public class HTableOutputFormat extends OutputFormat<byte[],Either<Exception, KV
     @Override
     public RecordWriter<byte[],Either<Exception, KVPair>> getRecordWriter(TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
         try {
+            if (outputCommitter == null)
+                getOutputCommitter(taskAttemptContext);
             DataSetWriterBuilder tableWriter =TableWriterUtils.deserializeTableWriter(taskAttemptContext.getConfiguration());
             TxnView childTxn = outputCommitter.getChildTransaction(taskAttemptContext.getTaskAttemptID());
             if (childTxn == null)
