@@ -11,7 +11,7 @@
  * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
  * If not, see <http://www.gnu.org/licenses/>.
  */
-package com.splicemachine.orc;
+package com.splicemachine.hive.s3;
 
 import com.google.common.base.StandardSystemProperty;
 import com.splicemachine.fs.s3.PrestoS3SignerType;

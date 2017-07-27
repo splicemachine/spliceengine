@@ -14,11 +14,12 @@
 
 package com.google.common.base;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import com.google.common.annotations.GwtCompatible;
-import java.util.Arrays;
+
 import javax.annotation.Nullable;
+import java.util.Arrays;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Helper functions that operate on any {@code Object}, and are not already provided in

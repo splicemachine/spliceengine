@@ -13,6 +13,12 @@
  */
 package com.splicemachine.fs.s3;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.google.common.collect.AbstractSequentialIterator;
+import com.google.common.collect.Iterables;
+import com.splicemachine.hive.s3.HiveS3Config;
+import org.apache.commons.httpclient.HttpStatus;
 import splice.aws.com.amazonaws.AbortedException;
 import splice.aws.com.amazonaws.AmazonClientException;
 import splice.aws.com.amazonaws.ClientConfiguration;
@@ -26,6 +32,7 @@ import splice.aws.com.amazonaws.regions.Regions;
 import splice.aws.com.amazonaws.services.s3.AmazonS3;
 import splice.aws.com.amazonaws.services.s3.AmazonS3Client;
 import splice.aws.com.amazonaws.services.s3.AmazonS3EncryptionClient;
+import splice.aws.com.amazonaws.services.s3.Headers;
 import splice.aws.com.amazonaws.services.s3.model.*;
 import splice.aws.com.amazonaws.services.s3.transfer.Transfer;
 import splice.aws.com.amazonaws.services.s3.transfer.TransferManager;
@@ -33,7 +40,6 @@ import splice.aws.com.amazonaws.services.s3.transfer.TransferManagerConfiguratio
 import splice.aws.com.amazonaws.services.s3.transfer.Upload;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
-import com.google.common.collect.AbstractSequentialIterator;
 import com.google.common.collect.Iterators;
 import io.airlift.log.Logger;
 import io.airlift.units.DataSize;
@@ -62,7 +68,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.http.HttpStatus.*;
 import static com.splicemachine.fs.s3.RetryDriver.retry;
 import static java.lang.Math.max;
-import com.splicemachine.orc.HiveS3Config;
 
 public class PrestoS3FileSystem
         extends FileSystem
@@ -105,8 +110,8 @@ public class PrestoS3FileSystem
     public static final String S3_USER_AGENT_PREFIX = "presto.s3.user-agent-prefix";
     public static final String S3_USER_AGENT_SUFFIX = "presto";
 
-    private static final DataSize BLOCK_SIZE = new DataSize(32, MEGABYTE);
-    private static final DataSize MAX_SKIP_SIZE = new DataSize(1, MEGABYTE);
+    private static final DataSize BLOCK_SIZE = new DataSize(32, DataSize.Unit.MEGABYTE);
+    private static final DataSize MAX_SKIP_SIZE = new DataSize(1, DataSize.Unit.MEGABYTE);
     private static final String PATH_SEPARATOR = "/";
     private static final Duration BACKOFF_MIN_SLEEP = new Duration(1, SECONDS);
 
@@ -130,7 +135,7 @@ public class PrestoS3FileSystem
             throws IOException
     {
         requireNonNull(uri, "uri is null");
-        requireNonNull(conf, "conf is null");
+        Objects.requireNonNull(conf, "conf is null");
         super.initialize(uri, conf);
         setConf(conf);
 
@@ -213,7 +218,7 @@ public class PrestoS3FileSystem
         while (iterator.hasNext()) {
             list.add(iterator.next());
         }
-        return toArray(list, LocatedFileStatus.class);
+        return Iterables.toArray(list, LocatedFileStatus.class);
     }
 
     @Override
@@ -284,7 +289,7 @@ public class PrestoS3FileSystem
 
     private static long getObjectSize(ObjectMetadata metadata)
     {
-        String length = metadata.getUserMetadata().get(UNENCRYPTED_CONTENT_LENGTH);
+        String length = metadata.getUserMetadata().get(Headers.UNENCRYPTED_CONTENT_LENGTH);
         return (length != null) ? Long.parseLong(length) : metadata.getContentLength();
     }
 
@@ -492,7 +497,7 @@ public class PrestoS3FileSystem
         public UnrecoverableS3OperationException(Path path, Throwable cause)
         {
             // append the path info to the message
-            super(format("%s (Path: %s)", cause, path), cause);
+            super(String.format("%s (Path: %s)", cause, path), cause);
         }
     }
 
@@ -515,10 +520,10 @@ public class PrestoS3FileSystem
                             STATS.newGetMetadataError();
                             if (e instanceof AmazonS3Exception) {
                                 switch (((AmazonS3Exception) e).getStatusCode()) {
-                                    case SC_NOT_FOUND:
+                                    case HttpStatus.SC_NOT_FOUND:
                                         return null;
-                                    case SC_FORBIDDEN:
-                                    case SC_BAD_REQUEST:
+                                    case HttpStatus.SC_FORBIDDEN:
+                                    case HttpStatus.SC_BAD_REQUEST:
                                         throw new UnrecoverableS3OperationException(path, e);
                                 }
                             }
@@ -565,8 +570,8 @@ public class PrestoS3FileSystem
 
     private static String keyFromPath(Path path)
     {
-        checkArgument(path.isAbsolute(), "Path is not absolute: %s", path);
-        String key = nullToEmpty(path.toUri().getPath());
+        Preconditions.checkArgument(path.isAbsolute(), "Path is not absolute: %s", path);
+        String key = Strings.nullToEmpty(path.toUri().getPath());
         if (key.startsWith(PATH_SEPARATOR)) {
             key = key.substring(PATH_SEPARATOR.length());
         }
@@ -648,7 +653,7 @@ public class PrestoS3FileSystem
         }
 
         String providerClass = conf.get(S3_CREDENTIALS_PROVIDER);
-        if (!isNullOrEmpty(providerClass)) {
+        if (!Strings.isNullOrEmpty(providerClass)) {
             return getCustomAWSCredentialsProvider(uri, conf, providerClass);
         }
 
@@ -686,7 +691,7 @@ public class PrestoS3FileSystem
             }
         }
 
-        if (isNullOrEmpty(accessKey) || isNullOrEmpty(secretKey)) {
+        if (Strings.isNullOrEmpty(accessKey) || Strings.isNullOrEmpty(secretKey)) {
             return Optional.empty();
         }
         return Optional.of(new BasicAWSCredentials(accessKey, secretKey));
@@ -709,14 +714,14 @@ public class PrestoS3FileSystem
 
         public PrestoS3InputStream(AmazonS3 s3, String host, Path path, int maxAttempts, Duration maxBackoffTime, Duration maxRetryTime)
         {
-            this.s3 = requireNonNull(s3, "s3 is null");
+            this.s3 = Objects.requireNonNull(s3, "s3 is null");
             this.host = requireNonNull(host, "host is null");
-            this.path = requireNonNull(path, "path is null");
+            this.path = Objects.requireNonNull(path, "path is null");
 
-            checkArgument(maxAttempts >= 0, "maxAttempts cannot be negative");
+            Preconditions.checkArgument(maxAttempts >= 0, "maxAttempts cannot be negative");
             this.maxAttempts = maxAttempts;
-            this.maxBackoffTime = requireNonNull(maxBackoffTime, "maxBackoffTime is null");
-            this.maxRetryTime = requireNonNull(maxRetryTime, "maxRetryTime is null");
+            this.maxBackoffTime = Objects.requireNonNull(maxBackoffTime, "maxBackoffTime is null");
+            this.maxRetryTime = Objects.requireNonNull(maxRetryTime, "maxRetryTime is null");
         }
 
         @Override
@@ -729,8 +734,8 @@ public class PrestoS3FileSystem
         @Override
         public void seek(long pos)
         {
-            checkState(!closed, "already closed");
-            checkArgument(pos >= 0, "position is negative: %s", pos);
+            Preconditions.checkState(!closed, "already closed");
+            Preconditions.checkArgument(pos >= 0, "position is negative: %s", pos);
 
             // this allows a seek beyond the end of the stream but the next read will fail
             nextReadPosition = pos;
@@ -804,7 +809,7 @@ public class PrestoS3FileSystem
             if ((in != null) && (nextReadPosition > streamPosition)) {
                 // seeking forwards
                 long skip = nextReadPosition - streamPosition;
-                if (skip <= max(in.available(), MAX_SKIP_SIZE.toBytes())) {
+                if (skip <= Math.max(in.available(), MAX_SKIP_SIZE.toBytes())) {
                     // already buffered or seek is small enough
                     try {
                         if (in.skip(skip) == skip) {
@@ -852,12 +857,12 @@ public class PrestoS3FileSystem
                                 STATS.newGetObjectError();
                                 if (e instanceof AmazonS3Exception) {
                                     switch (((AmazonS3Exception) e).getStatusCode()) {
-                                        case SC_REQUESTED_RANGE_NOT_SATISFIABLE:
+                                        case HttpStatus.SC_REQUESTED_RANGE_NOT_SATISFIABLE:
                                             // ignore request for start past end of object
                                             return new ByteArrayInputStream(new byte[0]);
-                                        case SC_FORBIDDEN:
-                                        case SC_NOT_FOUND:
-                                        case SC_BAD_REQUEST:
+                                        case HttpStatus.SC_FORBIDDEN:
+                                        case HttpStatus.SC_NOT_FOUND:
+                                        case HttpStatus.SC_BAD_REQUEST:
                                             throw new UnrecoverableS3OperationException(path, e);
                                     }
                                 }
@@ -913,8 +918,8 @@ public class PrestoS3FileSystem
         {
             super(new BufferedOutputStream(new FileOutputStream(requireNonNull(tempFile, "tempFile is null"))));
 
-            transferManager = new TransferManager(requireNonNull(s3, "s3 is null"));
-            transferManager.setConfiguration(requireNonNull(config, "config is null"));
+            transferManager = new TransferManager(Objects.requireNonNull(s3, "s3 is null"));
+            transferManager.setConfiguration(Objects.requireNonNull(config, "config is null"));
 
             this.host = requireNonNull(host, "host is null");
             this.key = requireNonNull(key, "key is null");

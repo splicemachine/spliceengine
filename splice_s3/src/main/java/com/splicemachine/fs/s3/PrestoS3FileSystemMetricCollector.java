@@ -19,8 +19,6 @@ import splice.aws.com.amazonaws.metrics.RequestMetricCollector;
 import splice.aws.com.amazonaws.util.AWSRequestMetrics;
 import splice.aws.com.amazonaws.util.TimingInfo;
 import io.airlift.units.Duration;
-
-import static splice.aws.com.amazonaws.util.AWSRequestMetrics.Field.*;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
@@ -40,11 +38,11 @@ public class PrestoS3FileSystemMetricCollector
         AWSRequestMetrics metrics = request.getAWSRequestMetrics();
 
         TimingInfo timingInfo = metrics.getTimingInfo();
-        Number requestCounts = timingInfo.getCounter(RequestCount.name());
-        Number retryCounts = timingInfo.getCounter(HttpClientRetryCount.name());
-        Number throttleExceptions = timingInfo.getCounter(ThrottleException.name());
-        TimingInfo requestTime = timingInfo.getSubMeasurement(HttpRequestTime.name());
-        TimingInfo clientExecuteTime = timingInfo.getSubMeasurement(ClientExecuteTime.name());
+        Number requestCounts = timingInfo.getCounter(AWSRequestMetrics.Field.RequestCount.name());
+        Number retryCounts = timingInfo.getCounter(AWSRequestMetrics.Field.HttpClientRetryCount.name());
+        Number throttleExceptions = timingInfo.getCounter(AWSRequestMetrics.Field.ThrottleException.name());
+        TimingInfo requestTime = timingInfo.getSubMeasurement(AWSRequestMetrics.Field.HttpRequestTime.name());
+        TimingInfo clientExecuteTime = timingInfo.getSubMeasurement(AWSRequestMetrics.Field.ClientExecuteTime.name());
 
         if (requestCounts != null) {
             stats.updateAwsRequestCount(requestCounts.longValue());
