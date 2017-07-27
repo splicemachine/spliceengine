@@ -244,6 +244,12 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         addTableIfAbsent(tc,systemSchema,physicalStatsInfo,null);
     }
 
+    public void createSchemasPermsTables(TransactionController tc) throws StandardException{
+        SchemaDescriptor systemSchema=getSystemSchemaDescriptor();
+        TabInfoImpl schemaPerms=new TabInfoImpl(new SYSSCHEMAPERMSRowFactory(uuidFactory,exFactory,dvf));
+        addTableIfAbsent(tc,systemSchema,schemaPerms,null);
+    }
+
     private TabInfoImpl getBackupTable() throws StandardException{
         if(backupTable==null){
             backupTable=new TabInfoImpl(new SYSBACKUPRowFactory(uuidFactory,exFactory,dvf));
@@ -579,7 +585,55 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     private void addNewColumToSystables(TransactionController tc) throws StandardException {
         SchemaDescriptor sd = getSystemSchemaDescriptor();
         TableDescriptor td = getTableDescriptor(SYSTABLESRowFactory.TABLENAME_STRING, sd, tc);
-        ColumnDescriptor cd = td.getColumnDescriptor(SYSTABLESRowFactory.PURGE_DELETED_ROWS);
+
+        ColumnDescriptor cd = td.getColumnDescriptor(SYSTABLESRowFactory.DELIMITED);
+        if (cd == null)
+        {
+            tc.elevate("dictionary");
+            dropTableDescriptor(td, sd, tc);
+            td.setColumnSequence(td.getColumnSequence() + 1);
+            // add the table descriptor with new name
+            addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc);
+
+
+            SystemColumn[] columns = new SystemColumn[] {
+                    SystemColumnImpl.getColumn("DELIMITED", Types.VARCHAR,  true),
+                    SystemColumnImpl.getColumn("ESCAPED", Types.VARCHAR, true),
+                    SystemColumnImpl.getColumn("LINES", Types.VARCHAR, true),
+                    SystemColumnImpl.getColumn("STORED", Types.VARCHAR, true),
+                    SystemColumnImpl.getColumn("LOCATION", Types.VARCHAR, true),
+                    SystemColumnImpl.getColumn("COMPRESSION", Types.VARCHAR, true),
+                    SystemColumnImpl.getColumn("IS_PINNED", Types.BOOLEAN, true)}; // allow it to be null, it's not used
+
+            for (SystemColumn sc : columns) {
+                DataValueDescriptor storableDV = sc.getType().getJDBCTypeId() == Types.VARCHAR ? getDataValueFactory().getNullVarchar(null) : getDataValueFactory().getNullBoolean(new SQLBoolean(false));
+                int colNumber = td.getNumberOfColumns() + 1;
+                DataTypeDescriptor dtd = sc.getType();
+                tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
+                UUID uuid = getUUIDFactory().createUUID();
+                ColumnDescriptor columnDescriptor = new ColumnDescriptor(
+                        sc.getName(),
+                        colNumber,
+                        colNumber,
+                        dtd,
+                        sc.getType().getJDBCTypeId() == Types.VARCHAR ? null : new SQLBoolean(false),
+                        null,
+                        td,
+                        uuid,
+                        0,
+                        0,
+                        td.getColumnSequence());
+
+                addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+
+                // now add the column to the tables column descriptor list.
+                td.getColumnDescriptorList().add(columnDescriptor);
+
+                updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
+                SpliceLogUtils.info(LOG, "SYS.SYSTABLES upgraded: added a new column %s.", sc.getName());
+            }
+        }
+        cd = td.getColumnDescriptor(SYSTABLESRowFactory.PURGE_DELETED_ROWS);
         if (cd == null)
         {
             tc.elevate("dictionary");

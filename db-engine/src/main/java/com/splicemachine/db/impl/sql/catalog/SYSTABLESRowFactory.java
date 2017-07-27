@@ -88,7 +88,8 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 	protected static final int		SYSTABLES_INDEX2_TABLEID = 1;
 
 
-    public static final String      PURGE_DELETED_ROWS = "PURGE_DELETED_ROWS";
+	public static final String      PURGE_DELETED_ROWS = "PURGE_DELETED_ROWS";
+	public static final String      DELIMITED = "DELIMITED";
 	/*
 	 * The first version of any tables. Use this for System tables and
 	 * any time that you don't know what the version is.
@@ -529,7 +530,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
                 SystemColumnImpl.getIndicatorColumn("LOCKGRANULARITY"),
                 SystemColumnImpl.getIdentifierColumn("VERSION",true),
                 SystemColumnImpl.getColumn("COLSEQUENCE", Types.INTEGER, false),
-                SystemColumnImpl.getColumn("DELIMITED", Types.VARCHAR,  true),
+                SystemColumnImpl.getColumn(DELIMITED, Types.VARCHAR,  true),
                 SystemColumnImpl.getColumn("ESCAPED", Types.VARCHAR, true),
                 SystemColumnImpl.getColumn("LINES", Types.VARCHAR, true),
                 SystemColumnImpl.getColumn("STORED", Types.VARCHAR, true),
