@@ -14,28 +14,16 @@
 
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.db.catalog.SystemProcedures;
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.impl.services.uuid.BasicUUID;
-import com.splicemachine.db.impl.sql.catalog.SYSTABLESTATISTICSRowFactory;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.protobuf.ProtoUtil;
-import com.splicemachine.utils.Pair;
-import com.splicemachine.utils.SpliceLogUtils;
-import org.joda.time.DateTime;
-import org.spark_project.guava.collect.Lists;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.SQLConfiguration;
+import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.monitor.ModuleFactory;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
@@ -43,37 +31,81 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.*;
-import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SnapshotDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLBlob;
+import com.splicemachine.db.iapi.types.SQLBoolean;
+import com.splicemachine.db.iapi.types.SQLChar;
+import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.iapi.types.SQLLongint;
+import com.splicemachine.db.iapi.types.SQLReal;
+import com.splicemachine.db.iapi.types.SQLTimestamp;
+import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.jdbc.ResultSetBuilder;
 import com.splicemachine.db.impl.jdbc.ResultSetBuilder.RowBuilder;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.GenericActivationHolder;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.GenericPreparedStatement;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
+import com.splicemachine.db.impl.sql.catalog.ManagedCacheMBean;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.hbase.JMXThreadPool;
+import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionLoad;
 import com.splicemachine.storage.PartitionServer;
 import com.splicemachine.storage.PartitionServerLoad;
+import com.splicemachine.utils.Pair;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.Logger;
+import org.joda.time.DateTime;
+import org.spark_project.guava.collect.Lists;
 
+import javax.management.MalformedObjectNameException;
+import javax.management.remote.JMXConnector;
 import java.io.IOException;
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.UUID;
 
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INVALID_FUNCTION_ARGUMENT;
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_NO_SUCH_RUNNING_OPERATION;
@@ -163,6 +195,164 @@ public class SpliceAdmin extends BaseAdminProcedures{
     public static void SYSCS_GET_WRITE_INTAKE_INFO(ResultSet[] resultSets) throws SQLException{
         PipelineAdmin.SYSCS_GET_WRITE_INTAKE_INFO(resultSets);
     }
+
+    private static final ResultColumnDescriptor[] EXEC_SERVICE_COLUMNS= {
+            new GenericColumnDescriptor("Host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
+            new GenericColumnDescriptor("CurrentPoolSize",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+            new GenericColumnDescriptor("CurrentlyAvailableThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+            new GenericColumnDescriptor("CurrentlyExecutingThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+            new GenericColumnDescriptor("LargestPoolSize",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+            new GenericColumnDescriptor("MaximumPoolSize",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+            new GenericColumnDescriptor("PendingTasks",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+            new GenericColumnDescriptor("ThreadKeepAliveTime",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+            new GenericColumnDescriptor("TotalCompletedTasks",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+            new GenericColumnDescriptor("TotalRejectedTasks", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+            new GenericColumnDescriptor("TotalScheduledTasks",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+    };
+    private static final ResultColumnDescriptor[] MANAGED_CACHE_COLUMNS= {
+            new GenericColumnDescriptor("Host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
+            new GenericColumnDescriptor("name",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
+            new GenericColumnDescriptor("Size",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+            new GenericColumnDescriptor("MissCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+            new GenericColumnDescriptor("MissRate",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE)),
+            new GenericColumnDescriptor("HitCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+            new GenericColumnDescriptor("HitRate",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE)),
+    };
+    private static final ResultColumnDescriptor[] TOTAL_MANAGED_CACHE_COLUMNS= {
+            new GenericColumnDescriptor("name",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
+            new GenericColumnDescriptor("Size",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+            new GenericColumnDescriptor("MissCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+            new GenericColumnDescriptor("MissRate",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE)),
+            new GenericColumnDescriptor("HitCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+            new GenericColumnDescriptor("HitRate",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE)),
+    };
+
+    public static void SYSCS_GET_EXEC_SERVICE_INFO(final ResultSet[] resultSet) throws SQLException {
+        operate(new BaseAdminProcedures.JMXServerOperation() {
+            @Override
+            public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
+                List<JMXThreadPool> executorService = JMXUtils.getExecutorService(connections);
+                ExecRow template = buildExecRow(EXEC_SERVICE_COLUMNS);
+                List<ExecRow> rows = Lists.newArrayListWithExpectedSize(executorService.size());
+                int i=0;
+                for (JMXThreadPool ex : executorService) {
+                    template.resetRowArray();
+                    DataValueDescriptor[] dvds = template.getRowArray();
+                    try{
+                        dvds[0].setValue(connections.get(i).getFirst());
+                        dvds[1].setValue(ex.getCurrentPoolSize());
+                        dvds[2].setValue(ex.getCurrentlyAvailableThreads());
+                        dvds[3].setValue(ex.getCurrentlyExecutingThreads());
+                        dvds[4].setValue(ex.getLargestPoolSize());
+                        dvds[5].setValue(ex.getMaximumPoolSize());
+                        dvds[6].setValue(ex.getPendingTasks());
+                        dvds[7].setValue(ex.getThreadKeepAliveTime());
+                        dvds[8].setValue(ex.getTotalCompletedTasks());
+                        dvds[9].setValue(ex.getTotalRejectedTasks());
+                        dvds[10].setValue(ex.getTotalScheduledTasks());
+                    }catch(StandardException se){
+                        throw PublicAPI.wrapStandardException(se);
+                    }
+                    rows.add(template.getClone());
+                    i++;
+                }
+
+                EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
+                Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+                IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, EXEC_SERVICE_COLUMNS,lastActivation);
+                try {
+                    resultsToWrap.openCore();
+                } catch (StandardException e) {
+                    throw PublicAPI.wrapStandardException(e);
+                }
+                EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
+                resultSet[0] = ers;
+            }
+        });
+    }
+
+    //For cache
+    public static void SYSCS_GET_CACHE_INFO(final ResultSet[] resultSet) throws SQLException {
+        operate(new BaseAdminProcedures.JMXServerOperation() {
+            @Override
+            public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
+                List<ManagedCacheMBean> managedCaches = JMXUtils.getManagedCache(connections, DataDictionaryCache.cacheNames);
+                ExecRow template = buildExecRow(MANAGED_CACHE_COLUMNS);
+                List<ExecRow> rows = Lists.newArrayListWithExpectedSize(managedCaches.size());
+                int i=0;
+                int j=0;
+                for (ManagedCacheMBean ex : managedCaches) {
+                    template.resetRowArray();
+                    DataValueDescriptor[] dvds = template.getRowArray();
+                    try{
+                        dvds[0].setValue(connections.get(j).getFirst());
+                        dvds[1].setValue(DataDictionaryCache.cacheNames[i%DataDictionaryCache.cacheNames.length]);
+                        dvds[2].setValue(ex.getSize());
+                        dvds[3].setValue(ex.getMissCount());
+                        dvds[4].setValue(ex.getMissRate());
+                        dvds[5].setValue(ex.getHitCount());
+                        dvds[6].setValue(ex.getHitRate());
+                    }catch(StandardException se){
+                        throw PublicAPI.wrapStandardException(se);
+                    }
+                    rows.add(template.getClone());
+                    i++;
+                    j = i >= DataDictionaryCache.cacheNames.length?1:0;
+                }
+
+                EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
+                Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+                IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, MANAGED_CACHE_COLUMNS,lastActivation);
+                try {
+                    resultsToWrap.openCore();
+                } catch (StandardException e) {
+                    throw PublicAPI.wrapStandardException(e);
+                }
+                EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
+                resultSet[0] = ers;
+            }
+        });
+    }
+
+    //For total cache stats
+    public static void SYSCS_GET_TOTAL_CACHE_INFO(final ResultSet[] resultSet) throws SQLException {
+        operate(new BaseAdminProcedures.JMXServerOperation() {
+            @Override
+            public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
+                List<ManagedCacheMBean> tm = JMXUtils.getTotalManagedCache(connections);
+                ExecRow template = buildExecRow(TOTAL_MANAGED_CACHE_COLUMNS);
+                List<ExecRow> rows = Lists.newArrayListWithExpectedSize(tm.size());
+                int i = 0;
+                for(ManagedCacheMBean mBean : tm) {
+                    template.resetRowArray();
+                    DataValueDescriptor[] dvds = template.getRowArray();
+                    try {
+                        dvds[0].setValue(connections.get(i).getFirst());
+                        dvds[1].setValue(mBean.getSize());
+                        dvds[2].setValue(mBean.getMissCount());
+                        dvds[3].setValue(mBean.getMissRate());
+                        dvds[4].setValue(mBean.getHitCount());
+                        dvds[5].setValue(mBean.getHitRate());
+                    } catch (StandardException se) {
+                        throw PublicAPI.wrapStandardException(se);
+                    }
+                    i++;
+                    rows.add(template.getClone());
+                }
+                EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
+                Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+                IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, TOTAL_MANAGED_CACHE_COLUMNS,lastActivation);
+                try {
+                    resultsToWrap.openCore();
+                } catch (StandardException e) {
+                    throw PublicAPI.wrapStandardException(e);
+                }
+                EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
+                resultSet[0] = ers;
+            }
+        });
+    }
+
 
     public static void SYSCS_KILL_TRANSACTION(final long transactionId) throws SQLException{
         /*

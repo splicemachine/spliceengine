@@ -19,13 +19,13 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>2.5.0.1729-SNAPSHOT</version>
+        <version>2.5.0.1730-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>splice_machine</artifactId>
-            <version>2.5.0.1729-SNAPSHOT</version>
+            <version>2.5.0.1730-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
@@ -34,27 +34,27 @@
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>mem_pipeline</artifactId>
-            <version>2.5.0.1729-SNAPSHOT</version>
+            <version>2.5.0.1730-SNAPSHOT</version>
         </dependency>
         <!--Test jars -->
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>splice_machine</artifactId>
-            <version>2.5.0.1729-SNAPSHOT</version>
+            <version>2.5.0.1730-SNAPSHOT</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>splice_si_api</artifactId>
-            <version>2.5.0.1729-SNAPSHOT</version>
+            <version>2.5.0.1730-SNAPSHOT</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>mem_storage</artifactId>
-            <version>2.5.0.1729-SNAPSHOT</version>
+            <version>2.5.0.1730-SNAPSHOT</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
@@ -67,17 +67,17 @@
             <artifactId>pipeline_api</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
-            <version>2.5.0.1729-SNAPSHOT</version>
+            <version>2.5.0.1730-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>pipeline_api</artifactId>
-            <version>2.5.0.1729-SNAPSHOT</version>
+            <version>2.5.0.1730-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>mem_pipeline</artifactId>
-            <version>2.5.0.1729-SNAPSHOT</version>
+            <version>2.5.0.1730-SNAPSHOT</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
@@ -115,12 +115,12 @@
                     <dependency>
                         <groupId>org.splicetest.txn</groupId>
                         <artifactId>txn-it-procs</artifactId>
-                        <version>2.5.0.1729-SNAPSHOT</version>
+                        <version>2.5.0.1730-SNAPSHOT</version>
                     </dependency>
                     <dependency>
                         <groupId>org.splicetest.sqlj</groupId>
                         <artifactId>sqlj-it-procs</artifactId>
-                        <version>2.5.0.1729-SNAPSHOT</version>
+                        <version>2.5.0.1730-SNAPSHOT</version>
                     </dependency>
                 </dependencies>
                 <executions>
@@ -145,7 +145,7 @@
                                 <artifactItem>
                                     <groupId>org.splicetest.txn</groupId>
                                     <artifactId>txn-it-procs</artifactId>
-                                    <version>2.5.0.1729-SNAPSHOT</version>
+                                    <version>2.5.0.1730-SNAPSHOT</version>
                                     <type>jar</type>
                                     <overWrite>true</overWrite>
                                     <outputDirectory>${project.build.directory}/txn-it</outputDirectory>
@@ -154,7 +154,7 @@
                                 <artifactItem>
                                     <groupId>org.splicetest.sqlj</groupId>
                                     <artifactId>sqlj-it-procs</artifactId>
-                                    <version>2.5.0.1729-SNAPSHOT</version>
+                                    <version>2.5.0.1730-SNAPSHOT</version>
                                     <type>jar</type>
                                     <overWrite>true</overWrite>
                                     <outputDirectory>${project.build.directory}/sql-it</outputDirectory>
@@ -275,6 +275,9 @@
                                     <jvmarg value="-XX:+CMSPermGenSweepingEnabled"/>
                                     <jvmarg value="-XX:+CMSClassUnloadingEnabled"/>
                                     <sysproperty key="log4j.configuration" value="file://${basedir}/src/main/resources/log4j.properties"/>
+                                    <sysproperty key="com.sun.management.jmxremote.ssl" value="false"/>
+                                    <sysproperty key="com.sun.management.jmxremote.authenticate" value="false"/>
+                                    <sysproperty key="com.sun.management.jmxremote.port" value="10102"/>
                                 </java>
                                 <java classname="com.splicemachine.test.SpliceTestPlatformWait" classpath="${classpath.test}" spawn="false">
                                     <arg value="localhost"/>
