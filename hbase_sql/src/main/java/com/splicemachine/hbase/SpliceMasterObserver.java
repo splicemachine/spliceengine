@@ -28,6 +28,11 @@ import com.splicemachine.timestamp.api.TimestampBlockManager;
 import com.splicemachine.timestamp.hbase.ZkTimestampBlockManager;
 import com.splicemachine.timestamp.impl.TimestampServer;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.apache.curator.framework.recipes.locks.InterProcessMutex;
+import org.apache.curator.utils.ZookeeperFactory;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -40,6 +45,8 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.ZooKeeper;
 
 import java.io.IOException;
 
@@ -132,21 +139,53 @@ public class SpliceMasterObserver extends BaseMasterObserver {
         if (! manager.getState().equals(DatabaseLifecycleManager.State.NOT_STARTED))
             return; // Race Condition, only load one...
 
-        //ensure that the SI environment is booted properly
-        HBaseSIEnvironment env=HBaseSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper());
-        SIDriver driver = env.getSIDriver();
+        CuratorFramework curator = CuratorFrameworkFactory.builder().zookeeperFactory(new ZookeeperFactory() {
+            @Override
+            public ZooKeeper newZooKeeper(String s, int i, Watcher watcher, boolean b) throws Exception {
+                return ZkUtils.getRecoverableZooKeeper().getZooKeeper();
+            }
+        }).build();
 
-        //make sure the configuration is correct
-        SConfiguration config=driver.getConfiguration();
+        //make sure only one master boots at a time
+        String lockPath = HConfiguration.getConfiguration().getSpliceRootPath()+HConfiguration.MASTER_INIT_PATH;
+        InterProcessLock lock = new InterProcessMutex(curator, lockPath);
+        IOException exception = null;
+        try {
+            lock.acquire();
 
-        //register the engine boot service
-        try{
-            MasterLifecycle distributedStartupSequence=new MasterLifecycle();
-            manager.registerEngineService(new EngineLifecycleService(distributedStartupSequence,config,true));
-            manager.start();
-        }catch(Exception e1){
-            LOG.error("Unexpected exception registering boot service", e1);
-            throw new DoNotRetryIOException(e1);
+            //ensure that the SI environment is booted properly
+            HBaseSIEnvironment env = HBaseSIEnvironment.loadEnvironment(new SystemClock(), ZkUtils.getRecoverableZooKeeper());
+            SIDriver driver = env.getSIDriver();
+
+            //make sure the configuration is correct
+            SConfiguration config = driver.getConfiguration();
+
+            //register the engine boot service
+            try {
+                MasterLifecycle distributedStartupSequence = new MasterLifecycle();
+                manager.registerEngineService(new EngineLifecycleService(distributedStartupSequence, config, true));
+                manager.start();
+            } catch (Exception e1) {
+                LOG.error("Unexpected exception registering boot service", e1);
+                throw new DoNotRetryIOException(e1);
+            }
+        } catch (IOException e) {
+            exception = e;
+            throw exception;
+        } catch (Exception e) {
+            exception = new IOException("Error locking " + lockPath + " for master initialization", e);
+            throw exception;
+        } finally {
+            if (lock.isAcquiredInThisProcess()) {
+                try {
+                    lock.release();
+                } catch (Exception e) {
+                    if (exception != null)
+                        throw exception;
+                    else
+                        throw new IOException("Error releasing " + lockPath + " after master initialization",e);
+                }
+            }
         }
     }
 
