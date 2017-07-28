@@ -14,7 +14,6 @@
 
 package com.splicemachine.stream;
 
-import com.splicemachine.concurrent.traffic.TrafficController;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.Stats;
 
@@ -32,9 +31,6 @@ public class Streams {
     public static <T> Stream<T> wrap(Iterator<T> iterator){ return new IteratorStream<>(iterator); }
     public static <T> Stream<T> wrap(Iterable<T> iterable){ return new IteratorStream<>(iterable.iterator()); }
     public static <T> PeekableStream<T> peekingStream(Stream<T> stream){ return new PeekingStream<>(stream); }
-    public static <T> Stream<T> rateLimit(Stream<T> stream,TrafficController rateLimiter){
-        return new RateLimitedStream<T>(stream,rateLimiter);
-    }
 
     @SuppressWarnings("unchecked") public static <T> Stream<T> empty(){ return (Stream<T>)EMPTY; }
 
@@ -54,27 +50,6 @@ public class Streams {
         @Override public void close() throws StreamException {  }
     };
 
-    private static class RateLimitedStream<T> extends AbstractStream<T>{
-        private final Stream<T> delegate;
-        private final TrafficController controller;
-
-        public RateLimitedStream(Stream<T> delegate, TrafficController controller) {
-            this.delegate = delegate;
-            this.controller = controller;
-        }
-
-        @Override
-        public T next() throws StreamException {
-            try {
-                controller.acquire(1);
-            } catch (InterruptedException e) {
-                throw new StreamException(e);
-            }
-            return delegate.next();
-        }
-
-        @Override public void close() throws StreamException { delegate.close(); }
-    }
     static final class FilteredStream<T> extends ForwardingStream<T>{
         private final Predicate<T> predicate;
 
