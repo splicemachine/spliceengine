@@ -20,6 +20,8 @@ import com.splicemachine.backup.BackupManager;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
+import com.splicemachine.derby.iapi.sql.execute.OperationManager;
+import com.splicemachine.derby.iapi.sql.execute.OperationManagerImpl;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.impl.sql.*;
 import com.splicemachine.access.api.DatabaseVersion;
@@ -43,6 +45,7 @@ public class MEngineSqlEnv extends EngineSqlEnvironment{
     private DataSetProcessorFactory dspFactory;
     private SqlExceptionFactory exceptionFactory;
     private DatabaseAdministrator dbAdmin;
+    private OperationManager operationManager;
 
     @Override
     public void initialize(SConfiguration config,
@@ -55,6 +58,7 @@ public class MEngineSqlEnv extends EngineSqlEnvironment{
         this.dspFactory = new ControlOnlyDataSetProcessorFactory();
         this.exceptionFactory = new MSqlExceptionFactory(SIDriver.driver().getExceptionFactory());
         this.dbAdmin = new DirectDatabaseAdministrator();
+        this.operationManager = new OperationManagerImpl();
     }
 
     @Override
@@ -95,5 +99,10 @@ public class MEngineSqlEnv extends EngineSqlEnvironment{
     @Override
     public void refreshEnterpriseFeatures() {
         // No Op
+    }
+
+    @Override
+    public OperationManager getOperationManager() {
+        return operationManager;
     }
 }

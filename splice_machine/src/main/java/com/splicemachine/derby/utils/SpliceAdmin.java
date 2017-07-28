@@ -14,30 +14,16 @@
 
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.db.catalog.SystemProcedures;
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.impl.services.uuid.BasicUUID;
-import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
-import com.splicemachine.db.impl.sql.catalog.ManagedCacheMBean;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.hbase.JMXThreadPool;
-import com.splicemachine.hbase.jmx.JMXUtils;
-import com.splicemachine.protobuf.ProtoUtil;
-import com.splicemachine.utils.Pair;
-import com.splicemachine.utils.SpliceLogUtils;
-import org.joda.time.DateTime;
-import org.spark_project.guava.collect.Lists;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.SQLConfiguration;
+import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.monitor.ModuleFactory;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
@@ -45,39 +31,84 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.*;
-import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SnapshotDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLBlob;
+import com.splicemachine.db.iapi.types.SQLBoolean;
+import com.splicemachine.db.iapi.types.SQLChar;
+import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.iapi.types.SQLLongint;
+import com.splicemachine.db.iapi.types.SQLReal;
+import com.splicemachine.db.iapi.types.SQLTimestamp;
+import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.jdbc.ResultSetBuilder;
 import com.splicemachine.db.impl.jdbc.ResultSetBuilder.RowBuilder;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.GenericActivationHolder;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.GenericPreparedStatement;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
+import com.splicemachine.db.impl.sql.catalog.ManagedCacheMBean;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.hbase.JMXThreadPool;
+import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionLoad;
 import com.splicemachine.storage.PartitionServer;
 import com.splicemachine.storage.PartitionServerLoad;
+import com.splicemachine.utils.Pair;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.Logger;
+import org.joda.time.DateTime;
+import org.spark_project.guava.collect.Lists;
 
 import javax.management.MalformedObjectNameException;
 import javax.management.remote.JMXConnector;
 import java.io.IOException;
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.UUID;
+
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INVALID_FUNCTION_ARGUMENT;
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_NO_SUCH_RUNNING_OPERATION;
 
 /**
  * @author Jeff Cunningham
@@ -1373,4 +1404,71 @@ public class SpliceAdmin extends BaseAdminProcedures{
             admin.deleteSnapshot(snapshot);
         }
     }
+
+    private static final ResultColumnDescriptor[] GET_RUNNING_OPERATIONS_OUTPUT_COLUMNS = new GenericColumnDescriptor[]{
+            new GenericColumnDescriptor("uuid", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
+            new GenericColumnDescriptor("user", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
+            new GenericColumnDescriptor("sql", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
+    };
+
+
+    public static void SYSCS_GET_RUNNING_OPERATIONS(final ResultSet[] resultSet) throws SQLException{
+        EmbedConnection conn = (EmbedConnection)getDefaultConn();
+        LanguageConnectionContext lcc = conn.getLanguageConnection();
+        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
+        String userId = lastActivation.getLanguageConnectionContext().getCurrentUserId(lastActivation);
+        if (userId.equals(lastActivation.getLanguageConnectionContext().getDataDictionary().getAuthorizationDatabaseOwner())) {
+            userId = null;
+        }
+
+        List<Pair<UUID, SpliceOperation>> operations = EngineDriver.driver().getOperationManager().runningOperations(userId);
+
+        List<ExecRow> rows = new ArrayList<>(operations.size());
+        for (Pair<UUID, SpliceOperation> pair : operations) {
+            ExecRow row = new ValueRow(2);
+            Activation activation = pair.getSecond().getActivation();
+            row.setColumn(1, new SQLVarchar(pair.getFirst().toString()));
+            row.setColumn(2, new SQLVarchar(activation.getLanguageConnectionContext().getCurrentUserId(activation)));
+            row.setColumn(3, new SQLVarchar(activation.getPreparedStatement().getSource()));
+            rows.add(row);
+        }
+
+        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, new GenericColumnDescriptor[]{
+                new GenericColumnDescriptor("uuid", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
+                new GenericColumnDescriptor("user", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
+                new GenericColumnDescriptor("sql", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
+        },
+                lastActivation);
+        try {
+            resultsToWrap.openCore();
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
+        resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
+    }
+
+    public static void SYSCS_KILL_OPERATION(final String uuidString) throws SQLException{
+        EmbedConnection conn = (EmbedConnection)getDefaultConn();
+        LanguageConnectionContext lcc = conn.getLanguageConnection();
+        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
+
+        String userId = lcc.getCurrentUserId(lastActivation);
+
+        UUID uuid;
+        try {
+            uuid = UUID.fromString(uuidString);
+        } catch (IllegalArgumentException e) {
+            throw  PublicAPI.wrapStandardException(StandardException.newException(LANG_INVALID_FUNCTION_ARGUMENT, uuidString, "SYSCS_KILL_OPERATION"));
+        }
+        boolean killed;
+        try {
+            killed = EngineDriver.driver().getOperationManager().killOperation(uuid, userId);
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
+
+        if (!killed)
+            throw  PublicAPI.wrapStandardException(StandardException.newException(LANG_NO_SUCH_RUNNING_OPERATION, uuidString));
+    }
+
 }
