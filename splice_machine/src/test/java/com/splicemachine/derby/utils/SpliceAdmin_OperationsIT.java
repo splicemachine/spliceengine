@@ -96,35 +96,35 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
     public static void killRunningOperations() throws Exception {
         String sql= "call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS()";
 
-        ResultSet rs = spliceClassWatcher.executeQuery(sql);
-        int killed = 0;
-        while (rs.next()) {
-            String uuid = rs.getString(1);
+        int count;
+        int loops = 0;
+        // Repeat until no more running queries
+        do {
+            loops++;
+            count = 0;
+            ResultSet rs = spliceClassWatcher.executeQuery(sql);
+            int killed = 0;
+            while (rs.next()) {
+                String uuid = rs.getString(1);
 
-            // kill the cursor
-            String killCall = "call SYSCS_UTIL.SYSCS_KILL_OPERATION('"+uuid+"')";
-            try {
-                System.out.println("Going to run: " + killCall);
-                spliceClassWatcher.getOrCreateConnection().execute(killCall);
-                killed++;
-            } catch (SQLException se) {
-                System.out.println("Failed");
-                if("4251P".equals(se.getSQLState())) {
-                    // ignore, operation already finished
-                } else {
-                    throw se;
+                String killCall = "call SYSCS_UTIL.SYSCS_KILL_OPERATION('" + uuid + "')";
+                try {
+                    System.out.println("Going to run: " + killCall);
+                    spliceClassWatcher.getOrCreateConnection().execute(killCall);
+                    killed++;
+                } catch (SQLException se) {
+                    LOG.warn("Failed to kill query", se);
                 }
             }
-        }
-        System.out.println("Killed " + killed +" operations.");
+            LOG.info("Killed " + killed + " operations.");
 
-        // make sure no operations are running
-        rs = spliceClassWatcher.executeQuery(sql);
-        int count = 0;
-        while (rs.next()) {
-            System.out.println("Running " + rs.getString(3));
-            count++;
-        }
+            // make sure no operations are running
+            rs = spliceClassWatcher.executeQuery(sql);
+            while (rs.next()) {
+                LOG.info("Running " + rs.getString(3));
+                count++;
+            }
+        } while (count > 1 && loops < 30);
         assertEquals(1, count); // only the GET_RUNNING_OPS should be running
     }
 
