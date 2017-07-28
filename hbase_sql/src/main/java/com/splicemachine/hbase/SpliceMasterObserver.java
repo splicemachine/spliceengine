@@ -28,11 +28,14 @@ import com.splicemachine.timestamp.api.TimestampBlockManager;
 import com.splicemachine.timestamp.hbase.ZkTimestampBlockManager;
 import com.splicemachine.timestamp.impl.TimestampServer;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
+import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.curator.utils.ZookeeperFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -43,6 +46,7 @@ import org.apache.hadoop.hbase.coprocessor.MasterCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
+import org.apache.hadoop.hbase.zookeeper.ZKConfig;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher;
@@ -139,12 +143,11 @@ public class SpliceMasterObserver extends BaseMasterObserver {
         if (! manager.getState().equals(DatabaseLifecycleManager.State.NOT_STARTED))
             return; // Race Condition, only load one...
 
-        CuratorFramework curator = CuratorFrameworkFactory.builder().zookeeperFactory(new ZookeeperFactory() {
-            @Override
-            public ZooKeeper newZooKeeper(String s, int i, Watcher watcher, boolean b) throws Exception {
-                return ZkUtils.getRecoverableZooKeeper().getZooKeeper();
-            }
-        }).build();
+        Configuration conf = (Configuration) HConfiguration.getConfiguration().getConfigSource().unwrapDelegate();
+        String quorum = ZKConfig.getZKQuorumServersString(conf);
+        RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 3);
+        CuratorFramework curator = CuratorFrameworkFactory.newClient(quorum, retryPolicy);
+        curator.start();
 
         //make sure only one master boots at a time
         String lockPath = HConfiguration.getConfiguration().getSpliceRootPath()+HConfiguration.MASTER_INIT_PATH;
@@ -179,7 +182,9 @@ public class SpliceMasterObserver extends BaseMasterObserver {
             if (lock.isAcquiredInThisProcess()) {
                 try {
                     lock.release();
+                    curator.close();
                 } catch (Exception e) {
+                    curator.close();
                     if (exception != null)
                         throw exception;
                     else
