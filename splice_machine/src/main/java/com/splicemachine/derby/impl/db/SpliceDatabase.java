@@ -86,7 +86,11 @@ public class SpliceDatabase extends BasicDatabase{
     public void boot(boolean create,Properties startParams) throws StandardException{
         Configuration.setConfiguration(null);
         SConfiguration config = SIDriver.driver().getConfiguration();
-      //  System.setProperty("derby.language.logQueryPlan", Boolean.toString(true));
+        // Set 60 Second Default if Missing from startup parameters
+        if (System.getProperty("derby.drda.timeSlice") == null)
+            System.setProperty("derby.drda.timeSlice","60000");
+
+        //  System.setProperty("derby.language.logQueryPlan", Boolean.toString(true));
         if(config.debugLogStatementContext()) {
             System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
             System.setProperty("derby.language.logStatementText",Boolean.toString(true));
