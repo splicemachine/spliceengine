@@ -1168,6 +1168,24 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
     @Test
+    public void testDateOrcReader() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"/DateOrc";
+        methodWatcher.executeUpdate(String.format("create external table t_date (c1 date) " +
+                "STORED AS ORC LOCATION '%s'",tablePath));
+        methodWatcher.executeUpdate("insert into t_date values('2017-7-27'), ('1970-01-01')");
+        ResultSet rs = methodWatcher.executeQuery("select * from t_date order by 1");
+
+        String expected = "C1     |\n" +
+                "------------\n" +
+                "1970-01-01 |\n" +
+                "2017-07-27 |";
+
+        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(expected, resultString);
+        rs.close();
+    }
+
+    @Test
     public void testReadIntFromFileAvro() throws Exception {
 
         methodWatcher.executeUpdate(String.format("create external table short_avro (col1 int)" +
