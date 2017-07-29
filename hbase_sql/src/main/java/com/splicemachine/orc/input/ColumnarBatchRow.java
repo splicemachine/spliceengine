@@ -28,6 +28,8 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.apache.hadoop.hive.serde2.io.DateWritable.daysToMillis;
+
 /**
  *
  *
@@ -190,7 +192,8 @@ public class ColumnarBatchRow implements Row {
 
     @Override
     public Date getDate(int i) {
-        return new Date(row.getInt(i));
+        /* convert the number of dates from 1970-01-01 to milliseconds */
+        return new Date(daysToMillis(row.getInt(i)));
     }
 
     @Override
