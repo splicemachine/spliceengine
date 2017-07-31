@@ -17,6 +17,7 @@ package com.splicemachine.si.impl.txn;
 import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -102,26 +103,35 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
     }
 
     private boolean internalAllowsSubtransactions() {
-        if (!subtransactionsAllowed)
+        AbstractTxn other = this;
+        if (counter != null && counter.get() >= SIConstants.SUBTRANSANCTION_ID_MASK) {
             return false;
-        boolean nonRolledbackChild = false;
-        for (Txn c : children) {
-            if (c.getState() == State.ACTIVE) {
-                if (nonRolledbackChild) {
-                    return false;
-                }
-                nonRolledbackChild = true;
-            }
         }
-        if (parentReference != null)
-            return ((AbstractTxn)parentReference).internalAllowsSubtransactions();
-        return true;
+        while (true) {
+            if (!other.subtransactionsAllowed)
+                return false;
+            boolean nonRolledbackChild = false;
+            for (Txn c : other.children) {
+                if (c.getState() == State.ACTIVE) {
+                    if (nonRolledbackChild) {
+                        return false;
+                    }
+                    nonRolledbackChild = true;
+                }
+            }
+            if (other.parentReference != null) {
+                other = ((AbstractTxn) other.parentReference);
+                continue;
+            }
+            return true;
+        }
     }
 
     @Override
     public boolean allowsSubtransactions() {
-        if (!subtransactionsAllowed)
+        if (counter != null && counter.get() >= SIConstants.SUBTRANSANCTION_ID_MASK) {
             return false;
+        }
         for (Txn c : children) {
             if (c.getState() == State.ACTIVE) {
                 return false;

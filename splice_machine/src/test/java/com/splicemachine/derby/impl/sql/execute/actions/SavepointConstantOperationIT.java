@@ -248,9 +248,9 @@ public class SavepointConstantOperationIT {
         rs.next();
         long txnIdLater = rs.getLong(1);
 
-        // The difference should be 0x400: the batch created one persisted txn, that's 2 timestamps (begin + commit),
+        // The difference should be 0x400: the batch created one or two persisted txn, that's up to 4 timestamps (begin + commit),
         // the user transaction committed (1 ts) and then the new user transaction started (1 ts)
-        Assert.assertEquals("Created more persisted transactions than expected, difference = " + (txnIdLater - txnId), txnId + 0x400, txnIdLater);
+        Assert.assertTrue("Created more persisted transactions than expected, difference = " + (txnIdLater - txnId), txnIdLater <= txnId + 0x600);
     }
 
 
@@ -273,9 +273,9 @@ public class SavepointConstantOperationIT {
         rs.next();
         long txnIdLater = rs.getLong(1);
 
-        // The difference should be 0x1000: the batch created 7 persisted txns, that's 14 timestamps (begin + commit),
+        // The difference should be 0x1000: the batch created up to 14 persisted txns, that's 28 timestamps (begin + commit),
         // the user transaction committed (1 ts) and then the new user transaction started (1 ts)
-        Assert.assertEquals("Created more persisted transactions than expected, difference = " + (txnIdLater - txnId), txnId + 0x1000, txnIdLater);
+        Assert.assertTrue("Created more persisted transactions than expected, difference = " + (txnIdLater - txnId), txnIdLater <= txnId + 0x1E00);
     }
 
 
@@ -299,9 +299,9 @@ public class SavepointConstantOperationIT {
         rs.next();
         long txnIdLater = rs.getLong(1);
 
-        // The difference should be 0x1000: the batch created 7 persisted txns, that's 14 timestamps (begin + commit),
+        // The difference should be 0x1000: the batch created up to 14 persisted txns, that's 28 timestamps (begin + commit),
         // the user transaction committed (1 ts) and then the new user transaction started (1 ts)
-        Assert.assertEquals("Created more persisted transactions than expected, difference = " + (txnIdLater - txnId), txnId + 0x1000, txnIdLater);
+        Assert.assertTrue("Created more persisted transactions than expected, difference = " + (txnIdLater - txnId), txnIdLater <= txnId + 0x1E00);
     }
 
     @Test
