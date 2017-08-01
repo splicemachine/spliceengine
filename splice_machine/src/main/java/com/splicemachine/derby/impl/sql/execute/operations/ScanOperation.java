@@ -406,4 +406,8 @@ public abstract class ScanOperation extends SpliceBaseOperation{
     public boolean getRowIdKey() {
         return rowIdKey;
     }
+
+    public String getStoredAs() {
+        return storedAs;
+    }
 }

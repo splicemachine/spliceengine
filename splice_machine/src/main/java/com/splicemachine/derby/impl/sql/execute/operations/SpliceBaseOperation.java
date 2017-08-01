@@ -875,4 +875,20 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         this.isKilled = true;
         close();
     }
+
+    @Override
+    public boolean accessExternalTable() {
+        if (this instanceof ScanOperation) {
+            ScanOperation so = (ScanOperation)this;
+            if (so.getStoredAs() != null)
+                return true;
+        }
+        else {
+            for(SpliceOperation op : getSubOperations()){
+                if (op.accessExternalTable())
+                    return true;
+            }
+        }
+        return false;
+    }
 }
