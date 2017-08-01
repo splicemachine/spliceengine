@@ -17,7 +17,6 @@ package com.splicemachine.derby.lifecycle;
 import java.sql.Connection;
 import java.sql.SQLException;
 
-import com.google.common.net.HostAndPort;
 import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.SConfiguration;
@@ -113,13 +112,13 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         int port = config.getOlapServerBindPort();
         int retries = config.getOlapClientRetries();
         HBaseConnectionFactory hbcf = HBaseConnectionFactory.getInstance(config);
-        JobExecutor onl = new AsyncOlapNIOLayer(() -> {
-            try {
-                return HostAndPort.fromParts(hbcf.getMasterServer().getHostname(), port);
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        },retries);
+        String host;
+        try {
+            host = hbcf.getMasterServer().getHostname();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        JobExecutor onl = new AsyncOlapNIOLayer(host,port,retries);
         return new TimedOlapClient(onl,timeoutMillis);
     }
 
