@@ -723,7 +723,14 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 @Nullable
                 @Override
                 public Iterable<ExecRow> apply(@Nullable StatisticsOperation input) {
+
                     try {
+                        // We have to create a new savepoint because we already returned from the opening of the result set
+                        // and derby released the prior savepoint for us. If we don't create one we'd end up inserting the
+                        // rows with the user transaction, and that's problematic especially if we had to remove existing
+                        // statistics, since those deletes would mask these new inserts.
+                        tc.setSavePoint("statistics", null);
+                        tc.elevate("statistics");
                         final Iterator iterator = new Iterator<ExecRow>() {
                             private ExecRow nextRow;
                             private boolean fetched = false;
@@ -765,6 +772,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                             nextRow = input.getNextRowCore();
                                         }
                                     }
+                                    if (!fetched)
+                                        tc.releaseSavePoint("statistics", null);
                                     return fetched;
                                 } catch (Exception e) {
                                     throw new RuntimeException(e);
