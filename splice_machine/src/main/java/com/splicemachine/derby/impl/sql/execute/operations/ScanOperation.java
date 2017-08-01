@@ -419,10 +419,11 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         return rowIdKey;
     }
 
-
-
     public int[] getPartitionColumnMap() {
         return partitionColumnMap;
     }
 
+    public String getStoredAs() {
+        return storedAs;
+    }
 }
