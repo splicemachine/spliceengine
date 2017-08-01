@@ -14,10 +14,8 @@
 
 package com.splicemachine.olap;
 
-import com.google.common.net.HostAndPort;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ExtensionRegistry;
-import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.pipeline.Exceptions;
@@ -42,8 +40,6 @@ import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.SocketException;
-import java.net.SocketTimeoutException;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -57,11 +53,9 @@ public class AsyncOlapNIOLayer implements JobExecutor{
     private static final Logger LOG=Logger.getLogger(AsyncOlapNIOLayer.class);
 
     private final int maxRetries;
-    private ChannelPool channelPool;
-    private ScheduledExecutorService executorService;
+    private final ChannelPool channelPool;
+    private final ScheduledExecutorService executorService;
     private final ProtobufDecoder decoder=new ProtobufDecoder(OlapMessage.Response.getDefaultInstance(),buildExtensionRegistry());
-    private final OlapServerProvider hostProvider;
-    private final Object connectionLock = new Object();
 
     private ExtensionRegistry buildExtensionRegistry(){
         ExtensionRegistry er=ExtensionRegistry.newInstance();
@@ -73,69 +67,51 @@ public class AsyncOlapNIOLayer implements JobExecutor{
     }
 
 
-    public AsyncOlapNIOLayer(OlapServerProvider hostProvider, int retries){
-        this.maxRetries = retries;
-        this.hostProvider = hostProvider;
-        connect();
+    public AsyncOlapNIOLayer(String host, int port, int retries){
+        maxRetries = retries;
+        InetSocketAddress socketAddr=new InetSocketAddress(host,port);
+        Bootstrap bootstrap=new Bootstrap();
+        NioEventLoopGroup group=new NioEventLoopGroup(5,
+                new ThreadFactoryBuilder().setNameFormat("olapClientWorker-%d").setDaemon(true)
+                        .setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+                            @Override
+                            public void uncaughtException(Thread t, Throwable e) {
+                                LOG.error("["+t.getName()+"] Unexpected error in AsyncOlapNIO pool: ",e);
+                            }
+                        }).build());
+        bootstrap.channel(NioSocketChannel.class)
+                .group(group)
+                .option(ChannelOption.SO_KEEPALIVE,true)
+                .remoteAddress(socketAddr);
 
-    }
-
-    private void connect() {
-        synchronized (connectionLock) {
-            if (channelPool != null)
-                channelPool.close();
-            if (executorService != null)
-                executorService.shutdown();
-            HostAndPort hap = hostProvider.olapServerHost();
-            LOG.info("Connecting to " + hap);
-
-            InetSocketAddress socketAddr = new InetSocketAddress(hap.getHostText(), hap.getPort());
-            Bootstrap bootstrap = new Bootstrap();
-            NioEventLoopGroup group = new NioEventLoopGroup(5,
-                    new ThreadFactoryBuilder().setNameFormat("olapClientWorker-%d").setDaemon(true)
-                            .setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
-                                @Override
-                                public void uncaughtException(Thread t, Throwable e) {
-                                    LOG.error("[" + t.getName() + "] Unexpected error in AsyncOlapNIO pool: ", e);
-                                }
-                            }).build());
-            bootstrap.channel(NioSocketChannel.class)
-                    .group(group)
-                    .option(ChannelOption.SO_KEEPALIVE, true)
-                    .remoteAddress(socketAddr);
-
-            //TODO -sf- this may be excessive network usage --consider a bounded pool to prevent over-connection?
-            this.channelPool = new SimpleChannelPool(bootstrap, new AbstractChannelPoolHandler() {
-                @Override
-                public void channelCreated(Channel channel) throws Exception {
-                    ChannelPipeline p = channel.pipeline();
-                    p.addLast("frameEncoder", new LengthFieldPrepender(4));
-                    p.addLast("protobufEncoder", new ProtobufEncoder());
-                    p.addLast("frameDecoder", new LengthFieldBasedFrameDecoder(1 << 30, 0, 4, 0, 4));
-                    p.addLast("protobufDecoder", decoder);
-                }
-            });
-            executorService = group;
-        }
+        //TODO -sf- this may be excessive network usage --consider a bounded pool to prevent over-connection?
+        this.channelPool=new SimpleChannelPool(bootstrap,new AbstractChannelPoolHandler(){
+            @Override
+            public void channelCreated(Channel channel) throws Exception{
+                ChannelPipeline p=channel.pipeline();
+                p.addLast("frameEncoder",new LengthFieldPrepender(4));
+                p.addLast("protobufEncoder",new ProtobufEncoder());
+                p.addLast("frameDecoder",new LengthFieldBasedFrameDecoder(1<<30,0,4,0,4));
+                p.addLast("protobufDecoder",decoder);
+            }
+        });
+        executorService = group;
     }
 
     @Override
     public ListenableFuture<OlapResult> submit(DistributedJob job) throws IOException{
         assert job.isSubmitted();
         if (LOG.isTraceEnabled())
-            LOG.trace("Submitting job request " + job.getUniqueName());
-        synchronized (connectionLock) {
-            OlapFuture future = new OlapFuture(job);
-            future.doSubmit();
-            return future;
-        }
+            LOG.trace("Submitting job request "+ job.getUniqueName());
+        OlapFuture future=new OlapFuture(job);
+        future.doSubmit();
+        return future;
     }
 
 
     @Override
     public void shutdown(){
         channelPool.close(); //disconnect everything
-        executorService.shutdown();
     }
 
 
@@ -275,13 +251,9 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         void fail(Throwable cause){
             if (LOG.isTraceEnabled())
                 LOG.trace("Failed job "+ job.getUniqueName() + " due to " + cause);
-            if (cause instanceof SocketException || cause instanceof SocketTimeoutException) {
-                connect();
-            }
             this.cause=cause;
             this.failed=true;
-            if (this.keepAlive != null)
-                this.keepAlive.cancel(false);
+            this.keepAlive.cancel(false);
             this.executionList.execute();
         }
 

@@ -63,12 +63,6 @@ public class HBaseConfiguration implements ConfigurationDefault {
      */
     public static final String TRANSACTION_PATH = "/transactions";
 
-
-    /**
-     * The Path in zookeeper for coordinating concurrent HMasters booting up
-     */
-    public static final String MASTER_INIT_PATH = "/masterInitialization";
-
     /**
      * The Path in zookeeper for storing the minimum active transaction.
      * Defaults to [TRANSACTION_PATH]/minimum
