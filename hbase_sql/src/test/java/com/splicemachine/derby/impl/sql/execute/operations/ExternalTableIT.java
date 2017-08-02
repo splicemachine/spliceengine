@@ -1965,4 +1965,25 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
 
+    public void testBroadcastJoinOrcTablesOnSpark() throws Exception {
+        methodWatcher.executeUpdate(String.format("create external table l (col1 int)" +
+                " STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"left"));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into l values 1, 2, 3" ));
+        methodWatcher.executeUpdate(String.format("create external table r (col1 int)" +
+                " STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"right"));
+        int insertCount2 = methodWatcher.executeUpdate(String.format("insert into r values 1,2,3"));
+
+        Assert.assertEquals("insertCount is wrong",3,insertCount);
+        Assert.assertEquals("insertCount is wrong",3,insertCount2);
+
+        ResultSet rs = methodWatcher.executeQuery("select * from \n" +
+                "l --splice-properties useSpark=true\n" +
+                ", r --splice-properties joinStrategy=broadcast\n" +
+                "where l.col1=r.col1");
+        Assert.assertEquals("COL1 |COL1 |\n" +
+                "------------\n" +
+                "  1  |  1  |\n" +
+                "  2  |  2  |\n" +
+                "  3  |  3  |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
 }

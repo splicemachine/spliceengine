@@ -188,7 +188,11 @@ public class BroadcastJoinOperation extends JoinOperation{
                 isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
 
         SConfiguration configuration= EngineDriver.driver().getConfiguration();
-        boolean useDataset = SpliceClient.isClient || (rightResultSet.getEstimatedCost() / 1000 > configuration.getBroadcastDatasetCostThreshold());
+        boolean useDataset =
+                SpliceClient.isClient ||
+                rightResultSet.getEstimatedCost() / 1000 > configuration.getBroadcastDatasetCostThreshold() ||
+                        rightResultSet.accessExternalTable();
+
 
         DataSet<ExecRow> result;
         if (useDataset && dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
