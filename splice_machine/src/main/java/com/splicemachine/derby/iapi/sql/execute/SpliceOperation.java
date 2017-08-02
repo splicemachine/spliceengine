@@ -386,4 +386,6 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
      * @throws IOException
      */
     void kill() throws StandardException;
+
+    boolean accessExternalTable();
 }
