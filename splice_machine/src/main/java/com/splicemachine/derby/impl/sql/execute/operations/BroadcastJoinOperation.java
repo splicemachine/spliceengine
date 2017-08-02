@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.client.SpliceClient;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.function.broadcast.BroadcastJoinFlatMapFunction;
@@ -187,7 +188,9 @@ public class BroadcastJoinOperation extends JoinOperation{
                 isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
 
         SConfiguration configuration= EngineDriver.driver().getConfiguration();
-        boolean useDataset = rightResultSet.getEstimatedCost() / 1000 > configuration.getBroadcastDatasetCostThreshold();
+        boolean useDataset = SpliceClient.isClient ||
+                rightResultSet.getEstimatedCost() / 1000 > configuration.getBroadcastDatasetCostThreshold() ||
+                        rightResultSet.accessExternalTable();
 
         DataSet<ExecRow> result;
         if (useDataset && dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
