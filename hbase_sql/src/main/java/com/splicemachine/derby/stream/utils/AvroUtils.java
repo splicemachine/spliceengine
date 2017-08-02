@@ -1,5 +1,8 @@
 package com.splicemachine.derby.stream.utils;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.SQLVarchar;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
@@ -23,6 +26,14 @@ public class AvroUtils {
             }
         }
         return schema;
+    }
+
+    public static void supportAvroDateTypeColumns(ExecRow execRow) throws StandardException {
+        for(int i=0; i < execRow.size(); i++){
+            if (execRow.getColumn(i + 1).getTypeName().equals("DATE")) {
+                execRow.setColumn(i + 1, new SQLVarchar());
+            }
+        }
     }
 
 }

@@ -19,7 +19,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
@@ -28,6 +27,7 @@ import com.splicemachine.derby.stream.function.TableScanQualifierFunction;
 import com.splicemachine.derby.stream.function.TableScanTupleFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.utils.StreamUtils;
+import com.splicemachine.derby.stream.utils.AvroUtils;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.SMInputFormat;
 import org.apache.commons.codec.binary.Base64;
@@ -84,7 +84,7 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
             else if (storedAs.equals("P"))
                 locatedRows = dsp.readParquetFile(baseColumnMap,partitionByColumns,location,operationContext,qualifiers,null,execRow, useSample, sampleFraction);
             else if (storedAs.equals("A")) {
-                supportAvroDate(execRow);
+                AvroUtils.supportAvroDateTypeColumns(execRow);
                 locatedRows = dsp.readAvroFile(baseColumnMap, partitionByColumns, location, operationContext, qualifiers, null, execRow, useSample, sampleFraction);
             }
             else if (storedAs.equals("O"))
@@ -140,14 +140,6 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         this.tableName = in.readUTF();
         this.dsp = (SparkDataSetProcessor)in.readObject();
         this.op = (SpliceOperation)in.readObject();
-    }
-
-    public void supportAvroDate(ExecRow execRow) throws StandardException {
-        for(int i=0; i < execRow.size(); i++){
-            if (execRow.getColumn(i + 1).getTypeName().equals("DATE")) {
-                execRow.setColumn(i + 1, new SQLVarchar());
-            }
-        }
     }
 
 }

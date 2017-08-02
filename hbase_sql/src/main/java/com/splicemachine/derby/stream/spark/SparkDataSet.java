@@ -770,16 +770,6 @@ public class SparkDataSet<V> implements DataSet<V> {
         }
     }
 
-    public StructType supportAvroDateType(StructType schema){
-            for (int i = 0; i < schema.size(); i++) {
-                StructField column = schema.fields()[i];
-                if (column.dataType().equals(DataTypes.DateType)) {
-                    StructField replace = DataTypes.createStructField(column.name(), DataTypes.StringType, column.nullable(), column.metadata());
-                    schema.fields()[i] = replace;
-                }
-            }
-        return schema;
-    }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public DataSet<ExecRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
