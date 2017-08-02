@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Random;
 
 import com.splicemachine.pipeline.ErrorState;
 import org.apache.log4j.Logger;
@@ -45,7 +46,10 @@ public class FunctionIT extends SpliceUnitTest {
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(FunctionIT.class.getSimpleName());	
 	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("A",FunctionIT.class.getSimpleName(),"(data double)");
 	protected static SpliceFunctionWatcher spliceFunctionWatcher = new SpliceFunctionWatcher("SIN",FunctionIT.class.getSimpleName(),"( data double) returns double external name 'java.lang.Math.sin' language java parameter style java");
-	
+	protected static double [] roundVals = {1.2, 2.53, 3.225, 4.1352, 5.23412, 53.2315093704, 205.130295341296824,
+			13.21958329568391029385, 12.132435242330192856728391029584, 1.9082847283940982746172849098273647589099};
+
+
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 		.around(spliceSchemaWatcher)
@@ -84,6 +88,62 @@ public class FunctionIT extends SpliceUnitTest {
         }
         Assert.assertTrue("Incorrect rows returned!",rows>0);
     }
+
+	/**
+	 * Tests the ROUND function which rounds the input value to the nearest whole LONG
+	 * <p>
+	 * If the input value is NULL, the result of this function is NULL. If the
+	 * input value is equal to a mathematical integer, the result of this
+	 * function is the same as the input number. If the input value is zero (0),
+	 * the result of this function is zero.
+	 * <p>
+	 * The returned value is the closest (closest to positive infinity) long
+	 * value to the input value. The
+	 * returned value is equal to a mathematical long. The data type of the
+	 *
+	 * @throws Exception
+	 */
+	@Test
+	public void testRound() throws Exception {
+		ResultSet rs;
+		//testing round to Long
+ 		for(double val : roundVals){
+			rs = methodWatcher.executeQuery("values ROUND("+val+")");
+			Assert.assertTrue(rs.next());
+			Assert.assertEquals(Math.round(val),rs.getLong(1));
+		}
+	}
+
+	@Test
+	public void testRoundEdgeCase() throws Exception{
+		ResultSet rs = methodWatcher.executeQuery("values ROUND(null)");
+		Assert.assertTrue(rs.next());
+		Assert.assertEquals(null,rs.getObject(1));
+
+		rs = methodWatcher.executeQuery("values ROUND(0)");
+		Assert.assertTrue(rs.next());
+		Assert.assertEquals(0, rs.getDouble(1), 0.0);
+	}
+
+	/**
+	 * This tests the ROUND function when the user inputs 2 parameters, where the second is the number of decimal places to round to
+	 * @returns double rounded to the given number of decimal places
+	 * @throws Exception
+	 */
+	@Test
+	public void testRoundVaryScale() throws Exception{
+		ResultSet rs;
+		double longNumber = 1347593487534897908346789398700763453456786.9082847283940982746172849098273647589099;
+		//testing round to Long
+		for(int i = -40; i < 40; i++){
+			rs = methodWatcher.executeQuery("values ROUND("+longNumber+","+i+")");
+			Assert.assertTrue(rs.next());
+			double mult = i < 18 ? i : 18;
+			mult = Math.pow(10,mult);
+			double x = Math.round(longNumber*mult)/(mult*1.0);
+			Assert.assertEquals(x,rs.getDouble(1),0.0);
+		}
+	}
 
 	    /**
 	      * If more than one of the arguments passed to COALESCE are untyped
