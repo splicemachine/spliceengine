@@ -40,6 +40,7 @@ import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.stream.function.RowToLocatedRowAvroFunction;
 import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
 import com.splicemachine.derby.stream.iapi.*;
+import com.splicemachine.derby.stream.utils.AvroUtils;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.mrio.api.core.SMTextInputFormat;
 import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
@@ -404,7 +405,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     public void createEmptyExternalFile(ExecRow execRows, int[] baseColumnMap, int[] partitionBy, String storedAs,  String location, String compression) throws StandardException {
         try{
 
-            StructType schema = supportAvroDateType(execRows, storedAs);
+            StructType schema = AvroUtils.supportAvroDateType(execRows.schema(),storedAs);
 
             Dataset<Row> empty = SpliceSpark.getSession()
                         .createDataFrame(new ArrayList<Row>(), schema);
@@ -671,21 +672,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         }
         return andCols;
     }
-
-    private static StructType supportAvroDateType(ExecRow execRows, String storedAs) {
-        StructType newSchema = execRows.schema();
-        if (storedAs.toLowerCase().equals("a")) {
-            for (int i = 0; i < execRows.schema().size(); i++) {
-                StructField column = newSchema.fields()[i];
-                if (column.dataType().equals(DataTypes.DateType)) {
-                    StructField replace = DataTypes.createStructField(column.name(), DataTypes.StringType, column.nullable(), column.metadata());
-                    newSchema.fields()[i] = replace;
-                }
-            }
-        }
-        return newSchema;
-    }
-
 
     @Override
     public void refreshTable(String location) {
