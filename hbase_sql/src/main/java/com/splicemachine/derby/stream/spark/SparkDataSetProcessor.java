@@ -27,7 +27,9 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataType;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
@@ -35,8 +37,10 @@ import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.spark.WholeTextInputFormat;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.function.Partitioner;
+import com.splicemachine.derby.stream.function.RowToLocatedRowAvroFunction;
 import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
 import com.splicemachine.derby.stream.iapi.*;
+import com.splicemachine.derby.stream.utils.AvroUtils;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.mrio.api.core.SMTextInputFormat;
 import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
@@ -52,13 +56,13 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.*;
-import org.apache.spark.sql.types.StructField;
-import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.types.*;
 import scala.Tuple2;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.sql.Struct;
 import java.util.*;
 
 
@@ -345,11 +349,11 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 return new SparkDataSet(table
                         .rdd().toJavaRDD()
                         .sample(false, sampleFraction)
-                        .map(new RowToLocatedRowFunction(context, execRow)));
+                        .map(new RowToLocatedRowAvroFunction(context,execRow)));
             } else {
                 return new SparkDataSet(table
                         .rdd().toJavaRDD()
-                        .map(new RowToLocatedRowFunction(context, execRow)));
+                        .map(new RowToLocatedRowAvroFunction(context, execRow)));
             }
         } catch (Exception e) {
             throw StandardException.newException(
@@ -403,9 +407,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     public void createEmptyExternalFile(ExecRow execRows, int[] baseColumnMap, int[] partitionBy, String storedAs,  String location, String compression) throws StandardException {
         try{
 
+            StructType schema = AvroUtils.supportAvroDateType(execRows.schema(),storedAs);
 
-            Dataset<Row> empty =  SpliceSpark.getSession()
-                    .createDataFrame(new ArrayList<Row>(), execRows.schema());
+            Dataset<Row> empty = SpliceSpark.getSession()
+                        .createDataFrame(new ArrayList<Row>(), schema);
 
             List<Column> cols = new ArrayList();
             for (int i = 0; i < baseColumnMap.length; i++) {

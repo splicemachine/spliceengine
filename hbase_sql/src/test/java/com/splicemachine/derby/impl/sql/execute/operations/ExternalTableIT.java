@@ -1962,6 +1962,110 @@ public class ExternalTableIT extends SpliceUnitTest{
         }
     }
 
+    // tests for avro support of date type:
+
+    @Test
+    public void testWriteReadDateAvroExternalTable() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"simple_avro_date";
+        methodWatcher.executeUpdate(String.format("create external table simple_avro_date (col1 date)" +
+                " STORED AS AVRO LOCATION '%s'",tablePath));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into simple_avro_date values ('2000-01-01')," +
+                "('2000-02-02')," +
+                "('2000-03-03')," +
+                "(null)"));
+        Assert.assertEquals("insertCount is wrong",4,insertCount);
+        ResultSet rs = methodWatcher.executeQuery("select * from simple_avro_date");
+        Assert.assertEquals("COL1    |\n" +
+                "------------\n" +
+                "2000-01-01 |\n" +
+                "2000-02-02 |\n" +
+                "2000-03-03 |\n" +
+                "   NULL    |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        ResultSet rs2 = methodWatcher.executeQuery("select distinct col1 from simple_avro_date");
+        Assert.assertEquals("COL1    |\n" +
+                "------------\n" +
+                "2000-01-01 |\n" +
+                "2000-02-02 |\n" +
+                "2000-03-03 |\n" +
+                "   NULL    |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+
+        Assert.assertTrue(String.format("Table %s hasn't been created",tablePath), new File(tablePath).exists());
+
+        methodWatcher.executeUpdate(String.format("create external table simple_avro_date_copy (col1 date) stored as avro " +
+                "location '%s'",tablePath));
+        ResultSet rs3 = methodWatcher.executeQuery("select * from simple_avro_date_copy");
+        Assert.assertEquals("COL1    |\n" +
+                "------------\n" +
+                "2000-01-01 |\n" +
+                "2000-02-02 |\n" +
+                "2000-03-03 |\n" +
+                "   NULL    |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
+    }
+
+
+    @Test
+    public void testPartitionedAvroDateTable() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"partitionAvroDate";
+        methodWatcher.executeUpdate(String.format("create external table partitionAvroDate (col1 date, col2 date) partitioned by (col2) stored as avro " +
+                "location '%s'",tablePath));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into partitionAvroDate values ('1999-01-01','1999-01-01')," +
+                "(null,null)," +
+                "('2000-02-02','2000-02-02')"));
+        Assert.assertEquals("insertCount is wrong",3,insertCount);
+        ResultSet rs = methodWatcher.executeQuery("select * from partitionAvroDate");
+        Assert.assertEquals("COL1    |   COL2    |\n" +
+                "------------------------\n" +
+                "1999-01-01 |1999-01-01 |\n" +
+                "2000-02-02 |2000-02-02 |\n" +
+                "   NULL    |   NULL    |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        methodWatcher.executeUpdate(String.format("create external table partitionAvroDateCopy (col1 date, col2 date) partitioned by (col2) stored as avro " +
+                "location '%s'",tablePath));
+        ResultSet rs2 = methodWatcher.executeQuery("select * from partitionAvroDateCopy");
+        Assert.assertEquals("COL1    |   COL2    |\n" +
+                "------------------------\n" +
+                "1999-01-01 |1999-01-01 |\n" +
+                "2000-02-02 |2000-02-02 |\n" +
+                "   NULL    |   NULL    |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+    }
+
+
+    @Test
+    public void testCollectAvroDateStats() throws Exception {
+        methodWatcher.executeUpdate(String.format("create external table avro_date_stats (col1 date)" +
+                " STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"avro_date_stats"));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into avro_date_stats values ('2000-01-01')," +
+                "('2000-02-02')," +
+                "('2000-03-03')," +
+                "(null)"));
+        Assert.assertEquals("insertCount is wrong",4,insertCount);
+
+        ResultSet rs;
+        // collect table level stats
+        PreparedStatement ps = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.COLLECT_TABLE_STATISTICS(?,?,?) ");
+        ps.setString(1, "EXTERNALTABLEIT");
+        ps.setString(2, "AVRO_DATE_STATS");
+        ps.setBoolean(3, true);
+        rs = ps.executeQuery();
+        rs.next();
+        Assert.assertEquals("Error with COLLECT_TABLE_STATISTICS for external table","EXTERNALTABLEIT",  rs.getString(1));
+        rs.close();
+
+        ResultSet rs2 = methodWatcher.executeQuery("select total_row_count from sys.systablestatistics where schemaname = 'EXTERNALTABLEIT' and tablename = 'AVRO_DATE_STATS'");
+        String expected = "TOTAL_ROW_COUNT |\n" +
+                "------------------\n" +
+                "        4        |";
+        Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));
+        rs2.close();
+
+        ResultSet rs3 = methodWatcher.executeQuery("select * from avro_date_stats");
+        Assert.assertEquals("COL1    |\n" +
+                "------------\n" +
+                "2000-01-01 |\n" +
+                "2000-02-02 |\n" +
+                "2000-03-03 |\n" +
+                "   NULL    |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
+        rs3.close();
+    }
 
     public void testBroadcastJoinOrcTablesOnSpark() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table l (col1 int)" +
