@@ -159,11 +159,11 @@ public class OrcRecordReader
         long fileRowCount = 0;
         ImmutableList.Builder<StripeInformation> stripes = ImmutableList.builder();
         ImmutableList.Builder<Long> stripeFilePositions = ImmutableList.builder();
-        if (predicate.matches(numberOfRows, getStatisticsByColumnOrdinal(root, fileStats))) {
+        if (predicate.matches(numberOfRows, getStatisticsByColumnOrdinal(root, partitionIds, fileStats))) {
             // select stripes that start within the specified split
             for (StripeInfo info : stripeInfos) {
                 StripeInformation stripe = info.getStripe();
-                if (splitContainsStripe(splitOffset, splitLength, stripe) && isStripeIncluded(root, stripe, info.getStats(), predicate)) {
+                if (splitContainsStripe(splitOffset, splitLength, stripe) && isStripeIncluded(root, stripe, info.getStats(), predicate, partitionIds)) {
                     stripes.add(stripe);
                     stripeFilePositions.add(fileRowCount);
                     totalRowCount += stripe.getNumberOfRows();
@@ -213,13 +213,14 @@ public class OrcRecordReader
             OrcType rootStructType,
             StripeInformation stripe,
             Optional<StripeStatistics> stripeStats,
-            OrcPredicate predicate)
+            OrcPredicate predicate,
+            List<Integer> partitionIds)
     {
         // if there are no stats, include the column
         if (!stripeStats.isPresent()) {
             return true;
         }
-        return predicate.matches(stripe.getNumberOfRows(), getStatisticsByColumnOrdinal(rootStructType, stripeStats.get().getColumnStatistics()));
+        return predicate.matches(stripe.getNumberOfRows(), getStatisticsByColumnOrdinal(rootStructType, partitionIds, stripeStats.get().getColumnStatistics()));
     }
 
     @VisibleForTesting
@@ -514,18 +515,25 @@ public class OrcRecordReader
         return new StreamDescriptor(parentStreamName, typeId, fieldName, type.getOrcTypeKind(), dataSource, nestedStreams.build());
     }
 
-    private static Map<Integer, ColumnStatistics> getStatisticsByColumnOrdinal(OrcType rootStructType, List<ColumnStatistics> fileStats)
+    private static Map<Integer, ColumnStatistics> getStatisticsByColumnOrdinal(OrcType rootStructType, List<Integer> partitionIds, List<ColumnStatistics> fileStats)
     {
         requireNonNull(rootStructType, "rootStructType is null");
         checkArgument(rootStructType.getOrcTypeKind() == OrcTypeKind.STRUCT);
         requireNonNull(fileStats, "fileStats is null");
 
         ImmutableMap.Builder<Integer, ColumnStatistics> statistics = ImmutableMap.builder();
-        for (int ordinal = 0; ordinal < rootStructType.getFieldCount(); ordinal++) {
+        // fileStats and rootStructType does not include partition columns, need to take partition columns into consideration
+        // when constructing the statistics map, so it is aligned with columnIds in predicate
+        int numColumns = rootStructType.getFieldCount() + partitionIds.size();
+        int ordinal = 0;
+        for (int columnId = 0; columnId < numColumns; columnId++) {
+            if (partitionIds.contains(columnId))
+                continue;
             ColumnStatistics element = fileStats.get(rootStructType.getFieldTypeIndex(ordinal));
             if (element != null) {
-                statistics.put(ordinal, element);
+                statistics.put(columnId, element);
             }
+            ordinal ++;
         }
         return statistics.build();
     }
