@@ -445,8 +445,8 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 
         tc.prepareDataDictionaryChange(DDLDriver.driver().ddlController().notifyMetadataChange(change));
 
-        // is this a external file ?
-        // if yest get the partitions, and sen a command to create a external empty file
+        // is this an external file ?
+        // if yes get the partitions, and send a command to create an external empty file
         String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
         int[] partitionby = activation.getDDLTableDescriptor().getPartitionBy();
         String jobGroup = userId + " <" +txnId +">";
@@ -457,6 +457,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                 FileInfo fileInfo = fileSystem.getInfo(location);
                 if(fileInfo.exists() && fileInfo.isDirectory() && fileInfo.fileCount() > 0 && storedAs.compareToIgnoreCase("t") != 0) {
                     GetSchemaExternalResult result = EngineDriver.driver().getOlapClient().execute(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs));
+
                     StructType externalSchema = result.getSchema();
 
                     //Make sure we have the same amount of attributes in the definition compared to the external file
@@ -466,8 +467,12 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 
                     // test types equivalence. Make sure that the type defined correspond
                     // to what is really in the external file.
-                    for (int i = 0; i < externalSchema.fields().length; i++) {
 
+                    /*
+                      if the pre-existing external file was partitioned, its partitioned columns will be placed at the end of the columns in externalSchema.
+                      this may cause externalSchema to be out of order, which may cause dataTypes to not match and thus throw an error.
+                     */
+                    for (int i = 0; i < externalSchema.fields().length; i++) {
                         //compare the datatype
                         StructField externalField = externalSchema.fields()[i];
                         StructField definedField = template.schema().fields()[i];

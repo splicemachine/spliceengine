@@ -133,12 +133,11 @@ public class OrcRecordReader
             entry.getKey();
             // an old file can have less columns since columns can be added
             // after the file was written
-            if (partitionIds.contains(entry.getKey()) || entry.getKey() >= root.getFieldCount()) {
-                // ignore for now
-            } else {
+            if (!partitionIds.contains(entry.getKey())) {
                 presentColumns.add(entry.getKey()-partitionDecrement);
-                presentColumnsAndTypes.put(entry.getKey()-partitionDecrement, entry.getValue());
             }
+            presentColumnsAndTypes.put(entry.getKey()-partitionDecrement, entry.getValue());
+
         }
 
         // it is possible that old versions of orc use 0 to mean there are no row groups
@@ -201,7 +200,7 @@ public class OrcRecordReader
                 hiveWriterVersion,
                 metadataReader);
 
-        streamReaders = createStreamReaders(orcDataSource, types, hiveStorageTimeZone, presentColumnsAndTypes);
+        streamReaders = createStreamReaders(orcDataSource, types, hiveStorageTimeZone, presentColumnsAndTypes, partitionIds);
     }
 
     private static boolean splitContainsStripe(long splitOffset, long splitLength, StripeInformation stripe)
@@ -345,26 +344,22 @@ public class OrcRecordReader
         StructField[] fields = schema.fields();
         ColumnBlock[] columnBlocks = new ColumnBlock[fields.length];
 
-        // Populate Present Columns
-        int i = 0;
-        for (int column: presentColumns) {
-            columnBlocks[i] = new LazyColumnBlock(new LazyIncludedColumnBlockLoaderImpl(streamReaders[column],fields[i].dataType()));
-            i++;
-        }
-
-
-        // Populate Possibly missing columns (TODO - JL)
-/*        int j = 0;
-        while(i+partitionValues.size() + j != fields.length) {
-            columnBlocks[i+j] = new LazyColumnBlock(new LazyNullColumnBlockLoaderImpl(fields[i+j].dataType(),currentBatchSize));
-            j++;
-        }
-*/
-        // Populate Partition Columns (Partition Columns Have to Be Declared Last)
-        for (int k = 0, m = 0; k < partitionIds.size(); k++) {
-            if (includedColumns.containsKey(partitionIds.get(k))) {
-                columnBlocks[i + m] = new LazyColumnBlock(new LazyPartitionColumnBlockLoaderImpl(fields[i + m].dataType(), currentBatchSize, partitionValues.get(k)));
-                m++;
+        // information about partitioned column and non-partitioned columns are kept separate,
+        // so we must put all columns back in the correct order in columnBlocks
+        int fieldIndex = 0;
+        for (int index = 0; index < streamReaders.length; index++){
+            int j = 0;
+            for (int partitionId : partitionIds){
+                if (index == partitionId && includedColumns.containsKey(index)){
+                    columnBlocks[fieldIndex] = new LazyColumnBlock(new LazyPartitionColumnBlockLoaderImpl(fields[fieldIndex].dataType(), currentBatchSize, partitionValues.get(j)));
+                    fieldIndex++;
+                    break;
+                }
+                j++;
+            }
+            if (streamReaders[index] != null){
+                columnBlocks[fieldIndex] = new LazyColumnBlock(new LazyIncludedColumnBlockLoaderImpl(streamReaders[index],fields[fieldIndex].dataType()));
+                fieldIndex++;
             }
         }
 
@@ -456,17 +451,42 @@ public class OrcRecordReader
     private static StreamReader[] createStreamReaders(OrcDataSource orcDataSource,
             List<OrcType> types,
             DateTimeZone hiveStorageTimeZone,
-            Map<Integer, DataType> includedColumns)
+            Map<Integer, DataType> includedColumns,
+            List<Integer> partitionIds)
     {
+        // create streamReaders with a size = table's total columns
+        // only fill indexes which are selected, non-partitioned columns
+        // doing this makes getColumnarBatch()'s job a lot easier
+        int numPartitions = partitionIds.size();
         List<StreamDescriptor> streamDescriptors = createStreamDescriptor("", "", 0, types, orcDataSource).getNestedStreams();
         OrcType rowType = types.get(0);
-        StreamReader[] streamReaders = new StreamReader[rowType.getFieldCount()];
-        for (int columnId = 0; columnId < rowType.getFieldCount(); columnId++) {
-            if (includedColumns.containsKey(columnId)) {
-                StreamDescriptor streamDescriptor = streamDescriptors.get(columnId);
-                streamReaders[columnId] = StreamReaders.createStreamReader(streamDescriptor, hiveStorageTimeZone);
+        int totalColumns = rowType.getFieldCount() + numPartitions;
+        StreamReader[] streamReaders = new StreamReader[totalColumns];
+
+        int lastColumn = 0;
+        for (Integer i : includedColumns.keySet()){
+            if (i > lastColumn){
+                lastColumn = i;
             }
         }
+        int streamDescrIndex = 0;
+
+        for (int col = 0; col <= lastColumn; col++) {
+            if (includedColumns.containsKey(col)){
+                if (partitionIds.contains(col)) {
+                    // do nothing
+                } else {
+                    StreamDescriptor streamDescriptor = streamDescriptors.get(streamDescrIndex);
+                    streamReaders[col] = StreamReaders.createStreamReader(streamDescriptor, hiveStorageTimeZone);
+                    streamDescrIndex++;
+                }
+            } else {
+                if (!partitionIds.contains(col)){
+                    streamDescrIndex++;
+                }
+            }
+        }
+
         return streamReaders;
     }
 
