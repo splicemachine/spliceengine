@@ -302,6 +302,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             Dataset<Row> table = null;
             try {
                 table = SpliceSpark.getSession().read().parquet(location);
+                sortColumns(table.schema().fields(), partitionColumnMap);
             } catch (Exception e) {
                 return handleExceptionInCaseOfEmptySet(e,location);
             }
@@ -334,6 +335,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 SparkSession spark = SpliceSpark.getSession();
                 // Creates a DataFrame from a specified file
                 table = spark.read().format("com.databricks.spark.avro").load(location);
+                sortColumns(table.schema().fields(), partitionColumnMap);
             } catch (Exception e) {
                 return handleExceptionInCaseOfEmptySet(e,location);
             }
@@ -500,10 +502,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         assert baseColumnMap != null:"baseColumnMap Null";
         assert partitionColumnMap != null:"partitionColumnMap Null";
         try {
-            SpliceORCPredicate predicate = new SpliceORCPredicate(qualifiers,baseColumnMap,execRow.createStructType());
+            SpliceORCPredicate predicate = new SpliceORCPredicate(qualifiers,baseColumnMap,execRow.createStructType(baseColumnMap));
             Configuration configuration = new Configuration(HConfiguration.unwrapDelegate());
             configuration.set(SpliceOrcNewInputFormat.SPLICE_PREDICATE,predicate.serialize());
-            configuration.set(SpliceOrcNewInputFormat.SPARK_STRUCT,execRow.createStructType().json());
+            configuration.set(SpliceOrcNewInputFormat.SPARK_STRUCT,execRow.createStructType(baseColumnMap).json());
             configuration.set(SpliceOrcNewInputFormat.SPLICE_COLUMNS,intArrayToString(baseColumnMap));
             configuration.set(SpliceOrcNewInputFormat.SPLICE_PARTITIONS,intArrayToString(partitionColumnMap));
             if (statsjob)
@@ -667,6 +669,34 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         }
         return andCols;
     }
+
+    /*
+     if the external table is partitioned, its partitioned columns will be placed after all non-partitioned columns in StructField[] schema
+     sort the columns so that partitioned columns are in their correct place
+     */
+    public void sortColumns(StructField[] fixSchema, int[] partitionColumnMap){
+        if (partitionColumnMap.length > 0) {
+            // get partitioned columns and sort them first to last
+            HashMap<Integer, StructField> partitions = new HashMap<>();
+            int schemaColumnIndex = fixSchema.length - 1;
+            for (int i = partitionColumnMap.length - 1; i >= 0; i--) {
+                partitions.put(partitionColumnMap[i], fixSchema[schemaColumnIndex]);
+                schemaColumnIndex--;
+            }
+            List<Integer> partitionColumns = new ArrayList(partitions.keySet());
+            Collections.sort(partitionColumns);
+
+            // sort the partitioned columns back into their correct respective indexes
+            for (Integer partitionColumn : partitionColumns) {
+                StructField partitionColumnInfo = partitions.get(partitionColumn);
+                for (int i = fixSchema.length - 1; i > partitionColumn; i--) {
+                    fixSchema[i] = fixSchema[i - 1];
+                }
+                fixSchema[partitionColumn] = partitionColumnInfo;
+            }
+        }
+    }
+
 
     @Override
     public void refreshTable(String location) {

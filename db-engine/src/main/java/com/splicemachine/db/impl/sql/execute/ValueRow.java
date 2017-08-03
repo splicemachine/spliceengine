@@ -616,13 +616,20 @@ public class ValueRow implements ExecRow, Externalizable {
 	}
 
 	@Override
-	public StructType createStructType() {
+	public StructType createStructType(int[] baseColumnMap) {
+		// use baseColumnMap to ensure all selected columns (at each index i) are returned
 		StructField[] fields = new StructField[length()];
-		for (int i = 0; i < length(); i++) {
-			fields[i] = getColumn(i + 1).getStructField(getNamedColumn(i));
+		int j = 0;
+		for(int i = 0; i < baseColumnMap.length; i++){
+			if (baseColumnMap[i] != -1){
+				assert j < fields.length : "Incorrect number of columns";
+				fields[j] = getColumn(j+1).getStructField(getNamedColumn(i));
+				j++;
+			}
 		}
 		return DataTypes.createStructType(fields);
 	}
+
 	@Override
 	public int compare(ExecRow o1, ExecRow o2) {
 		return o1.compareTo(o2);

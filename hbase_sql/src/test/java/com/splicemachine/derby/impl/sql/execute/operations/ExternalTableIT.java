@@ -621,7 +621,7 @@ public class ExternalTableIT extends SpliceUnitTest{
 
 
     @Test
-    @Ignore
+    @Ignore // SPLICE-1809
     public void testWriteReadWithPartitionedByFloatTable() throws Exception {
         String tablePath = getExternalResourceDirectory()+"simple_parquet_with_partition";
         methodWatcher.executeUpdate(String.format("create external table simple_parquet_with_partition (col1 int, col2 varchar(24), col3 float(10) )" +
@@ -636,12 +636,10 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "  1  |XXXX | 3.4567   |\n" +
                 "  2  |YYYY |540.3434  |\n" +
                 "  3  |ZZZZ |590.34344 |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-
-
     }
 
     @Test
-    @Ignore
+    @Ignore // SPLICE-1809
     public void testWriteReadWithPartitionedByFloatTableAvro() throws Exception {
         String tablePath = getExternalResourceDirectory()+"simple_avro_with_partition";
         methodWatcher.executeUpdate(String.format("create external table simple_avro_with_partition (col1 int, col2 varchar(24), col3 float(10) )" +
