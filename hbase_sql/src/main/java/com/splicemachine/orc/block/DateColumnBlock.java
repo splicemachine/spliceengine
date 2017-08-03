@@ -13,6 +13,8 @@
  */
 package com.splicemachine.orc.block;
 
+import org.apache.hadoop.hive.serde2.io.DateWritable;
+import org.apache.spark.memory.MemoryMode;
 import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataType;
 
@@ -33,7 +35,8 @@ public class DateColumnBlock extends AbstractColumnBlock {
 
     @Override
     public void setPartitionValue(String value, int size) {
-        throw new UnsupportedOperationException("Not Supported");
+        columnVector = ColumnVector.allocate(size, dataType, MemoryMode.ON_HEAP);
+        columnVector.appendInts(size, DateWritable.dateToDays(java.sql.Date.valueOf(value)));
     }
 
 }
