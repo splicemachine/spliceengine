@@ -674,25 +674,25 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
      if the external table is partitioned, its partitioned columns will be placed after all non-partitioned columns in StructField[] schema
      sort the columns so that partitioned columns are in their correct place
      */
-    public void sortColumns(StructField[] fixSchema, int[] partitionColumnMap){
+    public void sortColumns(StructField[] schema, int[] partitionColumnMap){
         if (partitionColumnMap.length > 0) {
-            // get partitioned columns and sort them first to last
+            // get the partitioned columns and map them to their correct indexes
             HashMap<Integer, StructField> partitions = new HashMap<>();
-            int schemaColumnIndex = fixSchema.length - 1;
+            int schemaColumnIndex = schema.length - 1;
             for (int i = partitionColumnMap.length - 1; i >= 0; i--) {
-                partitions.put(partitionColumnMap[i], fixSchema[schemaColumnIndex]);
+                partitions.put(partitionColumnMap[i], schema[schemaColumnIndex]);
                 schemaColumnIndex--;
             }
-            List<Integer> partitionColumns = new ArrayList(partitions.keySet());
-            Collections.sort(partitionColumns);
 
-            // sort the partitioned columns back into their correct respective indexes
-            for (Integer partitionColumn : partitionColumns) {
-                StructField partitionColumnInfo = partitions.get(partitionColumn);
-                for (int i = fixSchema.length - 1; i > partitionColumn; i--) {
-                    fixSchema[i] = fixSchema[i - 1];
+            // sort the partitioned columns back into their correct respective indexes in schema
+            StructField[] schemaCopy = schema.clone();
+            int schemaCopyIndex = 0;
+            for (int i = 0; i < schema.length; i++){
+                if (partitions.containsKey(i)){
+                    schema[i] = partitions.get(i);
+                } else {
+                    schema[i] = schemaCopy[schemaCopyIndex++];
                 }
-                fixSchema[partitionColumn] = partitionColumnInfo;
             }
         }
     }

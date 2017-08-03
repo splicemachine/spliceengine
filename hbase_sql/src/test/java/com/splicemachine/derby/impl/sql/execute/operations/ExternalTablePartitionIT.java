@@ -18,12 +18,11 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.olap.OlapMessage;
 import org.apache.commons.io.FileUtils;
-import org.apache.spark.sql.catalyst.plans.logical.Except;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+
 import java.io.File;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -179,6 +178,22 @@ public class ExternalTablePartitionIT {
                     "  2  | AAA |\n" +
                     "  4  | BBB |\n" +
                     "  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs4));
+
+            /* test query with predicates */
+            ResultSet rs5 = methodWatcher.executeQuery("select * from orc_part_1st where col1=3");
+            Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
+                    "------------------\n" +
+                    "  3  |  4  | BBB |",TestUtils.FormattedResult.ResultFactory.toString(rs5));
+
+            ResultSet rs6 = methodWatcher.executeQuery("select * from orc_part_1st where col2=4");
+            Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
+                    "------------------\n" +
+                    "  3  |  4  | BBB |",TestUtils.FormattedResult.ResultFactory.toString(rs6));
+
+            ResultSet rs7 = methodWatcher.executeQuery("select * from orc_part_1st where col3='CCC'");
+            Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
+                    "------------------\n" +
+                    "  5  |  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs7));
         } catch (SQLException e) {
             Assert.fail("An exception should not be thrown. Error: " + e.getMessage());
         }
@@ -347,6 +362,22 @@ public class ExternalTablePartitionIT {
                     "  2  | AAA |\n" +
                     "  4  | BBB |\n" +
                     "  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs4));
+
+            // test query with predicate
+            ResultSet rs5 = methodWatcher.executeQuery("select * from orc_part_1st_2nd where col1=3");
+            Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
+                    "------------------\n" +
+                    "  3  |  4  | BBB |",TestUtils.FormattedResult.ResultFactory.toString(rs5));
+
+            ResultSet rs6 = methodWatcher.executeQuery("select * from orc_part_1st_2nd where col2=4");
+            Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
+                    "------------------\n" +
+                    "  3  |  4  | BBB |",TestUtils.FormattedResult.ResultFactory.toString(rs6));
+
+            ResultSet rs7 = methodWatcher.executeQuery("select * from orc_part_1st_2nd where col3='AAA'");
+            Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
+                    "------------------\n" +
+                    "  1  |  2  | AAA |",TestUtils.FormattedResult.ResultFactory.toString(rs7));
         } catch (SQLException e) {
             Assert.fail("An exception should not be thrown. Error: " + e.getMessage());
         }
@@ -516,6 +547,20 @@ public class ExternalTablePartitionIT {
                     "  2  | AAA |\n" +
                     "  4  | BBB |\n" +
                     "  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs4));
+
+            // test query with predicates
+            ResultSet rs5 = methodWatcher.executeQuery("select * from orc_part_2nd where col1=3");
+            Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
+                    "------------------\n" +
+                    "  3  |  4  | BBB |",TestUtils.FormattedResult.ResultFactory.toString(rs5));
+            ResultSet rs6 = methodWatcher.executeQuery("select * from orc_part_2nd where col2=4");
+            Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
+                    "------------------\n" +
+                    "  3  |  4  | BBB |",TestUtils.FormattedResult.ResultFactory.toString(rs6));
+            ResultSet rs7 = methodWatcher.executeQuery("select * from orc_part_2nd where col3='CCC'");
+            Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
+                    "------------------\n" +
+                    "  5  |  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs7));
         } catch (SQLException e) {
             Assert.fail("An exception should not be thrown. Error: " + e.getMessage());
         }
@@ -686,6 +731,20 @@ public class ExternalTablePartitionIT {
                     "  2  | AAA |\n" +
                     "  4  | BBB |\n" +
                     "  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs4));
+
+            // test query with predicate
+            ResultSet rs5 = methodWatcher.executeQuery("select * from orc_part_last where col1=3");
+            Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
+                    "------------------\n" +
+                    "  3  |  4  | BBB |",TestUtils.FormattedResult.ResultFactory.toString(rs5));
+            ResultSet rs6 = methodWatcher.executeQuery("select * from orc_part_last where col2=4");
+            Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
+                    "------------------\n" +
+                    "  3  |  4  | BBB |",TestUtils.FormattedResult.ResultFactory.toString(rs6));
+            ResultSet rs7 = methodWatcher.executeQuery("select * from orc_part_last where col3='CCC'");
+            Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
+                    "------------------\n" +
+                    "  5  |  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs7));
         } catch (SQLException e) {
             Assert.fail("An exception should not be thrown. Error: " + e.getMessage());
         }
@@ -854,6 +913,20 @@ public class ExternalTablePartitionIT {
                     "  2  | AAA |\n" +
                     "  4  | BBB |\n" +
                     "  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs4));
+
+            //test query with prediate
+            ResultSet rs5 = methodWatcher.executeQuery("select * from orc_part_3rd_2nd where col1=3");
+            Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
+                    "------------------\n" +
+                    "  3  |  4  | BBB |",TestUtils.FormattedResult.ResultFactory.toString(rs5));
+            ResultSet rs6 = methodWatcher.executeQuery("select * from orc_part_3rd_2nd where col2=4");
+            Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
+                    "------------------\n" +
+                    "  3  |  4  | BBB |",TestUtils.FormattedResult.ResultFactory.toString(rs6));
+            ResultSet rs7 = methodWatcher.executeQuery("select * from orc_part_3rd_2nd where col3='CCC'");
+            Assert.assertEquals("COL1 |COL2 |COL3 |\n" +
+                    "------------------\n" +
+                    "  5  |  6  | CCC |",TestUtils.FormattedResult.ResultFactory.toString(rs7));
         } catch (SQLException e) {
             Assert.fail("An exception should not be thrown. Error: " + e.getMessage());
         }
@@ -1010,9 +1083,9 @@ public class ExternalTablePartitionIT {
             String tablePath2 = String.format(getExternalResourceDirectory()+"/%s_aggressive_2_2",format);
 
             methodWatcher.executeUpdate(String.format("create external table %s_aggressive_2_0 (col1 varchar(10), col2 double, col3 int, col4 varchar(10), col5 int) " +
-            "partitioned by (col1, col2, col4, col5) stored as %s location '%s'",format,format,tablePath0));
+                    "partitioned by (col1, col2, col4, col5) stored as %s location '%s'",format,format,tablePath0));
             methodWatcher.executeUpdate(String.format("insert into %s_aggressive_2_0 values " +
-                "('whoa',77.7,444,'crazy',21),('hey',11.11,222,'crazier',10)",format));
+                    "('whoa',77.7,444,'crazy',21),('hey',11.11,222,'crazier',10)",format));
             ResultSet rs0 = methodWatcher.executeQuery(String.format("select col4, col2, col3 from %s_aggressive_2_0 where col5 = 21",format));
             Assert.assertEquals("COL4  |COL2 |COL3 |\n" +
                     "-------------------\n" +
@@ -1021,7 +1094,7 @@ public class ExternalTablePartitionIT {
             methodWatcher.executeUpdate(String.format("create external table %s_aggressive_2_1 (col1 int, col2 double, col3 char, col4 varchar(10), col5 int) " +
                     "partitioned by (col3, col1, col2) stored as %s location '%s'",format,format,tablePath1));
             methodWatcher.executeUpdate(String.format("insert into %s_aggressive_2_1 values " +
-            "(666,66.666,'z','zing',20),(555,55.555,'y','yowza',40),(1,1.1,'g','garish',7)",format));
+                    "(666,66.666,'z','zing',20),(555,55.555,'y','yowza',40),(1,1.1,'g','garish',7)",format));
             ResultSet rs1 = methodWatcher.executeQuery(String.format("select col2,col4 from %s_aggressive_2_1",format));
             Assert.assertEquals("COL2  | COL4  |\n" +
                     "----------------\n" +
@@ -1032,7 +1105,7 @@ public class ExternalTablePartitionIT {
             methodWatcher.executeUpdate(String.format("create external table %s_aggressive_2_2 (col1 varchar(10), col2 double, col3 varchar(10), col4 varchar(10), col5 int) " +
                     "partitioned by (col5, col4, col3) stored as %s location '%s'",format,format,tablePath2));
             methodWatcher.executeUpdate(String.format("insert into %s_aggressive_2_2 values " +
-            "('hello',1.1,'goodbye','farewell',1),('hello',1.1,'goodbye','farewell',1),('hello',1.1,'goodbye','farewell',1)",format));
+                    "('hello',1.1,'goodbye','farewell',1),('hello',1.1,'goodbye','farewell',1),('hello',1.1,'goodbye','farewell',1)",format));
             ResultSet rs2 = methodWatcher.executeQuery(String.format("select col2 from %s_aggressive_2_2",format));
             Assert.assertEquals("COL2 |\n" +
                     "------\n" +
