@@ -1184,6 +1184,25 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
     @Test
+    public void testPartitionByDateOrcTable() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"/PartitionByDateOrc";
+        methodWatcher.executeUpdate(String.format("create external table t_partition_by_date (a1 date, b1 int, c1 varchar(10))" +
+                "partitioned by (a1)" +
+                "STORED AS ORC LOCATION '%s'",tablePath));
+        methodWatcher.executeUpdate("insert into t_partition_by_date values('2017-7-27', 1, 'AAA'), ('1970-01-01', 2, 'BBB'), ('2017-7-27', 3, 'CCC')");
+        ResultSet rs = methodWatcher.executeQuery("select a1, count(*) from t_partition_by_date group by a1 order by 1");
+
+        String expected = "A1     | 2 |\n" +
+                "----------------\n" +
+                "1970-01-01 | 1 |\n" +
+                "2017-07-27 | 2 |";
+
+        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(expected, resultString);
+        rs.close();
+    }
+
+    @Test
     public void testReadIntFromFileAvro() throws Exception {
 
         methodWatcher.executeUpdate(String.format("create external table short_avro (col1 int)" +
