@@ -162,6 +162,10 @@ public class PipelineConfiguration implements ConfigurationDefault {
     public static final String BULK_IMPORT_TASKS_PER_REGION = "splice.bulkImport.tasks.perRegion";
     private static final int DEFAULT_BULK_IMPORT_TASKS_PER_REGION = 1;
 
+    public static final String REGION_TOLOAD_PER_TASK = "splice.region.toLoad.perTask";
+    private static final int DEFAULT_REGION_TOLOAD_PER_TASK = 10;
+
+
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         builder.ipcThreads = configurationSource.getInt(IPC_THREADS, DEFAULT_IPC_THREADS);
@@ -187,6 +191,6 @@ public class PipelineConfiguration implements ConfigurationDefault {
         builder.reservedSlotsTimeout = configurationSource.getInt(SPARK_RESERVED_SLOTS_TIMEOUT, DEFAULT_SPARK_RESERVED_SLOTS_TIMEOUT);
         builder.bulkImportSampleFraction = configurationSource.getDouble(BULK_IMPORT_SAMPLE_FRACTION, DEFAULT_BULK_IMPORT_SAMPLE_FRACTION);
         builder.bulkImportTasksPerRegion = configurationSource.getInt(BULK_IMPORT_TASKS_PER_REGION, DEFAULT_BULK_IMPORT_TASKS_PER_REGION);
-
+        builder.regionToLoadPerTask = configurationSource.getInt(REGION_TOLOAD_PER_TASK, DEFAULT_REGION_TOLOAD_PER_TASK);
     }
 }
