@@ -139,6 +139,8 @@ public interface SConfiguration {
 
     int getBulkImportTasksPerRegion();
 
+    int getRegionToLoadPerTask();
+
     // SIConfigurations
     int getActiveTransactionCacheSize();
 
