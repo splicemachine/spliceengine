@@ -244,10 +244,11 @@ public class BackupSystemProcedures {
             Timestamp ts = new Timestamp(calendar.getTimeInMillis());
 
             //Get backups that are more than backupWindow days old
+            List<Long> backupIdList=new ArrayList<>();
             String sqlText = "select backup_id from sys.sysbackup where begin_timestamp<?";
             try(PreparedStatement ps = conn.prepareStatement(sqlText)){
                 ps.setTimestamp(1,ts);
-                List<Long> backupIdList=new ArrayList<>();
+
                 BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
                 try(ResultSet rs=ps.executeQuery()){
                     while(rs.next()){
@@ -257,7 +258,8 @@ public class BackupSystemProcedures {
                 }
                 backupManager.removeBackup(backupIdList);
             }
-            resultSets[0] = ProcedureUtils.generateResult("Success", "Delete old backups in window "+backupWindow);
+            String message = String.format("Deleted %d old backups for that past %d days", backupIdList.size(), backupWindow);
+            resultSets[0] = ProcedureUtils.generateResult("Success", message);
         } catch (Throwable t) {
             resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
             SpliceLogUtils.error(LOG, "Delete old backups error", t);
