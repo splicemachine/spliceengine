@@ -16,6 +16,7 @@ package com.splicemachine.derby.stream.spark;
 import com.clearspring.analytics.util.Lists;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionAdmin;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -184,7 +185,10 @@ public class BulkDataSetWriter  {
      * @throws StandardException
      */
     protected void bulkLoad(List<BulkImportPartition> bulkImportPartitions, String bulkImportDirectory) throws StandardException{
-        SpliceSpark.getContext().parallelize(bulkImportPartitions, bulkImportPartitions.size())
+        SConfiguration sConfiguration = HConfiguration.getConfiguration();
+        int regionsPerTask = sConfiguration.getRegionToLoadPerTask();
+        int numTasks = Math.max(bulkImportPartitions.size()/regionsPerTask, 1);
+        SpliceSpark.getContext().parallelize(bulkImportPartitions, numTasks)
                 .foreach(new BulkImportFunction(bulkImportDirectory));
     }
 
