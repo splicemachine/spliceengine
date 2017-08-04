@@ -1845,6 +1845,165 @@ public class ExternalTableIT extends SpliceUnitTest{
         Assert.assertTrue(i == 1);
     }
 
+    @Test
+    public void testQueryOnOrcTableWithInequalityPredicate() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"/OrcInequalityPredicate";
+        methodWatcher.executeUpdate(String.format("create external table orc_inequality (c1 smallint, c2 int, c3 char(10)) " +
+                "STORED AS ORC LOCATION '%s'",tablePath));
+        methodWatcher.executeQuery(format("call SYSCS_UTIL.IMPORT_DATA ('%s', 'ORC_INEQUALITY', null, '%s', ',', null, null, null, null, 0, null, true, null)",
+                getSchemaName(), getResourceDirectory()+"orc_inequality_predicate.csv"));
+        /* the constant value is within the (min,max) range of the referenced column */
+        ResultSet rs = methodWatcher.executeQuery("select * from orc_inequality where c1>1 order by 1,2");
+        Assert.assertEquals("C1 |C2  |C3  |\n" +
+                "--------------\n" +
+                " 2 |200 |BBB |\n" +
+                " 3 |300 |CCC |\n" +
+                " 4 |400 |DDD |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from orc_inequality where c2>=200 order by 1,2");
+        Assert.assertEquals("C1 |C2  |C3  |\n" +
+                "--------------\n" +
+                " 1 |200 |BBB |\n" +
+                " 1 |300 |CCC |\n" +
+                " 1 |400 |DDD |\n" +
+                " 2 |200 |BBB |\n" +
+                " 3 |300 |CCC |\n" +
+                " 4 |400 |DDD |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from orc_inequality where c1<3 order by 1,2");
+        Assert.assertEquals("C1 |C2  |C3  |\n" +
+                "--------------\n" +
+                " 1 |100 |AAA |\n" +
+                " 1 |200 |BBB |\n" +
+                " 1 |300 |CCC |\n" +
+                " 1 |400 |DDD |\n" +
+                " 2 |200 |BBB |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from orc_inequality where c3<='BBB' order by 1,2");
+        Assert.assertEquals("C1 |C2  |C3  |\n" +
+                "--------------\n" +
+                " 1 |100 |AAA |\n" +
+                " 1 |200 |BBB |\n" +
+                " 2 |200 |BBB |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* the constant value is below the (min,max) range of the referenced column */
+        rs = methodWatcher.executeQuery("select * from orc_inequality where c2>0 order by 1,2");
+        Assert.assertEquals("C1 |C2  |C3  |\n" +
+                "--------------\n" +
+                " 1 |100 |AAA |\n" +
+                " 1 |200 |BBB |\n" +
+                " 1 |300 |CCC |\n" +
+                " 1 |400 |DDD |\n" +
+                " 2 |200 |BBB |\n" +
+                " 3 |300 |CCC |\n" +
+                " 4 |400 |DDD |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from orc_inequality where c2<=0 order by 1,2");
+        Assert.assertEquals("",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* the constant value is above the (min,max) range of the referenced column */
+        rs = methodWatcher.executeQuery("select * from orc_inequality where c3>= 'FFF' order by 1,2");
+        Assert.assertEquals("",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from orc_inequality where c3 <= 'FFF' order by 1,2");
+        Assert.assertEquals("C1 |C2  |C3  |\n" +
+                "--------------\n" +
+                " 1 |100 |AAA |\n" +
+                " 1 |200 |BBB |\n" +
+                " 1 |300 |CCC |\n" +
+                " 1 |400 |DDD |\n" +
+                " 2 |200 |BBB |\n" +
+                " 3 |300 |CCC |\n" +
+                " 4 |400 |DDD |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testQueryOnPartitionedOrcTableWithInequalityPredicate() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"/PartOrcInequalityPredicate";
+        methodWatcher.executeUpdate(String.format("create external table part_orc_inequality (c1 smallint, c2 int, c3 char(10)) " +
+                "partitioned by (c1) STORED AS ORC LOCATION '%s'",tablePath));
+        methodWatcher.executeQuery(format("call SYSCS_UTIL.IMPORT_DATA ('%s', 'PART_ORC_INEQUALITY', null, '%s', ',', null, null, null, null, 0, null, true, null)",
+                getSchemaName(), getResourceDirectory()+"orc_inequality_predicate.csv"));
+        /* the constant value is within the (min,max) range of the referenced column */
+        ResultSet rs = methodWatcher.executeQuery("select * from part_orc_inequality where c1>1 order by 1,2");
+        Assert.assertEquals("C1 |C2  |C3  |\n" +
+                "--------------\n" +
+                " 2 |200 |BBB |\n" +
+                " 3 |300 |CCC |\n" +
+                " 4 |400 |DDD |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from part_orc_inequality where c2>=200 order by 1,2");
+        Assert.assertEquals("C1 |C2  |C3  |\n" +
+                "--------------\n" +
+                " 1 |200 |BBB |\n" +
+                " 1 |300 |CCC |\n" +
+                " 1 |400 |DDD |\n" +
+                " 2 |200 |BBB |\n" +
+                " 3 |300 |CCC |\n" +
+                " 4 |400 |DDD |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from part_orc_inequality where c1<3 order by 1,2");
+        Assert.assertEquals("C1 |C2  |C3  |\n" +
+                "--------------\n" +
+                " 1 |100 |AAA |\n" +
+                " 1 |200 |BBB |\n" +
+                " 1 |300 |CCC |\n" +
+                " 1 |400 |DDD |\n" +
+                " 2 |200 |BBB |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from part_orc_inequality where c3<='BBB' order by 1,2");
+        Assert.assertEquals("C1 |C2  |C3  |\n" +
+                "--------------\n" +
+                " 1 |100 |AAA |\n" +
+                " 1 |200 |BBB |\n" +
+                " 2 |200 |BBB |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* the constant value is below the (min,max) range of the referenced column */
+        rs = methodWatcher.executeQuery("select * from part_orc_inequality where c2>0 order by 1,2");
+        Assert.assertEquals("C1 |C2  |C3  |\n" +
+                "--------------\n" +
+                " 1 |100 |AAA |\n" +
+                " 1 |200 |BBB |\n" +
+                " 1 |300 |CCC |\n" +
+                " 1 |400 |DDD |\n" +
+                " 2 |200 |BBB |\n" +
+                " 3 |300 |CCC |\n" +
+                " 4 |400 |DDD |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from part_orc_inequality where c2<=0 order by 1,2");
+        Assert.assertEquals("",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* the constant value is above the (min,max) range of the referenced column */
+        rs = methodWatcher.executeQuery("select * from part_orc_inequality where c3>= 'FFF' order by 1,2");
+        Assert.assertEquals("",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from part_orc_inequality where c3 <= 'FFF' order by 1,2");
+        Assert.assertEquals("C1 |C2  |C3  |\n" +
+                "--------------\n" +
+                " 1 |100 |AAA |\n" +
+                " 1 |200 |BBB |\n" +
+                " 1 |300 |CCC |\n" +
+                " 1 |400 |DDD |\n" +
+                " 2 |200 |BBB |\n" +
+                " 3 |300 |CCC |\n" +
+                " 4 |400 |DDD |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
     /**
      *
      *
