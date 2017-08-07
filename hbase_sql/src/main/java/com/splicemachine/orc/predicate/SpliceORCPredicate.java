@@ -111,20 +111,39 @@ public class SpliceORCPredicate implements OrcPredicate, Externalizable {
                 switch (q.getOperator()) {
                     case com.splicemachine.db.iapi.types.DataType.ORDER_OP_LESSTHAN:
                     case com.splicemachine.db.iapi.types.DataType.ORDER_OP_LESSOREQUALS:
+                        if (q.negateCompareResult()) {
+                            row_qualifies =
+                                    statsEval.maximumDVD.compare(
+                                            q.getOperator(),
+                                            q.getOrderable(),
+                                            q.getOrderedNulls(),
+                                            q.getUnknownRV());
+                        } else {
+                            row_qualifies =
+                                    statsEval.minimumDVD.compare(
+                                            q.getOperator(),
+                                            q.getOrderable(),
+                                            q.getOrderedNulls(),
+                                            q.getUnknownRV());
+                        }
+                        break;
                     case com.splicemachine.db.iapi.types.DataType.ORDER_OP_GREATERTHAN:
                     case com.splicemachine.db.iapi.types.DataType.ORDER_OP_GREATEROREQUALS:
-                        row_qualifies =
-                                statsEval.minimumDVD.compare(
-                                        q.getOperator(),
-                                        q.getOrderable(),
-                                        q.getOrderedNulls(),
-                                        q.getUnknownRV())
-                                        ||
-                                        statsEval.maximumDVD.compare(
-                                                q.getOperator(),
-                                                q.getOrderable(),
-                                                q.getOrderedNulls(),
-                                                q.getUnknownRV());
+                        if (q.negateCompareResult()) {
+                            row_qualifies =
+                                    statsEval.minimumDVD.compare(
+                                            q.getOperator(),
+                                            q.getOrderable(),
+                                            q.getOrderedNulls(),
+                                            q.getUnknownRV());
+                        } else {
+                            row_qualifies =
+                                    statsEval.maximumDVD.compare(
+                                            q.getOperator(),
+                                            q.getOrderable(),
+                                            q.getOrderedNulls(),
+                                            q.getUnknownRV());
+                        }
                         break;
                     case com.splicemachine.db.iapi.types.DataType.ORDER_OP_EQUALS:
                         row_qualifies =
@@ -301,6 +320,11 @@ public class SpliceORCPredicate implements OrcPredicate, Externalizable {
             IntegerStatistics integerStatistics = columnStatistics.getIntegerStatistics();
             statsEval.minimumDVD = new SQLLongint(integerStatistics.getMin());
             statsEval.maximumDVD = new SQLLongint(integerStatistics.getMax());
+        }
+        else if (dataType instanceof ShortType) {
+            IntegerStatistics integerStatistics = columnStatistics.getIntegerStatistics();
+            statsEval.minimumDVD = new SQLSmallint(integerStatistics.getMin().shortValue());
+            statsEval.maximumDVD = new SQLSmallint(integerStatistics.getMax().shortValue());
         }
         else if (dataType instanceof DoubleType) {
             DoubleStatistics doubleStatistics = columnStatistics.getDoubleStatistics();
