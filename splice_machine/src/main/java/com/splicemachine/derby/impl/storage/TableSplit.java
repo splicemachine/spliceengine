@@ -89,6 +89,7 @@ public class TableSplit{
         ps.setString(14, charset);
         ps.setString(15, tempDir);
         ps.executeQuery();
+        ps.close();
 
         Configuration conf = HBaseConfiguration.create();
         FileSystem fs = FileSystem.get(URI.create(tempDir), conf);
