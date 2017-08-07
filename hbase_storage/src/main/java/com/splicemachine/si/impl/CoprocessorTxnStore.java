@@ -277,6 +277,11 @@ public class CoprocessorTxnStore implements TxnStore {
         this.oldTransactions = oldTransactions;
     }
 
+    @Override
+    public long getOldTransactions() {
+        return oldTransactions;
+    }
+
     /*caching methods--since we don't have a cache, these are no-ops*/
     @Override
     public boolean transactionCached(long txnId){
