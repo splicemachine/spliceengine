@@ -142,6 +142,7 @@ public class ConfigurationBuilder {
     public int olapClientRetries;
     public double bulkImportSampleFraction;
     public int bulkImportTasksPerRegion;
+    public int regionToLoadPerTask;
     public long controlExecutionRowLimit;
 
     /**
