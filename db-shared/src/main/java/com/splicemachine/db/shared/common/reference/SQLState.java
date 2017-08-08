@@ -2000,5 +2000,6 @@ public interface SQLState {
 	String SNAPSHOT_EXISTS											= "SNA01";
 	String SNAPSHOT_NOT_EXISTS										= "SNA02";
 
+    String SPLITKEY_EQUALS_STARTKEY                                 = "TS001";
 }
 
