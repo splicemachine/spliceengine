@@ -16,13 +16,23 @@ package com.splicemachine.access.hbase;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.db.jdbc.InternalDriver;
+import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.exceptions.ConnectionClosingException;
+import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Function;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.Admin;
@@ -46,6 +56,8 @@ import com.splicemachine.storage.RangedClientPartition;
  *         Date: 12/31/15
  */
 public class H10PartitionAdmin implements PartitionAdmin{
+
+    private static final Logger LOG = Logger.getLogger(H10PartitionAdmin.class);
     private final Admin admin;
     private final Clock timeKeeper;
     private final HBaseTableInfoFactory tableInfoFactory;
@@ -93,16 +105,21 @@ public class H10PartitionAdmin implements PartitionAdmin{
     public void splitTable(String tableName,byte[]... splitPoints) throws IOException{
         TableName tableInfo=tableInfoFactory.getTableInfo(tableName);
 
-        if (splitPoints != null && splitPoints.length > 0) {
-            for(byte[] splitPoint:splitPoints){
-                retriableSplit(tableInfo, splitPoint);
+        try {
+            if (splitPoints != null && splitPoints.length > 0) {
+                for (byte[] splitPoint : splitPoints) {
+                    retriableSplit(tableInfo, splitPoint);
+                }
+            } else {
+                retriableSplit(tableInfo, null);
             }
-        } else {
-            retriableSplit(tableInfo, null);
+        }
+        catch (Exception e) {
+            throw new IOException(e.getCause());
         }
     }
 
-    private void retriableSplit(TableName tableInfo, byte[] splitPoint) throws IOException{
+    private void retriableSplit(TableName tableInfo, byte[] splitPoint) throws IOException, SQLException{
 
         List<HRegionInfo> regions = admin.getTableRegions(tableInfo);
         int size1 = regions.size();
@@ -123,6 +140,18 @@ public class H10PartitionAdmin implements PartitionAdmin{
                     timeKeeper.sleep(100, TimeUnit.MILLISECONDS);
                 } catch (InterruptedException ie) {
                     throw new InterruptedIOException();
+                }
+            } catch (IOException e) {
+                String errMsg = e.getMessage();
+                if (errMsg.compareTo("should not give a splitkey which equals to startkey!") == 0) {
+                    SpliceLogUtils.warn(LOG, errMsg + ": " + Bytes.toStringBinary(splitPoint));
+                    SQLWarning warning =
+                            StandardException.newWarning(SQLState.SPLITKEY_EQUALS_STARTKEY, Bytes.toStringBinary(splitPoint));
+                    EmbedConnection connection = (EmbedConnection)InternalDriver.activeDriver()
+                            .connect("jdbc:default:connection", null);
+                    Activation lastActivation=connection.getLanguageConnection().getLastActivation();
+                    lastActivation.addWarning(warning);
+                    return;
                 }
             }
         }

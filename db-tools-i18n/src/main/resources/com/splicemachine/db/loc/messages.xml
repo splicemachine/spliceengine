@@ -9136,6 +9136,12 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <text>Snapshot '{0}' does not exist </text>
                <arg>snapshotName</arg>
            </msg>
+
+           <msg>
+               <name>TS001</name>
+               <text>Ignore splitkey '{0}' because it is equal to a startkey</text>
+               <arg>splitKey</arg>
+           </msg>
        </family>
     </section>
 
