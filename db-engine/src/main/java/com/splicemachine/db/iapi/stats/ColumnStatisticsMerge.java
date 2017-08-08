@@ -131,7 +131,7 @@ public class ColumnStatisticsMerge implements Aggregator<ColumnStatisticsImpl, C
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        terminate().writeExternal(out);
+        out.writeObject(terminate());
     }
 
     /*

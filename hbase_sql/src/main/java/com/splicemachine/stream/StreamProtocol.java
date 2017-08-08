@@ -14,7 +14,7 @@
 
 package com.splicemachine.stream;
 
-import java.io.Serializable;
+import java.io.*;
 import java.util.UUID;
 
 /**
@@ -22,7 +22,7 @@ import java.util.UUID;
  */
 public class StreamProtocol implements Serializable {
     private StreamProtocol(){}
-    public static class Init implements Serializable {
+    public static class Init implements Serializable, Externalizable {
         public UUID uuid;
         public int numPartitions;
         public int partition;
@@ -36,6 +36,21 @@ public class StreamProtocol implements Serializable {
         }
 
         @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+            out.writeLong(uuid.getMostSignificantBits());
+            out.writeLong(uuid.getLeastSignificantBits());
+            out.writeInt(numPartitions);
+            out.writeInt(partition);
+        }
+
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+            this.uuid = new UUID(in.readLong(),in.readLong());
+            numPartitions = in.readInt();
+            partition = in.readInt();
+        }
+
+        @Override
         public String toString() {
             return "Init{" +
                     "uuid=" + uuid +
@@ -45,7 +60,7 @@ public class StreamProtocol implements Serializable {
         }
     }
 
-    public static class Skip implements Serializable {
+    public static class Skip implements Serializable, Externalizable {
         public long limit;
         public long offset;
 
@@ -57,6 +72,18 @@ public class StreamProtocol implements Serializable {
         }
 
         @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+            out.writeLong(limit);
+            out.writeLong(offset);
+        }
+
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+            limit = in.readLong();
+            offset = in.readLong();
+        }
+
+        @Override
         public String toString() {
             return "Skip{" +
                     "limit=" + limit +
@@ -65,13 +92,23 @@ public class StreamProtocol implements Serializable {
         }
     }
 
-    public static class Limit implements Serializable {
+    public static class Limit implements Serializable, Externalizable {
         public long limit;
 
         public Limit() {}
 
         public Limit(long limit) {
             this.limit = limit;
+        }
+
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+            out.writeLong(limit);
+        }
+
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+            limit = in.readLong();
         }
 
         @Override
@@ -82,10 +119,20 @@ public class StreamProtocol implements Serializable {
         }
     }
 
-    public static class Skipped implements Serializable {
+    public static class Skipped implements Serializable, Externalizable {
         public long skipped;
 
         public Skipped() {}
+
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+            out.writeLong(skipped);
+        }
+
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+            skipped = in.readLong();
+        }
 
         public Skipped(long skipped) {
             this.skipped = skipped;
@@ -99,14 +146,34 @@ public class StreamProtocol implements Serializable {
         }
     }
 
-    public static class Continue implements Serializable {
-    }
+    public static class Continue implements Serializable, Externalizable {
+        public Continue() {}
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+        }
 
-    public static class RequestClose implements Serializable {
-        public RequestClose() {
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         }
     }
-    public static class ConfirmClose implements Serializable {
+
+    public static class RequestClose implements Serializable, Externalizable {
+        public RequestClose() {}
+        public void writeExternal(ObjectOutput out) throws IOException {
+        }
+
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        }
+    }
+    public static class ConfirmClose implements Serializable, Externalizable {
+        public ConfirmClose() {}
+        public void writeExternal(ObjectOutput out) throws IOException {
+        }
+
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        }
     }
 
 }

@@ -25,6 +25,8 @@ import com.esotericsoftware.kryo.serializers.MapSerializer;
 import com.google.common.collect.ArrayListMultimap;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
+import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.TentativeAddColumnDesc;
 import com.splicemachine.derby.ddl.TentativeAddConstraintDesc;
@@ -44,13 +46,12 @@ import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.function.*;
-import com.splicemachine.derby.stream.spark.HBasePartitioner;
-import com.splicemachine.derby.stream.spark.RowPartition;
-import com.splicemachine.derby.stream.spark.SparkFlatMapFunction;
-import com.splicemachine.derby.stream.spark.SparkOperationContext;
+import com.splicemachine.derby.stream.spark.*;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.client.BulkWrite;
+import com.splicemachine.stream.ResultStreamer;
+import com.splicemachine.stream.StreamProtocol;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.kryo.ExternalizableSerializer;
 import com.splicemachine.utils.kryo.KryoPool;
@@ -691,5 +692,22 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(ExternalizableFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(RowCountOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(SpliceBaseOperation.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(MergeStatisticsHolder.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(ColumnStatisticsMerge.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(ColumnStatisticsImpl.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(StreamProtocol.Init.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(StreamProtocol.Limit.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(StreamProtocol.ConfirmClose.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(StreamProtocol.Continue.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(StreamProtocol.RequestClose.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(StreamProtocol.Skip.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(StreamProtocol.Skipped.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SparkSpliceFunctionWrapper.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SparkSpliceFunctionWrapper2.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(ResultStreamer.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(JoinOperation.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(DMLWriteOperation.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(MiscOperation.class,EXTERNALIZABLE_SERIALIZER);
+
     }
 }
