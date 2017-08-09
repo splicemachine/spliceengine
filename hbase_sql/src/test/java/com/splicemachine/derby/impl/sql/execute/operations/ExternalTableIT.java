@@ -1181,6 +1181,27 @@ public class ExternalTableIT extends SpliceUnitTest{
         String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
         assertEquals(expected, resultString);
         rs.close();
+
+        // test query with predicate on date
+        rs = methodWatcher.executeQuery("select * from t_date where c1='2017-07-27' order by 1");
+
+        expected = "C1     |\n" +
+                "------------\n" +
+                "2017-07-27 |";
+
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(expected, resultString);
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from t_date where c1>='2017-07-27' order by 1");
+
+        expected = "C1     |\n" +
+                "------------\n" +
+                "2017-07-27 |";
+
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(expected, resultString);
+        rs.close();
     }
 
     @Test
@@ -1198,6 +1219,29 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "2017-07-27 | 2 |";
 
         String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(expected, resultString);
+        rs.close();
+
+        // test query with predicate on date
+        rs = methodWatcher.executeQuery("select * from t_partition_by_date where a1='2017-07-27' order by 1");
+
+        expected = "A1     |B1 |C1  |\n" +
+                "---------------------\n" +
+                "2017-07-27 | 1 |AAA |\n" +
+                "2017-07-27 | 3 |CCC |";
+
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(expected, resultString);
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from t_partition_by_date where a1>='2017-07-27' order by 1");
+
+        expected = "A1     |B1 |C1  |\n" +
+                "---------------------\n" +
+                "2017-07-27 | 1 |AAA |\n" +
+                "2017-07-27 | 3 |CCC |";
+
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
         assertEquals(expected, resultString);
         rs.close();
     }
@@ -1843,6 +1887,47 @@ public class ExternalTableIT extends SpliceUnitTest{
         rs.next();
         int i = rs.getInt(1);
         Assert.assertTrue(i == 1);
+    }
+
+    @Test
+    public void testPartitionBySmallIntOrcTable() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"/PartitionBySmallIntOrc";
+        methodWatcher.executeUpdate(String.format("create external table t_partition_by_smallint (a1 smallint, b1 int, c1 varchar(10))" +
+                "partitioned by (a1)" +
+                "STORED AS ORC LOCATION '%s'",tablePath));
+        methodWatcher.executeUpdate("insert into t_partition_by_smallint values(1, 1, 'AAA'), (2, 2, 'BBB'), (1, 3, 'CCC')");
+        ResultSet rs = methodWatcher.executeQuery("select a1, count(*) from t_partition_by_smallint group by a1 order by 1");
+
+        String expected = "A1 | 2 |\n" +
+                "--------\n" +
+                " 1 | 2 |\n" +
+                " 2 | 1 |";
+
+        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(expected, resultString);
+        rs.close();
+
+        // test query with predicate on date
+        rs = methodWatcher.executeQuery("select * from t_partition_by_smallint where a1=1 order by 1");
+
+        expected = "A1 |B1 |C1  |\n" +
+                "-------------\n" +
+                " 1 | 1 |AAA |\n" +
+                " 1 | 3 |CCC |";
+
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(expected, resultString);
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from t_partition_by_smallint where a1>=2 order by 1");
+
+        expected = "A1 |B1 |C1  |\n" +
+                "-------------\n" +
+                " 2 | 2 |BBB |";
+
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(expected, resultString);
+        rs.close();
     }
 
     @Test
