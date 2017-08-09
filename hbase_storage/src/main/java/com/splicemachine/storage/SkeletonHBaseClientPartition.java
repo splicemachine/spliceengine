@@ -17,6 +17,7 @@ package com.splicemachine.storage;
 
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.util.MeasuredResultScanner;
 import org.apache.hadoop.hbase.HConstants;
@@ -32,7 +33,7 @@ import java.util.concurrent.locks.Lock;
  * @author Scott Fines
  *         Date: 12/22/15
  */
-public abstract class SkeletonHBaseClientPartition implements Partition{
+public abstract class SkeletonHBaseClientPartition implements Partition<byte[],Txn,IsolationLevel>{
 
     @Override
     public String getName(){
@@ -42,7 +43,7 @@ public abstract class SkeletonHBaseClientPartition implements Partition{
 
     /*Single row access methods*/
     @Override
-    public DataResult get(DataGet get,DataResult previous) throws IOException{
+    public Record get(byte[] key, Txn txn, IsolationLevel isolationLevel) throws IOException{
         assert get instanceof HGet : "Programmer Error: incorrect type for performing a Get!";
         Result result=doGet(((HGet)get).unwrapDelegate());
 
@@ -53,60 +54,11 @@ public abstract class SkeletonHBaseClientPartition implements Partition{
         return previous;
     }
 
-
     @Override
-    public DataResult getLatest(byte[] key,DataResult previous) throws IOException{
-        Get g = new Get(key);
-        g.setMaxVersions(1);
-
-        Result result=doGet(g);
-        if(previous==null)
-            previous = new HResult(result);
-        else{
-            ((HResult)previous).set(result);
-        }
-        return previous;
-    }
-
-    @Override
-    public DataResult getLatest(byte[] rowKey,byte[] family,DataResult previous) throws IOException{
-        Get g = new Get(rowKey);
-        g.setMaxVersions(1);
-        g.addFamily(family);
-
-        Result result=doGet(g);
-        if(previous==null)
-            previous = new HResult(result);
-        else{
-            ((HResult)previous).set(result);
-        }
-        return previous;
-    }
-
-    /*Scan methods*/
-    @Override
-    public DataScanner openScanner(RecordScan scan) throws IOException{
-        return openScanner(scan,Metrics.noOpMetricFactory());
-    }
-
-    @Override
-    public RecordScanner openResultScanner(RecordScan scan) throws IOException{
-        return openResultScanner(scan,Metrics.noOpMetricFactory());
-    }
-
-    @Override
-    public DataScanner openScanner(RecordScan scan, MetricFactory metricFactory) throws IOException{
-        MeasuredResultScanner scanner=new MeasuredResultScanner(getScanner(((HScan)scan).unwrapDelegate()),metricFactory);
-        return new ListingResultScanner(this,scanner);
-    }
-
-
-    @Override
-    public RecordScanner openResultScanner(RecordScan scan, MetricFactory metricFactory) throws IOException{
+    public RecordScanner openScanner(RecordScan scan) throws IOException{
         MeasuredResultScanner scanner=new MeasuredResultScanner(getScanner(((HScan)scan).unwrapDelegate()),metricFactory);
         return new ResultDataScanner(scanner);
     }
-
 
     /*Data Mutation methods*/
     @Override

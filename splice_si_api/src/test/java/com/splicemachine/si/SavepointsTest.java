@@ -26,10 +26,7 @@ import com.splicemachine.si.testenv.ArchitectureSpecific;
 import com.splicemachine.si.testenv.SITestEnv;
 import com.splicemachine.si.testenv.SITestEnvironment;
 import com.splicemachine.si.testenv.TestTransactionSetup;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.spark_project.guava.collect.Lists;
 import java.util.List;
@@ -38,6 +35,7 @@ import java.util.List;
  * Tests around the logic for savepoints.
  *
  */
+@Ignore
 @Category(ArchitectureSpecific.class)
 public class SavepointsTest {
 

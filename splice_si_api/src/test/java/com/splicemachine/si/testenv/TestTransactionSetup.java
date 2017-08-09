@@ -34,8 +34,6 @@ import java.io.IOException;
 @SuppressWarnings("unchecked")
 public class TestTransactionSetup {
 
-    byte[] family;
-    byte[] ageQualifier;
     int agePosition = 0;
     int jobPosition = 1;
     TxnOperationFactory txnOperationFactory;
@@ -46,30 +44,32 @@ public class TestTransactionSetup {
 
     public TestTransactionSetup(SITestEnv testEnv, boolean simple) {
 
-        family = SIConstants.DEFAULT_FAMILY_BYTES;
-        ageQualifier = Bytes.toBytes("age");
-
         final ManagedTransactor listener = new ManagedTransactor();
-
+        System.out.println("listener - >: " + listener);
         timestampSource = testEnv.getTimestampSource();
-        ClientTxnLifecycleManager lfManager = new ClientTxnLifecycleManager(timestampSource,
+        System.out.println("timestampSource - >: " + timestampSource);
+        System.out.println("1 - >: " + testEnv.getExceptionFactory());
+        System.out.println("2 - >: " + testEnv.getTxnFactory());
+        System.out.println("3 - >: " + testEnv.getTxnLocationFactory());
+        System.out.println("4 - >: " + testEnv.getGlobalTxnCache());
+        System.out.println("5 - >: " + testEnv.getTxnStore());
+
+        txnLifecycleManager = new ClientTxnLifecycleManager(timestampSource,
                 timestampSource,
                 testEnv.getExceptionFactory(),
                 testEnv.getTxnFactory(),
                 testEnv.getTxnLocationFactory(),
                 testEnv.getGlobalTxnCache(),
                 testEnv.getTxnStore());
+        System.out.println("txnLifecycleManager - >: " + txnLifecycleManager);
         this.txnStore = testEnv.getTxnStore();
-//        TxnSupplier txnSupplier=new GlobalTxnCacheSupplier(100,16);
-        txnLifecycleManager = lfManager;
-
+        System.out.println("txnStore - >: " + txnStore);
         txnOperationFactory = testEnv.getOperationFactory();
-
         transactor = new SITransactor(testEnv.getTxnStore(),
                 txnOperationFactory,
                 testEnv.getOperationStatusFactory(),
                 testEnv.getExceptionFactory());
-
+        System.out.println("txnLifecycleManager - >: " + txnLifecycleManager);
         if (!simple) {
             listener.setTransactor(transactor);
         }
@@ -79,50 +79,4 @@ public class TestTransactionSetup {
         return testEnv.getPersonTable(this);
     }
 
-		/*
-         * The following methods are in place to bridge the goofiness gap between real code (i.e. HBase) and
-		 * the stupid test code, without requiring odd production-level classes and methods which don't have good
-		 * type signatures and don't make sense within the system. Someday, we'll remove the test Operation logic
-		 * entirely and replace it with an in-memory HBase installation
-		 */
-
-//    public OperationWithAttributes convertTestTypePut(Put put) {
-//        if (isInMemory) {
-//            OperationWithAttributes owa = new LTuple(put.getRow(), Lists.newArrayList(Iterables.concat(put.getFamilyMap().values())));
-//            copyAttributes(put, owa);
-//            return owa;
-//        } else return put;
-//    }
-//
-//    private static void copyAttributes(OperationWithAttributes source, OperationWithAttributes dest) {
-//        Map<String, byte[]> attributesMap = source.getAttributesMap();
-//        for (Map.Entry<String, byte[]> attribute : attributesMap.entrySet()) {
-//            dest.setAttribute(attribute.getKey(), attribute.getValue());
-//        }
-//    }
-//
-//
-//    public OperationWithAttributes convertTestTypeGet(Get scan, Long effectiveTimestamp) {
-//        if (isInMemory) {
-//            List<List<byte[]>> columns = Lists.newArrayList();
-//            List<byte[]> families = Lists.newArrayList();
-//            Map<byte[], NavigableSet<byte[]>> familyMap = scan.getFamilyMap();
-//            for (byte[] family : familyMap.keySet()) {
-//                families.add(family);
-//                List<byte[]> columnsForFamily = Lists.newArrayList(familyMap.get(family));
-//                columns.add(columnsForFamily);
-//            }
-//            if (families.size() <= 0)
-//                families = null;
-//            if (columns.size() <= 0)
-//                columns = null;
-//
-//            OperationWithAttributes owa = new LGet(scan.getRow(), scan.getRow(),
-//                    families,
-//                    columns, effectiveTimestamp, scan.getMaxVersions());
-//            copyAttributes(scan, owa);
-//            return owa;
-//        } else return scan;
-//
-//    }
 }

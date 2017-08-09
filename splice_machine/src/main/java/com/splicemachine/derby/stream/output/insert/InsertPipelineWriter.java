@@ -15,8 +15,6 @@
 
 package com.splicemachine.derby.stream.output.insert;
 
-import com.splicemachine.SpliceKryoRegistry;
-import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
@@ -27,19 +25,15 @@ import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.PermissiveInsertWriteConfiguration;
 import com.splicemachine.derby.stream.output.AbstractPipelineWriter;
-import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
-import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
-import com.splicemachine.utils.IntArrays;
+import com.splicemachine.storage.Record;
+import com.splicemachine.storage.RecordType;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import java.io.IOException;
 import java.util.Iterator;
 
@@ -51,9 +45,8 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
     protected String tableVersion;
     protected ExecRow execRowDefinition;
     protected RowLocation[] autoIncrementRowLocationArray;
-    protected KVPair.Type dataType;
+    protected RecordType dataType;
     protected SpliceSequence[] spliceSequences;
-    protected PairEncoder encoder;
     protected InsertOperation insertOperation;
     protected boolean isUpsert;
     private Partition table;
@@ -65,7 +58,7 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
                                 RowLocation[] autoIncrementRowLocationArray,
                                 SpliceSequence[] spliceSequences,
                                 long heapConglom,
-                                TxnView txn,
+                                Txn txn,
                                 OperationContext operationContext,
                                 boolean isUpsert) {
         super(txn,heapConglom,operationContext);
@@ -77,7 +70,7 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
         this.spliceSequences = spliceSequences;
         this.destinationTable = Bytes.toBytes(Long.toString(heapConglom));
         this.isUpsert = isUpsert;
-        this.dataType = isUpsert?KVPair.Type.UPSERT:KVPair.Type.INSERT;
+        this.dataType = isUpsert?RecordType.UPSERT:RecordType.INSERT;
         if (operationContext!=null) {
             this.insertOperation = (InsertOperation) operationContext.getOperation();
         }
@@ -90,12 +83,11 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
     public void open(TriggerHandler triggerHandler, SpliceOperation operation) throws StandardException {
         super.open(triggerHandler, operation);
         try {
-            encoder = new PairEncoder(getKeyEncoder(), getRowHash(), dataType);
             WriteConfiguration writeConfiguration = writeCoordinator.defaultWriteConfiguration();
             if(insertOperation!=null && operationContext.isPermissive())
                     writeConfiguration = new PermissiveInsertWriteConfiguration(writeConfiguration,
                             operationContext,
-                            encoder.getDecoder(execRowDefinition));
+                            execRowDefinition);
 
             writeConfiguration.setRecordingContext(operationContext);
             this.table =SIDriver.driver().getTableFactory().getTable(Long.toString(heapConglom));
@@ -113,8 +105,8 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
             if (operationContext!=null && operationContext.isFailed())
                 return;
             beforeRow(execRow);
-            KVPair encode = encoder.encode(execRow);
-            writeBuffer.add(encode);
+            Record record = SIDriver.driver().getOperationFactory().newRecord(txn,execRow.generateRowKey(pkCols));
+            writeBuffer.add(record);
             TriggerHandler.fireAfterRowTriggers(triggerHandler, execRow, flushCallback);
             if (operationContext!=null)
                 operationContext.recordWrite();
@@ -140,33 +132,6 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
         insert(execRows);
     }
 
-
-    public KeyEncoder getKeyEncoder() throws StandardException {
-        HashPrefix prefix;
-        DataHash dataHash;
-        KeyPostfix postfix = NoOpPostfix.INSTANCE;
-        if(pkCols==null){
-            prefix = new SaltedPrefix(EngineDriver.driver().newUUIDGenerator(100));
-            dataHash = NoOpDataHash.INSTANCE;
-        }else{
-            int[] keyColumns = new int[pkCols.length];
-            for(int i=0;i<keyColumns.length;i++){
-                keyColumns[i] = pkCols[i] -1;
-            }
-            prefix = NoOpPrefix.INSTANCE;
-            DescriptorSerializer[] serializers = VersionedSerializers.forVersion(tableVersion, true).getSerializers(execRowDefinition);
-            dataHash = BareKeyHash.encoder(keyColumns,null, SpliceKryoRegistry.getInstance(),serializers);
-        }
-        return new KeyEncoder(prefix,dataHash,postfix);
-    }
-
-    public DataHash getRowHash() throws StandardException {
-        //get all columns that are being set
-        int[] columns = getEncodingColumns(execRowDefinition.nColumns(),pkCols);
-        DescriptorSerializer[] serializers = VersionedSerializers.forVersion(tableVersion,true).getSerializers(execRowDefinition);
-        return new EntryDataHash(columns,null,serializers);
-    }
-
     @Override
     public void close() throws StandardException{
         super.close();
@@ -177,17 +142,6 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
                 throw Exceptions.parseException(e);
             }
         }
-    }
-
-    public static int[] getEncodingColumns(int n, int[] pkCols) {
-        int[] columns = IntArrays.count(n);
-        // Skip primary key columns to save space
-        if (pkCols != null) {
-            for(int pkCol:pkCols) {
-                columns[pkCol-1] = -1;
-            }
-        }
-        return columns;
     }
 
 }

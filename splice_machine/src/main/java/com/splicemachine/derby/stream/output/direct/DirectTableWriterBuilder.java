@@ -20,11 +20,10 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -36,7 +35,7 @@ import java.io.ObjectOutput;
  */
 public abstract class DirectTableWriterBuilder implements Externalizable,DataSetWriterBuilder{
     protected long destConglomerate;
-    protected TxnView txn;
+    protected Txn txn;
     protected OperationContext opCtx;
     protected boolean skipIndex;
 
@@ -47,7 +46,7 @@ public abstract class DirectTableWriterBuilder implements Externalizable,DataSet
     }
 
     @Override
-    public DataSetWriterBuilder txn(TxnView txn){
+    public DataSetWriterBuilder txn(Txn txn){
         this.txn = txn;
         return this;
     }
@@ -65,7 +64,7 @@ public abstract class DirectTableWriterBuilder implements Externalizable,DataSet
     }
 
     @Override
-    public TxnView getTxn(){
+    public Txn getTxn(){
         return txn;
     }
 

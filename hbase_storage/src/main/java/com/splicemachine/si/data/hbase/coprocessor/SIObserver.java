@@ -15,18 +15,11 @@
 
 package com.splicemachine.si.data.hbase.coprocessor;
 
-import static com.splicemachine.si.constants.SIConstants.ENTRY_PREDICATE_LABEL;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-
-import com.splicemachine.si.data.hbase.ExtendedOperationStatus;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Durability;
@@ -37,39 +30,23 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Iterables;
-import org.spark_project.guava.collect.Maps;
-
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.hbase.SICompactionScanner;
 import com.splicemachine.hbase.ZkUtils;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.si.api.filter.TransactionalFilter;
-import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.server.TransactionalRegion;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.impl.HOperationFactory;
-import com.splicemachine.si.impl.SIFilterPacked;
 import com.splicemachine.si.impl.SimpleTxnOperationFactory;
 import com.splicemachine.si.impl.Tracer;
 import com.splicemachine.si.impl.TxnRegion;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.si.impl.server.SICompactionState;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.HMutationStatus;
-import com.splicemachine.storage.MutationStatus;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.RegionPartition;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -94,13 +71,11 @@ public class SIObserver extends BaseRegionObserver{
             SIDriver driver = env.getSIDriver();
             operationStatusFactory = driver.getOperationStatusLib();
             //noinspection unchecked
-            txnOperationFactory=new SimpleTxnOperationFactory(driver.getExceptionFactory(),HOperationFactory.INSTANCE);
+            txnOperationFactory=new SimpleTxnOperationFactory();
             //noinspection unchecked
             Partition regionPartition = new RegionPartition((HRegion)rce.getRegion());
             region=new TxnRegion(regionPartition,
-                    driver.getRollForward(),
-                    driver.getReadResolver(regionPartition),
-                    driver.getTxnSupplier(),
+                    driver.getTxnStore(),
                     driver.getTransactor(),
                     driver.getOperationFactory()
                     );
@@ -122,7 +97,6 @@ public class SIObserver extends BaseRegionObserver{
             get.setMaxVersions();
             get.setTimeRange(0L,Long.MAX_VALUE);
             assert (get.getMaxVersions()==Integer.MAX_VALUE);
-            addSIFilterToGet(get);
         }
         SpliceLogUtils.trace(LOG,"preGet after %s",get);
         super.preGetOp(e,get,results);
@@ -136,7 +110,6 @@ public class SIObserver extends BaseRegionObserver{
             scan.setTimeRange(0L,Long.MAX_VALUE);
 //            txnReadController.preProcessScan(scan);
             assert (scan.getMaxVersions()==Integer.MAX_VALUE);
-            addSIFilterToScan(scan);
         }
         return super.preScannerOpen(e,scan,s);
     }
@@ -166,11 +139,7 @@ public class SIObserver extends BaseRegionObserver{
     public InternalScanner preCompact(ObserverContext<RegionCoprocessorEnvironment> e,Store store,
                                       InternalScanner scanner,ScanType scanType,CompactionRequest compactionRequest) throws IOException{
         if(tableEnvMatch){
-            SIDriver driver=SIDriver.driver();
-            SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
-                    driver.getRollForward(),
-                    driver.getConfiguration().getActiveTransactionCacheSize());
-            return new SICompactionScanner(state,scanner);
+            return new SICompactionScanner(scanner);
         }else{
             return super.preCompact(e,store,scanner,scanType,compactionRequest);
         }
@@ -187,99 +156,9 @@ public class SIObserver extends BaseRegionObserver{
         }
         byte[] attribute=put.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
         assert attribute!=null: "Txn not specified!";
-
-
-        TxnView txn=txnOperationFactory.fromWrites(attribute,0,attribute.length);
-        boolean isDelete=put.getAttribute(SIConstants.SI_DELETE_PUT)!=null;
-        byte[] row=put.getRow();
-        boolean isSIDataOnly=true;
         //convert the put into a collection of KVPairs
-        Map<byte[], Map<byte[], KVPair>> familyMap=Maps.newHashMap();
-        Iterable<Cell> keyValues=Iterables.concat(put.getFamilyCellMap().values());
-        for(Cell kv : keyValues){
-            @SuppressWarnings("deprecation") byte[] family=kv.getFamily();
-            @SuppressWarnings("deprecation") byte[] column=kv.getQualifier();
-            if(!Bytes.equals(column,SIConstants.PACKED_COLUMN_BYTES)) continue; //skip SI columns
-
-            isSIDataOnly=false;
-            @SuppressWarnings("deprecation") byte[] value=kv.getValue();
-            Map<byte[], KVPair> columnMap=familyMap.get(family);
-            if(columnMap==null){
-                columnMap=Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
-                familyMap.put(family,columnMap);
-            }
-            columnMap.put(column,new KVPair(row,value,isDelete?KVPair.Type.DELETE:KVPair.Type.INSERT));
-        }
-        if(isSIDataOnly){
-            byte[] family=SIConstants.DEFAULT_FAMILY_BYTES;
-            byte[] column=SIConstants.PACKED_COLUMN_BYTES;
-            byte[] value=HConstants.EMPTY_BYTE_ARRAY;
-            Map<byte[], KVPair> columnMap=familyMap.get(family);
-            if(columnMap==null){
-                columnMap=Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
-                familyMap.put(family,columnMap);
-            }
-            columnMap.put(column,new KVPair(row,value,isDelete?KVPair.Type.DELETE:KVPair.Type.EMPTY_COLUMN));
-        }
-        for(Map.Entry<byte[], Map<byte[], KVPair>> family : familyMap.entrySet()){
-            byte[] fam=family.getKey();
-            Map<byte[], KVPair> cols=family.getValue();
-            for(Map.Entry<byte[], KVPair> column : cols.entrySet()){
-                boolean processed=false;
-                while (!processed) {
-                    @SuppressWarnings("unchecked") Iterable<MutationStatus> status =
-                            region.bulkWrite(txn, fam, column.getKey(), operationStatusFactory.getNoOpConstraintChecker(), Collections.singleton(column.getValue()));
-                    Iterator<MutationStatus> itr = status.iterator();
-                    if (!itr.hasNext())
-                        throw new IllegalStateException();
-                    OperationStatus ms = ((HMutationStatus) itr.next()).unwrapDelegate();
-                    switch (ms.getOperationStatusCode()) {
-                        case NOT_RUN:
-                            break;
-                        case BAD_FAMILY:
-                            throw new NoSuchColumnFamilyException(ms.getExceptionMsg());
-                        case SANITY_CHECK_FAILURE:
-                            throw new IOException("Sanity Check failure:" + ms.getExceptionMsg());
-                        case FAILURE:
-                            if (ms instanceof ExtendedOperationStatus) {
-                                throw ((ExtendedOperationStatus)ms).getException();
-                            }
-                            throw new IOException(ms.getExceptionMsg());
-                        default:
-                            processed = true;
-                    }
-                }
-            }
-        }
-
         e.bypass();
         e.complete();
-    }
-
-    /* ****************************************************************************************************************/
-    /*private helper methods*/
-    private void addSIFilterToGet(Get get) throws IOException{
-        byte[] attribute=get.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
-        assert attribute!=null: "Txn information is missing";
-
-        TxnView txn=txnOperationFactory.fromReads(attribute,0,attribute.length);
-        final Filter newFilter=makeSIFilter(txn,get.getFilter(), getPredicateFilter(get),false);
-        get.setFilter(newFilter);
-    }
-
-    private void addSIFilterToScan(Scan scan) throws IOException{
-        byte[] attribute=scan.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
-        assert attribute!=null: "Txn information is missing";
-
-        TxnView txn=txnOperationFactory.fromReads(attribute,0,attribute.length);
-        final Filter newFilter=makeSIFilter(txn,scan.getFilter(),
-                getPredicateFilter(scan),scan.getAttribute(SIConstants.SI_COUNT_STAR)!=null);
-        scan.setFilter(newFilter);
-    }
-
-    private EntryPredicateFilter getPredicateFilter(OperationWithAttributes operation) throws IOException{
-        final byte[] serializedPredicateFilter=operation.getAttribute(ENTRY_PREDICATE_LABEL);
-        return EntryPredicateFilter.fromBytes(serializedPredicateFilter);
     }
 
     private boolean shouldUseSI(OperationWithAttributes op){
@@ -301,25 +180,4 @@ public class SIObserver extends BaseRegionObserver{
         return true;
     }
 
-    private Filter makeSIFilter(TxnView txn,Filter currentFilter,EntryPredicateFilter predicateFilter,boolean countStar) throws IOException{
-        TxnFilter txnFilter=region.packedFilter(txn,predicateFilter,countStar);
-        @SuppressWarnings("unchecked") SIFilterPacked siFilter=new SIFilterPacked(txnFilter);
-        if(currentFilter!=null){
-            return composeFilters(orderFilters(currentFilter,siFilter));
-        }else{
-            return siFilter;
-        }
-    }
-
-    private Filter[] orderFilters(Filter currentFilter,Filter siFilter){
-        if(currentFilter instanceof TransactionalFilter && ((TransactionalFilter)currentFilter).isBeforeSI()){
-            return new Filter[]{currentFilter,siFilter};
-        }else{
-            return new Filter[]{siFilter,currentFilter};
-        }
-    }
-
-    private FilterList composeFilters(Filter[] filters){
-        return new FilterList(FilterList.Operator.MUST_PASS_ALL,filters[0],filters[1]);
-    }
 }

@@ -44,6 +44,7 @@ import java.util.List;
  * Date: 8/21/14
  */
 @Category(ArchitectureSpecific.class)
+@Ignore
 public class TransactionInteractionTest {
     @Rule
     public ExpectedException error = ExpectedException.none();

@@ -642,7 +642,7 @@ public class SystemProcedures{
         LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
         TransactionController tc=lcc.getTransactionExecute();
         try{
-            tc.elevate("dbprops");
+            tc.elevate();
         }catch(StandardException se){
             throw PublicAPI.wrapStandardException(se);
         }

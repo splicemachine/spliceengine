@@ -15,7 +15,6 @@
 
 package com.splicemachine.derby.impl.store.access.base;
 
-import com.carrotsearch.hppc.BitSet;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.access.api.PartitionFactory;
@@ -26,21 +25,14 @@ import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.EngineUtils;
-import com.splicemachine.derby.utils.FormatableBitSetUtils;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.IsolationLevel;
-import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
 import org.apache.log4j.Logger;
-import org.apache.parquet.Closeables;
-
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Iterator;
@@ -156,23 +148,9 @@ public abstract class SpliceController implements ConglomerateController{
     public boolean fetch(RowLocation loc,DataValueDescriptor[] destRow,FormatableBitSet validColumns,boolean waitForLock) throws StandardException{
         Partition htable = getTable();
         try{
-            DataGet baseGet=opFactory.newDataGet(trans.getTxnInformation(),loc.getBytes(),null);
-            DataGet get=createGet(baseGet,destRow,validColumns);//loc,destRow,validColumns,trans.getTxnInformation());
             Record result=htable.get(loc.getBytes(),trans.getTxnInformation(), IsolationLevel.SNAPSHOT_ISOLATION);
-            validColumns
-
-            if(result==null || result.size()<=0) return false;
-
-            int[] cols=FormatableBitSetUtils.toIntArray(validColumns);
-            DescriptorSerializer[] serializers=VersionedSerializers.forVersion(tableVersion,true).getSerializers(destRow);
-            try(KeyHashDecoder rowDecoder=new EntryDataDecoder(cols,null,serializers)){
-                ExecRow row=new ValueRow(destRow.length);
-                row.setRowArray(destRow);
-                row.resetRowArray();
-                DataCell keyValue=result.userData();
-                rowDecoder.set(keyValue.valueArray(),keyValue.valueOffset(),keyValue.valueLength());
-                rowDecoder.decode(row);
-            }
+            if(result==null) return false;
+            result.getData(validColumns,destRow);
             return true;
         }catch(Exception e){
             throw Exceptions.parseException(e);
@@ -183,43 +161,23 @@ public abstract class SpliceController implements ConglomerateController{
         return batchFetch(locations,destRows,validColumns,false);
     }
     @Override
-    public boolean batchFetch(List<RowLocation> locations, List<ExecRow> destRows,FormatableBitSet validColumns,boolean waitForLock) throws StandardException{
+    public boolean batchFetch(List<RowLocation> locations, List<ExecRow> destRows, FormatableBitSet validColumns,boolean waitForLock) throws StandardException{
         if (locations.size() == 0)
             return false;
         Partition htable = getTable();
-        KeyHashDecoder rowDecoder = null;
         try{
-            DataGet baseGet=opFactory.newDataGet(trans.getTxnInformation(),locations.get(0).getBytes(),null);
-            baseGet.returnAllVersions();
-            DataGet get = createGet(baseGet,destRows.get(0).getRowArray(),validColumns);//loc,destRow,validColumns,trans.getTxnInformation());
-            Iterator<DataResult> results = htable.batchGet(get, Lists.transform(locations, ROWLOCATION_TO_BYTES));
+            Iterator<Record> results = htable.batchGet(Lists.transform(locations, ROWLOCATION_TO_BYTES),trans.getTxnInformation(),IsolationLevel.SNAPSHOT_ISOLATION);
             assert results != null:"Results Returned are Null";
             int i = 0;
-            DescriptorSerializer[] serializers = null;
-            int[] cols=FormatableBitSetUtils.toIntArray(validColumns);
             while (results.hasNext()) {
-                DataResult result = results.next();
-                DataValueDescriptor[] destRow = destRows.get(i).getRowArray();
-                if (serializers ==null) {
-                    serializers = VersionedSerializers.forVersion(tableVersion, true).getSerializers(destRow);
-                    rowDecoder=new EntryDataDecoder(cols,null,serializers);
-                }
-                ExecRow row=new ValueRow(destRow.length);
-                row.setRowArray(destRow);
-                row.resetRowArray();
-                DataCell keyValue=result.userData();
-                rowDecoder.set(keyValue.valueArray(),keyValue.valueOffset(),keyValue.valueLength());
-                rowDecoder.decode(row);
+                Record result = results.next();
+                result.getData(validColumns,destRows.get(i));
                 i++;
             }
             return true;
         }catch(Exception e){
             throw Exceptions.parseException(e);
-        } finally {
-            if (rowDecoder !=null)
-                Closeables.closeAndSwallowIOExceptions(rowDecoder);
         }
-
     }
 
 
@@ -240,21 +198,8 @@ public abstract class SpliceController implements ConglomerateController{
     }
 
 
-    protected void encodeRow(DataValueDescriptor[] row,DataPut put,int[] columns,FormatableBitSet validColumns) throws StandardException, IOException{
-        if(entryEncoder==null){
-            int[] validCols=EngineUtils.bitSetToMap(validColumns);
-            DescriptorSerializer[] serializers=VersionedSerializers.forVersion(tableVersion,true).getSerializers(row);
-            entryEncoder=new EntryDataHash(validCols,null,serializers);
-        }
-        ValueRow rowToEncode=new ValueRow(row.length);
-        rowToEncode.setRowArray(row);
-        entryEncoder.setRow(rowToEncode);
-        byte[] data=entryEncoder.encode();
-        put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,data);
-    }
-
     protected void elevateTransaction() throws StandardException{
-        ((SpliceTransaction)trans).elevate(Bytes.toBytes(Long.toString(openSpliceConglomerate.getConglomerate().getContainerid())));
+        ((SpliceTransaction)trans).elevate();
     }
 
     public SpliceConglomerate getConglomerate(){
@@ -262,26 +207,4 @@ public abstract class SpliceController implements ConglomerateController{
     }
 
 
-    protected static DataGet createGet(DataGet baseGet,
-                                    DataValueDescriptor[] destRow,
-                                    FormatableBitSet validColumns) throws StandardException {
-        try {
-//            Get get = createGet(txn, loc.getBytes());
-            BitSet fieldsToReturn;
-            if(validColumns!=null){
-                fieldsToReturn = new BitSet(validColumns.size());
-                for(int i=validColumns.anySetBit();i>=0;i=validColumns.anySetBit(i)){
-                    fieldsToReturn.set(i);
-                }
-            }else{
-                fieldsToReturn = new BitSet(destRow.length);
-                fieldsToReturn.set(0,destRow.length);
-            }
-            EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fieldsToReturn);
-            baseGet.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
-            return baseGet;
-        } catch (Exception e) {
-            throw Exceptions.parseException(e);
-        }
-    }
 }

@@ -19,8 +19,9 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.experimental.categories.Category;
 import scala.Tuple2;
@@ -58,9 +59,9 @@ public class BaseStreamTest {
     public static ExecRow getExecRow(int value) {
         try {
             ValueRow vr = new ValueRow(2);
-            DataValueDescriptor dvd = TestingDataType.VARCHAR.getDataValueDescriptor();
+            DataValueDescriptor dvd = new SQLVarchar();
             dvd.setValue(""+value);
-            DataValueDescriptor dvd2 = TestingDataType.VARCHAR.getDataValueDescriptor();
+            DataValueDescriptor dvd2 = new SQLVarchar();
             dvd2.setValue(""+value);
             vr.setColumn(1, dvd);
             vr.setColumn(2, dvd2);
@@ -74,7 +75,7 @@ public class BaseStreamTest {
         try {
             ValueRow vr = new ValueRow(numberOfRecords);
             for (int i = 0; i<numberOfRecords;i++) {
-                DataValueDescriptor dvd = TestingDataType.INTEGER.getDataValueDescriptor();
+                DataValueDescriptor dvd = new SQLInteger();
                 dvd.setValue(value);
                 vr.setColumn(i + 1, dvd);
             }

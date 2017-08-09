@@ -22,12 +22,8 @@ import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.si.impl.SimpleTxnFilter;
-import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
-import com.splicemachine.si.impl.txn.ActiveWriteTxn;
-import com.splicemachine.si.impl.txn.WritableTxn;
+import com.splicemachine.si.api.txn.IsolationLevel;
 import com.splicemachine.storage.*;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.writehandler.WriteHandler;
@@ -49,7 +45,7 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
     private TxnOperationFactory txnOperationFactory;
     private HashMap<Long,Partition> childPartitions = new HashMap<>();
     private String parentTableName;
-    private ObjectArrayList<KVPair> mutations = new ObjectArrayList<>();
+    private ObjectArrayList<Record> mutations = new ObjectArrayList<>();
 
 
     public ForeignKeyParentInterceptWriteHandler(String parentTableName,
@@ -66,8 +62,8 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
     }
 
     @Override
-    public void next(KVPair mutation, WriteContext ctx) {
-        if (isForeignKeyInterceptNecessary(mutation.getType())) {
+    public void next(Record mutation, WriteContext ctx) {
+        if (isForeignKeyInterceptNecessary(mutation.getRecordType())) {
             mutations.add(mutation);
         }
         ctx.sendUpstream(mutation);
@@ -75,10 +71,10 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
     /** We exist to prevent updates/deletes of rows from the parent table which are referenced by a child.
      * Since we are a WriteHandler on a primary-key or unique-index we can just handle deletes.
      */
-    private boolean isForeignKeyInterceptNecessary(KVPair.Type type) {
+    private boolean isForeignKeyInterceptNecessary(RecordType type) {
         /* We exist to prevent updates/deletes of rows from the parent table which are referenced by a child.
          * Since we are a WriteHandler on a primary-key or unique-index we can just handle deletes. */
-        return type == KVPair.Type.DELETE;
+        return type == RecordType.DELETE;
     }
 
 
@@ -87,7 +83,7 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
         try {
             // TODO Buffer with skip scan
             for (int k = 0; k<mutations.size();k++) {
-                KVPair mutation = mutations.get(k);
+                Record mutation = mutations.get(k);
                 for (int i = 0; i < referencingIndexConglomerateIds.size(); i++) {
                     long indexConglomerateId = referencingIndexConglomerateIds.get(i);
                     Partition table = null;
@@ -141,62 +137,26 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
          */
 
 
-        private boolean hasReferences(Long indexConglomerateId, Partition table, KVPair kvPair, WriteContext ctx) throws IOException {
-        byte[] startKey = kvPair.getRowKey();
+        private boolean hasReferences(Long indexConglomerateId, Partition table, Record kvPair, WriteContext ctx) throws IOException {
+        byte[] startKey = kvPair.getKey();
         //make sure this is a transactional scan
-        RecordScan scan = txnOperationFactory.newDataScan(null); // Non-Transactional, will resolve on this side
+        RecordScan scan = txnOperationFactory.newDataScan(); // Non-Transactional, will resolve on this side
         scan =scan.startKey(startKey);
         byte[] endKey = Bytes.unsignedCopyAndIncrement(startKey);//new byte[startKey.length+1];
         scan = scan.stopKey(endKey);
-
-            SimpleTxnFilter readUncommittedFilter;
-            SimpleTxnFilter readCommittedFilter;
-            if (ctx.getTxn() instanceof ActiveWriteTxn) {
-                readCommittedFilter = new SimpleTxnFilter(Long.toString(indexConglomerateId), ((ActiveWriteTxn) ctx.getTxn()).getReadCommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
-                readUncommittedFilter = new SimpleTxnFilter(Long.toString(indexConglomerateId), ((ActiveWriteTxn) ctx.getTxn()).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
-
-            }
-            else if (ctx.getTxn() instanceof WritableTxn) {
-                readCommittedFilter = new SimpleTxnFilter(Long.toString(indexConglomerateId), ((WritableTxn) ctx.getTxn()).getReadCommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
-                readUncommittedFilter = new SimpleTxnFilter(Long.toString(indexConglomerateId), ((WritableTxn) ctx.getTxn()).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
-            }
-            else
-                throw new IOException("invalidTxn");
-        try(DataScanner scanner = table.openScanner(scan)) {
-            List<DataCell> next;
-            while ((next = scanner.next(-1)) != null && !next.isEmpty()) {
-                readCommittedFilter.reset();
-                readUncommittedFilter.reset();
-                if (hasData(next, readCommittedFilter) || hasData(next, readUncommittedFilter))
+            Record next = null;
+            try(RecordScanner scanner = table.openScanner(scan,ctx.getTxn(), IsolationLevel.READ_COMMITTED)) {
+                while ((next = scanner.next()) != null) {
                     return true;
+                }
+            }
+            try(RecordScanner scanner = table.openScanner(scan,ctx.getTxn(), IsolationLevel.READ_UNCOMMITTED)) {
+                while ((next = scanner.next()) != null) {
+                    return true;
+                }
             }
             return false;
-        }catch (Exception e) {
-            throw new IOException(e);
-        }
     }
-
-    private boolean hasData(List<DataCell> next, SimpleTxnFilter txnFilter) throws IOException {
-        int cellCount = next.size();
-        for(DataCell dc:next){
-            DataFilter.ReturnCode rC = txnFilter.filterCell(dc);
-            switch(rC){
-                case NEXT_ROW:
-                    return false; //the entire row is filtered
-                case SKIP:
-                case NEXT_COL:
-                case SEEK:
-                    cellCount--; //the cell is filtered
-                    break;
-                case INCLUDE:
-                case INCLUDE_AND_NEXT_COL: //the cell is included
-                default:
-                    break;
-            }
-        }
-        return cellCount>0;
-    }
-
     /**
      *
      * TODO JL
@@ -206,8 +166,8 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
      * @param ctx
      * @param fkConstraintInfo
      */
-    private void failRow(KVPair mutation, WriteContext ctx, DDLMessage.FKConstraintInfo fkConstraintInfo ) {
-        String failedKvAsHex = Bytes.toHex(mutation.getRowKey());
+    private void failRow(Record mutation, WriteContext ctx, DDLMessage.FKConstraintInfo fkConstraintInfo ) {
+        String failedKvAsHex = Bytes.toHex(mutation.getKey());
         ConstraintContext context = ConstraintContext.foreignKey(fkConstraintInfo);
         WriteResult foreignKeyConstraint = new WriteResult(Code.FOREIGN_KEY_VIOLATION, context.withMessage(1, parentTableName));
         ctx.failed(mutation, foreignKeyConstraint);

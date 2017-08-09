@@ -9,7 +9,7 @@ import com.splicemachine.derby.stream.function.RowTransformFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
-import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.storage.Record;
 
 import java.util.concurrent.Callable;
 
@@ -37,10 +37,10 @@ public class AlterTableTransformJob implements Callable<Void> {
         dsp.setJobGroup(request.jobGroup, request.description);
 
 
-        DataSet<KVPair> dataSet = request.scanSetBuilder.buildDataSet(this);
+        DataSet<Record> dataSet = request.scanSetBuilder.buildDataSet(this);
 
         // Write new conglomerate
-        PairDataSet<LocatedRow,KVPair> ds = dataSet.map(new RowTransformFunction(request.ddlChange)).index(new KVPairFunction());
+        PairDataSet<LocatedRow,Record> ds = dataSet.map(new RowTransformFunction(request.ddlChange)).index(new KVPairFunction());
         //side effects are what matters here
         @SuppressWarnings("unused") DataSet<LocatedRow> result = ds.directWriteData()
                 .txn(request.childTxn)

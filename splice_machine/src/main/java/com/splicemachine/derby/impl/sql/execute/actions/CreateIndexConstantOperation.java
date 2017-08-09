@@ -794,7 +794,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         Txn parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
         try {
             TxnLifecycleManager lifecycleManager = SIDriver.driver().lifecycleManager();
-            tentativeTransaction = lifecycleManager.beginChildTransaction(parentTxn, DDLUtils.getIndexConglomBytes(indexConglomId));
+            tentativeTransaction = lifecycleManager.beginChildTransaction(parentTxn);
         } catch (IOException e) {
             LOG.error("Couldn't start transaction for tentative DDL operation");
             throw Exceptions.parseException(e);
@@ -806,7 +806,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         tc.prepareDataDictionaryChange(changeId);
         Txn indexTransaction = DDLUtils.getIndexTransaction(tc, tentativeTransaction, td.getHeapConglomerateId(),indexName);
         populateIndex(activation, indexTransaction, tentativeTransaction.getCommitTimestamp(), ddlChange.getTentativeIndex(), td);
-        indexTransaction.commit();
+        SIDriver.driver().lifecycleManager().commit(indexTransaction);
     }
 
 }

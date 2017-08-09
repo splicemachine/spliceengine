@@ -34,6 +34,7 @@ import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.txn.IsolationLevel;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -59,14 +60,13 @@ public class SpliceScan implements ScanManager, LazyScan{
     protected boolean currentRowDeleted=false;
     protected HBaseRowLocation currentRowLocation;
     protected ExecRow currentRow;
-    protected DataResult currentResult;
+    protected Record currentResult;
     protected long estimatedRowCount=0;
     protected boolean isKeyed;
     protected boolean scannerInitialized=false;
     protected String tableName;
     private TxnOperationFactory opFactory;
     private PartitionFactory partitionFactory;
-    private DescriptorSerializer[] serializers;
 
     public SpliceScan(){
         if(LOG.isTraceEnabled())
@@ -97,7 +97,6 @@ public class SpliceScan implements ScanManager, LazyScan{
         this.opFactory = operationFactory;
         this.partitionFactory = partitionFactory;
         setupScan();
-        attachFilter();
         tableName=Long.toString(spliceConglomerate.getConglomerate().getContainerid());
         DataValueDescriptor[] dvdArray = this.spliceConglomerate.cloneRowTemplate();
         // Hack for Indexes...
@@ -105,7 +104,6 @@ public class SpliceScan implements ScanManager, LazyScan{
             dvdArray[dvdArray.length-1] = new HBaseRowLocation();
         currentRow = new ValueRow(dvdArray.length);
         currentRow.setRowArray(dvdArray);
-        serializers = VersionedSerializers.forVersion("1.0", true).getSerializers(currentRow);
         if(LOG.isTraceEnabled()){
             SpliceLogUtils.trace(LOG,"scanning with start key %s and stop key %s and transaction %s",Arrays.toString(startKeyValue),Arrays.toString(stopKeyValue),trans);
         }
@@ -115,19 +113,6 @@ public class SpliceScan implements ScanManager, LazyScan{
         try{
             if(scanner!=null) scanner.close();
         }catch(IOException ignored){ }
-    }
-
-    protected void attachFilter(){
-        try{
-            Scans.buildPredicateFilter(
-                    qualifier,
-                    null,
-                    spliceConglomerate.getColumnOrdering(),
-                    spliceConglomerate.getFormatIds(),
-                    scan,"1.0");
-        }catch(Exception e){
-            throw new RuntimeException("error attaching Filter",e);
-        }
     }
 
     public void setupScan(){
@@ -173,8 +158,7 @@ public class SpliceScan implements ScanManager, LazyScan{
         if(currentResult==null)
             throw StandardException.newException("Attempting to delete with a null current result");
         try{
-            DataMutation dataMutation=opFactory.newDataDelete(trans.getActiveStateTxn(),currentResult.key());
-            table.mutate(dataMutation);
+            table.delete(currentResult.getKey(),trans.getActiveStateTxn());
             currentRowDeleted=true;
             return true;
         }catch(Exception e){
@@ -192,7 +176,7 @@ public class SpliceScan implements ScanManager, LazyScan{
                 if (currentResult != null) {
                     fetchWithoutQualify();
                     if (qualifier == null || Scans.qualifyRecordFromRow(currentRow.getRowArray(), qualifier, null, null)) {
-                        this.currentRowLocation = new HBaseRowLocation(currentResult.key());
+                        this.currentRowLocation = new HBaseRowLocation(currentResult.getKey());
                         return true;
                     }
                 } else {
@@ -265,21 +249,17 @@ public class SpliceScan implements ScanManager, LazyScan{
         if(currentResult==null)
             throw StandardException.newException("currentResult is null ");
         if(LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"fetchLocation %s",Bytes.toString(currentResult.key()));
-        destRowLocation.setValue(this.currentResult.key());
+            SpliceLogUtils.trace(LOG,"fetchLocation %s",Bytes.toString(currentResult.getKey()));
+        destRowLocation.setValue(this.currentResult.getKey());
     }
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public void fetchWithoutQualify() throws StandardException{
         try{
             if(currentRow!=null){
-                try (EntryDataDecoder decoder = new EntryDataDecoder(null, null, serializers)) {
-                    DataCell kv = currentResult.userData();//dataLib.matchDataColumn(currentResult);
-                    decoder.set(kv.valueArray(), kv.valueOffset(), kv.valueLength());//dataLib.getDataValueBuffer(kv),dataLib.getDataValueOffset(kv),dataLib.getDataValuelength(kv));
-                    decoder.decode(currentRow);
-                }
+                currentResult.getData(scanColumnList,currentRow);
             }
-            this.currentRowLocation=new HBaseRowLocation(currentResult.key());
+            this.currentRowLocation=new HBaseRowLocation(currentResult.getKey());
         }catch(Exception e){
             throw StandardException.newException("Error occurred during fetch",e);
         }
@@ -291,7 +271,6 @@ public class SpliceScan implements ScanManager, LazyScan{
 
     public int fetchNextGroup(DataValueDescriptor[][] row_array,RowLocation[] oldrowloc_array,RowLocation[] newrowloc_array) throws StandardException{
         throw new RuntimeException("Not Implemented");
-        //	return 0;
     }
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
@@ -304,11 +283,10 @@ public class SpliceScan implements ScanManager, LazyScan{
         this.stopKeyValue=stopKeyValue;
         this.stopSearchOperator=stopSearchOperator;
         setupScan();
-        attachFilter();
         try{
             if(table==null)
                 table=partitionFactory.getTable(Long.toString(spliceConglomerate.getConglomerate().getContainerid()));
-            scanner=table.openResultScanner(scan);
+            scanner=table.openScanner(scan,trans.getActiveStateTxn(),IsolationLevel.SNAPSHOT_ISOLATION);
         }catch(IOException e){
             throw Exceptions.parseException(e); //TODO -sf- replace this with an exceptionFactory
         }
@@ -320,9 +298,8 @@ public class SpliceScan implements ScanManager, LazyScan{
         this.qualifier=qualifier;
         setupScan();
         scan.startKey(startRowLocation.getBytes());
-        attachFilter();
         try{
-            scanner=table.openResultScanner(scan);
+            scanner=table.openScanner(scan,trans.getActiveStateTxn(),IsolationLevel.SNAPSHOT_ISOLATION);
         }catch(IOException e){
             throw Exceptions.parseException(e); //TODO -sf- replace this with an exceptionFactory
         }
@@ -350,6 +327,8 @@ public class SpliceScan implements ScanManager, LazyScan{
     public boolean replace(DataValueDescriptor[] row,FormatableBitSet validColumns) throws StandardException{
         SpliceLogUtils.trace(LOG,"replace values for these valid Columns %s",validColumns);
         try{
+            throw new UnsupportedOperationException("Need to implement replace");
+            /*
             int[] validCols=EngineUtils.bitSetToMap(validColumns);
             DataPut put=opFactory.newDataPut(trans.getActiveStateTxn(),currentRowLocation.getBytes());//SpliceUtils.createPut(currentRowLocation.getBytes(),trans.getActiveStateTxn());
 
@@ -362,9 +341,9 @@ public class SpliceScan implements ScanManager, LazyScan{
             put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,data);
 
             table.put(put);
-
+        */
 //			table.put(Puts.buildInsert(currentRowLocation.getByteCopy(), row, validColumns, transID));
-            return true;
+            //return true;
         }catch(Exception e){
             throw StandardException.newException("Error during replace "+e);
         }
@@ -386,7 +365,7 @@ public class SpliceScan implements ScanManager, LazyScan{
         try{
             if(table==null)
                 table = partitionFactory.getTable(Long.toString(spliceConglomerate.getConglomerate().getContainerid()));
-            scanner=table.openResultScanner(scan);
+            scanner=table.openScanner(scan,trans.getTxnInformation(), IsolationLevel.SNAPSHOT_ISOLATION);
             this.scannerInitialized=true;
         }catch(IOException e){
             LOG.error("Initializing scanner failed",e);

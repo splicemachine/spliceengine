@@ -15,8 +15,7 @@
 
 package com.splicemachine.hash;
 
-import com.splicemachine.annotations.ThreadSafe;
-
+import javax.annotation.concurrent.ThreadSafe;
 import java.nio.ByteBuffer;
 
 /**
@@ -34,7 +33,6 @@ public class HashFunctions {
      *
      * @return the same hash function as used by java.util.HashMap
      */
-    @ThreadSafe
     public static Hash32 utilHash(){
         return UtilHash.INSTANCE;
     }
@@ -45,7 +43,6 @@ public class HashFunctions {
      * @param seed the seed to use
      * @return a 32-bit Murmur3 hash function
      */
-    @ThreadSafe
     public static Hash32 murmur3(int seed){
         return new Murmur32(seed);
     }
@@ -56,7 +53,6 @@ public class HashFunctions {
      * @param seed the seed to use
      * @return a 64-bit Murmur2 hash function
      */
-    @ThreadSafe
     public static Hash64 murmur2_64(int seed){
         return new Murmur64(seed);
     }

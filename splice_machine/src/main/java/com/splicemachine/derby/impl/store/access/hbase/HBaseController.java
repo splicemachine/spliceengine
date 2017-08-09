@@ -27,8 +27,9 @@ import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.storage.DataPut;
+import com.splicemachine.si.api.txn.IsolationLevel;
 import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.Record;
 import org.apache.log4j.Logger;
 
 import java.util.Arrays;
@@ -52,10 +53,9 @@ public class HBaseController extends SpliceController{
                     openSpliceConglomerate.getConglomerate().getContainerid(),(Arrays.toString(row)),trans.getTxnInformation()));
         Partition htable=getTable();
         try{
-            DataPut put=opFactory.newDataPut(trans.getTxnInformation(),SpliceUtils.getUniqueKey());//SpliceUtils.createPut(SpliceUtils.getUniqueKey(), ((SpliceTransaction)trans).getTxn());
-
-            encodeRow(row,put,null,null);
-            htable.put(put);
+            Record record = opFactory.newRecord(trans.getTxnInformation(),SpliceUtils.getUniqueKey());
+            record.setData(row);
+            htable.insert(record,trans.getTxnInformation());
             return 0;
         }catch(Exception e){
             throw Exceptions.parseException(e);
@@ -72,10 +72,9 @@ public class HBaseController extends SpliceController{
 
         Partition htable=getTable(); //-sf- don't want to close the htable here, it might break stuff
         try{
-            DataPut put=opFactory.newDataPut(trans.getTxnInformation(),SpliceUtils.getUniqueKey());//SpliceUtils.createPut(SpliceUtils.getUniqueKey(), ((SpliceTransaction)trans).getTxn());
-            encodeRow(row,put,null,null);
-            destRowLocation.setValue(put.key());
-            htable.put(put);
+            byte[] key = SpliceUtils.getUniqueKey();
+            destRowLocation.setValue(key);
+            htable.get(key,trans.getTxnInformation(), IsolationLevel.SNAPSHOT_ISOLATION);
         }catch(Exception e){
             throw StandardException.newException("insert and fetch location error",e);
         }
@@ -88,12 +87,14 @@ public class HBaseController extends SpliceController{
             LOG.trace(String.format("replace rowLocation %s, destRow %s, validColumns %s",loc,Arrays.toString(row),validColumns));
         Partition htable=getTable();
         try{
-
+            throw new UnsupportedOperationException("Not Implemented");
+            /*
             DataPut put=opFactory.newDataPut(trans.getTxnInformation(),loc.getBytes());//SpliceUtils.createPut(SpliceUtils.getUniqueKey(), ((SpliceTransaction)trans).getTxn());
 
             encodeRow(row,put,EngineUtils.bitSetToMap(validColumns),validColumns);
             htable.put(put);
             return true;
+            */
         }catch(Exception e){
             throw StandardException.newException("Error during replace ",e);
         }

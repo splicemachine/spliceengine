@@ -19,12 +19,11 @@ import java.io.IOException;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.derby.utils.marshall.EntryDataDecoder;
-import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
-import com.splicemachine.derby.utils.marshall.PairEncoder;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.RowTransformer;
+import com.splicemachine.storage.Record;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import javax.ws.rs.NotSupportedException;
 
 /**
  * Used by alter table write interceptors to map rows written in src table to new
@@ -37,25 +36,17 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class AlterTableRowTransformer implements RowTransformer{
     private final ExecRow srcRow;
     private final ExecRow templateRow;
-    private final EntryDataDecoder rowDecoder;
-    private final KeyHashDecoder keyDecoder;
-    private final PairEncoder entryEncoder;
     private final int[] columnMapping;
     private final int copyLen;
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public AlterTableRowTransformer(ExecRow srcRow,
                                     int[] columnMapping,
-                                    ExecRow templateRow,
-                                    KeyHashDecoder keyDecoder,
-                                    EntryDataDecoder rowDecoder,
-                                    PairEncoder entryEncoder) {
+                                    ExecRow templateRow
+) {
         this.srcRow = srcRow;
         this.columnMapping = columnMapping;
         this.templateRow = templateRow;
-        this.rowDecoder = rowDecoder;
-        this.keyDecoder = keyDecoder;
-        this.entryEncoder = entryEncoder;
         // array copy must use the smaller of the two lengths -
         // for drop column, templateRow will be shorter.
         // for add column, srcRow will be shorter.
@@ -63,7 +54,10 @@ public class AlterTableRowTransformer implements RowTransformer{
     }
 
     @Override
-    public KVPair transform(ExecRow row) throws StandardException, IOException {
+    public Record transform(ExecRow row) throws StandardException, IOException {
+        throw new UnsupportedOperationException("Not Implemented yet");
+
+        /*
         ExecRow mergedRow = templateRow.getClone();
 
         for (int i = 0; i < columnMapping.length; i++) {
@@ -74,9 +68,12 @@ public class AlterTableRowTransformer implements RowTransformer{
         }
         // encode and return the result
         return entryEncoder.encode(mergedRow);
+        */
     }
 
-    public KVPair transform(KVPair kvPair) throws StandardException, IOException {
+    public Record transform(Record record) throws StandardException, IOException {
+        throw new NotSupportedException("Not Implemented Yet");
+        /*
         // Decode a row
         ExecRow mergedRow = templateRow.getClone();
         srcRow.resetRowArray();
@@ -88,23 +85,11 @@ public class AlterTableRowTransformer implements RowTransformer{
 
         // encode and return the result
         return entryEncoder.encode(mergedRow);
-    }
-
-    private static void decodeRow(KVPair kvPair, ExecRow srcRow, KeyHashDecoder keyDecoder, EntryDataDecoder
-        rowDecoder) throws StandardException {
-        if (srcRow.nColumns() > 0) {
-            keyDecoder.set(kvPair.getRowKey(), 0, kvPair.getRowKey().length);
-            keyDecoder.decode(srcRow);
-
-            rowDecoder.set(kvPair.getValue(), 0, kvPair.getValue().length);
-            rowDecoder.decode(srcRow);
-        }
+        */
     }
 
     @Override
     public void close() throws IOException{
-        keyDecoder.close();
-        rowDecoder.close();
-        entryEncoder.close();
+
     }
 }

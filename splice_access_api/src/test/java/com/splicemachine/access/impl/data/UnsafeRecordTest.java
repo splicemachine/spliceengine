@@ -1,6 +1,5 @@
 package com.splicemachine.access.impl.data;
 
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.iapi.types.SQLVarchar;
@@ -104,9 +103,9 @@ public class UnsafeRecordTest {
         ValueRow valueRow2 = new ValueRow(2);
         valueRow2.setRowArray(new DataValueDescriptor[]{
                 new SQLVarchar(),new SQLInteger()});
-        ExecRow foo = record.getData(new int[]{2,4},valueRow2);
-        Assert.assertEquals("column 1 comparison",valueRow.getColumn(1).getString(),foo.getColumn(1).getString());
-        Assert.assertEquals("column 2 comparison",valueRow.getColumn(2).getString(),foo.getColumn(2).getString());
+        record.getData(new int[]{2,4},valueRow2);
+        Assert.assertEquals("column 1 comparison",valueRow.getColumn(1).getString(),valueRow2.getColumn(1).getString());
+        Assert.assertEquals("column 2 comparison",valueRow.getColumn(2).getString(),valueRow2.getColumn(2).getString());
     }
 
     @Test
@@ -134,32 +133,33 @@ public class UnsafeRecordTest {
         ValueRow valueRow = new ValueRow(4);
         valueRow.setRowArray(new DataValueDescriptor[]{new SQLVarchar("1234"),new SQLInteger(12),new SQLInteger(13),new SQLVarchar()});
         record.setData(new int[]{2,4,5,6},valueRow);
-
+        System.out.println("Active Row => " +valueRow);
         ValueRow valueRow2 = new ValueRow(4);
         valueRow2.setRowArray(new DataValueDescriptor[]{new SQLVarchar("FOOEY"),new SQLInteger(123),new SQLInteger(),new SQLVarchar()});
         record2.setData(new int[]{2,3,5,6},valueRow2);
+        System.out.println("Update Row => " +valueRow2);
 
         ValueRow rowDefinition = new ValueRow(8);
         rowDefinition.setRowArray(new DataValueDescriptor[]{new SQLInteger(), new SQLInteger(),
                 new SQLVarchar(), new SQLInteger(), new SQLInteger(), new SQLInteger(),
                 new SQLVarchar(), new SQLInteger()});
         Record[] records = record.updateRecord(record2,rowDefinition);
-        System.out.println(records[0].toString());
-        System.out.println(records[1].toString());
-        ExecRow activeValue = ((UnsafeRecord)records[0]).getData(IntArrays.count(8),rowDefinition);
-        System.out.println(activeValue);
-        Assert.assertEquals("Column 2 Set Incorrectly","FOOEY",activeValue.getColumn(3).getString());
-        Assert.assertEquals("Column 3 Set Incorrectly",123,activeValue.getColumn(4).getInt());
-        Assert.assertEquals("Column 4 Set Incorrectly",12,activeValue.getColumn(5).getInt());
-        ExecRow redoValue = ((UnsafeRecord)records[1]).getData(IntArrays.count(8),rowDefinition);
-        System.out.println(redoValue);
-        Assert.assertEquals("Column 2 Set Incorrectly","1234",redoValue.getColumn(3).getString());
-        Assert.assertEquals("Column 3 Set Incorrectly",true,redoValue.getColumn(4).isNull());
-        Assert.assertEquals("Column 5 Set Incorrectly",13,redoValue.getColumn(6).getInt());
+        System.out.println("Active Row Elements => " + records[0].toString());
+        System.out.println("Update Row Elements => " + records[1].toString());
+        ((UnsafeRecord)records[0]).getData(IntArrays.count(8),rowDefinition);
+        System.out.println("New Active Row => " + rowDefinition);
+        Assert.assertEquals("Column 2 Set Incorrectly","FOOEY",rowDefinition.getColumn(3).getString());
+        Assert.assertEquals("Column 3 Set Incorrectly",123,rowDefinition.getColumn(4).getInt());
+        Assert.assertEquals("Column 4 Set Incorrectly",12,rowDefinition.getColumn(5).getInt());
+        ((UnsafeRecord)records[1]).getData(IntArrays.count(8),rowDefinition);
+        System.out.println("Redo Row => " + rowDefinition);
+        Assert.assertEquals("Column 2 Set Incorrectly","1234",rowDefinition.getColumn(3).getString());
+        Assert.assertEquals("Column 3 Set Incorrectly",true,rowDefinition.getColumn(4).isNull());
+        Assert.assertEquals("Column 5 Set Incorrectly",13,rowDefinition.getColumn(6).getInt());
 
         Record rolledBackRecord = records[0].applyRollback(new SingletonIterator(records[1]),rowDefinition);
-        ExecRow rolledBackRow = ((UnsafeRecord)rolledBackRecord).getData(IntArrays.count(8),rowDefinition);
-        System.out.println(rolledBackRow);
+        ((UnsafeRecord)rolledBackRecord).getData(IntArrays.count(8),rowDefinition);
+        System.out.println("Rollbacked Row => " + rowDefinition);
 
     }
 

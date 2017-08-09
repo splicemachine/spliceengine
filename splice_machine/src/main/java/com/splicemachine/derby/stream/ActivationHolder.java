@@ -15,6 +15,7 @@
 
 package com.splicemachine.derby.stream;
 
+import com.splicemachine.si.api.txn.Txn;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.Maps;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -27,9 +28,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.serialization.SpliceObserverInstructions;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
-
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.Externalizable;
 import java.io.IOException;
@@ -55,7 +54,7 @@ public class ActivationHolder implements Externalizable {
     private List<SpliceOperation> operationsList = new ArrayList<>();
     private Activation activation;
     private SpliceObserverInstructions soi;
-    private TxnView txn;
+    private Txn txn;
     private boolean initialized=false;
     private SpliceTransactionResourceImpl impl;
     private boolean prepared = false;
@@ -100,7 +99,7 @@ public class ActivationHolder implements Externalizable {
         }
     }
 
-    private TxnView getTransaction(Activation activation) {
+    private Txn getTransaction(Activation activation) {
         try {
             TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
             Transaction rawStoreXact = ((TransactionManager) transactionExecute).getRawStoreXact();
@@ -143,7 +142,7 @@ public class ActivationHolder implements Externalizable {
         init(txn);
     }
 
-    public synchronized void init(TxnView txn){
+    public synchronized void init(Txn txn){
         if(initialized)
             return;
         initialized = true;
@@ -180,16 +179,16 @@ public class ActivationHolder implements Externalizable {
         this.activation = activation;
     }
 
-    public TxnView getTxn() {
+    public Txn getTxn() {
         return txn;
     }
 
-    public void reinitialize(TxnView otherTxn) {
+    public void reinitialize(Txn otherTxn) {
         reinitialize(otherTxn, true);
     }
 
-    public void reinitialize(TxnView otherTxn, boolean reinit) {
-        TxnView txnView = otherTxn!=null ? otherTxn : this.txn;
+    public void reinitialize(Txn otherTxn, boolean reinit) {
+        Txn txnView = otherTxn!=null ? otherTxn : this.txn;
         initialized = true;
         try {
             impl = new SpliceTransactionResourceImpl();

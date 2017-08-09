@@ -3,6 +3,7 @@ package com.splicemachine.storage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.utils.ByteSlice;
 
 import java.util.Iterator;
@@ -12,7 +13,7 @@ import java.util.Iterator;
  * Record Implementation
  *
  */
-public interface Record<K,V> {
+public interface Record<K> {
     /**
      *
      * Txn ID 1
@@ -121,7 +122,7 @@ public interface Record<K,V> {
      *
      * @return
      */
-    V getData(int[] columns, V row) throws StandardException;
+    void getData(int[] columns, ExecRow row) throws StandardException;
 
     /**
      *
@@ -129,7 +130,15 @@ public interface Record<K,V> {
      *
      * @return
      */
-    V getData(FormatableBitSet accessedColumns, V row) throws StandardException;
+    void getData(FormatableBitSet accessedColumns, ExecRow row) throws StandardException;
+
+    /**
+     *
+     * Get Actual Data
+     *
+     * @return
+     */
+    void getData(FormatableBitSet accessedColumns, DataValueDescriptor[] data) throws StandardException;
 
     /**
      *
@@ -137,7 +146,7 @@ public interface Record<K,V> {
      *
      * @return
      */
-    void setData(int[] columns, V row) throws StandardException;
+    void setData(int[] columns, ExecRow row) throws StandardException;
 
     /**
      *
@@ -145,7 +154,23 @@ public interface Record<K,V> {
      *
      * @return
      */
-    K getKey();
+    void setData(int[] columns, DataValueDescriptor[] dvds) throws StandardException;
+
+    /**
+     *
+     * Set Actual Data
+     *
+     * @return
+     */
+    void setData(DataValueDescriptor[] dvds) throws StandardException;
+
+    /**
+     *
+     * Set Actual Data
+     *
+     * @return
+     */
+    byte[] getKey();
 
     /**
      *
@@ -167,7 +192,7 @@ public interface Record<K,V> {
 
     boolean isActive();
 
-    Record applyRollback(Iterator<Record<K,V>> recordIterator, ExecRow rowDefinition) throws StandardException;
+    Record applyRollback(Iterator<Record<K>> recordIterator, ExecRow rowDefinition) throws StandardException;
 
     /**
      * Position 0 active Record, Position 1 redo record
@@ -175,13 +200,16 @@ public interface Record<K,V> {
      * @param updatedRecord
      * @return
      */
-    Record[] updateRecord(Record<K,V> updatedRecord, ExecRow recordDefinition) throws StandardException;
+    Record[] updateRecord(Record<K> updatedRecord, ExecRow recordDefinition) throws StandardException;
+
+    Record createIndexDelete(int[] mainColToIndexPosMap, boolean uniqueWithDuplicateNulls, boolean[] descending, ExecRow indexRow) throws StandardException;
+
+    Record createIndexInsert(int[] mainColToIndexPosMap, boolean uniqueWithDuplicateNulls, boolean[] descending, ExecRow indexRow) throws StandardException;
 
     int getSize();
 
     ByteSlice rowKeySlice();
 
     Record cancelToDelete();
-
 
 }

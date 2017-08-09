@@ -16,16 +16,15 @@
 package com.splicemachine.pipeline.altertable;
 
 import java.io.IOException;
-
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.RowTransformer;
 import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.writehandler.WriteHandler;
+import com.splicemachine.storage.Record;
+import com.splicemachine.storage.RecordType;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -41,7 +40,7 @@ public class AlterTableInterceptWriteHandler implements WriteHandler{
     private final RowTransformer rowTransformer;
     private final byte[] newTableName;
 
-    private RecordingCallBuffer<KVPair> recordingCallBuffer;
+    private RecordingCallBuffer<Record> recordingCallBuffer;
 
     @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public AlterTableInterceptWriteHandler(RowTransformer rowTransformer, byte[] newTableName) {
@@ -51,11 +50,11 @@ public class AlterTableInterceptWriteHandler implements WriteHandler{
     }
 
     @Override
-    public void next(KVPair mutation, WriteContext ctx) {
+    public void next(Record mutation, WriteContext ctx) {
         try {
             // Don't intercept deletes from the old table.
-            if (mutation.getType() != KVPair.Type.DELETE) {
-                KVPair newPair = rowTransformer.transform(mutation);
+            if (mutation.getRecordType() != RecordType.DELETE) {
+                Record newPair = rowTransformer.transform(mutation);
                 initTargetCallBuffer(ctx).add(newPair);
                 ctx.success(mutation);
             }
@@ -96,7 +95,7 @@ public class AlterTableInterceptWriteHandler implements WriteHandler{
     }
 
     /* Only need to create the CallBuffer once, but not until we have a WriteContext */
-    private RecordingCallBuffer<KVPair> initTargetCallBuffer(WriteContext ctx) throws IOException{
+    private RecordingCallBuffer<Record> initTargetCallBuffer(WriteContext ctx) throws IOException{
         if (recordingCallBuffer == null) {
             recordingCallBuffer = writeCoordinator.writeBuffer(ctx.remotePartition(newTableName), ctx.getTxn());
         }

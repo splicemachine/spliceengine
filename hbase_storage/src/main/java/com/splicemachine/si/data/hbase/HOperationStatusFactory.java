@@ -15,12 +15,11 @@
 
 package com.splicemachine.si.data.hbase;
 
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.server.ConstraintChecker;
-import com.splicemachine.storage.DataResult;
 import com.splicemachine.storage.HMutationStatus;
 import com.splicemachine.storage.MutationStatus;
+import com.splicemachine.storage.Record;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.regionserver.NoSuchColumnFamilyException;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
@@ -35,7 +34,7 @@ public class HOperationStatusFactory implements OperationStatusFactory{
 
     private static final ConstraintChecker NO_OP_CHECKER = new ConstraintChecker(){
         @Override
-        public MutationStatus checkConstraint(KVPair mutation,DataResult existingRow) throws IOException{
+        public MutationStatus checkConstraint(Record mutation, Record existingRow) throws IOException{
             return HMutationStatus.success();
         }
     };

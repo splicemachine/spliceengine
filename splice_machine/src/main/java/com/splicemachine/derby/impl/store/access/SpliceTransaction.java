@@ -90,11 +90,11 @@ public class SpliceTransaction extends BaseSpliceTransaction<TransactionImpl> {
     }
 
     public final void setActiveState(boolean nested,boolean additive,Txn parentTxn){
-        transaction.setActiveState(nested,additive,parentTxn,null);
+        transaction.setActiveState(nested,parentTxn);
     }
 
     public final void setActiveState(boolean nested,boolean additive,Txn parentTxn,byte[] table){
-        transaction.setActiveState(nested, additive, parentTxn, table);
+        transaction.setActiveState(nested, parentTxn);
     }
 
     public int getTransactionStatus(){
@@ -109,9 +109,9 @@ public class SpliceTransaction extends BaseSpliceTransaction<TransactionImpl> {
         transaction.setTxn(txn);
     }
 
-    public Txn elevate(byte[] writeTable) throws StandardException{
+    public Txn elevate() throws StandardException{
         try {
-            return transaction.elevate(writeTable);
+            return transaction.elevate();
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }

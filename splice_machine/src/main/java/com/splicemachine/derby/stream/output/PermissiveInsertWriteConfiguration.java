@@ -17,15 +17,15 @@ package com.splicemachine.derby.stream.output;
 
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.WriteResponse;
 import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.pipeline.client.BulkWriteResult;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.pipeline.config.ForwardingWriteConfiguration;
 import com.splicemachine.pipeline.config.WriteConfiguration;
+import com.splicemachine.storage.Record;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
@@ -39,13 +39,14 @@ import java.util.concurrent.ExecutionException;
 public class PermissiveInsertWriteConfiguration extends ForwardingWriteConfiguration {
     private static final Logger LOG = Logger.getLogger(PermissiveInsertWriteConfiguration.class);
     protected OperationContext operationContext;
-    protected PairDecoder pairDecoder;
+    protected ExecRow execRow;
 
-    public PermissiveInsertWriteConfiguration(WriteConfiguration delegate, OperationContext operationContext, PairDecoder pairDecoder) {
+    public PermissiveInsertWriteConfiguration(WriteConfiguration delegate, OperationContext operationContext,
+                                              ExecRow execRow) {
         super(delegate);
-        assert operationContext!=null && pairDecoder != null:"Passed in null values to PermissiveInsert";
+        assert operationContext!=null:"Passed in null values to PermissiveInsert";
         this.operationContext = operationContext;
-        this.pairDecoder = pairDecoder;
+        this.execRow = execRow;
     }
 
     @Override
@@ -69,7 +70,7 @@ public class PermissiveInsertWriteConfiguration extends ForwardingWriteConfigura
         IntObjectOpenHashMap<WriteResult> failedRows = result.getFailedRows();
         @SuppressWarnings("MismatchedReadAndWriteOfArray") Object[] fRows = failedRows.values;
         boolean ignore = result.getNotRunRows().size()<=0 && result.getFailedRows().size()<=0;
-        List<KVPair> kvPairList = request.mutationsList();
+        List<Record> kvPairList = request.mutationsList();
         for(IntObjectCursor<WriteResult> resultCursor:failedRows) {
             WriteResult value = resultCursor.value;
             int rowNum = resultCursor.key;
@@ -77,7 +78,8 @@ public class PermissiveInsertWriteConfiguration extends ForwardingWriteConfigura
                 if (operationContext.isFailed())
                     ignore = true;
                 try {
-                    operationContext.recordBadRecord(errorRow(pairDecoder.decode(kvPairList.get(rowNum)).toString(), value), null);
+                    throw new UnsupportedOperationException("not implemented");
+//                    operationContext.recordBadRecord(errorRow(pairDecoder.decode(kvPairList.get(rowNum)).toString(), value), null);
                 } catch (Exception e) {
                     ignore = true;
                 }

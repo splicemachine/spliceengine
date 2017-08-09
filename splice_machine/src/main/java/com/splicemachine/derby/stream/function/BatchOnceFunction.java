@@ -16,8 +16,6 @@
 package com.splicemachine.derby.stream.function;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Iterator;
@@ -25,9 +23,6 @@ import java.util.Queue;
 import java.util.Set;
 
 import com.splicemachine.SpliceKryoRegistry;
-import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
-import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.primitives.Bytes;
 import org.spark_project.guava.collect.ArrayListMultimap;
 import org.spark_project.guava.collect.Lists;
@@ -46,6 +41,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 
+import javax.ws.rs.NotSupportedException;
+
 /**
  *
  * Created by jyuan on 10/7/15.
@@ -60,8 +57,6 @@ public class BatchOnceFunction<Op extends SpliceOperation>
     private int[] subqueryCorrelatedColumnPositions;
     private ExecRow sourceExecRow;
     private ExecRow subqueryExecRow;
-    private KeyEncoder sourceKeyEncoder;
-    private KeyEncoder subqueryKeyEncoder;
     private int sourceColumnPosition;
     private int subqueryColumnPosition;
 
@@ -107,13 +102,15 @@ public class BatchOnceFunction<Op extends SpliceOperation>
         this.rowQueue = Lists.newLinkedList();
         this.sourceExecRow = op.getSource().getExecRowDefinition();
         this.subqueryExecRow = subquerySource.getExecRowDefinition();
-        this.sourceKeyEncoder = getKeyEncoder(sourceCorrelatedColumnPositions, sourceExecRow);
-        this.subqueryKeyEncoder = getKeyEncoder(subqueryCorrelatedColumnPositions, subqueryExecRow);
+        //this.sourceKeyEncoder = getKeyEncoder(sourceCorrelatedColumnPositions, sourceExecRow);
+        //this.subqueryKeyEncoder = getKeyEncoder(subqueryCorrelatedColumnPositions, subqueryExecRow);
         this.sourceColumnPosition = getColumnPosition(sourceExecRow, sourceCorrelatedColumnPositions);
         this.subqueryColumnPosition = getColumnPosition(subqueryExecRow, subqueryCorrelatedColumnPositions);
     }
 
     private void loadNextBatch(Iterator<LocatedRow> locatedRows) throws StandardException, IOException {
+        throw new NotSupportedException("Not Implemented");
+        /*
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         //
         // STEP 1: Read batchSize rows from the source
@@ -121,6 +118,7 @@ public class BatchOnceFunction<Op extends SpliceOperation>
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
         // for quickly finding source rows with a given key
+
         Multimap<String, LocatedRow> sourceRowsMap = ArrayListMultimap.create(batchSize, 1);
         DataValueDescriptor nullValue = op.getSource().getExecRowDefinition().cloneColumn(1).getNewNull();
 
@@ -150,7 +148,7 @@ public class BatchOnceFunction<Op extends SpliceOperation>
             sourceRowsMap.put(Bytes.toHex(sourceKey), newLocatedRow);
         }
 
-        /* Don't execute the subquery again if there were no more source rows. */
+        // Don't execute the subquery again if there were no more source rows.
         if (sourceRowsMap.isEmpty()) {
             return;
         }
@@ -183,8 +181,9 @@ public class BatchOnceFunction<Op extends SpliceOperation>
         } finally {
             subquerySource.close();
         }
+        */
     }
-
+/*
     private KeyEncoder getKeyEncoder(int[] pkCols, ExecRow execRowDefinition) throws StandardException {
         DataHash dataHash;
         int[] keyColumns = new int[pkCols.length];
@@ -195,7 +194,7 @@ public class BatchOnceFunction<Op extends SpliceOperation>
         dataHash = BareKeyHash.encoder(keyColumns,null, SpliceKryoRegistry.getInstance(),serializers);
         return new KeyEncoder(NoOpPrefix.INSTANCE,dataHash,NoOpPostfix.INSTANCE);
     }
-
+*/
     private int getColumnPosition(ExecRow execRow, int[] columnPositions) {
         int[] p = new int[execRow.size()];
         for(int i = 0; i < p.length; ++i) {

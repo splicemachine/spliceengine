@@ -33,6 +33,7 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.stream.iapi.*;
+import com.splicemachine.si.api.txn.IsolationLevel;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.log4j.Logger;
@@ -53,8 +54,6 @@ import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.impl.TxnRegion;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
-import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.storage.Partition;
 
 /**
@@ -113,10 +112,9 @@ public class ControlDataSetProcessor implements DataSetProcessor{
                 Partition p;
                 try{
                     p =SIDriver.driver().getTableFactory().getTable(tableName);
-                    TxnRegion localRegion=new TxnRegion(p,NoopRollForward.INSTANCE,NoOpReadResolver.INSTANCE,
+                    TxnRegion localRegion=new TxnRegion(p,
                             txnSupplier,transactory,txnOperationFactory);
-
-                    this.region(localRegion).scanner(p.openScanner(getScan(),metricFactory)); //set the scanner
+                    this.region(localRegion).scanner(p.openScanner(getScan(),txn, IsolationLevel.SNAPSHOT_ISOLATION)); //set the scanner
                     TableScannerIterator tableScannerIterator=new TableScannerIterator(this,spliceOperation);
                     if(spliceOperation!=null){
                         spliceOperation.registerCloseable(tableScannerIterator);

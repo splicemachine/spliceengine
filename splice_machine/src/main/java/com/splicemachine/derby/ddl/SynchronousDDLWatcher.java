@@ -19,15 +19,12 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
-
 import org.apache.log4j.Logger;
-
 import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.api.txn.TxnSupplier;
 
 /**
@@ -42,8 +39,7 @@ public class SynchronousDDLWatcher implements DDLWatcher, CommunicationListener{
     private final DDLWatchChecker checker;
     private final DDLWatchRefresher refresher;
 
-    public SynchronousDDLWatcher(TransactionReadController txnController,
-                                 Clock clock,
+    public SynchronousDDLWatcher(Clock clock,
                                  SConfiguration config,
                                  SqlExceptionFactory exceptionFactory,
                                  DDLWatchChecker ddlWatchChecker,
@@ -51,7 +47,6 @@ public class SynchronousDDLWatcher implements DDLWatcher, CommunicationListener{
         long maxDdlWait=config.getMaxDdlWait() << 1;
         this.checker=ddlWatchChecker;
         this.refresher=new DDLWatchRefresher(checker,
-                txnController,
                 clock,
                 exceptionFactory,
                 maxDdlWait,

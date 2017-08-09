@@ -6,14 +6,14 @@ import com.splicemachine.si.api.txn.TxnFactory;
 /**
  * Created by jleach on 12/22/16.
  */
-public class SimpleTxnFactory implements TxnFactory{
+public class UnsafeTxnFactory implements TxnFactory{
     @Override
     public Txn getTxn() {
-        return new SimpleTxnImpl();
+        return new UnsafeTxn();
     }
 
     @Override
     public Txn[] getTxn(int batch) {
-        return new SimpleTxnImpl[batch];
+        return new UnsafeTxn[batch];
     }
 }

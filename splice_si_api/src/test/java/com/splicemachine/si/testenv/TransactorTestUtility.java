@@ -169,26 +169,30 @@ public class TransactorTestUtility {
     private static void insertField(TestTransactionSetup transactorSetup,SITestEnv testEnv,
                                     Txn txn,String name,int index,Object fieldValue) throws IOException {
         Record record = makeRecord(transactorSetup, txn, name, index, fieldValue);
+        System.out.println("insert field record -> " + record);
         processRecordDirect(transactorSetup,testEnv, record);
     }
 
     private static Record makeRecord(TestTransactionSetup transactorSetup,
                                    Txn txn,String name,int index,
                                    Object fieldValue) throws IOException {
+        System.out.println("Making Record");
         byte[] key = newRowKey(name);
-        Record record = transactorSetup.txnOperationFactory.newRecord(txn,key);
+        System.out.println("key");
+        Record record = null;
         try {
             ValueRow row = new ValueRow(1);
             if (index == 0 && fieldValue != null) {
                 row.setRowArray(new DataValueDescriptor[]{new SQLInteger((Integer) fieldValue)});
-                record.setData(new int[]{0}, row);
+                record = transactorSetup.txnOperationFactory.newRecord(txn,key,new int[]{0}, row);
             } else if (fieldValue != null) {
                 row.setRowArray(new DataValueDescriptor[]{new SQLVarchar((String) fieldValue)});
-                record.setData(new int[]{1}, row);
+                record = transactorSetup.txnOperationFactory.newRecord(txn,key,new int[]{1}, row);
             }
         } catch (StandardException se) {
             throw new RuntimeException();
         }
+        System.out.println("Record Made" + record);
         return record;
     }
 
@@ -226,6 +230,7 @@ public class TransactorTestUtility {
     private static void processRecordDirect(TestTransactionSetup transactorSetup, SITestEnv testEnv,
                                             Record record) throws IOException {
         try(Partition table = transactorSetup.getPersonTable(testEnv)){
+            System.out.println("Perform insert?" + table);
             table.insert(record,null);
         }
     }

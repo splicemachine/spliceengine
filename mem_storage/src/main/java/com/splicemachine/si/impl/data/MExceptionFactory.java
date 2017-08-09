@@ -63,8 +63,8 @@ public class MExceptionFactory implements ExceptionFactory{
     }
 
     @Override
-    public IOException cannotCommit(long txnId,Txn.State actualState){
-        return new MCannotCommitException(txnId,actualState);
+    public IOException cannotCommit(long txnId){
+        return new MCannotCommitException(txnId);
     }
 
     @Override

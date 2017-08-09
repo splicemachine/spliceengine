@@ -18,10 +18,8 @@ package com.splicemachine.si.data.hbase.coprocessor;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
-import com.splicemachine.si.impl.TxnNetworkLayerFactory;
 import com.splicemachine.storage.PartitionInfoCache;
 import org.apache.hadoop.hbase.TableName;
-
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.ServiceLoader;
@@ -43,14 +41,4 @@ public class TableFactoryService{
         return (PartitionFactory<TableName>)stf;
     }
 
-    public static TxnNetworkLayerFactory loadTxnNetworkLayer(SConfiguration config) throws IOException{
-        ServiceLoader<TxnNetworkLayerFactory> serviceLoader = ServiceLoader.load(TxnNetworkLayerFactory.class);
-        Iterator<TxnNetworkLayerFactory> iter = serviceLoader.iterator();
-        if(!iter.hasNext())
-            throw new IllegalStateException("No TableFactory found!");
-
-        TxnNetworkLayerFactory next=iter.next();
-        next.configure(config);
-        return next;
-    }
 }

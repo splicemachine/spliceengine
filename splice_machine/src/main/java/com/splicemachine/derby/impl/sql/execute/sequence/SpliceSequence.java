@@ -17,19 +17,16 @@ package com.splicemachine.derby.impl.sql.execute.sequence;
 
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.configuration.OperationConfiguration;
-import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 public class SpliceSequence extends AbstractSequence{
     protected byte[] sysColumnsRow;
-    static final byte[] autoIncrementValueQualifier=Encoding.encode(7);
     private PartitionFactory partitionFactory;
     private TxnOperationFactory opFactory;
 
@@ -51,7 +48,10 @@ public class SpliceSequence extends AbstractSequence{
 
     @Override
     protected long getCurrentValue() throws IOException{
+        throw new UnsupportedOperationException("Not Implemented yet");
+        /*
         try(Partition sysColumnTable = partitionFactory.getTable(OperationConfiguration.SEQUENCE_TABLE_NAME_BYTES)){
+            sysColumnTable.increment(sysColumnsRow)
             DataGet currValue=opFactory.newDataGet(null,sysColumnsRow,null);
             currValue.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,autoIncrementValueQualifier);
             currValue.returnAllVersions();
@@ -61,18 +61,17 @@ public class SpliceSequence extends AbstractSequence{
                 return startingValue;
             DataCell dataCell=result.latestCell(SIConstants.DEFAULT_FAMILY_BYTES,autoIncrementValueQualifier);
             return Encoding.decodeLong(dataCell.valueArray(),dataCell.valueOffset(),false);
+
         }
+        */
     }
 
     @Override
     protected boolean atomicIncrement(long next) throws IOException{
-        try(Partition sysColumnTable = partitionFactory.getTable(OperationConfiguration.SEQUENCE_TABLE_NAME_BYTES)){
-            DataPut put=opFactory.newDataPut(null,sysColumnsRow);
-            put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,autoIncrementValueQualifier,Encoding.encode(next));
-            return sysColumnTable.checkAndPut(sysColumnsRow,
-                    SIConstants.DEFAULT_FAMILY_BYTES,
-                    autoIncrementValueQualifier,currPosition.get()==startingValue?null:Encoding.encode(currPosition.get()),put);
+        try(Partition sysColumnTable = partitionFactory.getTable(OperationConfiguration.SEQUENCE_TABLE_NAME_BYTES)) {
+             sysColumnTable.increment(sysColumnsRow, next);
         }
+        return true;
     }
 
     @Override

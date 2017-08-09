@@ -26,10 +26,9 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.protobuf.ProtoUtil;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.ImmutableList;
-
 import java.util.List;
 
 /**
@@ -81,7 +80,7 @@ public class FkJobSubmitter {
 
         String referencedTableVersion = referencedConstraint.getTableDescriptor().getVersion();
         String referencedTableName = referencedConstraint.getTableDescriptor().getName();
-        TxnView activeStateTxn = transactionManager.getActiveStateTxn();
+        Txn activeStateTxn = transactionManager.getActiveStateTxn();
 
         DDLChange ddlChange = ProtoUtil.createTentativeFKConstraint((ForeignKeyConstraintDescriptor) foreignKeyConstraintDescriptor, activeStateTxn.getTxnId(),
                 referencedConglomerateId, referencedTableName, referencedTableVersion, backingIndexFormatIds, backingIndexConglomerateIds,

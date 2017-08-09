@@ -49,6 +49,6 @@ public interface RowTransformer extends Closeable  {
      * @throws StandardException
      * @throws IOException
      */
-    Record transform(Record kvPair) throws StandardException, IOException;
+    Record transform(Record record) throws StandardException, IOException;
 
 }

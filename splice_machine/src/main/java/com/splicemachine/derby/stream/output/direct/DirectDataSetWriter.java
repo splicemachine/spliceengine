@@ -24,9 +24,9 @@ import com.splicemachine.derby.stream.control.ControlPairDataSet;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.output.DataSetWriter;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.storage.Record;
 import org.apache.commons.collections.iterators.SingletonIterator;
 
 import java.util.Iterator;
@@ -36,10 +36,10 @@ import java.util.Iterator;
  *         Date: 1/13/16
  */
 public class DirectDataSetWriter<K> implements DataSetWriter{
-    private final ControlPairDataSet<K,KVPair> dataSet;
+    private final ControlPairDataSet<K,Record> dataSet;
     private final DirectPipelineWriter pipelineWriter;
 
-    public DirectDataSetWriter(ControlPairDataSet<K, KVPair> dataSet,
+    public DirectDataSetWriter(ControlPairDataSet<K, Record> dataSet,
                                DirectPipelineWriter pipelineWriter){
         this.dataSet=dataSet;
         this.pipelineWriter=pipelineWriter;
@@ -62,7 +62,7 @@ public class DirectDataSetWriter<K> implements DataSetWriter{
     }
 
     @Override
-    public void setTxn(TxnView childTxn){
+    public void setTxn(Txn childTxn){
         pipelineWriter.setTxn(childTxn);
     }
 
@@ -72,7 +72,7 @@ public class DirectDataSetWriter<K> implements DataSetWriter{
     }
 
     @Override
-    public TxnView getTxn(){
+    public Txn getTxn(){
         return pipelineWriter.getTxn();
     }
 
@@ -81,11 +81,11 @@ public class DirectDataSetWriter<K> implements DataSetWriter{
         return pipelineWriter.getDestinationTable();
     }
 
-    private class CountingIterator implements Iterator<KVPair>{
+    private class CountingIterator implements Iterator<Record>{
         private long count = 0;
-        private Iterator<KVPair> delegate;
+        private Iterator<Record> delegate;
 
-        public CountingIterator(Iterator<KVPair> delegate){
+        public CountingIterator(Iterator<Record> delegate){
             this.delegate=delegate;
         }
 
@@ -95,8 +95,8 @@ public class DirectDataSetWriter<K> implements DataSetWriter{
         }
 
         @Override
-        public KVPair next(){
-            KVPair n = delegate.next();
+        public Record next(){
+            Record n = delegate.next();
             count++;
             return n;
         }

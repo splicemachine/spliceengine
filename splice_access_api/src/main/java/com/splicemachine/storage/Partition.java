@@ -69,13 +69,15 @@ public interface Partition<K,Txn,IsolationLevel> extends AutoCloseable{
     // JL TODO
     long increment(byte[] rowKey, long amount) throws IOException;
 
+    long getCurrentIncrement(byte[] rowKey) throws IOException;
+
     boolean isClosed();
 
     boolean isClosing();
 
     Lock getRowLock(byte[] key) throws IOException;
 
-    Record getLatest(K key) throws IOException;
+    Lock getRowLock(byte[] key, int offset, int length) throws IOException;
 
     void delete(K key, Txn txn) throws IOException;
 
@@ -85,9 +87,11 @@ public interface Partition<K,Txn,IsolationLevel> extends AutoCloseable{
 
     boolean containsKey(K key);
 
-    boolean containsKey(byte[] key, long offset, int length);
+    boolean containsKey(K key, long offset, int length);
 
     boolean overlapsKeyRange(K start,K stop);
+
+    boolean overlapsKeyRange(K start,long startOffset, int startLength,K stop,long stopOffset, int stopLength);
 
     void writesRequested(long writeRequests);
 

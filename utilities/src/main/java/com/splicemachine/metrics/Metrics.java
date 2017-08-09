@@ -17,8 +17,8 @@ package com.splicemachine.metrics;
 
 import com.splicemachine.metrics.util.DoubleFolder;
 import com.splicemachine.metrics.util.Folders;
-import com.splicemachine.annotations.ThreadSafe;
 
+import javax.annotation.concurrent.ThreadSafe;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 
@@ -117,16 +117,12 @@ public class Metrics {
 				return new SamplingMetricFactory(sampleSize,initialSize);
 		}
 
-		@ThreadSafe
 		public static MetricFactory noOpMetricFactory() { return NOOP_FACTORY; }
 
-		@ThreadSafe
 		public static AtomicTimer atomicTimer() { return new AtomicTimer(); }
 
-		@ThreadSafe
 		public static IOStats noOpIOStats() { return NOOP_IO; }
 
-		@ThreadSafe
 		public static Counter noOpCounter() { return NOOP_COUNTER; }
 
 		public static Counter basicCounter() { return new BasicCounter(); }
@@ -150,23 +146,18 @@ public class Metrics {
 						return new SamplingCompositeTimer(new NanoTimeMeasure(), new UserTimeMeasure(), new CpuTimeMeasure(),sampleSize,initialSize);
 		}
 
-		@ThreadSafe
 		public static Timer noOpTimer() { return NOOP_TIMER; }
 
-		@ThreadSafe
 		public static MultiTimeView noOpMultiTimeView(){ return NOOP_MULTI_TIME_VIEW;};
 
-		@ThreadSafe
 		static TimeMeasure noOpTimeMeasure() { return NOOP_TIME_MEASURE; }
 
-		@ThreadSafe
 		public static TimeView noOpTimeView() { return NOOP_TIME_VIEW; }
 
 		public static Gauge maxGauge() { return new FoldGauge(Folders.maxDoubleFolder()); }
 
 		public static Gauge minGauge() { return new FoldGauge(Folders.minDoubleFolder()); }
 
-		@ThreadSafe
 		public static Gauge noOpGauge() { return NOOP_GAUGE; }
 
 		public static MultiTimeView multiTimeView() {

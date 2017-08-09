@@ -30,8 +30,8 @@ import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import org.apache.log4j.Logger;
+import javax.ws.rs.NotSupportedException;
 import java.io.IOException;
-import com.carrotsearch.hppc.BitSet;
 
 /**
  * Utility methods and classes related to building HBase Scans
@@ -89,7 +89,7 @@ public class Scans extends SpliceUtils {
                                        String tableVersion,
                                        boolean rowIdKey) throws StandardException {
         assert dataValueFactory != null;
-        RecordScan scan =SIDriver.driver().getOperationFactory().newDataScan(txn);//SpliceUtils.createScan(txn, scanColumnList != null && scanColumnList.anySetBit() == -1); // Here is the count(*) piece
+        RecordScan scan =SIDriver.driver().getOperationFactory().newDataScan();//SpliceUtils.createScan(txn, scanColumnList != null && scanColumnList.anySetBit() == -1); // Here is the count(*) piece
         try {
             if (rowIdKey) {
                 DataValueDescriptor[] dvd = null;
@@ -109,11 +109,6 @@ public class Scans extends SpliceUtils {
                     stopKeyValue, stopKeyPrefix, stopSearchOperator,
                     sortOrder, formatIds, startScanKeys, keyTablePositionMap, keyDecodingMap, dataValueFactory, tableVersion, rowIdKey);
 
-            if (!rowIdKey) {
-                buildPredicateFilter(qualifiers, scanColumnList, scan, keyDecodingMap);
-            }
-
-
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
@@ -125,7 +120,7 @@ public class Scans extends SpliceUtils {
                                        Qualifier[][] qualifiers,
                                        boolean[] sortOrder,
                                        FormatableBitSet scanColumnList,
-                                       TxnView txn,
+                                       Txn txn,
                                        boolean sameStartStopPosition,
                                        int[] formatIds,
                                        int[] keyDecodingMap,
@@ -136,53 +131,6 @@ public class Scans extends SpliceUtils {
         return setupScan(startKeyValue, startSearchOperator, stopKeyValue, null, stopSearchOperator, qualifiers,
                 sortOrder, scanColumnList, txn, sameStartStopPosition, formatIds, null, keyDecodingMap,
                 keyTablePositionMap, dataValueFactory, tableVersion, rowIdKey);
-    }
-
-    public static void buildPredicateFilter(Qualifier[][] qualifiers,
-                                            FormatableBitSet scanColumnList,
-                                            int[] keyColumnEncodingMap,
-                                            int[] columnTypes,
-                                            RecordScan scan,
-                                            String tableVersion) throws StandardException, IOException {
-        buildPredicateFilter(qualifiers, scanColumnList, scan, keyColumnEncodingMap);
-    }
-
-    public static void buildPredicateFilter(Qualifier[][] qualifiers,
-                                            FormatableBitSet scanColumnList,
-                                            RecordScan scan,
-                                            int[] keyColumnEncodingOrder) throws StandardException, IOException {
-        EntryPredicateFilter pqf = getEntryPredicateFilter(qualifiers,
-                scanColumnList, keyColumnEncodingOrder);
-        scan.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL, pqf.toBytes());
-    }
-
-    public static EntryPredicateFilter getEntryPredicateFilter(Qualifier[][] qualifiers,
-                                                     FormatableBitSet scanColumnList,
-                                                     int[] keyColumnEncodingOrder) throws StandardException {
-        BitSet colsToReturn = new BitSet();
-        if (qualifiers != null) {
-            for (Qualifier[] qualifierList : qualifiers) {
-                for (Qualifier qualifier : qualifierList) {
-                    colsToReturn.set(qualifier.getStoragePosition()); //make sure that that column is returned
-                }
-            }
-        }
-        if (scanColumnList != null) {
-            for (int i = scanColumnList.anySetBit(); i >= 0; i = scanColumnList.anySetBit(i)) {
-                colsToReturn.set(i);
-            }
-        } else {
-            colsToReturn.clear(); //we want everything
-        }
-
-        //exclude any primary key columns
-        if (keyColumnEncodingOrder != null && keyColumnEncodingOrder.length > 0) {
-            for (int col : keyColumnEncodingOrder) {
-                if (col >= 0)
-                    colsToReturn.clear(col);
-            }
-        }
-        return new EntryPredicateFilter(colsToReturn, true);
     }
 
     private static void attachScanKeys(RecordScan scan,
@@ -244,13 +192,13 @@ public class Scans extends SpliceUtils {
             }
 
             if (generateStartKey) {
-                byte[] startRow = DerbyBytesUtil.generateScanKeyForIndex(startKeyValue, startSearchOperator, sortOrder, tableVersion, rowIdKey);
+                byte[] startRow = generateScanKeyForIndex(startKeyValue, startSearchOperator, sortOrder, tableVersion, rowIdKey);
                 scan.startKey(startRow);
                 if (startRow == null)
                     scan.startKey(SIConstants.EMPTY_BYTE_ARRAY);
             }
             if (generateStopKey) {
-                byte[] stopRow = DerbyBytesUtil.generateScanKeyForIndex(stop, stopSearchOperator, sortOrder, tableVersion, rowIdKey);
+                byte[] stopRow = generateScanKeyForIndex(stop, stopSearchOperator, sortOrder, tableVersion, rowIdKey);
                 if (stopKeyPrefix != null) {
                     stopRow = Bytes.unsignedCopyAndIncrement(stopRow);
                 }
@@ -400,5 +348,16 @@ public class Scans extends SpliceUtils {
         return false;
     }
 
+    public static byte[] generateScanKeyForIndex(
+            DataValueDescriptor[] keyValue, int operator,
+            boolean[] sortOrder, String tableVersion, boolean rowKey) {
+            throw new NotSupportedException("Not Supported");
+    }
+
+    public static byte[] generateIndexKey(
+            DataValueDescriptor[] keyValue,
+            boolean[] sortOrder, String tableVersion, boolean rowKey) {
+        throw new NotSupportedException("Not Supported");
+    }
 
 }

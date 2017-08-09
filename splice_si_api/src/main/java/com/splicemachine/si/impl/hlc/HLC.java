@@ -23,7 +23,6 @@ import java.util.concurrent.atomic.AtomicLong;
  * Please see https://www.cse.buffalo.edu/tech-reports/2014-04.pdf
  * if you are interested in the underpinnings of the hybrid logical clock.
  *
- * Created by jleach on 4/21/16.
  */
 public class HLC {
     public static final int hlcNumBitsToShift = 12;

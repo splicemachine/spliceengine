@@ -12,26 +12,39 @@ import java.io.ObjectOutput;
 /**
  * Created by jleach on 12/20/16.
  */
-public class SimpleTxnImpl implements Txn {
-    private long txnId;
-    private long parentTxnId;
-    private long commitTimestamp;
-    private int nodeId;
-    private int regionId;
-    private long duration;
-    private long[] rolledBackChildIds;
-    private ChildStatementDuration childStatementDuration;
-    private long hlcTimestamp;
-    private String userId;
-    private String statementId;
-    private boolean persisted = false;
+public class UnsafeTxn implements Txn {
+    protected Object baseObject;
+    protected long baseOffset;
 
-    public SimpleTxnImpl() {
+    // Persistent Bytes
+    private long txnId;                                     // (1)
+    private long parentTxnId;                               // (2)
+    private long commitTimestamp;                           // (3)
+    private int nodeId;                                     // (4)
+    private int regionId;                                   // (5)
+    private long duration;                                  // (6)
+    private long[] rolledBackChildIds;                      // (7)
+    private long hlcTimestamp;                              // (8)
+    private String userId;                                  // (9)
+    private String statementId;                             // (10)
+    private ChildStatementDuration childStatementDuration;  // (11)
+    private static final int NUMBER_OF_COLUMNS = 11;
+
+
+    // Transient
+    private boolean persisted = false;
+    private boolean readOnly = true;
+    private long begin;
+
+
+    public UnsafeTxn() {
 
     }
 
-    public SimpleTxnImpl(long txnId, long parentTxnId, long commitTimestamp, int nodeId, int regionId, long duration, long[] rolledBackChildIds,
-                         ChildStatementDuration childStatementDuration, long hlcTimestamp, String userId, String statementId) {
+
+
+    public UnsafeTxn(long txnId, long parentTxnId, long commitTimestamp, int nodeId, int regionId, long duration, long[] rolledBackChildIds,
+                     ChildStatementDuration childStatementDuration, long hlcTimestamp, String userId, String statementId) {
         this.txnId = txnId;
         this.parentTxnId = parentTxnId;
         this.commitTimestamp = commitTimestamp;
@@ -215,4 +228,10 @@ public class SimpleTxnImpl implements Txn {
     public void resolveCollapsibleTxn(Record record, Txn activeTxn, Txn txnToResolve) {
 
     }
+
+    @Override
+    public boolean isReadOnly() {
+        return isReadOnly();
+    }
+
 }

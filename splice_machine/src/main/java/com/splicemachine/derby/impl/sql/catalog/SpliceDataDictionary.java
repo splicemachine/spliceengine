@@ -388,7 +388,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         if(create){
             SpliceAccessManager af=(SpliceAccessManager)Monitor.findServiceModule(this,AccessFactory.MODULE);
             SpliceTransactionManager txnManager=(SpliceTransactionManager)af.getTransaction(ContextService.getFactory().getCurrentContextManager());
-            ((SpliceTransaction)txnManager.getRawTransaction()).elevate(Bytes.toBytes("boot"));
+            ((SpliceTransaction)txnManager.getRawTransaction()).elevate();
             if(spliceSoftwareVersion!=null){
                 txnManager.setProperty(SPLICE_DATA_DICTIONARY_VERSION,spliceSoftwareVersion,true);
             }
@@ -476,7 +476,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
     }
     public void createOrUpdateAllSystemProcedures(TransactionController tc) throws StandardException{
-        tc.elevate("dictionary");
+        tc.elevate();
         super.createOrUpdateAllSystemProcedures(tc);
     }
 
@@ -517,7 +517,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         Splice_DD_Version catalogVersion=(Splice_DD_Version)tc.getProperty(SPLICE_DATA_DICTIONARY_VERSION);
         if(needToUpgrade(catalogVersion)){
-            tc.elevate("dictionary");
+            tc.elevate();
             SpliceCatalogUpgradeScripts scripts=new SpliceCatalogUpgradeScripts(this,catalogVersion,tc);
             scripts.run();
             tc.setProperty(SPLICE_DATA_DICTIONARY_VERSION,spliceSoftwareVersion,true);
@@ -631,7 +631,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         if(rawTransaction.allowsWrites())
             return;
         SpliceTransaction txn=(SpliceTransaction)rawTransaction;
-        txn.elevate(Bytes.toBytes("dictionary"));
+        txn.elevate();
     }
 
     @Override

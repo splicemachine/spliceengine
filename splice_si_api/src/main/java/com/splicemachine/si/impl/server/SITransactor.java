@@ -22,8 +22,6 @@ import com.splicemachine.si.api.data.*;
 import com.splicemachine.si.api.server.ConstraintChecker;
 import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.*;
-import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.impl.ConflictResults;
 import com.splicemachine.si.impl.functions.*;
 import com.splicemachine.storage.*;
 import org.apache.log4j.Logger;

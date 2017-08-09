@@ -16,11 +16,10 @@
 package com.splicemachine.metrics;
 
 import org.spark_project.guava.util.concurrent.AtomicDouble;
-import com.splicemachine.annotations.ThreadSafe;
 
+import javax.annotation.concurrent.ThreadSafe;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-
 import static java.lang.Math.exp;
 
 /**

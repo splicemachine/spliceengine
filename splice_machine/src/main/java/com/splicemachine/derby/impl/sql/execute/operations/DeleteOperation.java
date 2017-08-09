@@ -23,7 +23,7 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -72,7 +72,7 @@ public class DeleteOperation extends DMLWriteOperation {
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         DataSet set = source.getDataSet(dsp);
         OperationContext operationContext = dsp.createOperationContext(this);
-        TxnView txn = getCurrentTransaction();
+        Txn txn = getCurrentTransaction();
 		operationContext.pushScope();
         try {
             PairDataSet toWrite = set.index(new InsertPairFunction(operationContext),true);

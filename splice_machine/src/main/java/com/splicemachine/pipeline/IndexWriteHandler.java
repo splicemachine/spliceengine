@@ -28,6 +28,8 @@ import com.splicemachine.storage.RecordType;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
+import javax.ws.rs.NotSupportedException;
+
 /**
  * Intercepts UPDATE/UPSERT/INSERT/DELETE mutations to a base table and sends corresponding mutations to the index table.
  *
@@ -95,11 +97,14 @@ public class IndexWriteHandler extends RoutingWriteHandler{
             case INSERT:
                 return createIndexRecord(mutation, ctx,null);
             case UPDATE:
-                if (transformer.areIndexKeysModified(mutation, indexedColumns)) { // Do I need to update?
+                throw new NotSupportedException("Not Implemented");
+/*                if (transformer.areIndexKeysModified(mutation, indexedColumns)) { // Do I need to update?
                     deleteIndexRecord(mutation, ctx);
                     return createIndexRecord(mutation, ctx,indexBuffer.lastElement());
                 }
+
                 return true; // No index columns modifies ignore...
+                */
             case UPSERT:
                 deleteIndexRecord(mutation, ctx);
                 return createIndexRecord(mutation, ctx,indexBuffer.lastElement());
@@ -135,10 +140,12 @@ public class IndexWriteHandler extends RoutingWriteHandler{
                  * instead. That way, we still get the WWConflict detection, but we don't have an insert and a delete
                  * competing for the row results.
                  */
-                deleteMutation.setValue(newIndex.getValue());
+                throw new UnsupportedOperationException("not implemented");
+/*                deleteMutation.setValue(newIndex.getValue());
                 deleteMutation.setRecordType(RecordType.UPDATE);
                 newIndex = deleteMutation;
                 add=false;
+                */
             }
             if(keepState) {
                 this.routedToBaseMutationMap.put(newIndex, mutation);
@@ -175,7 +182,7 @@ public class IndexWriteHandler extends RoutingWriteHandler{
             if(keepState)
                 this.routedToBaseMutationMap.put(indexDelete,mutation);
             if (LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG, "performing index delete on row %s", Bytes.toHex(indexDelete.getRowKey()));
+                SpliceLogUtils.trace(LOG, "performing index delete on row %s", Bytes.toHex(indexDelete.getKey()));
             ensureBufferReader(indexDelete, ctx);
             indexBuffer.add(indexDelete);
         } catch (Exception e) {

@@ -33,11 +33,10 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
-import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
@@ -119,7 +118,7 @@ public class Vacuum{
         EmbedConnection embedConnection = (EmbedConnection)connection;
 
         TransactionController transactionExecute = embedConnection.getLanguageConnection().getTransactionExecute();
-        TxnView activeStateTxn = ((SpliceTransactionManager) transactionExecute).getActiveStateTxn();
+        Txn activeStateTxn = ((SpliceTransactionManager) transactionExecute).getActiveStateTxn();
 
         //wait for all transactions prior to us to complete, but only wait for so long
         try{
@@ -135,7 +134,8 @@ public class Vacuum{
         }
     }
 
-    private long waitForConcurrentTransactions(TxnView txn) throws StandardException {
+    private long waitForConcurrentTransactions(Txn txn) throws StandardException {
+        /*
         ActiveTransactionReader reader = new ActiveTransactionReader(0l,txn.getTxnId(),null);
         SConfiguration config = EngineDriver.driver().getConfiguration();
         long timeRemaining = config.getDdlDrainingMaximumWait();
@@ -147,7 +147,7 @@ public class Vacuum{
             do {
                 activeTxn = -1l;
 
-                TxnView next;
+                Txn next;
                 try (Stream<TxnView> activeTransactions = reader.getActiveTransactions()){
                     while((next = activeTransactions.next())!=null){
                         long txnId = next.getTxnId();
@@ -175,6 +175,8 @@ public class Vacuum{
         }
 
         return activeTxn;
+        */
+        throw new UnsupportedOperationException();
     } // end waitForConcurrentTransactions
 
     public void shutdown() throws SQLException {

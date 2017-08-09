@@ -46,8 +46,6 @@ import com.splicemachine.pipeline.writer.SynchronousBucketingWriter;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.MemSITestEnv;
 import com.splicemachine.si.api.server.TransactionalRegionFactory;
-import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
-import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.si.impl.server.SITransactor;
 import com.splicemachine.storage.MServerControl;
 import com.splicemachine.storage.Partition;
@@ -135,9 +133,9 @@ public class MPipelineTestEnv extends MemSITestEnv implements PipelineTestEnv{
     @SuppressWarnings("unchecked")
     private TransactionalRegionFactory buildTransactionalRegionFactory(){
         SITransactor transactor = new SITransactor(getTxnStore(),
-                getOperationFactory(),getBaseOperationFactory(),getOperationStatusFactory(),getExceptionFactory());
+                getOperationFactory(),getOperationStatusFactory(),getExceptionFactory());
         return new TransactionalRegionFactory(this.getTxnStore(),
-                transactor,getOperationFactory(),NoopRollForward.INSTANCE,NoOpReadResolver.INSTANCE);
+                transactor,getOperationFactory());
     }
 
     //==============================================================================================================

@@ -173,47 +173,51 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
 
     @Override
     public void ddlChange(DDLMessage.DDLChange ddlChange){
-        DDLMessage.DDLChangeType ddlChangeType=ddlChange.getDdlChangeType();
-        switch(ddlChangeType){
-            case ADD_PRIMARY_KEY:
-            case DROP_PRIMARY_KEY:
-                // returns null if it doesn't apply to this conglomerate
-                AlterTableWriteFactory writeFactory = AlterTableWriteFactory.create(ddlChange, trc,pef);
-                if (writeFactory != null) {
-                    ddlFactories.addFactory(writeFactory);
-                }
-                break;
-            case ADD_FOREIGN_KEY:
-                fkGroup.handleForeignKeyAdd(ddlChange,conglomId);
-                break;
-            case DROP_FOREIGN_KEY:
-                fkGroup.handleForeignKeyDrop(ddlChange,conglomId);
-                break;
-            case CREATE_INDEX:
-                DDLMessage.TentativeIndex tentativeIndex=ddlChange.getTentativeIndex();
-                if(tentativeIndex.getTable().getConglomerate()==conglomId){
-                    indexFactories.replace(IndexFactory.create(ddlChange));
-                }
-                break;
-            case DROP_INDEX:
-                if(ddlChange.getDropIndex().getBaseConglomerate()!=conglomId) break;
-                Txn txn=DDLUtils.getLazyTransaction(ddlChange.getTxnId());
-                long indexConglomId=ddlChange.getDropIndex().getConglomerate();
-                synchronized(indexFactories){
-                    for(LocalWriteFactory factory : indexFactories.list()){
-                        if(factory.getConglomerateId()==indexConglomId &&!(factory instanceof DropIndexFactory)){
-                            DropIndexFactory wrappedFactory=new DropIndexFactory(txn,factory,indexConglomId);
-                            indexFactories.replace(wrappedFactory);
-                            return;
-                        }
+        try {
+            DDLMessage.DDLChangeType ddlChangeType = ddlChange.getDdlChangeType();
+            switch (ddlChangeType) {
+                case ADD_PRIMARY_KEY:
+                case DROP_PRIMARY_KEY:
+                    // returns null if it doesn't apply to this conglomerate
+                    AlterTableWriteFactory writeFactory = AlterTableWriteFactory.create(ddlChange, pef);
+                    if (writeFactory != null) {
+                        ddlFactories.addFactory(writeFactory);
                     }
-                    //it hasn't been added yet, so make sure that we add the index
-                    indexFactories.addFactory(new DropIndexFactory(txn,null,indexConglomId));
-                }
-                break;
-            // ignored
-            default:
-                break;
+                    break;
+                case ADD_FOREIGN_KEY:
+                    fkGroup.handleForeignKeyAdd(ddlChange, conglomId);
+                    break;
+                case DROP_FOREIGN_KEY:
+                    fkGroup.handleForeignKeyDrop(ddlChange, conglomId);
+                    break;
+                case CREATE_INDEX:
+                    DDLMessage.TentativeIndex tentativeIndex = ddlChange.getTentativeIndex();
+                    if (tentativeIndex.getTable().getConglomerate() == conglomId) {
+                        indexFactories.replace(IndexFactory.create(ddlChange));
+                    }
+                    break;
+                case DROP_INDEX:
+                    if (ddlChange.getDropIndex().getBaseConglomerate() != conglomId) break;
+                    Txn txn = DDLUtils.getLazyTransaction(ddlChange.getTxnId());
+                    long indexConglomId = ddlChange.getDropIndex().getConglomerate();
+                    synchronized (indexFactories) {
+                        for (LocalWriteFactory factory : indexFactories.list()) {
+                            if (factory.getConglomerateId() == indexConglomId && !(factory instanceof DropIndexFactory)) {
+                                DropIndexFactory wrappedFactory = new DropIndexFactory(txn, factory, indexConglomId);
+                                indexFactories.replace(wrappedFactory);
+                                return;
+                            }
+                        }
+                        //it hasn't been added yet, so make sure that we add the index
+                        indexFactories.addFactory(new DropIndexFactory(txn, null, indexConglomId));
+                    }
+                    break;
+                // ignored
+                default:
+                    break;
+            }
+        } catch (StandardException se) {
+            throw new RuntimeException(se); // JL-TODO
         }
     }
 
@@ -326,6 +330,8 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
         // PART 3: check tentative indexes
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         //TODO -sf- key this to the specific conglomerate
+        throw new UnsupportedOperationException("not implemented");
+        /*
         DDLDriver ddlDriver=DDLDriver.driver();
         for(DDLMessage.DDLChange ddlChange : ddlDriver.ddlWatcher().getTentativeDDLs()){
             Txn txn=DDLUtils.getLazyTransaction(ddlChange.getTxnId());
@@ -336,6 +342,7 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
             }
         }
         return true;
+        */
     }
 
 

@@ -22,6 +22,8 @@ import com.splicemachine.access.api.SnowflakeFactory;
 import com.splicemachine.access.hbase.HSnowflakeFactory;
 import com.splicemachine.access.util.ByteComparisons;
 import com.splicemachine.si.api.txn.TransactionStore;
+import com.splicemachine.si.api.txn.TxnFactory;
+import com.splicemachine.si.api.txn.TxnLocationFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.TableName;
@@ -32,27 +34,15 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.api.data.ExceptionFactory;
-import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.si.api.readresolve.KeyedReadResolver;
-import com.splicemachine.si.api.readresolve.RollForward;
-import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.data.HExceptionFactory;
 import com.splicemachine.si.data.hbase.HOperationStatusFactory;
-import com.splicemachine.si.impl.CoprocessorTxnStore;
-import com.splicemachine.si.impl.HOperationFactory;
-import com.splicemachine.si.impl.QueuedKeepAliveScheduler;
+import com.splicemachine.si.impl.HBaseTxnStore;
 import com.splicemachine.si.impl.SimpleTxnOperationFactory;
-import com.splicemachine.si.impl.TxnNetworkLayerFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.driver.SIEnvironment;
-import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
-import com.splicemachine.si.impl.rollforward.NoopRollForward;
-import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
-import com.splicemachine.storage.DataFilterFactory;
-import com.splicemachine.storage.HFilterFactory;
 import com.splicemachine.storage.HNIOFileSystem;
 import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
@@ -64,16 +54,12 @@ import com.splicemachine.timestamp.hbase.ZkTimestampSource;
  */
 public class HBaseSIEnvironment implements SIEnvironment{
     private static volatile HBaseSIEnvironment INSTANCE;
-
     private final TimestampSource timestampSource;
     private final PartitionFactory<TableName> partitionFactory;
     private final TransactionStore txnStore;
-    private final TxnSupplier txnSupplier;
     private final TxnOperationFactory txnOpFactory;
     private final PartitionInfoCache partitionCache;
-    private final KeepAliveScheduler keepAlive;
     private final SConfiguration config;
-    private final HOperationFactory opFactory;
     private final Clock clock;
     private final DistributedFileSystem fileSystem;
     private final SnowflakeFactory snowflakeFactory;
@@ -103,21 +89,14 @@ public class HBaseSIEnvironment implements SIEnvironment{
         this.timestampSource =timeSource;
         this.partitionCache = PartitionCacheService.loadPartitionCache(config);
         this.partitionFactory =TableFactoryService.loadTableFactory(clock,this.config,partitionCache);
-        TxnNetworkLayerFactory txnNetworkLayerFactory= TableFactoryService.loadTxnNetworkLayer(this.config);
-        this.txnStore = new CoprocessorTxnStore(txnNetworkLayerFactory,timestampSource,null);
+        this.txnStore = new HBaseTxnStore(timestampSource,null);
         int completedTxnCacheSize = config.getCompletedTxnCacheSize();
         int completedTxnConcurrency = config.getCompletedTxnConcurrency();
-        this.txnSupplier = new CompletedTxnCacheSupplier(txnStore,completedTxnCacheSize,completedTxnConcurrency);
         this.txnStore.setCache(txnSupplier);
-        this.opFactory =HOperationFactory.INSTANCE;
-        this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory(),opFactory);
+        this.txnOpFactory = new SimpleTxnOperationFactory();
         this.clock = clock;
         this.snowflakeFactory = new HSnowflakeFactory();
         this.fileSystem =new HNIOFileSystem(FileSystem.get((Configuration) config.getConfigSource().unwrapDelegate()), exceptionFactory());
-        this.keepAlive = new QueuedKeepAliveScheduler(config.getTransactionKeepAliveInterval(),
-                config.getTransactionTimeout(),
-                config.getTransactionKeepAliveThreads(),
-                txnStore);
         siDriver = SIDriver.loadDriver(this);
     }
 
@@ -129,23 +108,14 @@ public class HBaseSIEnvironment implements SIEnvironment{
         this.timestampSource =new ZkTimestampSource(config,rzk);
         this.partitionCache = PartitionCacheService.loadPartitionCache(config);
         this.partitionFactory =TableFactoryService.loadTableFactory(clock, this.config,partitionCache);
-        TxnNetworkLayerFactory txnNetworkLayerFactory= TableFactoryService.loadTxnNetworkLayer(this.config);
-        this.txnStore = new CoprocessorTxnStore(txnNetworkLayerFactory,timestampSource,null);
+        this.txnStore = new HBaseTxnStore(timestampSource,null);
         int completedTxnCacheSize = config.getCompletedTxnCacheSize();
         int completedTxnConcurrency = config.getCompletedTxnConcurrency();
-        this.txnSupplier = new CompletedTxnCacheSupplier(txnStore,completedTxnCacheSize,completedTxnConcurrency);
         this.txnStore.setCache(txnSupplier);
-        this.opFactory =HOperationFactory.INSTANCE;
-        this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory(),opFactory);
+        this.txnOpFactory = new SimpleTxnOperationFactory();
         this.clock = clock;
         this.fileSystem =new HNIOFileSystem(FileSystem.get((Configuration) config.getConfigSource().unwrapDelegate()), exceptionFactory());
         this.snowflakeFactory = new HSnowflakeFactory();
-
-
-        this.keepAlive = new QueuedKeepAliveScheduler(config.getTransactionKeepAliveInterval(),
-                config.getTransactionTimeout(),
-                config.getTransactionKeepAliveThreads(),
-                txnStore);
         siDriver = SIDriver.loadDriver(this);
     }
 
@@ -168,23 +138,8 @@ public class HBaseSIEnvironment implements SIEnvironment{
     }
 
     @Override
-    public TxnSupplier txnSupplier(){
-        return txnSupplier;
-    }
-
-    @Override
     public OperationStatusFactory statusFactory(){
         return HOperationStatusFactory.INSTANCE;
-    }
-
-    @Override
-    public TimestampSource timestampSource(){
-        return timestampSource;
-    }
-
-    @Override
-    public RollForward rollForward(){
-        return NoopRollForward.INSTANCE;
     }
 
     @Override
@@ -203,23 +158,8 @@ public class HBaseSIEnvironment implements SIEnvironment{
     }
 
     @Override
-    public KeepAliveScheduler keepAliveScheduler(){
-        return keepAlive;
-    }
-
-    @Override
-    public DataFilterFactory filterFactory(){
-        return HFilterFactory.INSTANCE;
-    }
-
-    @Override
     public Clock systemClock(){
         return clock;
-    }
-
-    @Override
-    public KeyedReadResolver keyedReadResolver(){
-        return SynchronousReadResolver.INSTANCE;
     }
 
     @Override
@@ -232,11 +172,6 @@ public class HBaseSIEnvironment implements SIEnvironment{
         return new HNIOFileSystem(FileSystem.get(new URI(path), (Configuration) config.getConfigSource().unwrapDelegate()), exceptionFactory());
     }
 
-    @Override
-    public OperationFactory baseOperationFactory(){
-        return opFactory;
-    }
-
     public void setSIDriver(SIDriver siDriver) {
         this.siDriver = siDriver;
     }
@@ -244,5 +179,30 @@ public class HBaseSIEnvironment implements SIEnvironment{
     @Override
     public SnowflakeFactory snowflakeFactory() {
         return snowflakeFactory;
+    }
+
+    @Override
+    public TxnFactory txnFactory() {
+        return null;
+    }
+
+    @Override
+    public TimestampSource logicalTimestampSource() {
+        return null;
+    }
+
+    @Override
+    public TxnLocationFactory txnLocationFactory() {
+        return null;
+    }
+
+    @Override
+    public TimestampSource physicalTimestampSource() {
+        return null;
+    }
+
+    @Override
+    public TxnSupplier globalTxnCache() {
+        return null;
     }
 }

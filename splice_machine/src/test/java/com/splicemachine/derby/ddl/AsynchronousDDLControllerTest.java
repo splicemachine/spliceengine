@@ -36,8 +36,6 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.ddl.DDLMessage.DDLChange;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.txn.WritableTxn;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
 import com.splicemachine.util.EmptyConfigurationDefaultsList;
 import com.splicemachine.util.concurrent.TestCondition;
@@ -49,6 +47,7 @@ import com.splicemachine.util.concurrent.TestLock;
  */
 @Category(ArchitectureIndependent.class)
 public class AsynchronousDDLControllerTest{
+    /*
     private static final SConfiguration config = new ConfigurationBuilder().build(new EmptyConfigurationDefaultsList().addConfig(new TestConfig()),
                                                                                   new ReflectingConfigurationSource());
 
@@ -408,5 +407,5 @@ public class AsynchronousDDLControllerTest{
             builder.maxDdlWait = 10L;
         }
     }
-
+*/
 }

@@ -27,7 +27,6 @@ import com.splicemachine.derby.utils.FormatableBitSetUtils;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SerializationUtils;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -346,7 +345,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
 
 
     @Override
-    public List<RecordScan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, int[] keyDecodingMap) throws StandardException {
+    public List<RecordScan> getScans(Txn txn, ExecRow startKeyOverride, Activation activation, int[] keyDecodingMap) throws StandardException {
         throw new RuntimeException("getScans is not supported");
     }
 

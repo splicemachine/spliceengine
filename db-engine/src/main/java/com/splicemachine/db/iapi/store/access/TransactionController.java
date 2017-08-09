@@ -1381,7 +1381,7 @@ public interface TransactionController
      * @param tableName the name of the table to elevate
      * @throws StandardException If something goes wrong during elevation
      */
-    public void elevate(String tableName) throws StandardException;
+    public void elevate() throws StandardException;
 
 	/**
 	Commit this transaction.  All savepoints within this transaction are 

@@ -16,6 +16,8 @@
 package com.splicemachine.pipeline;
 
 import java.io.IOException;
+
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
@@ -43,7 +45,7 @@ class IndexFactory implements LocalWriteFactory{
     public static IndexFactory create(DDLMessage.TentativeIndex tentativeIndex) {
         return new IndexFactory(tentativeIndex,null);
     }
-    public static IndexFactory create(DDLMessage.DDLChange ddlChange) {
+    public static IndexFactory create(DDLMessage.DDLChange ddlChange) throws StandardException {
         return new IndexFactory(ddlChange.getTentativeIndex(), DDLUtils.getLazyTransaction(ddlChange.getTxnId()));
     }
 
@@ -54,7 +56,7 @@ class IndexFactory implements LocalWriteFactory{
         if (txn == null) {
             ctx.addLast(writeHandler);
         } else {
-            DDLFilter ddlFilter = SIDriver.driver().readController().newDDLFilter(txn);
+            DDLFilter ddlFilter = SIDriver.driver().getOperationFactory().newDDLFilter(txn);
             ctx.addLast(new SnapshotIsolatedWriteHandler(writeHandler, ddlFilter));
         }
     }

@@ -15,8 +15,7 @@
 
 package com.splicemachine.concurrent;
 
-import com.splicemachine.annotations.ThreadSafe;
-
+import javax.annotation.concurrent.ThreadSafe;
 import java.util.AbstractQueue;
 import java.util.Collection;
 import java.util.Iterator;

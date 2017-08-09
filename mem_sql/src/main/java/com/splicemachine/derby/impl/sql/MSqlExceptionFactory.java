@@ -18,8 +18,6 @@ package com.splicemachine.derby.impl.sql;
 import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.si.api.data.ExceptionFactory;
-import com.splicemachine.si.api.txn.Txn;
-
 import java.io.IOException;
 
 /**
@@ -59,8 +57,8 @@ public class MSqlExceptionFactory implements SqlExceptionFactory{
     }
 
     @Override
-    public IOException cannotCommit(long txnId,Txn.State actualState){
-        return delegate.cannotCommit(txnId,actualState);
+    public IOException cannotCommit(long txnId){
+        return delegate.cannotCommit(txnId);
     }
 
     @Override

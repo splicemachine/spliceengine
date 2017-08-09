@@ -30,7 +30,6 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Row;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.spark.sql.types.StructType;
-
 import java.util.BitSet;
 import java.util.Comparator;
 
@@ -114,5 +113,7 @@ public interface ExecRow extends Row, KeyableRow, org.apache.spark.sql.Row, Comp
 	public long getRowSize(BitSet validColumns) throws StandardException;
 
 	public int getNonNullCount() throws StandardException;
+
+	public byte[] generateRowKey(int[] columns) throws StandardException;
 
 }

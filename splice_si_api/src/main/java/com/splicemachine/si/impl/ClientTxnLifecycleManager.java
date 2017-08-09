@@ -15,10 +15,11 @@
 
 package com.splicemachine.si.impl;
 
-import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.txn.*;
 import com.splicemachine.timestamp.api.TimestampSource;
+
+import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
 import java.util.Arrays;
 
@@ -32,13 +33,13 @@ import java.util.Arrays;
 @ThreadSafe
 public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 
-    @ThreadSafe private final TimestampSource logicalTimestampSource;
-    @ThreadSafe private final TimestampSource physicalTimestampSource;
-    @ThreadSafe private TransactionStore store;
-    @ThreadSafe private final ExceptionFactory exceptionFactory;
-    @ThreadSafe private final TxnFactory txnFactory;
-    @ThreadSafe private final TxnLocationFactory txnLocationFactory;
-    @ThreadSafe private final TxnSupplier globalTxnCache;
+    private final TimestampSource logicalTimestampSource;
+    private final TimestampSource physicalTimestampSource;
+    private TransactionStore store;
+    private final ExceptionFactory exceptionFactory;
+    private final TxnFactory txnFactory;
+    private final TxnLocationFactory txnLocationFactory;
+    private final TxnSupplier globalTxnCache;
     private volatile boolean restoreMode=false;
 
     public ClientTxnLifecycleManager(TimestampSource logicalTimestampSource,
@@ -135,7 +136,10 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
     @Override
     public Txn elevateTransaction(Txn txn) throws IOException{
         assert txn!=null:"txn cannot be null";
+        System.out.println("elevate: "+txn);
+        System.out.println("store: "+store);
         store.elevateTransaction(txn);
+        System.out.println("returnedTxn: "+txn);
         return txn;
     }
 

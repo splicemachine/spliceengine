@@ -63,12 +63,11 @@ public class MemDDLEnvironment implements DDLEnvironment{
 
         SIDriver driver = SIDriver.driver();
         this.ddlWatcher = new SynchronousDDLWatcher(
-                        driver.readController(),
                         driver.getClock(),
                         driver.getConfiguration(),
                 EngineDriver.driver().getExceptionFactory(),
                 ddlWatchChecker,
-                driver.getTxnSupplier());
+                driver.getTxnStore());
 
         DDLCommunicator communicator = new DirectCommunicator(changeStore);
         this.ddlController = new AsynchronousDDLController(communicator,new ReentrantLockFactory(false),

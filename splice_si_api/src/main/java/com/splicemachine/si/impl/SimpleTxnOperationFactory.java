@@ -18,13 +18,16 @@ package com.splicemachine.si.impl;
 import com.splicemachine.access.impl.data.UnsafeRecord;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.ConflictType;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.storage.Record;
 import com.splicemachine.storage.RecordScan;
 import com.splicemachine.storage.RecordType;
+import com.splicemachine.utils.IntArrays;
 
+import javax.ws.rs.NotSupportedException;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -73,14 +76,45 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
 
     @Override
     public Record newRecord(Txn txn, byte[] key, int[] fields, ExecRow data) throws StandardException{
-        Record record = newRecord(txn,key);
-        record.setData(fields,data);
-        return null;
+        return newRecord(txn,key,fields,data.getRowArray());
     }
 
     @Override
-    public Record newRecord(Txn txn, byte[] keyObject, byte[] keyOffset, byte[] keyLength, int[] fields, ExecRow data) {
-        return null;
+    public Record newRecord(Txn txn, byte[] key, int[] fields, DataValueDescriptor[] data) throws StandardException{
+        return newRecord(txn,key,16, key.length,fields,data);
+    }
+
+    @Override
+    public Record newRecord(Txn txn, byte[] keyObject, int keyOffset, int keyLength, int[] fields, ExecRow data) {
+        return newRecord(txn, keyObject, keyOffset, keyLength, fields, data);
+    }
+
+    @Override
+    public Record newRecord(Txn txn, byte[] keyObject, int keyOffset, int keyLength, int[] fields, DataValueDescriptor[] data) throws StandardException {
+        System.out.println("new Reocrd");
+        Record record = new UnsafeRecord(keyObject,keyOffset,keyLength,1,new byte[400],16,true);
+        record.setTxnId1(txn.getParentTxnId());
+        record.setTxnId2(txn.getTxnId());
+        record.setNumberOfColumns(2);
+        System.out.println("new Reocrd2");
+        record.setData(fields,data);
+        System.out.println("new Reocrd3");
+        return record;
+    }
+
+    @Override
+    public Record newRecord(Txn txn, byte[] key, ExecRow data) throws StandardException {
+        return newRecord(txn, key, data.getRowArray());
+    }
+
+    @Override
+    public Record newRecord(Txn txn, byte[] key, DataValueDescriptor[] data) throws StandardException {
+        return newRecord(txn, key, 0, key.length, IntArrays.count(data.length), data);
+    }
+
+    @Override
+    public DDLFilter newDDLFilter(Txn txn) {
+        throw new NotSupportedException("Not Implemented");
     }
 
     @Override
@@ -95,5 +129,15 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
     @Override
     public Record newUpdate(Txn txn, byte[] key) {
         return null;
+    }
+
+    @Override
+    public RecordScan readScan(ObjectInput in) {
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    @Override
+    public void writeScan(RecordScan scan, ObjectOutput out) {
+        throw new UnsupportedOperationException("not implemented");
     }
 }

@@ -28,7 +28,6 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.*;
-import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -188,7 +187,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 				EngineDriver.driver().getOlapClient().execute(new DistributedPopulateIndexJob(childTxn, builder, scope, jobGroup, prefix, tentativeIndex, indexFormatIds));
 			else
 				PopulateIndexJob.populateIndex(tentativeIndex,builder,prefix,indexFormatIds,scope,childTxn);
-            childTxn.commit();
+            SIDriver.driver().lifecycleManager().commit(childTxn);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         } catch (TimeoutException e) {
@@ -198,7 +197,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 
     protected Txn beginChildTransaction(Txn parentTxn, long indexConglomId) throws IOException{
         TxnLifecycleManager tc = SIDriver.driver().lifecycleManager();
-        return tc.beginChildTransaction(parentTxn,Bytes.toBytes(Long.toString(indexConglomId)));
+        return tc.beginChildTransaction(parentTxn);
     }
 
 	public String getScopeName() {

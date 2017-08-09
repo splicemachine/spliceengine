@@ -16,6 +16,7 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.iapi.stats.ItemStatistics;
+import com.splicemachine.si.api.txn.Txn;
 import org.spark_project.guava.base.Function;
 import com.splicemachine.derby.utils.stats.DistributedStatsCollection;
 import com.splicemachine.derby.utils.stats.StatsResult;
@@ -55,7 +56,6 @@ import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.protobuf.ProtoUtil;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.RecordScan;
 import com.splicemachine.utils.Pair;
@@ -95,7 +95,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                     descriptor.setCollectStatistics(false);
                     LanguageConnectionContext languageConnection=conn.getLanguageConnection();
                     TransactionController transactionCompile=languageConnection.getTransactionCompile();
-                    transactionCompile.elevate("dictionary");
+                    transactionCompile.elevate();
                     languageConnection.getDataDictionary().setCollectStats(transactionCompile, td.getUUID(), columnName, false);
                     return;
                 }
@@ -132,7 +132,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                     descriptor.setCollectStatistics(true);
                     LanguageConnectionContext languageConnection=conn.getLanguageConnection();
                     TransactionController transactionCompile=languageConnection.getTransactionCompile();
-                    transactionCompile.elevate("dictionary");
+                    transactionCompile.elevate();
                     languageConnection.getDataDictionary().setCollectStats(transactionCompile, td.getUUID(), columnName, true);
                     return;
                 }
@@ -180,11 +180,11 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             }
             authorize(tds);
             TransactionController transactionExecute = lcc.getTransactionExecute();
-            transactionExecute.elevate("statistics");
+            transactionExecute.elevate();
             dropTableStatistics(tds,dd,tc);
             ddlNotification(tc,tds);
 //            ExecRow templateOutputRow = buildOutputTemplateRow();
-            TxnView txn = ((SpliceTransactionManager) transactionExecute).getRawTransaction().getActiveStateTxn();
+            Txn txn = ((SpliceTransactionManager) transactionExecute).getRawTransaction().getActiveStateTxn();
 
             // Create the Dataset.  This needs to stay in a dataset for parallel execution (very important).
             DataSet<ExecRow> dataSet = null;
@@ -271,7 +271,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             TransactionController tc = conn.getLanguageConnection().getTransactionExecute();
             dropTableStatistics(tds,dd,tc);
             ddlNotification(tc, tds);
-            TxnView txn = ((SpliceTransactionManager) tc).getRawTransaction().getActiveStateTxn();
+            Txn txn = ((SpliceTransactionManager) tc).getRawTransaction().getActiveStateTxn();
             HashMap<Long,Pair<String,String>> display = new HashMap<>();
             display.put(tableDesc.getHeapConglomerateId(),Pair.newPair(schema,table));
             IteratorNoPutResultSet resultsToWrap = wrapResults(
@@ -300,7 +300,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             List<TableDescriptor> tds = getAllTableDescriptors(sd, conn);
             authorize(tds);
             TransactionController tc = conn.getLanguageConnection().getTransactionExecute();
-            tc.elevate("statistics");
+            tc.elevate();
             dropTableStatistics(tds,dd,tc);
             ddlNotification(tc,tds);
             SpliceLogUtils.debug(LOG, "Done dropping statistics for schema %s.", schema);
@@ -318,7 +318,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             table = EngineUtils.validateTable(table);
             TableDescriptor tableDesc = verifyTableExists(conn, schema, table);
             TransactionController tc = conn.getLanguageConnection().getTransactionExecute();
-            tc.elevate("statistics");
+            tc.elevate();
             DataDictionary dd = conn.getLanguageConnection().getDataDictionary();
             List<TableDescriptor> tds = Collections.singletonList(tableDesc);
             dropTableStatistics(tds,dd,tc);
@@ -339,14 +339,14 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private static Future<StatsResult> collectTableStatistics(TableDescriptor table,
-                                                             TxnView txn,
+                                                             Txn txn,
                                                              EmbedConnection conn) throws StandardException, ExecutionException {
 
        return collectBaseTableStatistics(table, txn, conn);
     }
 
     private static Future<StatsResult> collectBaseTableStatistics(TableDescriptor table,
-                                                                 TxnView txn,
+                                                                 Txn txn,
                                                                  EmbedConnection conn) throws StandardException, ExecutionException {
         long heapConglomerateId = table.getHeapConglomerateId();
         Activation activation = conn.getLanguageConnection().getLastActivation();
@@ -370,9 +370,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         return String.format(OperationContext.Scope.COLLECT_STATS.displayName(), td.getName());
     }
 
-    private static RecordScan createScan (TxnView txn) {
-        RecordScan scan=SIDriver.driver().getOperationFactory().newDataScan(txn);
-        scan.returnAllVersions(); //make sure that we read all versions of the data
+    private static RecordScan createScan (Txn txn) {
+        RecordScan scan=SIDriver.driver().getOperationFactory().newDataScan();
         return scan.startKey(new byte[0]).stopKey(new byte[0]);
     }
 
@@ -386,7 +385,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     private static ScanSetBuilder createTableScanner(ScanSetBuilder builder,
                                                      EmbedConnection conn,
                                                      TableDescriptor table,
-                                                     TxnView txn) throws StandardException{
+                                                     Txn txn) throws StandardException{
 
         List<ColumnDescriptor> colsToCollect = getCollectedColumns(table);
         ExecRow row = new ValueRow(colsToCollect.size());

@@ -21,16 +21,19 @@ import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.IncrementingClock;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.*;
-import com.splicemachine.si.api.txn.TxnStore;
+import com.splicemachine.si.api.txn.TransactionStore;
+import com.splicemachine.si.api.txn.TxnFactory;
+import com.splicemachine.si.api.txn.TxnLocationFactory;
+import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.data.MExceptionFactory;
-import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
-import com.splicemachine.si.impl.rollforward.NoopRollForward;
+import com.splicemachine.si.impl.store.GlobalTxnCacheSupplier;
+import com.splicemachine.si.impl.txn.UnsafeTxnFactory;
+import com.splicemachine.si.impl.txn.SimpleTxnLocationFactory;
 import com.splicemachine.si.testenv.SITestEnv;
 import com.splicemachine.si.testenv.TestTransactionSetup;
 import com.splicemachine.storage.*;
 import com.splicemachine.timestamp.api.TimestampSource;
-
 import java.io.IOException;
 
 /**
@@ -41,13 +44,13 @@ public class MemSITestEnv implements SITestEnv{
     private final ExceptionFactory exceptionFactory = MExceptionFactory.INSTANCE;
     private final Clock clock = new IncrementingClock();
     private final TimestampSource tsSource = new MemTimestampSource();
-    private final TxnStore txnStore = new MemTxnStore(clock,tsSource,exceptionFactory,1000);
+    private final TransactionStore txnStore = new MemTxnStore();
     protected Partition personPartition;
     private final PartitionFactory tableFactory = new MPartitionFactory();
-    private final OperationFactory opFactory = new MOperationFactory(clock);
-    private final DataFilterFactory filterFactory = MFilterFactory.INSTANCE;
     private final OperationStatusFactory operationStatusFactory =MOpStatusFactory.INSTANCE;
-    private final TxnOperationFactory txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory,opFactory);
+    private final TxnOperationFactory txnOpFactory = new SimpleTxnOperationFactory();
+    private final TxnFactory txnFactory = new UnsafeTxnFactory();
+    private final TxnLocationFactory txnLocationFactory = new SimpleTxnLocationFactory();
 
     public MemSITestEnv() throws IOException{
     }
@@ -59,13 +62,8 @@ public class MemSITestEnv implements SITestEnv{
 
     @Override public String getPersonTableName(){ return "person"; }
     @Override public Clock getClock(){ return clock; }
-    @Override public TxnStore getTxnStore(){ return txnStore; }
+    @Override public TransactionStore getTxnStore(){ return txnStore; }
     @Override public TimestampSource getTimestampSource(){ return tsSource; }
-
-    @Override
-    public DataFilterFactory getFilterFactory(){
-        return filterFactory;
-    }
 
     @Override
     public ExceptionFactory getExceptionFactory(){
@@ -80,11 +78,6 @@ public class MemSITestEnv implements SITestEnv{
     @Override
     public TxnOperationFactory getOperationFactory(){
         return txnOpFactory;
-    }
-
-    @Override
-    public OperationFactory getBaseOperationFactory(){
-        return opFactory;
     }
 
     @Override
@@ -103,19 +96,28 @@ public class MemSITestEnv implements SITestEnv{
     public Partition getPersonTable(TestTransactionSetup tts){
         return new TxnPartition(personPartition,
                 tts.transactor,
-                NoopRollForward.INSTANCE,
-                txnOpFactory,
-                tts.readController,
-                NoOpReadResolver.INSTANCE);
+                txnOpFactory);
     }
 
     @Override
     public Partition getPartition(String name,TestTransactionSetup tts) throws IOException{
         return new TxnPartition(tableFactory.getTable(name),
                 tts.transactor,
-                NoopRollForward.INSTANCE,
-                txnOpFactory,
-                tts.readController,
-                NoOpReadResolver.INSTANCE);
+                txnOpFactory);
+    }
+
+    @Override
+    public TxnFactory getTxnFactory() {
+        return txnFactory;
+    }
+
+    @Override
+    public TxnLocationFactory getTxnLocationFactory() {
+        return txnLocationFactory;
+    }
+
+    @Override
+    public TxnSupplier getGlobalTxnCache() {
+        return new GlobalTxnCacheSupplier(2000,16); // JL-TODO Fix...
     }
 }

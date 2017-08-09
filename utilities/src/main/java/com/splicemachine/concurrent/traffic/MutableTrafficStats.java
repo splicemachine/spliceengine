@@ -15,8 +15,7 @@
 
 package com.splicemachine.concurrent.traffic;
 
-import com.splicemachine.annotations.ThreadSafe;
-
+import javax.annotation.concurrent.ThreadSafe;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**

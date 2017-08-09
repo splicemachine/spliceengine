@@ -206,7 +206,10 @@ public class DDLWatchRefresher{
 
 
     private void assignDDLDemarcationPoint(DDLChange ddlChange) {
+        throw new UnsupportedOperationException("Not Implemented");
+        /*
         try {
+
             Txn txn = new LazyTxnView(ddlChange.getTxnId(),txnSupplier,exceptionFactory);
             assert txn.allowsWrites(): "DDLChange "+ddlChange+" does not have a writable transaction";
             DDLFilter ddlFilter = txController.newDDLFilter(txn);
@@ -216,7 +219,7 @@ public class DDLWatchRefresher{
         } catch (IOException e) {
             LOG.error("Couldn't create ddlFilter", e);
         }
-
+    */
     }
 
     private int killTimeouts(Set<DDLWatcher.DDLListener> listeners) {

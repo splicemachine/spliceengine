@@ -18,7 +18,6 @@ package com.splicemachine.derby.ddl;
 import java.io.IOException;
 
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
-import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.pipeline.RowTransformer;
 import com.splicemachine.pipeline.writehandler.WriteHandler;
 
@@ -34,15 +33,6 @@ import com.splicemachine.pipeline.writehandler.WriteHandler;
  *         Date: 3/27/15
  */
 public interface TransformingDDLDescriptor extends TentativeDDLDesc{
-
-    /**
-     * Create a RowTransformer that can map rows from the original table
-     * to the altered table.
-     * @param keyEncoder the key encoder to use when not working with PKs - no rowKey munging.
-     * @return the appropriate RowTransformer
-     * @throws IOException
-     */
-    RowTransformer createRowTransformer(KeyEncoder keyEncoder) throws IOException;
 
     /**
      * Create a RowTransformer that can intercept rows from the original table and write them

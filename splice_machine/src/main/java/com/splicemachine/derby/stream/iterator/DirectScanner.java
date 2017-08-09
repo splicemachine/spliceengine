@@ -15,24 +15,20 @@
 
 package com.splicemachine.derby.stream.iterator;
 
-import org.spark_project.guava.collect.Lists;
+import com.splicemachine.storage.Record;
+import com.splicemachine.storage.RecordScanner;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.utils.StandardIterator;
-import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.storage.DataCell;
-import com.splicemachine.storage.DataScanner;
 import java.io.IOException;
-import java.util.List;
 
 /**
  *
  * Created by jyuan on 10/16/15.
  */
-public class DirectScanner implements StandardIterator<KVPair>, AutoCloseable{
-    private DataScanner regionScanner;
-    private List<DataCell> keyValues;
+public class DirectScanner implements StandardIterator<Record>, AutoCloseable{
+    private RecordScanner regionScanner;
 
-    public DirectScanner(DataScanner scanner){
+    public DirectScanner(RecordScanner scanner){
         this.regionScanner=scanner;
     }
 
@@ -42,17 +38,8 @@ public class DirectScanner implements StandardIterator<KVPair>, AutoCloseable{
     }
 
     @Override
-    public KVPair next() throws StandardException, IOException{
-        if(keyValues==null)
-            keyValues=Lists.newArrayListWithExpectedSize(2);
-        keyValues.clear();
-        keyValues=regionScanner.next(-1);//dataLib.regionScannerNext(regionScanner, keyValues);
-        if(keyValues.size()<=0){
-            return null;
-        }else{
-            DataCell currentKeyValue=keyValues.get(0);
-            return getKVPair(currentKeyValue);
-        }
+    public Record next() throws StandardException, IOException{
+        return regionScanner.next();//dataLib.regionScannerNext(regionScanner, keyValues);
     }
 
     @Override
@@ -61,13 +48,4 @@ public class DirectScanner implements StandardIterator<KVPair>, AutoCloseable{
             regionScanner.close();
     }
 
-    private KVPair getKVPair(DataCell keyValue){
-        int keyLen=keyValue.keyLength();
-        int valueLen=keyValue.valueLength();
-        byte[] key=new byte[keyLen];
-        byte[] value=new byte[valueLen];
-        System.arraycopy(keyValue.keyArray(),keyValue.keyOffset(),key,0,keyLen);
-        System.arraycopy(keyValue.valueArray(),keyValue.valueOffset(),value,0,valueLen);
-        return new KVPair(key,value);
-    }
 }

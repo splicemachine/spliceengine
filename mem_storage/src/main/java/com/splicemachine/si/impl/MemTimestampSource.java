@@ -31,6 +31,14 @@ public class MemTimestampSource implements TimestampSource {
     }
 
     @Override
+    public long[] nextTimestamps(int batch) {
+        long[] timestamps = new long[batch];
+        for (int i = 0; i< batch; i++)
+            timestamps[i] = nextTimestamp();
+        return timestamps;
+    }
+
+    @Override
     public void rememberTimestamp(long timestamp) {
         memory = timestamp;
     }

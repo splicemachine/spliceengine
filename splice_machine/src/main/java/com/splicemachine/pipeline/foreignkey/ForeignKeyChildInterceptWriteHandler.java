@@ -19,31 +19,22 @@ import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.ddl.DDLMessage.*;
-import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
-import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.writehandler.WriteHandler;
-import com.splicemachine.si.impl.SimpleTxnFilter;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
-import com.splicemachine.si.impl.txn.ActiveWriteTxn;
-import com.splicemachine.si.impl.txn.WritableTxn;
-import com.splicemachine.storage.DataCell;
-import com.splicemachine.storage.DataFilter;
-import com.splicemachine.storage.DataResult;
 import com.splicemachine.storage.Partition;
-import com.splicemachine.storage.util.MapAttributes;
+import com.splicemachine.storage.Record;
+import com.splicemachine.storage.RecordType;
+
 import javax.annotation.concurrent.NotThreadSafe;
+import javax.ws.rs.NotSupportedException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -55,10 +46,8 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
     private final long referencedConglomerateNumber;
     private final ForeignKeyViolationProcessor violationProcessor;
     private Partition table;
-    private ObjectArrayList<KVPair> mutations = new ObjectArrayList<>();
+    private ObjectArrayList<Record> mutations = new ObjectArrayList<>();
     private final int formatIds[];
-    private final MultiFieldDecoder multiFieldDecoder;
-    private final TypeProvider typeProvider;
     private FKConstraintInfo fkConstraintInfo;
 
     public ForeignKeyChildInterceptWriteHandler(long referencedConglomerateNumber,
@@ -71,14 +60,12 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
         this.formatIds = new int[fkConstraintInfo.getFormatIdsCount()];
         for (int i =0;i<fkConstraintInfo.getFormatIdsCount();i++)
             this.formatIds[i] = fkConstraintInfo.getFormatIds(i);
-        this.multiFieldDecoder = MultiFieldDecoder.create();
-        this.typeProvider = VersionedSerializers.typesForVersion(fkConstraintInfo.getParentTableVersion());
         this.fkConstraintInfo = fkConstraintInfo;
     }
 
     @Override
-    public void next(KVPair mutation, WriteContext ctx) {
-        if (isForeignKeyInterceptNecessary(mutation.getType())) {
+    public void next(Record mutation, WriteContext ctx) {
+        if (isForeignKeyInterceptNecessary(mutation.getRecordType())) {
             mutations.add(mutation);
             ctx.success(mutation);
         }
@@ -86,19 +73,21 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
     }
 
     /* This WriteHandler doesn't do anything when, for example, we delete from the FK backing index. */
-    private boolean isForeignKeyInterceptNecessary(KVPair.Type type) {
-        return type == KVPair.Type.INSERT || type == KVPair.Type.UPDATE || type == KVPair.Type.UPSERT;
+    private boolean isForeignKeyInterceptNecessary(RecordType type) {
+        return type == RecordType.INSERT || type == RecordType.UPDATE || type == RecordType.UPSERT;
     }
 
     @Override
     public void flush(WriteContext ctx) throws IOException {
+        throw new NotSupportedException("Not Implemented");
+        /*
         try {
             initTable();
             HashSet<byte[]> culledLookups = new HashSet(mutations.size());
             int[] locations = new int[mutations.size()];
             int counter = 0;
             for (int i =0; i<mutations.size();i++) {
-                byte[] checkRowKey = getCheckRowKey(mutations.get(i).getRowKey());
+                byte[] checkRowKey = getCheckRowKey(mutations.get(i).getKey());
                 if (culledLookups.contains(checkRowKey)) {
                     locations[i] = counter-1;
                 } else {
@@ -153,6 +142,7 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
                 table.close();
             mutations.clear();
         }
+        */
 
     }
 
@@ -160,30 +150,6 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
     public void close(WriteContext ctx) throws IOException {
         if (mutations.size() > 0)
             flush(ctx);
-    }
-
-    private boolean hasData(DataResult result,SimpleTxnFilter filter) throws IOException {
-        if(result!=null && result.size()>0) {
-            int cellCount = result.size();
-            for (DataCell dc : result) {
-                DataFilter.ReturnCode returnCode = filter.filterCell(dc);
-                switch (returnCode) {
-                    case NEXT_ROW:
-                        return false; //the entire row is filtered
-                    case SKIP:
-                    case NEXT_COL:
-                    case SEEK:
-                        cellCount--; //the cell is filtered
-                        break;
-                    case INCLUDE:
-                    case INCLUDE_AND_NEXT_COL: //the cell is included, so we have some data
-                    default: //do nothing
-                        break;
-                }
-            }
-            if(cellCount>0) return true; // Has Data...
-        }
-        return false; // No data returned, fail
     }
 
     /* Only need to create the CallBuffer once, but not until we have a WriteContext */
@@ -197,9 +163,9 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
         return "ForeignKeyChildInterceptWriteHandler{parentTable='" + referencedConglomerateNumber + '\'' + '}';
     }
 
-    private void failWrite(KVPair kvPair, WriteContext ctx) {
+    private void failWrite(Record record, WriteContext ctx) {
         WriteResult foreignKeyConstraint = new WriteResult(Code.FOREIGN_KEY_VIOLATION, ConstraintContext.foreignKey(fkConstraintInfo));
-        ctx.failed(kvPair, foreignKeyConstraint);
+        ctx.failed(record, foreignKeyConstraint);
     }
 
     /**
@@ -226,7 +192,8 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
      * return value      = [65, 67, 0 54, 45]
      */
     private byte[] getCheckRowKey(byte[] rowKeyIn) {
-
+        throw new NotSupportedException("Not Implemented");
+    /*
         int position = 0;
         multiFieldDecoder.set(rowKeyIn);
         for (int i = 0; i < formatIds.length; i++) {
@@ -251,6 +218,7 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
         byte[] checkRowKey = new byte[lastKeyIndex + 1];
         System.arraycopy(rowKeyIn, 0, checkRowKey, 0, lastKeyIndex + 1);
         return checkRowKey;
+        */
     }
 
 }

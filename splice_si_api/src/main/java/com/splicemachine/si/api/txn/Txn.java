@@ -201,6 +201,8 @@ public interface Txn extends Comparable<Txn>, Externalizable{
 
     boolean isAbleToCommit();
 
+    boolean isReadOnly();
+
     void resolveCollapsibleTxn(Record record, Txn activeTxn, Txn txnToResolve);
 
 }

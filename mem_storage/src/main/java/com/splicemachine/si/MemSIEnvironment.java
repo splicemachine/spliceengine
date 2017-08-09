@@ -27,19 +27,18 @@ import com.splicemachine.access.configuration.HConfigurationDefaultsList;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.ConcurrentTicker;
 import com.splicemachine.si.api.data.ExceptionFactory;
-import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.si.api.readresolve.KeyedReadResolver;
-import com.splicemachine.si.api.readresolve.RollForward;
-import com.splicemachine.si.api.txn.KeepAliveScheduler;
-import com.splicemachine.si.api.txn.TxnStore;
+import com.splicemachine.si.api.txn.TransactionStore;
+import com.splicemachine.si.api.txn.TxnFactory;
+import com.splicemachine.si.api.txn.TxnLocationFactory;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.data.MExceptionFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.driver.SIEnvironment;
-import com.splicemachine.si.impl.rollforward.NoopRollForward;
+import com.splicemachine.si.impl.txn.UnsafeTxnFactory;
+import com.splicemachine.si.impl.txn.SimpleTxnLocationFactory;
 import com.splicemachine.storage.*;
 import com.splicemachine.timestamp.api.TimestampSource;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -53,17 +52,18 @@ public class MemSIEnvironment implements SIEnvironment{
     public static volatile MemSIEnvironment INSTANCE;
     private final ExceptionFactory exceptionFactory = MExceptionFactory.INSTANCE;
     private final Clock clock;
-    private final TimestampSource tsSource = new MemTimestampSource();
-    private final TxnStore txnStore;
+    private final TimestampSource logicalSource = new MemTimestampSource();
+    private final TimestampSource physicalSource = new MemTimestampSource();
+
+    private final TransactionStore txnStore;
     private final PartitionFactory tableFactory;
-    private final DataFilterFactory filterFactory = MFilterFactory.INSTANCE;
     private final SnowflakeFactory snowflakeFactory = MSnowflakeFactory.INSTANCE;
     private final OperationStatusFactory operationStatusFactory =MOpStatusFactory.INSTANCE;
-    private final OperationFactory opFactory;
     private final TxnOperationFactory txnOpFactory;
-    private final KeepAliveScheduler kaScheduler;
     private final MPartitionCache partitionCache = new MPartitionCache();
     private final SConfiguration config;
+    private TxnLocationFactory txnLocationFactory;
+    private TxnFactory txnFactory;
 
 
     private transient SIDriver siDriver;
@@ -75,12 +75,12 @@ public class MemSIEnvironment implements SIEnvironment{
 
     public MemSIEnvironment(PartitionFactory tableFactory,Clock clock){
         this.tableFactory = tableFactory;
-        this.txnStore = new MemTxnStore(clock,tsSource,exceptionFactory,1000);
+        this.txnStore = new MemTxnStore();
         this.config=new ConfigurationBuilder().build(new HConfigurationDefaultsList(), new ReflectingConfigurationSource());
-        this.opFactory = new MOperationFactory(clock);
-        this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory,opFactory);
-        this.kaScheduler = new ManualKeepAliveScheduler(txnStore);
-            this.clock = clock;
+        this.txnOpFactory = new SimpleTxnOperationFactory();
+        this.clock = clock;
+        this.txnLocationFactory = new SimpleTxnLocationFactory();
+        this.txnFactory = new UnsafeTxnFactory();
     }
 
     @Override
@@ -99,7 +99,7 @@ public class MemSIEnvironment implements SIEnvironment{
     }
 
     @Override
-    public TxnStore txnStore(){
+    public TransactionStore txnStore(){
         return txnStore;
     }
 
@@ -109,18 +109,18 @@ public class MemSIEnvironment implements SIEnvironment{
     }
 
     @Override
-    public TimestampSource timestampSource(){
-        return tsSource;
+    public TimestampSource logicalTimestampSource() {
+        return logicalSource;
     }
 
     @Override
-    public TxnSupplier txnSupplier(){
+    public TimestampSource physicalTimestampSource() {
+        return physicalSource;
+    }
+
+    @Override
+    public TxnSupplier globalTxnCache() {
         return txnStore;
-    }
-
-    @Override
-    public RollForward rollForward(){
-        return NoopRollForward.INSTANCE;
     }
 
     @Override
@@ -141,23 +141,8 @@ public class MemSIEnvironment implements SIEnvironment{
     }
 
     @Override
-    public KeepAliveScheduler keepAliveScheduler(){
-        return kaScheduler;
-    }
-
-    @Override
-    public DataFilterFactory filterFactory(){
-        return filterFactory;
-    }
-
-    @Override
     public Clock systemClock(){
         return clock;
-    }
-
-    @Override
-    public KeyedReadResolver keyedReadResolver(){
-        return MSynchronousReadResolver.INSTANCE;
     }
 
     @Override
@@ -171,12 +156,17 @@ public class MemSIEnvironment implements SIEnvironment{
     }
 
     @Override
-    public OperationFactory baseOperationFactory(){
-        return opFactory;
+    public SnowflakeFactory snowflakeFactory() {
+        return snowflakeFactory;
     }
 
     @Override
-    public SnowflakeFactory snowflakeFactory() {
-        return snowflakeFactory;
+    public TxnLocationFactory txnLocationFactory() {
+        return txnLocationFactory;
+    }
+
+    @Override
+    public TxnFactory txnFactory() {
+        return txnFactory;
     }
 }

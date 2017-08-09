@@ -26,8 +26,12 @@ import java.util.Collections;
 import java.util.List;
 
 /**
+ *
+ * Deprecate
+ *
  * Created by jleach on 7/8/16.
  */
+@Deprecated
 public class SpliceHRegionInfoTest {
     private static final byte[] rowKey = "1234".getBytes();
     private static long DEFAULT_TIMESTAMP = 12345l;

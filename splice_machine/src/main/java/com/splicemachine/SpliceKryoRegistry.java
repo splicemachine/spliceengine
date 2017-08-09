@@ -39,6 +39,7 @@ import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
 import com.splicemachine.derby.stream.function.StatisticsFlatMapFunction;
+import com.splicemachine.storage.Record;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import com.splicemachine.db.catalog.types.AggregateAliasInfo;
 import com.splicemachine.db.catalog.types.BaseTypeIdImpl;
@@ -120,7 +121,6 @@ import com.splicemachine.derby.serialization.ActivationSerializer;
 import com.splicemachine.derby.serialization.SpliceObserverInstructions;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.derby.utils.kryo.ValueRowSerializer;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
@@ -624,32 +624,10 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
             public BulkWrite read(Kryo kryo,Input input,Class type){
                 byte skipWrite=input.readByte();
                 String eSn=input.readString();
-                Collection<KVPair> kvPairs=(Collection<KVPair>)kryo.readClassAndObject(input);
+                Collection<Record> kvPairs=(Collection<Record>)kryo.readClassAndObject(input);
                 return new BulkWrite(kvPairs,eSn,skipWrite);
             }
         },142);
-        instance.register(KVPair.class,new Serializer<KVPair>(){
-            @Override
-            public void write(Kryo kryo,Output output,KVPair object){
-                output.writeByte(object.getType().asByte());
-                byte[] rowKey=object.getRowKey();
-                output.writeInt(rowKey.length);
-                output.writeBytes(rowKey);
-                byte[] value=object.getValue();
-                output.writeInt(value.length);
-                output.writeBytes(value);
-            }
-
-            @Override
-            public KVPair read(Kryo kryo,Input input,Class type){
-                KVPair.Type t=KVPair.Type.decode(input.readByte());
-                byte[] rowKey=new byte[input.readInt()];
-                input.readBytes(rowKey);
-                byte[] value=new byte[input.readInt()];
-                input.readBytes(value);
-                return new KVPair(rowKey,value,t);
-            }
-        },143);
         instance.register(SpliceStddevPop.class,144);
         instance.register(SpliceStddevSamp.class,145);
         instance.register(Properties.class,new MapSerializer(),146);

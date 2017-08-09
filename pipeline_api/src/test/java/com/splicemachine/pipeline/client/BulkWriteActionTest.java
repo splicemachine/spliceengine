@@ -26,7 +26,6 @@ import com.splicemachine.pipeline.testsetup.PipelineTestDataEnv;
 import com.splicemachine.pipeline.testsetup.PipelineTestEnvironment;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.impl.txn.SimpleTxnImpl;
 import com.splicemachine.si.testenv.ArchitectureSpecific;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionServer;
