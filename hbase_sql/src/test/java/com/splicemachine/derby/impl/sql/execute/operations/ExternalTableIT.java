@@ -1223,7 +1223,7 @@ public class ExternalTableIT extends SpliceUnitTest{
         rs.close();
 
         // test query with predicate on date
-        rs = methodWatcher.executeQuery("select * from t_partition_by_date where a1='2017-07-27' order by 1");
+        rs = methodWatcher.executeQuery("select * from t_partition_by_date where a1='2017-07-27' order by 1,2");
 
         expected = "A1     |B1 |C1  |\n" +
                 "---------------------\n" +
@@ -1234,7 +1234,7 @@ public class ExternalTableIT extends SpliceUnitTest{
         assertEquals(expected, resultString);
         rs.close();
 
-        rs = methodWatcher.executeQuery("select * from t_partition_by_date where a1>='2017-07-27' order by 1");
+        rs = methodWatcher.executeQuery("select * from t_partition_by_date where a1>='2017-07-27' order by 1,2");
 
         expected = "A1     |B1 |C1  |\n" +
                 "---------------------\n" +
@@ -1908,7 +1908,7 @@ public class ExternalTableIT extends SpliceUnitTest{
         rs.close();
 
         // test query with predicate on date
-        rs = methodWatcher.executeQuery("select * from t_partition_by_smallint where a1=1 order by 1");
+        rs = methodWatcher.executeQuery("select * from t_partition_by_smallint where a1=1 order by 1, 2");
 
         expected = "A1 |B1 |C1  |\n" +
                 "-------------\n" +
@@ -1919,7 +1919,7 @@ public class ExternalTableIT extends SpliceUnitTest{
         assertEquals(expected, resultString);
         rs.close();
 
-        rs = methodWatcher.executeQuery("select * from t_partition_by_smallint where a1>=2 order by 1");
+        rs = methodWatcher.executeQuery("select * from t_partition_by_smallint where a1>=2 order by 1,2");
 
         expected = "A1 |B1 |C1  |\n" +
                 "-------------\n" +
