@@ -14,7 +14,10 @@
 package com.splicemachine.orc.metadata;
 
 import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
+import org.apache.hadoop.hive.serde2.io.DateWritable;
+
 import java.io.IOException;
+
 import static com.google.common.base.MoreObjects.toStringHelper;
 
 public class DateStatistics
@@ -50,7 +53,8 @@ public class DateStatistics
     }
 
     public static ColumnStatistics getPartitionColumnStatistics(String value) throws IOException {
-            DateStatistics dateStatistics = new DateStatistics(0,0);
+            Integer dateInDays = DateWritable.dateToDays(java.sql.Date.valueOf(value));
+            DateStatistics dateStatistics = new DateStatistics(dateInDays, dateInDays);
             return new ColumnStatistics(SpliceOrcNewInputFormat.DEFAULT_PARTITION_SIZE,
                     null,null,null,null,dateStatistics,null,null);
     }
