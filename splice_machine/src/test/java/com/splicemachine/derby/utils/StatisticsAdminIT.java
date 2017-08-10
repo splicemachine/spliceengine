@@ -171,6 +171,22 @@ public class StatisticsAdminIT{
                         row(3,3,3,3,3,3)))
                 .create();
 
+        new TableCreator(conn4)
+                .withCreate("create table t4 (a4 varchar(3), b4 varchar(3), primary key(a4))")
+                .withInsert("insert into t4 values (?,?)")
+                .withRows(rows(
+                        row("",""),
+                        row("A","A"),
+                        row("F",""),
+                        row("B","B"),
+                        row("G",""),
+                        row("C","C"),
+                        row("H",""),
+                        row("D","D"),
+                        row("I",""),
+                        row("E","E")))
+                .create();
+
 
     }
 
@@ -908,6 +924,48 @@ public class StatisticsAdminIT{
                 "    F3     |";
         resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
         assertEquals("List of columns where stats are collected does not match.", expected, resultString);
+        rs.close();
+    }
+
+    @Test
+    public void testAnalyzeOnCharColumnWithEmptyString() throws Exception{
+        /* only collects stats on a1, b1, f1 */
+        methodWatcher4.executeQuery(String.format("call SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','T4',false)", SCHEMA4));
+
+        /* check column statistics on A4  */
+        ResultSet rs = methodWatcher4.executeQuery(String.format("select cardinality, min_value, max_value from " +
+                        "sys.syscolumnstatistics where schemaname='%s' and tablename='T4' and columnname='A4'", SCHEMA4));
+        Assert.assertTrue("Unable to find column statistics for table!", rs.next());
+        // theta sketch rejects empty string, so cardinality is 9 instead of 10
+        Assert.assertEquals("Incorrect cardinality!", 9, rs.getLong(1));
+        Assert.assertEquals("Incorrect min value", "", rs.getString(2));
+        Assert.assertEquals("Incorrect max value", "I", rs.getString(3));
+
+        rs.close();
+
+        /* check column statistics on B4  */
+        rs = methodWatcher4.executeQuery(String.format("select cardinality, min_value, max_value from " +
+                "sys.syscolumnstatistics where schemaname='%s' and tablename='T4' and columnname='B4'", SCHEMA4));
+        Assert.assertTrue("Unable to find column statistics for table!", rs.next());
+        Assert.assertEquals("Incorrect cardinality!", 5, rs.getLong(1));
+        Assert.assertEquals("Incorrect min value", "", rs.getString(2));
+        Assert.assertEquals("Incorrect max value", "E", rs.getString(3));
+
+        rs.close();
+
+        /* check estimation using the stats */
+        String sqlText = "explain select * from t4 where a4=''";
+        long outputRows = (long)(SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(3, sqlText, methodWatcher4)));
+        Assert.assertEquals("OutputRows estimation does not match", 1, outputRows);
+
+        sqlText = "explain select * from t4 where a4<>''";
+        outputRows = (long)(SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(3, sqlText, methodWatcher4)));
+        Assert.assertEquals("OutputRows estimation does not match", 9, outputRows);
+
+        sqlText = "explain select * from t4 where b4=''";
+        outputRows = (long)(SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(3, sqlText, methodWatcher4)));
+        Assert.assertEquals("OutputRows estimation does not match", 5, outputRows);
+
         rs.close();
     }
 
