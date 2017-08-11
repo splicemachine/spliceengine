@@ -31,49 +31,21 @@
 
 package com.splicemachine.db.iapi.types;
 
-import com.splicemachine.db.iapi.services.context.ContextService;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.services.io.Storable;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.services.io.StreamStorable;
-import com.splicemachine.db.iapi.services.io.FormatIdInputStream;
-import com.splicemachine.db.iapi.services.io.FormatIdOutputStream;
-import com.splicemachine.db.iapi.reference.ContextId;
-import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.db.DatabaseContext;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.CharacterStreamDescriptor;
+import com.splicemachine.db.iapi.reference.ContextId;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
-import com.splicemachine.db.iapi.services.io.ArrayInputStream;
-import com.splicemachine.db.iapi.services.io.CounterOutputStream;
-import com.splicemachine.db.iapi.services.io.InputStreamUtil;
-import com.splicemachine.db.iapi.util.StringUtil;
-import com.splicemachine.db.iapi.util.UTF8Util;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
+import com.splicemachine.db.iapi.services.io.*;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
-import com.splicemachine.db.iapi.db.DatabaseContext;
-
-import java.io.InputStream;
-import java.io.ObjectOutput;
-import java.io.ObjectInput;
-import java.io.IOException;
-import java.io.UTFDataFormatException;
-import java.io.EOFException;
-import java.io.Reader;
-import java.sql.Clob;
-import java.sql.DataTruncation;
-import java.sql.Date;
-import java.sql.ResultSet;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.text.RuleBasedCollator;
-import java.text.CollationKey;
-import java.util.Arrays;
-import java.util.Locale;
-import java.util.Calendar;
-
+import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import com.splicemachine.db.iapi.util.StringUtil;
+import com.splicemachine.db.iapi.util.UTF8Util;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.hadoop.hbase.types.OrderedString;
 import org.apache.hadoop.hbase.util.Order;
@@ -86,7 +58,14 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.unsafe.types.UTF8String;
 import org.joda.time.DateTime;
-import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+
+import java.io.*;
+import java.sql.*;
+import java.text.CollationKey;
+import java.text.RuleBasedCollator;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Locale;
 
 
 /**
@@ -1102,6 +1081,14 @@ public class SQLChar
         }
     }
 
+
+    private void setRaw(char[] data, int length)
+    {
+        rawData = data;
+        rawLength = length;
+        isNull = evaluateNull();
+    }
+
     /**
      * Reads in a string from the specified data input stream. The 
      * string has been encoded using a modified UTF-8 format. 
@@ -1126,15 +1113,7 @@ public class SQLChar
      
      * @see java.io.Externalizable#readExternal
      */
-
-	private void setRaw(char[] data, int length)
-	{
-		rawData = data;
-		rawLength = length;
-		isNull = evaluateNull();
-	}
-
-    public void readExternalFromArray(ArrayInputStream in) 
+    public void readExternalFromArray(ArrayInputStream in)
         throws IOException
     {
         resetForMaterialization();
@@ -1242,6 +1221,13 @@ public class SQLChar
         // Set these to null to allow GC of the array if required.
         rawData = null;
         resetForMaterialization();
+
+        // if it is a zero-length string, don't bother to read more
+        if (utflen == 0) {
+            setRaw(str, utflen);
+            return;
+        }
+
         int count = 0;
         int strlen = 0;
 
