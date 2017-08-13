@@ -17,39 +17,34 @@ package com.splicemachine.derby.stream.spark;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
-import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.stream.function.LocatedRowToRowFunction;
-import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
-import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
-import org.apache.spark.sql.*;
-import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.Column;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import scala.collection.JavaConversions;
+
 import java.sql.ResultSet;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
-import static org.apache.spark.sql.functions.asc;
-import static org.apache.spark.sql.functions.col;
-import static org.apache.spark.sql.functions.desc;
+
+import static org.apache.spark.sql.functions.*;
 
 public class SparkUtils {
     public static final Logger LOG = Logger.getLogger(SparkUtils.class);
@@ -233,8 +228,11 @@ public class SparkUtils {
     public static scala.collection.mutable.Buffer<Column> convertSortColumns(ColumnOrdering[] sortColumns){
         return Arrays
                 .stream(sortColumns)
-                .map(column -> column.getIsAscending() ? asc(ValueRow.getNamedColumn(column.getColumnId()-1)) :
-                        desc(ValueRow.getNamedColumn(column.getColumnId()-1)))
+                .map(column -> column.getIsAscending() ?
+                        (column.getIsNullsOrderedLow() ? asc_nulls_first(ValueRow.getNamedColumn(column.getColumnId()-1)) :
+                                                         asc_nulls_last(ValueRow.getNamedColumn(column.getColumnId()-1))) :
+                        (column.getIsNullsOrderedLow() ? desc_nulls_last(ValueRow.getNamedColumn(column.getColumnId()-1)) :
+                                                         desc_nulls_first(ValueRow.getNamedColumn(column.getColumnId()-1))))
                 .collect(Collectors.collectingAndThen(Collectors.toList(), JavaConversions::asScalaBuffer));
     }
 
