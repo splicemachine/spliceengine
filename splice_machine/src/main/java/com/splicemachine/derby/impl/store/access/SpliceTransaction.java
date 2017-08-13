@@ -80,6 +80,11 @@ public class SpliceTransaction extends BaseSpliceTransaction<TransactionImpl> {
         return transaction.getActiveStateTxIdString();
     }
 
+    public String getActiveStateTxIdOnly(){
+        SpliceLogUtils.debug(LOG,"getActiveStateTxIdOnly");
+        return transaction.getActiveStateTxIdOnly();
+    }
+
     public Txn getActiveStateTxn(){
         return transaction.getActiveStateTxn();
     }

@@ -1677,6 +1677,30 @@ public class SpliceTransactionManager implements XATransactionController,
     }
 
     /**
+     * Get only id of the transaction.
+     * <p>
+     * This transaction "name" will be the same id which is returned in the
+     * TransactionInfo information, used by the lock and transaction vti's to
+     * identify transactions.
+     * <p>
+     * Although implementation specific, the transaction id is usually a number
+     * which is bumped every time a commit or abort is issued.
+     * <p>
+     * For now return the toString() method, which does what we want. Later if
+     * that is not good enough we can add public raw tran interfaces to get
+     * exactly what we want.
+     *
+     * @return The string which identifies the transaction with id only.
+     **/
+    public String getTransactionIdOnly() {
+        if (LOG.isTraceEnabled())
+            LOG.trace("getTransactionIdOnly ");
+        if(rawtran!=null)
+            return (rawtran.getActiveStateTxIdOnly());
+        return "";
+    }
+
+    /**
      * Get string id of the transaction that would be when the Transaction is IN
      * active state.
      **/

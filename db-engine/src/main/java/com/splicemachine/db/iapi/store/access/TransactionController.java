@@ -1486,6 +1486,21 @@ public interface TransactionController
      **/
 	String getActiveStateTxIdString();
 
+	/**
+	 * Get only id of the transaction.
+	 * <p>
+	 * This transaction "name" will be the same id which is returned in
+	 * the TransactionInfo information, used by the lock and transaction
+	 * vti's to identify transactions.
+	 * <p>
+	 * Although implementation specific, the transaction id is usually a number
+	 * which is bumped every time a commit or abort is issued.
+	 * <p>
+	 *
+	 * @return The a string which identifies the transaction with Id only and no state.
+	 **/
+	String getTransactionIdOnly();
+
     /**
      * First step of 2-phase commit for a data dictionary change. Makes sure all
      * servers are in sync for committing a change to the DataDictionary.

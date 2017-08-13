@@ -69,6 +69,8 @@ import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.compile.CompilerContextImpl;
 import com.splicemachine.db.impl.sql.execute.*;
+
+import java.sql.Timestamp;
 import java.util.*;
 
 /**
@@ -247,6 +249,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private boolean logQueryPlan;
     private HeaderPrintWriter istream;
 
+    //Whether or not to write executing statement info to Kafka Queue for Service
+    private boolean logStatementOnQueue;
+
     // this used to be computed in OptimizerFactoryContextImpl; i.e everytime a
     // connection was made. To keep the semantics same I'm putting it out here
     // instead of in the OptimizerFactory which is only initialized when the
@@ -332,6 +337,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
          */
         String logStatementProperty=PropertyUtil.getServiceProperty(getTransactionCompile(),"derby.language.logStatementText");
         logStatementText=Boolean.valueOf(logStatementProperty);
+
+        String logStatementOnQueueProperty=PropertyUtil.getServiceProperty(getTransactionCompile(),"derby.language.logStatementOnQueue");
+        logStatementOnQueue=Boolean.valueOf(logStatementOnQueueProperty);
 
         String logQueryPlanProperty=PropertyUtil.getServiceProperty(getTransactionCompile(),"derby.language.logQueryPlan");
         logQueryPlan=Boolean.valueOf(logQueryPlanProperty);
@@ -466,6 +474,18 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public void setLogStatementText(boolean logStatementText){
         this.logStatementText=logStatementText;
     }
+
+
+    @Override
+    public boolean getLogStatementOnQueue(){
+        return logStatementOnQueue;
+    }
+
+    @Override
+    public void setLogStatementOnQueue(boolean logStatementOnQueue){
+        this.logStatementOnQueue=logStatementOnQueue;
+    }
+
 
     @Override
     public boolean getLogQueryPlan(){
@@ -1401,6 +1421,21 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                             LanguageConnectionContext.drdaStr+
                             drdaID+
                             "), Committing");
+        }
+
+        // log commit to Kafka queue if apporpriate
+        if (logStatementOnQueue) {
+            String xactId = tran.getTransactionIdOnly();
+            String pvsString = "";
+            // Log the statement
+            StatementLogger.logStatement("COMMIT",
+                    pvsString,
+                    Integer.toString(instanceNumber),
+                    dbname,
+                    drdaID,
+                    xactId,
+                    (Timestamp) new Timestamp(System.currentTimeMillis()), // Would prefer to use clk on Tx
+                    userName);
         }
 
         endTransactionActivationHandling(false);

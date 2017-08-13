@@ -379,8 +379,15 @@ public interface Transaction {
 	 */
 	String getActiveStateTxIdString();
 
+	/**
+	 * get string ID of the actual transaction ID only.
+	 */
+	String getActiveStateTxIdOnly();
 
-    /**
+
+
+
+	/**
      * Get DataValueFactory.
      * <p>
      * Return a DataValueFactory that can be used to allocate objects.  Used

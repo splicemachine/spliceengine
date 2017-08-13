@@ -31,8 +31,6 @@
 
 package com.splicemachine.db.impl.sql;
 
-
-import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
@@ -64,9 +62,6 @@ import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.compile.CursorNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.execute.StatementLogger;
-import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
-import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.driver.SIDriver;
 
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
@@ -351,11 +346,19 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
                         pvsString);
             }
 
-            // Log the statement
-            StatementLogger.logStatement(getSource(),
-                    lccToUse.getTransactionExecute().getActiveStateTxIdString(),
-                    (Timestamp) new Timestamp(SIDriver.driver().getClock().currentTimeMillis()),
-                    lccToUse.getCurrentUserId(activation));
+            if (lccToUse.getLogStatementOnQueue()) {
+                String xactId = lccToUse.getTransactionExecute().getTransactionIdOnly();
+                String pvsString = "";
+                // Log the statement
+                StatementLogger.logStatement(getSource(),
+                        pvsString,
+                        Integer.toString(lccToUse.getInstanceNumber()),
+                        lccToUse.getDbname(),
+                        lccToUse.getDrdaID(),
+                        xactId,
+                        (Timestamp) new Timestamp(System.currentTimeMillis()), // Would prefer to use clk on Tx
+                        lccToUse.getCurrentUserId(activation));
+            }
 
             ParameterValueSet pvs = activation.getParameterValueSet();
 
@@ -1148,10 +1151,5 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
         hasXPlainTableOrProcedure = val;
     }
 
-    public TxnView getTransaction(LanguageConnectionContext lcc) throws StandardException{
-        TransactionController transactionExecute= lcc.getTransactionExecute();
-        Transaction rawStoreXact=((TransactionManager)transactionExecute).getRawStoreXact();
-        return ((BaseSpliceTransaction)rawStoreXact).getActiveStateTxn();
-    }
 }
 

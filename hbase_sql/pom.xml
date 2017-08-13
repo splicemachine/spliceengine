@@ -642,6 +642,12 @@
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-streaming-kafka-0-10-assembly_2.11</artifactId>
+            <version>2.1.1</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     <build>
         <extensions>
@@ -1292,6 +1298,8 @@
                                 <argument>-Dderby.language.updateSystemProcs=false</argument>
                                 <!-- Setting the logStatementText option to true enables logging of all statements. -->
                                 <argument>-Dderby.language.logStatementText=false</argument>
+                                <!-- Setting the logStatementOnQueue option to true enables logging of all statements to Kafka Queue. -->
+                                <argument>-Dderby.language.logStatementOnQueue=true</argument>
                                 <argument>-Dderby.infolog.append=true</argument>
                                 <argument>com.splicemachine.test.SpliceTestPlatform</argument>
                                 <argument>file://${project.build.directory}/hbase</argument>

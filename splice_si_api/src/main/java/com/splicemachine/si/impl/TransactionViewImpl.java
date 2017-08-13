@@ -74,6 +74,16 @@ public class TransactionViewImpl extends BaseTransaction {
             return null;
     }
 
+    public String getActiveStateTxIdOnly() {
+        if(txn!=null) {
+            long id = txn.getTxnId();
+            return Long.valueOf(id).toString();
+        }
+        else
+            return null;
+    }
+
+
     @Override
     public void setActiveState(boolean nested, boolean dependent, TxnView parentTxn,byte[] tableName) {
         assert state==ACTIVE: "Cannot have an inactive SpliceTransactionView";

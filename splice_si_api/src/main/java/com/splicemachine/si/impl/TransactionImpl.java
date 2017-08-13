@@ -178,6 +178,17 @@ public class TransactionImpl extends BaseTransaction {
             return null;
     }
 
+    public String getActiveStateTxIdOnly(){
+        SpliceLogUtils.debug(LOG,"getActiveStateTxIdOnly");
+        setActiveState(false,false,null);
+        if(!txnStack.isEmpty()){
+            long id = txnStack.peek().getSecond().getTxnId();
+            return Long.valueOf(id).toString();
+        }
+        else
+            return null;
+    }
+
     public Txn getActiveStateTxn(){
         setActiveState(false,false,null);
         if(!txnStack.isEmpty())

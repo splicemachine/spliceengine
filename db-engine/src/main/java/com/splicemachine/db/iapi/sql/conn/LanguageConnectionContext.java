@@ -116,7 +116,25 @@ public interface LanguageConnectionContext extends Context {
 	 */
 	void initializeSplice(String sessionUser, SchemaDescriptor defaultSchemaDescriptor) throws StandardException;
 
-	
+	/**
+	 * Get value of logStatementOnQueue.
+	 * (Whether or not to write info on currently
+	 * executing statement to Kafka Queue.)
+	 *
+	 * @return value of logStatementOnQueue
+	 */
+	boolean getLogStatementOnQueue();
+
+	/**
+	 * Set value of logStatementOnQueue
+	 * (Whether or not to write info on currently
+	 * executing statement to Kafka Queue.)
+	 *
+	 * @param logStatementOnQueue	Whether or not logStatementOnQueue property is set.
+	 */
+	void setLogStatementOnQueue(boolean logStatementOnQueue);
+
+
 	/**
 	 * Get value of logStatementText.
 	 * (Whether or not to write info on currently
