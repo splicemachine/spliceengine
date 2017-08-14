@@ -96,12 +96,8 @@ public class HRegionUtil extends BaseHRegionUtil{
                 long storeFileInBytes = file.getFileInfo().getFileStatus().getLen();
                 if (LOG.isTraceEnabled())
                     SpliceLogUtils.trace(LOG, "getCutpoints with file=%s with size=%d", file.getPath(), storeFileInBytes);
-                try {
-                    fileReader = file.createReader().getHFileReader();
-                    carry = addStoreFileCutpoints(cutPoints, fileReader, storeFileInBytes, carry, range);
-                } finally {
-                    fileReader.close();
-                }
+                fileReader = file.createReader().getHFileReader();
+                carry = addStoreFileCutpoints(cutPoints, fileReader, storeFileInBytes, carry, range);
             }
         }
 
