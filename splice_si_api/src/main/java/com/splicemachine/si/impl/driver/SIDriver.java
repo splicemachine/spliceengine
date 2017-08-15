@@ -39,6 +39,7 @@ import com.splicemachine.si.impl.TxnRegion;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.si.impl.rollforward.RollForwardStatus;
+import com.splicemachine.si.impl.server.RedoTransactor;
 import com.splicemachine.si.impl.server.SITransactor;
 import com.splicemachine.si.impl.txn.SITransactionReadController;
 import com.splicemachine.storage.DataFilterFactory;
@@ -82,6 +83,7 @@ public class SIDriver {
     private final TimestampSource timestampSource;
     private final TxnSupplier txnSupplier;
     private final Transactor transactor;
+    private final Transactor redoTransactor;
     private final TxnOperationFactory txnOpFactory;
     private final RollForward rollForward;
     private final TxnLifecycleManager lifecycleManager;
@@ -110,7 +112,13 @@ public class SIDriver {
         this.snowflakeFactory = env.snowflakeFactory();
 
         //noinspection unchecked
-        this.transactor = new SITransactor(
+        this.transactor = new RedoTransactor(
+                this.txnSupplier,
+                this.txnOpFactory,
+                env.baseOperationFactory(),
+                this.operationStatusFactory,
+                this.exceptionFactory);
+        this.redoTransactor = new RedoTransactor(
                 this.txnSupplier,
                 this.txnOpFactory,
                 env.baseOperationFactory(),
@@ -171,6 +179,10 @@ public class SIDriver {
 
     public Transactor getTransactor(){
         return transactor;
+    }
+
+    public Transactor getRedoTransactor(){
+        return redoTransactor;
     }
 
     public SIEnvironment getSIEnvironment(){

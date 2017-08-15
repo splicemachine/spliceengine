@@ -53,6 +53,12 @@ public class HScan implements DataScan{
     }
 
     @Override
+    public DataScan setFamily(byte[] family) {
+        scan.addFamily(family);
+        return this;
+    }
+
+    @Override
     public DataScan filter(DataFilter df){
         assert df instanceof HFilterWrapper: "Programmer error! improper filter type!";
         Filter toAdd;

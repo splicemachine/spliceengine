@@ -1355,4 +1355,8 @@ public abstract class DataType extends NullValueData
 		return getObject();
 	}
 
+	@Override
+	public boolean isVariableLength() {
+		return false;
+	}
 }

@@ -25,15 +25,15 @@ import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.*;
-import com.splicemachine.si.impl.server.SITransactor;
+import com.splicemachine.si.impl.server.RedoTransactor;
 import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
+import com.splicemachine.si.impl.txn.SIRedoTransactionReadController;
 import com.splicemachine.si.impl.txn.SITransactionReadController;
 import com.splicemachine.si.jmx.ManagedTransactor;
 import com.splicemachine.storage.DataFilter;
 import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.timestamp.api.TimestampSource;
-
 import java.io.IOException;
 
 
@@ -80,9 +80,9 @@ public class TestTransactionSetup {
         lfManager.setKeepAliveScheduler(keepAliveScheduler);
         ((ClientTxnLifecycleManager) txnLifecycleManager).setKeepAliveScheduler(keepAliveScheduler);
 
-        readController = new SITransactionReadController(txnSupplier);
+        readController = new SIRedoTransactionReadController(txnSupplier);
 
-        transactor = new SITransactor(txnSupplier,
+        transactor = new RedoTransactor(txnSupplier,
                 txnOperationFactory,
                 testEnv.getBaseOperationFactory(),
                 testEnv.getOperationStatusFactory(),
@@ -100,51 +100,4 @@ public class TestTransactionSetup {
     public Partition getPersonTable(SITestEnv testEnv) throws IOException{
         return testEnv.getPersonTable(this);
     }
-
-		/*
-         * The following methods are in place to bridge the goofiness gap between real code (i.e. HBase) and
-		 * the stupid test code, without requiring odd production-level classes and methods which don't have good
-		 * type signatures and don't make sense within the system. Someday, we'll remove the test Operation logic
-		 * entirely and replace it with an in-memory HBase installation
-		 */
-
-//    public OperationWithAttributes convertTestTypePut(Put put) {
-//        if (isInMemory) {
-//            OperationWithAttributes owa = new LTuple(put.getRow(), Lists.newArrayList(Iterables.concat(put.getFamilyMap().values())));
-//            copyAttributes(put, owa);
-//            return owa;
-//        } else return put;
-//    }
-//
-//    private static void copyAttributes(OperationWithAttributes source, OperationWithAttributes dest) {
-//        Map<String, byte[]> attributesMap = source.getAttributesMap();
-//        for (Map.Entry<String, byte[]> attribute : attributesMap.entrySet()) {
-//            dest.setAttribute(attribute.getKey(), attribute.getValue());
-//        }
-//    }
-//
-//
-//    public OperationWithAttributes convertTestTypeGet(Get scan, Long effectiveTimestamp) {
-//        if (isInMemory) {
-//            List<List<byte[]>> columns = Lists.newArrayList();
-//            List<byte[]> families = Lists.newArrayList();
-//            Map<byte[], NavigableSet<byte[]>> familyMap = scan.getFamilyMap();
-//            for (byte[] family : familyMap.keySet()) {
-//                families.add(family);
-//                List<byte[]> columnsForFamily = Lists.newArrayList(familyMap.get(family));
-//                columns.add(columnsForFamily);
-//            }
-//            if (families.size() <= 0)
-//                families = null;
-//            if (columns.size() <= 0)
-//                columns = null;
-//
-//            OperationWithAttributes owa = new LGet(scan.getRow(), scan.getRow(),
-//                    families,
-//                    columns, effectiveTimestamp, scan.getMaxVersions());
-//            copyAttributes(scan, owa);
-//            return owa;
-//        } else return scan;
-//
-//    }
 }

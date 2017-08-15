@@ -3466,4 +3466,7 @@ public class SQLChar
         }
     }
 
+    public boolean isVariableLength() {
+        return true;
+    }
 }

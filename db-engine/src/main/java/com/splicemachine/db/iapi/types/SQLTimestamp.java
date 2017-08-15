@@ -1588,7 +1588,7 @@ public final class SQLTimestamp extends DataType
 		        Platform.putInt(holder.buffer, holder.cursor + 4, encodedTime);
 		        Platform.putInt(holder.buffer, holder.cursor + 8, nanos);
 		        unsafeRowWriter.setOffsetAndSize(ordinal, 12);
-				holder.cursor = 12;
+				holder.cursor += 12;
 			}
 	    }
 

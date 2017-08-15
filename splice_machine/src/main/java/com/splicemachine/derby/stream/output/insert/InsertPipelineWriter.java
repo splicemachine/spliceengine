@@ -165,9 +165,9 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
 
     public DataHash getRowHash() throws StandardException {
         //get all columns that are being set
-        int[] columns = getEncodingColumns(execRowDefinition.nColumns(),pkCols);
-        DescriptorSerializer[] serializers = VersionedSerializers.forVersion(tableVersion,true).getSerializers(execRowDefinition);
-        return new EntryDataHash(columns,null,serializers);
+            int[] columns = getEncodingColumns(execRowDefinition.nColumns(), pkCols);
+            DescriptorSerializer[] serializers = VersionedSerializers.forVersion(tableVersion, true).getSerializers(execRowDefinition);
+            return new EntryDataHash(columns, null, serializers);
     }
 
     @Override
