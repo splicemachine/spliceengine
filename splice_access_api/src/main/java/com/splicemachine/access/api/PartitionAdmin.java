@@ -35,6 +35,8 @@ public interface PartitionAdmin extends AutoCloseable{
 
     void splitRegion(byte[] regionName, byte[]... splitPoints) throws IOException;
 
+    void mergeRegions(String regionName1, String regionName2) throws IOException;
+
     void close() throws IOException;
 
     Collection<PartitionServer> allServers() throws IOException;

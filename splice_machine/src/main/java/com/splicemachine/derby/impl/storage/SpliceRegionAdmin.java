@@ -64,6 +64,100 @@ import java.util.*;
  */
 public class SpliceRegionAdmin {
 
+
+    public static void MERGE_REGIONS(String schemaName,
+                                     String tableName,
+                                     String indexName,
+                                     String regionName1,
+                                     String regionName2) throws Exception {
+
+        // Check parameters
+        schemaName = schemaName.toUpperCase();
+        tableName = tableName.toUpperCase();
+
+        TableDescriptor td = getTableDescriptor(schemaName, tableName);
+        ConglomerateDescriptor index = null;
+        if (indexName != null) {
+            indexName = indexName.toUpperCase();
+            index = getIndex(td, indexName);
+            if (index == null) {
+                throw StandardException.newException(SQLState.LANG_INDEX_NOT_FOUND, indexName);
+            }
+        }
+
+        PartitionAdmin admin= SIDriver.driver().getTableFactory().getAdmin();
+        Partition p1 = getPartition(td, index, regionName1);
+        Partition p2 = getPartition(td, index, regionName2);
+
+        if (Bytes.compareTo(p1.getEndKey(), p2.getStartKey()) == 0 ||
+                Bytes.compareTo(p1.getStartKey(), p2.getEndKey()) == 0) {
+            admin.mergeRegions(regionName1, regionName2);
+        }
+        else
+            throw StandardException.newException(SQLState.REGION_NOT_ADJACENT, regionName1, regionName2);
+
+    }
+    public static void COMPACT_REGION(String schemaName,
+                                      String tableName,
+                                      String indexName,
+                                      String regionName) throws Exception {
+
+        compact(schemaName, tableName, indexName, regionName, false);
+    }
+
+    public static void MAJOR_COMPACT_REGION(String schemaName,
+                                            String tableName,
+                                            String indexName,
+                                            String regionName) throws Exception {
+
+        compact(schemaName, tableName, indexName, regionName, true);
+    }
+
+    public static void compact(String schemaName,
+                               String tableName,
+                               String indexName,
+                               String regionName,
+                               boolean isMajor) throws Exception {
+        // Check parameters
+        schemaName = schemaName.toUpperCase();
+        tableName = tableName.toUpperCase();
+
+        TableDescriptor td = getTableDescriptor(schemaName, tableName);
+        ConglomerateDescriptor index = null;
+        if (indexName != null) {
+            indexName = indexName.toUpperCase();
+            index = getIndex(td, indexName);
+            if (index == null) {
+                throw StandardException.newException(SQLState.LANG_INDEX_NOT_FOUND, indexName);
+            }
+        }
+
+        Partition partition = getPartition(td, index, regionName);
+        partition.flush();
+        partition.compact(isMajor);
+    }
+
+    private static Partition getPartition(TableDescriptor td, ConglomerateDescriptor index, String regionName) throws Exception{
+        // Get all regions for the table or index
+        PartitionAdmin admin= SIDriver.driver().getTableFactory().getAdmin();
+        String conglomId = Long.toString(index == null ? td.getHeapConglomerateId() : index.getConglomerateNumber());
+        Iterable<? extends Partition> partitions =  admin.allPartitions(conglomId);
+        List<Partition> partitionList = Lists.newArrayList(partitions);
+        // Find the region and get its start key
+        Partition partition = null;
+        for(Partition p:partitionList) {
+            String s = p.getEncodedName();
+            if (s.compareTo(regionName) == 0) {
+                partition = p;
+                break;
+            }
+        }
+        if (partition == null) {
+            throw StandardException.newException(SQLState.REGION_DOESNOT_EXIST, regionName);
+        }
+        return partition;
+    }
+
     /**
      * Returns startkey, endkey and encoded region name for the hbase region that contains the row that specified
      * in splitKey. The value can be a primary key value or an index value

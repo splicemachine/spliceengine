@@ -400,7 +400,7 @@ public class MPartition implements Partition{
     }
 
     @Override
-    public void compact() throws IOException{
+    public void compact(boolean isMajor) throws IOException{
         //no-op--memory does not perform compactions
     }
 

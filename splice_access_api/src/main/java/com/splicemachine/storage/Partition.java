@@ -148,7 +148,7 @@ public interface Partition extends AutoCloseable{
      * If the underlying architecture does not support compaction, then this method should do nothing, rather
      * than throw an error
      */
-    void compact() throws IOException;
+    void compact(boolean isMajor) throws IOException;
 
     /**
      * Optional Method: flush the data in storage.
