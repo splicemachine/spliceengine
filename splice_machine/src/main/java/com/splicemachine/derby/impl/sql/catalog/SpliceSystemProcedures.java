@@ -946,6 +946,40 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(geSplitKey);
 
+                    Procedure compactRegion = Procedure.newBuilder().name("COMPACT_REGION")
+                            .varchar("schemaName", 128)
+                            .varchar("tableName", 128)
+                            .varchar("indexName", 128)
+                            .varchar("regionName", 128)
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .ownerClass(SpliceRegionAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(compactRegion);
+
+                    Procedure majorCompactRegion = Procedure.newBuilder().name("MAJOR_COMPACT_REGION")
+                            .varchar("schemaName", 128)
+                            .varchar("tableName", 128)
+                            .varchar("indexName", 128)
+                            .varchar("regionName", 128)
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .ownerClass(SpliceRegionAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(majorCompactRegion);
+
+                    Procedure mergeRegion = Procedure.newBuilder().name("MERGE_REGIONS")
+                            .varchar("schemaName", 128)
+                            .varchar("tableName", 128)
+                            .varchar("indexName", 128)
+                            .varchar("regionName1", 128)
+                            .varchar("regionName2", 128)
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .ownerClass(SpliceRegionAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(mergeRegion);
+
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)
