@@ -36,6 +36,8 @@ public interface Partition extends AutoCloseable{
 
     String getName();
 
+    String getEncodedName();
+
     @Override
     void close() throws IOException;
 

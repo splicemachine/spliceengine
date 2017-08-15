@@ -72,6 +72,11 @@ public class MPartition implements Partition{
     }
 
     @Override
+    public String getEncodedName(){
+        return partitionName;
+    }
+
+    @Override
     public void close() throws IOException{
     }
 
