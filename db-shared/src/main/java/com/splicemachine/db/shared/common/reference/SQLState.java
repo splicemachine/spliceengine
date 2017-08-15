@@ -2004,5 +2004,7 @@ public interface SQLState {
 	String SNAPSHOT_NOT_EXISTS										= "SNA02";
 
     String SPLITKEY_EQUALS_STARTKEY                                 = "TS001";
+	String NO_PRIMARY_KEY											= "TS002";
+	String REGION_DOESNOT_EXIST 									= "TS003";
 }
 

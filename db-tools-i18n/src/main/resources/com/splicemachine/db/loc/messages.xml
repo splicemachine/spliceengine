@@ -9142,6 +9142,19 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <text>Ignore splitkey '{0}' because it is equal to a startkey</text>
                <arg>splitKey</arg>
            </msg>
+
+           <msg>
+               <name>TS002</name>
+               <text>Cannot calculate encoded region name for the split key, because primary key is not defined for table {0}.{1}</text>
+               <arg>schemaName</arg>
+               <arg>tableName</arg>
+           </msg>
+
+           <msg>
+               <name>TS003</name>
+               <text>Region '{0}' does not exist</text>
+               <arg>encodedRegionName</arg>
+           </msg>
        </family>
     </section>
 
