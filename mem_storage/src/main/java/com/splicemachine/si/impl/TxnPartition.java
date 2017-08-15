@@ -70,6 +70,11 @@ public class TxnPartition implements Partition{
     }
 
     @Override
+    public String getEncodedName() {
+        return basePartition.getEncodedName();
+    }
+
+    @Override
     public void close() throws IOException{
         basePartition.close();
     }

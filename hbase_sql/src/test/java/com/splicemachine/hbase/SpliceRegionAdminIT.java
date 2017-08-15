@@ -1,0 +1,247 @@
+/*
+ * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ *
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package com.splicemachine.hbase;
+
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.derby.impl.storage.TableSplit;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.junit.*;
+import org.spark_project.guava.collect.Lists;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Created by jyuan on 8/15/17.
+ */
+public class SpliceRegionAdminIT {
+    private static final String SCHEMA_NAME = SpliceRegionAdminIT.class.getSimpleName().toUpperCase();
+    private static final String LINEITEM = "LINEITEM";
+    private static final String SHIPDATE_IDX = "L_SHIPDATE_IDX";
+    private static List<String> spliceTableSplitKeys = Lists.newArrayList();
+    private static List<String> hbaseTableSplitKeys = Lists.newArrayList();
+    private static List<String> spliceIndexSplitKeys = Lists.newArrayList();
+    private static List<String> hbaseIndexSplitKeys = Lists.newArrayList();
+    
+    @ClassRule
+    public static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
+
+    @ClassRule
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
+
+    @Rule
+    public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA_NAME);
+
+    @BeforeClass
+    public static void init() throws Exception {
+        TestUtils.executeSqlFile(spliceClassWatcher, "tcph/TPCHIT.sql", SCHEMA_NAME);
+        spliceTableSplitKeys.add(0, "{ NULL, NULL }");
+        spliceTableSplitKeys.add(1, "{ 1, NULL }");
+        spliceTableSplitKeys.add(2, "{ 1, 2 }");
+        spliceTableSplitKeys.add(3, "{ 1, 4 }");
+        spliceTableSplitKeys.add(4, "{ 1, 6 }");
+        spliceTableSplitKeys.add(5, "{ 1, 8 }");
+        spliceTableSplitKeys.add(6, "{ 2, NULL }");
+        spliceTableSplitKeys.add(7, "{ 2, 2 }");
+
+        hbaseTableSplitKeys.add(0, "");
+        hbaseTableSplitKeys.add(1, "\\x81");
+        hbaseTableSplitKeys.add(2, "\\x81\\x00\\x82");
+        hbaseTableSplitKeys.add(3, "\\x81\\x00\\x84");
+        hbaseTableSplitKeys.add(4, "\\x81\\x00\\x86");
+        hbaseTableSplitKeys.add(5, "\\x81\\x00\\x88");
+        hbaseTableSplitKeys.add(6, "\\x82");
+        hbaseTableSplitKeys.add(7, "\\x82\\x00\\x82");
+
+        spliceIndexSplitKeys.add(0, "{ NULL, NULL, NULL, NULL }");
+        spliceIndexSplitKeys.add(1, "{ 1996-03-13, 155190, 21168.23, 0.04 }");
+        spliceIndexSplitKeys.add(2, "{ 1996-04-12, 67310, 45983.16, 0.09 }");
+
+        hbaseIndexSplitKeys.add(0, "");
+        hbaseIndexSplitKeys.add(1, "\\xEC\\xC0y\\xAE\\x80\\x00\\x00\\xE2^6\\x00\\xE42'\\x93@\\x01\\x00\\xDEP\\x01");
+        hbaseIndexSplitKeys.add(2, "\\xEC\\xC1\\x14-H\\x00\\x00\\xE1\\x06\\xEE\\x00\\xE4V\\xA9Bp\\x01\\x00\\xDE\\xA0\\x01");
+    }
+
+    @Test
+    public void testTable() throws Exception {
+
+        Connection connection = methodWatcher.getOrCreateConnection();
+        methodWatcher.execute(String.format("call SYSCS_UTIL.SYSCS_SPLIT_TABLE_OR_INDEX('%s','%s',null,'L_ORDERKEY,L_LINENUMBER'," +
+                        "'%s','|',null,null,null,null,-1,'/BAD',true,null)",SCHEMA_NAME,LINEITEM,
+                getResource("lineitemKey.csv")));
+
+
+        SConfiguration config = HConfiguration.getConfiguration();
+        HBaseTestingUtility testingUtility = new HBaseTestingUtility((Configuration) config.getConfigSource().unwrapDelegate());
+        HBaseAdmin admin = testingUtility.getHBaseAdmin();
+
+        long conglomerateId = TableSplit.getConglomerateId(connection, SCHEMA_NAME, LINEITEM, null);
+        TableName tn = TableName.valueOf(config.getNamespace(),Long.toString(conglomerateId));
+        List<HRegionInfo> partitions = admin.getTableRegions(tn.getName());
+        for (HRegionInfo partition : partitions) {
+            String startKey = Bytes.toStringBinary(partition.getStartKey());
+            int index = Collections.binarySearch(hbaseTableSplitKeys, startKey);
+            String encodedRegionName = partition.getEncodedName();
+            PreparedStatement ps = methodWatcher.prepareStatement("CALL SYSCS_UTIL.GET_START_KEY(?,?,null,?)");
+            ps.setString(1, SCHEMA_NAME);
+            ps.setString(2, LINEITEM);
+            ps.setString(3, encodedRegionName);
+
+            ResultSet rs = ps.executeQuery();
+            rs.next();
+            String result = rs.getString(1);
+            Assert.assertEquals(result, spliceTableSplitKeys.get(index));
+        }
+    }
+
+    @Test
+    public void testIndex() throws Exception {
+
+        Connection connection = methodWatcher.getOrCreateConnection();
+        methodWatcher.execute(String.format("call SYSCS_UTIL.SYSCS_SPLIT_TABLE_OR_INDEX('%s','%s','L_SHIPDATE_IDX'," +
+                        "'L_SHIPDATE,L_PARTKEY,L_EXTENDEDPRICE,L_DISCOUNT'," +
+                        "'%s','|',null,null,null,null,-1,'/BAD',true,null)",SCHEMA_NAME,LINEITEM,
+                getResource("shipDateIndex.csv")));
+
+        SConfiguration config = HConfiguration.getConfiguration();
+        HBaseTestingUtility testingUtility = new HBaseTestingUtility((Configuration) config.getConfigSource().unwrapDelegate());
+        HBaseAdmin admin = testingUtility.getHBaseAdmin();
+
+        long conglomerateId = TableSplit.getConglomerateId(connection, SCHEMA_NAME, LINEITEM, SHIPDATE_IDX);
+        TableName tn = TableName.valueOf(config.getNamespace(),Long.toString(conglomerateId));
+        List<HRegionInfo> partitions = admin.getTableRegions(tn.getName());
+        for (HRegionInfo partition : partitions) {
+            String startKey = Bytes.toStringBinary(partition.getStartKey());
+            int index = Collections.binarySearch(hbaseIndexSplitKeys, startKey);
+            String encodedRegionName = partition.getEncodedName();
+            PreparedStatement ps = methodWatcher.prepareStatement("CALL SYSCS_UTIL.GET_START_KEY(?,?,?,?)");
+            ps.setString(1, SCHEMA_NAME);
+            ps.setString(2, LINEITEM);
+            ps.setString(3, SHIPDATE_IDX);
+            ps.setString(4, encodedRegionName);
+
+            ResultSet rs = ps.executeQuery();
+            rs.next();
+            String result = rs.getString(1);
+            Assert.assertEquals(result, spliceIndexSplitKeys.get(index));
+        }
+    }
+
+    @Test
+    public void negativeTests() throws Exception {
+
+        String sql = "CALL SYSCS_UTIL.GET_ENCODED_REGION_NAME(?, ?, ?,'1|2', '|', null, null, null, null)";
+        PreparedStatement ps = methodWatcher.prepareStatement(sql);
+
+        try {
+            ps.setString(1, "NOTEXIST");
+            ps.setString(2, LINEITEM);
+            ps.setString(3, null);
+            ps.execute();
+        }
+        catch (SQLException e) {
+            String sqlcode = e.getSQLState();
+            Assert.assertEquals(sqlcode, SQLState.LANG_SCHEMA_DOES_NOT_EXIST);
+        }
+
+        try{
+            ps.setString(1, SCHEMA_NAME);
+            ps.setString(2, "NOTEXIST");
+            ps.setString(3, null);
+            ps.execute();
+        }catch (SQLException e) {
+            String sqlcode = e.getSQLState();
+            Assert.assertEquals(sqlcode, SQLState.TABLE_NOT_FOUND.substring(0,5));
+        }
+
+        try{
+            ps.setString(1, SCHEMA_NAME);
+            ps.setString(2, LINEITEM);
+            ps.setString(3, "NOTEXIST");
+            ps.execute();
+        }catch (SQLException e) {
+            String sqlcode = e.getSQLState();
+            Assert.assertEquals(sqlcode, SQLState.LANG_INDEX_NOT_FOUND);
+        }
+
+        sql = "CALL SYSCS_UTIL.GET_START_KEY(?, ?, ?, ?)";
+        ps = methodWatcher.prepareStatement(sql);
+
+        try {
+            ps.setString(1, "NOTEXIST");
+            ps.setString(2, LINEITEM);
+            ps.setString(3, SHIPDATE_IDX);
+            ps.setString(4, "region");
+            ps.execute();
+        }
+        catch (SQLException e) {
+            String sqlcode = e.getSQLState();
+            Assert.assertEquals(sqlcode, SQLState.LANG_SCHEMA_DOES_NOT_EXIST);
+        }
+
+        try {
+            ps.setString(1, SCHEMA_NAME);
+            ps.setString(2, "NOTEXIST");
+            ps.setString(3, SHIPDATE_IDX);
+            ps.setString(4, "region");
+            ps.execute();
+        }
+        catch (SQLException e) {
+            String sqlcode = e.getSQLState();
+            Assert.assertEquals(sqlcode, SQLState.TABLE_NOT_FOUND.substring(0,5));
+        }
+
+        try{
+            ps.setString(1, SCHEMA_NAME);
+            ps.setString(2, LINEITEM);
+            ps.setString(3, "NOTEXIST");
+            ps.setString(4, "region");
+            ps.execute();
+        }catch (SQLException e) {
+            String sqlcode = e.getSQLState();
+            Assert.assertEquals(sqlcode, SQLState.LANG_INDEX_NOT_FOUND );
+        }
+
+        try{
+            ps.setString(1, SCHEMA_NAME);
+            ps.setString(2, LINEITEM);
+            ps.setString(3, SHIPDATE_IDX);
+            ps.setString(4, "region");
+            ps.execute();
+        }catch (SQLException e) {
+            String sqlcode = e.getSQLState();
+            Assert.assertEquals(sqlcode, SQLState.REGION_DOESNOT_EXIST);
+        }
+    }
+
+    private static String getResource(String name) {
+        return SpliceUnitTest.getResourceDirectory() + "tcph/data/" + name;
+    }
+}
