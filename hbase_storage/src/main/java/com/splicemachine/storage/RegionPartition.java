@@ -441,10 +441,10 @@ public class RegionPartition implements Partition{
     }
 
     @Override
-    public void compact() throws IOException{
-        //TODO -sf- is this correct?
-        region.compactStores();
+    public void compact(boolean isMajor) throws IOException{
+        region.compact(isMajor);
     }
+
 
     /**
      * Synchronously flush the caches.
