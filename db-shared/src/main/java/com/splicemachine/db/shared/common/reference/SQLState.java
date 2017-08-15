@@ -2006,5 +2006,7 @@ public interface SQLState {
     String SPLITKEY_EQUALS_STARTKEY                                 = "TS001";
 	String NO_PRIMARY_KEY											= "TS002";
 	String REGION_DOESNOT_EXIST 									= "TS003";
+	String WRONG_REGION_NAME_TYPE 									= "TS004";
+	String REGION_NOT_ADJACENT                                      = "TS005";
 }
 
