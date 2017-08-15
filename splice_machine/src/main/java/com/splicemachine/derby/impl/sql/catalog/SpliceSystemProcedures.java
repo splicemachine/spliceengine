@@ -27,6 +27,7 @@ import com.splicemachine.db.impl.sql.catalog.DefaultSystemProcedureGenerator;
 import com.splicemachine.db.impl.sql.catalog.Procedure;
 import com.splicemachine.db.impl.sql.catalog.SystemColumnImpl;
 import com.splicemachine.derby.impl.load.HdfsImport;
+import com.splicemachine.derby.impl.storage.SpliceRegionAdmin;
 import com.splicemachine.derby.impl.storage.TableSplit;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.procedures.external.ExternalTableSystemProcedures;
@@ -917,6 +918,34 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(restoreSnapshot);
+
+                    Procedure getEncodedRegionName = Procedure.newBuilder().name("GET_ENCODED_REGION_NAME")
+                            .varchar("schemaName", 128)
+                            .varchar("tableName", 128)
+                            .varchar("indexName", 128)
+                            .varchar("splitKey", 128)
+                            .varchar("columnDelimiter",5)
+                            .varchar("characterDelimiter", 5)
+                            .varchar("timestampFormat",32672)
+                            .varchar("dateFormat",32672)
+                            .varchar("timeFormat",32672)
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(SpliceRegionAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(getEncodedRegionName);
+
+                    Procedure geSplitKey = Procedure.newBuilder().name("GET_START_KEY")
+                            .varchar("schemaName", 128)
+                            .varchar("tableName", 128)
+                            .varchar("indexName", 128)
+                            .varchar("encodedRegionName", 128)
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(SpliceRegionAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(geSplitKey);
+
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)

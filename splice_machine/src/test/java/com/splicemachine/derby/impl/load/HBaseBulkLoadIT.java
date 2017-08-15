@@ -379,12 +379,13 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
                 "KEY     |\n" +
                 "--------------\n" +
                 "    \\x81     |\n" +
-                "\\x81\\x00\\x83 |\n" +
+                "\\x81\\x00\\x82 |\n" +
                 "\\x81\\x00\\x84 |\n" +
-                "\\x81\\x00\\x85 |\n" +
                 "\\x81\\x00\\x86 |\n" +
+                "\\x81\\x00\\x88 |\n" +
                 "    \\x82     |\n" +
-                "\\x82\\x00\\x81 |";
+                "\\x82\\x00\\x82 |";
+
 
         Assert.assertEquals(expected, s);
     }
@@ -414,10 +415,11 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
                         "AS splitKey (\"KEY\" varchar(200))";
         rs = methodWatcher.executeQuery(format(select, getResource("data/"+conglomId+"/keys")));
         String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        String expected = "KEY                                      |\n" +
-                "-------------------------------------------------------------------------------\n" +
-                "   \\xEC\\xC0y\\xAE\\x80\\x00\\x00\\xE2^6\\x00\\xE42'\\x93@\\x01\\x00\\xDEP\\x01\\x00\\x80    |\n" +
-                "\\xEC\\xC1\\x14-H\\x00\\x00\\xE1\\x06\\xEE\\x00\\xE4V\\xA9Bp\\x01\\x00\\xDE\\xA0\\x01\\x00\\x80 |";
+        String expected =
+                "KEY                                  |\n" +
+                "-----------------------------------------------------------------------\n" +
+                "   \\xEC\\xC0y\\xAE\\x80\\x00\\x00\\xE2^6\\x00\\xE42'\\x93@\\x01\\x00\\xDEP\\x01    |\n" +
+                "\\xEC\\xC1\\x14-H\\x00\\x00\\xE1\\x06\\xEE\\x00\\xE4V\\xA9Bp\\x01\\x00\\xDE\\xA0\\x01 |";
 
         Assert.assertEquals(expected, s);
     }
