@@ -147,6 +147,7 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
             // This option is for calculating split row keys in HBase format, provided that split row keys are
             // stored in a csv file
             long indexConglom = -1;
+            boolean isUnique = false;
             for (ConglomerateDescriptor searchCD :list) {
                 if (searchCD.isIndex() && !searchCD.isPrimaryKey() && indexName != null &&
                         searchCD.getObjectName().compareToIgnoreCase(indexName) == 0) {
@@ -155,6 +156,7 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
                             activation.getLanguageConnectionContext(),
                             td.getHeapConglomerateId(), searchCD.getConglomerateNumber(),
                             td, searchCD.getIndexDescriptor());
+                    isUnique = searchCD.getIndexDescriptor().isUnique();
                     tentativeIndexList.add(ddlChange.getTentativeIndex());
                     allCongloms.add(searchCD.getConglomerateNumber());
                     break;
@@ -164,7 +166,8 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
                     new BulkInsertRowIndexGenerationFunction(pkCols, tableVersion, execRow, autoIncrementRowLocationArray,
                             spliceSequences, heapConglom, txn, operationContext, tentativeIndexList);
             DataSet rowAndIndexes = dataSet.flatMap(rowAndIndexGenerator);
-            DataSet keys = rowAndIndexes.mapPartitions(new RowKeyGenerator(bulkImportDirectory, heapConglom, indexConglom));
+            DataSet keys = rowAndIndexes.mapPartitions(
+                    new RowKeyGenerator(bulkImportDirectory, heapConglom, indexConglom, isUnique));
             List<String> files = keys.collect();
         }
         else {
