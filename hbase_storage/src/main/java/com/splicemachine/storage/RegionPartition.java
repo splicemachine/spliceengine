@@ -73,6 +73,12 @@ public class RegionPartition implements Partition{
 
 
     @Override
+    public String getEncodedName(){
+        return region.getRegionInfo().getEncodedName();
+    }
+
+
+    @Override
     public Iterator<DataResult> batchGet(Attributable attributes,List<byte[]> rowKeys) throws IOException{
         List<Result> results=new ArrayList<>(rowKeys.size());
         try{
