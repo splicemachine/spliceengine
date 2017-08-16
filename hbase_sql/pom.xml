@@ -256,6 +256,12 @@
                     <groupId>io.netty</groupId>
                     <artifactId>netty-all</artifactId>
                 </exclusion>
+                <!-- experimenting with direct control
+                <exclusion>
+                    <groupId>org.apache.zookeeper</groupId>
+                    <artifactId>zookeeper</artifactId>
+                </exclusion>
+                -->
 
                 <exclusion>
                     <groupId>org.apache.hadoop</groupId>
@@ -267,6 +273,13 @@
                 </exclusion>
             </exclusions>
         </dependency>
+<!--
+        <dependency>
+            <groupId>org.apache.zookeeper</groupId>
+            <artifactId>zookeeper</artifactId>
+            <version>${zookeeper.version}</version>
+        </dependency>
+-->
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_${scala.binary.version}</artifactId>
@@ -595,7 +608,7 @@
             <relocations>
                 <relocation>
                     <pattern>io.netty</pattern>
-                    <shadedPattern>splice.io.netty</shadedPattern>
+                    <shadedPattern>org.spark_project.io.netty</shadedPattern>
                     <includes>
                         <include>io.netty.**</include>
                     </includes>

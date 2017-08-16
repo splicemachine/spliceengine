@@ -114,7 +114,7 @@
 
                                 <relocation>
                                     <pattern>io.netty</pattern>
-                                    <shadedPattern>splice.io.netty</shadedPattern>
+                                    <shadedPattern>org.spark_project.io.netty</shadedPattern>
                                 </relocation>
 
                                 <relocation>
@@ -176,7 +176,7 @@
                                 </relocation>
                                 <relocation>
                                     <pattern>io.netty</pattern>
-                                    <shadedPattern>splice.io.netty</shadedPattern>
+                                    <shadedPattern>org.spark_project.io.netty</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>javax.ws</pattern>
