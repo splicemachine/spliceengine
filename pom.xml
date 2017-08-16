@@ -316,7 +316,7 @@
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty</artifactId>
-                <version>3.6.6.Final</version>
+                <version>3.6.2.Final</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -1206,7 +1206,7 @@
                 <hadoop.tools.version>1.0.3-mapr-5.2.0</hadoop.tools.version>
                 <hbase.version>1.1.1-mapr-1602-5.2.0</hbase.version>
                 <hive.version>0.13.0-mapr-1602</hive.version>
-                <zookeeper.version>3.4.5-mapr-1604</zookeeper.version>
+                <zookeeper.version>3.4.5-mapr-1503</zookeeper.version>
                 <maprfs.version>5.2.0-mapr</maprfs.version>
                 <spark.version>2.1.0</spark.version>
                 <spark-assembly-id>spark-assembly-hadoop${hadoop.version}</spark-assembly-id>
