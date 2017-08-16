@@ -123,7 +123,7 @@ public class UnsafeRecord implements Record<byte[]> {
         ByteSlice value = kvPair.valueSlice();
         this.version = version;
         this.baseObject = value.array();
-        this.baseOffset = value.offset();
+        this.baseOffset = value.offset()+16;
         this.baseLength = value.length();
         this.isActiveRecord = isActiveRecord;
     }
@@ -393,6 +393,11 @@ public class UnsafeRecord implements Record<byte[]> {
         byte[] newRedoBitSetArray = createZeroedOutBitSetArray(bitSetWidth);
         Platform.copyMemory(uR.baseObject,uR.baseOffset+COLS_BS_INC,newRedoBitSetArray,16,uR.bitSetWidth());
         UnsafeRecordUtils.or(newActiveBitSetArray,16,bitSetWords,uR.baseObject,uR.baseOffset+COLS_BS_INC,bitSetWords);
+
+        System.out.println("active" + UnsafeRecordUtils.displayBitSet(newActiveBitSetArray,16,bitSetWords));
+
+        System.out.println("redo" + UnsafeRecordUtils.displayBitSet(newRedoBitSetArray,16,bitSetWords));
+
         // Global Or Bit Set
         byte[] globalOrBitSetArray = createZeroedOutBitSetArray(bitSetWidth);
         Platform.copyMemory(newActiveBitSetArray,16,globalOrBitSetArray,16,bitSetWidth);
@@ -457,6 +462,11 @@ public class UnsafeRecord implements Record<byte[]> {
             }
             fromIndex = UnsafeRecordUtils.nextSetBit(globalOrBitSetArray,16,fromIndex+1,bitSetWords);
         }
+
+        System.out.println("active" + UnsafeRecordUtils.displayBitSet(newActiveBitSetArray,16,bitSetWords));
+
+        System.out.println("redo" + UnsafeRecordUtils.displayBitSet(newRedoBitSetArray,16,bitSetWords));
+
         // Active Record Generation
         UnsafeRecord activeRecord = new UnsafeRecord(this.keyObject,this.keyOffset,this.keyLength,this.version+1,new byte[COLS_BS_INC+newActiveBitSetArray.length+newActiveBuffer.cursor],16,true);
         Platform.copyMemory(uR.baseObject, uR.baseOffset+TXN_ID1_INC,activeRecord.baseObject,activeRecord.baseOffset+TXN_ID1_INC,ASIZE); // txnid1 and txnid2
@@ -464,14 +474,15 @@ public class UnsafeRecord implements Record<byte[]> {
         Platform.copyMemory(newActiveBitSetArray,ASIZE,activeRecord.baseObject,(long) (activeRecord.baseOffset+COLS_BS_INC),newActiveBitSetArray.length);
         Platform.copyMemory(newActiveBuffer.buffer,ASIZE,activeRecord.baseObject,
                 (long) (activeRecord.baseOffset+UNSAFE_INC+newActiveBitSetArray.length),(long) newActiveBuffer.cursor);
-
+        activeRecord.baseLength = UNSAFE_INC+newActiveBitSetArray.length + newActiveBuffer.cursor;
         // Redo Record Generation
         UnsafeRecord redoRecord = new UnsafeRecord(this.keyObject,this.keyOffset,this.keyLength,this.version,new byte[COLS_BS_INC+newRedoBitSetArray.length+newRedoBuffer.cursor],16,true);
-        Platform.copyMemory(baseObject, baseOffset+TXN_ID1_INC,redoRecord.baseObject,redoRecord.baseOffset+TXN_ID1_INC,16); // txnid1, txnid2, eff-ts
+        Platform.copyMemory(baseObject, baseOffset+TXN_ID1_INC,redoRecord.baseObject,redoRecord.baseOffset+TXN_ID1_INC,ASIZE); // txnid1, txnid2, eff-ts
         redoRecord.setNumberOfColumns(newRedoRow.numFields());
         Platform.copyMemory(newRedoBitSetArray,ASIZE,redoRecord.baseObject,(long) (redoRecord.baseOffset+COLS_BS_INC),newRedoBitSetArray.length);
         Platform.copyMemory(newRedoBuffer.buffer,ASIZE,redoRecord.baseObject,
                 (long) (redoRecord.baseOffset+UNSAFE_INC+newRedoBitSetArray.length),(long) newRedoBuffer.cursor);
+        redoRecord.baseLength = UNSAFE_INC+newRedoBitSetArray.length + newRedoBuffer.cursor;
         return new Record[]{activeRecord,redoRecord};
     }
 
@@ -483,6 +494,7 @@ public class UnsafeRecord implements Record<byte[]> {
                 ", txnId1=" + getTxnId1() +
                 ", effectiveTimestamp=" + getEffectiveTimestamp() +
                 ", numberOfColumns=" + numberOfColumns() +
+                ", columnBitSet=" + (hasTombstone()?"delete":UnsafeRecordUtils.displayBitSet(baseObject,baseOffset+UNSAFE_INC,UnsafeRecordUtils.numberOfWordsForColumns(numberOfColumns()))) +
                 "}"
                 ;
     }

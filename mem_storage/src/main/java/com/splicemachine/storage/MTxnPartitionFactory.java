@@ -18,6 +18,7 @@ import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.api.readresolve.ReadResolver;
@@ -77,7 +78,7 @@ public class MTxnPartitionFactory implements PartitionFactory<Object>{
     public Partition getTable(String name) throws IOException{
         final Partition delegate=baseFactory.getTable(name);
         if(!initializeIfNeeded(delegate)) return delegate;
-        return wrapPartition(delegate);
+        return wrapPartition(delegate,null);
     }
 
 
@@ -85,7 +86,7 @@ public class MTxnPartitionFactory implements PartitionFactory<Object>{
     public Partition getTable(byte[] name) throws IOException{
         final Partition delegate=baseFactory.getTable(name);
         if(!initializeIfNeeded(delegate)) return delegate;
-        return wrapPartition(delegate);
+        return wrapPartition(delegate,null);
     }
 
     @Override
@@ -95,8 +96,8 @@ public class MTxnPartitionFactory implements PartitionFactory<Object>{
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
-    private Partition wrapPartition(Partition delegate){
-        return new TxnPartition(delegate,transactor,rollForward,txnOpFactory,txnReadController,readResolver);
+    private Partition wrapPartition(Partition delegate, ExecRow execRow){
+        return new TxnPartition(delegate,transactor,rollForward,txnOpFactory,txnReadController,readResolver, execRow);
     }
 
     private boolean initializeIfNeeded(Partition basePartition){

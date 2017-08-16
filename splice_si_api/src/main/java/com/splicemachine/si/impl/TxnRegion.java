@@ -14,6 +14,7 @@
 
 package com.splicemachine.si.impl;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.filter.TxnFilter;
@@ -114,12 +115,12 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
     public Iterable<MutationStatus> bulkWrite(TxnView txn,
                                               byte[] family, byte[] qualifier,
                                               ConstraintChecker constraintChecker, //TODO -sf- can we encapsulate this as well?
-                                              Collection<KVPair> data, boolean skipConflictDetection, boolean skipWAL) throws IOException{
+                                              Collection<KVPair> data, boolean skipConflictDetection, boolean skipWAL, ExecRow execRow) throws IOException{
         /*
          * Designed for subclasses. Override this if you want to bypass transactional writes
          */
         final MutationStatus[] status = transactor.processKvBatch(region, rollForward, family, qualifier, data,txn,
-                constraintChecker,skipConflictDetection,skipWAL);
+                constraintChecker,skipConflictDetection,skipWAL,execRow);
         return new Iterable<MutationStatus>(){
             @Override public Iterator<MutationStatus> iterator(){ return Iterators.forArray(status); }
         };

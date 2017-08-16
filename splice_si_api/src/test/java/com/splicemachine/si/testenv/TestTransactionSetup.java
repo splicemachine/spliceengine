@@ -15,6 +15,7 @@
 package com.splicemachine.si.testenv;
 
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.impl.ManualKeepAliveScheduler;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.filter.TransactionReadController;
@@ -52,7 +53,7 @@ public class TestTransactionSetup {
     public Transactor transactor;
     public TimestampSource timestampSource;
     public TransactionReadController readController;
-
+    public OperationFactory opFactory;
     public final TxnStore txnStore;
     public TxnLifecycleManager txnLifecycleManager;
     private DataFilterFactory filterFactory;
@@ -81,7 +82,7 @@ public class TestTransactionSetup {
         ((ClientTxnLifecycleManager) txnLifecycleManager).setKeepAliveScheduler(keepAliveScheduler);
 
         readController = new SIRedoTransactionReadController(txnSupplier);
-
+        opFactory = testEnv.getBaseOperationFactory();
         transactor = new RedoTransactor(txnSupplier,
                 txnOperationFactory,
                 testEnv.getBaseOperationFactory(),

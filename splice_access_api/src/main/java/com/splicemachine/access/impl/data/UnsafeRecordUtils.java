@@ -132,6 +132,8 @@ public class UnsafeRecordUtils {
     public static int numberOfWordsForColumns(int numberOfColumns) {
         return UnsafeRecordUtils.calculateBitSetWidthInBytes(numberOfColumns)/8;
     }
+
+
 /*
     public byte[] writeRecord(int[] columns, DataValueDescriptor[] dvds) throws StandardException {
             assert columns.length == dvds.length:"Columns Passed have mismatch with data passed";

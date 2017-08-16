@@ -18,6 +18,10 @@ import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.IncrementingClock;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.iapi.types.SQLVarchar;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.*;
 import com.splicemachine.si.api.txn.TxnStore;
@@ -101,12 +105,15 @@ public class MemSITestEnv implements SITestEnv{
 
     @Override
     public Partition getPersonTable(TestTransactionSetup tts){
+        ValueRow valueRow = new ValueRow(2);
+        valueRow.setRowArray(new DataValueDescriptor[]{new SQLInteger(),new SQLVarchar()});
         return new TxnPartition(personPartition,
                 tts.transactor,
                 NoopRollForward.INSTANCE,
                 txnOpFactory,
                 tts.readController,
-                NoOpReadResolver.INSTANCE);
+                NoOpReadResolver.INSTANCE,
+                valueRow);
     }
 
     @Override
@@ -116,6 +123,7 @@ public class MemSITestEnv implements SITestEnv{
                 NoopRollForward.INSTANCE,
                 txnOpFactory,
                 tts.readController,
-                NoOpReadResolver.INSTANCE);
+                NoOpReadResolver.INSTANCE,
+                null);
     }
 }

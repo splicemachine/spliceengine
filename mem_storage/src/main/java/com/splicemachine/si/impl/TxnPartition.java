@@ -14,6 +14,7 @@
 
 package com.splicemachine.si.impl;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.spark_project.guava.collect.Iterators;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
@@ -44,19 +45,22 @@ public class TxnPartition implements Partition{
     private final TxnOperationFactory txnOpFactory;
     private final TransactionReadController txnReadController;
     private final ReadResolver readResolver;
+    private ExecRow fieldDefinitions;
 
     public TxnPartition(Partition basePartition,
                         Transactor transactor,
                         RollForward rollForward,
                         TxnOperationFactory txnOpFactory,
                         TransactionReadController txnReadController,
-                        ReadResolver readResolver){
+                        ReadResolver readResolver,
+                        ExecRow fieldDefinitions){
         this.basePartition=basePartition;
         this.transactor=transactor;
         this.rollForward=rollForward;
         this.txnOpFactory=txnOpFactory;
         this.txnReadController=txnReadController;
         this.readResolver=readResolver;
+        this.fieldDefinitions = fieldDefinitions;
     }
 
     @Override
@@ -114,7 +118,7 @@ public class TxnPartition implements Partition{
 
     @Override
     public void put(DataPut put) throws IOException{
-        transactor.processPut(basePartition,rollForward,put);
+        transactor.processPut(basePartition,rollForward,put,fieldDefinitions);
     }
 
     @Override
@@ -134,7 +138,7 @@ public class TxnPartition implements Partition{
 
     @Override
     public Iterator<MutationStatus> writeBatch(DataPut[] toWrite) throws IOException{
-        return Iterators.forArray(transactor.processPutBatch(basePartition,rollForward,toWrite));
+        return Iterators.forArray(transactor.processPutBatch(basePartition,rollForward,toWrite,fieldDefinitions));
     }
 
     @Override

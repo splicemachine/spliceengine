@@ -157,7 +157,6 @@ public class PartitionWriteHandler implements WriteHandler {
         assert toProcess!=null; //won't ever happen, but it's a nice safety check
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "doWrite {region=%s, records=%d}", ctx.getRegion().getName(),toProcess.size());
-
         Iterable<MutationStatus> status = region.bulkWrite(
                 ctx.getTxn(),
                 SIConstants.DEFAULT_FAMILY_BYTES,
@@ -165,7 +164,8 @@ public class PartitionWriteHandler implements WriteHandler {
                 constraintChecker,
                 toProcess,
                 ctx.skipConflictDetection(),
-                ctx.skipWAL()
+                ctx.skipWAL(),
+                null
         );
 
         int i = 0;

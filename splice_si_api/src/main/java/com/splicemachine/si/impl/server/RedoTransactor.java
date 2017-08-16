@@ -18,6 +18,8 @@ import com.carrotsearch.hppc.*;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.LongCursor;
 import com.splicemachine.access.impl.data.UnsafeRecord;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.ExceptionFactory;
@@ -36,6 +38,7 @@ import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.txn.CommittedTxn;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
+import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -84,16 +87,16 @@ public class RedoTransactor implements Transactor{
     // Process update operations
 
     @Override
-    public boolean processPut(Partition table,RollForward rollForwardQueue,DataPut put) throws IOException{
+    public boolean processPut(Partition table,RollForward rollForwardQueue,DataPut put, ExecRow execRow) throws IOException{
         if(!isFlaggedForSITreatment(put)) return false;
         final DataPut[] mutations= {put};
         mutations[0]=put;
-        MutationStatus[] operationStatuses=processPutBatch(table,rollForwardQueue,mutations);
+        MutationStatus[] operationStatuses=processPutBatch(table,rollForwardQueue,mutations,execRow);
         return operationStatusLib.processPutStatus(operationStatuses[0]);
     }
 
     @Override
-    public MutationStatus[] processPutBatch(Partition table,RollForward rollForwardQueue,DataPut[] mutations) throws IOException{
+    public MutationStatus[] processPutBatch(Partition table,RollForward rollForwardQueue,DataPut[] mutations,ExecRow execRow) throws IOException{
         if(mutations.length==0){
             //short-circuit special case of empty batch
             //noinspection unchecked
@@ -112,7 +115,7 @@ public class RedoTransactor implements Transactor{
         }
 
         return processKvBatch(table,null,SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES,
-                SIConstants.PACKED_COLUMN_BYTES,kvPairs,txnId,operationStatusLib.getNoOpConstraintChecker());
+                SIConstants.PACKED_COLUMN_BYTES,kvPairs,txnId,operationStatusLib.getNoOpConstraintChecker(),execRow);
     }
 
     @Override
@@ -122,9 +125,9 @@ public class RedoTransactor implements Transactor{
                                             byte[] packedColumnBytes,
                                             Collection<KVPair> toProcess,
                                             long txnId,
-                                            ConstraintChecker constraintChecker) throws IOException{
+                                            ConstraintChecker constraintChecker,ExecRow execRow) throws IOException{
         TxnView txn=txnSupplier.getTransaction(txnId);
-        return processKvBatch(table,rollForward,defaultFamilyBytes,packedColumnBytes,toProcess,txn,constraintChecker, false, false);
+        return processKvBatch(table,rollForward,defaultFamilyBytes,packedColumnBytes,toProcess,txn,constraintChecker, false, false,execRow);
     }
 
     @Override
@@ -136,9 +139,10 @@ public class RedoTransactor implements Transactor{
                                            TxnView txn,
                                            ConstraintChecker constraintChecker,
                                            boolean skipConflictDetection,
-                                           boolean skipWAL) throws IOException{
+                                           boolean skipWAL,
+                                           ExecRow execRow) throws IOException{
         ensureTransactionAllowsWrites(txn);
-        return processInternal(table,rollForward,txn,defaultFamilyBytes,packedColumnBytes,toProcess,constraintChecker,skipConflictDetection,skipWAL);
+        return processInternal(table,rollForward,txn,defaultFamilyBytes,packedColumnBytes,toProcess,constraintChecker,skipConflictDetection,skipWAL,execRow);
     }
 
     private MutationStatus getCorrectStatus(MutationStatus status,MutationStatus oldStatus){
@@ -152,7 +156,7 @@ public class RedoTransactor implements Transactor{
                                              Collection<KVPair> mutations,
                                              ConstraintChecker constraintChecker,
                                              boolean skipConflictDetection,
-                                             boolean skipWAL) throws IOException{
+                                             boolean skipWAL, ExecRow execRow) throws IOException{
 //                if (LOG.isTraceEnabled()) LOG.trace(String.format("processInternal: table = %s, txnId = %s", table.toString(), txn.getTxnId()));
         MutationStatus[] finalStatus=new MutationStatus[mutations.size()];
         Pair<KVPair, Lock>[] lockPairs=new Pair[mutations.size()];
@@ -169,7 +173,7 @@ public class RedoTransactor implements Transactor{
              * the region can't close until after this method is complete, we don't need the calls.
              */
             IntObjectOpenHashMap<DataPut> writes=checkConflictsForKvBatch(table,rollForwardQueue,lockPairs,
-                    conflictingChildren,txn,family,qualifier,constraintChecker,constraintState,finalStatus,skipConflictDetection,skipWAL);
+                    conflictingChildren,txn,family,qualifier,constraintChecker,constraintState,finalStatus,skipConflictDetection,skipWAL,execRow);
 
             //TODO -sf- this can probably be made more efficient
             //convert into array for usefulness
@@ -228,7 +232,8 @@ public class RedoTransactor implements Transactor{
                                                                    ConstraintChecker constraintChecker,
                                                                    TxnFilter constraintStateFilter,
                                                                    MutationStatus[] finalStatus, boolean skipConflictDetection,
-                                                                   boolean skipWAL) throws IOException {
+                                                                   boolean skipWAL,
+                                                                   ExecRow execRow) throws IOException {
         IntObjectOpenHashMap<DataPut> finalMutationsToWrite = IntObjectOpenHashMap.newInstance(dataAndLocks.length, 0.9f);
         // 1 Bloom In Memory Check
         BitSet bloomInMemoryCheck  = skipConflictDetection ? null : table.getBloomInMemoryCheck(constraintChecker!=null,dataAndLocks);
@@ -259,8 +264,8 @@ public class RedoTransactor implements Transactor{
                 }
         }
         for (int i = 0; i< dataAndLocks.length; i++) {
-            DataPut mutationToRun=getMutationToRun(table,rollForwardQueue,dataAndLocks[i].getFirst(),
-                    family,qualifier,transaction,conflictResults == null?ConflictResults.NO_CONFLICT:conflictResults[i],skipWAL);
+            DataPut mutationToRun=getMutationToRun(table,rollForwardQueue,dataAndLocks[i].getFirst(),possibleConflicts == null?null:possibleConflicts[i],
+                    family,qualifier,transaction,conflictResults == null?ConflictResults.NO_CONFLICT:conflictResults[i],skipWAL, execRow);
             finalMutationsToWrite.put(i,mutationToRun);
         }
         return finalMutationsToWrite;
@@ -327,42 +332,100 @@ public class RedoTransactor implements Transactor{
         }
     }
 
+    private void printoutPair (KVPair kvPair, ExecRow execRow, String phase) throws StandardException {
+        UnsafeRecord unsafeRecord = new UnsafeRecord();
+        unsafeRecord.wrap(kvPair, true, 1); // Does Version Change?
+        printout(unsafeRecord,execRow,phase);
+
+    }
+
+
+    private void printout (Record unsafeRecord, ExecRow execRow, String phase) throws StandardException {
+        System.out.println(phase+": " + unsafeRecord);
+        unsafeRecord.getData(IntArrays.count(execRow.nColumns()),execRow);
+        System.out.println(phase+": " + execRow);
+    }
+
 
     private DataPut getMutationToRun(Partition table, RollForward rollForwardQueue, KVPair kvPair,DataResult possibleLegacyRecord,
                                      byte[] family, byte[] column,
-                                     TxnView transaction, ConflictResults conflictResults, boolean skipWAL) throws IOException{
+                                     TxnView transaction, ConflictResults conflictResults, boolean skipWAL, ExecRow execRow) throws IOException{
         long txnIdLong=transaction.getTxnId();
 //                if (LOG.isTraceEnabled()) LOG.trace(String.format("table = %s, kvPair = %s, txnId = %s", table.toString(), kvPair.toString(), txnIdLong));
         DataPut newPut;
-
-        if(kvPair.getType()==KVPair.Type.DELETE){
-            if (possibleLegacyRecord == null) {
-                LOG.warn("Deleting a record that does not exist");
-                newPut=opFactory.toDataPut(kvPair,family,column,txnIdLong);
+        try {
+            if (kvPair.getType() == KVPair.Type.DELETE) {
+                if (possibleLegacyRecord == null) {
+                    LOG.warn("Delete without record to delete");
+                    //printoutPair(kvPair,execRow,"Single Delete");
+                    UnsafeRecord unsafeRecord2 = new UnsafeRecord();
+                    unsafeRecord2.wrap(kvPair, true, 1); // Does Version Change?
+                    newPut = opFactory.newPut(kvPair.getRowKey());
+                    newPut.addCell(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES,SIConstants.PACKED_COLUMN_BYTES,unsafeRecord2.getVersion(),unsafeRecord2.getValue());
+                } else {
+                    UnsafeRecord unsafeRecord = new UnsafeRecord();
+                    unsafeRecord.wrap(possibleLegacyRecord.userData());
+                    UnsafeRecord unsafeRecord2 = new UnsafeRecord();
+                    unsafeRecord2.wrap(kvPair, true, 2); // Does Version Change?
+                    Record[] unsafeRecords = unsafeRecord.updateRecord(unsafeRecord2, execRow);
+                    LOG.warn("Delete without record to delete");
+                    printout(unsafeRecords[0],execRow,"Delete Active Record");
+                    printout(unsafeRecords[1],execRow,"Delete Redo Record");
+                    newPut = opFactory.newPut(kvPair.getRowKey());
+                    newPut.addCell(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES,SIConstants.PACKED_COLUMN_BYTES,unsafeRecords[0].getVersion(),unsafeRecords[0].getValue());
+                    newPut.addCell(SIConstants.DEFAULT_FAMILY_REDO_BYTES,SIConstants.PACKED_COLUMN_BYTES,unsafeRecords[1].getVersion(),unsafeRecords[1].getValue());
+                }
+            } else if (kvPair.getType() == KVPair.Type.INSERT) {
+                if (possibleLegacyRecord == null) {
+                    printoutPair(kvPair,execRow,"Single Insert");
+                    UnsafeRecord unsafeRecord2 = new UnsafeRecord();
+                    unsafeRecord2.wrap(kvPair, true, 1); // Does Version Change?
+                    newPut = opFactory.newPut(kvPair.getRowKey());
+                    newPut.addCell(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES,SIConstants.PACKED_COLUMN_BYTES,unsafeRecord2.getVersion(),unsafeRecord2.getValue());
+                }
+                else {
+                    printoutPair(kvPair,execRow,"Update Active Record Insert");
+                    UnsafeRecord unsafeRecord = new UnsafeRecord();
+                    unsafeRecord.wrap(possibleLegacyRecord.userData());
+                    printout(unsafeRecord,execRow,"Legacy Active Record Insert");
+                    UnsafeRecord unsafeRecord2 = new UnsafeRecord();
+                    unsafeRecord2.wrap(kvPair, true, 2); // Does Version Change?
+                    Record[] unsafeRecords = unsafeRecord.updateRecord(unsafeRecord2, execRow);
+                    printout(unsafeRecords[0],execRow,"Insert Active Record");
+                    printout(unsafeRecords[1],execRow,"Insert Redo Record");
+                    newPut = opFactory.newPut(kvPair.getRowKey());
+                    newPut.addCell(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES,SIConstants.PACKED_COLUMN_BYTES,unsafeRecords[0].getVersion(),unsafeRecords[0].getValue());
+                    newPut.addCell(SIConstants.DEFAULT_FAMILY_REDO_BYTES,SIConstants.PACKED_COLUMN_BYTES,unsafeRecords[1].getVersion(),unsafeRecords[1].getValue());
+                }
+            } else if (kvPair.getType() == KVPair.Type.UPDATE) {
+                if (possibleLegacyRecord == null) {
+                    printoutPair(kvPair,execRow,"Single Update");
+                    UnsafeRecord unsafeRecord2 = new UnsafeRecord();
+                    unsafeRecord2.wrap(kvPair, true, 1); // Does Version Change?
+                    newPut = opFactory.newPut(kvPair.getRowKey());
+                    newPut.addCell(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES,SIConstants.PACKED_COLUMN_BYTES,unsafeRecord2.getVersion(),unsafeRecord2.getValue());
+                }
+                else {
+                    UnsafeRecord unsafeRecord = new UnsafeRecord();
+                    unsafeRecord.wrap(possibleLegacyRecord.userData());
+                    UnsafeRecord unsafeRecord2 = new UnsafeRecord();
+                    unsafeRecord2.wrap(kvPair, true, 2); // Does Version Change?
+                    Record[] unsafeRecords = unsafeRecord.updateRecord(unsafeRecord2, execRow);
+                    printout(unsafeRecords[0],execRow,"Update Active Record");
+                    printout(unsafeRecords[1],execRow,"Update Redo Record");
+                    newPut = opFactory.newPut(kvPair.getRowKey());
+                    newPut.addCell(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES,SIConstants.PACKED_COLUMN_BYTES,unsafeRecords[0].getVersion(),unsafeRecords[0].getValue());
+                    newPut.addCell(SIConstants.DEFAULT_FAMILY_REDO_BYTES,SIConstants.PACKED_COLUMN_BYTES,unsafeRecords[1].getVersion(),unsafeRecords[1].getValue());
+                }
             } else {
-                UnsafeRecord unsafeRecord = new UnsafeRecord(possibleLegacyRecord.userData());
-                unsafeRecord.updateRecord()
+                throw new UnsupportedOperationException("Not Supported yet");
             }
-            newPut=opFactory.toDataPut(kvPair,family,column,txnIdLong);
+            newPut.addAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME, SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
+            if (skipWAL)
+                newPut.skipWAL();
+        } catch (Exception e) {
+            throw new IOException(e);
         }
-        else if(kvPair.getType()==KVPair.Type.INSERT){
-            newPut=opFactory.toDataPut(kvPair,family,column,txnIdLong);
-        }
-
-        else if(kvPair.getType()==KVPair.Type.UPDATE){
-            if (possibleLegacyRecord == null) {
-                LOG.warn("Updating a record that does not exist");
-
-            newPut=opFactory.toDataPut(kvPair,family,column,txnIdLong);
-
-
-            throw new UnsupportedOperationException("No Updates Yet");
-        }
-        else
-            newPut=opFactory.toDataPut(kvPair,family,column,txnIdLong);
-        newPut.addAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
-        if (skipWAL)
-            newPut.skipWAL();
         return newPut;
     }
 

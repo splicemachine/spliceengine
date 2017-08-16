@@ -14,6 +14,7 @@
 
 package com.splicemachine.si.api.server;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.txn.TxnView;
@@ -30,9 +31,9 @@ import java.util.Collection;
  */
 public interface Transactor{
 
-    boolean processPut(Partition table,RollForward rollForwardQueue,DataPut put) throws IOException;
+    boolean processPut(Partition table,RollForward rollForwardQueue,DataPut put, ExecRow execRow) throws IOException;
 
-    MutationStatus[] processPutBatch(Partition table,RollForward rollForwardQueue,DataPut[] mutations) throws IOException;
+    MutationStatus[] processPutBatch(Partition table,RollForward rollForwardQueue,DataPut[] mutations, ExecRow execRow) throws IOException;
 
     MutationStatus[] processKvBatch(Partition table,
                                     RollForward rollForward,
@@ -40,7 +41,7 @@ public interface Transactor{
                                     byte[] packedColumnBytes,
                                     Collection<KVPair> toProcess,
                                     long transactionId,
-                                    ConstraintChecker constraintChecker) throws IOException;
+                                    ConstraintChecker constraintChecker, ExecRow execRow) throws IOException;
 
     MutationStatus[] processKvBatch(Partition table,
                                     RollForward rollForward,
@@ -50,6 +51,6 @@ public interface Transactor{
                                     TxnView txn,
                                     ConstraintChecker constraintChecker,
                                     boolean skipConflictDetection,
-                                    boolean skipWAL) throws IOException;
+                                    boolean skipWAL, ExecRow execRow) throws IOException;
 
 }

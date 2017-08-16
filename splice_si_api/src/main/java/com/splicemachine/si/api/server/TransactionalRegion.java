@@ -14,6 +14,7 @@
 
 package com.splicemachine.si.api.server;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.readresolve.ReadResolver;
@@ -67,7 +68,7 @@ public interface TransactionalRegion<InternalScanner> extends AutoCloseable{
     Iterable<MutationStatus> bulkWrite(TxnView txn,
                                        byte[] family, byte[] qualifier,
                                        ConstraintChecker constraintChecker,
-                                       Collection<KVPair> data, boolean skipConflictDetection, boolean skipWAL) throws IOException;
+                                       Collection<KVPair> data, boolean skipConflictDetection, boolean skipWAL, ExecRow execRow) throws IOException;
 
     String getRegionName();
 

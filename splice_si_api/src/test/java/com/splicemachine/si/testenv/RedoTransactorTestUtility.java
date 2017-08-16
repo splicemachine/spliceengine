@@ -17,6 +17,7 @@ package com.splicemachine.si.testenv;
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.access.impl.data.UnsafeRecord;
 import com.splicemachine.access.impl.data.UnsafeRecordUtils;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.iapi.types.SQLVarchar;
@@ -181,7 +182,7 @@ public class RedoTransactorTestUtility {
             }
             put.addCell(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES, SIConstants.PACKED_COLUMN_BYTES, 1, record.getValue());
             return put;
-        } catch (Exception e) {
+        } catch (StandardException e) {
             throw new IOException(e);
         }
     }

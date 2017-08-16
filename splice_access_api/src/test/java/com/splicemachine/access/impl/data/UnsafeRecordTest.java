@@ -76,7 +76,7 @@ public class UnsafeRecordTest {
         record.setEffectiveTimestamp(123456l);
         record.setNumberOfColumns(123);
         Assert.assertEquals("Display is not accurate","UnsafeRecord {key=726f776b6579313234, version=2, " +
-                "tombstone=true, txnId1=123456, effectiveTimestamp=123456, numberOfColumns=123}",record.toString());
+                "tombstone=true, txnId1=123456, effectiveTimestamp=123456, numberOfColumns=123, columnBitSet=Columns[]}",record.toString());
     }
 
     @Test
