@@ -316,7 +316,7 @@
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty</artifactId>
-                <version>3.6.2.Final</version>
+                <version>3.6.6.Final</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -1078,6 +1078,7 @@
                 <spark.version>2.1.0</spark.version>
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.8.0</spark-assembly-id>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
+                <netty.version>3.6.2.Final</netty.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
@@ -1211,6 +1212,7 @@
                 <spark.version>2.1.0</spark.version>
                 <spark-assembly-id>spark-assembly-hadoop${hadoop.version}</spark-assembly-id>
                 <kafka.version>0.9.0.0-mapr-1607</kafka.version>
+                <netty.version>3.6.2.Final</netty.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
