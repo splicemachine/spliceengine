@@ -653,7 +653,7 @@
                     <relocations>
                         <relocation>
                             <pattern>io.netty</pattern>
-                            <shadedPattern>splice.io.netty</shadedPattern>
+                            <shadedPattern>org.spark_project.io.netty</shadedPattern>
                             <includes>
                                 <include>io.netty.**</include>
                             </includes>
