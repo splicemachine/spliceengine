@@ -27,6 +27,7 @@ import com.splicemachine.derby.stream.function.TableScanQualifierFunction;
 import com.splicemachine.derby.stream.function.TableScanTupleFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.utils.StreamUtils;
+import com.splicemachine.derby.stream.utils.AvroUtils;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.SMInputFormat;
 import org.apache.commons.codec.binary.Base64;
@@ -82,8 +83,10 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
                 locatedRows = dsp.readTextFile(op,location,escaped,delimited,baseColumnMap,operationContext,qualifiers,null,execRow, useSample, sampleFraction);
             else if (storedAs.equals("P"))
                 locatedRows = dsp.readParquetFile(baseColumnMap,partitionByColumns,location,operationContext,qualifiers,null,execRow, useSample, sampleFraction);
-            else if (storedAs.equals("A"))
-                locatedRows = dsp.readAvroFile(baseColumnMap,partitionByColumns,location,operationContext,qualifiers,null,execRow, useSample, sampleFraction);
+            else if (storedAs.equals("A")) {
+                AvroUtils.supportAvroDateTypeColumns(execRow);
+                locatedRows = dsp.readAvroFile(baseColumnMap, partitionByColumns, location, operationContext, qualifiers, null, execRow, useSample, sampleFraction);
+            }
             else if (storedAs.equals("O"))
                 locatedRows = dsp.readORCFile(baseColumnMap,partitionByColumns,location,operationContext,qualifiers,null,execRow, useSample, sampleFraction, false);
             else {
@@ -138,4 +141,5 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         this.dsp = (SparkDataSetProcessor)in.readObject();
         this.op = (SpliceOperation)in.readObject();
     }
+
 }

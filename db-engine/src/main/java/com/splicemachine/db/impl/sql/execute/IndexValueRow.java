@@ -38,8 +38,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import scala.collection.Map;
 import scala.collection.Seq;
@@ -378,16 +376,8 @@ public class IndexValueRow implements ExecIndexRow, Serializable {
     }
 
 	@Override
-	public StructType createStructType() {
-		try {
-			StructField[] fields = new StructField[length()];
-			for (int i = 0; i < length(); i++) {
-				fields[i] = getColumn(i + 1).getStructField("" + i);
-			}
-			return DataTypes.createStructType(fields);
-		} catch (StandardException se) {
-			throw new RuntimeException(se);
-		}
+	public StructType createStructType(int[] baseColumnMap) {
+		return valueRow.createStructType(baseColumnMap);
 	}
 
 	@Override

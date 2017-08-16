@@ -21,12 +21,17 @@ import com.splicemachine.orc.OrcPredicate;
 import com.splicemachine.orc.metadata.*;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
+import org.apache.hadoop.hive.serde2.io.DateWritable;
 import org.apache.spark.sql.types.*;
 import org.apache.spark.sql.types.DataType;
-import java.io.*;
+
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 
 
 
@@ -108,35 +113,64 @@ public class SpliceORCPredicate implements OrcPredicate, Externalizable {
                         return false;
                     continue;
                 }
+
+                /* min/max value in Date column stats are stored as days from 1970-01-01, while predicate is a date
+                   string, so need to convert the date string to days also
+                 */
+                DataValueDescriptor orderable = q.getOrderable();
+                if (structType.fields()[baseColumnMap[q.getStoragePosition()]].dataType() instanceof DateType &&
+                        orderable instanceof SQLChar) {
+                    orderable = new SQLDate(DateWritable.dateToDays(java.sql.Date.valueOf(orderable.getString())));
+                }
+
                 switch (q.getOperator()) {
                     case com.splicemachine.db.iapi.types.DataType.ORDER_OP_LESSTHAN:
                     case com.splicemachine.db.iapi.types.DataType.ORDER_OP_LESSOREQUALS:
+                        if (q.negateCompareResult()) {
+                            row_qualifies =
+                                    statsEval.maximumDVD.compare(
+                                            q.getOperator(),
+                                            orderable,
+                                            q.getOrderedNulls(),
+                                            q.getUnknownRV());
+                        } else {
+                            row_qualifies =
+                                    statsEval.minimumDVD.compare(
+                                            q.getOperator(),
+                                            orderable,
+                                            q.getOrderedNulls(),
+                                            q.getUnknownRV());
+                        }
+                        break;
                     case com.splicemachine.db.iapi.types.DataType.ORDER_OP_GREATERTHAN:
                     case com.splicemachine.db.iapi.types.DataType.ORDER_OP_GREATEROREQUALS:
-                        row_qualifies =
-                                statsEval.minimumDVD.compare(
-                                        q.getOperator(),
-                                        q.getOrderable(),
-                                        q.getOrderedNulls(),
-                                        q.getUnknownRV())
-                                        ||
-                                        statsEval.maximumDVD.compare(
-                                                q.getOperator(),
-                                                q.getOrderable(),
-                                                q.getOrderedNulls(),
-                                                q.getUnknownRV());
+                        if (q.negateCompareResult()) {
+                            row_qualifies =
+                                    statsEval.minimumDVD.compare(
+                                            q.getOperator(),
+                                            orderable,
+                                            q.getOrderedNulls(),
+                                            q.getUnknownRV());
+                        } else {
+                            row_qualifies =
+                                    statsEval.maximumDVD.compare(
+                                            q.getOperator(),
+                                            orderable,
+                                            q.getOrderedNulls(),
+                                            q.getUnknownRV());
+                        }
                         break;
                     case com.splicemachine.db.iapi.types.DataType.ORDER_OP_EQUALS:
                         row_qualifies =
                                 statsEval.minimumDVD.compare(
                                         com.splicemachine.db.iapi.types.DataType.ORDER_OP_LESSOREQUALS,
-                                        q.getOrderable(),
+                                        orderable,
                                         q.getOrderedNulls(),
                                         q.getUnknownRV())
                                         &&
                                         statsEval.maximumDVD.compare(
                                                 com.splicemachine.db.iapi.types.DataType.ORDER_OP_GREATEROREQUALS,
-                                                q.getOrderable(),
+                                                orderable,
                                                 q.getOrderedNulls(),
                                                 q.getUnknownRV());
                         break;
@@ -226,6 +260,8 @@ public class SpliceORCPredicate implements OrcPredicate, Externalizable {
                     partitionStatistics.put(storagePos, IntegerStatistics.getPartitionColumnStatistics(values[i]));
                 } else if (dataType instanceof LongType) {
                     partitionStatistics.put(storagePos, IntegerStatistics.getPartitionColumnStatistics(values[i]));
+                } else if (dataType instanceof ShortType) {
+                    partitionStatistics.put(storagePos, IntegerStatistics.getPartitionColumnStatistics(values[i]));
                 } else if (dataType instanceof DoubleType) {
                     partitionStatistics.put(storagePos, DoubleStatistics.getPartitionColumnStatistics(values[i]));
                 } else if (dataType instanceof FloatType) {
@@ -301,6 +337,11 @@ public class SpliceORCPredicate implements OrcPredicate, Externalizable {
             IntegerStatistics integerStatistics = columnStatistics.getIntegerStatistics();
             statsEval.minimumDVD = new SQLLongint(integerStatistics.getMin());
             statsEval.maximumDVD = new SQLLongint(integerStatistics.getMax());
+        }
+        else if (dataType instanceof ShortType) {
+            IntegerStatistics integerStatistics = columnStatistics.getIntegerStatistics();
+            statsEval.minimumDVD = new SQLSmallint(integerStatistics.getMin().shortValue());
+            statsEval.maximumDVD = new SQLSmallint(integerStatistics.getMax().shortValue());
         }
         else if (dataType instanceof DoubleType) {
             DoubleStatistics doubleStatistics = columnStatistics.getDoubleStatistics();

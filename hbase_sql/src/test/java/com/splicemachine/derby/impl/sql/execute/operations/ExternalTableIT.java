@@ -621,7 +621,7 @@ public class ExternalTableIT extends SpliceUnitTest{
 
 
     @Test
-    @Ignore
+    @Ignore // SPLICE-1809
     public void testWriteReadWithPartitionedByFloatTable() throws Exception {
         String tablePath = getExternalResourceDirectory()+"simple_parquet_with_partition";
         methodWatcher.executeUpdate(String.format("create external table simple_parquet_with_partition (col1 int, col2 varchar(24), col3 float(10) )" +
@@ -636,12 +636,10 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "  1  |XXXX | 3.4567   |\n" +
                 "  2  |YYYY |540.3434  |\n" +
                 "  3  |ZZZZ |590.34344 |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-
-
     }
 
     @Test
-    @Ignore
+    @Ignore // SPLICE-1809
     public void testWriteReadWithPartitionedByFloatTableAvro() throws Exception {
         String tablePath = getExternalResourceDirectory()+"simple_avro_with_partition";
         methodWatcher.executeUpdate(String.format("create external table simple_avro_with_partition (col1 int, col2 varchar(24), col3 float(10) )" +
@@ -1165,6 +1163,87 @@ public class ExternalTableIT extends SpliceUnitTest{
         Assert.assertEquals("COL1 |\n" +
                 "------\n" +
                 " 12  |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+    @Test
+    public void testDateOrcReader() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"/DateOrc";
+        methodWatcher.executeUpdate(String.format("create external table t_date (c1 date) " +
+                "STORED AS ORC LOCATION '%s'",tablePath));
+        methodWatcher.executeUpdate("insert into t_date values('2017-7-27'), ('1970-01-01')");
+        ResultSet rs = methodWatcher.executeQuery("select * from t_date order by 1");
+
+        String expected = "C1     |\n" +
+                "------------\n" +
+                "1970-01-01 |\n" +
+                "2017-07-27 |";
+
+        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(expected, resultString);
+        rs.close();
+
+        // test query with predicate on date
+        rs = methodWatcher.executeQuery("select * from t_date where c1='2017-07-27' order by 1");
+
+        expected = "C1     |\n" +
+                "------------\n" +
+                "2017-07-27 |";
+
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(expected, resultString);
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from t_date where c1>='2017-07-27' order by 1");
+
+        expected = "C1     |\n" +
+                "------------\n" +
+                "2017-07-27 |";
+
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(expected, resultString);
+        rs.close();
+    }
+
+    @Test
+    public void testPartitionByDateOrcTable() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"/PartitionByDateOrc";
+        methodWatcher.executeUpdate(String.format("create external table t_partition_by_date (a1 date, b1 int, c1 varchar(10))" +
+                "partitioned by (a1)" +
+                "STORED AS ORC LOCATION '%s'",tablePath));
+        methodWatcher.executeUpdate("insert into t_partition_by_date values('2017-7-27', 1, 'AAA'), ('1970-01-01', 2, 'BBB'), ('2017-7-27', 3, 'CCC')");
+        ResultSet rs = methodWatcher.executeQuery("select a1, count(*) from t_partition_by_date group by a1 order by 1");
+
+        String expected = "A1     | 2 |\n" +
+                "----------------\n" +
+                "1970-01-01 | 1 |\n" +
+                "2017-07-27 | 2 |";
+
+        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(expected, resultString);
+        rs.close();
+
+        // test query with predicate on date
+        rs = methodWatcher.executeQuery("select * from t_partition_by_date where a1='2017-07-27' order by 1,2");
+
+        expected = "A1     |B1 |C1  |\n" +
+                "---------------------\n" +
+                "2017-07-27 | 1 |AAA |\n" +
+                "2017-07-27 | 3 |CCC |";
+
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(expected, resultString);
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from t_partition_by_date where a1>='2017-07-27' order by 1,2");
+
+        expected = "A1     |B1 |C1  |\n" +
+                "---------------------\n" +
+                "2017-07-27 | 1 |AAA |\n" +
+                "2017-07-27 | 3 |CCC |";
+
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(expected, resultString);
+        rs.close();
     }
 
     @Test
@@ -1810,6 +1889,206 @@ public class ExternalTableIT extends SpliceUnitTest{
         Assert.assertTrue(i == 1);
     }
 
+    @Test
+    public void testPartitionBySmallIntOrcTable() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"/PartitionBySmallIntOrc";
+        methodWatcher.executeUpdate(String.format("create external table t_partition_by_smallint (a1 smallint, b1 int, c1 varchar(10))" +
+                "partitioned by (a1)" +
+                "STORED AS ORC LOCATION '%s'",tablePath));
+        methodWatcher.executeUpdate("insert into t_partition_by_smallint values(1, 1, 'AAA'), (2, 2, 'BBB'), (1, 3, 'CCC')");
+        ResultSet rs = methodWatcher.executeQuery("select a1, count(*) from t_partition_by_smallint group by a1 order by 1");
+
+        String expected = "A1 | 2 |\n" +
+                "--------\n" +
+                " 1 | 2 |\n" +
+                " 2 | 1 |";
+
+        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(expected, resultString);
+        rs.close();
+
+        // test query with predicate on date
+        rs = methodWatcher.executeQuery("select * from t_partition_by_smallint where a1=1 order by 1, 2");
+
+        expected = "A1 |B1 |C1  |\n" +
+                "-------------\n" +
+                " 1 | 1 |AAA |\n" +
+                " 1 | 3 |CCC |";
+
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(expected, resultString);
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from t_partition_by_smallint where a1>=2 order by 1,2");
+
+        expected = "A1 |B1 |C1  |\n" +
+                "-------------\n" +
+                " 2 | 2 |BBB |";
+
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(expected, resultString);
+        rs.close();
+    }
+
+    @Test
+    public void testQueryOnOrcTableWithInequalityPredicate() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"/OrcInequalityPredicate";
+        methodWatcher.executeUpdate(String.format("create external table orc_inequality (c1 smallint, c2 int, c3 char(10)) " +
+                "STORED AS ORC LOCATION '%s'",tablePath));
+        methodWatcher.executeQuery(format("call SYSCS_UTIL.IMPORT_DATA ('%s', 'ORC_INEQUALITY', null, '%s', ',', null, null, null, null, 0, null, true, null)",
+                getSchemaName(), getResourceDirectory()+"orc_inequality_predicate.csv"));
+        /* the constant value is within the (min,max) range of the referenced column */
+        ResultSet rs = methodWatcher.executeQuery("select * from orc_inequality where c1>1 order by 1,2");
+        Assert.assertEquals("C1 |C2  |C3  |\n" +
+                "--------------\n" +
+                " 2 |200 |BBB |\n" +
+                " 3 |300 |CCC |\n" +
+                " 4 |400 |DDD |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from orc_inequality where c2>=200 order by 1,2");
+        Assert.assertEquals("C1 |C2  |C3  |\n" +
+                "--------------\n" +
+                " 1 |200 |BBB |\n" +
+                " 1 |300 |CCC |\n" +
+                " 1 |400 |DDD |\n" +
+                " 2 |200 |BBB |\n" +
+                " 3 |300 |CCC |\n" +
+                " 4 |400 |DDD |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from orc_inequality where c1<3 order by 1,2");
+        Assert.assertEquals("C1 |C2  |C3  |\n" +
+                "--------------\n" +
+                " 1 |100 |AAA |\n" +
+                " 1 |200 |BBB |\n" +
+                " 1 |300 |CCC |\n" +
+                " 1 |400 |DDD |\n" +
+                " 2 |200 |BBB |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from orc_inequality where c3<='BBB' order by 1,2");
+        Assert.assertEquals("C1 |C2  |C3  |\n" +
+                "--------------\n" +
+                " 1 |100 |AAA |\n" +
+                " 1 |200 |BBB |\n" +
+                " 2 |200 |BBB |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* the constant value is below the (min,max) range of the referenced column */
+        rs = methodWatcher.executeQuery("select * from orc_inequality where c2>0 order by 1,2");
+        Assert.assertEquals("C1 |C2  |C3  |\n" +
+                "--------------\n" +
+                " 1 |100 |AAA |\n" +
+                " 1 |200 |BBB |\n" +
+                " 1 |300 |CCC |\n" +
+                " 1 |400 |DDD |\n" +
+                " 2 |200 |BBB |\n" +
+                " 3 |300 |CCC |\n" +
+                " 4 |400 |DDD |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from orc_inequality where c2<=0 order by 1,2");
+        Assert.assertEquals("",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* the constant value is above the (min,max) range of the referenced column */
+        rs = methodWatcher.executeQuery("select * from orc_inequality where c3>= 'FFF' order by 1,2");
+        Assert.assertEquals("",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from orc_inequality where c3 <= 'FFF' order by 1,2");
+        Assert.assertEquals("C1 |C2  |C3  |\n" +
+                "--------------\n" +
+                " 1 |100 |AAA |\n" +
+                " 1 |200 |BBB |\n" +
+                " 1 |300 |CCC |\n" +
+                " 1 |400 |DDD |\n" +
+                " 2 |200 |BBB |\n" +
+                " 3 |300 |CCC |\n" +
+                " 4 |400 |DDD |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testQueryOnPartitionedOrcTableWithInequalityPredicate() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"/PartOrcInequalityPredicate";
+        methodWatcher.executeUpdate(String.format("create external table part_orc_inequality (c1 smallint, c2 int, c3 char(10)) " +
+                "partitioned by (c1) STORED AS ORC LOCATION '%s'",tablePath));
+        methodWatcher.executeQuery(format("call SYSCS_UTIL.IMPORT_DATA ('%s', 'PART_ORC_INEQUALITY', null, '%s', ',', null, null, null, null, 0, null, true, null)",
+                getSchemaName(), getResourceDirectory()+"orc_inequality_predicate.csv"));
+        /* the constant value is within the (min,max) range of the referenced column */
+        ResultSet rs = methodWatcher.executeQuery("select * from part_orc_inequality where c1>1 order by 1,2");
+        Assert.assertEquals("C1 |C2  |C3  |\n" +
+                "--------------\n" +
+                " 2 |200 |BBB |\n" +
+                " 3 |300 |CCC |\n" +
+                " 4 |400 |DDD |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from part_orc_inequality where c2>=200 order by 1,2");
+        Assert.assertEquals("C1 |C2  |C3  |\n" +
+                "--------------\n" +
+                " 1 |200 |BBB |\n" +
+                " 1 |300 |CCC |\n" +
+                " 1 |400 |DDD |\n" +
+                " 2 |200 |BBB |\n" +
+                " 3 |300 |CCC |\n" +
+                " 4 |400 |DDD |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from part_orc_inequality where c1<3 order by 1,2");
+        Assert.assertEquals("C1 |C2  |C3  |\n" +
+                "--------------\n" +
+                " 1 |100 |AAA |\n" +
+                " 1 |200 |BBB |\n" +
+                " 1 |300 |CCC |\n" +
+                " 1 |400 |DDD |\n" +
+                " 2 |200 |BBB |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from part_orc_inequality where c3<='BBB' order by 1,2");
+        Assert.assertEquals("C1 |C2  |C3  |\n" +
+                "--------------\n" +
+                " 1 |100 |AAA |\n" +
+                " 1 |200 |BBB |\n" +
+                " 2 |200 |BBB |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* the constant value is below the (min,max) range of the referenced column */
+        rs = methodWatcher.executeQuery("select * from part_orc_inequality where c2>0 order by 1,2");
+        Assert.assertEquals("C1 |C2  |C3  |\n" +
+                "--------------\n" +
+                " 1 |100 |AAA |\n" +
+                " 1 |200 |BBB |\n" +
+                " 1 |300 |CCC |\n" +
+                " 1 |400 |DDD |\n" +
+                " 2 |200 |BBB |\n" +
+                " 3 |300 |CCC |\n" +
+                " 4 |400 |DDD |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from part_orc_inequality where c2<=0 order by 1,2");
+        Assert.assertEquals("",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* the constant value is above the (min,max) range of the referenced column */
+        rs = methodWatcher.executeQuery("select * from part_orc_inequality where c3>= 'FFF' order by 1,2");
+        Assert.assertEquals("",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from part_orc_inequality where c3 <= 'FFF' order by 1,2");
+        Assert.assertEquals("C1 |C2  |C3  |\n" +
+                "--------------\n" +
+                " 1 |100 |AAA |\n" +
+                " 1 |200 |BBB |\n" +
+                " 1 |300 |CCC |\n" +
+                " 1 |400 |DDD |\n" +
+                " 2 |200 |BBB |\n" +
+                " 3 |300 |CCC |\n" +
+                " 4 |400 |DDD |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
     /**
      *
      *
@@ -1946,5 +2225,130 @@ public class ExternalTableIT extends SpliceUnitTest{
         }
     }
 
+    // tests for avro support of date type:
 
+    @Test
+    public void testWriteReadDateAvroExternalTable() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"simple_avro_date";
+        methodWatcher.executeUpdate(String.format("create external table simple_avro_date (col1 date)" +
+                " STORED AS AVRO LOCATION '%s'",tablePath));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into simple_avro_date values ('2000-01-01')," +
+                "('2000-02-02')," +
+                "('2000-03-03')," +
+                "(null)"));
+        Assert.assertEquals("insertCount is wrong",4,insertCount);
+        ResultSet rs = methodWatcher.executeQuery("select * from simple_avro_date");
+        Assert.assertEquals("COL1    |\n" +
+                "------------\n" +
+                "2000-01-01 |\n" +
+                "2000-02-02 |\n" +
+                "2000-03-03 |\n" +
+                "   NULL    |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        ResultSet rs2 = methodWatcher.executeQuery("select distinct col1 from simple_avro_date");
+        Assert.assertEquals("COL1    |\n" +
+                "------------\n" +
+                "2000-01-01 |\n" +
+                "2000-02-02 |\n" +
+                "2000-03-03 |\n" +
+                "   NULL    |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+
+        Assert.assertTrue(String.format("Table %s hasn't been created",tablePath), new File(tablePath).exists());
+
+        methodWatcher.executeUpdate(String.format("create external table simple_avro_date_copy (col1 date) stored as avro " +
+                "location '%s'",tablePath));
+        ResultSet rs3 = methodWatcher.executeQuery("select * from simple_avro_date_copy");
+        Assert.assertEquals("COL1    |\n" +
+                "------------\n" +
+                "2000-01-01 |\n" +
+                "2000-02-02 |\n" +
+                "2000-03-03 |\n" +
+                "   NULL    |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
+    }
+
+
+    @Test
+    public void testPartitionedAvroDateTable() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"partitionAvroDate";
+        methodWatcher.executeUpdate(String.format("create external table partitionAvroDate (col1 date, col2 date) partitioned by (col2) stored as avro " +
+                "location '%s'",tablePath));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into partitionAvroDate values ('1999-01-01','1999-01-01')," +
+                "(null,null)," +
+                "('2000-02-02','2000-02-02')"));
+        Assert.assertEquals("insertCount is wrong",3,insertCount);
+        ResultSet rs = methodWatcher.executeQuery("select * from partitionAvroDate");
+        Assert.assertEquals("COL1    |   COL2    |\n" +
+                "------------------------\n" +
+                "1999-01-01 |1999-01-01 |\n" +
+                "2000-02-02 |2000-02-02 |\n" +
+                "   NULL    |   NULL    |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        methodWatcher.executeUpdate(String.format("create external table partitionAvroDateCopy (col1 date, col2 date) partitioned by (col2) stored as avro " +
+                "location '%s'",tablePath));
+        ResultSet rs2 = methodWatcher.executeQuery("select * from partitionAvroDateCopy");
+        Assert.assertEquals("COL1    |   COL2    |\n" +
+                "------------------------\n" +
+                "1999-01-01 |1999-01-01 |\n" +
+                "2000-02-02 |2000-02-02 |\n" +
+                "   NULL    |   NULL    |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+    }
+
+
+    @Test
+    public void testCollectAvroDateStats() throws Exception {
+        methodWatcher.executeUpdate(String.format("create external table avro_date_stats (col1 date)" +
+                " STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"avro_date_stats"));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into avro_date_stats values ('2000-01-01')," +
+                "('2000-02-02')," +
+                "('2000-03-03')," +
+                "(null)"));
+        Assert.assertEquals("insertCount is wrong",4,insertCount);
+
+        ResultSet rs;
+        // collect table level stats
+        PreparedStatement ps = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.COLLECT_TABLE_STATISTICS(?,?,?) ");
+        ps.setString(1, "EXTERNALTABLEIT");
+        ps.setString(2, "AVRO_DATE_STATS");
+        ps.setBoolean(3, true);
+        rs = ps.executeQuery();
+        rs.next();
+        Assert.assertEquals("Error with COLLECT_TABLE_STATISTICS for external table","EXTERNALTABLEIT",  rs.getString(1));
+        rs.close();
+
+        ResultSet rs2 = methodWatcher.executeQuery("select total_row_count from sys.systablestatistics where schemaname = 'EXTERNALTABLEIT' and tablename = 'AVRO_DATE_STATS'");
+        String expected = "TOTAL_ROW_COUNT |\n" +
+                "------------------\n" +
+                "        4        |";
+        Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));
+        rs2.close();
+
+        ResultSet rs3 = methodWatcher.executeQuery("select * from avro_date_stats");
+        Assert.assertEquals("COL1    |\n" +
+                "------------\n" +
+                "2000-01-01 |\n" +
+                "2000-02-02 |\n" +
+                "2000-03-03 |\n" +
+                "   NULL    |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
+        rs3.close();
+    }
+
+    public void testBroadcastJoinOrcTablesOnSpark() throws Exception {
+        methodWatcher.executeUpdate(String.format("create external table l (col1 int)" +
+                " STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"left"));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into l values 1, 2, 3" ));
+        methodWatcher.executeUpdate(String.format("create external table r (col1 int)" +
+                " STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"right"));
+        int insertCount2 = methodWatcher.executeUpdate(String.format("insert into r values 1,2,3"));
+
+        Assert.assertEquals("insertCount is wrong",3,insertCount);
+        Assert.assertEquals("insertCount is wrong",3,insertCount2);
+
+        ResultSet rs = methodWatcher.executeQuery("select * from \n" +
+                "l --splice-properties useSpark=true\n" +
+                ", r --splice-properties joinStrategy=broadcast\n" +
+                "where l.col1=r.col1");
+        Assert.assertEquals("COL1 |COL1 |\n" +
+                "------------\n" +
+                "  1  |  1  |\n" +
+                "  2  |  2  |\n" +
+                "  3  |  3  |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
 }

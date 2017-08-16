@@ -27,7 +27,9 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataType;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
@@ -35,8 +37,10 @@ import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.spark.WholeTextInputFormat;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.function.Partitioner;
+import com.splicemachine.derby.stream.function.RowToLocatedRowAvroFunction;
 import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
 import com.splicemachine.derby.stream.iapi.*;
+import com.splicemachine.derby.stream.utils.AvroUtils;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.mrio.api.core.SMTextInputFormat;
 import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
@@ -52,13 +56,13 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.*;
-import org.apache.spark.sql.types.StructField;
-import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.types.*;
 import scala.Tuple2;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.sql.Struct;
 import java.util.*;
 
 
@@ -302,6 +306,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             Dataset<Row> table = null;
             try {
                 table = SpliceSpark.getSession().read().parquet(location);
+                sortColumns(table.schema().fields(), partitionColumnMap);
             } catch (Exception e) {
                 return handleExceptionInCaseOfEmptySet(e,location);
             }
@@ -334,6 +339,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 SparkSession spark = SpliceSpark.getSession();
                 // Creates a DataFrame from a specified file
                 table = spark.read().format("com.databricks.spark.avro").load(location);
+                sortColumns(table.schema().fields(), partitionColumnMap);
             } catch (Exception e) {
                 return handleExceptionInCaseOfEmptySet(e,location);
             }
@@ -343,11 +349,11 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 return new SparkDataSet(table
                         .rdd().toJavaRDD()
                         .sample(false, sampleFraction)
-                        .map(new RowToLocatedRowFunction(context, execRow)));
+                        .map(new RowToLocatedRowAvroFunction(context,execRow)));
             } else {
                 return new SparkDataSet(table
                         .rdd().toJavaRDD()
-                        .map(new RowToLocatedRowFunction(context, execRow)));
+                        .map(new RowToLocatedRowAvroFunction(context, execRow)));
             }
         } catch (Exception e) {
             throw StandardException.newException(
@@ -401,9 +407,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     public void createEmptyExternalFile(ExecRow execRows, int[] baseColumnMap, int[] partitionBy, String storedAs,  String location, String compression) throws StandardException {
         try{
 
+            StructType schema = AvroUtils.supportAvroDateType(execRows.schema(),storedAs);
 
-            Dataset<Row> empty =  SpliceSpark.getSession()
-                    .createDataFrame(new ArrayList<Row>(), execRows.schema());
+            Dataset<Row> empty = SpliceSpark.getSession()
+                        .createDataFrame(new ArrayList<Row>(), schema);
 
             List<Column> cols = new ArrayList();
             for (int i = 0; i < baseColumnMap.length; i++) {
@@ -500,10 +507,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         assert baseColumnMap != null:"baseColumnMap Null";
         assert partitionColumnMap != null:"partitionColumnMap Null";
         try {
-            SpliceORCPredicate predicate = new SpliceORCPredicate(qualifiers,baseColumnMap,execRow.createStructType());
+            SpliceORCPredicate predicate = new SpliceORCPredicate(qualifiers,baseColumnMap,execRow.createStructType(baseColumnMap));
             Configuration configuration = new Configuration(HConfiguration.unwrapDelegate());
             configuration.set(SpliceOrcNewInputFormat.SPLICE_PREDICATE,predicate.serialize());
-            configuration.set(SpliceOrcNewInputFormat.SPARK_STRUCT,execRow.createStructType().json());
+            configuration.set(SpliceOrcNewInputFormat.SPARK_STRUCT,execRow.createStructType(baseColumnMap).json());
             configuration.set(SpliceOrcNewInputFormat.SPLICE_COLUMNS,intArrayToString(baseColumnMap));
             configuration.set(SpliceOrcNewInputFormat.SPLICE_PARTITIONS,intArrayToString(partitionColumnMap));
             if (statsjob)
@@ -667,6 +674,34 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         }
         return andCols;
     }
+
+    /*
+     if the external table is partitioned, its partitioned columns will be placed after all non-partitioned columns in StructField[] schema
+     sort the columns so that partitioned columns are in their correct place
+     */
+    public void sortColumns(StructField[] schema, int[] partitionColumnMap){
+        if (partitionColumnMap.length > 0) {
+            // get the partitioned columns and map them to their correct indexes
+            HashMap<Integer, StructField> partitions = new HashMap<>();
+            int schemaColumnIndex = schema.length - 1;
+            for (int i = partitionColumnMap.length - 1; i >= 0; i--) {
+                partitions.put(partitionColumnMap[i], schema[schemaColumnIndex]);
+                schemaColumnIndex--;
+            }
+
+            // sort the partitioned columns back into their correct respective indexes in schema
+            StructField[] schemaCopy = schema.clone();
+            int schemaCopyIndex = 0;
+            for (int i = 0; i < schema.length; i++){
+                if (partitions.containsKey(i)){
+                    schema[i] = partitions.get(i);
+                } else {
+                    schema[i] = schemaCopy[schemaCopyIndex++];
+                }
+            }
+        }
+    }
+
 
     @Override
     public void refreshTable(String location) {

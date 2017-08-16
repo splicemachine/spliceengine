@@ -24,6 +24,7 @@ import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
+import java.sql.SQLWarning;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -80,13 +81,25 @@ public class SplitRegionRowCountOperationIT{
         callableStatement.setString(2,"A");
         callableStatement.setInt(3,12);
         callableStatement.execute();
-        Thread.sleep(2000); // Wait for splits to occur
         conn.collectStats(spliceSchemaWatcher.schemaName,"A");
     }
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
+    @Test
+    public void testSplitAgain() throws Exception {
+        TestConnection conn = spliceClassWatcher.getOrCreateConnection();
+        CallableStatement callableStatement = conn.prepareCall("call SYSCS_UTIL.SYSCS_SPLIT_TABLE_AT_POINTS(?,?,?)");
+        callableStatement.setString(1,SCHEMA);
+        callableStatement.setString(2,"A");
+        callableStatement.setInt(3,12);
+        callableStatement.execute();
+        SQLWarning warning = callableStatement.getWarnings();
+        String wm = warning.getMessage();
+        String ewm = "Ignore splitkey '12' because it is equal to a startkey";
+        Assert.assertEquals(wm, ewm);
+    }
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
     // first row only

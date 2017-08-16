@@ -1501,6 +1501,18 @@ public class SystemProcedures{
     }
 
     /**
+     * Method to round the given value to the given scale.
+     * @param num
+     * @param decimal
+     * @return
+     */
+    public static double ROUND(double num, int decimal) {
+        double scale = decimal < 18 ? Math.pow(10, decimal * 1.0) : Math.pow(10,18);
+        return (Math.round(num * scale) / scale);
+    }
+
+
+    /**
      * Recompile all the invalid stored statements so they will not get recompiled when
      * executed next time around.
      */

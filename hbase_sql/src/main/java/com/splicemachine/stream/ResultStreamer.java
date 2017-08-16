@@ -30,7 +30,8 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import org.apache.log4j.Logger;
 import org.apache.spark.TaskContext;
 import org.apache.spark.api.java.function.Function2;
-import java.io.Serializable;
+
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -40,7 +41,7 @@ import java.util.concurrent.*;
 /**
  * Created by dgomezferro on 5/25/16.
  */
-public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements Function2<Integer, Iterator<T>, Iterator<String>>, Serializable {
+public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements Function2<Integer, Iterator<T>, Iterator<String>>, Serializable, Externalizable {
     private static final Logger LOG = Logger.getLogger(ResultStreamer.class);
 
     private OperationContext<?> context;
@@ -73,7 +74,6 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
         this.batches = batches;
         this.batchSize = batchSize;
         this.permits = new Semaphore(batches - 1); // we start with one permit taken
-
     }
 
     @Override
@@ -245,5 +245,31 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
                 ", partition=" + partition +
                 ", batches=" + batches +
                 '}';
+    }
+
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeObject(context);
+        out.writeLong(uuid.getMostSignificantBits());
+        out.writeLong(uuid.getLeastSignificantBits());
+        out.writeUTF(host);
+        out.writeInt(port);
+        out.writeInt(numPartitions);
+        out.writeInt(batches);
+        out.writeInt(batchSize);
+        out.writeObject(permits); // WTF is this?
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        context = (OperationContext) in.readObject();
+        uuid = new UUID(in.readLong(),in.readLong());
+        host = in.readUTF();
+        port = in.readInt();
+        numPartitions = in.readInt();
+        batches = in.readInt();
+        batchSize = in.readInt();
+        permits = (Semaphore) in.readObject();
     }
 }

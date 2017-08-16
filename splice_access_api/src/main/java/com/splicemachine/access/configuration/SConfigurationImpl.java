@@ -101,6 +101,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final int reservedSlotsTimeout;
     private final double bulkImportSampleFraction;
     private final int bulkImportTasksPerRegion;
+    private final int regionToLoadPerTask;
 
     // OLAP client/server configurations
     private final int olapClientWaitTime;
@@ -363,6 +364,12 @@ public final class SConfigurationImpl implements SConfiguration {
     public int getBulkImportTasksPerRegion() {
         return bulkImportTasksPerRegion;
     }
+
+    @Override
+    public int getRegionToLoadPerTask() {
+        return regionToLoadPerTask;
+    }
+
     @Override
     public int getSparkResultStreamingBatches() {
         return sparkResultStreamingBatches;
@@ -713,6 +720,7 @@ public final class SConfigurationImpl implements SConfiguration {
         controlExecutionRowLimit = builder.controlExecutionRowLimit;
         bulkImportSampleFraction = builder.bulkImportSampleFraction;
         bulkImportTasksPerRegion = builder.bulkImportTasksPerRegion;
+        regionToLoadPerTask = builder.regionToLoadPerTask;
     }
 
     private static final Logger LOG = Logger.getLogger("splice.config");

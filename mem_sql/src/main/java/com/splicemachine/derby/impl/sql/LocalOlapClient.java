@@ -25,6 +25,7 @@ import org.spark_project.guava.util.concurrent.SettableFuture;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -110,6 +111,11 @@ public class LocalOlapClient implements OlapClient{
         @Override
         public boolean isRunning(){
             return result==null;
+        }
+
+        @Override
+        public boolean wait(long time, TimeUnit unit) throws InterruptedException {
+            return false;
         }
     }
 }

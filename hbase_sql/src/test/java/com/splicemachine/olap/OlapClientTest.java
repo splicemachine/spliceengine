@@ -45,7 +45,6 @@ import static org.junit.Assert.assertTrue;
  * Created by dgomezferro on 3/17/16.
  */
 @SuppressWarnings("unused")
-@Ignore
 public class OlapClientTest {
     private static final Logger LOG = Logger.getLogger(OlapClientTest.class);
 
@@ -68,7 +67,7 @@ public class OlapClientTest {
         olapServer.stopServer();
     }
 
-    @Test(timeout = 3000)
+    @Test
     public void simpleTest() throws Exception {
         final Random rand = new Random(0);
         int sleep = rand.nextInt(200);
@@ -77,7 +76,7 @@ public class OlapClientTest {
         Assert.assertEquals(13, result.order);
     }
 
-    @Test(timeout = 16000)
+    @Test
     public void longRunningTest() throws Exception {
         final Random rand = new Random(0);
         int sleep = 4000;
@@ -86,9 +85,8 @@ public class OlapClientTest {
         Assert.assertEquals(13, result.order);
     }
 
-    @Test(timeout = 16000)
+    @Test
     public void manyFastJobsTest() throws Exception {
-        final Random rand = new Random(0);
         int sleep = 0;
         for (int i = 0; i < 200; ++i) {
             DumbOlapResult result = olapClient.execute(new DumbDistributedJob(sleep, i));
@@ -98,7 +96,7 @@ public class OlapClientTest {
     }
 
 
-    @Test(timeout = 20000, expected = IllegalStateException.class)
+    @Test(expected = IllegalStateException.class)
     public void cantReuseJobsTest() throws Exception {
         final Random rand = new Random(0);
         int sleep = rand.nextInt(200);
@@ -110,8 +108,7 @@ public class OlapClientTest {
         Assert.fail("Should have raised exception");
     }
 
-    @Test(timeout = 3000)
-    @Ignore // per sf
+    @Test
     public void failingJobTest() throws Exception {
         try {
             DumbOlapResult result = olapClient.execute(new FailingDistributedJob("failingJob"));
@@ -122,14 +119,13 @@ public class OlapClientTest {
     }
 
     @Test
-    @Ignore // per sf
     public void repeatedFailingJob() throws Exception{
         for(int i=0;i<100;i++){
             failingJobTest();
         }
     }
 
-    @Test(timeout = 20000)
+    @Test
     public void concurrencyTest() throws Exception {
         int size = 32;
         Thread[] threads = new Thread[size];
@@ -161,7 +157,7 @@ public class OlapClientTest {
         }
     }
 
-    @Test(timeout = 20000)
+    @Test
     public void concurrencySameNameTest() throws Exception {
         int size = 32;
         Thread[] threads = new Thread[size];
@@ -192,7 +188,7 @@ public class OlapClientTest {
         }
     }
 
-    @Test(timeout = 20000)
+    @Test
     public void overflowTest() throws Exception {
         int size = 32;
         Thread[] threads = new Thread[size];
@@ -224,7 +220,7 @@ public class OlapClientTest {
         }
     }
 
-    @Test(timeout=10000)
+    @Test
     public void testServerFailureAfterSubmit() throws Exception{
        /*
         * Tests what would happen if the server went down after we had successfully submitted, but while
@@ -236,7 +232,7 @@ public class OlapClientTest {
             @Override
             public void run(){
                 try{
-                    results.set(0, olapClient.execute(new DumbDistributedJob(100000,0)));
+                    results.set(0, olapClient.execute(new DumbDistributedJob(10000,0)));
                 }catch(IOException | TimeoutException e){
                     errors.set(0, e);
                     results.set(0, null);
@@ -457,7 +453,7 @@ public class OlapClientTest {
 
     }
 
-    private static void setupServer(){
+    private static void setupServer() throws IOException {
         Clock clock=new SystemClock();
         olapServer = new OlapServer(0,clock); // any port
         olapServer.startServer(HConfiguration.getConfiguration());
