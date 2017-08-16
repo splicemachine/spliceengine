@@ -62,6 +62,16 @@ public class SpliceRegionAdminIT {
     @BeforeClass
     public static void init() throws Exception {
         TestUtils.executeSqlFile(spliceClassWatcher, "tcph/TPCHIT.sql", SCHEMA_NAME);
+        spliceClassWatcher.execute(String.format("call SYSCS_UTIL.SYSCS_SPLIT_TABLE_OR_INDEX('%s','%s',null,'L_ORDERKEY,L_LINENUMBER'," +
+                        "'%s','|',null,null,null,null,-1,'/BAD',true,null)",SCHEMA_NAME,LINEITEM,
+                getResource("lineitemKey.csv")));
+
+        spliceClassWatcher.execute(String.format("call SYSCS_UTIL.SYSCS_SPLIT_TABLE_OR_INDEX('%s','%s','L_SHIPDATE_IDX'," +
+                        "'L_SHIPDATE,L_PARTKEY,L_EXTENDEDPRICE,L_DISCOUNT'," +
+                        "'%s','|',null,null,null,null,-1,'/BAD',true,null)",SCHEMA_NAME,LINEITEM,
+                getResource("shipDateIndex.csv")));
+        spliceClassWatcher.execute(String.format("CALL SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', true)", SCHEMA_NAME, LINEITEM, getResource("lineitem.tbl"), getResource("data")));
+
         spliceTableSplitKeys.add(0, "{ NULL, NULL }");
         spliceTableSplitKeys.add(1, "{ 1, NULL }");
         spliceTableSplitKeys.add(2, "{ 1, 2 }");
@@ -93,10 +103,6 @@ public class SpliceRegionAdminIT {
     public void testTable() throws Exception {
 
         Connection connection = methodWatcher.getOrCreateConnection();
-        methodWatcher.execute(String.format("call SYSCS_UTIL.SYSCS_SPLIT_TABLE_OR_INDEX('%s','%s',null,'L_ORDERKEY,L_LINENUMBER'," +
-                        "'%s','|',null,null,null,null,-1,'/BAD',true,null)",SCHEMA_NAME,LINEITEM,
-                getResource("lineitemKey.csv")));
-
 
         SConfiguration config = HConfiguration.getConfiguration();
         HBaseTestingUtility testingUtility = new HBaseTestingUtility((Configuration) config.getConfigSource().unwrapDelegate());
@@ -125,11 +131,6 @@ public class SpliceRegionAdminIT {
     public void testIndex() throws Exception {
 
         Connection connection = methodWatcher.getOrCreateConnection();
-        methodWatcher.execute(String.format("call SYSCS_UTIL.SYSCS_SPLIT_TABLE_OR_INDEX('%s','%s','L_SHIPDATE_IDX'," +
-                        "'L_SHIPDATE,L_PARTKEY,L_EXTENDEDPRICE,L_DISCOUNT'," +
-                        "'%s','|',null,null,null,null,-1,'/BAD',true,null)",SCHEMA_NAME,LINEITEM,
-                getResource("shipDateIndex.csv")));
-
         SConfiguration config = HConfiguration.getConfiguration();
         HBaseTestingUtility testingUtility = new HBaseTestingUtility((Configuration) config.getConfigSource().unwrapDelegate());
         HBaseAdmin admin = testingUtility.getHBaseAdmin();
@@ -152,6 +153,48 @@ public class SpliceRegionAdminIT {
             String result = rs.getString(1);
             Assert.assertEquals(result, spliceIndexSplitKeys.get(index));
         }
+    }
+
+    @Test
+    public void testListTableRegions() throws Exception {
+
+        ResultSet rs = methodWatcher.executeQuery(String.format("call syscs_util.get_regions('%s', '%s', null, null, null,'|', null,null,null,null)", SCHEMA_NAME, LINEITEM));
+        int i = 0;
+        while(rs.next()) {
+            String spliceStartKey = rs.getString("SPLICE_START_KEY");
+            String spliceEndKey = rs.getString("SPLICE_END_KEY");
+            String hbaseStartKey = rs.getString("HBASE_START_KEY");
+            String hbaseEndKey = rs.getString("HBASE_END_KEY");
+            Assert.assertEquals(spliceTableSplitKeys.get(i), spliceStartKey);
+            Assert.assertEquals(hbaseTableSplitKeys.get(i), hbaseStartKey);
+            if (i < spliceTableSplitKeys.size() -1) {
+                Assert.assertEquals(spliceTableSplitKeys.get(i+1), spliceEndKey);
+                Assert.assertEquals(hbaseTableSplitKeys.get(i+1), hbaseEndKey);
+            }
+            i++;
+        }
+
+    }
+
+    @Test
+    public void testListIndexRegions() throws Exception {
+
+        ResultSet rs = methodWatcher.executeQuery(String.format("call syscs_util.get_regions('%s', '%s', '%s', null, null,'|', null,null,null,null)", SCHEMA_NAME, LINEITEM, SHIPDATE_IDX));
+        int i = 0;
+        while(rs.next()) {
+            String spliceStartKey = rs.getString("SPLICE_START_KEY");
+            String spliceEndKey = rs.getString("SPLICE_END_KEY");
+            String hbaseStartKey = rs.getString("HBASE_START_KEY");
+            String hbaseEndKey = rs.getString("HBASE_END_KEY");
+            Assert.assertEquals(spliceIndexSplitKeys.get(i), spliceStartKey);
+            Assert.assertEquals(hbaseIndexSplitKeys.get(i), hbaseStartKey);
+            if (i < spliceIndexSplitKeys.size() -1) {
+                Assert.assertEquals(spliceIndexSplitKeys.get(i+1), spliceEndKey);
+                Assert.assertEquals(hbaseIndexSplitKeys.get(i+1), hbaseEndKey);
+            }
+            i++;
+        }
+
     }
 
     @Test
