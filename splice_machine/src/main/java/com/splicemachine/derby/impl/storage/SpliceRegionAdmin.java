@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.storage;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.PartitionAdmin;
+import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -25,10 +26,7 @@ import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.SQLChar;
-import com.splicemachine.db.iapi.types.SQLVarchar;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
@@ -48,7 +46,13 @@ import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.IntArrays;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.joda.time.DateTime;
 import org.spark_project.guava.collect.Lists;
 import org.supercsv.prefs.CsvPreference;
 
@@ -64,6 +68,137 @@ import java.util.*;
  */
 public class SpliceRegionAdmin {
 
+    public static void GET_REGIONS(String schemaName,
+                                   String tableName,
+                                   String indexName,
+                                   String startKey,
+                                   String endKey,
+                                   String columnDelimiter,
+                                   String characterDelimiter,
+                                   String timestampFormat,
+                                   String dateFormat,
+                                   String timeFormat,
+                                   ResultSet[] results) throws Exception {
+
+        // Check parameters
+        schemaName = schemaName.toUpperCase();
+        tableName = tableName.toUpperCase();
+
+        TableDescriptor td = getTableDescriptor(schemaName, tableName);
+        ConglomerateDescriptor index = null;
+        if (indexName != null) {
+            indexName = indexName.toUpperCase();
+            index = getIndex(td, indexName);
+            if (index == null) {
+                throw StandardException.newException(SQLState.LANG_INDEX_NOT_FOUND, indexName);
+            }
+        }
+
+        // get row format for primary key or index
+        ExecRow execRow = getExecRow(td, index);
+        if (execRow == null) {
+            throw StandardException.newException(SQLState.NO_PRIMARY_KEY,
+                    td.getSchemaDescriptor().getSchemaName(), td.getName());
+        }
+
+        DataHash dataHash = getEncoder(td, index, execRow);
+        KeyHashDecoder decoder =  dataHash.getDecoder();
+
+        byte[] startKeyBytes = startKey != null ? getRowKey(td, index, execRow, startKey, columnDelimiter,
+                characterDelimiter, timeFormat, dateFormat, timestampFormat) : new byte[0];
+        byte[] endKeyBytes = endKey != null ? getRowKey(td, index, execRow, endKey, columnDelimiter,
+                characterDelimiter, timeFormat, dateFormat, timestampFormat) : new byte[0];
+
+        ResultColumnDescriptor[] columnInfo=new ResultColumnDescriptor[9];
+        columnInfo[0]=new GenericColumnDescriptor("ENCODED_REGION_NAME",
+                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,50));
+        columnInfo[1]=new GenericColumnDescriptor("SPLICE_START_KEY",
+                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,1024));
+        columnInfo[2]=new GenericColumnDescriptor("SPLICE_END_KEY",
+                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,1024));
+        columnInfo[3]=new GenericColumnDescriptor("HBASE_START_KEY",
+                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,1024));
+        columnInfo[4]=new GenericColumnDescriptor("HBASE_END_KEY",
+                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,1024));
+        columnInfo[5]=new GenericColumnDescriptor("NUM_HFILES",
+                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+        columnInfo[6]=new GenericColumnDescriptor("SIZE",
+                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+        columnInfo[7]=new GenericColumnDescriptor("LAST_MODIFICATION_TIME",
+                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIMESTAMP));
+        columnInfo[8]=new GenericColumnDescriptor("REGION_NAME",
+                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,1024));
+
+        ArrayList<ExecRow> rows=new ArrayList<>();
+        DataValueDescriptor[] dvds=new DataValueDescriptor[]{
+                new SQLVarchar(),
+                new SQLVarchar(),
+                new SQLVarchar(),
+                new SQLVarchar(),
+                new SQLVarchar(),
+                new SQLInteger(),
+                new SQLLongint(),
+                new SQLTimestamp(),
+                new SQLVarchar()
+        };
+
+        // get all partitions
+        PartitionFactory partitionFactory = SIDriver.driver().getTableFactory();
+        String conglomId = Long.toString(index == null ? td.getHeapConglomerateId() : index.getConglomerateNumber());
+        Configuration conf = (Configuration) SIDriver.driver().getConfiguration().getConfigSource().unwrapDelegate();
+
+        Partition table = partitionFactory.getTable(conglomId);
+        Iterable<? extends Partition> partitions =  table.subPartitions(startKeyBytes, endKeyBytes, true);
+        List<Partition> partitionList = Lists.newArrayList(partitions);
+
+        for (Partition partition : partitionList) {
+
+            byte[] start = partition.getStartKey();
+            byte[] end = partition.getEndKey();
+            String name = partition.getName();
+            String encodedName = partition.getEncodedName();
+            decoder.set(start, 0, start.length);
+            decoder.decode(execRow);
+
+            ExecRow row=new ValueRow(dvds.length);
+            row.setRowArray(dvds);
+            dvds[0].setValue(encodedName);
+            dvds[1].setValue(execRow.toString());
+
+            decoder.set(end, 0, end.length);
+            decoder.decode(execRow);
+            dvds[2].setValue(execRow.toString());
+
+            dvds[3].setValue(Bytes.toStringBinary(start));
+            dvds[4].setValue(Bytes.toStringBinary(end));
+
+            FileStatus[] fileStatuses = getRegionFileStatuses(conf, conglomId, encodedName);
+            int count = 0;
+            long size = 0;
+            long lastModificationTime = getFamilyModificationTime(conf, conglomId, encodedName);
+            for (FileStatus fileStatus : fileStatuses) {
+                if (!fileStatus.isFile())
+                    continue;
+                count++;
+                size += fileStatus.getLen();
+                if (fileStatus.getModificationTime() > lastModificationTime)
+                    lastModificationTime = fileStatus.getModificationTime();
+
+            }
+            dvds[5].setValue(count);
+            dvds[6].setValue(size);
+            dvds[7].setValue(new DateTime(lastModificationTime));
+            dvds[8].setValue(name);
+
+            rows.add(row.getClone());
+        }
+
+        EmbedConnection defaultConn=(EmbedConnection) SpliceAdmin.getDefaultConn();
+        Activation lastActivation=defaultConn.getLanguageConnection().getLastActivation();
+        IteratorNoPutResultSet resultsToWrap=new IteratorNoPutResultSet(rows,columnInfo,lastActivation);
+        resultsToWrap.openCore();
+        results[0] = new EmbedResultSet40(defaultConn,resultsToWrap,false,null,true);
+    }
 
     public static void MERGE_REGIONS(String schemaName,
                                      String tableName,
@@ -205,22 +340,8 @@ public class SpliceRegionAdmin {
                     td.getSchemaDescriptor().getSchemaName(), td.getName());
         }
 
-        // set up csv reader
-        CsvPreference preference = createCsvPreference(columnDelimiter, characterDelimiter);
-        Reader reader = new StringReader(splitKey);
-        MutableCSVTokenizer tokenizer = new MutableCSVTokenizer(reader,preference);
-        tokenizer.setLine(splitKey);
-        List<String> read=tokenizer.read();
-        BooleanList quotedColumns=tokenizer.getQuotedColumns();
-
-        // return the primary key or index value in ExecRow
-        ExecRow dataRow = FileFunction.getRow(read, quotedColumns, null,
-                execRow, null, timeFormat, dateFormat, timestampFormat);
-
-        // Encoded row value
-        DataHash dataHash = getEncoder(td, index, execRow);
-        dataHash.setRow(dataRow);
-        byte[] rowKey = dataHash.encode();
+        byte[] rowKey = getRowKey(td, index, execRow, splitKey, columnDelimiter, characterDelimiter, timeFormat,
+                dateFormat, timestampFormat);
 
         // Find the hbase region that contains the rowKey
         long conglomerateId = indexName != null ? index.getConglomerateNumber() : td.getHeapConglomerateId();
@@ -236,9 +357,9 @@ public class SpliceRegionAdmin {
         // return startkey, endkey and encoded region that contains the row key
         ExecRow row=new ValueRow(dvds.length);
         row.setRowArray(dvds);
-        dvds[0] = new SQLChar(partition.getEncodedName());
-        dvds[1] = new SQLChar(Bytes.toStringBinary(partition.getStartKey()));
-        dvds[2] = new SQLChar(Bytes.toStringBinary(partition.getEndKey()));
+        dvds[0].setValue(partition.getEncodedName());
+        dvds[1].setValue(Bytes.toStringBinary(partition.getStartKey()));
+        dvds[2].setValue(Bytes.toStringBinary(partition.getEndKey()));
 
         rows.add(row);
         ResultColumnDescriptor[] columnInfo=new ResultColumnDescriptor[3];
@@ -305,7 +426,7 @@ public class SpliceRegionAdmin {
             throw StandardException.newException(SQLState.REGION_DOESNOT_EXIST, encodedRegionName);
         }
 
-        // Decode startkey from byte[] to ExecRow
+        // Decode startKey from byte[] to ExecRow
         ExecRow execRow = getExecRow(td, index);
         if (execRow != null) {
             DataHash dataHash = getEncoder(td, index, execRow);
@@ -321,7 +442,7 @@ public class SpliceRegionAdmin {
 
         ExecRow row=new ValueRow(dvds.length);
         row.setRowArray(dvds);
-        dvds[0] = new SQLChar(execRow != null ? execRow.toString() : Bytes.toStringBinary(rowKey));
+        dvds[0].setValue(execRow != null ? execRow.toString() : Bytes.toStringBinary(rowKey));
 
         rows.add(row);
         ResultColumnDescriptor[] columnInfo=new ResultColumnDescriptor[1];
@@ -348,59 +469,15 @@ public class SpliceRegionAdmin {
         PartitionAdmin admin= SIDriver.driver().getTableFactory().getAdmin();
         Iterable<? extends Partition> partitions =  admin.allPartitions(Long.toString(conglomId));
         List<Partition> partitionList = Lists.newArrayList(partitions);
-        partitionList.sort(new Comparator<Partition>() {
-            @Override
-            public int compare(Partition o1, Partition o2) {
-                byte[] k1 = o1.getStartKey();
-                byte[] k2 = o2.getStartKey();
-                if (k1 == null || k1.length == 0) {
-                    if (k2 == null || k2.length == 0)
-                        return 0;
-                    else
-                        return -1;
-                }
-                else {
-                    if (k2 == null || k2.length == 0)
-                        return 1;
-                    else
-                        return Bytes.compareTo(k1, k2);
-                }
-            }
-        });
-
-        //create a list of start keys
-        byte[][] startKeys = new byte[partitionList.size()][];
-        for (int i = 0; i < partitionList.size(); ++i) {
-            Partition p = partitionList.get(i);
-            byte[] k = p.getStartKey();
-            startKeys[i] = k;
-        }
-        int index = binarySearchStartKey(startKeys, rowKey);
-        assert index != -1;
-        Partition p = partitionList.get(index);
-        return p;
-    }
-
-    private static int binarySearchStartKey(byte[][] startKeys, byte[] rowKey) {
-
-        int l = 0;
-        int r = startKeys.length -1;
-
-        while (l <= r) {
-            int m = (l + r) / 2;
-            if (m == 0 || m == startKeys.length -1 || Bytes.compareTo(startKeys[m], rowKey) == 0)
-                return m;
-            else if  (Bytes.compareTo(startKeys[m], rowKey) > 0 && Bytes.compareTo(startKeys[m-1], rowKey) <= 0){
-                return m-1;
-            }
-            else if (Bytes.compareTo(startKeys[m], rowKey) < 0) {
-                l = m + 1;
-            }
-            else if (Bytes.compareTo(startKeys[m], rowKey) > 0) {
-                r = m - 1;
+        for(Partition p : partitionList) {
+            byte[] start = p.getStartKey();
+            byte[] end = p.getEndKey();
+            if (Bytes.compareTo(rowKey, start) >= 0 && Bytes.compareTo(rowKey, end) < 0) {
+                return p;
             }
         }
-        return -1;
+        assert false;
+        return null;
     }
 
     private static DataHash getEncoder(TableDescriptor td, ConglomerateDescriptor index, ExecRow execRow) throws Exception {
@@ -498,5 +575,65 @@ public class SpliceRegionAdmin {
         }
 
         return null;
+    }
+
+    private static byte[] getRowKey(TableDescriptor td, ConglomerateDescriptor index, ExecRow execRow,
+                             String splitKey, String columnDelimiter, String characterDelimiter,
+                             String timeFormat, String dateFormat, String timestampFormat) throws Exception{
+        // set up csv reader
+        CsvPreference preference = createCsvPreference(columnDelimiter, characterDelimiter);
+        Reader reader = new StringReader(splitKey);
+        MutableCSVTokenizer tokenizer = new MutableCSVTokenizer(reader,preference);
+        tokenizer.setLine(splitKey);
+        List<String> read=tokenizer.read();
+        BooleanList quotedColumns=tokenizer.getQuotedColumns();
+
+        // return the primary key or index value in ExecRow
+        ExecRow dataRow = FileFunction.getRow(read, quotedColumns, null,
+                execRow, null, timeFormat, dateFormat, timestampFormat);
+
+        // Encoded row value
+        DataHash dataHash = getEncoder(td, index, execRow);
+        dataHash.setRow(dataRow);
+        byte[] rowKey = dataHash.encode();
+        return rowKey;
+    }
+
+    private static FileStatus[] getRegionFileStatuses(Configuration conf,
+                                                      String conglomId,
+                                                      String encodedName) throws IOException{
+
+        Path region = getRegionPath(conf, conglomId, encodedName);
+        FileSystem fs = region.getFileSystem(conf);
+        Path family = new Path(region, "V");
+
+        FileStatus[] fileStatuses = fs.listStatus(family);
+        return fileStatuses;
+    }
+
+    private static long getFamilyModificationTime(Configuration conf,
+                                                  String conglomId,
+                                                  String encodedName) throws IOException{
+
+        Path region = getRegionPath(conf, conglomId, encodedName);
+        FileSystem fs = region.getFileSystem(conf);
+        FileStatus[] fileStatuses = fs.listStatus(region);
+        for (FileStatus fileStatus : fileStatuses) {
+            if (fileStatus.getPath().getName().compareTo("V") == 0) {
+                return fileStatus.getModificationTime();
+            }
+        }
+        return 0;
+    }
+
+    private static Path getRegionPath(Configuration conf, String conglomId, String encodedName) throws IOException {
+        Path p = new Path(conf.get(HConstants.HBASE_DIR));
+        FileSystem fs = p.getFileSystem(conf);
+        p =  p.makeQualified(fs);
+        Path data = new Path(p, "data");
+        Path splice = new Path(data, "splice");
+        Path table = new Path(splice, conglomId);
+        Path region = new Path(table, encodedName);
+        return region;
     }
 }
