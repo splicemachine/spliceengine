@@ -35,54 +35,32 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 
 /**
  * This visitor probes the predicates looking for restrictions on the first column in a key.
  *
  */
-public class ExcludedIndexColumnVisitor implements Visitor {
+public class ExcludedNullIndexColumnVisitor implements Visitor {
     int tableNumber;
     int columnNumber;
-    boolean nullsExcluded;
     boolean isValid;
-    DataValueDescriptor defaultValue;
 
 
-    public ExcludedIndexColumnVisitor(int tableNumber, int columnNumber, boolean nullsExcluded, DataValueDescriptor defaultValue){
+    public ExcludedNullIndexColumnVisitor(int tableNumber, int columnNumber){
         this.tableNumber = tableNumber;
         this.columnNumber = columnNumber;
         this.isValid = false;
-        this.nullsExcluded = nullsExcluded;
-        this.defaultValue = defaultValue;
     }
 
 
     public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
         if(node instanceof ColumnReference){
             ColumnReference cr = (ColumnReference) node;
-
             if(cr.getSource() != null &&
-                cr.getTableNumber() == tableNumber &&
-                cr.getColumnNumber() == columnNumber) {
-                if (parent != null &&
-                        parent.getNodeType() == C_NodeTypes.IS_NULL_NODE &&
-                        nullsExcluded) {
-                    // Predicate does not validate a restriction on the index.
-                } else if (parent != null &&
-                        parent instanceof BinaryRelationalOperatorNode && // BRO
-                        ((BinaryRelationalOperatorNode) parent).getRightOperand() instanceof ConstantNode) {
-                    DataValueDescriptor compare = ((ConstantNode) ((BinaryRelationalOperatorNode) parent).getRightOperand()).getValue();
-                    if (compare != null && compare.equals(defaultValue)) {
-                        // Predicate Does not restrict since it is doing a predicate comparison
-                    } else {
-                        isValid = true;
-                    }
-                }
-                else {
-                    isValid = true;
-                }
+                    cr.getTableNumber() == tableNumber &&
+                    cr.getColumnNumber() == columnNumber) {
+                isValid = true;
             }
         }
         return node;
@@ -95,25 +73,26 @@ public class ExcludedIndexColumnVisitor implements Visitor {
 
 
     public boolean stopTraversal() {
-        return false;
+        return isValid;
     }
 
 
     public boolean skipChildren(Visitable node) throws StandardException {
+        if (node instanceof IsNullNode) {
+            if (((IsNullNode) node).getNodeType() == C_NodeTypes.IS_NULL_NODE)
+            return true;
+        }
+
+        if (node instanceof ConditionalNode)
+            return true;
+
+        if (node instanceof CoalesceFunctionNode)
+            return true;
+
         return false;
     }
 
-    /**
-     * The visitor collects tables found in a branch of the tree, this method
-     * return true if the ResultColumn's source table has been found by the Visitor.
-     * It will return false if the source table has not been found (i.e. it exists in another
-     * area of the plan, such as the opposite side of the join.
-     *
-     * @param rc
-     * @return
-     */
     private boolean isValid(){
         return isValid;
     }
-
 }

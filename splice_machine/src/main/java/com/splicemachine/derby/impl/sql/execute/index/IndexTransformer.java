@@ -330,6 +330,8 @@ public class IndexTransformer {
             /* position of the source column within the index encoding */
             int indexColumnPosition = mainColToIndexPosMap[srcColIndex];
             if (!isSourceColumnPrimaryKey(srcColIndex) && indexColumnPosition >= 0 && !bitIndex.isSet(srcColIndex)) {
+                if (excludeNulls && indexColumnPosition == 0)
+                    ignore = true;
                 hasNullKeyFields = true;
                 keyAccumulator.add(indexColumnPosition, new byte[]{}, 0, 0);
             }

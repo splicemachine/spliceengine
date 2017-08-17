@@ -251,6 +251,21 @@ public class FromBaseTable extends FromTable {
     @SuppressWarnings("unused")
     public boolean isMultiProbing(){  return multiProbing; } //used in Splice engine code
 
+    private boolean isIndexEligible(ConglomerateDescriptor currentConglomerateDescriptor,
+                                    OptimizablePredicateList predList) throws StandardException {
+        if (currentConglomerateDescriptor !=null && currentConglomerateDescriptor.isIndex()) {
+            if (currentConglomerateDescriptor.getIndexDescriptor().excludeNulls()
+                    && (predList == null || !predList.canSupportIndexExcludedNulls(tableNumber,currentConglomerateDescriptor, tableDescriptor))) {
+                return false;
+            }
+            else if (currentConglomerateDescriptor.getIndexDescriptor().excludeDefaults()
+                    && (predList == null || !predList.canSupportIndexExcludedDefaults(tableNumber,currentConglomerateDescriptor, tableDescriptor))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
 	/*
      * Optimizable interface.
 	 */
@@ -311,11 +326,15 @@ public class FromBaseTable extends FromTable {
 
 					/* We should always find a match */
                     assert currentConglomerateDescriptor!=null:"Expected to find match for forced index "+userSpecifiedIndexName;
+                    if (!isIndexEligible(currentConglomerateDescriptor, predList))
+                        currentConglomerateDescriptor = null;
                 }
 
-                if(!super.nextAccessPath(optimizer,predList,rowOrdering)){
-                    if(SanityManager.DEBUG){
-                        SanityManager.THROWASSERT("No join strategy found");
+                if(currentConglomerateDescriptor != null) {
+                    if (!super.nextAccessPath(optimizer, predList, rowOrdering)) {
+                        if (SanityManager.DEBUG) {
+                            SanityManager.THROWASSERT("No join strategy found");
+                        }
                     }
                 }
             }
@@ -330,27 +349,31 @@ public class FromBaseTable extends FromTable {
 				     ** When we're out of join strategies, go to the next
 				     ** conglomerate descriptor.
 				     */
-                    currentConglomerateDescriptor=getNextConglom(currentConglomerateDescriptor);
+                    currentConglomerateDescriptor=getNextConglom(currentConglomerateDescriptor, predList, optimizer);
 
+                    if (currentConglomerateDescriptor != null) {
 				    /*
 				     ** New conglomerate, so step through join strategies
 				     ** again.
 				     */
-                    resetJoinStrategies();
+                        resetJoinStrategies();
 
-                    if(!super.nextAccessPath(optimizer,predList,rowOrdering)){
-                        if(SanityManager.DEBUG){
-                            SanityManager.THROWASSERT("No join strategy found");
+                        if (!super.nextAccessPath(optimizer, predList, rowOrdering)) {
+                            if (SanityManager.DEBUG) {
+                                SanityManager.THROWASSERT("No join strategy found");
+                            }
                         }
                     }
                 }
             }else{
 				/* Get the first conglomerate descriptor */
-                currentConglomerateDescriptor=getFirstConglom();
+                currentConglomerateDescriptor=getFirstConglom(predList, optimizer);
 
-                if(!super.nextAccessPath(optimizer,predList,rowOrdering)){
-                    if(SanityManager.DEBUG){
-                        SanityManager.THROWASSERT("No join strategy found");
+                if (currentConglomerateDescriptor != null) {
+                    if (!super.nextAccessPath(optimizer, predList, rowOrdering)) {
+                        if (SanityManager.DEBUG) {
+                            SanityManager.THROWASSERT("No join strategy found");
+                        }
                     }
                 }
             }
@@ -423,16 +446,6 @@ public class FromBaseTable extends FromTable {
                         rowOrdering.addOrderedColumn(rowOrderDirection,getTableNumber(),baseColumnPositions[i]);
                     }
                 }
-            }
-        }
-        if (currentConglomerateDescriptor !=null && currentConglomerateDescriptor.isIndex()) {
-            if (currentConglomerateDescriptor.getIndexDescriptor().excludeNulls()
-                    && (predList == null || !predList.canSupportIndexExcludedNulls(tableNumber,currentConglomerateDescriptor, tableDescriptor))) {
-                currentConglomerateDescriptor = null;
-            }
-            else if (currentConglomerateDescriptor.getIndexDescriptor().excludeDefaults()
-                    && (predList == null || !predList.canSupportIndexExcludedDefaults(tableNumber,currentConglomerateDescriptor, tableDescriptor))) {
-                currentConglomerateDescriptor = null;
             }
         }
         ap.setConglomerateDescriptor(currentConglomerateDescriptor);
@@ -3190,25 +3203,35 @@ public class FromBaseTable extends FromTable {
         return emptyIndexRow.getRowArray();
     }
 
-    private ConglomerateDescriptor getFirstConglom() throws StandardException{
+    private ConglomerateDescriptor getFirstConglom(OptimizablePredicateList predList,
+                                                   Optimizer optimizer) throws StandardException{
         getConglomDescs();
-        return conglomDescs[0];
+        return getNextConglom(null, predList, optimizer);
     }
 
-    private ConglomerateDescriptor getNextConglom(ConglomerateDescriptor currCD){
-        int index=0;
+    private ConglomerateDescriptor getNextConglom(ConglomerateDescriptor currCD,
+                                                  OptimizablePredicateList predList,
+                                                  Optimizer optimizer) throws StandardException {
+        OptimizerTrace tracer=optimizer.tracer();
+        int index=-1;
 
-        for(;index<conglomDescs.length;index++){
-            if(currCD==conglomDescs[index]){
-                break;
+        if (currCD != null){
+            for (index=0; index < conglomDescs.length; index++) {
+                if (currCD == conglomDescs[index]) {
+                    break;
+                }
             }
         }
 
-        if(index<conglomDescs.length-1){
-            return conglomDescs[index+1];
-        }else{
-            return null;
+        index ++;
+        while (index<conglomDescs.length) {
+            if (isIndexEligible(conglomDescs[index], predList))
+                return conglomDescs[index];
+            tracer.trace(OptimizerFlag.SPARSE_INDEX_NOT_ELIGIBLE,0,0,0.0,conglomDescs[index]);
+            index ++;
         }
+
+        return null;
     }
 
     private void getConglomDescs() throws StandardException{

@@ -55,7 +55,6 @@ import java.io.IOException;
  *
  */
 public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
-
 	private boolean		isUnique;
 	private int[]		baseColumnPositions;
 	private boolean[]	isAscending;
@@ -248,6 +247,14 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 		}
 
 		sb.append(")");
+
+		if (excludeNulls) {
+			sb.append(" EXCL NULLS");
+		}
+
+		if (excludeDefaults) {
+			sb.append(" EXCL DEFAULTS");
+		}
 
 		return sb.toString();
 	}

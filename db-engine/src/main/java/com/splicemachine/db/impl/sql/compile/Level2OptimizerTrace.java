@@ -319,6 +319,11 @@ public class Level2OptimizerTrace implements OptimizerTrace{
             case INFEASIBLE_JOIN:
                 traceString="Skipping join Strategy "+ objectParam1 +" because it is infeasible";
                 break;
+            case SPARSE_INDEX_NOT_ELIGIBLE:
+                cd=(ConglomerateDescriptor) objectParam1;
+                cdString=dumpConglomerateDescriptor(cd);
+                traceString="Skipping sparse index " + cdString + " because it is not eligible";
+                break;
             default:
                 throw new IllegalStateException("Unexpected Trace flag: "+ flag);
         }

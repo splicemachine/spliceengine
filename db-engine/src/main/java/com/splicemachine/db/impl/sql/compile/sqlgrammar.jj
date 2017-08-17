@@ -12087,7 +12087,6 @@ indexDefinition() throws StandardException :
 	Properties	properties = null;
 	TableName	indexName;
 	TableName	tableName;
-	ValueNode   location;
 	Vector	indexColumnList = new Vector();
 }
 {
