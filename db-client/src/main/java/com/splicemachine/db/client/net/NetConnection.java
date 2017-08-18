@@ -55,6 +55,8 @@ import javax.security.auth.Subject;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.*;
 
+import static com.splicemachine.db.client.net.NetConfiguration.updatePrdId;
+
 public class NetConnection extends com.splicemachine.db.client.am.Connection {
     
     // Use this to get internationalized strings...
@@ -243,7 +245,13 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         checkDatabaseName();
         String password = ClientBaseDataSource.getPassword(properties);
         securityMechanism_ = ClientBaseDataSource.getSecurityMechanism(properties);
-        flowConnect(password, securityMechanism_);
+        try {
+            flowConnect(password, securityMechanism_, false);  //default
+        } catch(SqlException se) {
+            if (se instanceof DisconnectException) {
+                flowConnect(password, securityMechanism_, true);  // use 2.0 prdId signature
+            }
+        }
         if(!isConnectionNull())
         	completeConnect();
         //DERBY-2026. reset timeout after connection is made
@@ -328,7 +336,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         dataSource_ = dataSource;
         this.rmId_ = rmId;
         this.isXAConnection_ = isXAConn;
-        flowConnect(password, securityMechanism_);
+        flowConnect(password, securityMechanism_, false);
         // it's possible that the internal Driver.connect() calls returned null,
         // thus, a null connection, e.g. when the databasename has a : in it
         // (which the InternalDriver assumes means there's a subsubprotocol)  
@@ -414,12 +422,12 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
     }
 
     public void flowConnect(String password,
-                            int securityMechanism) throws SqlException {
+                            int securityMechanism, boolean use20signature) throws SqlException {
         netAgent_ = (NetAgent) super.agent_;
         constructExtnam();
         // these calls need to be after newing up the agent
         // because they require the ccsid manager
-        constructPrddta();  // construct product data
+        constructPrddta(use20signature);  // construct product data
 
         netAgent_.typdef_ = new Typdef(netAgent_, 1208, NetConfiguration.SYSTEM_ASC, 1200, 1208);
         netAgent_.targetTypdef_ = new Typdef(netAgent_);
@@ -499,7 +507,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         constructExtnam();
         // these calls need to be after newing up the agent
         // because they require the ccsid manager
-        constructPrddta();  // construct product data
+        constructPrddta(false);  // construct product data
 
         netAgent_.typdef_ = new Typdef(netAgent_, 1208, NetConfiguration.SYSTEM_ASC, 1200, 1208);
         netAgent_.targetTypdef_ = new Typdef(netAgent_);
@@ -542,7 +550,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         constructExtnam();
         // these calls need to be after newing up the agent
         // because they require the ccsid manager
-        constructPrddta();  //modify this to not new up an array
+        constructPrddta(false);  //modify this to not new up an array
 
         checkSecmgrForSecmecSupport(securityMechanism);
         try {
@@ -884,13 +892,13 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
                                                byte[] encryptedUserid,
                                                byte[] encryptedPassword) throws SqlException {
         agent_.beginWriteChainOutsideUOW();
-        writeSecurityCheckAndAccessRdb(securityMechanism,
-                user,
-                password,
-                encryptedUserid,
-                encryptedPassword);
-        agent_.flowOutsideUOW();
-        readSecurityCheckAndAccessRdb();
+            writeSecurityCheckAndAccessRdb(securityMechanism,
+                    user,
+                    password,
+                    encryptedUserid,
+                    encryptedPassword);
+            agent_.flowOutsideUOW();
+            readSecurityCheckAndAccessRdb();
         agent_.endReadChain();
     }
 
@@ -1480,7 +1488,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         extnam_ = "derbydnc" + new String(chars);
     }
 
-    private void constructPrddta() throws SqlException {
+    private void constructPrddta(boolean use20signature) throws SqlException {
         if (prddta_ == null) {
             prddta_ = ByteBuffer.allocate(NetConfiguration.PRDDTA_MAXSIZE);
         } else {
@@ -1502,6 +1510,9 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         boolean success = true;
 
         ccsidMgr.startEncoding();
+        if (use20signature) {
+            NetConfiguration.updatePrdId();
+        }
         success &= ccsidMgr.encode(
                 CharBuffer.wrap(NetConfiguration.PRDID), prddta_, agent_);
 

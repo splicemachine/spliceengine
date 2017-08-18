@@ -196,11 +196,11 @@ public class NetConfiguration {
     static final int USRID_MAXSIZE = 255;
 
     // Product id of the ClientDNC.
-    public static final String PRDID;
+    public static String PRDID;
 
     // The server release level of this product.
     // It will be prefixed with PRDID
-    static final String SRVRLSLV;
+    static String SRVRLSLV;
 
     // Initialize PRDID and SRVRLSLV
     static {
@@ -213,7 +213,31 @@ public class NetConfiguration {
         // mm = minor version
         // x = protocol MaintenanceVersion
 
-        String prdId = DRDAConstants.DERBY_DRDA_CLIENT_ID;
+        //String prdId = DRDAConstants.DERBY_DRDA_CLIENT_ID;
+        String prdId = "DNC";
+        if (majorVersion < 10) {
+            prdId += "0";
+        }
+        prdId += majorVersion;
+
+        if (minorVersion < 10) {
+            prdId += "0";
+        }
+
+        prdId += minorVersion;
+        prdId += protocolMaintVersion;
+        PRDID = prdId;
+        SRVRLSLV = prdId + "/" + Version.getDriverVersion();
+    }
+    static void updatePrdId()
+    {
+        int majorVersion = Version.getMajorVersion();
+        int minorVersion = Version.getMinorVersion();
+        int protocolMaintVersion = Version.getProtocolMaintVersion();
+
+        //
+        //String prdId = DRDAConstants.DERBY_DRDA_CLIENT_ID;
+        String prdId = "SNC";
         if (majorVersion < 10) {
             prdId += "0";
         }
