@@ -573,7 +573,7 @@ public class TabInfoImpl
      *         this may be more than one.
      * @exception StandardException        Thrown on failure
      */
-    int deleteRow( TransactionController tc, ExecIndexRow key, int indexNumber )
+    int deleteRow( TransactionController tc, ExecIndexRow key, int indexNumber, FormatableBitSet cols)
             throws StandardException
     {
         // Always row locking
@@ -585,7 +585,24 @@ public class TabInfoImpl
                 key,
                 ScanController.GT,
                 indexNumber,
-                true);
+                true,
+                cols);
+    }
+
+    int deleteRow( TransactionController tc, ExecIndexRow key, int indexNumber)
+            throws StandardException
+    {
+        // Always row locking
+        return  deleteRows(tc,
+                key,
+                ScanController.GE,
+                null,
+                null,
+                key,
+                ScanController.GT,
+                indexNumber,
+                true,
+                null);
     }
 
     int deleteRow( TransactionController tc, ExecIndexRow key,
@@ -601,7 +618,8 @@ public class TabInfoImpl
                 key,
                 ScanController.GT,
                 indexNumber,
-                wait);
+                wait,
+                null);
     }
 
     /**
@@ -642,7 +660,8 @@ public class TabInfoImpl
                 stopKey,
                 stopOp,
                 indexNumber,
-                true);
+                true,
+                null);
     }
 
     /**
@@ -656,7 +675,8 @@ public class TabInfoImpl
                            ExecIndexRow stopKey,
                            int stopOp,
                            int indexNumber,
-                           boolean wait)
+                           boolean wait,
+                           FormatableBitSet cols)
             throws StandardException
     {
         ConglomerateController		heapCC;
@@ -733,7 +753,7 @@ public class TabInfoImpl
 
             boolean base_row_exists =
                     heapCC.fetch(
-                            baseRowLocation, baseRow.getRowArray(), (FormatableBitSet) null);
+                            baseRowLocation, baseRow.getRowArray(), (FormatableBitSet) cols);
 
             if (SanityManager.DEBUG)
             {
