@@ -23,11 +23,11 @@ import com.splicemachine.derby.stream.window.BaseFrameBuffer;
 import com.splicemachine.derby.stream.window.WindowFrameBuffer;
 import scala.Tuple2;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import static java.util.Collections.sort;
 
@@ -51,10 +51,7 @@ public class MergeWindowFunction<Op extends WindowOperation> extends SpliceFlatM
             partitionRows.add(lr);
         }
         WindowContext windowContext = operationContext.getOperation().getWindowContext();
-
-        sort(partitionRows, new LocatedRowComparator(windowContext.getKeyColumns(),
-                                                     windowContext.getKeyOrders(),
-                                                     windowContext.getNullOrderings()));
+        sort(partitionRows, new LocatedRowComparator(windowContext.getKeyColumns(), windowContext.getKeyOrders()));
 
         // window logic
         final WindowFrameBuffer frameBuffer = BaseFrameBuffer.createFrameBuffer(
@@ -72,8 +69,8 @@ public class MergeWindowFunction<Op extends WindowOperation> extends SpliceFlatM
     private class LocatedRowComparator implements Comparator<ExecRow> {
         private final ColumnComparator rowComparator;
 
-        public LocatedRowComparator(int[] keyColumns, boolean[] keyOrders, boolean[] nullOrders) {
-            this.rowComparator = new ColumnComparator(keyColumns, keyOrders, nullOrders);
+        public LocatedRowComparator(int[] keyColumns, boolean[] keyOrders) {
+            this.rowComparator = new ColumnComparator(keyColumns, keyOrders, true);
         }
 
         @Override
