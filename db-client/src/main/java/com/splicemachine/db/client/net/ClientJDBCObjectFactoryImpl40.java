@@ -29,31 +29,7 @@ import com.splicemachine.db.client.ClientPooledConnection;
 import com.splicemachine.db.client.ClientPooledConnection40;
 import com.splicemachine.db.client.ClientXAConnection;
 import com.splicemachine.db.client.ClientXAConnection40;
-import com.splicemachine.db.client.am.CachingLogicalConnection40;
-import com.splicemachine.db.client.am.CallableStatement;
-import com.splicemachine.db.client.am.CallableStatement40;
-import com.splicemachine.db.client.am.ColumnMetaData;
-import com.splicemachine.db.client.am.ColumnMetaData40;
-import com.splicemachine.db.client.am.ClientJDBCObjectFactory;
-import com.splicemachine.db.client.am.LogicalConnection;
-import com.splicemachine.db.client.am.LogicalConnection40;
-import com.splicemachine.db.client.am.PreparedStatement;
-import com.splicemachine.db.client.am.PreparedStatement40;
-import com.splicemachine.db.client.am.ParameterMetaData;
-import com.splicemachine.db.client.am.ParameterMetaData40;
-import com.splicemachine.db.client.am.LogicalCallableStatement;
-import com.splicemachine.db.client.am.LogicalCallableStatement40;
-import com.splicemachine.db.client.am.LogicalPreparedStatement;
-import com.splicemachine.db.client.am.LogicalPreparedStatement40;
-import com.splicemachine.db.client.am.LogWriter;
-import com.splicemachine.db.client.am.Agent;
-import com.splicemachine.db.client.am.SQLExceptionFactory40;
-import com.splicemachine.db.client.am.Section;
-import com.splicemachine.db.client.am.Statement;
-import com.splicemachine.db.client.am.Statement40;
-import com.splicemachine.db.client.am.StatementCacheInteractor;
-import com.splicemachine.db.client.am.SqlException;
-import com.splicemachine.db.client.am.Cursor;
+import com.splicemachine.db.client.am.*;
 import com.splicemachine.db.client.am.stmtcache.JDBCStatementCache;
 import com.splicemachine.db.client.am.stmtcache.StatementKey;
 import com.splicemachine.db.jdbc.ClientBaseDataSource;
@@ -268,9 +244,20 @@ public class ClientJDBCObjectFactoryImpl40 implements ClientJDBCObjectFactory{
             int driverManagerLoginTimeout,String serverName,
             int portNumber,String databaseName,
             java.util.Properties properties) throws SqlException {
-        return (com.splicemachine.db.client.am.Connection)
-        (new NetConnection40((NetLogWriter)netLogWriter,driverManagerLoginTimeout,
-                serverName,portNumber,databaseName,properties));
+        com.splicemachine.db.client.am.Connection conn;
+        try {
+            conn = (new NetConnection40((NetLogWriter) netLogWriter, driverManagerLoginTimeout,
+                    serverName, portNumber, databaseName, properties, false));
+        } catch (SqlException se) {
+            if (se instanceof DisconnectException) {
+                conn = (new NetConnection40((NetLogWriter) netLogWriter, driverManagerLoginTimeout,
+                        serverName, portNumber, databaseName, properties, true));
+            } else {
+                throw se;
+            }
+        }
+
+        return conn;
     }
     /**
      * returns an instance of com.splicemachine.db.client.net.NetConnection40
