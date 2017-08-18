@@ -157,6 +157,7 @@ public class ClientDriver implements java.sql.Driver {
                             database,
                             augmentedProperties);
         } catch (SqlException se) {
+
             throw se.getSQLException();
         }
 
