@@ -14,28 +14,36 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.test.framework.*;
-import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.test_dao.TableDAO;
-import com.splicemachine.test_tools.TableCreator;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
-import org.junit.runner.Description;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.spark_project.guava.collect.Lists;
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
 
-import static com.splicemachine.test_tools.Rows.row;
-import static com.splicemachine.test_tools.Rows.rows;
-import static org.junit.Assert.*;
+import org.junit.ClassRule;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
+
+import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceViewWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test_dao.TableDAO;
+import com.splicemachine.test_tools.TableCreator;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.spark_project.guava.collect.Lists;
 
 /**
  *
@@ -3431,8 +3439,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
                         "  40   |2013-06-06 | 52000 |          3          |  2  |          3          |\n" +
                         "  44   |2013-12-20 | 52000 |          4          |  2  |          4          |\n" +
                         "  100  |2010-04-12 | 55000 |          1          |  3  |          1          |\n" +
-                        "  30   |2010-08-09 | 84000 |          2          |  3  |          2          |\n" +
-                        "  33   |2010-08-09 | NULL  |          3          |  3  |          3          |\n" +
+                        "  33   |2010-08-09 | NULL  |          2          |  3  |          2          |\n" +
+                        "  30   |2010-08-09 | 84000 |          3          |  3  |          3          |\n" +
                         "  120  |2012-04-03 | 75000 |          4          |  3  |          4          |\n" +
                         "  80   |2013-04-24 | 79000 |          5          |  3  |          5          |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
@@ -3520,23 +3528,23 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String expected =
                 "EMPNUM |SALARY | DENSERANK |DEPT | ROWNUMBER |\n" +
                         "----------------------------------------------\n" +
-                        "  10   | 50000 |     1     |  1  |     1     |\n" +
-                        "  20   | 75000 |     5     |  1  |     2     |\n" +
-                        "  32   | NULL  |     8     |  1  |     3     |\n" +
-                        "  50   | 52000 |     2     |  1  |     4     |\n" +
-                        "  55   | 52000 |     3     |  1  |     5     |\n" +
-                        "  60   | 78000 |     7     |  1  |     6     |\n" +
-                        "  70   | 76000 |     6     |  1  |     7     |\n" +
-                        "  110  | 53000 |     4     |  1  |     8     |\n" +
+                        "  10   | 50000 |     2     |  1  |     1     |\n" +
+                        "  20   | 75000 |     6     |  1  |     2     |\n" +
+                        "  32   | NULL  |     1     |  1  |     3     |\n" +
+                        "  50   | 52000 |     3     |  1  |     4     |\n" +
+                        "  55   | 52000 |     4     |  1  |     5     |\n" +
+                        "  60   | 78000 |     8     |  1  |     6     |\n" +
+                        "  70   | 76000 |     7     |  1  |     7     |\n" +
+                        "  110  | 53000 |     5     |  1  |     8     |\n" +
                         "  40   | 52000 |     2     |  2  |     1     |\n" +
                         "  44   | 52000 |     3     |  2  |     2     |\n" +
                         "  49   | 53000 |     4     |  2  |     3     |\n" +
                         "  90   | 51000 |     1     |  2  |     4     |\n" +
-                        "  30   | 84000 |     4     |  3  |     1     |\n" +
-                        "  33   | NULL  |     5     |  3  |     2     |\n" +
-                        "  80   | 79000 |     3     |  3  |     3     |\n" +
-                        "  100  | 55000 |     1     |  3  |     4     |\n" +
-                        "  120  | 75000 |     2     |  3  |     5     |";
+                        "  30   | 84000 |     5     |  3  |     1     |\n" +
+                        "  33   | NULL  |     1     |  3  |     2     |\n" +
+                        "  80   | 79000 |     4     |  3  |     3     |\n" +
+                        "  100  | 55000 |     2     |  3  |     4     |\n" +
+                        "  120  | 75000 |     3     |  3  |     5     |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }

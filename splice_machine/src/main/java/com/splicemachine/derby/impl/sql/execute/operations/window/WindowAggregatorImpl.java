@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.window;
 
+import java.util.Arrays;
+
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
@@ -24,12 +26,10 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.UserDataValue;
 import com.splicemachine.db.impl.sql.execute.WindowFunctionInfo;
+
 import com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import java.util.Arrays;
-
-import static com.splicemachine.db.iapi.sql.compile.AggregateDefinition.FunctionType;
+import static com.splicemachine.db.iapi.sql.compile.AggregateDefinition.*;
 
 /**
  * Container and caching mechanism for window functions and their information container.
@@ -52,7 +52,6 @@ public class WindowAggregatorImpl implements WindowAggregator {
     private int[] sortColumns;
     private int[] keyColumns;
     private boolean[] keyOrders;
-    private boolean[] nullOrders;
     private ColumnOrdering[] orderings;
     private ColumnOrdering[] partition;
     private FunctionType type;
@@ -94,13 +93,11 @@ public class WindowAggregatorImpl implements WindowAggregator {
 
         keyColumns = new int[keys.length];
         keyOrders = new boolean[keys.length];
-        nullOrders = new boolean[keys.length];
         index = 0;
         for (ColumnOrdering key : keys) {
             // coming from Derby, these are 1-based column positions
             // convert to 0-based
             keyColumns[index] = key.getColumnId() -1;
-            nullOrders[index] = key.getIsNullsOrderedLow();
             keyOrders[index++] = key.getIsAscending();
         }
 	}
@@ -207,11 +204,6 @@ public class WindowAggregatorImpl implements WindowAggregator {
     @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public boolean[] getKeyOrders() {
         return keyOrders;
-    }
-
-    @Override
-    public boolean[] getNullOrders() {
-        return nullOrders;
     }
 
     @Override
