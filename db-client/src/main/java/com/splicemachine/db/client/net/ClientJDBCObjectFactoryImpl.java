@@ -269,7 +269,7 @@ public class ClientJDBCObjectFactoryImpl implements ClientJDBCObjectFactory{
             java.util.Properties properties) throws SqlException {
         return (com.splicemachine.db.client.am.Connection)
         (new NetConnection((NetLogWriter)netLogWriter,driverManagerLoginTimeout,
-                serverName,portNumber,databaseName,properties));
+                serverName,portNumber,databaseName,properties, false));
     }
     /**
      * returns an instance of com.splicemachine.db.client.net.NetConnection
@@ -281,7 +281,7 @@ public class ClientJDBCObjectFactoryImpl implements ClientJDBCObjectFactory{
             int rmId,boolean isXAConn) throws SqlException {
         return (com.splicemachine.db.client.am.Connection)
         (new NetConnection((NetLogWriter)netLogWriter,user,password,dataSource,rmId,
-                isXAConn));
+                isXAConn, false));
     }
     /**
      * returns an instance of com.splicemachine.db.client.net.NetConnection
@@ -320,7 +320,7 @@ public class ClientJDBCObjectFactoryImpl implements ClientJDBCObjectFactory{
             ClientPooledConnection cpc) throws SqlException {
         return (com.splicemachine.db.client.am.Connection)
         (new NetConnection((NetLogWriter)netLogWriter,user,password,dataSource,rmId,
-                isXAConn,cpc));
+                isXAConn,cpc, false));
     }
     /**
      * returns an instance of com.splicemachine.db.client.net.NetResultSet

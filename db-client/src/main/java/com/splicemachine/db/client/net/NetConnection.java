@@ -234,7 +234,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
                          String serverName,
                          int portNumber,
                          String databaseName,
-                         java.util.Properties properties) throws SqlException {
+                         java.util.Properties properties, boolean use20signature) throws SqlException {
         super(netLogWriter, driverManagerLoginTimeout, serverName, portNumber, databaseName, properties);
         this.pooledConnection_ = null;
         this.closeStatementsOnClose = true;
@@ -245,13 +245,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         checkDatabaseName();
         String password = ClientBaseDataSource.getPassword(properties);
         securityMechanism_ = ClientBaseDataSource.getSecurityMechanism(properties);
-        try {
-            flowConnect(password, securityMechanism_, false);  //default
-        } catch(SqlException se) {
-            if (se instanceof DisconnectException) {
-                flowConnect(password, securityMechanism_, true);  // use 2.0 prdId signature
-            }
-        }
+        flowConnect(password, securityMechanism_, use20signature);
         if(!isConnectionNull())
         	completeConnect();
         //DERBY-2026. reset timeout after connection is made
@@ -264,12 +258,12 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
                          String password,
                          com.splicemachine.db.jdbc.ClientBaseDataSource dataSource,
                          int rmId,
-                         boolean isXAConn) throws SqlException {
+                         boolean isXAConn, boolean use20signature) throws SqlException {
         super(netLogWriter, user, password, isXAConn, dataSource);
         this.pooledConnection_ = null;
         this.closeStatementsOnClose = true;
         netAgent_ = (NetAgent) super.agent_;
-        initialize(password, dataSource, rmId, isXAConn);
+        initialize(password, dataSource, rmId, isXAConn, use20signature);
     }
 
     public NetConnection(NetLogWriter netLogWriter,
@@ -317,10 +311,10 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
                          com.splicemachine.db.jdbc.ClientBaseDataSource dataSource,
                          int rmId,
                          boolean isXAConn,
-                         ClientPooledConnection cpc) throws SqlException {
+                         ClientPooledConnection cpc, boolean use20signature) throws SqlException {
         super(netLogWriter, user, password, isXAConn, dataSource);
         netAgent_ = (NetAgent) super.agent_;
-        initialize(password, dataSource, rmId, isXAConn);
+        initialize(password, dataSource, rmId, isXAConn, use20signature);
         this.pooledConnection_=cpc;
         this.closeStatementsOnClose = !cpc.isStatementPoolingEnabled();
     }
@@ -328,7 +322,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
     private void initialize(String password,
                             com.splicemachine.db.jdbc.ClientBaseDataSource dataSource,
                             int rmId,
-                            boolean isXAConn) throws SqlException {
+                            boolean isXAConn, boolean use20signature) throws SqlException {
         securityMechanism_ = dataSource.getSecurityMechanism(password);
 
         setDeferredResetPassword(password);
@@ -336,7 +330,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         dataSource_ = dataSource;
         this.rmId_ = rmId;
         this.isXAConnection_ = isXAConn;
-        flowConnect(password, securityMechanism_, false);
+        flowConnect(password, securityMechanism_, use20signature);
         // it's possible that the internal Driver.connect() calls returned null,
         // thus, a null connection, e.g. when the databasename has a : in it
         // (which the InternalDriver assumes means there's a subsubprotocol)  

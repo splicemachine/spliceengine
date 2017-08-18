@@ -213,8 +213,7 @@ public class NetConfiguration {
         // mm = minor version
         // x = protocol MaintenanceVersion
 
-        //String prdId = DRDAConstants.DERBY_DRDA_CLIENT_ID;
-        String prdId = "DNC";
+        String prdId = "SNC";  // Use 2.5 server client ID
         if (majorVersion < 10) {
             prdId += "0";
         }
@@ -235,9 +234,7 @@ public class NetConfiguration {
         int minorVersion = Version.getMinorVersion();
         int protocolMaintVersion = Version.getProtocolMaintVersion();
 
-        //
-        //String prdId = DRDAConstants.DERBY_DRDA_CLIENT_ID;
-        String prdId = "SNC";
+        String prdId = "DNC";  // Use pre 2.5 server client ID
         if (majorVersion < 10) {
             prdId += "0";
         }
