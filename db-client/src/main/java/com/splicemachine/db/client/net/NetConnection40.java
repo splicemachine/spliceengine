@@ -74,16 +74,16 @@ public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnect
                          String serverName,
                          int portNumber,
                          String databaseName,
-                         java.util.Properties properties) throws SqlException{
-	super(netLogWriter,driverManagerLoginTimeout,serverName,portNumber,databaseName,properties);
+                         java.util.Properties properties, boolean use20signature) throws SqlException{
+	super(netLogWriter,driverManagerLoginTimeout,serverName,portNumber,databaseName,properties, use20signature);
      }
      public NetConnection40(NetLogWriter netLogWriter,
                          String user,
                          String password,
                          com.splicemachine.db.jdbc.ClientBaseDataSource dataSource,
                          int rmId,
-                         boolean isXAConn) throws SqlException{
-	super(netLogWriter,user,password,dataSource,rmId,isXAConn);
+                         boolean isXAConn ) throws SqlException{
+	super(netLogWriter,user,password,dataSource,rmId,isXAConn, false);
     }
     public NetConnection40(NetLogWriter netLogWriter,
                          String ipaddr,
@@ -123,7 +123,7 @@ public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnect
                          int rmId,
                          boolean isXAConn,
                          ClientPooledConnection cpc) throws SqlException{
-	super(netLogWriter,user,password,dataSource,rmId,isXAConn,cpc);
+	super(netLogWriter,user,password,dataSource,rmId,isXAConn,cpc, false);
     }
     
 
