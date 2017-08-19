@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -3639,4 +3640,37 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 return true;
         return false;
     }
+    @Override
+    public boolean canSupportIndexExcludedNulls(int tableNumber, ConglomerateDescriptor cd, TableDescriptor td) throws StandardException {
+        return exclusionSupport(tableNumber,cd,td,true);
+    }
+
+    @Override
+    public boolean canSupportIndexExcludedDefaults(int tableNumber, ConglomerateDescriptor cd, TableDescriptor td) throws StandardException {
+        return exclusionSupport(tableNumber,cd,td,false);
+    }
+
+    private boolean exclusionSupport(int tableNumber, ConglomerateDescriptor cd, TableDescriptor td, boolean excludeNulls) throws StandardException {
+        int size = size();
+        if (size == 0)
+            return false;
+        int[] baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
+        ExcludedIndexColumnVisitor excludedIndexColumnVisitor = new ExcludedIndexColumnVisitor(0,baseColumnPositions[0],excludeNulls,excludeNulls?null:
+                td.getDefaultValue(cd.getIndexDescriptor().baseColumnPositions()[0]));
+        boolean canSupportExcludedColumns = false;
+        for(int index=0;index<size;index++){
+            Predicate pred=elementAt(index);
+            if(pred.isOrList()){
+                return false;
+            }else {
+                pred.accept(excludedIndexColumnVisitor);
+                if (excludedIndexColumnVisitor.isValid)
+                    canSupportExcludedColumns = true;
+            }
+        }
+        return canSupportExcludedColumns;
+    }
+
+
+
 }

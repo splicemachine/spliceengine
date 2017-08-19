@@ -237,6 +237,9 @@ message Index {
         optional bool unique = 3; // Is the Index Unique
         optional bool uniqueWithDuplicateNulls = 4; // Does the unique index support duplicate nullls
         repeated bool descColumns = 5; // Whether the columns are descending
+        optional bool excludeNulls = 6; // Exclude Values where the first column is null
+        optional bool excludeDefaults = 7; // Exclude Values where the first column is the default value
+        optional bytes defaultValues = 8; // Default values for the index to validate for writing...
 }
 
 message Table {

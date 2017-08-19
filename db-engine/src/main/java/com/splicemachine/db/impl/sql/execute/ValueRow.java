@@ -76,7 +76,20 @@ public class ValueRow implements ExecRow, Externalizable {
 
     /** Empty constructor for serialization */
     public ValueRow() {
-    }
+
+	}
+
+	/**
+	 *
+	 * Pass in column array
+	 *
+	 * @param column
+     */
+	public ValueRow(DataValueDescriptor[] column) {
+		this(column.length);
+		this.column = column;
+	}
+
 
 	/**
 	  *	Make a value row with a designated number of column slots.
