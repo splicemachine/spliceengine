@@ -42,13 +42,16 @@ public class RowKeyGenerator <Op extends SpliceOperation>
     private boolean initialized;
     private long heapConglom;
     private long indexConglom;
+    private boolean isUnique;
 
     public RowKeyGenerator(String bulkImportDirectory,
                            long headConglom,
-                           long indexConglom) {
+                           long indexConglom,
+                           boolean isUnique) {
         this.bulkImportDirectory = bulkImportDirectory;
         this.heapConglom = headConglom;
         this.indexConglom = indexConglom;
+        this.isUnique = isUnique;
     }
 
     public RowKeyGenerator() {
@@ -66,6 +69,15 @@ public class RowKeyGenerator <Op extends SpliceOperation>
             Long conglomerateId = t._1;
             Tuple2<byte[], byte[]> kvPair = t._2;
             byte[] key = kvPair._1;
+            if(conglomerateId == indexConglom) {
+                if (!isUnique) {
+                    // for non-unique index, remove rowkey of base table in the end
+                    int endIndex = key.length-1;
+                    while (endIndex > 0 && key[endIndex] != 0)
+                        endIndex--;
+                    key = Arrays.copyOf(key, endIndex);
+                }
+            }
             if (indexConglom == -1 ||conglomerateId == indexConglom) {
                 keys.add(key);
             }
