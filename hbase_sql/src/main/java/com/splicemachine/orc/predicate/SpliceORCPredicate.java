@@ -161,18 +161,33 @@ public class SpliceORCPredicate implements OrcPredicate, Externalizable {
                         }
                         break;
                     case com.splicemachine.db.iapi.types.DataType.ORDER_OP_EQUALS:
-                        row_qualifies =
-                                statsEval.minimumDVD.compare(
-                                        com.splicemachine.db.iapi.types.DataType.ORDER_OP_LESSOREQUALS,
-                                        orderable,
-                                        q.getOrderedNulls(),
-                                        q.getUnknownRV())
-                                        &&
-                                        statsEval.maximumDVD.compare(
-                                                com.splicemachine.db.iapi.types.DataType.ORDER_OP_GREATEROREQUALS,
-                                                orderable,
-                                                q.getOrderedNulls(),
-                                                q.getUnknownRV());
+                        if (q.negateCompareResult()) {
+                            row_qualifies =
+                                    statsEval.minimumDVD.compare(
+                                            com.splicemachine.db.iapi.types.DataType.ORDER_OP_EQUALS,
+                                            orderable,
+                                            q.getOrderedNulls(),
+                                            q.getUnknownRV())
+                                            &&
+                                            statsEval.maximumDVD.compare(
+                                                    com.splicemachine.db.iapi.types.DataType.ORDER_OP_EQUALS,
+                                                    orderable,
+                                                    q.getOrderedNulls(),
+                                                    q.getUnknownRV());
+                        } else {
+                            row_qualifies =
+                                    statsEval.minimumDVD.compare(
+                                            com.splicemachine.db.iapi.types.DataType.ORDER_OP_LESSOREQUALS,
+                                            orderable,
+                                            q.getOrderedNulls(),
+                                            q.getUnknownRV())
+                                            &&
+                                            statsEval.maximumDVD.compare(
+                                                    com.splicemachine.db.iapi.types.DataType.ORDER_OP_GREATEROREQUALS,
+                                                    orderable,
+                                                    q.getOrderedNulls(),
+                                                    q.getUnknownRV());
+                        }
                         break;
                 }
                 if (q.negateCompareResult())
