@@ -273,6 +273,27 @@ public class SpliceAdminIT extends SpliceUnitTest{
     }
 
     @Test
+    public void testGetSessionInfo() throws Exception {
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_SESSION_INFO()");
+        ResultSet rs = cs.executeQuery();
+        rs.next();
+        String hostname = rs.getString("HOSTNAME");
+        int session = rs.getInt("SESSION");
+        DbUtils.closeQuietly(rs);
+
+        CallableStatement cs2 = methodWatcher.createConnection().prepareCall("call SYSCS_UTIL.SYSCS_GET_SESSION_INFO()");
+        ResultSet rs2 = cs2.executeQuery();
+        rs2.next();
+        String hostname2 = rs2.getString("HOSTNAME");
+        int session2 = rs2.getInt("SESSION");
+
+        Assert.assertEquals(hostname, hostname2);
+        Assert.assertNotEquals(session, session2);
+
+        DbUtils.closeQuietly(rs2);
+    }
+
+    @Test
     public void testGetRequests() throws Exception {
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_REQUESTS()");
         ResultSet rs = cs.executeQuery();
