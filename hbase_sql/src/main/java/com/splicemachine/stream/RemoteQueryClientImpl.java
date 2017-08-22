@@ -17,6 +17,8 @@ package com.splicemachine.stream;
 import com.google.common.net.HostAndPort;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.util.NetworkUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -31,6 +33,8 @@ import org.apache.log4j.Logger;
 import org.spark_project.guava.util.concurrent.ListenableFuture;
 import org.spark_project.guava.util.concurrent.MoreExecutors;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -46,13 +50,15 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
     private static StreamListenerServer server;
 
     private final SpliceBaseOperation root;
+    private final String hostname;
     private ListenableFuture<OlapResult> olapFuture;
     private StreamListener streamListener;
     private long offset = 0;
     private long limit = -1;
 
-    public RemoteQueryClientImpl(SpliceBaseOperation root) {
+    public RemoteQueryClientImpl(SpliceBaseOperation root, String hostname) {
         this.root = root;
+        this.hostname = hostname;
     }
 
     private StreamListenerServer getServer() throws StandardException {
@@ -72,8 +78,9 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
 
         try {
             updateLimitOffset();
-            int streamingBatches = HConfiguration.getConfiguration().getSparkResultStreamingBatches();
-            int streamingBatchSize = HConfiguration.getConfiguration().getSparkResultStreamingBatchSize();
+            SConfiguration config = HConfiguration.getConfiguration();
+            int streamingBatches = config.getSparkResultStreamingBatches();
+            int streamingBatchSize = config.getSparkResultStreamingBatchSize();
             streamListener = new StreamListener(limit, offset, streamingBatches, streamingBatchSize);
             StreamListenerServer server = getServer();
             server.register(streamListener);
@@ -85,8 +92,12 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             String sql = activation.getPreparedStatement().getSource();
             sql = sql == null ? root.toString() : sql;
             String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+            int localPort = config.getNetworkBindPort();
+            int sessionId = activation.getLanguageConnectionContext().getInstanceNumber();
+            String opUuid = root.getUuid().toString();
+            String session = hostname + ":" + localPort + "," + sessionId + "," + opUuid;
 
-            RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(), uuid, host, port, userId, sql,
+            RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(), uuid, host, port, session, userId, sql,
                     streamingBatches, streamingBatchSize);
             olapFuture = EngineDriver.driver().getOlapClient().submit(jobRequest);
             olapFuture.addListener(new Runnable() {
