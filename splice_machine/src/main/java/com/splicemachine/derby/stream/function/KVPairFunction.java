@@ -34,6 +34,8 @@ public class KVPairFunction extends SplicePairFunction<SpliceOperation,KVPair,by
 
     @Override
     public Tuple2<byte[], KVPair> call(KVPair kvPair) throws Exception {
+        if (kvPair ==null)
+            return null;
         return new Tuple2<>(kvPair.getRowKey(),kvPair);
     }
 

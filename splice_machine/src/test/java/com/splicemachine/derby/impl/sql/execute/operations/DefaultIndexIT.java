@@ -14,70 +14,42 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+import org.spark_project.guava.base.Throwables;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 
 /**
  * Created by tgildersleeve on 7/11/17.
  */
-@Ignore
-public class DefaultIndexIT {
+public class DefaultIndexIT extends SpliceUnitTest{
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     private static final String CLASS_NAME = DefaultIndexIT.class.getSimpleName().toUpperCase();
 
     protected  static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
-    private static SpliceTableWatcher CHAR_TABLE = new SpliceTableWatcher("CHAR_TABLE", schemaWatcher.schemaName,"(i char default 'A', j char)");
-    private static SpliceTableWatcher VARCHAR_TABLE = new SpliceTableWatcher("VARCHAR_TABLE", schemaWatcher.schemaName,"(i varchar(10) default 'AAA', j varchar(10))");
     private static SpliceTableWatcher BLANK_TABLE = new SpliceTableWatcher("BLANK_TABLE", schemaWatcher.schemaName,"(i varchar(10) default '', j varchar(10))");
+    private static SpliceTableWatcher NULL_TABLE = new SpliceTableWatcher("NULL_TABLE", schemaWatcher.schemaName,"(i varchar(10), j varchar(10))");
+    private static SpliceIndexWatcher NULL_INDEX_NO_NULLS = new SpliceIndexWatcher("NULL_TABLE", schemaWatcher.schemaName, "NULL_INDEX_NO_NULLS",
+            schemaWatcher.schemaName, "(i)",false,true,false);
+    private static SpliceIndexWatcher BLANK_INDEX_NO_DEFAULTS = new SpliceIndexWatcher("BLANK_TABLE", schemaWatcher.schemaName, "BLANK_INDEX_NO_DEFAULTS",
+            schemaWatcher.schemaName, "(i)",false,false,true);
+    private static SpliceTableWatcher INDEX_AFTER_LOAD_BLANK_TABLE = new SpliceTableWatcher("INDEX_AFTER_LOAD_BLANK_TABLE", schemaWatcher.schemaName,"(i varchar(10) default '', j varchar(10))");
+    private static SpliceTableWatcher INDEX_AFTER_LOAD_NULL_TABLE = new SpliceTableWatcher("INDEX_AFTER_LOAD_NULL_TABLE", schemaWatcher.schemaName,"(i varchar(10), j varchar(10))");
+    private static SpliceTableWatcher BULK_HFILE_BLANK_TABLE = new SpliceTableWatcher("BULK_HFILE_BLANK_TABLE", schemaWatcher.schemaName,"(i varchar(10) default '', j varchar(10))");
+    private static SpliceTableWatcher BULK_HFILE_NULL_TABLE = new SpliceTableWatcher("BULK_HFILE_NULL_TABLE", schemaWatcher.schemaName,"(i varchar(10), j varchar(10))");
+    private static SpliceIndexWatcher BULK_HFILE_NULL_TABLE_IX = new SpliceIndexWatcher(BULK_HFILE_NULL_TABLE.tableName, schemaWatcher.schemaName, "BULK_HFILE_NULL_TABLE_IX",
+            schemaWatcher.schemaName, "(i)",false,true,false);
+    private static SpliceIndexWatcher BULK_HFILE_BLANK_TABLE_IX = new SpliceIndexWatcher(BULK_HFILE_BLANK_TABLE.tableName, schemaWatcher.schemaName, "BULK_HFILE_BLANK_TABLE_IX",
+            schemaWatcher.schemaName, "(i)",false,false,true);
 
-
-    private static SpliceTableWatcher DATE_TABLE = new SpliceTableWatcher("DATE_TABLE", schemaWatcher.schemaName,"(i date default '2000-01-01', j date)");
-    private static SpliceTableWatcher TIME_TABLE = new SpliceTableWatcher("TIME_TABLE", schemaWatcher.schemaName,"(i time default '00:00:00', j time)");
-    private static SpliceTableWatcher TIMESTAMP_TABLE = new SpliceTableWatcher("TIMESTAMP_TABLE", schemaWatcher.schemaName,"(i timestamp default '2000-01-01 00:00:00', j timestamp)");
-
-    private static SpliceTableWatcher BIGINT_TABLE = new SpliceTableWatcher("BIGINT_TABLE", schemaWatcher.schemaName,"(i bigint default 10, j bigint)");
-    private static SpliceTableWatcher DECIMAL_TABLE = new SpliceTableWatcher("DECIMAL_TABLE", schemaWatcher.schemaName,"(i decimal default 10, j decimal)");
-    private static SpliceTableWatcher DOUBLE_TABLE = new SpliceTableWatcher("DOUBLE_TABLE", schemaWatcher.schemaName,"(i double default 10, j double)");
-    private static SpliceTableWatcher DOUBLE_PRECISION_TABLE = new SpliceTableWatcher("DOUBLE_PRECISION_TABLE", schemaWatcher.schemaName,"(i double precision default 10, j double precision)");
-    private static SpliceTableWatcher FLOAT_TABLE = new SpliceTableWatcher("FLOAT_TABLE", schemaWatcher.schemaName,"(i float default 10, j float)");
-    private static SpliceTableWatcher INTEGER_TABLE = new SpliceTableWatcher("INTEGER_TABLE", schemaWatcher.schemaName,"(i integer default 10, j integer)");
-    private static SpliceTableWatcher NUMERIC_TABLE = new SpliceTableWatcher("NUMERIC_TABLE", schemaWatcher.schemaName,"(i numeric default 10, j numeric)");
-    private static SpliceTableWatcher REAL_TABLE = new SpliceTableWatcher("REAL_TABLE", schemaWatcher.schemaName,"(i real default 10, j real)");
-    private static SpliceTableWatcher SMALLINT_TABLE = new SpliceTableWatcher("SMALLINT_TABLE", schemaWatcher.schemaName,"(i smallint default 10, j smallint)");
-
-    private static SpliceTableWatcher BOOLEAN_TABLE = new SpliceTableWatcher("BOOLEAN_TABLE", schemaWatcher.schemaName,"(i boolean default true, j boolean)");
-
-    private static SpliceIndexWatcher CHAR_INDEX = new SpliceIndexWatcher("CHAR_TABLE", schemaWatcher.schemaName, "CHAR_INDEX", schemaWatcher.schemaName, "(i)");
-    private static SpliceIndexWatcher VARCHAR_INDEX = new SpliceIndexWatcher("VARCHAR_TABLE", schemaWatcher.schemaName, "VARCHAR_INDEX", schemaWatcher.schemaName, "(i)");
-    private static SpliceIndexWatcher BLANK_INDEX = new SpliceIndexWatcher("BLANK_TABLE", schemaWatcher.schemaName, "BLANK_INDEX", schemaWatcher.schemaName, "(i)");
-
-    private static SpliceIndexWatcher DATE_INDEX = new SpliceIndexWatcher("DATE_TABLE", schemaWatcher.schemaName, "DATE_INDEX", schemaWatcher.schemaName, "(i)");
-    private static SpliceIndexWatcher TIME_INDEX = new SpliceIndexWatcher("TIME_TABLE", schemaWatcher.schemaName, "TIME_INDEX", schemaWatcher.schemaName, "(i)");
-    private static SpliceIndexWatcher TIMESTAMP_INDEX = new SpliceIndexWatcher("TIMESTAMP_TABLE", schemaWatcher.schemaName, "TIMESTAMP_INDEX", schemaWatcher.schemaName, "(i)");
-
-    private static SpliceIndexWatcher BIGINT_INDEX = new SpliceIndexWatcher("BIGINT_TABLE", schemaWatcher.schemaName, "BIGINT_INDEX", schemaWatcher.schemaName, "(i)");
-    private static SpliceIndexWatcher DECIMAL_INDEX = new SpliceIndexWatcher("DECIMAL_TABLE", schemaWatcher.schemaName, "DECIMAL_INDEX", schemaWatcher.schemaName, "(i)");
-    private static SpliceIndexWatcher DOUBLE_INDEX = new SpliceIndexWatcher("DOUBLE_TABLE", schemaWatcher.schemaName, "DOUBLE_INDEX", schemaWatcher.schemaName, "(i)");
-    private static SpliceIndexWatcher DOUBLE_PRECISION_INDEX = new SpliceIndexWatcher("DOUBLE_PRECISION_TABLE", schemaWatcher.schemaName, "DOUBLE_PRECISION_INDEX", schemaWatcher.schemaName, "(i)");
-    private static SpliceIndexWatcher FLOAT_INDEX = new SpliceIndexWatcher("FLOAT_TABLE", schemaWatcher.schemaName, "FLOAT_INDEX", schemaWatcher.schemaName, "(i)");
-    private static SpliceIndexWatcher INTEGER_INDEX = new SpliceIndexWatcher("INTEGER_TABLE", schemaWatcher.schemaName, "INTEGER_INDEX", schemaWatcher.schemaName, "(i)");
-    private static SpliceIndexWatcher NUMERIC_INDEX = new SpliceIndexWatcher("NUMERIC_TABLE", schemaWatcher.schemaName, "NUMERIC_INDEX", schemaWatcher.schemaName, "(i)");
-    private static SpliceIndexWatcher REAL_INDEX = new SpliceIndexWatcher("REAL_TABLE", schemaWatcher.schemaName, "REAL_INDEX", schemaWatcher.schemaName, "(i)");
-    private static SpliceIndexWatcher SMALLINT_INDEX = new SpliceIndexWatcher("SMALLINT_TABLE", schemaWatcher.schemaName, "SMALLINT_INDEX", schemaWatcher.schemaName, "(i)");
-
-
-    private static SpliceIndexWatcher BOOLEAN_INDEX = new SpliceIndexWatcher("BOOLEAN_TABLE", schemaWatcher.schemaName, "BOOLEAN_INDEX", schemaWatcher.schemaName, "(i)");
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(schemaWatcher.schemaName);
@@ -85,38 +57,16 @@ public class DefaultIndexIT {
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(schemaWatcher)
-            .around(CHAR_TABLE)
-            .around(VARCHAR_TABLE)
             .around(BLANK_TABLE)
-            .around(DATE_TABLE)
-            .around(TIME_TABLE)
-            .around(TIMESTAMP_TABLE)
-            .around(BIGINT_TABLE)
-            .around(DECIMAL_TABLE)
-            .around(DOUBLE_TABLE)
-            .around(DOUBLE_PRECISION_TABLE)
-            .around(FLOAT_TABLE)
-            .around(INTEGER_TABLE)
-            .around(NUMERIC_TABLE)
-            .around(REAL_TABLE)
-            .around(SMALLINT_TABLE)
-            .around(BOOLEAN_TABLE)
-            .around(CHAR_INDEX)
-            .around(VARCHAR_INDEX)
-            .around(BLANK_INDEX)
-            .around(DATE_INDEX)
-            .around(TIME_INDEX)
-            .around(TIMESTAMP_INDEX)
-            .around(BIGINT_INDEX)
-            .around(DECIMAL_INDEX)
-            .around(DOUBLE_INDEX)
-            .around(DOUBLE_PRECISION_INDEX)
-            .around(FLOAT_INDEX)
-            .around(INTEGER_INDEX)
-            .around(NUMERIC_INDEX)
-            .around(REAL_INDEX)
-            .around(SMALLINT_INDEX)
-            .around(BOOLEAN_INDEX);
+            .around(NULL_TABLE)
+            .around(NULL_INDEX_NO_NULLS)
+            .around(BLANK_INDEX_NO_DEFAULTS)
+            .around(INDEX_AFTER_LOAD_BLANK_TABLE)
+            .around(INDEX_AFTER_LOAD_NULL_TABLE)
+            .around(BULK_HFILE_BLANK_TABLE)
+            .around(BULK_HFILE_NULL_TABLE)
+            .around(BULK_HFILE_NULL_TABLE_IX)
+            .around(BULK_HFILE_BLANK_TABLE_IX);
 
     private Connection conn;
 
@@ -128,251 +78,136 @@ public class DefaultIndexIT {
 
     @After
     public void tearDownTest() throws Exception{
-        conn.rollback();
-    }
+        try {
+            conn.rollback();
+        } catch (Exception e) {} // Swallow for HFile Bit Running in Control
+     }
 
     @Before
     public void setUp() throws Exception {
-        methodWatcher.executeUpdate(String.format("INSERT INTO CHAR_TABLE(J) VALUES ('A'),('A'),('A')"));
-        methodWatcher.executeUpdate(String.format("INSERT INTO VARCHAR_TABLE(J) VALUES ('AAA'),('AAA'),('AAA')"));
-        methodWatcher.executeUpdate(String.format("INSERT INTO BLANK_TABLE(J) VALUES (''),(''),('')"));
-
-        methodWatcher.executeUpdate(String.format("INSERT INTO DATE_TABLE(J) VALUES ('2000-01-01'),('2000-01-01'),('2000-01-01')"));
-        methodWatcher.executeUpdate(String.format("INSERT INTO TIME_TABLE(J) VALUES ('00:00:00'),('00:00:00'),('00:00:00')"));
-        methodWatcher.executeUpdate(String.format("INSERT INTO TIMESTAMP_TABLE(J) VALUES ('2000-01-01 00:00:00'),('2000-01-01 00:00:00'),('2000-01-01 00:00:00')"));
-
-        methodWatcher.executeUpdate(String.format("INSERT INTO BIGINT_TABLE(J) VALUES (10),(10),(10)"));
-        methodWatcher.executeUpdate(String.format("INSERT INTO DECIMAL_TABLE(J) VALUES (10),(10),(10)"));
-        methodWatcher.executeUpdate(String.format("INSERT INTO DOUBLE_TABLE(J) VALUES (10),(10),(10)"));
-        methodWatcher.executeUpdate(String.format("INSERT INTO DOUBLE_PRECISION_TABLE(J) VALUES (10),(10),(10)"));
-        methodWatcher.executeUpdate(String.format("INSERT INTO FLOAT_TABLE(J) VALUES (10),(10),(10)"));
-        methodWatcher.executeUpdate(String.format("INSERT INTO INTEGER_TABLE(J) VALUES (10),(10),(10)"));
-        methodWatcher.executeUpdate(String.format("INSERT INTO NUMERIC_TABLE(J) VALUES (10),(10),(10)"));
-        methodWatcher.executeUpdate(String.format("INSERT INTO REAL_TABLE(J) VALUES (10),(10),(10)"));
-        methodWatcher.executeUpdate(String.format("INSERT INTO SMALLINT_TABLE(J) VALUES (10),(10),(10)"));
-        
-        methodWatcher.executeUpdate(String.format("INSERT INTO BOOLEAN_TABLE(J) VALUES (true),(true),(true)"));
+        methodWatcher.executeUpdate(String.format("INSERT INTO BLANK_TABLE(i,J) VALUES ('',''),('SD','SD'),(null,null)"));
+        methodWatcher.executeUpdate(String.format("INSERT INTO NULL_TABLE(i,J) VALUES ('',''),('SD','SD'),(null,null)"));
+        methodWatcher.executeUpdate(String.format("INSERT INTO INDEX_AFTER_LOAD_BLANK_TABLE(i,J) VALUES ('',''),('SD','SD'),(null,null)"));
+        methodWatcher.executeUpdate(String.format("INSERT INTO INDEX_AFTER_LOAD_NULL_TABLE(i,J) VALUES ('',''),('SD','SD'),(null,null)"));
     }
 
     @Test
-    public void CHAR_TEST() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM CHAR_TABLE --SPLICE-PROPERTIES index=CHAR_INDEX\n WHERE I = 'A'"));
-        Assert.assertEquals("I | J |\n" +
-                "--------\n" +
-                " A | A |\n" +
-                " A | A |\n" +
-                " A | A |", TestUtils.FormattedResult.ResultFactory.toString(rs));
-        ResultSet rs1 = methodWatcher.executeQuery(String.format("SELECT COUNT(I) FROM CHAR_TABLE --SPLICE-PROPERTIES index=CHAR_INDEX\n WHERE I = 'A'"));
-        Assert.assertEquals("1 |\n" +
-                "----\n" +
-                " 3 |", TestUtils.FormattedResult.ResultFactory.toString(rs1));
+    public void testIndexAfterLoadBlankTable() throws Exception {
+        try {
+            SpliceIndexWatcher.createIndex(conn,schemaWatcher.schemaName,INDEX_AFTER_LOAD_BLANK_TABLE.tableName,"INDEX_AFTER_LOAD_BLANK_TABLE_IX","(i)",false,false,true);
+            methodWatcher.executeQuery(String.format("SELECT * FROM INDEX_AFTER_LOAD_BLANK_TABLE --SPLICE-PROPERTIES index=INDEX_AFTER_LOAD_BLANK_TABLE_IX\n"));
+            Assert.fail("did not throw exception");
+        } catch (SQLException sqle) {
+            Assert.assertEquals("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.", sqle.getMessage());
+        }
     }
 
     @Test
-    public void VARCHAR_TEST() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM VARCHAR_TABLE --SPLICE-PROPERTIES index=VARCHAR_INDEX\n WHERE I = 'AAA'"));
-        Assert.assertEquals("I  | J  |\n" +
-                "----------\n" +
-                "AAA |AAA |\n" +
-                "AAA |AAA |\n" +
-                "AAA |AAA |", TestUtils.FormattedResult.ResultFactory.toString(rs));
-        ResultSet rs1 = methodWatcher.executeQuery(String.format("SELECT COUNT(I) FROM VARCHAR_TABLE --SPLICE-PROPERTIES index=VARCHAR_INDEX\n WHERE I = 'AAA'"));
-        Assert.assertEquals("1 |\n" +
-                "----\n" +
-                " 3 |", TestUtils.FormattedResult.ResultFactory.toString(rs1));
+    public void testIndexAfterLoadNullTable() throws Exception {
+        try {
+            SpliceIndexWatcher.createIndex(conn,schemaWatcher.schemaName,INDEX_AFTER_LOAD_NULL_TABLE.tableName,"INDEX_AFTER_LOAD_NULL_TABLE_IX","(i)",false,false,true);
+            methodWatcher.executeQuery(String.format("SELECT * FROM INDEX_AFTER_LOAD_NULL_TABLE --SPLICE-PROPERTIES index=INDEX_AFTER_LOAD_NULL_TABLE_IX\n"));
+            Assert.fail("did not throw exception");
+        } catch (SQLException sqle) {
+            Assert.assertEquals("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.", sqle.getMessage());
+        }
+    }
+
+
+    @Test
+    public void testEmptyPredicateScanCannotUseExcludeNullIndex() throws Exception {
+        try {
+            methodWatcher.executeQuery(String.format("SELECT * FROM NULL_TABLE --SPLICE-PROPERTIES index=NULL_INDEX_NO_NULLS\n"));
+            Assert.fail("did not throw exception");
+        } catch (SQLException sqle) {
+            Assert.assertEquals("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.", sqle.getMessage());
+        }
+     }
+
+    @Test
+    public void testIndexPredicateEqualityScanCanUseExcludeNullIndex() throws Exception {
+            ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM NULL_TABLE --SPLICE-PROPERTIES index=NULL_INDEX_NO_NULLS\n where i = 'SD'"));
+            Assert.assertEquals("I | J |\n" +
+                    "--------\n" +
+                    "SD |SD |", TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
     @Test
-    public void BLANK_TEST() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM BLANK_TABLE --SPLICE-PROPERTIES index=BLANK_INDEX\n WHERE I = ''"));
+    public void testIndexIsNotNullScanCanUseExcludeNullIndex() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM NULL_TABLE --SPLICE-PROPERTIES index=NULL_INDEX_NO_NULLS\n where i is not null"));
         Assert.assertEquals("I | J |\n" +
                 "--------\n" +
                 "   |   |\n" +
-                "   |   |\n" +
-                "   |   |", TestUtils.FormattedResult.ResultFactory.toString(rs));
-        ResultSet rs1 = methodWatcher.executeQuery(String.format("SELECT COUNT(I) FROM BLANK_TABLE --SPLICE-PROPERTIES index=BLANK_INDEX\n WHERE I = ''"));
-        Assert.assertEquals("1 |\n" +
-                "----\n" +
-                " 3 |", TestUtils.FormattedResult.ResultFactory.toString(rs1));
+                "SD |SD |", TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
     @Test
-    public void DATE_TEST() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM DATE_TABLE --SPLICE-PROPERTIES index=DATE_INDEX\n WHERE I = '2000-01-01'"));
-        Assert.assertEquals("I     |     J     |\n" +
-                "------------------------\n" +
-                "2000-01-01 |2000-01-01 |\n" +
-                "2000-01-01 |2000-01-01 |\n" +
-                "2000-01-01 |2000-01-01 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
-        ResultSet rs1 = methodWatcher.executeQuery(String.format("SELECT COUNT(I) FROM DATE_TABLE --SPLICE-PROPERTIES index=DATE_INDEX\n WHERE I = '2000-01-01'"));
-        Assert.assertEquals("1 |\n" +
-                "----\n" +
-                " 3 |", TestUtils.FormattedResult.ResultFactory.toString(rs1));
+    public void testIndexIsNullScanCannotUseExcludeNullIndex() throws Exception {
+        try {
+            methodWatcher.executeQuery(String.format("SELECT * FROM NULL_TABLE --SPLICE-PROPERTIES index=NULL_INDEX_NO_NULLS\n where i is null"));
+            Assert.fail("did not throw exception");
+        } catch (SQLException sqle) {
+            Assert.assertEquals("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.", sqle.getMessage());
+        }
+    }
+
+
+    @Test
+    public void testNonIndexPredicateEqualityScanCanUseExcludeNullIndex() throws Exception {
+        try {
+            methodWatcher.executeQuery(String.format("SELECT * FROM NULL_TABLE --SPLICE-PROPERTIES index=NULL_INDEX_NO_NULLS\n where j = 'SD'"));
+            Assert.fail("did not throw exception");
+        } catch (SQLException sqle) {
+            Assert.assertEquals("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.", sqle.getMessage());
+        }
     }
 
     @Test
-    public void TIME_TEST() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM TIME_TABLE --SPLICE-PROPERTIES index=TIME_INDEX\n WHERE I = '00:00:00'"));
-        Assert.assertEquals("I    |    J    |\n" +
-                "--------------------\n" +
-                "00:00:00 |00:00:00 |\n" +
-                "00:00:00 |00:00:00 |\n" +
-                "00:00:00 |00:00:00 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
-        ResultSet rs1 = methodWatcher.executeQuery(String.format("SELECT COUNT(I) FROM TIME_TABLE --SPLICE-PROPERTIES index=TIME_INDEX\n WHERE I = '00:00:00'"));
-        Assert.assertEquals("1 |\n" +
-                "----\n" +
-                " 3 |", TestUtils.FormattedResult.ResultFactory.toString(rs1));
+    public void testPredicateEqualityScanChoosesExcludeNullIndex() throws Exception {
+        thirdRowContainsQuery("explain SELECT I FROM NULL_TABLE where i = 'SD'","Index",methodWatcher);
     }
 
     @Test
-    public void TIMESTAMP_TEST() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM TIMESTAMP_TABLE --SPLICE-PROPERTIES index=TIMESTAMP_INDEX\n WHERE I = '2000-01-01 00:00:00'"));
-        Assert.assertEquals("I           |          J           |\n" +
-                "----------------------------------------------\n" +
-                "2000-01-01 00:00:00.0 |2000-01-01 00:00:00.0 |\n" +
-                "2000-01-01 00:00:00.0 |2000-01-01 00:00:00.0 |\n" +
-                "2000-01-01 00:00:00.0 |2000-01-01 00:00:00.0 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
-        ResultSet rs1 = methodWatcher.executeQuery(String.format("SELECT COUNT(I) FROM TIMESTAMP_TABLE --SPLICE-PROPERTIES index=TIMESTAMP_INDEX\n WHERE I = '2000-01-01 00:00:00'"));
-        Assert.assertEquals("1 |\n" +
-                "----\n" +
-                " 3 |", TestUtils.FormattedResult.ResultFactory.toString(rs1));
+    public void testEmptyPredicateScanCannotUseExcludeDefaultIndex() throws Exception {
+        try {
+            methodWatcher.executeQuery(String.format("SELECT * FROM BLANK_TABLE --SPLICE-PROPERTIES index=BLANK_INDEX_NO_DEFAULTS\n"));
+            Assert.fail("did not throw exception");
+        }
+        catch (SQLException sqle) {
+            Assert.assertEquals("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.", sqle.getMessage());
+        }
+
     }
 
     @Test
-    public void BIGINT_TEST() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM BIGINT_TABLE --SPLICE-PROPERTIES index=BIGINT_INDEX\n WHERE I = 10"));
-        Assert.assertEquals("I | J |\n" +
-                "--------\n" +
-                "10 |10 |\n" +
-                "10 |10 |\n" +
-                "10 |10 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
-        ResultSet rs1 = methodWatcher.executeQuery(String.format("SELECT COUNT(I) FROM BIGINT_TABLE --SPLICE-PROPERTIES index=BIGINT_INDEX\n WHERE I = 10"));
-        Assert.assertEquals("1 |\n" +
-                "----\n" +
-                " 3 |", TestUtils.FormattedResult.ResultFactory.toString(rs1));
-    }
+    public void testBulkHFileImport() throws Exception {
+        try {
+            methodWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s',',','\"',null,null,null,0,null,true,null, '%s', false)", schemaWatcher.schemaName, BULK_HFILE_BLANK_TABLE.tableName
+                    , getResourceDirectory() + "null_and_blanks.csv", getResourceDirectory() + "data")).execute();
 
-    @Test
-    public void DECIMAL_TEST() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM DECIMAL_TABLE --SPLICE-PROPERTIES index=DECIMAL_INDEX\n WHERE I = 10"));
-        Assert.assertEquals("I | J |\n" +
-                "--------\n" +
-                "10 |10 |\n" +
-                "10 |10 |\n" +
-                "10 |10 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
-        ResultSet rs1 = methodWatcher.executeQuery(String.format("SELECT COUNT(I) FROM DECIMAL_TABLE --SPLICE-PROPERTIES index=DECIMAL_INDEX\n WHERE I = 10"));
-        Assert.assertEquals("1 |\n" +
-                "----\n" +
-                " 3 |", TestUtils.FormattedResult.ResultFactory.toString(rs1));
-    }
+            try {
+                methodWatcher.executeQuery(String.format("SELECT * FROM BULK_HFILE_BLANK_TABLE --SPLICE-PROPERTIES index=BULK_HFILE_BLANK_TABLE_IX\n where i =''"));
+                Assert.fail("did not throw exception");
+            }
+            catch (SQLException sqle) {
+                Assert.assertEquals("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.", sqle.getMessage());
+            }
+            ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM BULK_HFILE_BLANK_TABLE --SPLICE-PROPERTIES index=BULK_HFILE_BLANK_TABLE_IX\n where i ='SD'"));
 
-    @Test
-    public void DOUBLE_TEST() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM DOUBLE_TABLE --SPLICE-PROPERTIES index=DOUBLE_INDEX\n WHERE I = 10"));
-        Assert.assertEquals("I  |  J  |\n" +
-                "------------\n" +
-                "10.0 |10.0 |\n" +
-                "10.0 |10.0 |\n" +
-                "10.0 |10.0 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
-        ResultSet rs1 = methodWatcher.executeQuery(String.format("SELECT COUNT(I) FROM DOUBLE_TABLE --SPLICE-PROPERTIES index=DOUBLE_INDEX\n WHERE I = 10"));
-        Assert.assertEquals("1 |\n" +
-                "----\n" +
-                " 3 |", TestUtils.FormattedResult.ResultFactory.toString(rs1));
-    }
 
-    @Test
-    public void DOUBLE_PRECISION_TEST() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM DOUBLE_PRECISION_TABLE --SPLICE-PROPERTIES index=DOUBLE_PRECISION_INDEX\n WHERE I = 10"));
-        Assert.assertEquals("I  |  J  |\n" +
-                "------------\n" +
-                "10.0 |10.0 |\n" +
-                "10.0 |10.0 |\n" +
-                "10.0 |10.0 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
-        ResultSet rs1 = methodWatcher.executeQuery(String.format("SELECT COUNT(I) FROM DOUBLE_PRECISION_TABLE --SPLICE-PROPERTIES index=DOUBLE_PRECISION_INDEX\n WHERE I = 10"));
-        Assert.assertEquals("1 |\n" +
-                "----\n" +
-                " 3 |", TestUtils.FormattedResult.ResultFactory.toString(rs1));
-    }
+            Assert.assertEquals("I | J |\n" +
+                    "--------\n" +
+                    "SD |SD |", TestUtils.FormattedResult.ResultFactory.toString(rs));
 
-    @Test
-    public void FLOAT_TEST() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM FLOAT_TABLE --SPLICE-PROPERTIES index=FLOAT_INDEX\n WHERE I = 10"));
-        Assert.assertEquals("I  |  J  |\n" +
-                "------------\n" +
-                "10.0 |10.0 |\n" +
-                "10.0 |10.0 |\n" +
-                "10.0 |10.0 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
-        ResultSet rs1 = methodWatcher.executeQuery(String.format("SELECT COUNT(I) FROM FLOAT_TABLE --SPLICE-PROPERTIES index=FLOAT_INDEX\n WHERE I = 10"));
-        Assert.assertEquals("1 |\n" +
-                "----\n" +
-                " 3 |", TestUtils.FormattedResult.ResultFactory.toString(rs1));
+        }
+        catch (Exception e) {
+            java.lang.Throwable ex = Throwables.getRootCause(e);
+            if (ex.getMessage().contains("bulk load not supported")) {
+                // swallow (Control Tests)
+            } else {
+                throw e;
+            }
+        }
     }
-    @Test
-    public void INTEGER_TEST() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM INTEGER_TABLE --SPLICE-PROPERTIES index=INTEGER_INDEX\n WHERE I = 10"));
-        Assert.assertEquals("I | J |\n" +
-                "--------\n" +
-                "10 |10 |\n" +
-                "10 |10 |\n" +
-                "10 |10 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
-        ResultSet rs1 = methodWatcher.executeQuery(String.format("SELECT COUNT(I) FROM INTEGER_TABLE --SPLICE-PROPERTIES index=INTEGER_INDEX\n WHERE I = 10"));
-        Assert.assertEquals("1 |\n" +
-                "----\n" +
-                " 3 |", TestUtils.FormattedResult.ResultFactory.toString(rs1));
-    }
-    @Test
-    public void NUMERIC_TEST() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM NUMERIC_TABLE --SPLICE-PROPERTIES index=NUMERIC_INDEX\n WHERE I = 10"));
-        Assert.assertEquals("I | J |\n" +
-                "--------\n" +
-                "10 |10 |\n" +
-                "10 |10 |\n" +
-                "10 |10 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
-        ResultSet rs1 = methodWatcher.executeQuery(String.format("SELECT COUNT(I) FROM NUMERIC_TABLE --SPLICE-PROPERTIES index=NUMERIC_INDEX\n WHERE I = 10"));
-        Assert.assertEquals("1 |\n" +
-                "----\n" +
-                " 3 |", TestUtils.FormattedResult.ResultFactory.toString(rs1));
-    }
-    @Test
-    public void REAL_TEST() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM REAL_TABLE --SPLICE-PROPERTIES index=REAL_INDEX\n WHERE I = 10"));
-        Assert.assertEquals("I  |  J  |\n" +
-                "------------\n" +
-                "10.0 |10.0 |\n" +
-                "10.0 |10.0 |\n" +
-                "10.0 |10.0 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
-        ResultSet rs1 = methodWatcher.executeQuery(String.format("SELECT COUNT(I) FROM REAL_TABLE --SPLICE-PROPERTIES index=REAL_INDEX\n WHERE I = 10"));
-        Assert.assertEquals("1 |\n" +
-                "----\n" +
-                " 3 |", TestUtils.FormattedResult.ResultFactory.toString(rs1));
-    }
-    @Test
-    public void SMALLINT_TEST() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM SMALLINT_TABLE --SPLICE-PROPERTIES index=SMALLINT_INDEX\n WHERE I = 10"));
-        Assert.assertEquals("I | J |\n" +
-                "--------\n" +
-                "10 |10 |\n" +
-                "10 |10 |\n" +
-                "10 |10 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
-        ResultSet rs1 = methodWatcher.executeQuery(String.format("SELECT COUNT(I) FROM SMALLINT_TABLE --SPLICE-PROPERTIES index=SMALLINT_INDEX\n WHERE I = 10"));
-        Assert.assertEquals("1 |\n" +
-                "----\n" +
-                " 3 |", TestUtils.FormattedResult.ResultFactory.toString(rs1));
-    }
-
-    @Test
-    public void BOOLEAN_TEST() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM BOOLEAN_TABLE --SPLICE-PROPERTIES index=BOOLEAN_INDEX\n WHERE I = true"));
-        Assert.assertEquals("I  |  J  |\n" +
-                "------------\n" +
-                "true |true |\n" +
-                "true |true |\n" +
-                "true |true |", TestUtils.FormattedResult.ResultFactory.toString(rs));
-        ResultSet rs1 = methodWatcher.executeQuery(String.format("SELECT COUNT(I) FROM BOOLEAN_TABLE --SPLICE-PROPERTIES index=BOOLEAN_INDEX\n WHERE I = true"));
-        Assert.assertEquals("1 |\n" +
-                "----\n" +
-                " 3 |", TestUtils.FormattedResult.ResultFactory.toString(rs1));
-    }
-
 
 }

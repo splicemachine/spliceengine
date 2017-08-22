@@ -2825,6 +2825,7 @@ TOKEN [IGNORE_CASE] :
 |	<DEFINER: "definer">
 |	<DETERMINISTIC: "deterministic">
 |   <DYNAMIC: "dynamic">
+|   <EXCLUDE: "exclude">
 |   <EXTRACT: "extract">
 |	<FORTRAN: "fortran">
 |   <GENERATED: "generated">
@@ -2835,6 +2836,7 @@ TOKEN [IGNORE_CASE] :
 |   <INOUT: "inout">
 |	<INTERVAL: "interval">
 |	<INVOKER: "invoker">
+|	<KEYS: "keys">
 |	<LANGUAGE: "language">
 |	<LARGE: "large">
 |	<LENGTH: "length">
@@ -12080,9 +12082,12 @@ StatementNode
 indexDefinition() throws StandardException :
 {
 	Boolean		unique = Boolean.FALSE;
+	Boolean		excludeNulls = Boolean.FALSE;
+	Boolean		excludeDefaults = Boolean.FALSE;
 	Properties	properties = null;
 	TableName	indexName;
 	TableName	tableName;
+	ValueNode   location;
 	Vector	indexColumnList = new Vector();
 }
 {
@@ -12094,6 +12099,11 @@ indexDefinition() throws StandardException :
 		indexName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) <ON> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
 				<LEFT_PAREN> indexColumnList(indexColumnList) <RIGHT_PAREN>
 		[ properties = propertyList(false) <CHECK_PROPERTIES>]
+		[ <EXCLUDE>
+		    [ <NULL> <KEYS> { excludeNulls = true;} ]
+		    [ <_DEFAULT> <KEYS> { excludeDefaults = true;} ]
+		]
+
 	{
 		/* User allowed to specify schema name on table and index.
 		 * If no schema name specified for index, then it "inherits" 
@@ -12129,6 +12139,8 @@ indexDefinition() throws StandardException :
 								indexName,
 								tableName,
 								indexColumnList,
+								excludeNulls,
+								excludeDefaults,
 								properties,
 								getContextManager());
 	}
@@ -16508,6 +16520,7 @@ nonReservedKeyword()  :
 	|	tok = <DOCUMENT>
 	|	tok = <EACH>
 	|	tok = <EMPTY>
+	|	tok = <EXCLUDE>
 	|   tok = <ESTIMATE>
 	|	tok = <EXCLUSIVE>
 	|	tok = <EXTRACT>
@@ -16524,6 +16537,7 @@ nonReservedKeyword()  :
 // SQL92 says it is reserved, but we want it to be non-reserved.
 	|	tok = <INTERVAL>
 	|   tok = <JAVA>
+	|   tok = <KEYS>
 	|	tok = <LAG>
 	|	tok = <LANGUAGE>
 	|	tok = <LARGE>
