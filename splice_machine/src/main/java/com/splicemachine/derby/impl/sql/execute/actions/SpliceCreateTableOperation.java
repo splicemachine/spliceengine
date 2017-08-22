@@ -189,7 +189,7 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
 					ascending[i] = true;
 				}
 
-				IndexDescriptor descriptor = new IndexDescriptorImpl("PRIMARYKEY",true,false,pkColumns,ascending,pkColumns.length);
+				IndexDescriptor descriptor = new IndexDescriptorImpl("PRIMARYKEY",true,false,pkColumns,ascending,pkColumns.length,false,false);
 				IndexRowGenerator irg = new IndexRowGenerator(descriptor);
 				return ddg.newConglomerateDescriptor(conglomId,null,false,irg,false,null,td.getUUID(),sd.getUUID());
 			}
