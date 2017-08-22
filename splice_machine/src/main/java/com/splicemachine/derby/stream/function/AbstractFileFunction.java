@@ -122,13 +122,24 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
 
     @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION",justification = "Intentional")
     public ExecRow call(List<String> values,BooleanList quotedColumns) throws Exception {
+        return getRow(values, quotedColumns, operationContext, execRow, calendar, timeFormat,
+                dateTimeFormat, timestampFormat);
+    }
+
+
+    public static ExecRow getRow(List<String> values,BooleanList quotedColumns,
+                                 OperationContext operationContext, ExecRow execRow,
+                                 Calendar calendar, String timeFormat,
+                                 String dateTimeFormat, String timestampFormat)  throws Exception {
         int columnID = 0;
         String columnValue = null;
         int numofColumnsinTable = 0;
         int numofColumnsinFile = 0;
         boolean columnnumbermistmatch = false;
 
-        operationContext.recordRead();
+        if (operationContext != null)
+            operationContext.recordRead();
+
         try {
             ExecRow returnRow = execRow.getClone();
             if (values == null) {
@@ -181,7 +192,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
             }
             return returnRow;
         } catch (Exception e) {
-            if (operationContext.isPermissive()) {
+            if (operationContext != null && operationContext.isPermissive()) {
                 String extendedMessage;
                 if (columnnumbermistmatch)
                     extendedMessage = " row Data: " + values;
@@ -193,7 +204,6 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
             throw e; // Not Permissive of errors
         }
     }
-
 
     void checkPreference() {
         if (preference==null){
@@ -209,7 +219,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
     /* ****************************************************************************************************************/
     /*private helper methods*/
     @SuppressWarnings("SimplifiableIfStatement") //the logic is clearer this way, without a performance penalty
-    private boolean shouldBeNull(String value,boolean wasQuoted){
+    private static boolean shouldBeNull(String value,boolean wasQuoted){
         if(value==null) return true;
         else if(wasQuoted) return false;
         else return value.isEmpty() || value.equalsIgnoreCase("null");
