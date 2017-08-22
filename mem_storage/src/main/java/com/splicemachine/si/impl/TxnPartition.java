@@ -70,6 +70,11 @@ public class TxnPartition implements Partition{
     }
 
     @Override
+    public String getEncodedName() {
+        return basePartition.getEncodedName();
+    }
+
+    @Override
     public void close() throws IOException{
         basePartition.close();
     }
@@ -285,7 +290,7 @@ public class TxnPartition implements Partition{
     }
 
     @Override
-    public void compact() throws IOException{
+    public void compact(boolean isMajor) throws IOException{
         //no-op--memory storage does not perform compactions yet
     }
 
