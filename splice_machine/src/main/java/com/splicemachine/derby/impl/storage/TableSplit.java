@@ -296,7 +296,7 @@ public class TableSplit{
         return sps.toArray(new byte[sps.size()][]);
     }
 
-    public static long getConglomerateId(Connection conn, String schemaName, String tableName, String indexName) throws SQLException {
+    private static long getConglomerateId(Connection conn, String schemaName, String tableName, String indexName) throws SQLException {
         String sql =  "select " +
                 "conglomeratenumber " +
                 "from " +

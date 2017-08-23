@@ -51,11 +51,6 @@ public class RangedClientPartition extends ClientPartition implements Comparable
     }
 
     @Override
-    public String getEncodedName() {
-        return regionInfo.getEncodedName();
-    }
-
-    @Override
     public List<Partition> subPartitions(){
         return Collections.<Partition>singletonList(this);
     }
