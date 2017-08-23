@@ -554,7 +554,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         PartitionFactory tableFactory=SIDriver.driver().getTableFactory();
         for(long conglomID : getConglomNumbers(getDefaultConn(),schemaName,tableName)){
             try(Partition partition=tableFactory.getTable(Long.toString(conglomID))){
-                partition.compact(true);
+                partition.compact();
             }catch(IOException e){
                 throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
             }

@@ -39,11 +39,6 @@ public abstract class SkeletonHBaseClientPartition implements Partition{
     }
 
 
-    @Override
-    public String getEncodedName() {
-        return getTableName();
-    }
-
     /*Single row access methods*/
     @Override
     public DataResult get(DataGet get,DataResult previous) throws IOException{
