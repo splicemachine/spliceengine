@@ -27,7 +27,6 @@ import com.splicemachine.db.impl.sql.catalog.DefaultSystemProcedureGenerator;
 import com.splicemachine.db.impl.sql.catalog.Procedure;
 import com.splicemachine.db.impl.sql.catalog.SystemColumnImpl;
 import com.splicemachine.derby.impl.load.HdfsImport;
-import com.splicemachine.derby.impl.storage.SpliceRegionAdmin;
 import com.splicemachine.derby.impl.storage.TableSplit;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.procedures.external.ExternalTableSystemProcedures;
@@ -906,85 +905,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(restoreSnapshot);
-
-                    Procedure getEncodedRegionName = Procedure.newBuilder().name("GET_ENCODED_REGION_NAME")
-                            .catalog("schemaName")
-                            .catalog("tableName")
-                            .catalog("indexName")
-                            .varchar("splitKey", 32672)
-                            .varchar("columnDelimiter",5)
-                            .varchar("characterDelimiter", 5)
-                            .varchar("timestampFormat",32672)
-                            .varchar("dateFormat",32672)
-                            .varchar("timeFormat",32672)
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(SpliceRegionAdmin.class.getCanonicalName())
-                            .build();
-                    procedures.add(getEncodedRegionName);
-
-                    Procedure getSplitKey = Procedure.newBuilder().name("GET_START_KEY")
-                            .catalog("schemaName")
-                            .catalog("tableName")
-                            .catalog("indexName")
-                            .varchar("encodedRegionName", 128)
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(SpliceRegionAdmin.class.getCanonicalName())
-                            .build();
-                    procedures.add(getSplitKey);
-
-                    Procedure compactRegion = Procedure.newBuilder().name("COMPACT_REGION")
-                            .catalog("schemaName")
-                            .catalog("tableName")
-                            .catalog("indexName")
-                            .varchar("regionName", 128)
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .ownerClass(SpliceRegionAdmin.class.getCanonicalName())
-                            .build();
-                    procedures.add(compactRegion);
-
-                    Procedure majorCompactRegion = Procedure.newBuilder().name("MAJOR_COMPACT_REGION")
-                            .catalog("schemaName")
-                            .catalog("tableName")
-                            .catalog("indexName")
-                            .varchar("regionName", 128)
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .ownerClass(SpliceRegionAdmin.class.getCanonicalName())
-                            .build();
-                    procedures.add(majorCompactRegion);
-
-                    Procedure mergeRegion = Procedure.newBuilder().name("MERGE_REGIONS")
-                            .catalog("schemaName")
-                            .catalog("tableName")
-                            .catalog("indexName")
-                            .varchar("regionName1", 128)
-                            .varchar("regionName2", 128)
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .ownerClass(SpliceRegionAdmin.class.getCanonicalName())
-                            .build();
-                    procedures.add(mergeRegion);
-
-                    Procedure getAllRegions = Procedure.newBuilder().name("GET_REGIONS")
-                            .catalog("schemaName")
-                            .catalog("tableName")
-                            .catalog("indexName")
-                            .varchar("startKey", 32672)
-                            .varchar("endKey", 32672)
-                            .varchar("columnDelimiter",5)
-                            .varchar("characterDelimiter", 5)
-                            .varchar("timestampFormat",32672)
-                            .varchar("dateFormat",32672)
-                            .varchar("timeFormat",32672)
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(SpliceRegionAdmin.class.getCanonicalName())
-                            .build();
-                    procedures.add(getAllRegions);
-
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)

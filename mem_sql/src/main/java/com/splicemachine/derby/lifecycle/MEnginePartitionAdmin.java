@@ -17,7 +17,6 @@ package com.splicemachine.derby.lifecycle;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionCreator;
 import com.splicemachine.access.api.TableDescriptor;
-import com.splicemachine.primitives.Bytes;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionServer;
 
@@ -54,11 +53,6 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
     @Override
     public void splitRegion(byte[] regionName, byte[]... splitPoints) throws IOException {
         admin.splitRegion(regionName, splitPoints);
-    }
-
-    @Override
-    public void mergeRegions(String regionName1, String regionName2) throws IOException {
-        admin.mergeRegions(regionName1, regionName2);
     }
 
     @Override

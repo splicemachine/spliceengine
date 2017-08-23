@@ -36,8 +36,6 @@ public interface Partition extends AutoCloseable{
 
     String getName();
 
-    String getEncodedName();
-
     @Override
     void close() throws IOException;
 
@@ -148,7 +146,7 @@ public interface Partition extends AutoCloseable{
      * If the underlying architecture does not support compaction, then this method should do nothing, rather
      * than throw an error
      */
-    void compact(boolean isMajor) throws IOException;
+    void compact() throws IOException;
 
     /**
      * Optional Method: flush the data in storage.
