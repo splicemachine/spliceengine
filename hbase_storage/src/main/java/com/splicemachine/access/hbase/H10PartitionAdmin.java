@@ -188,6 +188,11 @@ public class H10PartitionAdmin implements PartitionAdmin{
     }
 
     @Override
+    public void mergeRegions(String regionName1, String regionName2) throws IOException {
+        admin.mergeRegions(Bytes.toBytes(regionName1), Bytes.toBytes(regionName2), false);
+    }
+
+    @Override
     public void close() throws IOException{
         admin.close();
     }
