@@ -46,6 +46,7 @@ import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.utils.Source;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.spark_project.guava.base.Supplier;
+import java.util.List;
 
 /**
  * @author Scott Fines
@@ -171,14 +172,24 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
     public void getTransaction(RpcController controller,TxnMessage.TxnRequest request,RpcCallback<TxnMessage.Txn> done){
         try{
             long txnId=request.getTxnId();
-            boolean isOld = request.hasIsOld() && request.getIsOld();
-            TxnMessage.Txn transaction;
-            if (isOld) {
-                transaction = lifecycleStore.getOldTransaction(txnId);
-            } else {
-                transaction = lifecycleStore.getTransaction(txnId);
+            done.run((request.hasIsOld() && request.getIsOld())
+                    ?lifecycleStore.getOldTransaction(txnId):
+                    lifecycleStore.getTransaction(txnId));
+        }catch(IOException ioe){
+            ResponseConverter.setControllerException(controller,ioe);
+        }
+    }
+
+    @Override
+    public void getTransactions(RpcController controller, TxnMessage.TxnRequests request, RpcCallback<TxnMessage.TxnResponses> done) {
+        try{
+            TxnMessage.TxnResponses.Builder builder = TxnMessage.TxnResponses.newBuilder();
+            for (int i = 0; i < request.getTxnIdCount(); i++) {
+                builder.addTxns((request.getIsOld(i))
+                        ?lifecycleStore.getOldTransaction(request.getTxnId(i)):
+                        lifecycleStore.getTransaction(request.getTxnId(i)));
             }
-            done.run(transaction);
+            done.run(builder.build());
         }catch(IOException ioe){
             ResponseConverter.setControllerException(controller,ioe);
         }

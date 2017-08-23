@@ -292,4 +292,14 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
     public BitSet getBloomInMemoryCheck(boolean hasConstraintChecker,Pair<KVPair, Lock>[] dataAndLocks) throws IOException {
         return null;
     }
+    @Override
+    public String getVersion() {
+        return "3.0"; // TODO FIX
+    }
+
+    @Override
+    public boolean isRedoPartition() {
+        return true; // TODO FIX
+    }
+
 }

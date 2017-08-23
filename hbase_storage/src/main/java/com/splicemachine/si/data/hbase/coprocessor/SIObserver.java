@@ -22,7 +22,18 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.iapi.types.SQLVarbit;
+import com.splicemachine.db.iapi.types.SQLVarchar;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.si.data.hbase.ExtendedOperationStatus;
+import com.splicemachine.si.impl.*;
+import com.splicemachine.si.impl.filter.SimpleActiveTxnFilter;
+import com.splicemachine.si.impl.filter.SimpleRedoTxnFilter;
+import com.splicemachine.storage.*;
+import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HConstants;
@@ -59,18 +70,8 @@ import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.impl.HOperationFactory;
-import com.splicemachine.si.impl.SIFilterPacked;
-import com.splicemachine.si.impl.SimpleTxnOperationFactory;
-import com.splicemachine.si.impl.Tracer;
-import com.splicemachine.si.impl.TxnRegion;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.server.SICompactionState;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.HMutationStatus;
-import com.splicemachine.storage.MutationStatus;
-import com.splicemachine.storage.Partition;
-import com.splicemachine.storage.RegionPartition;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
@@ -82,11 +83,13 @@ public class SIObserver extends BaseRegionObserver{
     private TxnOperationFactory txnOperationFactory;
     private OperationStatusFactory operationStatusFactory;
     private TransactionalRegion region;
+    private boolean useRedoTransactor;
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException{
         SpliceLogUtils.trace(LOG,"starting %s",SIObserver.class);
         RegionCoprocessorEnvironment rce=(RegionCoprocessorEnvironment)e;
+        useRedoTransactor = rce.getRegion().getTableDesc().getFamilies().size() == 2;
         tableEnvMatch=doesTableNeedSI(rce.getRegion().getTableDesc().getTableName());
         if(tableEnvMatch){
             HBaseSIEnvironment env=HBaseSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper());
@@ -100,7 +103,7 @@ public class SIObserver extends BaseRegionObserver{
                     driver.getRollForward(),
                     driver.getReadResolver(regionPartition),
                     driver.getTxnSupplier(),
-                    driver.getTransactor(),
+                    useRedoTransactor?driver.getRedoTransactor():driver.getTransactor(),
                     driver.getOperationFactory()
                     );
             Tracer.traceRegion(region.getTableName(),rce.getRegion());
@@ -121,7 +124,10 @@ public class SIObserver extends BaseRegionObserver{
             get.setMaxVersions();
             get.setTimeRange(0L,Long.MAX_VALUE);
             assert (get.getMaxVersions()==Integer.MAX_VALUE);
-            addSIFilterToGet(get);
+            if (useRedoTransactor)
+                addActiveFilterToGet(get);
+            else
+                addSIFilterToGet(get);
         }
         SpliceLogUtils.trace(LOG,"preGet after %s",get);
         super.preGetOp(e,get,results);
@@ -135,7 +141,11 @@ public class SIObserver extends BaseRegionObserver{
             scan.setTimeRange(0L,Long.MAX_VALUE);
 //            txnReadController.preProcessScan(scan);
             assert (scan.getMaxVersions()==Integer.MAX_VALUE);
-            addSIFilterToScan(scan);
+            if (useRedoTransactor) {
+                addActiveFilterToScan(scan);
+            } else {
+                addSIFilterToScan(scan);
+            }
         }
         return super.preScannerOpen(e,scan,s);
     }
@@ -187,6 +197,10 @@ public class SIObserver extends BaseRegionObserver{
         byte[] attribute=put.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
         assert attribute!=null: "Transaction not specified!";
 
+        ExecRow execRow = null;
+        if (put.getAttribute(SIConstants.SI_EXEC_ROW)!=null) {
+            execRow = (ExecRow) SerializationUtils.deserialize(put.getAttribute(SIConstants.SI_EXEC_ROW));
+        }
 
         TxnView txn=txnOperationFactory.fromWrites(attribute,0,attribute.length);
         boolean isDelete=put.getAttribute(SIConstants.SI_DELETE_PUT)!=null;
@@ -227,7 +241,7 @@ public class SIObserver extends BaseRegionObserver{
                 boolean processed=false;
                 while (!processed) {
                     @SuppressWarnings("unchecked") Iterable<MutationStatus> status =
-                            region.bulkWrite(txn, fam, column.getKey(), operationStatusFactory.getNoOpConstraintChecker(), Collections.singleton(column.getValue()), false, false);
+                            region.bulkWrite(txn, fam, column.getKey(), operationStatusFactory.getNoOpConstraintChecker(), Collections.singleton(column.getValue()), false, false, execRow);
                     Iterator<MutationStatus> itr = status.iterator();
                     if (!itr.hasNext())
                         throw new IllegalStateException();
@@ -266,12 +280,40 @@ public class SIObserver extends BaseRegionObserver{
         get.setFilter(newFilter);
     }
 
+    private void addActiveFilterToGet(Get get) throws IOException{
+        byte[] attribute=get.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
+        assert attribute!=null: "Transaction information is missing";
+
+        TxnView txn=txnOperationFactory.fromReads(attribute,0,attribute.length);
+        final Filter newFilter=makeActiveFilter(txn,get.getFilter(), getPredicateFilter(get),false);
+        get.setFilter(newFilter);
+    }
+
+    private void addRedoFilterToGet(Get get) throws IOException{
+        byte[] attribute=get.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
+        assert attribute!=null: "Transaction information is missing";
+
+        TxnView txn=txnOperationFactory.fromReads(attribute,0,attribute.length);
+        final Filter newFilter=makeSIFilter(txn,get.getFilter(), getPredicateFilter(get),false);
+        get.setFilter(newFilter);
+    }
+
     private void addSIFilterToScan(Scan scan) throws IOException{
         byte[] attribute=scan.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
         assert attribute!=null: "Transaction information is missing";
 
         TxnView txn=txnOperationFactory.fromReads(attribute,0,attribute.length);
         final Filter newFilter=makeSIFilter(txn,scan.getFilter(),
+                getPredicateFilter(scan),scan.getAttribute(SIConstants.SI_COUNT_STAR)!=null);
+        scan.setFilter(newFilter);
+    }
+
+    private void addActiveFilterToScan(Scan scan) throws IOException{
+        byte[] attribute=scan.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
+        assert attribute!=null: "Transaction information is missing";
+
+        TxnView txn=txnOperationFactory.fromReads(attribute,0,attribute.length);
+        final Filter newFilter=makeActiveFilter(txn,scan.getFilter(),
                 getPredicateFilter(scan),scan.getAttribute(SIConstants.SI_COUNT_STAR)!=null);
         scan.setFilter(newFilter);
     }
@@ -303,6 +345,28 @@ public class SIObserver extends BaseRegionObserver{
     private Filter makeSIFilter(TxnView txn,Filter currentFilter,EntryPredicateFilter predicateFilter,boolean countStar) throws IOException{
         TxnFilter txnFilter=region.packedFilter(txn,predicateFilter,countStar);
         @SuppressWarnings("unchecked") SIFilterPacked siFilter=new SIFilterPacked(txnFilter);
+        if(currentFilter!=null){
+            return composeFilters(orderFilters(currentFilter,siFilter));
+        }else{
+            return siFilter;
+        }
+    }
+
+    private Filter makeActiveFilter(TxnView txn,Filter currentFilter,EntryPredicateFilter predicateFilter,boolean countStar) throws IOException{
+        // TODO use predicateFilter...
+        TxnFilter txnFilter=new SimpleActiveTxnFilter(txn,region.getReadResolver(),region.getTxnSupplier());
+        @SuppressWarnings("unchecked") ActiveFilter siFilter=new ActiveFilter(txnFilter);
+        if(currentFilter!=null){
+            return composeFilters(orderFilters(currentFilter,siFilter));
+        }else{
+            return siFilter;
+        }
+    }
+
+    private Filter makeRedoFilter(TxnView txn, Filter currentFilter, EntryPredicateFilter predicateFilter, boolean countStar, DataResult[] lookups, int position) throws IOException{
+        // TODO use predicateFilter...
+        TxnFilter txnFilter=new SimpleRedoTxnFilter(txn,region.getReadResolver(),region.getTxnSupplier(),lookups,position);
+        @SuppressWarnings("unchecked") RedoFilter siFilter=new RedoFilter(txnFilter);
         if(currentFilter!=null){
             return composeFilters(orderFilters(currentFilter,siFilter));
         }else{

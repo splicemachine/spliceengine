@@ -24,6 +24,8 @@ public interface DataScan extends Attributable{
 
     DataScan stopKey(byte[] stopKey);
 
+    DataScan setFamily(byte[] family);
+
     DataScan filter(DataFilter df);
 
     /**

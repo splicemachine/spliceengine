@@ -46,8 +46,11 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
     protected WriteCoordinator writeCoordinator;
     protected DMLWriteOperation operation;
     protected OperationContext operationContext;
+    protected String tableVersion;
 
-    public AbstractPipelineWriter(TxnView txn,long heapConglom,OperationContext operationContext) {
+    public AbstractPipelineWriter(String tableVersion, TxnView txn,long heapConglom,OperationContext operationContext) {
+        assert tableVersion!=null:"Table Version is null";
+        assert txn!=null:"txn is null";
         this.txn = txn;
         this.heapConglom = heapConglom;
         this.destinationTable = Bytes.toBytes(Long.toString(heapConglom));
@@ -55,6 +58,7 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
         if (operationContext != null) {
             this.operation = (DMLWriteOperation) operationContext.getOperation();
         }
+        this.tableVersion = tableVersion;
     }
 
     @Override

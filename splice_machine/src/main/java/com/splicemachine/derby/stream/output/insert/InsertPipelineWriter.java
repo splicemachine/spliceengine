@@ -16,6 +16,8 @@ package com.splicemachine.derby.stream.output.insert;
 
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.EngineDriver;
+import com.splicemachine.access.impl.data.UnsafeRecord;
+import com.splicemachine.access.impl.data.UnsafeRecordUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
@@ -48,15 +50,16 @@ import java.util.Iterator;
  */
 public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
     protected int[] pkCols;
-    protected String tableVersion;
     protected ExecRow execRowDefinition;
     protected RowLocation[] autoIncrementRowLocationArray;
     protected KVPair.Type dataType;
     protected SpliceSequence[] spliceSequences;
     protected PairEncoder encoder;
+    protected KeyEncoder keyEncoder;
     protected InsertOperation insertOperation;
     protected boolean isUpsert;
     private Partition table;
+    protected UnsafeRecord unsafeRecord;
 
     @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public InsertPipelineWriter(int[] pkCols,
@@ -68,10 +71,9 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
                                 TxnView txn,
                                 OperationContext operationContext,
                                 boolean isUpsert) {
-        super(txn,heapConglom,operationContext);
+        super(tableVersion,txn,heapConglom,operationContext);
         assert txn !=null:"txn not supplied";
         this.pkCols = pkCols;
-        this.tableVersion = tableVersion;
         this.execRowDefinition = execRowDefinition;
         this.autoIncrementRowLocationArray = autoIncrementRowLocationArray;
         this.spliceSequences = spliceSequences;
@@ -116,7 +118,22 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
             if (operationContext!=null && operationContext.isFailed())
                 return;
             beforeRow(execRow);
-            KVPair encode = encoder.encode(execRow);
+            KVPair encode;
+            if (tableVersion.equals("3.0")) {
+
+                unsafeRecord = new UnsafeRecord(
+                        keyEncoder.getKey(execRow),
+                        1,
+                        new byte[UnsafeRecordUtils.calculateFixedRecordSize(execRow.nColumns())],
+                        0l, true);
+                unsafeRecord.setNumberOfColumns(execRow.nColumns());
+                unsafeRecord.setTxnId1(txn.getTxnId());
+                unsafeRecord.setData(execRow.getRowArray());
+                encode = unsafeRecord.getKVPair(); // Do I need this?
+                encode.setType(KVPair.Type.INSERT);
+            } else {
+                encode = encoder.encode(execRow);
+            }
             writeBuffer.add(encode);
             TriggerHandler.fireAfterRowTriggers(triggerHandler, execRow, flushCallback);
             if (operationContext!=null)
@@ -145,29 +162,32 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
 
 
     public KeyEncoder getKeyEncoder() throws StandardException {
-        HashPrefix prefix;
-        DataHash dataHash;
-        KeyPostfix postfix = NoOpPostfix.INSTANCE;
-        if(pkCols==null){
-            prefix = new SaltedPrefix(EngineDriver.driver().newUUIDGenerator(100));
-            dataHash = NoOpDataHash.INSTANCE;
-        }else{
-            int[] keyColumns = new int[pkCols.length];
-            for(int i=0;i<keyColumns.length;i++){
-                keyColumns[i] = pkCols[i] -1;
+        if (keyEncoder==null) {
+            HashPrefix prefix;
+            DataHash dataHash;
+            KeyPostfix postfix = NoOpPostfix.INSTANCE;
+            if (pkCols == null) {
+                prefix = new SaltedPrefix(EngineDriver.driver().newUUIDGenerator(100));
+                dataHash = NoOpDataHash.INSTANCE;
+            } else {
+                int[] keyColumns = new int[pkCols.length];
+                for (int i = 0; i < keyColumns.length; i++) {
+                    keyColumns[i] = pkCols[i] - 1;
+                }
+                prefix = NoOpPrefix.INSTANCE;
+                DescriptorSerializer[] serializers = VersionedSerializers.forVersion(tableVersion, true).getSerializers(execRowDefinition);
+                dataHash = BareKeyHash.encoder(keyColumns, null, SpliceKryoRegistry.getInstance(), serializers);
             }
-            prefix = NoOpPrefix.INSTANCE;
-            DescriptorSerializer[] serializers = VersionedSerializers.forVersion(tableVersion, true).getSerializers(execRowDefinition);
-            dataHash = BareKeyHash.encoder(keyColumns,null, SpliceKryoRegistry.getInstance(),serializers);
+            keyEncoder = new KeyEncoder(prefix,dataHash,postfix);
         }
-        return new KeyEncoder(prefix,dataHash,postfix);
+        return keyEncoder;
     }
 
     public DataHash getRowHash() throws StandardException {
         //get all columns that are being set
-        int[] columns = getEncodingColumns(execRowDefinition.nColumns(),pkCols);
-        DescriptorSerializer[] serializers = VersionedSerializers.forVersion(tableVersion,true).getSerializers(execRowDefinition);
-        return new EntryDataHash(columns,null,serializers);
+            int[] columns = getEncodingColumns(execRowDefinition.nColumns(), pkCols);
+            DescriptorSerializer[] serializers = VersionedSerializers.forVersion(tableVersion, true).getSerializers(execRowDefinition);
+            return new EntryDataHash(columns, null, serializers);
     }
 
     @Override

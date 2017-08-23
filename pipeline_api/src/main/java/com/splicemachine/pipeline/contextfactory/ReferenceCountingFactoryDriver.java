@@ -14,6 +14,7 @@
 
 package com.splicemachine.pipeline.contextfactory;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.si.api.txn.TxnView;
 
@@ -102,6 +103,11 @@ public abstract class ReferenceCountingFactoryDriver implements ContextFactoryDr
         public void ddlChange(DDLMessage.DDLChange ddlChange){
             if(!loaded) return; //ignore changes that occur before we have a chance to load them
             delegate.ddlChange(ddlChange);
+        }
+
+        @Override
+        public ExecRow getEmptyRow() {
+            return delegate.getEmptyRow();
         }
     }
 }

@@ -3333,7 +3333,7 @@ public class SQLChar
         if (isNull())
             unsafeRowWriter.setNullAt(ordinal);
         else {
-            unsafeRowWriter.write(ordinal, UTF8String.fromString(value));
+            unsafeRowWriter.write(ordinal, UTF8String.fromString(toString()));
         }
     }
 
@@ -3466,4 +3466,7 @@ public class SQLChar
         }
     }
 
+    public boolean isVariableLength() {
+        return true;
+    }
 }

@@ -32,11 +32,18 @@ public class MScan implements DataScan{
     private long highTs = Long.MAX_VALUE;
     private long lowTs = 0l;
     private boolean descending = false;
+    byte[] family;
 
     @Override
     @SuppressFBWarnings("EI_EXPOSE_REP2")
     public DataScan startKey(byte[] startKey){
         this.startKey =startKey;
+        return this;
+    }
+
+    @Override
+    public DataScan setFamily(byte[] family) {
+        this.family = family;
         return this;
     }
 

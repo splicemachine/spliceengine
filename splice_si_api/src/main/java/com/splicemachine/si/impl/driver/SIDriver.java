@@ -39,7 +39,9 @@ import com.splicemachine.si.impl.TxnRegion;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.si.impl.rollforward.RollForwardStatus;
+import com.splicemachine.si.impl.server.RedoTransactor;
 import com.splicemachine.si.impl.server.SITransactor;
+import com.splicemachine.si.impl.txn.SIRedoTransactionReadController;
 import com.splicemachine.si.impl.txn.SITransactionReadController;
 import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.Partition;
@@ -73,7 +75,9 @@ public class SIDriver {
         return siDriver;
     }
 
-    private final SITransactionReadController readController;
+    private final TransactionReadController siReadController;
+    private final TransactionReadController redoReadContoller;
+
     private final PartitionFactory tableFactory;
     private final ExceptionFactory exceptionFactory;
     private final SConfiguration config;
@@ -82,6 +86,7 @@ public class SIDriver {
     private final TimestampSource timestampSource;
     private final TxnSupplier txnSupplier;
     private final Transactor transactor;
+    private final Transactor redoTransactor;
     private final TxnOperationFactory txnOpFactory;
     private final RollForward rollForward;
     private final TxnLifecycleManager lifecycleManager;
@@ -116,11 +121,19 @@ public class SIDriver {
                 env.baseOperationFactory(),
                 this.operationStatusFactory,
                 this.exceptionFactory);
+        this.redoTransactor = new RedoTransactor(
+                this.txnSupplier,
+                this.txnOpFactory,
+                env.baseOperationFactory(),
+                this.operationStatusFactory,
+                this.exceptionFactory);
         ClientTxnLifecycleManager clientTxnLifecycleManager=new ClientTxnLifecycleManager(this.timestampSource,env.exceptionFactory());
         clientTxnLifecycleManager.setTxnStore(this.txnStore);
         clientTxnLifecycleManager.setKeepAliveScheduler(env.keepAliveScheduler());
         this.lifecycleManager =clientTxnLifecycleManager;
-        readController = new SITransactionReadController(txnSupplier);
+        siReadController = new SITransactionReadController(txnSupplier);
+        redoReadContoller = new SIRedoTransactionReadController(txnSupplier);
+
         readResolver = initializedReadResolver(config,env.keyedReadResolver());
         this.baseOpFactory = env.baseOperationFactory();
         this.env = env;
@@ -128,8 +141,12 @@ public class SIDriver {
     }
 
 
-    public TransactionReadController readController(){
-        return readController;
+    public TransactionReadController getSiReadController(){
+        return siReadController;
+    }
+
+    public TransactionReadController getRedoReadContoller(){
+        return redoReadContoller;
     }
 
     public PartitionFactory getTableFactory(){
@@ -173,6 +190,10 @@ public class SIDriver {
         return transactor;
     }
 
+    public Transactor getRedoTransactor(){
+        return redoTransactor;
+    }
+
     public SIEnvironment getSIEnvironment(){
         return env;
     }
@@ -205,14 +226,14 @@ public class SIDriver {
                     getRollForward(),
                     getReadResolver(basePartition),
                     getTxnSupplier(),
-                    getTransactor(),
+                    basePartition.isRedoPartition()?getRedoTransactor():getTransactor(),
                     getOperationFactory());
         }else{
             return new TxnRegion(basePartition,
                     NoopRollForward.INSTANCE,
                     NoOpReadResolver.INSTANCE,
                     getTxnSupplier(),
-                    getTransactor(),
+                    basePartition.isRedoPartition()?getRedoTransactor():getTransactor(),
                     getOperationFactory());
         }
     }

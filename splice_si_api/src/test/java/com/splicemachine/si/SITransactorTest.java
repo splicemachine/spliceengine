@@ -23,32 +23,47 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.ForwardingLifecycleManager;
 import com.splicemachine.si.impl.ForwardingTxnView;
 import com.splicemachine.si.impl.txn.DDLTxnView;
-import com.splicemachine.si.impl.txn.InheritingTxnView;
-import com.splicemachine.si.impl.txn.LazyTxnView;
 import com.splicemachine.si.testenv.*;
 import com.splicemachine.utils.ByteSlice;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.spark_project.guava.collect.Lists;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("unchecked")
 @Category(ArchitectureSpecific.class)
+@RunWith(Parameterized.class)
 public class SITransactorTest {
     @Rule public ExpectedException error = ExpectedException.none();
     private static final byte[] DESTINATION_TABLE = Bytes.toBytes("1184");
     private boolean useSimple = true;
-    private static SITestEnv testEnv;
-    private static TestTransactionSetup transactorSetup;
+    private SITestEnv testEnv;
+    private TestTransactionSetup transactorSetup;
     private TxnLifecycleManager control;
     private TransactorTestUtility testUtility;
     private final List<Txn> createdParentTxns = Lists.newArrayList();
     private TxnStore txnStore;
+
+    private boolean useRedoTransactor;
+
+    @Parameterized.Parameters
+    public static Collection<Object> data() {
+//        return Arrays.asList(new Object[]{Boolean.FALSE,Boolean.TRUE});
+        return Arrays.asList(new Object[]{Boolean.TRUE, Boolean.FALSE});
+    }
+
+    public SITransactorTest(Boolean useRedoTransactor) {
+        this.useRedoTransactor = useRedoTransactor;
+    }
 
     @SuppressWarnings("unchecked")
     private void baseSetUp() {
@@ -58,22 +73,18 @@ public class SITransactorTest {
                 createdParentTxns.add(txn);
             }
         };
-        testUtility = new TransactorTestUtility(useSimple,testEnv, transactorSetup);
+        testUtility = useRedoTransactor?new RedoTransactorTestUtility(useSimple,testEnv,transactorSetup)
+                :new SITransactorTestUtility(useSimple,testEnv, transactorSetup);
         txnStore = transactorSetup.txnStore;
-    }
-
-    @BeforeClass
-    public static void classSetUp() throws IOException {
-        if(testEnv==null){
-            testEnv =SITestEnvironment.loadTestEnvironment();
-            transactorSetup = new TestTransactionSetup(testEnv,true);
-        }
-        testEnv.initialize(); // reinitialize from scratch
     }
 
     @Before
     public void setUp() throws IOException {
-
+        if(testEnv==null){
+            testEnv =SITestEnvironment.loadTestEnvironment();
+            transactorSetup = new TestTransactionSetup(testEnv,true,useRedoTransactor);
+            testEnv.initialize(useRedoTransactor); // reinitialize from scratch
+        }
         baseSetUp();
     }
 

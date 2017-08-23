@@ -28,6 +28,10 @@ public interface DataResult extends Iterable<DataCell>{
 
     DataCell userData();
 
+    DataCell activeData();
+
+    DataCell redoData();
+
     DataCell fkCounter();
 
     int size();

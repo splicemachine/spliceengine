@@ -23,7 +23,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceController;
-import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
@@ -43,7 +42,7 @@ public class HBaseController extends SpliceController{
     public HBaseController(OpenSpliceConglomerate openSpliceConglomerate,
                            Transaction trans,
                            PartitionFactory partitionFactory,
-                           TxnOperationFactory txnOperationFactory){
+                           TxnOperationFactory txnOperationFactory) throws StandardException {
         super(openSpliceConglomerate,trans,partitionFactory,txnOperationFactory);
     }
 
@@ -51,6 +50,7 @@ public class HBaseController extends SpliceController{
     public int batchInsert(List<ExecRow> rows) throws StandardException {
         int i = 0;
         List<DataPut> puts = new ArrayList<>();
+        Partition htable = getTable();
         for (ExecRow row: rows) {
             assert row != null : "Cannot insert a null row!";
             if (LOG.isTraceEnabled())
@@ -58,7 +58,7 @@ public class HBaseController extends SpliceController{
                         openSpliceConglomerate.getConglomerate().getContainerid(), (Arrays.toString(row.getRowArray())), trans.getTxnInformation()));
             try {
                 DataPut put = opFactory.newDataPut(trans.getTxnInformation(), SpliceUtils.getUniqueKey());//SpliceUtils.createPut(SpliceUtils.getUniqueKey(), ((SpliceTransaction)trans).getTxn());
-                encodeRow(row.getRowArray(), put, null, null);
+                encodeRow(htable,trans.getTxnInformation(),row.getRowArray(), put, null);
                 puts.add(put);
                 i++;
             } catch (Exception e) {
@@ -66,7 +66,6 @@ public class HBaseController extends SpliceController{
             }
         }
         try {
-            Partition htable = getTable();
             htable.writeBatch(puts.toArray(new DataPut[puts.size()]));
             return 0;
         } catch (Exception e) {
@@ -84,6 +83,8 @@ public class HBaseController extends SpliceController{
     public void batchInsertAndFetchLocation(ExecRow[] rows, RowLocation[] rowLocations) throws StandardException {
         List<DataPut> puts = new ArrayList();
        int i = 0;
+        Partition htable = getTable(); //-sf- don't want to close the htable here, it might break stuff
+
         for (ExecRow row: rows) {
             assert row != null : "Cannot insert into a null row!";
             if (LOG.isTraceEnabled())
@@ -91,7 +92,7 @@ public class HBaseController extends SpliceController{
                         openSpliceConglomerate.getConglomerate().getContainerid(), Arrays.toString(row.getRowArray())));
             try {
                 DataPut put = opFactory.newDataPut(trans.getTxnInformation(), SpliceUtils.getUniqueKey());//SpliceUtils.createPut(SpliceUtils.getUniqueKey(), ((SpliceTransaction)trans).getTxn());
-                encodeRow(row.getRowArray(), put, null, null);
+                encodeRow(htable,trans.getTxnInformation(),row.getRowArray(), put, null);
                 rowLocations[i].setValue(put.key());
                 puts.add(put);
                 i++;
@@ -99,7 +100,6 @@ public class HBaseController extends SpliceController{
                 throw StandardException.newException("insert and fetch location error", e);
             }
         }
-        Partition htable = getTable(); //-sf- don't want to close the htable here, it might break stuff
         try {
             htable.writeBatch(puts.toArray(new DataPut[puts.size()]));
         } catch (Exception e) {
@@ -122,10 +122,21 @@ public class HBaseController extends SpliceController{
             LOG.trace(String.format("replace rowLocation %s, destRow %s, validColumns %s",loc,Arrays.toString(row),validColumns));
         Partition htable=getTable();
         try{
-
             DataPut put=opFactory.newDataPut(trans.getTxnInformation(),loc.getBytes());//SpliceUtils.createPut(SpliceUtils.getUniqueKey(), ((SpliceTransaction)trans).getTxn());
 
-            encodeRow(row,put,EngineUtils.bitSetToMap(validColumns),validColumns);
+            if (htable.isRedoPartition() && validColumns!=null) {
+                DataValueDescriptor[] nonSparseUpdates = new DataValueDescriptor[validColumns.getNumBitsSet()];
+                int beyondBit = -1;
+                int i  = 0;
+                while ( (beyondBit = validColumns.anySetBit(beyondBit)) != -1) {
+                    nonSparseUpdates[i] = row[beyondBit];
+                    i++;
+                }
+                encodeRow(htable,trans.getTxnInformation(),nonSparseUpdates,put,validColumns);
+                htable.put(put);
+                return true;
+            }
+            encodeRow(htable,trans.getTxnInformation(),row,put,validColumns);
             htable.put(put);
             return true;
         }catch(Exception e){

@@ -14,6 +14,11 @@
 
 package com.splicemachine.pipeline;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.iapi.types.SQLVarchar;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.pipeline.contextfactory.*;
 import com.splicemachine.si.api.txn.TxnView;
@@ -32,9 +37,12 @@ public class ManualContextFactoryLoader implements ContextFactoryLoader{
     private final WriteFactoryGroup indices = new ListWriteFactoryGroup(Collections.<LocalWriteFactory>emptyList());
     private final WriteFactoryGroup fk = new ListWriteFactoryGroup(Collections.<LocalWriteFactory>emptyList());
     private final WriteFactoryGroup ddl = new ListWriteFactoryGroup(Collections.<LocalWriteFactory>emptyList());
+    private ExecRow emptyExecRow = new ValueRow(2);
 
     @Override
     public void load(TxnView txn) throws IOException, InterruptedException{
+            emptyExecRow.setRowArray(new DataValueDescriptor[]{new SQLVarchar(),new SQLInteger()});
+
         //no-op, because we expect to manually add them
     }
 
@@ -66,5 +74,10 @@ public class ManualContextFactoryLoader implements ContextFactoryLoader{
     @Override
     public void close(){
         //no-op
+    }
+
+    @Override
+    public ExecRow getEmptyRow() {
+        return emptyExecRow;
     }
 }

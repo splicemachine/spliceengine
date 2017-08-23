@@ -25,9 +25,16 @@ import java.util.Iterator;
 import java.util.ServiceLoader;
 
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.access.impl.data.UnsafeRecord;
+import com.splicemachine.access.impl.data.UnsafeRecordUtils;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLBlob;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.storage.*;
+import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Preconditions;
-
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionCreator;
@@ -42,13 +49,6 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.storage.DataGet;
-import com.splicemachine.storage.DataPut;
-import com.splicemachine.storage.DataResult;
-import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.EntryEncoder;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
@@ -75,32 +75,47 @@ public class ConglomerateUtils{
         Preconditions.checkNotNull(conglomId);
         SIDriver driver=SIDriver.driver();
         try(Partition partition=driver.getTableFactory().getTable(SQLConfiguration.CONGLOMERATE_TABLE_NAME_BYTES)){
-            DataGet get=driver.getOperationFactory().newDataGet(txn,Bytes.toBytes(conglomId),null);
-            get.returnAllVersions();
-            get.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES);
-            EntryPredicateFilter predicateFilter=EntryPredicateFilter.emptyPredicate();
-            get.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
+            if (partition.isRedoPartition()) {
+                DataGet get = driver.getOperationFactory().newDataGet(txn, Bytes.toBytes(conglomId), null);
+                //get.addColumn(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES, SIConstants.PACKED_COLUMN_BYTES);
+                EntryPredicateFilter predicateFilter = EntryPredicateFilter.emptyPredicate();
+                get.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL, predicateFilter.toBytes());
+                DataResult result = partition.get(get, null);
+                DataCell dataCell = result.activeData();
+                UnsafeRecord unsafeRecord = new UnsafeRecord();
+                unsafeRecord.wrap(dataCell);
+                ExecRow execRow = new ValueRow(1);
+                execRow.setRowArray(new DataValueDescriptor[]{new SQLBlob()});
+                unsafeRecord.getData(new int[]{0},execRow);
+                return DerbyBytesUtil.fromBytesUnsafe(execRow.getColumn(1).getBytes());
+            } else {
+                DataGet get = driver.getOperationFactory().newDataGet(txn, Bytes.toBytes(conglomId), null);
+                get.returnAllVersions();
+                get.addColumn(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES);
+                EntryPredicateFilter predicateFilter = EntryPredicateFilter.emptyPredicate();
+                get.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL, predicateFilter.toBytes());
 
-            DataResult result=partition.get(get,null);
-            byte[] data=result.userData().value();
+                DataResult result = partition.get(get, null);
+                byte[] data = result.userData().value();
 
-            EntryDecoder entryDecoder=new EntryDecoder();
-            try{
-                if(data!=null){
-                    entryDecoder.set(data);
-                    MultiFieldDecoder decoder=entryDecoder.getEntryDecoder();
-                    byte[] nextRaw=decoder.decodeNextBytesUnsorted();
+                EntryDecoder entryDecoder = new EntryDecoder();
+                try {
+                    if (data != null) {
+                        entryDecoder.set(data);
+                        MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
+                        byte[] nextRaw = decoder.decodeNextBytesUnsorted();
 
-                    try{
-                        return DerbyBytesUtil.fromBytesUnsafe(nextRaw);
-                    }catch(InvalidClassException ice){
-                        LOG.error("InvalidClassException detected when reading conglomerate "+conglomId+
-                                ". Attempting to resolve the ambiguity in serialVersionUIDs, but serialization errors may result:"+ice.getMessage());
-                        return readVersioned(nextRaw,instanceClass);
+                        try {
+                            return DerbyBytesUtil.fromBytesUnsafe(nextRaw);
+                        } catch (InvalidClassException ice) {
+                            LOG.error("InvalidClassException detected when reading conglomerate " + conglomId +
+                                    ". Attempting to resolve the ambiguity in serialVersionUIDs, but serialization errors may result:" + ice.getMessage());
+                            return readVersioned(nextRaw, instanceClass);
+                        }
                     }
+                } finally {
+                    entryDecoder.close();
                 }
-            }finally{
-                entryDecoder.close();
             }
         }catch(Exception e){
             SpliceLogUtils.logAndThrow(LOG,"readConglomerateException",Exceptions.parseException(e));
@@ -247,7 +262,7 @@ public class ConglomerateUtils{
             String tableDisplayName,
             String indexDisplayName,
             long partitionSize) throws StandardException{
-        SpliceLogUtils.debug(LOG,"creating Hbase table for conglom {%s} with data {%s}",tableName,conglomData);
+        SpliceLogUtils.debug(LOG,"creating table for conglom {%s} with data {%s}",tableName,conglomData);
         Preconditions.checkNotNull(txn);
         Preconditions.checkNotNull(conglomData);
         Preconditions.checkNotNull(tableName);
@@ -266,13 +281,31 @@ public class ConglomerateUtils{
         }
 
         try(Partition table=tableFactory.getTable(SQLConfiguration.CONGLOMERATE_TABLE_NAME_BYTES)){
-            DataPut put=driver.getOperationFactory().newDataPut(txn,Bytes.toBytes(conglomId));
-            BitSet fields=new BitSet();
-            fields.set(0);
-            entryEncoder=EntryEncoder.create(SpliceKryoRegistry.getInstance(),1,fields,null,null,null);
-            entryEncoder.getEntryEncoder().encodeNextUnsorted(conglomData);
-            put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,entryEncoder.encode());
-            table.put(put);
+            byte[] conglomIdBytes = Bytes.toBytes(conglomId);
+            DataPut put=driver.getOperationFactory().newDataPut(txn,conglomIdBytes);
+            // Need to isolate this code better
+            if (table.isRedoPartition()) {
+                UnsafeRecord record = new UnsafeRecord(
+                        conglomIdBytes,
+                        1,
+                        new byte[UnsafeRecordUtils.calculateFixedRecordSize(1)],
+                        0l,true);
+                record.setNumberOfColumns(1);
+                record.setTxnId1(txn.getTxnId());
+                ExecRow execRow = new ValueRow(1);
+                execRow.setRowArray(new DataValueDescriptor[]{new SQLBlob()});
+                record.setData(new DataValueDescriptor[]{new SQLBlob(conglomData)});
+                put.addAttribute(SIConstants.SI_EXEC_ROW, SerializationUtils.serialize(execRow));
+                put.addCell(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES,SIConstants.PACKED_COLUMN_BYTES,1,record.getValue());
+                table.put(put);
+            } else {
+                BitSet fields = new BitSet();
+                fields.set(0);
+                entryEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(), 1, fields, null, null, null);
+                entryEncoder.getEntryEncoder().encodeNextUnsorted(conglomData);
+                put.addCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES, entryEncoder.encode());
+                table.put(put);
+            }
         }
         catch(Exception e){
             SpliceLogUtils.logAndThrow(LOG,"Error Creating Conglomerate",Exceptions.parseException(e));

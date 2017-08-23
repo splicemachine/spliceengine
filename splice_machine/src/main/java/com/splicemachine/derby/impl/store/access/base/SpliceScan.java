@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.store.access.base;
 
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.access.impl.data.UnsafeRecord;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -102,9 +103,6 @@ public class SpliceScan implements ScanManager, LazyScan{
         attachFilter();
         tableName=Long.toString(spliceConglomerate.getConglomerate().getContainerid());
         DataValueDescriptor[] dvdArray = this.spliceConglomerate.cloneRowTemplate();
-        // Hack for Indexes...
-        if (dvdArray[dvdArray.length-1] == null)
-            dvdArray[dvdArray.length-1] = new HBaseRowLocation();
         currentRow = new ValueRow(dvdArray.length);
         currentRow.setRowArray(dvdArray);
         serializers = VersionedSerializers.forVersion("1.0", true).getSerializers(currentRow);
@@ -269,17 +267,26 @@ public class SpliceScan implements ScanManager, LazyScan{
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public void fetchWithoutQualify() throws StandardException{
-        try{
-            if(currentRow!=null){
-                try (EntryDataDecoder decoder = new EntryDataDecoder(null, null, serializers)) {
-                    DataCell kv = currentResult.userData();//dataLib.matchDataColumn(currentResult);
-                    decoder.set(kv.valueArray(), kv.valueOffset(), kv.valueLength());//dataLib.getDataValueBuffer(kv),dataLib.getDataValueOffset(kv),dataLib.getDataValuelength(kv));
-                    decoder.decode(currentRow);
-                }
+        if (table.isRedoPartition()) {
+            if (currentRow != null) {
+                UnsafeRecord unsafeRecord = new UnsafeRecord();
+                unsafeRecord.wrap(currentResult.activeData());
+                unsafeRecord.getData(scanColumnList,currentRow);
             }
-            this.currentRowLocation=new HBaseRowLocation(currentResult.key());
-        }catch(Exception e){
-            throw StandardException.newException("Error occurred during fetch",e);
+            this.currentRowLocation = new HBaseRowLocation(currentResult.key());
+        } else {
+            try {
+                if (currentRow != null) {
+                    try (EntryDataDecoder decoder = new EntryDataDecoder(null, null, serializers)) {
+                        DataCell kv = currentResult.userData();//dataLib.matchDataColumn(currentResult);
+                        decoder.set(kv.valueArray(), kv.valueOffset(), kv.valueLength());//dataLib.getDataValueBuffer(kv),dataLib.getDataValueOffset(kv),dataLib.getDataValuelength(kv));
+                        decoder.decode(currentRow);
+                    }
+                }
+                this.currentRowLocation = new HBaseRowLocation(currentResult.key());
+            } catch (Exception e) {
+                throw StandardException.newException("Error occurred during fetch", e);
+            }
         }
     }
 

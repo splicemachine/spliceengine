@@ -36,6 +36,7 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
     protected long heapConglom;
     protected TxnView txn;
     protected OperationContext operationContext;
+    protected String tableVersion;
 
     public DeleteTableWriterBuilder heapConglom(long heapConglom) {
         this.heapConglom = heapConglom;
@@ -49,6 +50,12 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
     @Override
     public DataSetWriterBuilder destConglomerate(long heapConglom){
         this.heapConglom = heapConglom;
+        return this;
+    }
+
+    @Override
+    public DataSetWriterBuilder tableVersion(String tableVersion){
+        this.tableVersion = tableVersion;
         return this;
     }
 
@@ -70,7 +77,7 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
     @Override
     public TableWriter buildTableWriter() throws StandardException{
         long conglom = Long.parseLong(Bytes.toString(((DMLWriteOperation)operationContext.getOperation()).getDestinationTable()));
-        return new DeletePipelineWriter(txn,conglom,operationContext);
+        return new DeletePipelineWriter(tableVersion,txn,conglom,operationContext);
     }
 
     @Override

@@ -49,7 +49,7 @@ public class IndexController extends SpliceController{
                            Transaction trans,
                            PartitionFactory partitionFactory,
                            TxnOperationFactory txnOperationFactory,
-                           int nKeyFields){
+                           int nKeyFields) throws StandardException {
         super(openSpliceConglomerate,trans,partitionFactory,txnOperationFactory);
         this.nKeyFields=nKeyFields;
     }
@@ -70,6 +70,7 @@ public class IndexController extends SpliceController{
         boolean[] order=((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
         List<byte[]> rowKeys = new ArrayList<>();
         DataGet get = null;
+        Partition htable = getTable();
         for (ExecRow row: rows) {
             assert row != null : "Cannot insert a null row!";
             if (LOG.isTraceEnabled())
@@ -81,7 +82,7 @@ public class IndexController extends SpliceController{
                 if (get == null)
                     get = opFactory.newDataGet(txn, rowKey, null);
                 DataPut put=opFactory.newDataPut(txn,rowKey);//SpliceUtils.createPut(rowKey,((SpliceTransaction)trans).getTxn());
-                encodeRow(row.getRowArray(), put, null, null);
+                encodeRow(htable,txn,row.getRowArray(), put, null);
                 puts.add(put);
             } catch (Exception e) {
                 throw Exceptions.parseException(e);
@@ -91,7 +92,6 @@ public class IndexController extends SpliceController{
             if (rows.isEmpty()) {
                 return 0;
             }
-            Partition htable = getTable();
             Iterator<DataResult> results = htable.batchGet(get, rowKeys);
             while (results.hasNext()) {
                 DataResult result = results.next();
@@ -117,6 +117,7 @@ public class IndexController extends SpliceController{
         List<DataPut> puts = new ArrayList();
         boolean[] order=((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
         int i = 0;
+        Partition htable = getTable(); //-sf- don't want to close the htable here, it might break stuff
         for (ExecRow row: rows) {
             assert row != null : "Cannot insert into a null row!";
             if(LOG.isTraceEnabled())
@@ -124,7 +125,7 @@ public class IndexController extends SpliceController{
             try {
                 byte[] rowKey=generateIndexKey(row.getRowArray(),order);
                 DataPut put=opFactory.newDataPut(trans.getTxnInformation(),rowKey);//SpliceUtils.createPut(rowKey,((SpliceTransaction)trans).getTxn());
-                encodeRow(row.getRowArray(),put,null,null);
+                encodeRow(htable,trans.getTxnInformation(),row.getRowArray(),put,null);
                 rowLocations[i].setValue(put.key());
                 i++;
                 puts.add(put);
@@ -132,7 +133,6 @@ public class IndexController extends SpliceController{
                 throw StandardException.newException("insert and fetch location error", e);
             }
         }
-        Partition htable = getTable(); //-sf- don't want to close the htable here, it might break stuff
         try {
             htable.writeBatch(puts.toArray(new DataPut[puts.size()]));
         } catch (Exception e) {
@@ -187,7 +187,7 @@ public class IndexController extends SpliceController{
                 }
             }
 
-            encodeRow(row,put,validCols,validColumns);
+            encodeRow(htable,trans.getTxnInformation(),row,put,validColumns);
             htable.put(put);
             super.delete(loc);
             return true;

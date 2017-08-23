@@ -97,7 +97,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 	 */
 	public static final String ORIGINAL_TABLE_VERSION = "1.0";
 	//the current version for creating new tables with
-	public static final String CURRENT_TABLE_VERSION = "2.0";
+	public static final String CURRENT_TABLE_VERSION = "3.0";
 	
 	// all indexes are unique.
 
@@ -391,8 +391,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		SanityManager.ASSERT(row.nColumns() == SYSTABLES_COLUMN_COUNT, "Wrong number of columns for a SYSTABLES row");
 
 		DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
-
-		String	tableUUIDString; 
+		String	tableUUIDString;
 		String	schemaUUIDString; 
 		int		tableTypeEnum;
 		String	lockGranularity;
@@ -497,7 +496,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		if(versionDescriptor!=null){
 			tabDesc.setVersion(versionDescriptor.getString());
 		}else
-						tabDesc.setVersion(ORIGINAL_TABLE_VERSION);
+						tabDesc.setVersion(CURRENT_TABLE_VERSION);
 		return tabDesc;
 	}
 

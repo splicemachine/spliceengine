@@ -166,4 +166,14 @@ public interface Partition extends AutoCloseable{
      */
     BitSet getBloomInMemoryCheck(boolean hasConstraintChecker, Pair<KVPair, Lock>[] dataAndLocks) throws IOException;
 
+    /**
+     *
+     * The version of the partition.
+     *
+     * @return
+     */
+    String getVersion();
+
+    boolean isRedoPartition();
+
 }

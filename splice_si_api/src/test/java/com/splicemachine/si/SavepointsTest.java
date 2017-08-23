@@ -23,18 +23,18 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.ForwardingLifecycleManager;
 import com.splicemachine.si.impl.SavePointNotFoundException;
 import com.splicemachine.si.impl.TransactionImpl;
-import com.splicemachine.si.testenv.ArchitectureSpecific;
-import com.splicemachine.si.testenv.SITestEnv;
-import com.splicemachine.si.testenv.SITestEnvironment;
-import com.splicemachine.si.testenv.TestTransactionSetup;
-import com.splicemachine.si.testenv.TransactorTestUtility;
+import com.splicemachine.si.testenv.*;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.spark_project.guava.collect.Lists;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -42,23 +42,36 @@ import java.util.List;
  *
  */
 @Category(ArchitectureSpecific.class)
+@RunWith(Parameterized.class)
 public class SavepointsTest {
 
     private static final byte[] DESTINATION_TABLE=Bytes.toBytes("1216");
 
-    private static SITestEnv testEnv;
-    private static TestTransactionSetup transactorSetup;
+    private SITestEnv testEnv;
+    private TestTransactionSetup transactorSetup;
 
     private TxnLifecycleManager control;
     private final List<Txn> createdParentTxns= Lists.newArrayList();
     private TxnStore txnStore;
     private TransactorTestUtility testUtility;
 
+    private boolean useRedoTransactor;
+
+    @Parameterized.Parameters
+    public static Collection<Object> data() {
+        return Arrays.asList(new Object[]{Boolean.FALSE,Boolean.TRUE});
+
+    }
+
+    public SavepointsTest(Boolean useRedoTransactor) {
+        this.useRedoTransactor = useRedoTransactor;
+    }
+
     @Before
     public void setUp() throws Exception{
         if(testEnv==null){
             testEnv=SITestEnvironment.loadTestEnvironment();
-            transactorSetup=new TestTransactionSetup(testEnv,true);
+            transactorSetup=new TestTransactionSetup(testEnv,true,useRedoTransactor);
         }
         control=new ForwardingLifecycleManager(transactorSetup.txnLifecycleManager){
             @Override
@@ -66,7 +79,7 @@ public class SavepointsTest {
                 createdParentTxns.add(txn);
             }
         };
-        testUtility = new TransactorTestUtility(true,testEnv, transactorSetup);
+        testUtility = useRedoTransactor?new RedoTransactorTestUtility(true,testEnv,transactorSetup):new SITransactorTestUtility(true,testEnv, transactorSetup);
         txnStore=transactorSetup.txnStore;
         transactorSetup.timestampSource.rememberTimestamp(transactorSetup.timestampSource.nextTimestamp());
     }

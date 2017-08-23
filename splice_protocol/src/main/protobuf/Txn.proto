@@ -142,6 +142,16 @@ message TxnRequest{
     optional bool isOld = 3;
 }
 
+message TxnRequests{
+    repeated uint64 txnId = 1;
+    repeated bool includeDestinationTables = 2;
+    repeated bool isOld = 3;
+}
+
+message TxnResponses{
+    repeated Txn txns = 1;
+}
+
 message ActiveTxnIdResponse{
     repeated uint64 activeTxnIds = 1;
 }
@@ -198,6 +208,8 @@ service TxnLifecycleService{
     rpc lifecycleAction(TxnLifecycleMessage) returns (ActionResponse);
 
     rpc getTransaction(TxnRequest) returns (Txn);
+
+    rpc getTransactions(TxnRequests) returns (TxnResponses);
 
     rpc getActiveTransactionIds(ActiveTxnRequest) returns (ActiveTxnIdResponse);
 

@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.stream.output.delete;
 
+import com.splicemachine.access.impl.data.UnsafeRecord;
+import com.splicemachine.access.impl.data.UnsafeRecordUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
@@ -39,9 +41,12 @@ public class DeletePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     protected PairEncoder encoder;
     public int rowsDeleted = 0;
     protected DeleteOperation deleteOperation;
+    protected KeyEncoder keyEncoder;
+    protected UnsafeRecord unsafeRecord;
 
-    public DeletePipelineWriter(TxnView txn,long heapConglom,OperationContext operationContext) throws StandardException {
-        super(txn,heapConglom,operationContext);
+    public DeletePipelineWriter(String tableVersion,
+            TxnView txn,long heapConglom,OperationContext operationContext) throws StandardException {
+        super(tableVersion,txn,heapConglom,operationContext);
         if (operationContext != null) {
             deleteOperation = (DeleteOperation)operationContext.getOperation();
         }
@@ -62,26 +67,32 @@ public class DeletePipelineWriter extends AbstractPipelineWriter<ExecRow>{
         }
     }
     public KeyEncoder getKeyEncoder() throws StandardException {
-        return new KeyEncoder(NoOpPrefix.INSTANCE,new DataHash<ExecRow>(){
-            private ExecRow currentRow;
+        if (keyEncoder == null) {
+            keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE, new DataHash<ExecRow>() {
+                private ExecRow currentRow;
 
-            @Override
-            public void setRow(ExecRow rowToEncode) {
-                this.currentRow = rowToEncode;
-            }
+                @Override
+                public void setRow(ExecRow rowToEncode) {
+                    this.currentRow = rowToEncode;
+                }
 
-            @Override
-            public byte[] encode() throws StandardException, IOException {
-                RowLocation location = (RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject();
-                return location.getBytes();
-            }
+                @Override
+                public byte[] encode() throws StandardException, IOException {
+                    RowLocation location = (RowLocation) currentRow.getColumn(currentRow.nColumns()).getObject();
+                    return location.getBytes();
+                }
 
-            @Override public void close() throws IOException {  }
+                @Override
+                public void close() throws IOException {
+                }
 
-            @Override public KeyHashDecoder getDecoder() {
-                return NoOpKeyHashDecoder.INSTANCE;
-            }
-        },NoOpPostfix.INSTANCE);
+                @Override
+                public KeyHashDecoder getDecoder() {
+                    return NoOpKeyHashDecoder.INSTANCE;
+                }
+            }, NoOpPostfix.INSTANCE);
+        }
+        return keyEncoder;
     }
 
     public DataHash getRowHash() throws StandardException {
@@ -91,7 +102,21 @@ public class DeletePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     public void delete(ExecRow execRow) throws StandardException {
         try {
             beforeRow(execRow);
-            KVPair encode = encoder.encode(execRow);
+            KVPair encode;
+            if (tableVersion.equals("3.0")) {
+                unsafeRecord = new UnsafeRecord(
+                        keyEncoder.getKey(execRow),
+                        1,
+                        new byte[UnsafeRecordUtils.calculateFixedRecordSize(execRow.nColumns())],
+                        0l, true);
+                unsafeRecord.setNumberOfColumns(execRow.nColumns());
+                unsafeRecord.setTxnId1(txn.getTxnId());
+                unsafeRecord.setHasTombstone(true);
+                encode = unsafeRecord.getKVPair(); // Do I need this?
+                encode.setType(KVPair.Type.DELETE);
+            } else {
+                encode = encoder.encode(execRow);
+            }
             rowsDeleted++;
             writeBuffer.add(encode);
             TriggerHandler.fireAfterRowTriggers(triggerHandler, execRow, flushCallback);

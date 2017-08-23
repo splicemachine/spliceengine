@@ -15,8 +15,15 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.access.impl.data.UnsafeRecord;
+import com.splicemachine.access.impl.data.UnsafeRecordUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
+import com.splicemachine.db.iapi.types.SQLBlob;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import org.spark_project.guava.primitives.Ints;
 import com.splicemachine.SpliceKryoRegistry;
@@ -79,10 +86,13 @@ public class IndexTransformer {
     private byte[] indexConglomBytes;
     private int[] indexFormatIds;
     private DescriptorSerializer[] serializers;
-
-
+    protected UnsafeRecord unsafeRecord;
     private transient DataGet baseGet = null;
     private transient DataResult baseResult = null;
+    private int[] sourceRow;
+    private DataValueDescriptor[] sqlBlob;
+    private ExecRow indexRow;
+    private ExecRow directIndexWrite;
 
     public IndexTransformer(DDLMessage.TentativeIndex tentativeIndex) {
         index = tentativeIndex.getIndex();
@@ -98,6 +108,7 @@ public class IndexTransformer {
         for (int i = 0; i < indexColsList.size(); i++) {
             indexFormatIds[i] = allFormatIds.get(indexColsList.get(i)-1);
         }
+        indexRow = WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds);
     }
 
     /**
@@ -174,21 +185,45 @@ public class IndexTransformer {
                     data, 0, data.length);
             }
         }
+
         //add the row key to the end of the index key
         byte[] srcRowKey = Encoding.encodeBytesUnsorted(execRow.getKey());
 
-        EntryEncoder rowEncoder = getRowEncoder();
-        MultiFieldEncoder entryEncoder = rowEncoder.getEntryEncoder();
-        entryEncoder.reset();
-        entryEncoder.setRawBytes(srcRowKey);
-        byte[] indexValue = rowEncoder.encode();
         byte[] indexRowKey;
         if (index.getUnique()) {
             boolean nonUnique = index.getUniqueWithDuplicateNulls() && (hasNullKeyFields || !keyAccumulator.isFinished());
             indexRowKey = getIndexRowKey(srcRowKey, nonUnique);
         } else
             indexRowKey = getIndexRowKey(srcRowKey, true);
-        return new KVPair(indexRowKey, indexValue, KVPair.Type.INSERT);
+
+
+        if (table.getTableVersion().equals("3.0")) {
+            if (sourceRow == null) {
+                sourceRow = new int[]{execRow.nColumns()};
+                sqlBlob = new DataValueDescriptor[]{new HBaseRowLocation(srcRowKey)};
+            }
+            unsafeRecord = new UnsafeRecord(
+                    indexRowKey,
+                    1,
+                    new byte[UnsafeRecordUtils.calculateFixedRecordSize(execRow.nColumns()+1)],
+                    0l, true);
+            if (directIndexWrite == null)
+                directIndexWrite = new ValueRow(execRow.nColumns()+1);
+            System.arraycopy(execRow.getRowArray(),0,directIndexWrite.getRowArray(),0,execRow.nColumns());
+            directIndexWrite.setColumn(execRow.nColumns()+1,new HBaseRowLocation(srcRowKey));
+            unsafeRecord.setNumberOfColumns(execRow.nColumns()+1);
+            unsafeRecord.setData(directIndexWrite.getRowArray());
+            KVPair kvPair = unsafeRecord.getKVPair(); // Do I need this?
+            kvPair.setType(KVPair.Type.INSERT);
+            return kvPair;
+        } else {
+            EntryEncoder rowEncoder = getRowEncoder();
+            MultiFieldEncoder entryEncoder = rowEncoder.getEntryEncoder();
+            entryEncoder.reset();
+            entryEncoder.setRawBytes(srcRowKey);
+            byte[] indexValue = rowEncoder.encode();
+            return new KVPair(indexRowKey, indexValue, KVPair.Type.INSERT);
+        }
     }
 
 
@@ -207,6 +242,20 @@ public class IndexTransformer {
         if (mutation == null) {
             return null;
         }
+
+        if (table.getTableVersion().equals("3.0")) {
+            try {
+                UnsafeRecord unsafeRecord = new UnsafeRecord();
+                unsafeRecord.wrap(mutation, true, 1);
+                unsafeRecord.getData(indexedCols, indexRow.getRowArray());
+                indexRow.setKey(mutation.getRowKey());
+                return writeDirectIndex(indexRow);
+            } catch (StandardException se) {
+                throw new IOException(se);
+            }
+        }
+
+
 
         EntryAccumulator keyAccumulator = getKeyAccumulator();
         keyAccumulator.reset();

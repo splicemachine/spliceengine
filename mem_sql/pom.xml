@@ -253,6 +253,7 @@
                     </execution>
                 </executions>
                 <configuration>
+			<commandlineArgs>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020</commandlineArgs>
                     <mainClass>com.splicemachine.derby.lifecycle.MemDatabase</mainClass>
                 </configuration>
             </plugin>
@@ -274,6 +275,7 @@
                                     <jvmarg value="-XX:+UseParNewGC"/>
                                     <jvmarg value="-XX:+CMSPermGenSweepingEnabled"/>
                                     <jvmarg value="-XX:+CMSClassUnloadingEnabled"/>
+				    <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020"/>
                                     <sysproperty key="log4j.configuration" value="file://${basedir}/src/main/resources/log4j.properties"/>
                                     <sysproperty key="com.sun.management.jmxremote.ssl" value="false"/>
                                     <sysproperty key="com.sun.management.jmxremote.authenticate" value="false"/>

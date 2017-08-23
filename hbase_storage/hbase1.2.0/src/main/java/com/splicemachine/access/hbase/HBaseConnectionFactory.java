@@ -14,10 +14,6 @@
 
 package com.splicemachine.access.hbase;
 
-import static com.splicemachine.si.constants.SIConstants.DEFAULT_FAMILY_BYTES;
-import static com.splicemachine.si.constants.SIConstants.SI_PERMISSION_FAMILY;
-import static com.splicemachine.si.constants.SIConstants.TRANSACTION_TABLE_BUCKET_COUNT;
-
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -43,6 +39,8 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.SIConfigurations;
 import com.splicemachine.utils.SpliceLogUtils;
+
+import static com.splicemachine.si.constants.SIConstants.*;
 
 
 /**
@@ -158,7 +156,8 @@ public class HBaseConnectionFactory{
 
     public HTableDescriptor generateDefaultSIGovernedTable(String tableName){
         HTableDescriptor desc=new HTableDescriptor(TableName.valueOf(namespace,tableName));
-        desc.addFamily(createDataFamily());
+        desc.addFamily(createActiveFamily());
+        desc.addFamily(createRedoFamily());
         return desc;
     }
 
@@ -193,6 +192,30 @@ public class HBaseConnectionFactory{
 
     public HColumnDescriptor createDataFamily(){
         HColumnDescriptor snapshot=new HColumnDescriptor(DEFAULT_FAMILY_BYTES);
+        snapshot.setMaxVersions(Integer.MAX_VALUE);
+        Compression.Algorithm compress=Compression.getCompressionAlgorithmByName(config.getCompressionAlgorithm());
+        snapshot.setCompressionType(compress);
+        snapshot.setInMemory(HConfiguration.DEFAULT_IN_MEMORY);
+        snapshot.setBlockCacheEnabled(HConfiguration.DEFAULT_BLOCKCACHE);
+        snapshot.setBloomFilterType(BloomType.ROW);
+        snapshot.setTimeToLive(HConfiguration.DEFAULT_TTL);
+        return snapshot;
+    }
+
+    public HColumnDescriptor createActiveFamily(){
+        HColumnDescriptor snapshot=new HColumnDescriptor(DEFAULT_FAMILY_ACTIVE_BYTES);
+        snapshot.setMaxVersions(1);
+        Compression.Algorithm compress=Compression.getCompressionAlgorithmByName(config.getCompressionAlgorithm());
+        snapshot.setCompressionType(compress);
+        snapshot.setInMemory(HConfiguration.DEFAULT_IN_MEMORY);
+        snapshot.setBlockCacheEnabled(HConfiguration.DEFAULT_BLOCKCACHE);
+        snapshot.setBloomFilterType(BloomType.ROW);
+        snapshot.setTimeToLive(HConfiguration.DEFAULT_TTL);
+        return snapshot;
+    }
+
+    public HColumnDescriptor createRedoFamily(){
+        HColumnDescriptor snapshot=new HColumnDescriptor(DEFAULT_FAMILY_REDO_BYTES);
         snapshot.setMaxVersions(Integer.MAX_VALUE);
         Compression.Algorithm compress=Compression.getCompressionAlgorithmByName(config.getCompressionAlgorithm());
         snapshot.setCompressionType(compress);

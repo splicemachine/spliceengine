@@ -45,11 +45,8 @@ import java.io.IOException;
 public class HregionDataSetProcessor extends ControlDataSetProcessor {
     private static final Logger LOG = Logger.getLogger(HregionDataSetProcessor.class);
 
-
-    public HregionDataSetProcessor(TxnSupplier txnSupplier,
-                                   Transactor transactory,
-                                   TxnOperationFactory txnOperationFactory){
-        super(txnSupplier, transactory, txnOperationFactory);
+    public HregionDataSetProcessor(SIDriver driver) {
+        super(driver);
     }
 
     @Override

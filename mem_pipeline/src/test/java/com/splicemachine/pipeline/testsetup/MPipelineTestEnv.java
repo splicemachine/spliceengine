@@ -18,6 +18,8 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.splicemachine.si.api.server.Transactor;
+import com.splicemachine.si.impl.server.RedoTransactor;
 import org.spark_project.guava.base.Function;
 
 import com.splicemachine.access.api.PartitionFactory;
@@ -56,18 +58,25 @@ import com.splicemachine.storage.Partition;
  *         Date: 12/23/15
  */
 public class MPipelineTestEnv extends MemSITestEnv implements PipelineTestEnv{
-    private final WriteCoordinator writeCoordinator;
-    private final Map<Long,ContextFactoryLoader> contextFactoryLoaderMap = new ConcurrentHashMap<>();
-    private final MappedPipelineFactory pipelineFactory;
-    private final SConfiguration config;
-    private final TransactionalRegionFactory trf;
+    private WriteCoordinator writeCoordinator;
+    private Map<Long,ContextFactoryLoader> contextFactoryLoaderMap = new ConcurrentHashMap<>();
+    private MappedPipelineFactory pipelineFactory;
+    private SConfiguration config;
+    private TransactionalRegionFactory trf;
+    private boolean useRedoTransactor;
 
     @SuppressWarnings("unchecked")
     public MPipelineTestEnv() throws IOException{
-        this.config = new ConfigurationBuilder().build(new HConfigurationDefaultsList().addConfig(new MPipelineTestConfig()),
-                                                       new ReflectingConfigurationSource());
 
-         trf = buildTransactionalRegionFactory();
+    }
+
+    @Override
+    public void initialize(boolean useRedoTransactor) throws IOException{
+        this.useRedoTransactor = useRedoTransactor;
+        this.config = new ConfigurationBuilder().build(new HConfigurationDefaultsList().addConfig(new MPipelineTestConfig()),
+                new ReflectingConfigurationSource());
+
+        trf = buildTransactionalRegionFactory();
         pipelineFactory = new MappedPipelineFactory();
         DirectBulkWriterFactory bwf = new DirectBulkWriterFactory(pipelineFactory,
                 new AtomicSpliceWriteControl(Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MAX_VALUE),
@@ -78,10 +87,6 @@ public class MPipelineTestEnv extends MemSITestEnv implements PipelineTestEnv{
         writeCoordinator = new WriteCoordinator(writer,writer,monitor,getTableFactory(),
                 DirectPipelineExceptionFactory.INSTANCE,null);
         bwf.setWriteCoordinator(writeCoordinator);
-    }
-
-    @Override
-    public void initialize() throws IOException{
         createTransactionalTable(Bytes.toBytes(Long.toString(1292)));
         personPartition = getTableFactory().getTable(Long.toString(1292));
     }
@@ -133,8 +138,10 @@ public class MPipelineTestEnv extends MemSITestEnv implements PipelineTestEnv{
     /*private helper methods*/
     @SuppressWarnings("unchecked")
     private TransactionalRegionFactory buildTransactionalRegionFactory(){
-        SITransactor transactor = new SITransactor(getTxnStore(),
-                getOperationFactory(),getBaseOperationFactory(),getOperationStatusFactory(),getExceptionFactory());
+            Transactor transactor  = useRedoTransactor?new RedoTransactor(getTxnStore(),
+                getOperationFactory(),getBaseOperationFactory(),getOperationStatusFactory(),getExceptionFactory()):
+                    new SITransactor(getTxnStore(),
+                            getOperationFactory(),getBaseOperationFactory(),getOperationStatusFactory(),getExceptionFactory());
         return new TransactionalRegionFactory(this.getTxnStore(),
                 transactor,getOperationFactory(),NoopRollForward.INSTANCE,NoOpReadResolver.INSTANCE);
     }

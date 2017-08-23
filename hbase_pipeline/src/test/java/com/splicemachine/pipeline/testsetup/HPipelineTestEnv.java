@@ -68,7 +68,7 @@ public class HPipelineTestEnv extends HBaseSITestEnv implements PipelineTestEnv{
     }
 
     @Override
-    public void initialize() throws IOException{
+    public void initialize(boolean useRedoTransactor) throws IOException{
 
     }
 

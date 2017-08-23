@@ -14,6 +14,8 @@
 
 package com.splicemachine.pipeline;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import org.spark_project.guava.base.Optional;
 import org.spark_project.guava.collect.Iterables;
 import org.spark_project.guava.collect.Multimap;
@@ -71,6 +73,7 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
     private final ListWriteFactoryGroup indexFactories=new ListWriteFactoryGroup();
     private final WriteFactoryGroup ddlFactories=new SetWriteFactoryGroup();
     private final DDLWatcher.DDLListener ddlListener;
+    private ExecRow emptyRow = null;
 
     public DerbyContextFactoryLoader(long conglomId,
                                      OperationStatusFactory osf,
@@ -119,12 +122,11 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
 
                 DataDictionary dataDictionary=transactionResource.getLcc().getDataDictionary();
                 ConglomerateDescriptor conglomerateDescriptor=dataDictionary.getConglomerateDescriptor(conglomId);
-
                 if(conglomerateDescriptor!=null){
                     dataDictionary.getExecutionFactory().newExecutionContext(ContextService.getFactory().getCurrentContextManager());
                     //Hbase scan
                     TableDescriptor td=dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
-
+                    emptyRow = conglomerateDescriptor.isIndex()?conglomerateDescriptor.getIndexDescriptor().getNullIndexRow(td.getColumnDescriptorList(),new HBaseRowLocation()):td.getEmptyExecRow();
                     if(td!=null){
                         startDirect(conglomId,transactionResource.getLcc(),dataDictionary,td,conglomerateDescriptor);
                     }
@@ -373,4 +375,8 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
         return new ConstraintFactory(new PrimaryKeyConstraint(cc,osf),pef);
     }
 
+    @Override
+    public ExecRow getEmptyRow() {
+        return emptyRow;
+    }
 }

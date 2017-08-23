@@ -105,9 +105,9 @@ public class HBaseSITestEnv implements SITestEnv{
     }
 
     @Override
-    public void initialize() throws IOException{
+    public void initialize(boolean useRedoTransactor) throws IOException{
         try(HBaseAdmin hBaseAdmin=testUtility.getHBaseAdmin()){
-            HTableDescriptor table = generateDefaultSIGovernedTable("1440");
+            HTableDescriptor table = useRedoTransactor?generateDefaultRedoGovernedTable("1440"):generateDefaultSIGovernedTable("1440");
             if (hBaseAdmin.tableExists(table.getTableName())) {
                 hBaseAdmin.disableTable(table.getTableName());
                 hBaseAdmin.deleteTable(table.getTableName());
@@ -189,10 +189,39 @@ public class HBaseSITestEnv implements SITestEnv{
         return snapshot;
     }
 
+    public static HColumnDescriptor createActiveFamily() {
+        HColumnDescriptor snapshot = new HColumnDescriptor(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES);
+        snapshot.setMaxVersions(1);
+        snapshot.setCompressionType(Compression.Algorithm.NONE);
+        snapshot.setInMemory(true);
+        snapshot.setBlockCacheEnabled(true);
+        snapshot.setBloomFilterType(BloomType.ROW);
+        return snapshot;
+    }
+
+    public static HColumnDescriptor createRedoFamily() {
+        HColumnDescriptor snapshot = new HColumnDescriptor(SIConstants.DEFAULT_FAMILY_REDO_BYTES);
+        snapshot.setMaxVersions(Integer.MAX_VALUE);
+        snapshot.setCompressionType(Compression.Algorithm.NONE);
+        snapshot.setInMemory(true);
+        snapshot.setBlockCacheEnabled(true);
+        snapshot.setBloomFilterType(BloomType.ROW);
+        return snapshot;
+    }
+
     private HTableDescriptor generateDefaultSIGovernedTable(String tableName) throws IOException{
         HTableDescriptor desc =
             new HTableDescriptor(TableName.valueOf(HConfiguration.getConfiguration().getNamespace(),tableName));
         desc.addFamily(createDataFamily());
+        desc.addCoprocessor(SIObserver.class.getName());
+        return desc;
+    }
+
+    private HTableDescriptor generateDefaultRedoGovernedTable(String tableName) throws IOException{
+        HTableDescriptor desc =
+                new HTableDescriptor(TableName.valueOf(HConfiguration.getConfiguration().getNamespace(),tableName));
+        desc.addFamily(createActiveFamily());
+        desc.addFamily(createRedoFamily());
         desc.addCoprocessor(SIObserver.class.getName());
         return desc;
     }

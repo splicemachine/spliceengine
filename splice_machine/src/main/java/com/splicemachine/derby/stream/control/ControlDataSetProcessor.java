@@ -74,15 +74,15 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     private static final Logger LOG=Logger.getLogger(ControlDataSetProcessor.class);
 
     protected final TxnSupplier txnSupplier;
-    protected final Transactor transactory;
+    protected final Transactor transactor;
+    protected final Transactor redoTransactor;
     protected final TxnOperationFactory txnOperationFactory;
 
-    public ControlDataSetProcessor(TxnSupplier txnSupplier,
-                                   Transactor transactory,
-                                   TxnOperationFactory txnOperationFactory){
-        this.txnSupplier=txnSupplier;
-        this.transactory=transactory;
-        this.txnOperationFactory=txnOperationFactory;
+    public ControlDataSetProcessor(SIDriver driver) {
+        this.txnSupplier=driver.getTxnSupplier();
+        this.transactor =driver.getTransactor();
+        this.redoTransactor = driver.getRedoTransactor();
+        this.txnOperationFactory=driver.getOperationFactory();
     }
 
     @Override
@@ -117,7 +117,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
                 try{
                     p =SIDriver.driver().getTableFactory().getTable(tableName);
                     TxnRegion localRegion=new TxnRegion(p,NoopRollForward.INSTANCE,NoOpReadResolver.INSTANCE,
-                            txnSupplier,transactory,txnOperationFactory);
+                            txnSupplier, (tableVersion != null && tableVersion.equals("3.0"))?redoTransactor:transactor,txnOperationFactory);
 
                     this.region(localRegion).scanner(p.openScanner(getScan(),metricFactory)); //set the scanner
                     TableScannerIterator tableScannerIterator=new TableScannerIterator(this,spliceOperation);

@@ -53,7 +53,7 @@ class IndexFactory implements LocalWriteFactory{
         if (txn == null) {
             ctx.addLast(writeHandler);
         } else {
-            DDLFilter ddlFilter = SIDriver.driver().readController().newDDLFilter(txn);
+            DDLFilter ddlFilter = SIDriver.driver().getSiReadController().newDDLFilter(txn);
             ctx.addLast(new SnapshotIsolatedWriteHandler(writeHandler, ddlFilter));
         }
     }

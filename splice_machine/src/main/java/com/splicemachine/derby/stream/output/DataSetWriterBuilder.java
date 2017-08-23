@@ -35,6 +35,8 @@ public interface DataSetWriterBuilder{
 
     DataSetWriterBuilder skipIndex(boolean skipIndex);
 
+    DataSetWriterBuilder tableVersion(String tableVersion);
+
     TxnView getTxn();
 
     byte[] getDestinationTable();

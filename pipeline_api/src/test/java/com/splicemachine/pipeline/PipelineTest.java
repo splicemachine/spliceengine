@@ -16,6 +16,14 @@ package com.splicemachine.pipeline;
 
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.access.impl.data.UnsafeRecord;
+import com.splicemachine.access.impl.data.UnsafeRecordUtils;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.iapi.types.SQLVarchar;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.kvpair.KVPair;
@@ -38,11 +46,16 @@ import com.splicemachine.storage.*;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
@@ -51,20 +64,33 @@ import java.util.concurrent.ExecutionException;
  *         Date: 12/23/15
  */
 @Category(ArchitectureSpecific.class)
+@RunWith(Parameterized.class)
+@Ignore
 public class PipelineTest{
     private static final String DESTINATION_TABLE=Long.toString(1232);
     private static final byte[] DESTINATION_TABLE_BYTES=Bytes.toBytes(DESTINATION_TABLE);
-    private static PipelineTestEnv testEnv;
-    private static TestTransactionSetup tts;
+    private PipelineTestEnv testEnv;
+    private TestTransactionSetup tts;
     private static TxnLifecycleManager lifecycleManager;
     private static final KryoPool kp = new KryoPool(1);
 
+    private boolean useRedoTransactor;
+
+    @Parameterized.Parameters
+    public static Collection<Object> data() {
+        return Arrays.asList(new Object[]{Boolean.TRUE,Boolean.FALSE});
+    }
+
+    public PipelineTest(Boolean useRedoTransactor) {
+        this.useRedoTransactor = useRedoTransactor;
+    }
 
     @Before
     public void setUp() throws Exception{
        if(testEnv==null){
            testEnv=PipelineTestEnvironment.loadTestEnvironment();
-           tts = new TestTransactionSetup(testEnv,false);
+           testEnv.initialize(useRedoTransactor);
+           tts = new TestTransactionSetup(testEnv,false,useRedoTransactor);
            lifecycleManager =tts.txnLifecycleManager;
            //add a unique constraint
            ConstraintContext cc = ConstraintContext.unique("data","unique");
@@ -82,7 +108,7 @@ public class PipelineTest{
         PartitionFactory partitionFactory=writeCoordinator.getPartitionFactory();
         Txn txn =lifecycleManager.beginTransaction(DESTINATION_TABLE_BYTES);
         try(RecordingCallBuffer<KVPair> callBuffer=writeCoordinator.synchronousWriteBuffer(partitionFactory.getTable(DESTINATION_TABLE_BYTES),txn)){
-            KVPair data = encode("scott1",null,29);
+            KVPair data = encode(txn,"scott1",null,29);
             callBuffer.add(data);
             callBuffer.flushBufferAndWait();
 
@@ -101,12 +127,11 @@ public class PipelineTest{
         WriteCoordinator writeCoordinator=testEnv.writeCoordinator();
         PartitionFactory partitionFactory=writeCoordinator.getPartitionFactory();
         Txn txn =lifecycleManager.beginTransaction(DESTINATION_TABLE_BYTES);
-        try(RecordingCallBuffer<KVPair> callBuffer=writeCoordinator.synchronousWriteBuffer(partitionFactory.getTable(DESTINATION_TABLE_BYTES),txn)){
-            KVPair data = encode("scott2",null,29);
+        try(RecordingCallBuffer<KVPair> callBuffer=writeCoordinator.synchronousWriteBuffer(partitionFactory.getTable(DESTINATION_TABLE_BYTES),txn)) {
+            KVPair data = encode(txn, "scott2", null, 29);
             callBuffer.add(data);
             callBuffer.flushBufferAndWait();
-
-            DataGet dg = testEnv.getOperationFactory().newDataGet(txn,data.getRowKey(),null);
+            DataGet dg = testEnv.getOperationFactory().newDataGet(txn, data.getRowKey(), null);
             try(Partition p = testEnv.getPartition(DESTINATION_TABLE,tts)){
                 DataResult result=p.get(dg,null);
                 assertCorrectPresence(txn,data,result);
@@ -134,7 +159,7 @@ public class PipelineTest{
         try(RecordingCallBuffer<KVPair> callBuffer=writeCoordinator.synchronousWriteBuffer(partitionFactory.getTable(DESTINATION_TABLE_BYTES),txn)){
             List<KVPair> data=new ArrayList<>(numRecords);
             for(int i=0;i<numRecords;i++){
-                KVPair kvP=encode("ryan"+i,null,i);
+                KVPair kvP=encode(txn,"ryan"+i,null,i);
                 callBuffer.add(kvP);
                 data.add(kvP);
             }
@@ -164,7 +189,7 @@ public class PipelineTest{
         try(RecordingCallBuffer<KVPair> callBuffer=writeCoordinator.synchronousWriteBuffer(partitionFactory.getTable(DESTINATION_TABLE_BYTES),txn)){
             List<KVPair> data=new ArrayList<>(numRecords);
             for(int i=1000;i<1000+numRecords;i++){
-                KVPair kvP=encode("ryan"+i,null,i);
+                KVPair kvP=encode(txn,"ryan"+i,null,i);
                 callBuffer.add(kvP);
                 data.add(kvP);
             }
@@ -213,7 +238,7 @@ public class PipelineTest{
         PartitionFactory partitionFactory=writeCoordinator.getPartitionFactory();
         Txn txn1 =lifecycleManager.beginTransaction(DESTINATION_TABLE_BYTES);
         try(RecordingCallBuffer<KVPair> callBuffer=writeCoordinator.synchronousWriteBuffer(partitionFactory.getTable(DESTINATION_TABLE_BYTES),txn1)){
-            KVPair data = encode("scott3",null,29);
+            KVPair data = encode(txn1,"scott3",null,29);
             callBuffer.add(data);
             callBuffer.flushBufferAndWait();
 
@@ -226,7 +251,7 @@ public class PipelineTest{
 
         Txn txn2 = lifecycleManager.beginTransaction(DESTINATION_TABLE_BYTES);
         try(RecordingCallBuffer<KVPair> callBuffer=writeCoordinator.synchronousWriteBuffer(partitionFactory.getTable(DESTINATION_TABLE_BYTES),txn2)){
-            KVPair data=encode("scott3",null,30);
+            KVPair data=encode(txn2,"scott3",null,30);
             callBuffer.add(data);
             try{
                 callBuffer.flushBufferAndWait();
@@ -245,7 +270,7 @@ public class PipelineTest{
         PartitionFactory partitionFactory=writeCoordinator.getPartitionFactory();
         Txn txn1 =lifecycleManager.beginTransaction(DESTINATION_TABLE_BYTES);
         try(RecordingCallBuffer<KVPair> callBuffer=writeCoordinator.synchronousWriteBuffer(partitionFactory.getTable(DESTINATION_TABLE_BYTES),txn1)){
-            KVPair data = encode("scott10",null,29);
+            KVPair data = encode(txn1,"scott10",null,29);
             callBuffer.add(data);
             callBuffer.flushBufferAndWait();
 
@@ -260,7 +285,7 @@ public class PipelineTest{
 
         Txn txn2 = lifecycleManager.beginTransaction(DESTINATION_TABLE_BYTES);
         try(RecordingCallBuffer<KVPair> callBuffer=writeCoordinator.synchronousWriteBuffer(partitionFactory.getTable(DESTINATION_TABLE_BYTES),txn2)){
-            KVPair data=encode("scott10",null,30);
+            KVPair data=encode(txn2,"scott10",null,30);
             callBuffer.add(data);
             try{
                 callBuffer.flushBufferAndWait();
@@ -273,37 +298,65 @@ public class PipelineTest{
         }
     }
 
-    protected void assertCorrectPresence(Txn txn1,KVPair data,DataResult result){
+    protected void assertCorrectPresence(Txn txn1,KVPair data,DataResult result) {
         Assert.assertNotNull("Row was not written!");
-        Assert.assertTrue("Incorrect number of cells returned!",result.size()>0);
-        Assert.assertNull("Returned a tombstone!",result.tombstone());
-        DataCell dataCell=result.userData();
+        Assert.assertTrue("Incorrect number of cells returned!", result.size() > 0);
+        Assert.assertNull("Returned a tombstone!", result.tombstone());
+        DataCell dataCell = useRedoTransactor?result.activeData():result.userData();
         Assert.assertNotNull("No User data written!");
-        Assert.assertArrayEquals("Incorrect user data value!",data.getValue(),dataCell.value());
-        Assert.assertEquals("Incorrect written timestamp!",txn1.getBeginTimestamp(),dataCell.version());
+        Assert.assertArrayEquals("Incorrect user data value!", data.getValue(), dataCell.value());
+        if (!useRedoTransactor)
+            Assert.assertEquals("Incorrect written timestamp!", txn1.getBeginTimestamp(), dataCell.version());
     }
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
-    private KVPair encode(String name,String job,int age) throws IOException{
-        BitSet setCols = new BitSet(3);
-        BitSet scalarCols = new BitSet(3);
-        BitSet empty = new BitSet();
-        if(job!=null)
-            setCols.set(1);
-        if(age>=0){
-            setCols.set(2);
-            scalarCols.set(2);
+    private KVPair encode(Txn txn, String name,String job,int age) throws IOException {
+        try {
+            if (useRedoTransactor) {
+                ValueRow valueRow = new ValueRow(2);
+                valueRow.setRowArray(new DataValueDescriptor[]{new SQLVarchar(),new SQLInteger()});
+                UnsafeRecord record = new UnsafeRecord(
+                        Encoding.encode(name),
+                        1,
+                        new byte[UnsafeRecordUtils.calculateFixedRecordSize(2)],
+                        0l, true);
+                record.setNumberOfColumns(2);
+                record.setTxnId1(txn.getTxnId());
+                record.setEffectiveTimestamp(0);
+                if (job != null)
+                    valueRow.getColumn(1).setValue(job);
+                else
+                    valueRow.getColumn(1).setToNull();
+                if (age >= 0)
+                    valueRow.getColumn(2).setValue(age);
+                else
+                    valueRow.getColumn(2).setToNull();
+                record.setData(valueRow.getRowArray());
+                return record.getKVPair();
+            } else {
+                BitSet setCols = new BitSet(3);
+                BitSet scalarCols = new BitSet(3);
+                BitSet empty = new BitSet();
+                if (job != null)
+                    setCols.set(1);
+                if (age >= 0) {
+                    setCols.set(2);
+                    scalarCols.set(2);
+                }
+
+                EntryEncoder ee = EntryEncoder.create(kp, 2, setCols, scalarCols, empty, empty);
+                MultiFieldEncoder entryEncoder = ee.getEntryEncoder();
+                if (job != null)
+                    entryEncoder.encodeNext(job);
+                if (age >= 0)
+                    entryEncoder.encodeNext(age);
+
+                byte[] value = ee.encode();
+                return new KVPair(Encoding.encode(name), value);
+            }
+        } catch (StandardException se) {
+            throw new IOException(se);
         }
-
-        EntryEncoder ee = EntryEncoder.create(kp,2,setCols,scalarCols,empty,empty);
-        MultiFieldEncoder entryEncoder=ee.getEntryEncoder();
-        if(job!=null)
-            entryEncoder.encodeNext(job);
-        if(age>=0)
-            entryEncoder.encodeNext(age);
-
-        byte[] value=ee.encode();
-        return new KVPair(Encoding.encode(name),value);
     }
 }

@@ -268,6 +268,18 @@ public final class FormatableBitSet implements Formatable, Cloneable
 	 * @return	The value of the byte array
 	 */
 
+	public int[] getIntArray() {
+		int[] columns = new int[getNumBitsSet()];
+		int populated = 0;
+		for (int i = 0; i< getLength(); i++) {
+			if (isSet(i)) {
+				columns[populated] = i;
+				populated++;
+			}
+		}
+		return columns;
+	}
+
 	public byte[] getByteArray()
 	{
 		// In some cases the array is bigger than the actual number
@@ -540,6 +552,13 @@ public final class FormatableBitSet implements Formatable, Cloneable
 		final byte bitIndex = umod8(position);
 		value[byteIndex] |= (0x80>>bitIndex);
 	}
+
+	public void setAll() {
+		for (int i = 0; i< size(); i++) {
+			set(i);
+		}
+	}
+
 
 	/**
 	 * Bit clear

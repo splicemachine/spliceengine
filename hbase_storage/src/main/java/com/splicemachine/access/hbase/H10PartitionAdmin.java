@@ -77,8 +77,10 @@ public class H10PartitionAdmin implements PartitionAdmin{
     @Override
     public PartitionCreator newPartition() throws IOException{
         HBaseConnectionFactory instance=HBaseConnectionFactory.getInstance(SIDriver.driver().getConfiguration());
-        HColumnDescriptor dataFamily = instance.createDataFamily();
-        return new HPartitionCreator(tableInfoFactory,admin.getConnection(),timeKeeper,dataFamily,partitionInfoCache);
+        HColumnDescriptor activeFamily = instance.createActiveFamily();
+        HColumnDescriptor rollbackFamily = instance.createRedoFamily();
+
+        return new HPartitionCreator(tableInfoFactory,admin.getConnection(),timeKeeper,partitionInfoCache,activeFamily,rollbackFamily);
     }
 
     @Override

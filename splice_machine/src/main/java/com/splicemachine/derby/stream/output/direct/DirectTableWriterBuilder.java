@@ -38,6 +38,7 @@ public abstract class DirectTableWriterBuilder implements Externalizable,DataSet
     protected TxnView txn;
     protected OperationContext opCtx;
     protected boolean skipIndex;
+    protected String tableVersion;
 
     @Override
     public DataSetWriterBuilder destConglomerate(long heapConglom){
@@ -48,6 +49,12 @@ public abstract class DirectTableWriterBuilder implements Externalizable,DataSet
     @Override
     public DataSetWriterBuilder txn(TxnView txn){
         this.txn = txn;
+        return this;
+    }
+
+    @Override
+    public DataSetWriterBuilder tableVersion(String tableVersion){
+        this.tableVersion = tableVersion;
         return this;
     }
 
@@ -75,7 +82,7 @@ public abstract class DirectTableWriterBuilder implements Externalizable,DataSet
 
     @Override
     public TableWriter buildTableWriter() throws StandardException{
-        return new DirectPipelineWriter(destConglomerate,txn,opCtx,skipIndex);
+        return new DirectPipelineWriter(tableVersion,destConglomerate,txn,opCtx,skipIndex);
     }
 
     @Override

@@ -670,4 +670,24 @@ public class ValueRow implements ExecRow, Externalizable {
 	public void setKey(byte[] key) {
 		this.key = key;
 	}
+
+	public int getNonNullCount() throws StandardException {
+		return nonNullCountFromArray(column);
+	}
+
+	public static int nonNullCountFromArray(DataValueDescriptor[] dvds) {
+		if (dvds == null)
+			return 0;
+		int j = 0;
+		for (int i = 0; i< dvds.length;i++) {
+			if (dvds[i] != null && !dvds[i].isNull())
+				j++;
+		}
+		return j;
+	}
+
+	@Override
+	public byte[] generateRowKey(int[] columns) throws StandardException {
+		throw new UnsupportedOperationException("Not Implemented Yet");
+	}
 }

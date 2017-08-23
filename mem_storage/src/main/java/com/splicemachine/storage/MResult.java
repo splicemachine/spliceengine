@@ -15,6 +15,8 @@
 package com.splicemachine.storage;
 
 import com.splicemachine.access.util.ByteComparisons;
+import com.splicemachine.si.constants.SIConstants;
+import org.apache.hadoop.hbase.Cell;
 import org.spark_project.guava.base.Predicate;
 import org.spark_project.guava.collect.Iterables;
 
@@ -57,6 +59,24 @@ public class MResult implements DataResult{
 
     @Override
     public DataCell userData(){
+        if(dataCells==null) return null;
+        for(DataCell mc:dataCells){
+            if(mc.dataType()==CellType.USER_DATA) return mc;
+        }
+        return null;
+    }
+
+    @Override
+    public DataCell activeData(){
+        if(dataCells==null) return null;
+        for(DataCell mc:dataCells){
+            if(mc.dataType()==CellType.USER_DATA) return mc;
+        }
+        return null;
+    }
+
+    @Override
+    public DataCell redoData(){
         if(dataCells==null) return null;
         for(DataCell mc:dataCells){
             if(mc.dataType()==CellType.USER_DATA) return mc;
@@ -122,5 +142,10 @@ public class MResult implements DataResult{
     @Override
     public DataResult getClone(){
         return new MResult(new ArrayList<>(dataCells));
+    }
+
+    @Override
+    public String toString() {
+        return (dataCells == null)?(super.toString()+"null"):Arrays.toString(dataCells.toArray());
     }
 }

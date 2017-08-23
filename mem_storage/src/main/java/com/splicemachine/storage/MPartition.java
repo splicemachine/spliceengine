@@ -54,12 +54,19 @@ public class MPartition implements Partition{
     private AtomicLong writes=new AtomicLong(0l);
     private AtomicLong reads=new AtomicLong(0l);
     private AtomicLong sequenceGen = new AtomicLong(0l);
+    private String version;
 
-    public MPartition(String tableName,String partitionName){
+    public MPartition(String tableName,String partitionName, String version){
         this.partitionName=partitionName;
         this.tableName=tableName;
+        this.version = version;
         this.owner=new MPartitionServer();
     }
+
+    public MPartition(String tableName,String partitionName){
+        this(tableName,partitionName,"2.0");
+    }
+
 
     @Override
     public String getTableName(){
@@ -77,6 +84,10 @@ public class MPartition implements Partition{
 
     @Override
     public void startOperation() throws IOException{
+    }
+
+    public String getVersion() {
+        return this.version;
     }
 
     @Override
@@ -563,5 +574,10 @@ public class MPartition implements Partition{
     @Override
     public BitSet getBloomInMemoryCheck(boolean hasConstraintChecker, Pair<KVPair, Lock>[] dataAndLocks) throws IOException {
         return null;
+    }
+
+    @Override
+    public boolean isRedoPartition() {
+        return version.equals("3.0");
     }
 }

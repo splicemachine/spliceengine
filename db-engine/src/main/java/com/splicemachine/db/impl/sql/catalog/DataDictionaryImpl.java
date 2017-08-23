@@ -1376,7 +1376,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             ConglomerateDescriptor[] conglomerateDescriptors = retval.getConglomerateDescriptors();
             if (conglomerateDescriptors.length > 0 &&
                     conglomerateDescriptors[0].getConglomerateNumber() < DataDictionary.FIRST_USER_TABLE_NUMBER)
-                retval.setVersion(SYSTABLESRowFactory.ORIGINAL_TABLE_VERSION);
+                retval.setVersion(SYSTABLESRowFactory.CURRENT_TABLE_VERSION);
             dataDictionaryCache.nameTdCacheAdd(tableKey, retval);
         }
         return retval;

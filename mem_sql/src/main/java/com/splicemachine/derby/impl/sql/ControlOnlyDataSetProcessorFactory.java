@@ -50,9 +50,7 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
     }
 
     private ControlDataSetProcessor createControlDataSetProcessor() {
-        return new ControlDataSetProcessor(driver.getTxnSupplier(),
-                                           driver.getTransactor(),
-                                           driver.getOperationFactory());
+        return new ControlDataSetProcessor(driver);
     }
 
     @Override

@@ -156,7 +156,7 @@ public class HBaseConnectionFactory{
 
     public HTableDescriptor generateDefaultSIGovernedTable(String tableName){
         HTableDescriptor desc=new HTableDescriptor(TableName.valueOf(namespace,tableName));
-        desc.addFamily(createDataFamily());
+        desc.addFamily();
         return desc;
     }
 

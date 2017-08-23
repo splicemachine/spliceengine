@@ -69,6 +69,7 @@ public class SIConstants {
     public static final String SI_NEEDED = "B";
     public static final String SI_DELETE_PUT = "D";
     public static final String SI_COUNT_STAR = "M";
+    public static final String SI_EXEC_ROW = "E";
 
     //common SI fields
     public static final String NA_TRANSACTION_ID = "NA_TRANSACTION_ID";
@@ -80,8 +81,13 @@ public class SIConstants {
     public static final byte[] PACKED_COLUMN_BYTES = Bytes.toBytes("7");
 
     public static final String DEFAULT_FAMILY_NAME = "V";
+    public static final byte[] DEFAULT_FAMILY_BYTES = Bytes.toBytes(DEFAULT_FAMILY_NAME);
 
-    public static final byte[] DEFAULT_FAMILY_BYTES = Bytes.toBytes("V");
+    public static final String DEFAULT_FAMILY_ACTIVE_NAME = "A";
+    public static final byte[] DEFAULT_FAMILY_ACTIVE_BYTES = Bytes.toBytes(DEFAULT_FAMILY_ACTIVE_NAME);
+
+    public static final String DEFAULT_FAMILY_REDO_NAME = "R";
+    public static final byte[] DEFAULT_FAMILY_REDO_BYTES = Bytes.toBytes(DEFAULT_FAMILY_REDO_NAME);
 
     public static final String SI_PERMISSION_FAMILY = "P";
 

@@ -20,6 +20,7 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.concurrent.IncrementingClock;
 import com.splicemachine.concurrent.ResettableCountDownLatch;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.kvpair.KVPair;
@@ -130,7 +131,7 @@ public class PartitionWriteHandlerTest{
 
         ResettableCountDownLatch writeLatch=new ResettableCountDownLatch(1);
         writeLatch.countDown();
-        PartitionWriteHandler pwh = new PartitionWriteHandler(testRegion,writeLatch,null);
+        PartitionWriteHandler pwh = new PartitionWriteHandler(testRegion,writeLatch,null,new ValueRow(0));
 
         Collection<KVPair> data = addData(100,2);
         for(KVPair d:data){

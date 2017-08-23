@@ -18,6 +18,7 @@ import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.LongOpenHashSet;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.LongCursor;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.*;
@@ -79,16 +80,16 @@ public class SITransactor implements Transactor{
     // Process update operations
 
     @Override
-    public boolean processPut(Partition table,RollForward rollForwardQueue,DataPut put) throws IOException{
+    public boolean processPut(Partition table,RollForward rollForwardQueue,DataPut put, ExecRow execRow) throws IOException{
         if(!isFlaggedForSITreatment(put)) return false;
         final DataPut[] mutations= {put};
         mutations[0]=put;
-        MutationStatus[] operationStatuses=processPutBatch(table,rollForwardQueue,mutations);
+        MutationStatus[] operationStatuses=processPutBatch(table,rollForwardQueue,mutations,execRow);
         return operationStatusLib.processPutStatus(operationStatuses[0]);
     }
 
     @Override
-    public MutationStatus[] processPutBatch(Partition table,RollForward rollForwardQueue,DataPut[] mutations) throws IOException{
+    public MutationStatus[] processPutBatch(Partition table,RollForward rollForwardQueue,DataPut[] mutations,ExecRow execRow) throws IOException{
         if(mutations.length==0){
             //short-circuit special case of empty batch
             //noinspection unchecked
@@ -112,7 +113,7 @@ public class SITransactor implements Transactor{
                             return !statusMap.containsKey(input.getRowKey()) || statusMap.get(input.getRowKey()).isSuccess();
                         }
                     }));
-                    MutationStatus[] statuses=processKvBatch(table,null,family,qualifier,kvPairs,txnId,operationStatusLib.getNoOpConstraintChecker());
+                    MutationStatus[] statuses=processKvBatch(table,null,family,qualifier,kvPairs,txnId,operationStatusLib.getNoOpConstraintChecker(),execRow);
                     for(int i=0;i<statuses.length;i++){
                         byte[] row=kvPairs.get(i).getRowKey();
                         MutationStatus status=statuses[i];
@@ -140,9 +141,10 @@ public class SITransactor implements Transactor{
                                             byte[] packedColumnBytes,
                                             Collection<KVPair> toProcess,
                                             long txnId,
-                                            ConstraintChecker constraintChecker) throws IOException{
+                                            ConstraintChecker constraintChecker,
+                                            ExecRow execRow) throws IOException{
         TxnView txn=txnSupplier.getTransaction(txnId);
-        return processKvBatch(table,rollForward,defaultFamilyBytes,packedColumnBytes,toProcess,txn,constraintChecker, false, false);
+        return processKvBatch(table,rollForward,defaultFamilyBytes,packedColumnBytes,toProcess,txn,constraintChecker, false, false,execRow);
     }
 
     @Override
@@ -154,9 +156,9 @@ public class SITransactor implements Transactor{
                                            TxnView txn,
                                            ConstraintChecker constraintChecker,
                                            boolean skipConflictDetection,
-                                           boolean skipWAL) throws IOException{
+                                           boolean skipWAL,ExecRow execRow) throws IOException{
         ensureTransactionAllowsWrites(txn);
-        return processInternal(table,rollForward,txn,defaultFamilyBytes,packedColumnBytes,toProcess,constraintChecker,skipConflictDetection,skipWAL);
+        return processInternal(table,rollForward,txn,defaultFamilyBytes,packedColumnBytes,toProcess,constraintChecker,skipConflictDetection,skipWAL,execRow);
     }
 
     private MutationStatus getCorrectStatus(MutationStatus status,MutationStatus oldStatus){
@@ -170,7 +172,7 @@ public class SITransactor implements Transactor{
                                              Collection<KVPair> mutations,
                                              ConstraintChecker constraintChecker,
                                              boolean skipConflictDetection,
-                                             boolean skipWAL) throws IOException{
+                                             boolean skipWAL, ExecRow execRow) throws IOException{
 //                if (LOG.isTraceEnabled()) LOG.trace(String.format("processInternal: table = %s, txnId = %s", table.toString(), txn.getTxnId()));
         MutationStatus[] finalStatus=new MutationStatus[mutations.size()];
         Pair<KVPair, Lock>[] lockPairs=new Pair[mutations.size()];
@@ -356,7 +358,6 @@ public class SITransactor implements Transactor{
                     mutationsAndLocks[position]=Pair.newPair(mutation,lock);
                 else
                     finalStatus[position]=operationStatusLib.notRun();
-
                 position++;
             }
         }catch(RuntimeException re){

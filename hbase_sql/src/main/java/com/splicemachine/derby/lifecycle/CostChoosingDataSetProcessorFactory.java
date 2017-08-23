@@ -65,12 +65,12 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
              */
             if (LOG.isTraceEnabled())
                 SpliceLogUtils.trace(LOG, "chooseProcessor(): localProcessor for op %s", op==null?"null":op.getName());
-            return new ControlDataSetProcessor(driver.getTxnSupplier(), driver.getTransactor(), driver.getOperationFactory());
+            return new ControlDataSetProcessor(driver);
         }
 
         switch(activation.getLanguageConnectionContext().getDataSetProcessorType()){
             case FORCED_CONTROL:
-                return new ControlDataSetProcessor(driver.getTxnSupplier(), driver.getTransactor(), driver.getOperationFactory());
+                return new ControlDataSetProcessor(driver);
             case FORCED_SPARK:
                 return new SparkDataSetProcessor();
             default:
@@ -81,10 +81,10 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
             case SPARK:
                 return new SparkDataSetProcessor();
             case FORCED_CONTROL:
-                return new ControlDataSetProcessor(driver.getTxnSupplier(), driver.getTransactor(), driver.getOperationFactory());
+                return new ControlDataSetProcessor(driver);
             case DEFAULT_CONTROL:
             default:
-                return new ControlDataSetProcessor(driver.getTxnSupplier(), driver.getTransactor(), driver.getOperationFactory());
+                return new ControlDataSetProcessor(driver);
         }
     }
 
@@ -92,7 +92,7 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
     public DataSetProcessor localProcessor(@Nullable Activation activation,@Nullable SpliceOperation op){
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "localProcessor(): localProcessor provided for op %s", op==null?"null":op.getName());
-        return new ControlDataSetProcessor(driver.getTxnSupplier(), driver.getTransactor(), driver.getOperationFactory());
+        return new ControlDataSetProcessor(driver);
     }
 
     @Override
@@ -103,12 +103,12 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
             /*
              * We are running in a distributed node, use the bulk processor to avoid saturating HBase
              */
-            return new HregionDataSetProcessor(driver.getTxnSupplier(), driver.getTransactor(), driver.getOperationFactory());
+            return new HregionDataSetProcessor(driver);
         } else {
             /*
              * We are running in control node, use a control side processor with less startup cost
              */
-            return new ControlDataSetProcessor(driver.getTxnSupplier(), driver.getTransactor(), driver.getOperationFactory());
+            return new ControlDataSetProcessor(driver);
 
         }
     }

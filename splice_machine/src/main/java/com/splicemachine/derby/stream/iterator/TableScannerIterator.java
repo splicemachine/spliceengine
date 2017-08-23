@@ -15,16 +15,15 @@
 package com.splicemachine.derby.stream.iterator;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiter;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.utils.StreamLogUtils;
 import com.splicemachine.derby.utils.Scans;
+import com.splicemachine.derby.utils.StandardIterator;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.Closeable;
 import java.io.IOException;
@@ -36,7 +35,7 @@ import java.util.Iterator;
 @NotThreadSafe
 public class TableScannerIterator implements Iterable<ExecRow>, Iterator<ExecRow>, Closeable {
     protected TableScannerBuilder siTableBuilder;
-    protected SITableScanner tableScanner;
+    protected StandardIterator<ExecRow> tableScanner;
     protected boolean initialized;
     private ExecRow execRow;
     boolean slotted;

@@ -23,6 +23,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.api.server.TransactionalRegion;
@@ -82,6 +83,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     protected int[] partitionByColumns;
     protected boolean useSample = false;
     protected double sampleFraction = 0;
+    protected FormatableBitSet accessedColumns;
 
 
     @Override
@@ -386,25 +388,44 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
         return this;
     }
 
-    public SITableScanner build(){
-            return new SITableScanner(
-                    scanner,
-                    region,
-                    template,
-                    scan,
-                    rowColumnMap,
-                    txn,
-                    keyColumnEncodingOrder,
-                    keyColumnSortOrder,
-                    keyColumnTypes,
-                    keyDecodingMap,
-                    accessedKeys,
-                    reuseRowLocation,
-                    indexName,
-                    tableVersion,
-                    filterFactory,
-                    demarcationPoint,
-                    optionalProbeValue);
+    public ScanSetBuilder<V> accessedColumns(FormatableBitSet accessedColumns){
+        this.accessedColumns=accessedColumns;
+        return this;
+    }
+
+    public StandardIterator<ExecRow> build(){
+            if (tableVersion.equals("3.0")) {
+                return new RedoTableScanner(accessedColumns,
+                        scanner,
+                region,
+                template,
+                scan,
+                txn,
+                reuseRowLocation,
+                indexName,
+                tableVersion,
+                demarcationPoint,
+                optionalProbeValue);
+            } else {
+                return new SITableScanner(
+                        scanner,
+                        region,
+                        template,
+                        scan,
+                        rowColumnMap,
+                        txn,
+                        keyColumnEncodingOrder,
+                        keyColumnSortOrder,
+                        keyColumnTypes,
+                        keyDecodingMap,
+                        accessedKeys,
+                        reuseRowLocation,
+                        indexName,
+                        tableVersion,
+                        filterFactory,
+                        demarcationPoint,
+                        optionalProbeValue);
+            }
     }
 
     @Override

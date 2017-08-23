@@ -478,4 +478,14 @@ public class RegionPartition implements Partition{
                 "region=" + region +
                 '}';
     }
+
+    @Override
+    public String getVersion() {
+        return "3.0"; // TODO FIX
+    }
+
+    @Override
+    public boolean isRedoPartition() {
+        return true; // TODO FIX
+    }
 }

@@ -170,6 +170,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 			.scan(DDLUtils.createFullScan())
 			.keyColumnEncodingOrder(Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()))
 			.reuseRowLocation(false)
+			.tableVersion(tentativeIndex.getTable().getTableVersion())
 			.rowDecodingMap(rowDecodingMap)
 			.keyColumnTypes(ScanOperation.getKeyFormatIds(
 					Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()),

@@ -34,12 +34,12 @@ import java.io.IOException;
 public class HPartitionCreator implements PartitionCreator{
     private HTableDescriptor descriptor;
     private final Connection connection;
-    private final HColumnDescriptor userDataFamilyDescriptor;
+    private final HColumnDescriptor[] userDataFamilyDescriptor;
     private final Clock clock;
     private final HBaseTableInfoFactory tableInfoFactory;
     private final PartitionInfoCache partitionInfoCache;
 
-    public HPartitionCreator(HBaseTableInfoFactory tableInfoFactory,Connection connection,Clock clock,HColumnDescriptor userDataFamilyDescriptor,PartitionInfoCache partitionInfoCache){
+    public HPartitionCreator(HBaseTableInfoFactory tableInfoFactory,Connection connection,Clock clock,PartitionInfoCache partitionInfoCache,HColumnDescriptor... userDataFamilyDescriptor){
         this.connection = connection;
         this.userDataFamilyDescriptor = userDataFamilyDescriptor;
         this.tableInfoFactory = tableInfoFactory;
@@ -76,7 +76,9 @@ public class HPartitionCreator implements PartitionCreator{
     @Override
     public Partition create() throws IOException{
         assert descriptor!=null: "No table to create!";
-        descriptor.addFamily(userDataFamilyDescriptor);
+        for (int i = 0; i< userDataFamilyDescriptor.length; i++) {
+            descriptor.addFamily(userDataFamilyDescriptor[i]);
+        }
         try(Admin admin = connection.getAdmin()){
             admin.createTable(descriptor);
         }

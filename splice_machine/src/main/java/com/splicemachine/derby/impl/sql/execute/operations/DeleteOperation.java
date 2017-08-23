@@ -99,6 +99,7 @@ public class DeleteOperation extends DMLWriteOperation {
             DataSetWriter dataSetWriter = dataSetWriterBuilder
                     .destConglomerate(heapConglom)
                     .operationContext(operationContext)
+                    .tableVersion(tableVersion)
                     .txn(txn).build();
             return dataSetWriter.write();
 

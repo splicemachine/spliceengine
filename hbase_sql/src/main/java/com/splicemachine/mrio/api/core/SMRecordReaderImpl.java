@@ -24,6 +24,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerB
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.spark.SparkOperationContext;
+import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.primitives.Bytes;
@@ -240,7 +241,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
                     .scanner(new RegionDataScanner(new RegionPartition(hregion),mrs,statisticsRun?Metrics.basicMetricFactory():Metrics.noOpMetricFactory()));
 			if (LOG.isTraceEnabled())
 				SpliceLogUtils.trace(LOG, "restart with builder=%s",builder);
-			siTableScanner = builder.build();
+			siTableScanner = (SITableScanner)builder.build();
 			addCloseable(siTableScanner);
 			addCloseable(siTableScanner.getRegionScanner());
 		} else {
