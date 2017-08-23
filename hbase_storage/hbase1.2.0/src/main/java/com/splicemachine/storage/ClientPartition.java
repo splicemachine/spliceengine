@@ -226,10 +226,13 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
      * @throws java.io.IOException
      */
     @Override
-    public void compact() throws IOException{
+    public void compact(boolean isMajor) throws IOException{
         HExceptionFactory exceptionFactory = HExceptionFactory.INSTANCE;
         try(Admin admin = connection.getAdmin()){
-            admin.majorCompact(tableName);
+            if (isMajor)
+                admin.majorCompact(tableName);
+            else
+                admin.compact(tableName);
             AdminProtos.GetRegionInfoResponse.CompactionState compactionState=null;
             do{
                 try{
@@ -259,7 +262,6 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
             }while(compactionState!=AdminProtos.GetRegionInfoResponse.CompactionState.NONE);
         }
     }
-
     /**
      * Flush a table. Synchronous operation.
      * @throws java.io.IOException

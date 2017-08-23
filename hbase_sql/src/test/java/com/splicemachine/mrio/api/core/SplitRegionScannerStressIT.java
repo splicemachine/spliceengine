@@ -150,7 +150,7 @@ public class SplitRegionScannerStressIT extends BaseMRIOTest {
             @Override
             public void call(PartitionAdmin partitionAdmin, Partition partition, String tableName, int i) throws Exception {
                 if (i % 2 == 1)
-                    partition.compact();
+                    partition.compact(true);
                 else
                     partition.flush();
                 verifyTableCount(partition, nrows + i * batchSize);
@@ -161,7 +161,7 @@ public class SplitRegionScannerStressIT extends BaseMRIOTest {
             @Override
             public void call(PartitionAdmin partitionAdmin, Partition partition, String tableName, int i) throws Exception {
                 if (i % 2 == 1)
-                    partition.compact();
+                    partition.compact(true);
                 else
                     partition.flush();
                 verifyTableCount(partition, 2 * nrows + i * batchSize);
@@ -265,7 +265,7 @@ public class SplitRegionScannerStressIT extends BaseMRIOTest {
                 partition.flush();
                 break;
             case 1:
-                partition.compact();
+                partition.compact(true);
                 break;
             case 2:
                 String conglomID = sqlUtil.getConglomID(CLASS_NAME + "." + tableName);

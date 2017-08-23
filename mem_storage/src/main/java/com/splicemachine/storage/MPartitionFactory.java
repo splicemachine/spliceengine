@@ -119,6 +119,11 @@ public class MPartitionFactory implements PartitionFactory<Object>{
         }
 
         @Override
+        public void mergeRegions(String regionName1, String regionName2) throws IOException {
+            throw new UnsupportedOperationException("Cannot split partitions in an in-memory storage engine!");
+        }
+
+        @Override
         public void close() throws IOException{
         } //no-op
 
