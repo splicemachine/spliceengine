@@ -14,10 +14,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.window;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-
 import com.splicemachine.db.iapi.error.SQLWarningFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
@@ -26,10 +22,13 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.execute.WindowFunctionInfo;
 import com.splicemachine.db.impl.sql.execute.WindowFunctionInfoList;
-
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 /**
  * This class records the window definition (partition, orderby and frame)
@@ -115,6 +114,11 @@ public class DerbyWindowContext implements WindowContext {
     public int[] getPartitionColumns() {
         // Any and all aggregators in a window context share the same over() clause
         return this.windowAggregators[0].getPartitionColumns();
+    }
+
+    @Override
+    public boolean[] getNullOrderings() {
+        return this.windowAggregators[0].getNullOrders();
     }
 
     @Override
