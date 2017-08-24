@@ -226,7 +226,7 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
      * @throws java.io.IOException
      */
     @Override
-    public void compact() throws IOException{
+    public void compact(boolean isMajor) throws IOException{
         HExceptionFactory exceptionFactory = HExceptionFactory.INSTANCE;
         try(Admin admin = connection.getAdmin()){
             admin.majorCompact(tableName);
