@@ -14,6 +14,7 @@
 
 package com.splicemachine.management;
 
+import com.google.common.net.HostAndPort;
 import com.splicemachine.access.api.DatabaseVersion;
 
 import java.sql.SQLException;

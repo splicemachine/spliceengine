@@ -891,4 +891,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         }
         return false;
     }
+
+    public UUID getUuid() {
+        return uuid;
+    }
 }
