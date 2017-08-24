@@ -67,8 +67,9 @@ public class QueryJob implements Callable<Void>{
             long txnId = root.getCurrentTransaction().getTxnId();
 
             String sql = queryRequest.sql;
+            String session = queryRequest.session;
             String userId = queryRequest.userId;
-            String jobName = userId + " <" + txnId + ">";
+            String jobName = userId + " <" + session + "," + txnId + ">";
             dsp.setJobGroup(jobName, sql);
             dsp.clearBroadcastedOperation();
             dataset = root.getDataSet(dsp);
