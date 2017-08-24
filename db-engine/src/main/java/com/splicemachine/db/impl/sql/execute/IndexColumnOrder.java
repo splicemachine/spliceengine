@@ -160,6 +160,7 @@ public class IndexColumnOrder implements ColumnOrdering, Formatable
 	{
 		out.writeInt(colNum);
 		out.writeBoolean(ascending);
+		out.writeBoolean(nullsOrderedLow);
 	}
 
 	/**
@@ -175,6 +176,7 @@ public class IndexColumnOrder implements ColumnOrdering, Formatable
 	{
 		colNum = in.readInt();
 		ascending = in.readBoolean();
+		nullsOrderedLow = in.readBoolean();
 	}
 	
 	/**
