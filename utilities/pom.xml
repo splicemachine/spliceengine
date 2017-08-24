@@ -36,10 +36,8 @@
                     <groupId>org.scala-lang</groupId>
                     <artifactId>scala-reflect</artifactId>
                 </exclusion>
-
             </exclusions>
         </dependency>
-
         <dependency>
             <groupId>com.carrotsearch</groupId>
             <artifactId>hppc</artifactId>

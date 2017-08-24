@@ -54,12 +54,12 @@
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-common</artifactId>
             <version>${hadoop.version}</version>
-	    <exclusions>
-		    <exclusion>
-			    <groupId>asm</groupId>
-			    <artifactId>asm</artifactId>
-		    </exclusion>
-	    </exclusions>
+            <exclusions>
+                <exclusion>
+                    <groupId>asm</groupId>
+                    <artifactId>asm</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.hbase</groupId>
@@ -218,7 +218,6 @@
                             </sources>
                         </configuration>
                     </execution>
-
                     <execution>
                         <id>add-platform-resource</id>
                         <phase>generate-resources</phase>
@@ -228,12 +227,11 @@
                         <configuration>
                             <resources>
                                 <resource>
-                                <directory>${envHbase}/src/main/resources</directory>
-                            </resource>
+                                    <directory>${envHbase}/src/main/resources</directory>
+                                </resource>
                             </resources>
                         </configuration>
                     </execution>
-
                     <execution>
                         <id>add-platform-test-resource</id>
                         <phase>generate-resources</phase>

@@ -19,7 +19,6 @@
         <groupId>com.splicemachine</groupId>
         <version>2.6.1.1733-SNAPSHOT</version>
     </parent>
-
     <artifactId>splicemachine-${envClassifier}-${spark.version.label}_${scala.binary.version}</artifactId>
     <name>Splicemachine Spark Bindings</name>
     <properties>
@@ -32,7 +31,6 @@
         <stop.script>${project.basedir}/../hbase_sql/src/test/bin/stop-splice-its</stop.script>
         <ee_out/>
     </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.apache.spark</groupId>
@@ -58,7 +56,6 @@
             <version>${spark.version}</version>
             <scope>provided</scope>
         </dependency>
-
         <dependency>
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-server</artifactId>
@@ -135,30 +132,29 @@
             </exclusions>
         </dependency>
         <dependency>
-        <groupId>org.apache.hadoop</groupId>
-        <artifactId>hadoop-common</artifactId>
-        <version>${hadoop.version}</version>
-        <exclusions>
-            <exclusion>
-                <groupId>asm</groupId>
-                <artifactId>asm</artifactId>
-            </exclusion>
-            <exclusion>
-                <groupId>asm</groupId>
-                <artifactId>asm</artifactId>
-            </exclusion>
-            <exclusion>
-                <artifactId>hive-common</artifactId>
-                <groupId>org.apache.hive</groupId>
-            </exclusion>
-        </exclusions>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <version>${hadoop.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>asm</groupId>
+                    <artifactId>asm</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>asm</groupId>
+                    <artifactId>asm</artifactId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>hive-common</artifactId>
+                    <groupId>org.apache.hive</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>hbase_storage-${envClassifier}</artifactId>
             <version>${project.version}</version>
         </dependency>
-
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>hbase_sql-${envClassifier}</artifactId>
@@ -169,7 +165,6 @@
             <artifactId>splice_machine</artifactId>
             <version>${project.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
@@ -182,7 +177,6 @@
             <version>2.2.4</version>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>hbase_pipeline-${envClassifier}</artifactId>
@@ -194,7 +188,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-
         <dependency>
             <groupId>org.scalamock</groupId>
             <artifactId>scalamock-scalatest-support_${scala.binary.version}</artifactId>
@@ -202,7 +195,6 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-
     <build>
         <extensions>
             <extension>
@@ -216,7 +208,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
             </plugin>
-
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
@@ -243,7 +234,6 @@
                     </execution>
                 </executions>
             </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -251,7 +241,6 @@
                     <argLine>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/ -Dhbase.rootdir=${project.build.directory}/../../hbase_sql/target/hbase</argLine>
                 </configuration>
             </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -273,9 +262,7 @@
                             </excludes>
                         </filter>
                     </filters>
-
                     <shadedArtifactAttached>true</shadedArtifactAttached>
-
                 </configuration>
                 <executions>
                     <execution>
@@ -375,11 +362,8 @@
                         <version>${project.version}</version>
                         <classifier>tests</classifier>
                     </dependency>
-
                 </dependencies>
             </plugin>
-
-
             <!-- http://stackoverflow.com/questions/270445 -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -388,7 +372,9 @@
                 <executions>
                     <execution>
                         <phase>generate-sources</phase>
-                        <goals><goal>add-source</goal></goals>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
                         <configuration>
                             <sources>
                                 <source>${compat.src}</source>
@@ -399,7 +385,6 @@
             </plugin>
         </plugins>
     </build>
-
     <profiles>
         <profile>
             <id>spark_2.10</id>

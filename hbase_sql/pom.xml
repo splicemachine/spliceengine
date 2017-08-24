@@ -86,7 +86,6 @@
                     <groupId>joda-time</groupId>
                     <artifactId>joda-time</artifactId>
                 </exclusion>
-
                 <exclusion>
                     <groupId>com.fasterxml.jackson.dataformat</groupId>
                     <artifactId>jackson-dataformat-cbor</artifactId>
@@ -95,11 +94,8 @@
                     <groupId>com.amazonaws</groupId>
                     <artifactId>jmespath-java</artifactId>
                 </exclusion>
-
             </exclusions>
         </dependency>
-
-
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>units</artifactId>
@@ -111,7 +107,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>log</artifactId>
@@ -123,7 +118,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>configuration</artifactId>
@@ -141,10 +135,8 @@
                     <groupId>com.google.inject.extensions</groupId>
                     <artifactId>guice-multibindings</artifactId>
                 </exclusion>
-
             </exclusions>
         </dependency>
-
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>testing</artifactId>
@@ -156,7 +148,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>stats</artifactId>
@@ -168,7 +159,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>slice</artifactId>
@@ -180,13 +170,11 @@
                 </exclusion>
             </exclusions>
         </dependency>
-
         <dependency>
             <groupId>com.facebook.presto.orc</groupId>
             <artifactId>orc-protobuf</artifactId>
             <version>1</version>
         </dependency>
-
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-network-common_${scala.binary.version}</artifactId>
@@ -232,8 +220,6 @@
                     <artifactId>hadoop-client</artifactId>
                 </exclusion>
             </exclusions>
-
-
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
@@ -255,7 +241,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-streaming_${scala.binary.version}</artifactId>
@@ -266,7 +251,6 @@
             <artifactId>spark-streaming-kafka-0-10_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
         </dependency>
-
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>splice_machine</artifactId>
@@ -357,7 +341,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>hbase_storage-${envClassifier}</artifactId>
@@ -387,7 +370,6 @@
                     <groupId>io.netty</groupId>
                     <artifactId>netty-all</artifactId>
                 </exclusion>
-
                 <exclusion>
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-common</artifactId>
@@ -410,7 +392,6 @@
             <artifactId>kafka_${scala.binary.version}</artifactId>
             <version>${kafka.version}</version>
         </dependency>
-
         <!--Test dependencies -->
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -466,24 +447,22 @@
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-common</artifactId>
             <version>${hadoop.version}</version>
-	    <exclusions>
-		    <exclusion>
-			    <groupId>asm</groupId>
-			    <artifactId>asm</artifactId>
-		    </exclusion>
-            <exclusion>
-                <groupId>asm</groupId>
-                <artifactId>asm</artifactId>
-            </exclusion>
-            <exclusion>
-                <artifactId>hive-common</artifactId>
-                <groupId>org.apache.hive</groupId>
-             </exclusion>
-	    </exclusions>
-
-
+            <exclusions>
+                <exclusion>
+                    <groupId>asm</groupId>
+                    <artifactId>asm</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>asm</groupId>
+                    <artifactId>asm</artifactId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>hive-common</artifactId>
+                    <groupId>org.apache.hive</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
-	<dependency>
+        <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-distcp</artifactId>
             <version>${hadoop.version}</version>
@@ -525,7 +504,6 @@
                     <groupId>org.apache.hive</groupId>
                     <artifactId>hive-exec</artifactId>
                 </exclusion>
-
             </exclusions>
         </dependency>
         <dependency>
@@ -545,16 +523,16 @@
             <artifactId>hive-hwi</artifactId>
             <scope>provided</scope>
             <version>${hive.version}</version>
-	    <exclusions>
-		    <exclusion>
-			    <groupId>asm</groupId>
-			    <artifactId>asm</artifactId>
-		    </exclusion>
-            <exclusion>
-                <groupId>org.apache.hive</groupId>
-                <artifactId>hive-exec</artifactId>
-            </exclusion>
-	    </exclusions>
+            <exclusions>
+                <exclusion>
+                    <groupId>asm</groupId>
+                    <artifactId>asm</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hive</groupId>
+                    <artifactId>hive-exec</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.hive</groupId>
@@ -567,16 +545,16 @@
             <artifactId>hive-service</artifactId>
             <scope>provided</scope>
             <version>${hive.version}</version>
-	    <exclusions>
-		    <exclusion>
-			    <groupId>asm</groupId>
-			    <artifactId>asm</artifactId>
-		    </exclusion>
-            <exclusion>
-                <groupId>org.apache.hive</groupId>
-                <artifactId>hive-exec</artifactId>
-            </exclusion>
-	    </exclusions>
+            <exclusions>
+                <exclusion>
+                    <groupId>asm</groupId>
+                    <artifactId>asm</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hive</groupId>
+                    <artifactId>hive-exec</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.hive</groupId>
@@ -651,9 +629,7 @@
                 <version>1.5.0.Final</version>
             </extension>
         </extensions>
-
         <plugins>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -664,43 +640,42 @@
                             <!-- <include>com.typesafe.akka:akka-remote_${scala.binary.version}</include> -->
                         </includes>
                     </artifactSet>
-            <filters>
-                <filter>
-                    <artifact>*:*</artifact>
-                    <excludes>
-                        <exclude>META-INF/*.SF</exclude>
-                        <exclude>META-INF/*.DSA</exclude>
-                        <exclude>META-INF/*.RSA</exclude>
-                    </excludes>
-                </filter>
-            </filters>
-            <relocations>
-                <relocation>
-                    <pattern>io.netty</pattern>
-                    <shadedPattern>splice.io.netty</shadedPattern>
-                    <includes>
-                        <include>io.netty.**</include>
-                    </includes>
-                </relocation>
-                <!-- <relocation>
+                    <filters>
+                        <filter>
+                            <artifact>*:*</artifact>
+                            <excludes>
+                                <exclude>META-INF/*.SF</exclude>
+                                <exclude>META-INF/*.DSA</exclude>
+                                <exclude>META-INF/*.RSA</exclude>
+                            </excludes>
+                        </filter>
+                    </filters>
+                    <relocations>
+                        <relocation>
+                            <pattern>io.netty</pattern>
+                            <shadedPattern>splice.io.netty</shadedPattern>
+                            <includes>
+                                <include>io.netty.**</include>
+                            </includes>
+                        </relocation>
+                        <!-- <relocation>
                     <pattern>akka.remote</pattern>
                     <shadedPattern>splice.akka.remote</shadedPattern>
                     <includes>
                         <include>akka.remote.**</include>
                     </includes>
                 </relocation> -->
-            </relocations>
-        </configuration>
-        <executions>
-            <execution>
-                <phase>package</phase>
-                <goals>
-                    <goal>shade</goal>
-                </goals>
-            </execution>
-        </executions>
-    </plugin>
-
+                    </relocations>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -839,7 +814,7 @@
                             <runOrder>alphabetical</runOrder>
                         </configuration>
                     </execution>
-		    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: BACKUP -->
+                    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: BACKUP -->
                     <execution>
                         <id>integration-tests-backup</id>
                         <goals>
@@ -1215,7 +1190,7 @@
                                 <argument>-Dcom.sun.management.jmxremote.port=10102</argument>
                                 <argument>-Dsplice.authentication=NATIVE</argument>
                                 <argument>-Dcom.splicemachine.enableLegacyAsserts=true</argument>
-				<argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
+                                <argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
                                 <argument>-Xmx6g</argument>
                                 <argument>-Xms1g</argument>
                                 <!-- Spark Sys props -->
@@ -1240,15 +1215,11 @@
                                 <argument>
                                     -Dspark.yarn.jars=${project.build.directory}/classes,${project.build.directory}/dependency/*
                                 </argument>
-
-				<argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
-
+                                <argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
                                 <argument>-Dsplice.spark.executor.instances=1</argument>
                                 <argument>-Dsplice.spark.executor.memory=2g</argument>
                                 <argument>-Dsplice.spark.io.compression.lz4.blockSize=32k</argument>
-
                                 <argument>-Dspark.broadcast.compress=true</argument>
-
                                 <argument>-Dsplice.spark.kryo.referenceTracking=false</argument>
                                 <argument>
                                     -Dsplice.spark.kryo.registrator=com.splicemachine.derby.impl.SpliceSparkKryoRegistrator
@@ -1338,7 +1309,7 @@
                                 <argument>-Djava.awt.headless=true</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
-				<argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
+                                <argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
                                 <argument>-Xmx4g</argument>
                                 <argument>-Xmn128m</argument>
                                 <argument>-XX:+UseConcMarkSweepGC</argument>
@@ -1501,7 +1472,6 @@
                             </dependency>
                         </dependencies>
                     </plugin>
-
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-surefire-plugin</artifactId>
@@ -1511,7 +1481,6 @@
                             </additionalClasspathElements>
                         </configuration>
                     </plugin>
-
                 </plugins>
             </build>
         </profile>
@@ -1553,7 +1522,7 @@
                                 <argument>-Dcom.sun.management.jmxremote.port=10102</argument>
                                 <argument>-Dsplice.authentication=NATIVE</argument>
                                 <argument>-Dcom.splicemachine.enableLegacyAsserts=true</argument>
-				<argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
+                                <argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
                                 <argument>-Xmx6g</argument>
                                 <argument>-Xms1g</argument>
                                 <!-- Spark Sys props -->
@@ -1578,15 +1547,11 @@
                                 <argument>
                                     -Dspark.yarn.jars=${project.build.directory}/classes,${project.build.directory}/dependency/*
                                 </argument>
-
-				<argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
-
+                                <argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
                                 <argument>-Dsplice.spark.executor.instances=1</argument>
                                 <argument>-Dsplice.spark.executor.memory=2g</argument>
                                 <argument>-Dsplice.spark.io.compression.lz4.blockSize=32k</argument>
-
                                 <argument>-Dspark.broadcast.compress=true</argument>
-
                                 <argument>-Dsplice.spark.kryo.referenceTracking=false</argument>
                                 <argument>
                                     -Dsplice.spark.kryo.registrator=com.splicemachine.derby.impl.SpliceSparkKryoRegistrator
