@@ -19,7 +19,10 @@ import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.ParameterValueSet;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.ResultSet;
@@ -205,8 +208,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
 
     @Override
     public void close() throws StandardException {
-        if (uuid != null)
+        if (uuid != null) {
             EngineDriver.driver().getOperationManager().unregisterOperation(uuid);
+            logExecutionEnd();
+        }
         try{
             if(LOG_CLOSE.isTraceEnabled())
                 LOG_CLOSE.trace(String.format("closing operation %s",this));
@@ -271,7 +276,16 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     public void open() throws StandardException{
         if(LOG.isTraceEnabled())
             LOG.trace(String.format("open operation %s",this));
-        openCore();
+        try {
+            uuid = EngineDriver.driver().getOperationManager().registerOperation(this, Thread.currentThread());
+            DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation, this);
+            logExecutionStart(dsp);
+            openCore();
+        } catch (Exception e) {
+            EngineDriver.driver().getOperationManager().unregisterOperation(uuid);
+            checkInterruptedException(e);
+            throw e;
+        }
     }
 
     //	@Override
@@ -445,21 +459,74 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
 
     @Override
     public void openCore() throws StandardException{
-        try {
-            uuid = EngineDriver.driver().getOperationManager().registerOperation(this, Thread.currentThread());
-            DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation, this);
-            if (dsp.getType() == DataSetProcessor.Type.SPARK && !isOlapServer() && !SpliceClient.isClient) {
-                remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
-                remoteQueryClient.submit();
-                execRowIterator = remoteQueryClient.getIterator();
-            } else {
-                openCore(dsp);
-            }
-        } catch (Exception e) {
-            EngineDriver.driver().getOperationManager().unregisterOperation(uuid);
-            checkInterruptedException(e);
-            throw e;
+        DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation, this);
+        if (dsp.getType() == DataSetProcessor.Type.SPARK && !isOlapServer() && !SpliceClient.isClient) {
+            remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
+            remoteQueryClient.submit();
+            execRowIterator = remoteQueryClient.getIterator();
+        } else {
+            openCore(dsp);
         }
+    }
+
+    private void logExecutionStart(DataSetProcessor dsp) {
+        LanguageConnectionContext lccToUse = activation.getLanguageConnectionContext();
+        if (lccToUse.getLogStatementText()) {
+            HeaderPrintWriter istream = Monitor.getStream();
+            String xactId = lccToUse.getTransactionExecute().getActiveStateTxIdString();
+            String pvsString = "";
+            ParameterValueSet pvs = activation.getParameterValueSet();
+            if (pvs != null && pvs.getParameterCount() > 0) {
+                pvsString = " with " + pvs.getParameterCount() +
+                        " parameters " + pvs.toString();
+            }
+            istream.printlnWithHeader(LanguageConnectionContext.xidStr +
+                    xactId +
+                    "), " +
+                    LanguageConnectionContext.lccStr +
+                    lccToUse.getInstanceNumber() +
+                    "), " +
+                    LanguageConnectionContext.dbnameStr +
+                    lccToUse.getDbname() +
+                    "), " +
+                    LanguageConnectionContext.drdaStr +
+                    lccToUse.getDrdaID() +
+                    "), " +
+                    LanguageConnectionContext.uuidStr +
+                    uuid +
+                    "), " +
+                    LanguageConnectionContext.execStr +
+                    dsp.getType() +
+                    "), Executing prepared statement: " +
+                    activation.getPreparedStatement().getSource() +
+                    " :End prepared statement" +
+                    pvsString);
+        }
+
+    }
+
+    private void logExecutionEnd() {
+        LanguageConnectionContext lccToUse = activation.getLanguageConnectionContext();
+        if (lccToUse.getLogStatementText()) {
+            HeaderPrintWriter istream = Monitor.getStream();
+            String xactId = lccToUse.getTransactionExecute().getActiveStateTxIdString();
+            istream.printlnWithHeader(LanguageConnectionContext.xidStr +
+                    xactId +
+                    "), " +
+                    LanguageConnectionContext.lccStr +
+                    lccToUse.getInstanceNumber() +
+                    "), " +
+                    LanguageConnectionContext.dbnameStr +
+                    lccToUse.getDbname() +
+                    "), " +
+                    LanguageConnectionContext.drdaStr +
+                    lccToUse.getDrdaID() +
+                    "), " +
+                    LanguageConnectionContext.uuidStr +
+                    uuid +
+                    "), Finished executing prepared statement");
+        }
+
     }
 
     protected void computeModifiedRows() throws StandardException {
