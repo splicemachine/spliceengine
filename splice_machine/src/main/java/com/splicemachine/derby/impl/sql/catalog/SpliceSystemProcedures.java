@@ -558,6 +558,16 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(disableStatsForColumn);
 
+        			/*
+        			 * Procedure to get the session details
+        			 */
+                    Procedure sessionInfo = Procedure.newBuilder().name("SYSCS_GET_SESSION_INFO")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(sessionInfo);
+
 
         			/*
         			 * Procedure to get a list of running operations

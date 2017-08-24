@@ -137,7 +137,7 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
         // we should have 1 running operation, the call itself
         assertTrue(rs.next());
         assertEquals("SPLICE", rs.getString(2)); // check user
-        assertEquals(sql, rs.getString(3)); // check user
+        assertEquals(sql, rs.getString(5)); // check sql
     }
 
     @Test
@@ -165,7 +165,7 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
         String uuid = null;
         while(opsRs.next()) {
             count++;
-            if (opsRs.getString(3).equals(sql)) {
+            if (opsRs.getString(5).equals(sql)) {
                 uuid = opsRs.getString(1);
             }
         }
@@ -211,7 +211,7 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
         String uuid = null;
         while(opsRs.next()) {
             count++;
-            if (opsRs.getString(3).equals(sql)) {
+            if (opsRs.getString(5).equals(sql)) {
                 uuid = opsRs.getString(1);
             }
         }
@@ -277,7 +277,7 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
         String uuid = null;
         while(opsRs.next()) {
             count++;
-            if (opsRs.getString(3).equals(sql)) {
+            if (opsRs.getString(5).equals(sql)) {
                 uuid = opsRs.getString(1);
             }
         }
