@@ -137,4 +137,9 @@ public interface IndexDescriptor
      * @return
      */
     public boolean isPrimaryKey();
+
+	public boolean excludeNulls();
+
+	public boolean excludeDefaults();
+
 }

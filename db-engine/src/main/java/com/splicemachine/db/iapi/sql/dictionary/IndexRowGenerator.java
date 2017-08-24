@@ -31,10 +31,6 @@
 
 package com.splicemachine.db.iapi.sql.dictionary;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.catalog.types.IndexDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -47,9 +43,13 @@ import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.types.StringDataValue;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 /**
  * This class extends IndexDescriptor for internal use by the
@@ -82,14 +82,18 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 								boolean isUniqueWithDuplicateNulls,
 								int[] baseColumnPositions,
 								boolean[] isAscending,
-								int numberOfOrderedColumns)
+								int numberOfOrderedColumns,
+							 	boolean excludeNulls,
+							    boolean excludeDefaults)
 	{
 		id = new IndexDescriptorImpl(indexType,
 									isUnique,
 									isUniqueWithDuplicateNulls,
 									baseColumnPositions,
 									isAscending,
-									numberOfOrderedColumns);
+									numberOfOrderedColumns,
+									excludeNulls,
+									excludeDefaults);
 
 		if (SanityManager.DEBUG)
 		{
@@ -379,6 +383,10 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 	{
 		return id.isDescending(keyColumnPosition);
 	}
+
+	@Override public boolean excludeNulls() {return id.excludeNulls();}
+
+	@Override public boolean excludeDefaults() {return id.excludeDefaults();}
 
 	/** @see IndexDescriptor#isAscending */
 	public boolean[]		isAscending()

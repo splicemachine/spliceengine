@@ -31,10 +31,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.List;
-
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
@@ -45,10 +41,17 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
+
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.splicemachine.db.iapi.types.Orderable.*;
 
 /**
  * A PredicateList represents the list of top level predicates.
@@ -3639,4 +3642,145 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 return true;
         return false;
     }
+    @Override
+    public boolean canSupportIndexExcludedNulls(int tableNumber, ConglomerateDescriptor cd, TableDescriptor td) throws StandardException {
+        int size = size();
+        if (size == 0)
+            return false;
+
+        // we need to have at least one null filtering condition involving this table to qualify the Index
+        int[] baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
+        ExcludedNullIndexColumnVisitor excludedIndexColumnVisitor = new ExcludedNullIndexColumnVisitor(tableNumber,baseColumnPositions[0]);
+        boolean canSupportExcludedColumns = false;
+        for(int index=0;index<size;index++){
+            Predicate pred=elementAt(index);
+
+            // skip OrList
+            if(pred.isOrList()){
+                continue;
+            } else
+            {
+                pred.accept(excludedIndexColumnVisitor);
+                if (excludedIndexColumnVisitor.isValid) {
+                    canSupportExcludedColumns = true;
+                    break;
+                }
+            }
+        }
+        return canSupportExcludedColumns;
+    }
+
+    @Override
+    public boolean canSupportIndexExcludedDefaults(int tableNumber, ConglomerateDescriptor cd, TableDescriptor td) throws StandardException {
+        int size = size();
+        if (size == 0)
+            return false;
+        int[] baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
+        int columnNumber = baseColumnPositions[0];
+
+        DataValueDescriptor defaultValue = td.getDefaultValue(cd.getIndexDescriptor().baseColumnPositions()[0]);
+
+        if (defaultValue.isNull())
+            return canSupportIndexExcludedNulls(tableNumber, cd, td);
+
+        boolean canSupportExcludedColumns = false;
+        for(int index=0;index<size;index++){
+            Predicate pred=elementAt(index);
+
+            // we can support only simple predicate of the following forms without expression on the column:
+            // 1. col relop constant, where relop could be ">,>=, =,<=,<, <>"; or
+            // 2. col is null
+            // 3. col in (val1, val2, ..., val3)
+            if(pred.isOrList()){
+                continue;
+            }
+
+            if (pred.andNode.getLeftOperand() instanceof IsNullNode) {
+                //check default value is null or not
+                if (((IsNullNode)(pred.andNode.getLeftOperand())).getNodeType() == C_NodeTypes.IS_NULL_NODE) {
+                    canSupportExcludedColumns = true;
+                    break;
+                }
+            }
+
+            //check inlist predicate
+            InListOperatorNode inNode = pred.getSourceInList();
+            if (inNode != null) {
+                if (inNode.getLeftOperand() instanceof ColumnReference) {
+                    ColumnReference col= (ColumnReference)inNode.getLeftOperand();
+                    if (col.getSource() != null &&
+                            col.getTableNumber() == tableNumber &&
+                            col.getColumnNumber() == columnNumber) {
+                        //inlist values should not include the default value
+                        int i = 0;
+                        for (; i<inNode.getRightOperandList().size(); i++) {
+                            DataValueDescriptor compare = ((ConstantNode)(inNode.getRightOperandList().elementAt(i))).getValue();
+                            if (compare != null && compare.equals(defaultValue)) {
+                                canSupportExcludedColumns = false;
+                                break;
+                            }
+                        }
+                        if (i == inNode.getRightOperandList().size()) {
+                            canSupportExcludedColumns = true;
+                            break;
+                        }
+                    }
+                }
+                continue;
+            }
+
+            // check binary relational operator
+            RelationalOperator relop = pred.getRelop();
+            if (relop != null && relop instanceof BinaryRelationalOperatorNode) {
+                BinaryRelationalOperatorNode bro = (BinaryRelationalOperatorNode) relop;
+                if (bro.getLeftOperand() instanceof ColumnReference){
+                    ColumnReference col= (ColumnReference)bro.getLeftOperand();
+                    if (col.getSource() != null &&
+                        col.getTableNumber() == tableNumber &&
+                        col.getColumnNumber() == columnNumber) {
+                        // check whether right side is constant value and whether the value range exclude the
+                        // default value
+                        if (bro.getRightOperand() instanceof ConstantNode) {
+                            DataValueDescriptor compare = ((ConstantNode)bro.getRightOperand()).getValue();
+
+                            switch (bro.getOperator()) {
+                                case RelationalOperator.EQUALS_RELOP:
+                                    if (compare == null || !compare.equals(defaultValue))
+                                        canSupportExcludedColumns = true;
+                                    break;
+                                case RelationalOperator.GREATER_EQUALS_RELOP:
+                                    if (compare == null || compare.compare(ORDER_OP_GREATERTHAN, defaultValue, false, false))
+                                        canSupportExcludedColumns = true;
+                                    break;
+                                case RelationalOperator.GREATER_THAN_RELOP:
+                                    if (compare == null || compare.compare(ORDER_OP_GREATEROREQUALS, defaultValue, false, false))
+                                        canSupportExcludedColumns = true;
+                                    break;
+                                case RelationalOperator.LESS_EQUALS_RELOP:
+                                    if (compare == null || compare.compare(ORDER_OP_LESSTHAN, defaultValue, false, false))
+                                        canSupportExcludedColumns = true;
+                                    break;
+                                case RelationalOperator.LESS_THAN_RELOP:
+                                    if (compare == null || compare.compare(ORDER_OP_LESSOREQUALS, defaultValue, false, false))
+                                        canSupportExcludedColumns = true;
+                                    break;
+                                case RelationalOperator.NOT_EQUALS_RELOP:
+                                    if (compare == null || compare.equals(defaultValue))
+                                        canSupportExcludedColumns = true;
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                        if (canSupportExcludedColumns)
+                            break;
+                    }
+                }
+            }
+        }
+        return canSupportExcludedColumns;
+    }
+
+
+
 }

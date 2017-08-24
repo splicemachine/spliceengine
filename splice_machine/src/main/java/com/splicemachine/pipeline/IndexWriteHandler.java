@@ -117,6 +117,8 @@ public class IndexWriteHandler extends RoutingWriteHandler{
         try {
             boolean add=true;
             KVPair newIndex = transformer.translate(mutation);
+            if (newIndex == null)
+                return true;
             newIndex.setType(KVPair.Type.INSERT);
             if(deleteMutation!=null && newIndex.rowKeySlice().equals(deleteMutation.rowKeySlice())){
                 /*
