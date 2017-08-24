@@ -62,7 +62,8 @@ public class BulkDeleteRowIndexGenerationFunction extends RowAndIndexGenerator {
             ExecRow indexRow = getIndexRow(indexTransformFunctions[i], locatedRow);
             Long indexConglomerate = indexTransformFunctions[i].getIndexConglomerateId();
             KVPair indexKVPair = indexTransformFunctions[i].call(indexRow);
-            list.add(new Tuple2<>(indexConglomerate, new Tuple2<>(indexKVPair.getRowKey(), new byte[0])));
+            if (indexKVPair != null) // Supports Null and Default Expression Indexes
+                list.add(new Tuple2<>(indexConglomerate, new Tuple2<>(indexKVPair.getRowKey(), new byte[0])));
         }
 
         return list.iterator();

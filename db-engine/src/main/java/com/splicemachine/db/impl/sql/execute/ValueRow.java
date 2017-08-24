@@ -31,16 +31,6 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.math.BigDecimal;
-import java.sql.Date;
-import java.sql.Timestamp;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.List;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -53,6 +43,17 @@ import scala.collection.Map;
 import scala.collection.Seq;
 import scala.util.hashing.MurmurHash3;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Timestamp;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.List;
+
 /**
 	Basic implementation of ExecRow.
 
@@ -63,7 +64,6 @@ public class ValueRow implements ExecRow, Externalizable {
 	//	STATE
 	//
 	///////////////////////////////////////////////////////////////////////
-
 	private DataValueDescriptor[] column;
 	private int ncols;
 	private byte[] key;
@@ -76,7 +76,20 @@ public class ValueRow implements ExecRow, Externalizable {
 
     /** Empty constructor for serialization */
     public ValueRow() {
-    }
+
+	}
+
+	/**
+	 *
+	 * Pass in column array
+	 *
+	 * @param column
+     */
+	public ValueRow(DataValueDescriptor[] column) {
+		this(column.length);
+		this.column = column;
+	}
+
 
 	/**
 	  *	Make a value row with a designated number of column slots.
