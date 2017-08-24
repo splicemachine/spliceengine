@@ -20,6 +20,7 @@ import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.SQLConfiguration;
+import com.splicemachine.access.util.NetworkUtils;
 import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -1405,11 +1406,35 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
     }
 
-    private static final ResultColumnDescriptor[] GET_RUNNING_OPERATIONS_OUTPUT_COLUMNS = new GenericColumnDescriptor[]{
-            new GenericColumnDescriptor("uuid", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
-            new GenericColumnDescriptor("user", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
-            new GenericColumnDescriptor("sql", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
-    };
+    public static void SYSCS_GET_SESSION_INFO(final ResultSet[] resultSet) throws SQLException{
+        EmbedConnection conn = (EmbedConnection)getDefaultConn();
+        LanguageConnectionContext lcc = conn.getLanguageConnection();
+        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
+
+        int sessionNumber = lcc.getInstanceNumber();
+
+        SConfiguration config=EngineDriver.driver().getConfiguration();
+        String hostname = NetworkUtils.getHostname(config);
+        int port = config.getNetworkBindPort();
+
+        List<ExecRow> rows = new ArrayList<>(1);
+        ExecRow row = new ValueRow(2);
+        row.setColumn(1, new SQLVarchar(hostname + ":" + port));
+        row.setColumn(2, new SQLInteger(sessionNumber));
+        rows.add(row);
+
+        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, new GenericColumnDescriptor[]{
+                new GenericColumnDescriptor("HOSTNAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
+                new GenericColumnDescriptor("SESSION", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+        },
+                lastActivation);
+        try {
+            resultsToWrap.openCore();
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
+        resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
+    }
 
 
     public static void SYSCS_GET_RUNNING_OPERATIONS(final ResultSet[] resultSet) throws SQLException{
@@ -1423,20 +1448,28 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
         List<Pair<UUID, SpliceOperation>> operations = EngineDriver.driver().getOperationManager().runningOperations(userId);
 
+        SConfiguration config=EngineDriver.driver().getConfiguration();
+        String hostname = NetworkUtils.getHostname(config);
+        int port = config.getNetworkBindPort();
+
         List<ExecRow> rows = new ArrayList<>(operations.size());
         for (Pair<UUID, SpliceOperation> pair : operations) {
-            ExecRow row = new ValueRow(2);
+            ExecRow row = new ValueRow(3);
             Activation activation = pair.getSecond().getActivation();
             row.setColumn(1, new SQLVarchar(pair.getFirst().toString()));
             row.setColumn(2, new SQLVarchar(activation.getLanguageConnectionContext().getCurrentUserId(activation)));
-            row.setColumn(3, new SQLVarchar(activation.getPreparedStatement().getSource()));
+            row.setColumn(3, new SQLVarchar(hostname + ":" + port));
+            row.setColumn(4, new SQLInteger(activation.getLanguageConnectionContext().getInstanceNumber()));
+            row.setColumn(5, new SQLVarchar(activation.getPreparedStatement().getSource()));
             rows.add(row);
         }
 
         IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, new GenericColumnDescriptor[]{
-                new GenericColumnDescriptor("uuid", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
-                new GenericColumnDescriptor("user", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
-                new GenericColumnDescriptor("sql", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
+                new GenericColumnDescriptor("UUID", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
+                new GenericColumnDescriptor("USER", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
+                new GenericColumnDescriptor("HOSTNAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
+                new GenericColumnDescriptor("SESSION", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+                new GenericColumnDescriptor("SQL", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
         },
                 lastActivation);
         try {

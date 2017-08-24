@@ -17,6 +17,7 @@ package com.splicemachine.derby.lifecycle;
 import javax.annotation.Nullable;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.access.util.NetworkUtils;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiter;
 import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiterImpl;
@@ -48,9 +49,11 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
     private final SIDriver driver;
 
     private static final Logger LOG = Logger.getLogger(CostChoosingDataSetProcessorFactory.class);
+    private final String hostname;
 
     public CostChoosingDataSetProcessorFactory(){
         driver = SIDriver.driver();
+        hostname = NetworkUtils.getHostname(driver.getConfiguration());
     }
 
     @Override
@@ -135,7 +138,7 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
 
     @Override
     public RemoteQueryClient getRemoteQueryClient(SpliceBaseOperation operation) {
-        return new RemoteQueryClientImpl(operation);
+        return new RemoteQueryClientImpl(operation, hostname);
     }
 
     @Override
