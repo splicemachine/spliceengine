@@ -29,13 +29,13 @@ public class ColumnComparator implements Comparator<ExecRow>, Serializable, Exte
     private static final long serialVersionUID = -7005014411999208729L;
     private int[] columns;
     private boolean[] descColumns; //descColumns[i] = false => column[i] sorted descending, else sorted ascending
-    private boolean nullsOrderedLow;
+    private boolean[] nullsOrderedLow;
 
     public ColumnComparator() {
 
     }
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
-    public ColumnComparator(int[] columns, boolean[] descColumns, boolean nullsOrderedLow) {
+    public ColumnComparator(int[] columns, boolean[] descColumns, boolean[] nullsOrderedLow) {
         this.columns = columns;
         this.descColumns = descColumns;
         this.nullsOrderedLow = nullsOrderedLow;
@@ -52,8 +52,12 @@ public class ColumnComparator implements Comparator<ExecRow>, Serializable, Exte
             for (int i = 0; i < descColumns.length; i++)
                 out.writeBoolean(descColumns[i]);
         }
-        out.writeBoolean(nullsOrderedLow);
-
+        out.writeBoolean(nullsOrderedLow != null);
+        if (nullsOrderedLow != null) {
+            out.writeInt(nullsOrderedLow.length);
+            for (int i = 0; i < nullsOrderedLow.length; i++)
+                out.writeBoolean(nullsOrderedLow[i]);
+        }
     }
 
     @Override
@@ -66,7 +70,11 @@ public class ColumnComparator implements Comparator<ExecRow>, Serializable, Exte
             for (int i = 0; i < descColumns.length; i++)
                 descColumns[i] = in.readBoolean();
         }
-        nullsOrderedLow = in.readBoolean();
+        if (in.readBoolean()) {
+            nullsOrderedLow = new boolean[in.readInt()];
+            for (int i = 0; i < nullsOrderedLow.length; i++)
+                nullsOrderedLow[i] = in.readBoolean();
+        }
     }
 
     @Override
@@ -79,13 +87,11 @@ public class ColumnComparator implements Comparator<ExecRow>, Serializable, Exte
             DataValueDescriptor c2 = a2[columns[i]];
             int result;
             try {
-                result = c1.compare(c2,nullsOrderedLow);
+                result = c1.compare(c2,nullsOrderedLow==null?true:nullsOrderedLow[i]);
             } catch (StandardException e) {
                 throw new RuntimeException(e);
             }
             if (result != 0) {
-                if (nullsOrderedLow && (c1.isNull() || c2.isNull()))
-                    return result; // nulls go first independently of descColumns
                 return (descColumns==null ||descColumns[i]) ? result : -result;
             }
         }
