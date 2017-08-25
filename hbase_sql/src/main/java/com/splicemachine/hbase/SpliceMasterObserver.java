@@ -143,15 +143,9 @@ public class SpliceMasterObserver extends BaseMasterObserver {
         if (! manager.getState().equals(DatabaseLifecycleManager.State.NOT_STARTED))
             return; // Race Condition, only load one...
 
-        Configuration conf = (Configuration) HConfiguration.getConfiguration().getConfigSource().unwrapDelegate();
-        String quorum = ZKConfig.getZKQuorumServersString(conf);
-        RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 3);
-        CuratorFramework curator = CuratorFrameworkFactory.newClient(quorum, retryPolicy);
-        curator.start();
-
         //make sure only one master boots at a time
         String lockPath = HConfiguration.getConfiguration().getSpliceRootPath()+HConfiguration.MASTER_INIT_PATH;
-        InterProcessLock lock = new InterProcessMutex(curator, lockPath);
+        SpliceMasterLock lock = new SpliceMasterLock(HConfiguration.getConfiguration().getSpliceRootPath(), lockPath, ZkUtils.getRecoverableZooKeeper());
         IOException exception = null;
         try {
             lock.acquire();
@@ -179,16 +173,14 @@ public class SpliceMasterObserver extends BaseMasterObserver {
             exception = new IOException("Error locking " + lockPath + " for master initialization", e);
             throw exception;
         } finally {
-            if (lock.isAcquiredInThisProcess()) {
+            if (lock.isAcquired()) {
                 try {
                     lock.release();
-                    curator.close();
                 } catch (Exception e) {
-                    curator.close();
                     if (exception != null)
                         throw exception;
                     else
-                        throw new IOException("Error releasing " + lockPath + " after master initialization",e);
+                        throw new IOException("Error releasing " + lockPath + " after master initialization", e);
                 }
             }
         }
