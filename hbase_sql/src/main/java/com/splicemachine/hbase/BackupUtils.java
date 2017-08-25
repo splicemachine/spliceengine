@@ -27,6 +27,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionFileSystem;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -282,11 +283,16 @@ public class BackupUtils {
      * @param region
      * @return
      */
-    public static boolean shouldIgnore(SpliceMessage.PrepareBackupRequest request, HRegion region) {
-        byte[] endKey = request.hasEndKey() ? request.getEndKey().toByteArray() : null;
-        byte[] regionStartKey = region.getRegionInfo().getStartKey();
-        return endKey != null && endKey.length > 0 && Bytes.compareTo(endKey, regionStartKey) == 0;
+    public static boolean regionKeysMatch(SpliceMessage.PrepareBackupRequest request, HRegion region) {
+        byte[] requestStartKey = request.hasStartKey() ? request.getStartKey().toByteArray() : new byte[0];
+        byte[] requestEndKey = request.hasEndKey() ? request.getEndKey().toByteArray() : new byte[0];
 
+        HRegionInfo regionInfo = region.getRegionInfo();
+        byte[] regionStartKey = regionInfo.getStartKey() != null? regionInfo.getStartKey() : new byte[0];
+        byte[] regionEndKey = regionInfo.getEndKey() != null ? regionInfo.getEndKey() : new byte[0];
+
+        return Bytes.compareTo(requestStartKey, regionStartKey) ==0 &&
+                Bytes.compareTo(requestEndKey, regionEndKey) == 0;
     }
 
     private static boolean backupTimedout() throws Exception {
