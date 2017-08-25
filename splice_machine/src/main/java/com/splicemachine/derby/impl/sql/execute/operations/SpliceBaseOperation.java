@@ -208,6 +208,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
 
     @Override
     public void close() throws StandardException {
+        if (isClosed())
+            return;
         if (uuid != null) {
             EngineDriver.driver().getOperationManager().unregisterOperation(uuid);
             logExecutionEnd();
@@ -472,35 +474,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     private void logExecutionStart(DataSetProcessor dsp) {
         LanguageConnectionContext lccToUse = activation.getLanguageConnectionContext();
         if (lccToUse.getLogStatementText()) {
-            HeaderPrintWriter istream = Monitor.getStream();
             String xactId = lccToUse.getTransactionExecute().getActiveStateTxIdString();
-            String pvsString = "";
-            ParameterValueSet pvs = activation.getParameterValueSet();
-            if (pvs != null && pvs.getParameterCount() > 0) {
-                pvsString = " with " + pvs.getParameterCount() +
-                        " parameters " + pvs.toString();
-            }
-            istream.printlnWithHeader(LanguageConnectionContext.xidStr +
-                    xactId +
-                    "), " +
-                    LanguageConnectionContext.lccStr +
-                    lccToUse.getInstanceNumber() +
-                    "), " +
-                    LanguageConnectionContext.dbnameStr +
-                    lccToUse.getDbname() +
-                    "), " +
-                    LanguageConnectionContext.drdaStr +
-                    lccToUse.getDrdaID() +
-                    "), " +
-                    LanguageConnectionContext.uuidStr +
-                    uuid +
-                    "), " +
-                    LanguageConnectionContext.execStr +
-                    dsp.getType() +
-                    "), Executing prepared statement: " +
-                    activation.getPreparedStatement().getSource() +
-                    " :End prepared statement" +
-                    pvsString);
+            EngineDriver.driver().getStatementLogger().logExecutionStart(xactId, lccToUse.getInstanceNumber(), lccToUse.getDbname(), lccToUse.getDrdaID(), uuid.toString(), dsp.getType(), activation.getPreparedStatement(), activation.getParameterValueSet());
         }
 
     }
@@ -508,23 +483,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     private void logExecutionEnd() {
         LanguageConnectionContext lccToUse = activation.getLanguageConnectionContext();
         if (lccToUse.getLogStatementText()) {
-            HeaderPrintWriter istream = Monitor.getStream();
             String xactId = lccToUse.getTransactionExecute().getActiveStateTxIdString();
-            istream.printlnWithHeader(LanguageConnectionContext.xidStr +
-                    xactId +
-                    "), " +
-                    LanguageConnectionContext.lccStr +
-                    lccToUse.getInstanceNumber() +
-                    "), " +
-                    LanguageConnectionContext.dbnameStr +
-                    lccToUse.getDbname() +
-                    "), " +
-                    LanguageConnectionContext.drdaStr +
-                    lccToUse.getDrdaID() +
-                    "), " +
-                    LanguageConnectionContext.uuidStr +
-                    uuid +
-                    "), Finished executing prepared statement");
+            EngineDriver.driver().getStatementLogger().logExecutionEnd(xactId, lccToUse.getInstanceNumber(), lccToUse.getDbname(), lccToUse.getDrdaID(), uuid.toString());
         }
 
     }
