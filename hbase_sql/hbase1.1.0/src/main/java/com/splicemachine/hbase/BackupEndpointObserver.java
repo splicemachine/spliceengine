@@ -111,7 +111,10 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         SpliceMessage.PrepareBackupResponse.Builder responseBuilder = SpliceMessage.PrepareBackupResponse.newBuilder();
         responseBuilder.setReadyForBackup(false);
 
-        if (BackupUtils.shouldIgnore(request, region)) {
+        if (!BackupUtils.regionKeysMatch(request, region)) {
+            // if the start/end key of the request does not match this region, return false to the client, because
+            // region has been split. The client should retry.
+
             return responseBuilder;
         }
 
