@@ -44,10 +44,6 @@ import com.splicemachine.db.iapi.services.stream.PrintWriterGetHeader;
 
 class BasicGetLogHeader implements PrintWriterGetHeader
 {
-	
-	private boolean doThreadId;
-	private boolean doTimeStamp;
-	private String tag;
 
 	/* 
 	 * STUB: This should take a header template. Check if
@@ -69,31 +65,11 @@ class BasicGetLogHeader implements PrintWriterGetHeader
 	BasicGetLogHeader(boolean doThreadId,
 				boolean doTimeStamp,
 				String tag){
-		this.doThreadId = doThreadId;
-		this.doTimeStamp = doTimeStamp;
-		this.tag = tag;
-	}	
+	}
 	
 	public String getHeader()
 	{
-		StringBuilder header = new StringBuilder(48);
-
-		if (tag != null) {
-			header.append(tag);
-			header.append(' ');
-		}
-
-		if (doTimeStamp) {
-			header.append(new Date());
-			header.append(' ');
-		}
-
-		if (doThreadId) {
-			header.append(Thread.currentThread().toString());
-			header.append(' ');
-		}
-
-		return header.toString();
+		return ""; // no need for headers
 	}
 }
 	
