@@ -309,7 +309,7 @@ public class OlapClientTest {
         }
 
         // let the network layer reconnect
-        Thread.sleep(000);
+        Thread.sleep(1000);
 
         // this one should work
         DumbOlapResult result = olapClient.execute(new DumbDistributedJob(100,4));
