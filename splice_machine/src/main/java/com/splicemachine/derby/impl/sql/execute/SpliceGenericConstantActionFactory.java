@@ -107,13 +107,17 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
                                                        String indexName,String tableName,
                                                        UUID tableId,String[] columnNames,
                                                        boolean[] isAscending,boolean isConstraint,
-                                                       UUID conglomerateUUID,Properties properties){
+                                                       UUID conglomerateUUID,
+                                                       boolean excludeNulls,
+                                                       boolean excludeDefaults,
+                                                       Properties properties){
         SpliceLogUtils.trace(LOG,"getCreateIndexConstantAction for index {%s.%s} on {%s.%s} with columnNames %s",schemaName,indexName,schemaName,tableName,Arrays.toString(columnNames));
         return new CreateIndexConstantOperation
                 (forCreateTable,unique,uniqueWithDuplicateNulls,indexType,
                         schemaName,indexName,tableName,tableId,
                         columnNames,isAscending,isConstraint,
-                        conglomerateUUID,properties);
+                        conglomerateUUID,
+                        excludeNulls,excludeDefaults,properties);
     }
 
     @Override
