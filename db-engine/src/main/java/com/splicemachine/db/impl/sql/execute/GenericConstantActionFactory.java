@@ -226,6 +226,8 @@ public abstract class GenericConstantActionFactory {
 		boolean[]		isAscending,
 		boolean			isConstraint,
 		UUID			conglomerateUUID,
+		boolean			excludeNulls,
+		boolean 		excludeDefaults,
 		Properties		properties
     );
 
