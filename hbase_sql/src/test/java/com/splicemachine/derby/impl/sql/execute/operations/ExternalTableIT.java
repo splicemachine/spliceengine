@@ -2008,6 +2008,16 @@ public class ExternalTableIT extends SpliceUnitTest{
                 " 3 |300 |CCC |\n" +
                 " 4 |400 |DDD |",TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
+
+        rs = methodWatcher.executeQuery("select * from orc_inequality where c2 <> 300 order by 1,2");
+        Assert.assertEquals("C1 |C2  |C3  |\n" +
+                "--------------\n" +
+                " 1 |100 |AAA |\n" +
+                " 1 |200 |BBB |\n" +
+                " 1 |400 |DDD |\n" +
+                " 2 |200 |BBB |\n" +
+                " 4 |400 |DDD |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
     }
 
     @Test
@@ -2086,6 +2096,16 @@ public class ExternalTableIT extends SpliceUnitTest{
                 " 1 |400 |DDD |\n" +
                 " 2 |200 |BBB |\n" +
                 " 3 |300 |CCC |\n" +
+                " 4 |400 |DDD |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select * from part_orc_inequality where c2 <> 300 order by 1,2");
+        Assert.assertEquals("C1 |C2  |C3  |\n" +
+                "--------------\n" +
+                " 1 |100 |AAA |\n" +
+                " 1 |200 |BBB |\n" +
+                " 1 |400 |DDD |\n" +
+                " 2 |200 |BBB |\n" +
                 " 4 |400 |DDD |",TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
     }

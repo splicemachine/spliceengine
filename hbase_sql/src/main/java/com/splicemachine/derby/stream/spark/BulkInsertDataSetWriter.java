@@ -27,10 +27,7 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
-import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.db.iapi.types.SQLBlob;
-import com.splicemachine.db.iapi.types.SQLLongint;
-import com.splicemachine.db.iapi.types.SQLVarchar;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.impl.SpliceSpark;
@@ -147,14 +144,20 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
             // This option is for calculating split row keys in HBase format, provided that split row keys are
             // stored in a csv file
             long indexConglom = -1;
+            boolean isUnique = false;
             for (ConglomerateDescriptor searchCD :list) {
                 if (searchCD.isIndex() && !searchCD.isPrimaryKey() && indexName != null &&
                         searchCD.getObjectName().compareToIgnoreCase(indexName) == 0) {
                     indexConglom = searchCD.getConglomerateNumber();
+                    DataValueDescriptor dvd =
+                            td.getColumnDescriptor(
+                                    searchCD.getIndexDescriptor().baseColumnPositions()[0]).getDefaultValue();
+                    ValueRow defaultRow = new ValueRow(new DataValueDescriptor[]{dvd});
                     DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(txn.getTxnId(),
                             activation.getLanguageConnectionContext(),
                             td.getHeapConglomerateId(), searchCD.getConglomerateNumber(),
-                            td, searchCD.getIndexDescriptor());
+                            td, searchCD.getIndexDescriptor(),td.getDefaultValue(searchCD.getIndexDescriptor().baseColumnPositions()[0]));
+                    isUnique = searchCD.getIndexDescriptor().isUnique();
                     tentativeIndexList.add(ddlChange.getTentativeIndex());
                     allCongloms.add(searchCD.getConglomerateNumber());
                     break;
@@ -164,7 +167,8 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
                     new BulkInsertRowIndexGenerationFunction(pkCols, tableVersion, execRow, autoIncrementRowLocationArray,
                             spliceSequences, heapConglom, txn, operationContext, tentativeIndexList);
             DataSet rowAndIndexes = dataSet.flatMap(rowAndIndexGenerator);
-            DataSet keys = rowAndIndexes.mapPartitions(new RowKeyGenerator(bulkImportDirectory, heapConglom, indexConglom));
+            DataSet keys = rowAndIndexes.mapPartitions(
+                    new RowKeyGenerator(bulkImportDirectory, heapConglom, indexConglom, isUnique));
             List<String> files = keys.collect();
         }
         else {
@@ -173,7 +177,7 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
                     DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(txn.getTxnId(),
                             activation.getLanguageConnectionContext(),
                             td.getHeapConglomerateId(), searchCD.getConglomerateNumber(),
-                            td, searchCD.getIndexDescriptor());
+                            td, searchCD.getIndexDescriptor(),td.getDefaultValue(searchCD.getIndexDescriptor().baseColumnPositions()[0]));
                     tentativeIndexList.add(ddlChange.getTentativeIndex());
                     allCongloms.add(searchCD.getConglomerateNumber());
                 }

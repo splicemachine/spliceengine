@@ -32,33 +32,29 @@
 package com.splicemachine.db.catalog.types;
 
 import com.splicemachine.db.catalog.IndexDescriptor;
-
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
-
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.IOException;
 
-/** @see com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator */
-public class IndexDescriptorImpl implements IndexDescriptor, Formatable
-{
-	/********************************************************
-	**
-	**	This class implements Formatable. That means that it
-	**	can write itself to and from a formatted stream. If
-	**	you add more fields to this class, make sure that you
-	**	also write/read them with the writeExternal()/readExternal()
-	**	methods.
-	**
-	**	If, inbetween releases, you add more fields to this class,
-	**	then you should bump the version number emitted by the getTypeFormatId()
-	**	method.
-	**
-	********************************************************/
-
+/**
+ *
+ *	This class implements Formatable. That means that it
+ *	can write itself to and from a formatted stream. If
+ *	you add more fields to this class, make sure that you
+ *	also write/read them with the writeExternal()/readExternal()
+ *	methods.
+ *
+ *	If, inbetween releases, you add more fields to this class,
+ *	then you should bump the version number emitted by the getTypeFormatId()
+ *	method.
+ *
+ * @see com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator
+ *
+ */
+public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 	private boolean		isUnique;
 	private int[]		baseColumnPositions;
 	private boolean[]	isAscending;
@@ -70,6 +66,10 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable
     //to true the index will allow duplicate nulls but for non null keys 
     //will act like a unique index.
 	private boolean     isUniqueWithDuplicateNulls;
+	private boolean 	excludeNulls;
+	private boolean 	excludeDefaults;
+
+
 
 	/**
      * Constructor for an IndexDescriptorImpl
@@ -99,7 +99,10 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable
 								boolean isUniqueWithDuplicateNulls,
 								int[] baseColumnPositions,
 								boolean[] isAscending,
-								int numberOfOrderedColumns)
+								int numberOfOrderedColumns,
+							   boolean excludeNulls,
+							   boolean excludeDefaults
+							   )
 	{
 		this.indexType = indexType;
 		this.isUnique = isUnique;
@@ -107,6 +110,8 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable
 		this.baseColumnPositions = baseColumnPositions;
 		this.isAscending = isAscending;
 		this.numberOfOrderedColumns = numberOfOrderedColumns;
+		this.excludeNulls = excludeNulls;
+		this.excludeDefaults = excludeDefaults;
 	}
 
 	/** Zero-argument constructor for Formatable interface */
@@ -243,6 +248,14 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable
 
 		sb.append(")");
 
+		if (excludeNulls) {
+			sb.append(" EXCL NULLS");
+		}
+
+		if (excludeDefaults) {
+			sb.append(" EXCL DEFAULTS");
+		}
+
 		return sb.toString();
 	}
 
@@ -268,6 +281,8 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable
         //isUniqueWithDuplicateNulls attribute won't be present if the index
         //was created in older versions
         isUniqueWithDuplicateNulls = fh.containsKey("isUniqueWithDuplicateNulls") && fh.getBoolean("isUniqueWithDuplicateNulls");
+		excludeNulls = fh.containsKey("excludeNulls") && fh.getBoolean("excludeNulls");
+		excludeDefaults = fh.containsKey("excludeDefaults") && fh.getBoolean("excludeDefaults");
     }
 
 	/**
@@ -290,6 +305,11 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable
 		//write the new attribut older versions will simply ignore it
 		fh.putBoolean("isUniqueWithDuplicateNulls", 
                                         isUniqueWithDuplicateNulls);
+		fh.putBoolean("excludeNulls",
+				excludeNulls);
+		fh.putBoolean("excludeDefaults",
+				excludeDefaults);
+
         out.writeObject(fh);
 	}
 
@@ -368,5 +388,15 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable
 		retval *= indexType.hashCode();
 
 		return retval;
+	}
+
+	@Override
+	public boolean excludeNulls() {
+		return excludeNulls;
+	}
+
+	@Override
+	public boolean excludeDefaults() {
+		return excludeDefaults;
 	}
 }

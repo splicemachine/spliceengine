@@ -92,7 +92,7 @@ public class StreamListenerServer<T> extends ChannelInboundHandlerAdapter {
             this.serverChannel = f.channel();
             InetSocketAddress socketAddress = (InetSocketAddress)this.serverChannel.localAddress();
             if (host == null)
-                host =  InetAddress.getLocalHost().getHostName();
+                host = InetAddress.getLocalHost().getHostName();
             int port = socketAddress.getPort();
             this.hostAndPort = HostAndPort.fromParts(host, port);
             LOG.info("StreamListenerServer listening on " + hostAndPort);

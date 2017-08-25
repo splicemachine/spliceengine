@@ -73,6 +73,12 @@ public class RegionPartition implements Partition{
 
 
     @Override
+    public String getEncodedName(){
+        return region.getRegionInfo().getEncodedName();
+    }
+
+
+    @Override
     public Iterator<DataResult> batchGet(Attributable attributes,List<byte[]> rowKeys) throws IOException{
         List<Result> results=new ArrayList<>(rowKeys.size());
         try{
@@ -435,10 +441,10 @@ public class RegionPartition implements Partition{
     }
 
     @Override
-    public void compact() throws IOException{
-        //TODO -sf- is this correct?
-        region.compactStores();
+    public void compact(boolean isMajor) throws IOException{
+        region.compact(isMajor);
     }
+
 
     /**
      * Synchronously flush the caches.

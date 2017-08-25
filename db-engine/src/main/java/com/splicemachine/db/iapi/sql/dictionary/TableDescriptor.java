@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.StatementType;
@@ -51,8 +52,10 @@ import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.spark_project.guava.primitives.Ints;
 
 /**
@@ -1437,6 +1440,59 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
 
     public boolean isExternal() {
         return tableType == EXTERNAL_TYPE;
+    }
+
+        /*
+         * Get an int[] mapping the column position of the indexed columns in the main table
+         * to it's location in the index table. The values are placed in the provided baseColumnPositions array,
+         * and the highest baseColumnPosition is returned.
+         */
+    public int getBaseColumnPositions(LanguageConnectionContext lcc,
+                                       int[] baseColumnPositions, String[] columnNames) throws StandardException {
+        int maxBaseColumnPosition = Integer.MIN_VALUE;
+        ClassFactory cf = lcc.getLanguageConnectionFactory().getClassFactory();
+        for (int i = 0; i < columnNames.length; i++) {
+            // Look up the column in the data dictionary --main table column
+            ColumnDescriptor columnDescriptor = getColumnDescriptor(columnNames[i]);
+            if (columnDescriptor == null) {
+                throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND_IN_TABLE, columnNames[i],tableName);
+            }
+
+            TypeId typeId = columnDescriptor.getType().getTypeId();
+
+            // Don't allow a column to be created on a non-orderable type
+            boolean isIndexable = typeId.orderable(cf);
+
+            if (isIndexable && typeId.userType()) {
+                String userClass = typeId.getCorrespondingJavaTypeName();
+
+                // Don't allow indexes to be created on classes that
+                // are loaded from the database. This is because recovery
+                // won't be able to see the class and it will need it to
+                // run the compare method.
+                try {
+                    if (cf.isApplicationClass(cf.loadApplicationClass(userClass)))
+                        isIndexable = false;
+                } catch (ClassNotFoundException cnfe) {
+                    // shouldn't happen as we just check the class is orderable
+                    isIndexable = false;
+                }
+            }
+
+            if (!isIndexable)
+                throw StandardException.newException(SQLState.LANG_COLUMN_NOT_ORDERABLE_DURING_EXECUTION, typeId.getSQLTypeName());
+
+            // Remember the position in the base table of each column
+            baseColumnPositions[i] = columnDescriptor.getPosition();
+
+            if (maxBaseColumnPosition < baseColumnPositions[i])
+                maxBaseColumnPosition = baseColumnPositions[i];
+        }
+        return maxBaseColumnPosition;
+    }
+
+    public DataValueDescriptor getDefaultValue(int columnNumber) {
+        return getColumnDescriptor(columnNumber).getDefaultValue();
     }
 
 }

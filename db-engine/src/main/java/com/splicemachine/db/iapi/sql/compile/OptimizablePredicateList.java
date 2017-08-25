@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 
 /**
@@ -331,4 +332,25 @@ public interface OptimizablePredicateList {
 	void adjustForSortElimination(RequiredRowOrdering ordering) throws StandardException;
 
     boolean isRowIdScan();
+
+	/**
+	 *
+	 * Evaluates whether the index conglomerate can be scanned by the predicates.
+	 *
+	 * @param cd
+	 * @return
+	 * @throws StandardException
+     */
+	boolean canSupportIndexExcludedNulls(int tableNumber, ConglomerateDescriptor cd, TableDescriptor td) throws StandardException;
+
+	/**
+	 *
+	 * Evaluates whether the index conglomerate can be scanned by the predicates.
+	 *
+	 * @param cd
+	 * @return
+	 * @throws StandardException
+	 */
+	boolean canSupportIndexExcludedDefaults(int tableNumber, ConglomerateDescriptor cd, TableDescriptor td) throws StandardException;
+
 }
