@@ -51,6 +51,8 @@ import java.io.ObjectOutput;
 import java.sql.Types;
 import java.text.RuleBasedCollator;
 
+import static com.splicemachine.db.iapi.types.TypeId.CHAR_ID;
+
 /**
  * DataTypeDescriptor describes a runtime SQL type.
  * It consists of a catalog type (TypeDescriptor)
@@ -765,6 +767,12 @@ public class DataTypeDescriptor implements Formatable{
                         scale=charMaxWidth;
 
                     maximumWidth=precision+3;
+                }
+            } else { //if(thisType.typePrecedence()!=otherType.typePrecedence())
+                // for char type of the two have different length, the resultant data type will become varchar
+                // with length equals to the maximum among the two
+                if (thisType == CHAR_ID && thisType == otherType && getMaximumWidth() != otherDTS.getMaximumWidth()) {
+                    higherType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR);
                 }
             }
         }else{
