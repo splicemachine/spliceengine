@@ -350,6 +350,18 @@ public class UnionOperationIT {
         }
     }
 
+    @Test
+    public void testUnionOfCharTypeWithDifferentLength() throws Exception {
+        try(Statement s = conn.createStatement()){
+            try(ResultSet rs = s.executeQuery("select '--' || A || '--' from (select 'HOME' as A from sys.sysschemas union select 'OFFICE' as A from sys.sysschemas) dt")){
+                Assert.assertEquals("1     |\n" +
+                        "------------\n" +
+                        " --HOME--  |\n" +
+                        "--OFFICE-- |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
+        }
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private void insert(Statement s, long times, String sql) throws Exception {
