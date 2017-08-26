@@ -16,6 +16,7 @@
 package com.splicemachine.hbase;
 
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -28,6 +29,8 @@ import java.util.concurrent.Semaphore;
  * Created by dgomezferro on 25/08/2017.
  */
 public class SpliceMasterLock implements Watcher {
+    private static final Logger LOG = Logger.getLogger(SpliceMasterLock.class);
+
     private final String path;
     private final String parent;
     private final RecoverableZooKeeper zk;
@@ -42,6 +45,7 @@ public class SpliceMasterLock implements Watcher {
     }
 
     public void acquire() throws InterruptedException, KeeperException {
+        LOG.info("Taking lock on " + path);
         ZkUtils.recursiveSafeCreate(parent,new byte[]{},ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
         while (true) {
             try {
@@ -60,6 +64,7 @@ public class SpliceMasterLock implements Watcher {
             try {
                 zk.create(path, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
                 acquired = true;
+                LOG.info("Lock taken on " + path);
                 return;
             } catch (KeeperException e) {
                 if (e.code().equals(KeeperException.Code.NODEEXISTS)) {
@@ -73,8 +78,10 @@ public class SpliceMasterLock implements Watcher {
     }
 
     public void release() throws KeeperException, InterruptedException {
+        LOG.info("Releasing lock on " + path);
         zk.delete(path, -1);
         acquired = false;
+        LOG.info("Released lock on " + path);
     }
 
     public boolean isAcquired() {
@@ -83,6 +90,9 @@ public class SpliceMasterLock implements Watcher {
 
     @Override
     public void process(WatchedEvent watchedEvent) {
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("Received event " + watchedEvent);
+        }
         // something changed, retry
         semaphore.release();
     }
