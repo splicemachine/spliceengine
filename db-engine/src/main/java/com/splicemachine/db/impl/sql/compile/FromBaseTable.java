@@ -3414,7 +3414,7 @@ public class FromBaseTable extends FromTable {
     private void determineSpark() {
         // Set Spark Baby...
         if (dataSetProcessorType.equals(CompilerContext.DataSetProcessorType.DEFAULT_CONTROL) &&
-                getTrulyTheBestAccessPath().getCostEstimate().getEstimatedRowCount() > 20000) {
+                getTrulyTheBestAccessPath().getCostEstimate().getScannedBaseTableRows() > 20000) {
             dataSetProcessorType = CompilerContext.DataSetProcessorType.SPARK;
         }
     }
