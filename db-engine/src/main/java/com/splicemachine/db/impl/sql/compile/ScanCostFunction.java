@@ -208,6 +208,7 @@ public class ScanCostFunction{
         double baseCost = scc.getOpenLatency()+scc.getCloseLatency()+(totalRowCount*scc.getLocalLatency()*(1+scc.getConglomerateAvgRowWidth()/100d));
         scanCost.setFromBaseTableRows(totalRowCount);
         scanCost.setFromBaseTableCost(baseCost);
+        scanCost.setScannedBaseTableRows(totalRowCount);
         double lookupCost;
         if (lookupColumns == null)
             lookupCost = 0.0d;
@@ -281,6 +282,8 @@ public class ScanCostFunction{
         assert baseCost >= 0 : "baseCost cannot be negative -> " + baseCost;
         scanCost.setFromBaseTableRows(filterBaseTableSelectivity * totalRowCount);
         scanCost.setFromBaseTableCost(baseCost);
+        // set how many base table rows to scan
+        scanCost.setScannedBaseTableRows(baseTableSelectivity * totalRowCount);
         double lookupCost;
         if (lookupColumns == null)
             lookupCost = 0.0d;
