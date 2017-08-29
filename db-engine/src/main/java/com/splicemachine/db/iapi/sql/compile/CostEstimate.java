@@ -260,6 +260,10 @@ public interface CostEstimate extends StoreCostResult {
 
     void setFromBaseTableRows(double fromBaseTableRows);
 
+    double getScannedBaseTableRows() ;
+
+    void setScannedBaseTableRows(double scannedBaseTableRows);
+
     double getFromBaseTableCost();
 
     void setFromBaseTableCost(double fromBaseTableCost);
