@@ -25,9 +25,9 @@ public class BackupRestoreConstants {
     public static final String BACKUP_RECORD_FILE_NAME = "SYSBACKUP";
     public static final String REGION_FILE_NAME = ".regioninfo";
     public static final String ARCHIVE_DIR = "archive";
-    public static final byte[] BACKUP_TYPE_FULL_BYTES = Bytes.toBytes("FULL");
-    public static final byte[] BACKUP_TYPE_INCR_BYTES = Bytes.toBytes("INCR");
     public static final String BACKUP_JOB_GROUP = "Backup";
     public static final String RESTORE_JOB_GROUP = "Restore";
     public static final long BACKUP_JOB_TIMEOUT = 30000;
+    public static final String HBASE_ROOT_DIR = "hbase.root.dir";
+    public static final String HBASE_ARCHIVE_DIR = "hbase.archive.dir";
 }
