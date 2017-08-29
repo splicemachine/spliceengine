@@ -327,6 +327,7 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
                 costEstimate.setRemoteCost((long)(costEstimate.getRemoteCost()*scaleFactor));
                 costEstimate.setFromBaseTableCost(costEstimate.getFromBaseTableCost()*scaleFactor);
                 costEstimate.setFromBaseTableRows(costEstimate.getFromBaseTableRows()*scaleFactor);
+                costEstimate.setScannedBaseTableRows(costEstimate.getScannedBaseTableRows()*scaleFactor);
                 costEstimate.setEstimatedCost(costEstimate.getEstimatedCost()*scaleFactor);
         }
     }
