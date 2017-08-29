@@ -43,7 +43,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
     private static final Logger LOG=Logger.getLogger(BackupEndpointObserver.class);
 
     private AtomicBoolean isSplitting;
-    private AtomicBoolean isFlushing;
+    //private AtomicBoolean isFlushing;
     private AtomicBoolean isCompacting;
     private HRegion region;
     private String namespace;
@@ -75,7 +75,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         fs = FSUtils.getCurrentFileSystem(conf);
         backupDir = new Path(rootDir, BackupRestoreConstants.BACKUP_DIR + "/data/splice/" + tableName + "/" + regionName);
         preparing = new AtomicBoolean(false);
-        isFlushing = new AtomicBoolean(false);
+        //isFlushing = new AtomicBoolean(false);
         isCompacting = new AtomicBoolean(false);
         isSplitting = new AtomicBoolean(false);
     }
@@ -119,7 +119,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
 
         boolean canceled = false;
 
-        if (isSplitting.get() || isFlushing.get() || isCompacting.get()) {
+        if (isSplitting.get() || isCompacting.get()) {
             if (LOG.isDebugEnabled()) {
                 SpliceLogUtils.debug(LOG, "%s:%s is being split before trying to prepare for backup", tableName, regionName);
             }
@@ -145,10 +145,10 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
                         SpliceLogUtils.debug(LOG,"create node %s to mark backup in progress", path);
                     }
 
-                    if (isFlushing.get() || isCompacting.get() || isSplitting.get()) {
+                    if (isCompacting.get() || isSplitting.get()) {
                         if (LOG.isDebugEnabled()) {
-                            SpliceLogUtils.debug(LOG, "table %s region %s is not ready for backup: isSplitting=%s, isCompacting=%s, isFlushing=%s",
-                                    isSplitting.get(), isCompacting.get(), isFlushing.get());
+                            SpliceLogUtils.debug(LOG, "table %s region %s is not ready for backup: isSplitting=%s, isCompacting=%s",
+                                    isSplitting.get(), isCompacting.get());
                         }
                         ZkUtils.recursiveDelete(path);
                     }
@@ -215,13 +215,13 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
 
     @Override
     public void preFlush(ObserverContext<RegionCoprocessorEnvironment> e) throws IOException {
-        if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG, "BackupEndpointObserver.preFlush(): %s", regionName);
-        if (!BackupUtils.isSpliceTable(namespace, tableName))
-            return;
-        BackupUtils.waitForBackupToComplete(tableName, regionName, path);
-        isFlushing.set(true); // Mark beginning of flush
-        super.preFlush(e);
+//        if (LOG.isDebugEnabled())
+//            SpliceLogUtils.debug(LOG, "BackupEndpointObserver.preFlush(): %s", regionName);
+//        if (!BackupUtils.isSpliceTable(namespace, tableName))
+//            return;
+//        BackupUtils.waitForBackupToComplete(tableName, regionName, path);
+//        isFlushing.set(true); // Mark beginning of flush
+//        super.preFlush(e);
     }
 
     @Override
@@ -245,7 +245,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         if (!BackupUtils.isSpliceTable(namespace, tableName))
             return;
         super.postFlush(e);
-        isFlushing.set(false); // end of flush
+        //isFlushing.set(false); // end of flush
     }
 
     @Override
