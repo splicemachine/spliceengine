@@ -21,13 +21,11 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import java.math.BigDecimal;
 import java.sql.*;
 import java.util.Properties;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
-import static java.lang.String.format;
 
 /**
  * Created by jyuan on 10/7/14.
@@ -89,6 +87,27 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         new TableCreator(conn)
                 .withCreate("create table t3 (c1 int, c2 int)")
                 .create();
+
+        new TableCreator(conn)
+                .withCreate("create table t4 (a4 int, b4 int, c4 int, primary key(a4))")
+                .withInsert("insert into t4 values(?,?,?)")
+                .withRows(rows(
+                        row(1,1,1),
+                        row(2,2,2),
+                        row(3,3,3),
+                        row(4,4,4),
+                        row(5,5,5),
+                        row(6,6,6),
+                        row(7,7,7),
+                        row(8,8,8),
+                        row(9,9,9),
+                        row(10,10,10)))
+                .create();
+        int factor = 10;
+        for (int i = 1; i <= 12; i++) {
+            spliceClassWatcher.executeUpdate(format("insert into t4 select a4+%d, b4,c4 from t4", factor));
+            factor = factor * 2;
+        }
     }
 
     @Test
@@ -212,5 +231,21 @@ public class ExplainPlanIT extends SpliceUnitTest  {
                 Assert.assertTrue(s, s.contains("TableScan"));
             }
         }
+    }
+
+    @Test
+    public void testChoiceOfDatasetProcessorType() throws Exception {
+        // collect stats
+        methodWatcher.executeQuery(format("analyze table %s.t4", CLASS_NAME));
+        // PK access path, we should pick control path
+        ResultSet rs = methodWatcher.executeQuery("explain select * from t4 where a4=10000");
+        Assert.assertTrue(rs.next());
+        Assert.assertTrue("expect explain plan to pick control path", rs.getString(1).contains("engine=control"));
+
+        // full table scan, we should go for spark path as all rows need to be accessed, even though the output row count
+        // is small after applying the predicate
+        rs = methodWatcher.executeQuery("explain select * from t4 where b4=10000");
+        Assert.assertTrue(rs.next());
+        Assert.assertTrue("expect explain plan to pick spark path", rs.getString(1).contains("engine=Spark"));
     }
 }
