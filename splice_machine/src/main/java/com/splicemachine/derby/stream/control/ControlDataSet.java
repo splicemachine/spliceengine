@@ -201,7 +201,13 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation, K> PairDataSet<K, V> keyBy(final SpliceFunction<Op, V, K> function) {
-        return new ControlPairDataSet<>(entryToTuple(Multimaps.index(limit(iterator, function.operationContext),function).entries()));
+            return new ControlPairDataSet<>(Iterators.<V,Tuple2<K, V>>transform(iterator, new Function<V, Tuple2<K, V>>() {
+                @Nullable
+                @Override
+                public Tuple2<K, V> apply(@Nullable V v) {
+                    return Tuple2.apply(function.apply(v),v);
+                }
+            }));
     }
 
     @Override
