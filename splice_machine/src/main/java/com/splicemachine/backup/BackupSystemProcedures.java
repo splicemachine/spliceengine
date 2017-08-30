@@ -257,7 +257,7 @@ public class BackupSystemProcedures {
                 }
                 backupManager.removeBackup(backupIdList);
             }
-            String message = String.format("Deleted %d old backups for that past %d days", backupIdList.size(), backupWindow);
+            String message = String.format("Deleted %d old backups for the past %d days", backupIdList.size(), backupWindow);
             resultSets[0] = ProcedureUtils.generateResult("Success", message);
         } catch (Throwable t) {
             resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
