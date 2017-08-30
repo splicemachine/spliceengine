@@ -66,23 +66,18 @@ public class HRegionUtil extends BaseHRegionUtil{
         HBasePlatformUtils.updateReadRequests(region,numReads);
     }
 
-    public static List<byte[]> getCutpoints(Store store, byte[] start, byte[] end, byte[] expectedRegionEnd) throws IOException {
+    public static List<byte[]> getCutpoints(Store store, byte[] start, byte[] end) throws IOException {
         assert Bytes.startComparator.compare(start, end) <= 0 || start.length == 0 || end.length == 0;
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "getCutpoints");
         Collection<StoreFile> storeFiles;
         storeFiles = store.getStorefiles();
-        HFile.Reader fileReader;
+        HFile.Reader fileReader = null;
         List<byte[]> cutPoints = new ArrayList<byte[]>();
         int carry = 0;
 
         byte[] regionStart = store.getRegionInfo().getStartKey();
         byte[] regionEnd = store.getRegionInfo().getEndKey();
-
-        if ((expectedRegionEnd.length == 0 && regionEnd.length != 0)
-                || Bytes.endComparator.compare(expectedRegionEnd, regionEnd) > 0) {
-            throw new HMissedSplitException("Subplit computation missed region split");
-        }
 
         if (regionStart != null && regionStart.length > 0) {
             if (start == null || Bytes.startComparator.compare(start, regionStart) < 0) {
