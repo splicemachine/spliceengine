@@ -51,6 +51,7 @@ class BasicHeaderPrintWriter
 	implements HeaderPrintWriter
 {
 	private static final Logger LOG = Logger.getLogger("splice-derby");
+	private static final Logger LOG_STATEMENT = Logger.getLogger("splice-derby.statement");
 
 	private final PrintWriterGetHeader headerGetter;
 	private final String name;
@@ -89,6 +90,11 @@ class BasicHeaderPrintWriter
 
 	public String getName(){
 		return name;
+	}
+
+	@Override
+	public void printStatement(String statement) {
+		LOG_STATEMENT.info(statement);
 	}
 
 	@Override

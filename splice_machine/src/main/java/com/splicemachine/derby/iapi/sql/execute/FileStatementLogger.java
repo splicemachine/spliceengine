@@ -36,7 +36,7 @@ public class FileStatementLogger implements StatementLogger {
             pvsString = " with " + pvs.getParameterCount() +
                     " parameters " + pvs.toString();
         }
-        istream.printlnWithHeader(LanguageConnectionContext.xidStr +
+        istream.printStatement(LanguageConnectionContext.xidStr +
                 xactId +
                 "), " +
                 LanguageConnectionContext.lccStr +
@@ -62,7 +62,7 @@ public class FileStatementLogger implements StatementLogger {
     @Override
     public void logExecutionEnd(@Nonnull String xactId, int sessionId, String dbName, String drdaId, String uuid) {
         HeaderPrintWriter istream = Monitor.getStream();
-        istream.printlnWithHeader(LanguageConnectionContext.xidStr +
+        istream.printStatement(LanguageConnectionContext.xidStr +
                 xactId +
                 "), " +
                 LanguageConnectionContext.lccStr +
