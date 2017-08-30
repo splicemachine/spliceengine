@@ -237,6 +237,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
     public void testChoiceOfDatasetProcessorType() throws Exception {
         // collect stats
         methodWatcher.executeQuery(format("analyze table %s.t4", CLASS_NAME));
+        //test select with single table
         // PK access path, we should pick control path
         ResultSet rs = methodWatcher.executeQuery("explain select * from t4 where a4=10000");
         Assert.assertTrue(rs.next());
@@ -247,5 +248,15 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         rs = methodWatcher.executeQuery("explain select * from t4 where b4=10000");
         Assert.assertTrue(rs.next());
         Assert.assertTrue("expect explain plan to pick spark path", rs.getString(1).contains("engine=Spark"));
+
+        // test join case, base table scan may not exceeds the rowcount limit of 20000, if the join result rowcount exceeds this
+        // limit, we still need to go for Spark path
+        rs = methodWatcher.executeQuery("explain select * from t4 as X, t4 as Y where X.a4>30000 and Y.a4 >30000 and X.b4=Y.b4");
+        Assert.assertTrue(rs.next());
+        Assert.assertTrue("expect explain plan to pick spark path", rs.getString(1).contains("engine=Spark"));
+
+        rs = methodWatcher.executeQuery("explain select * from t4 as X, t4 as Y where X.a4=30000 and Y.a4 =30000 and X.b4=Y.b4");
+        Assert.assertTrue(rs.next());
+        Assert.assertTrue("expect explain plan to pick control path", rs.getString(1).contains("engine=control"));
     }
 }
