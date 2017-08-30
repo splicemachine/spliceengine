@@ -41,9 +41,11 @@ import java.util.List;
 public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorService implements CoprocessorService,Coprocessor{
     private static final Logger LOG=Logger.getLogger(RegionSizeEndpoint.class);
     private HRegion region;
+    private String hostName;
 
     @Override
     public void start(CoprocessorEnvironment env) throws IOException{
+        hostName = ((RegionCoprocessorEnvironment) env).getRegionServerServices().getServerName().getHostname();
         region = (HRegion)((RegionCoprocessorEnvironment) env).getRegion();
     }
 
@@ -67,13 +69,13 @@ public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorServ
         try {
             ByteString beginKey = request.getBeginKey();
             ByteString endKey = request.getEndKey();
-            ByteString expectedEndKey = request.getRegionEndKey();
-            List<byte[]> splits = computeSplits(region, beginKey.toByteArray(), endKey.toByteArray(), expectedEndKey.toByteArray());
+            List<byte[]> splits = computeSplits(region, beginKey.toByteArray(), endKey.toByteArray());
 
             if (LOG.isDebugEnabled())
                 SpliceLogUtils.debug(LOG,"computeSplits with beginKey=%s, endKey=%s, numberOfSplits=%s",beginKey,endKey,splits.size());
             for (byte[] split : splits)
                 writeResponse.addCutPoint(com.google.protobuf.ByteString.copyFrom(split));
+                writeResponse.setHostName(hostName);
         } catch (java.io.IOException e) {
             org.apache.hadoop.hbase.protobuf.ResponseConverter.setControllerException(controller, e);
         }
@@ -96,8 +98,8 @@ public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorServ
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
-    private static List<byte[]> computeSplits(HRegion region, byte[] beginKey, byte[] endKey, byte[] expectedRegionEnd) throws IOException {
-        return BytesCopyTaskSplitter.getCutPoints(region, beginKey, endKey, expectedRegionEnd);
+    private static List<byte[]> computeSplits(HRegion region, byte[] beginKey, byte[] endKey) throws IOException {
+        return BytesCopyTaskSplitter.getCutPoints(region, beginKey, endKey);
     }
 
     /**
