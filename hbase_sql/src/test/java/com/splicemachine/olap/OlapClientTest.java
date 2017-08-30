@@ -14,6 +14,7 @@
 
 package com.splicemachine.olap;
 
+import com.google.common.net.HostAndPort;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.SystemClock;
@@ -34,6 +35,9 @@ import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReferenceArray;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Basic tests around the OlapServer's functionality.
@@ -110,7 +114,7 @@ public class OlapClientTest {
             DumbOlapResult result = olapClient.execute(new FailingDistributedJob("failingJob"));
             Assert.fail("Didn't raise exception");
         } catch (IOException e) {
-            Assert.assertTrue(e.getMessage().contains("Expected exception"));
+            assertTrue(e.getMessage().contains("Expected exception"));
         }
     }
 
@@ -252,6 +256,109 @@ public class OlapClientTest {
         }
     }
 
+
+    @Test
+    public void testOlapClientReconnectionAfterLongFailure() throws Exception {
+        /*
+        * Tests what would happen if the server went down after we had successfully submitted, but while
+        * we are waiting. Because this is inherently concurrent, we use multiple threads
+        */
+        final AtomicReferenceArray<DumbOlapResult> results = new AtomicReferenceArray<>(1);
+        final AtomicReferenceArray<Throwable> errors = new AtomicReferenceArray<>(1);
+        Thread t = new Thread(new Runnable(){
+            @Override
+            public void run(){
+                try{
+                    results.set(0, olapClient.execute(new DumbDistributedJob(100000,0)));
+                }catch(IOException | TimeoutException e){
+                    errors.set(0, e);
+                    results.set(0, null);
+                }
+            }
+        });
+        t.start();
+
+        Thread.sleep(1000);
+
+        failServer();
+
+        t.join();
+        Assert.assertNull(results.get(0));
+        Assert.assertNotNull(errors.get(0));
+
+        // try again with the server dead
+
+        t = new Thread(new Runnable(){
+            @Override
+            public void run(){
+                try{
+                    results.set(0, olapClient.execute(new DumbDistributedJob(100000,0)));
+                }catch(IOException | TimeoutException e){
+                    errors.set(0, e);
+                    results.set(0, null);
+                }
+            }
+        });
+        t.start();
+
+        Thread.sleep(1000);
+
+        t.join();
+        Assert.assertNull(results.get(0));
+        Assert.assertNotNull(errors.get(0));
+
+        recreateServer();
+
+        // this one might or might not work
+        try {
+            DumbOlapResult result = olapClient.execute(new DumbDistributedJob(100,2));
+        } catch (Throwable e) {
+            // ignore
+        }
+
+        // let the network layer reconnect
+        Thread.sleep(1000);
+
+        // this one should work
+        DumbOlapResult result = olapClient.execute(new DumbDistributedJob(100,4));
+        assertTrue(result.isSuccess());
+        assertEquals(4, result.order);
+    }
+
+    @Test
+    public void testOlapClientReconnectionAfterFailure() throws Exception{
+       /*
+        * Tests what would happen if the server went down after we had successfully submitted, but while
+        * we are waiting. Because this is inherently concurrent, we use multiple threads
+        */
+        final AtomicReferenceArray<DumbOlapResult> results = new AtomicReferenceArray<>(1);
+        final AtomicReferenceArray<Throwable> errors = new AtomicReferenceArray<>(1);
+        Thread t = new Thread(new Runnable(){
+            @Override
+            public void run(){
+                try{
+                    results.set(0, olapClient.execute(new DumbDistributedJob(100000,0)));
+                }catch(IOException | TimeoutException e){
+                    errors.set(0, e);
+                    results.set(0, null);
+                }
+            }
+        });
+        t.start();
+
+        Thread.sleep(1000);
+
+        failAndCreateServer();
+
+        t.join();
+        Assert.assertNull(results.get(0));
+        Assert.assertNotNull(errors.get(0));
+
+        DumbOlapResult result = olapClient.execute(new DumbDistributedJob(100,2));
+        assertTrue(result.isSuccess());
+        assertEquals(2, result.order);
+    }
+
     private static class DumbOlapResult extends AbstractOlapResult {
         int order;
 
@@ -350,7 +457,22 @@ public class OlapClientTest {
         Clock clock=new SystemClock();
         olapServer = new OlapServer(0,clock); // any port
         olapServer.startServer(HConfiguration.getConfiguration());
-        JobExecutor nl = new AsyncOlapNIOLayer(olapServer.getBoundHost(),olapServer.getBoundPort(), 10);
+        JobExecutor nl = new AsyncOlapNIOLayer(() -> HostAndPort.fromParts(olapServer.getBoundHost(),olapServer.getBoundPort()), 10);
         olapClient = new TimedOlapClient(nl,10000);
+    }
+
+    private static void failAndCreateServer() throws IOException {
+        failServer();
+        recreateServer();
+    }
+
+    private static void failServer() throws IOException {
+        olapServer.stopServer();
+    }
+
+    private static void recreateServer() throws IOException {
+        Clock clock=new SystemClock();
+        olapServer = new OlapServer(0,clock); // any port
+        olapServer.startServer(HConfiguration.getConfiguration());
     }
 }
