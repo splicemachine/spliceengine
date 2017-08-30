@@ -183,6 +183,9 @@ public class ActivationClassBuilder	extends	ExpressionClassBuilder {
         if (currentType.equals(CompilerContext.DataSetProcessorType.FORCED_CONTROL) ||
                 currentType.equals(CompilerContext.DataSetProcessorType.FORCED_SPARK))
             return; // Already Forced
+		// if current type has already been set to Spark, we should honor it
+		if (currentType.equals(CompilerContext.DataSetProcessorType.SPARK))
+			return;
         myCompCtx.setDataSetProcessorType(type);
 		constructor.pushThis();
 		constructor.push(type.ordinal());
