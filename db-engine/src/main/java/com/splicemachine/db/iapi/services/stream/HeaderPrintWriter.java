@@ -62,6 +62,8 @@ public interface HeaderPrintWriter
 	 */
 	String getName();
 
+	void printStatement(String statement);
+
 	/**
 	 * @see java.io.PrintWriter#println
 	 */
