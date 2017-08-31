@@ -141,7 +141,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
                 canceled = BackupUtils.backupCanceled();
                 if (!canceled) {
                     // Create a ZNode to indicate that the region is being copied
-                    ZkUtils.recursiveSafeCreate(path, HConfiguration.BACKUP_IN_PROGRESS, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+                    ZkUtils.recursiveSafeCreate(path, HConfiguration.BACKUP_IN_PROGRESS, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
                     if (LOG.isDebugEnabled()) {
                         SpliceLogUtils.debug(LOG,"create node %s to mark backup in progress", path);
                     }
