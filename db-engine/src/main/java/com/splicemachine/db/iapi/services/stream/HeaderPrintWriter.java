@@ -55,46 +55,23 @@ public interface HeaderPrintWriter
 	/**
 	 * Return the header for the stream.
 	 */
-	public PrintWriterGetHeader getHeader();
-	
-	/**
-	 * Gets a PrintWriter object for writing to this HeaderPrintWriter.
-	 * Users may use the HeaderPrintWriter to access methods not included
-	 * in this interface or to invoke methods or constructors which require
-	 * a PrintWriter. 
-	 *
-	 * Interleaving calls to a printWriter and its associated HeaderPrintWriter
-	 * is not supported.
-	 * 
-	 */
-	public PrintWriter getPrintWriter();
+	PrintWriterGetHeader getHeader();
 
 	/**
 	 * Gets the name of the wrapped writer or stream
 	 */
 	public String getName ();
 
-	/*
-	 * The routines that mimic java.io.PrintWriter...
-	 */
-	/**
-	 * @see java.io.PrintWriter#print
-	 */
-	public void print(String message);
+	void printStatement(String statement);
 
 	/**
 	 * @see java.io.PrintWriter#println
 	 */
 	public void println(String message);
 
-	/**
-	 * @see java.io.PrintWriter#println
-	 */
-	public void println(Object message);
 
-	/**
-	* @see java.io.PrintWriter#flush
-	 */
-	public void flush();
+	void printThrowable(String message, Throwable t);
+
+	void printThrowable(Throwable t);
 }
 

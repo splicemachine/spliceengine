@@ -25,7 +25,9 @@ import com.splicemachine.access.api.ServiceDiscovery;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
+import com.splicemachine.derby.iapi.sql.execute.FileStatementLogger;
 import com.splicemachine.derby.iapi.sql.execute.OperationManager;
+import com.splicemachine.derby.iapi.sql.execute.StatementLogger;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
@@ -57,6 +59,8 @@ public class EngineDriver{
     private final OlapClient olapClient;
     private final OperationManager operationManager;
     private final SqlEnvironment environment;
+    private final ExecutorService threadPool;
+    private final StatementLogger statementLogger;
     private final ServiceDiscovery serviceDiscovery;
 
     public static void loadDriver(SqlEnvironment environment){
@@ -97,6 +101,21 @@ public class EngineDriver{
                     }
                 }).build();
         this.serviceDiscovery = environment.serviceDiscovery();
+        /* Create a general purpose thread pool */
+        final AtomicLong count = new AtomicLong(0);
+        ThreadPoolExecutor tpe = new ThreadPoolExecutor(20, config.getThreadPoolMaxSize(),
+                60L, TimeUnit.SECONDS,
+                new SynchronousQueue<>(),
+                (runnable) -> {
+                    Thread t = new Thread(runnable, "SpliceThreadPool-" + count.getAndIncrement());
+                    t.setDaemon(true);
+                    return t;
+                },
+                new ThreadPoolExecutor.CallerRunsPolicy());
+        tpe.allowCoreThreadTimeOut(false);
+        tpe.prestartAllCoreThreads();
+        this.threadPool = new ManagedThreadPool(tpe);
+        this.statementLogger = new FileStatementLogger();
     }
 
     public DatabaseAdministrator dbAdministrator(){
@@ -156,5 +175,7 @@ public class EngineDriver{
     public ServiceDiscovery getServiceDiscovery() {
         return serviceDiscovery;
     }
-
+    public StatementLogger getStatementLogger() {
+        return statementLogger;
+    }
 }
