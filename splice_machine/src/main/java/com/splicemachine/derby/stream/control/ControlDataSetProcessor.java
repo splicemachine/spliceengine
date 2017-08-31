@@ -87,7 +87,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
 
     @Override
     public Type getType() {
-        return Type.LOCAL;
+        return Type.CONTROL;
     }
 
     public static final Partitioner NOOP_PARTITIONER = new Partitioner() {

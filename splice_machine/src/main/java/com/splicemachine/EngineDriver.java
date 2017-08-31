@@ -23,7 +23,9 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
+import com.splicemachine.derby.iapi.sql.execute.FileStatementLogger;
 import com.splicemachine.derby.iapi.sql.execute.OperationManager;
+import com.splicemachine.derby.iapi.sql.execute.StatementLogger;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
@@ -56,6 +58,7 @@ public class EngineDriver{
     private final OperationManager operationManager;
     private final SqlEnvironment environment;
     private final ExecutorService threadPool;
+    private final StatementLogger statementLogger;
 
     public static void loadDriver(SqlEnvironment environment){
         INSTANCE=new EngineDriver(environment);
@@ -112,6 +115,7 @@ public class EngineDriver{
         tpe.allowCoreThreadTimeOut(false);
         tpe.prestartAllCoreThreads();
         this.threadPool = new ManagedThreadPool(tpe);
+        this.statementLogger = new FileStatementLogger();
     }
 
     public DatabaseAdministrator dbAdministrator(){
@@ -171,4 +175,8 @@ public class EngineDriver{
     }
 
     public OperationManager getOperationManager() { return operationManager; }
+
+    public StatementLogger getStatementLogger() {
+        return statementLogger;
+    }
 }
