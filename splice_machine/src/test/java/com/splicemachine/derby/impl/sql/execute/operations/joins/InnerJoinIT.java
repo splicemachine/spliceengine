@@ -180,7 +180,6 @@ public class InnerJoinIT extends SpliceUnitTest{
     @Category(SlowTest.class)
     public void testRepeatedScrollableInnerJoin() throws Exception{
         for(int i=0;i<100;i++){
-            System.out.println(i);
             testScrollableInnerJoin();
         }
     }

@@ -24,6 +24,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.stream.function.CloneFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -260,7 +261,7 @@ public class DistinctScanOperation extends ScanOperation {
             colMap = keyColumns;
         }
         operationContext = dsp.createOperationContext(this);
-        return dsp.<DistinctScanOperation,ExecRow>newScanSet(this,tableName)
+        DataSet<ExecRow> dataset = dsp.<DistinctScanOperation,ExecRow>newScanSet(this,tableName)
                 .tableDisplayName(this.tableDisplayName)
                 .activation(activation)
                 .transaction(getCurrentTransaction())
@@ -283,8 +284,8 @@ public class DistinctScanOperation extends ScanOperation {
                 .location(location)
                 .baseColumnMap(operationInformation.getBaseColumnMap())
                 .partitionByColumns(getPartitionColumnMap())
-                .buildDataSet(this)
-                .distinct(OperationContext.Scope.DISTINCT.displayName(), true, operationContext, true, OperationContext.Scope.DISTINCT.displayName());
+                .buildDataSet(this).map(new CloneFunction<>(operationContext));
+                return dataset.distinct(OperationContext.Scope.DISTINCT.displayName(), true, operationContext, true, OperationContext.Scope.DISTINCT.displayName());
     }
 
 }

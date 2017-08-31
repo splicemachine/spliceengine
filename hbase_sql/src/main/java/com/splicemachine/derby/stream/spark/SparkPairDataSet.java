@@ -28,6 +28,8 @@ import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.UpdateDataSetWriterBuilder;
 import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.PairFunction;
 import scala.Tuple2;
 import scala.util.Either;
 import java.util.Comparator;
@@ -88,10 +90,9 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
     @Override
     public <Op extends SpliceOperation> PairDataSet<K, V> reduceByKey(
         SpliceFunction2<Op,V, V, V> function2, boolean isLast, boolean pushScope, String scopeDetail) {
-
         pushScopeIfNeeded(function2, pushScope, scopeDetail);
         try {
-            return new SparkPairDataSet<>(rdd.reduceByKey(new SparkSpliceFunctionWrapper2<>(function2)), planIfLast(function2, isLast));
+            return new SparkPairDataSet<>(rdd.mapToPair((PairFunction)new CloneFirstFunction()).reduceByKey(new SparkSpliceFunctionWrapper2<>(function2)), planIfLast(function2, isLast));
         } finally {
             if (pushScope) function2.operationContext.popScope();
         }

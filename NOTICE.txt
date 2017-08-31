@@ -181,3 +181,13 @@ project. The following notice covers the Xalan jar files:
      - software copyright (c) 2000 World Wide Web Consortium, http://www.w3.org
 
 
+call SYSCS_UTIL.IMPORT_DATA ('RA', 'bucket_data_n', null, '/Users/jleach/schneider/schneider/data/bucket_data_n.csv', '|', null, null, null, null, 0, '/bad', true, null);
+
+call SYSCS_UTIL.IMPORT_DATA ('RA', 'SR_SGS_CLIENT_HIER', null, '/Users/jleach/schneider/schneider/data/sr_sgs_client_hier.csv', '|', null, null, null, null, 0, '/bad', true, null);
+
+call SYSCS_UTIL.IMPORT_DATA ('RA', 'CUR_UOM_CONVERSION', null, '/Users/jleach/schneider/schneider/data/cur_uom_conversion.csv', '|', null, null, null, null, 0, '/bad', true, null);
+
+RA                  |BUCKET_DATA_N                                     |1600      |
+RA                  |BUCKET_UOM_CONVERSION                             |1648      |
+RA                  |CUR_UOM_CONVERSION                                |1632      |
+RA                  |SR_SGS_CLIENT_HIER                                |1616      |
