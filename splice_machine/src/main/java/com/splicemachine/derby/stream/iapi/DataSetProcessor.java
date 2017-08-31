@@ -33,7 +33,7 @@ import java.util.Iterator;
  *
  */
 public interface DataSetProcessor {
-    enum Type {LOCAL,SPARK}
+    enum Type {CONTROL,SPARK}
 
     Type getType();
 
