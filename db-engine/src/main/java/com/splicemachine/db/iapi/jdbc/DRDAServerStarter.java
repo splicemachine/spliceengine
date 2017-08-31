@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.iapi.jdbc;
 
+import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.monitor.ModuleControl;
@@ -210,9 +211,7 @@ public final class DRDAServerStarter implements ModuleControl, Runnable
             catch( PrivilegedActionException e)
             {
                 Exception e1 = e.getException();
-                Monitor.logTextMessage(
-									   MessageId.CONN_NETWORK_SERVER_START_EXCEPTION, e1.getMessage());
-				e.printStackTrace(Monitor.getStream().getPrintWriter());
+                Monitor.getStream().printThrowable(MessageService.getTextMessage(MessageId.CONN_NETWORK_SERVER_START_EXCEPTION, e1.getMessage()), e);
                 return;
 
             }
@@ -233,9 +232,8 @@ public final class DRDAServerStarter implements ModuleControl, Runnable
         }
         catch( Exception e)
         {
-			Monitor.logTextMessage( MessageId.CONN_NETWORK_SERVER_START_EXCEPTION, e.getMessage());
 			server = null;
-			e.printStackTrace(Monitor.getStream().getPrintWriter());
+            Monitor.getStream().printThrowable(MessageService.getTextMessage(MessageId.CONN_NETWORK_SERVER_START_EXCEPTION, e.getMessage()), e);
         }
     } // end of boot
 
@@ -248,17 +246,13 @@ public final class DRDAServerStarter implements ModuleControl, Runnable
         }
         catch( InvocationTargetException ite)
         {
-            Monitor.logTextMessage(
-								   MessageId.CONN_NETWORK_SERVER_START_EXCEPTION, ite.getTargetException().getMessage());
-			ite.printStackTrace(Monitor.getStream().getPrintWriter());
-
+            Monitor.getStream().printThrowable(MessageService.getTextMessage(MessageId.CONN_NETWORK_SERVER_START_EXCEPTION, ite.getTargetException().getMessage()), ite);
             server = null;
         }
         catch( Exception e)
         {
-            Monitor.logTextMessage( MessageId.CONN_NETWORK_SERVER_START_EXCEPTION, e.getMessage());
             server = null;
-			e.printStackTrace(Monitor.getStream().getPrintWriter());
+            Monitor.getStream().printThrowable(MessageService.getTextMessage(MessageId.CONN_NETWORK_SERVER_START_EXCEPTION, e.getMessage()), e);
         }
     }
     
@@ -282,15 +276,11 @@ public final class DRDAServerStarter implements ModuleControl, Runnable
 		}
 		catch( InvocationTargetException ite)
         {
-			Monitor.logTextMessage(
-								   MessageId.CONN_NETWORK_SERVER_SHUTDOWN_EXCEPTION, ite.getTargetException().getMessage());
-			ite.printStackTrace(Monitor.getStream().getPrintWriter());
-			
+            Monitor.getStream().printThrowable(MessageService.getTextMessage( MessageId.CONN_NETWORK_SERVER_SHUTDOWN_EXCEPTION, ite.getTargetException().getMessage()), ite);
         }
         catch( Exception e)
         {
-            Monitor.logTextMessage( MessageId.CONN_NETWORK_SERVER_SHUTDOWN_EXCEPTION, e.getMessage());
-			e.printStackTrace(Monitor.getStream().getPrintWriter());
+            Monitor.getStream().printThrowable(MessageService.getTextMessage( MessageId.CONN_NETWORK_SERVER_SHUTDOWN_EXCEPTION, e.getMessage()), e);
 		}
 			
 		serverThread = null;

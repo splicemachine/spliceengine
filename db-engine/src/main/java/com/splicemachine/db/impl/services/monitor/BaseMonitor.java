@@ -77,6 +77,7 @@ import com.splicemachine.db.iapi.services.i18n.MessageService;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.BufferedInputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -347,7 +348,7 @@ abstract class BaseMonitor
 			systemStreams = (InfoStreams) Monitor.startSystemModule("com.splicemachine.db.iapi.services.stream.InfoStreams");
 
 			if (SanityManager.DEBUG) {
-				SanityManager.SET_DEBUG_STREAM(systemStreams.stream().getPrintWriter());
+				SanityManager.SET_DEBUG_STREAM(new PrintWriter(new OutputStreamWriter(System.err)));
 			}
 
 			contextService = ContextService.getService();

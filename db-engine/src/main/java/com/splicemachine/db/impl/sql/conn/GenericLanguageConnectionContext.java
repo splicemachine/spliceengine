@@ -336,7 +336,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         /* Find out whether or not to log info on executing statements to error log
          */
         String logStatementProperty=PropertyUtil.getServiceProperty(getTransactionCompile(),"derby.language.logStatementText");
-        logStatementText=Boolean.valueOf(logStatementProperty);
+        logStatementText=logStatementProperty == null || Boolean.valueOf(logStatementProperty); // log statements by default
 
         String logQueryPlanProperty=PropertyUtil.getServiceProperty(getTransactionCompile(),"derby.language.logQueryPlan");
         logQueryPlan=Boolean.valueOf(logQueryPlanProperty);
