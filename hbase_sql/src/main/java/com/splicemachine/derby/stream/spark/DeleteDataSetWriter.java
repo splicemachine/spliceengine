@@ -47,6 +47,7 @@ public class DeleteDataSetWriter<K,V> implements DataSetWriter{
 
     @Override
     public DataSet<ExecRow> write() throws StandardException{
+        conf.set("mapreduce.output.fileoutputformat.outputdir","/tmp");
         rdd.saveAsNewAPIHadoopDataset(conf);
         if (operationContext.getOperation() != null) {
             operationContext.getOperation().fireAfterStatementTriggers();
