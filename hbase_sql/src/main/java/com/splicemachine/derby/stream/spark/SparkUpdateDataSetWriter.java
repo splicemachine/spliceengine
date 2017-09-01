@@ -75,6 +75,7 @@ public class SparkUpdateDataSetWriter<K,V> implements DataSetWriter{
 
     @Override
     public DataSet<ExecRow> write() throws StandardException{
+        conf.set("mapreduce.output.fileoutputformat.outputdir","/tmp");
         rdd.saveAsNewAPIHadoopDataset(conf); //actually does the writing
         if (operationContext.getOperation() != null) {
             operationContext.getOperation().fireAfterStatementTriggers();
