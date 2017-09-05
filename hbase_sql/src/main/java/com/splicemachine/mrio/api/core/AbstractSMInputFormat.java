@@ -105,11 +105,11 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
 
                 List<InputSplit> lss= splitter.getSubSplits(table, splits, s.getStartRow(), s.getStopRow());
                 //check if split count changed in-between
-                List<Partition>  newSplits = clientPartition.subPartitions(s.getStartRow(), s.getStopRow(), true);
+                List<Partition>  newSplits = clientPartition.subPartitions(s.getStartRow(), s.getStopRow(), refresh);
                 if (splits.size() != newSplits.size()) {
                     // retry
                     refresh = true;
-                    LOG.warn("mismatched splits: earlier [" + splits.size() + "], later [" + newSplits.size() + "] for region " + clientPartition);
+                    LOG.warn("mismatched splits: earlier" + splits + ", later: " + newSplits + " for region " + clientPartition);
                     retryCounter++;
                     if (retryCounter > MAX_RETRIES) {
                         throw new RuntimeException("MAX_RETRIES exceeded during getSplits");
