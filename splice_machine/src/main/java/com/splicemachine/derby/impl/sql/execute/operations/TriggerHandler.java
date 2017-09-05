@@ -14,11 +14,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.List;
-import java.util.Properties;
-import java.util.concurrent.Callable;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.services.context.Context;
@@ -36,6 +31,12 @@ import com.splicemachine.derby.impl.sql.execute.operations.iapi.DMLWriteInfo;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import org.spark_project.guava.collect.Lists;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.Callable;
 
 /**
  * Used by DMLOperation to initialize the derby classes necessary for firing row/statement triggers.  Also provides
@@ -141,7 +142,13 @@ public class TriggerHandler {
     public void firePendingAfterTriggers(Callable<Void> flushCallback) throws Exception {
         /* If there are any un-flushed rows that would cause a constraint violation then this callback will throw.
          * Which is what we want. Check constraints before firing after triggers. */
-        flushCallback.call();
+        try {
+            flushCallback.call();
+        } catch (Exception e) {
+            pendingAfterRows.clear();
+            throw e;
+        }
+
         for (ExecRow flushedRow : pendingAfterRows) {
             fireAfterRowTriggers(flushedRow);
         }
