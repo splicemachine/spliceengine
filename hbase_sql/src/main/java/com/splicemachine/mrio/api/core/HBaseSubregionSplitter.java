@@ -19,7 +19,6 @@ import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.coprocessor.SpliceMessage;
-import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.si.impl.HMissedSplitException;
 import com.splicemachine.storage.Partition;
 import org.apache.hadoop.hbase.client.Table;
@@ -29,10 +28,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.log4j.Logger;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author Scott Fines
@@ -42,6 +38,8 @@ public class HBaseSubregionSplitter implements SubregionSplitter{
     private static final Logger LOG = Logger.getLogger(HBaseSubregionSplitter.class);
     @Override
     public List<InputSplit> getSubSplits(Table table, List<Partition> splits, final byte[] scanStartRow, final byte[] scanStopRow) throws HMissedSplitException {
+        // Synchronize the map since it will be acted on by multiple threads...
+        final SortedMap<byte[],String> map = Collections.synchronizedSortedMap(new TreeMap<>(Bytes.BYTES_COMPARATOR));
         final List<InputSplit> results = new ArrayList<>();
         try {
             SpliceMessage.SpliceSplitServiceRequest message = SpliceMessage.SpliceSplitServiceRequest.newBuilder()
@@ -54,34 +52,27 @@ public class HBaseSubregionSplitter implements SubregionSplitter{
                     new Batch.Callback<SpliceMessage.SpliceSplitServiceResponse>() {
                         @Override
                         public void update(byte[] region, byte[] row, SpliceMessage.SpliceSplitServiceResponse result) {
-                            try {
-                                Iterator<ByteString> it = result.getCutPointList().iterator();
-                                byte[] first = it.next().toByteArray();
-                                while (it.hasNext()) {
-                                    byte[] end = it.next().toByteArray();
-                                    if (Arrays.equals(first, end) && first != null && first.length > 0) {
-                                        // We have two cutpoints that are the same, that's only OK when the whole table fits into
-                                        // a single partition: ([], [])
-                                        LOG.warn(String.format("Two cutpoints are equal: %s", Bytes.toStringBinary(first)));
-                                        continue; // skip this cutpoint
-                                    }
-                                    results.add(new SMSplit(
-                                            new TableSplit(
-                                                    table.getName(),
-                                                    first,
-                                                    end,
-                                                    result.getHostName())));
-
-                                    if (LOG.isDebugEnabled()) {
-                                        LOG.debug(String.format("New split [%s,%s]", CellUtils.toHex(first), CellUtils.toHex(end)));
-                                    }
-                                    first = end;
-                                }
-                            } catch (IOException ioe) {
-                                throw new RuntimeException(ioe);
+                            Iterator<ByteString> it = result.getCutPointList().iterator();
+                            while (it.hasNext()) {
+                                map.put(it.next().toByteArray(),result.getHostName());
                             }
                         }
                     });
+            Iterator<Map.Entry<byte[],String>> foo = map.entrySet().iterator();
+            if (!foo.hasNext()) {
+                throw new IOException("split points not available");
+            }
+            byte[] firstKey = foo.next().getKey();
+            while (foo.hasNext()) {
+                Map.Entry<byte[],String> entry = foo.next();
+                results.add(new SMSplit(
+                        new TableSplit(
+                                table.getName(),
+                                firstKey,
+                                entry.getKey(),
+                                entry.getValue())));
+               firstKey = entry.getKey();
+            }
     } catch (Throwable throwable) {
                 LOG.error("Error while computing cutpoints, falling back to whole region partition", throwable);
 
@@ -102,4 +93,5 @@ public class HBaseSubregionSplitter implements SubregionSplitter{
             }
         return results;
     }
+
 }
