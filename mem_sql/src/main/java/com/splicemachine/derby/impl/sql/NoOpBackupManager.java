@@ -34,12 +34,12 @@ public class NoOpBackupManager implements BackupManager{
     private NoOpBackupManager(){ }
 
     @Override
-    public void fullBackup(String backupDirectory) throws StandardException {
+    public long fullBackup(String backupDirectory) throws StandardException {
         throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
     }
 
     @Override
-    public void incrementalBackup(String directory) throws StandardException{
+    public long incrementalBackup(String directory) throws StandardException{
         throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
     }
 

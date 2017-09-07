@@ -171,7 +171,7 @@ public class SYSBACKUPRowFactory extends CatalogRowFactory {
         return new SystemColumn[]{
                 SystemColumnImpl.getColumn("BACKUP_ID", Types.BIGINT, false),
                 SystemColumnImpl.getColumn("BEGIN_TIMESTAMP",Types.TIMESTAMP,false),
-                SystemColumnImpl.getColumn("END_TIMESTAMP",Types.TIMESTAMP,false),
+                SystemColumnImpl.getColumn("END_TIMESTAMP",Types.TIMESTAMP,true),
                 SystemColumnImpl.getColumn("STATUS",Types.VARCHAR,false,20),
                 SystemColumnImpl.getColumn("FILESYSTEM",Types.VARCHAR,false,32642),
                 SystemColumnImpl.getColumn("SCOPE",Types.VARCHAR,false,10),
