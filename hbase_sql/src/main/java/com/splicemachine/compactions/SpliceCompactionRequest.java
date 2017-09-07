@@ -17,6 +17,7 @@ package com.splicemachine.compactions;
 import com.splicemachine.access.client.MemstoreAware;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.log4j.Logger;
 
@@ -31,6 +32,7 @@ public class SpliceCompactionRequest extends CompactionRequest {
     private static final Logger LOG = Logger.getLogger(SpliceCompactionRequest.class);
     private AtomicReference<MemstoreAware> memstoreAware;
     private HRegion region;
+    private RegionServerServices regionServerServices;
 
     public void preStorefilesRename() throws IOException {
         assert memstoreAware != null;
@@ -76,5 +78,13 @@ public class SpliceCompactionRequest extends CompactionRequest {
 
     public void setRegion(HRegion region) {
         this.region = region;
+    }
+
+    public void setRegionServerServices(RegionServerServices regionServerServices) {
+        this.regionServerServices = regionServerServices;
+    }
+
+    public RegionServerServices getRegionServerServices() {
+        return regionServerServices;
     }
 }

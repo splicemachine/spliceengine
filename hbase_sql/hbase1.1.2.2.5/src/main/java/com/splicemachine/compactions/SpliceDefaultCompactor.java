@@ -43,6 +43,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -89,6 +90,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             SpliceLogUtils.trace(LOG, "compact(): request=%s", request);
 
         assert request instanceof SpliceCompactionRequest;
+        SpliceCompactionRequest scr = (SpliceCompactionRequest) request;
 
         smallestReadPoint = store.getSmallestReadPoint();
         FileDetails fd = getFileDetails(request.getFiles(), request.isAllFiles());
@@ -103,10 +105,12 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         // trigger MemstoreAwareObserver
         postCreateCoprocScanner(request, scanType, null, user);
 
+        InetSocketAddress[] addresses = scr.getRegionServerServices().getFavoredNodesForRegion(store.getRegionInfo().getEncodedName());
+
         String regionLocation = getRegionLocation(store);
         SConfiguration config = HConfiguration.getConfiguration();
         DistributedCompaction jobRequest=new DistributedCompaction(
-                getCompactionFunction(request.isMajor()),
+                getCompactionFunction(request.isMajor(), addresses),
                 files,
                 getJobDetails(request),
                 getJobGroup(request,regionLocation),
@@ -148,7 +152,6 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
 
         this.progress.complete();
 
-        SpliceCompactionRequest scr = (SpliceCompactionRequest) request;
         scr.preStorefilesRename();
 
         List<Path> paths = new ArrayList<>();
@@ -158,14 +161,15 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         return paths;
     }
 
-    private SparkCompactionFunction getCompactionFunction(boolean isMajor) {
+    private SparkCompactionFunction getCompactionFunction(boolean isMajor, InetSocketAddress[] addresses) {
         return new SparkCompactionFunction(
                 smallestReadPoint,
                 store.getTableName().getNamespace(),
                 store.getTableName().getQualifier(),
                 store.getRegionInfo(),
                 store.getFamily().getName(),
-                isMajor);
+                isMajor,
+                addresses);
     }
 
     private String getScope(CompactionRequest request) {

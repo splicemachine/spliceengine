@@ -18,11 +18,13 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import com.splicemachine.compactions.MockRegionServerServices;
 import org.apache.commons.collections.iterators.EmptyListIterator;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.hadoop.conf.Configuration;
@@ -53,6 +55,7 @@ import scala.Tuple2;
 
 public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperation,Iterator<Tuple2<Integer,Iterator>>,String> implements Externalizable {
     private static final Logger LOG = Logger.getLogger(SparkCompactionFunction.class);
+    private InetSocketAddress[] addresses;
     private long smallestReadPoint;
     private byte[] namespace;
     private byte[] tableName;
@@ -65,13 +68,14 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
     }
 
     public SparkCompactionFunction(long smallestReadPoint, byte[] namespace,
-                                   byte[] tableName, HRegionInfo hri, byte[] storeColumn, boolean isMajor) {
+                                   byte[] tableName, HRegionInfo hri, byte[] storeColumn, boolean isMajor, InetSocketAddress[] addresses) {
         this.smallestReadPoint = smallestReadPoint;
         this.namespace = namespace;
         this.tableName = tableName;
         this.hri = hri;
         this.storeColumn = storeColumn;
         this.isMajor = isMajor;
+        this.addresses = addresses;
     }
 
     @Override
@@ -88,6 +92,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         out.writeInt(storeColumn.length);
         out.write(storeColumn);
         out.writeBoolean(isMajor);
+        out.writeObject(addresses);
     }
 
     @Override
@@ -108,6 +113,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         storeColumn = new byte[in.readInt()];
         in.readFully(storeColumn);
         isMajor = in.readBoolean();
+        addresses = (InetSocketAddress[]) in.readObject();
         SpliceSpark.setupSpliceStaticComponents();
     }
 
@@ -125,7 +131,8 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         Path rootDir = FSUtils.getRootDir(conf);
 
         HTableDescriptor htd = table.getTableDescriptor();
-        HRegion region = HRegion.openHRegion(conf, fs, rootDir, hri, new ReadOnlyHTableDescriptor(htd), null, null, null);
+        HRegion region = HRegion.openHRegion(conf, fs, rootDir, hri, new ReadOnlyHTableDescriptor(htd), null,
+                new MockRegionServerServices(addresses), null);
         Store store = region.getStore(storeColumn);
 
         assert it.hasNext();
