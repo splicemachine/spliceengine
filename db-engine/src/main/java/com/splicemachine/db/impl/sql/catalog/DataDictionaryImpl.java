@@ -3438,7 +3438,20 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         ExecIndexRow keyRow=exFactory.getIndexableRow(1);
         keyRow.setColumn(1,stmtIdOrderable);
 
-        ti.deleteRow(tc,keyRow,SYSSTATEMENTSRowFactory.SYSSTATEMENTS_INDEX1_ID);
+        // DERBY-3870: The compiled plan may not be possible to deserialize
+        // during upgrade. Skip the column that contains the compiled plan to
+        // prevent deserialization errors when reading the rows. We don't care
+        // about the value in that column, since this method is only called
+        // when we want to drop or invalidate rows in SYSSTATEMENTS.
+        FormatableBitSet cols=new FormatableBitSet(ti.getCatalogRowFactory().getHeapColumnCount());
+        for(int i=0;i<cols.size();i++){
+            if(i+1==SYSSTATEMENTSRowFactory.SYSSTATEMENTS_CONSTANTSTATE){
+                cols.clear(i);
+            }else{
+                cols.set(i);
+            }
+        }
+        ti.deleteRow(tc,keyRow,SYSSTATEMENTSRowFactory.SYSSTATEMENTS_INDEX1_ID, cols);
 
 		/* drop all columns in SYSCOLUMNS */
         dropAllColumnDescriptors(uuid,tc);
@@ -6714,7 +6727,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         boolean isUnique=ti.isIndexUnique(indexNumber);
         //Splice is always higher than 10.4
-        IndexRowGenerator irg=new IndexRowGenerator("DENSE",isUnique,false,baseColumnPositions,isAscending,baseColumnLength);
+        IndexRowGenerator irg=new IndexRowGenerator("DENSE",isUnique,false,baseColumnPositions,isAscending,baseColumnLength,false,false);
 
         // For now, assume that all index columns are ordered columns
         ti.setIndexRowGenerator(indexNumber,irg);

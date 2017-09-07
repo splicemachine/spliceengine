@@ -19,7 +19,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>2.6.1.1731-SNAPSHOT</version>
+        <version>2.6.1.1735-SNAPSHOT</version>
     </parent>
     <profiles>
         <profile>
@@ -43,6 +43,7 @@
         <module>../../hbase_storage</module>
         <module>../../hbase_pipeline</module>
         <module>../../hbase_sql</module>
+        <module>../../splice_spark</module>
         <module>../../assembly</module>
     </modules>
 </project>

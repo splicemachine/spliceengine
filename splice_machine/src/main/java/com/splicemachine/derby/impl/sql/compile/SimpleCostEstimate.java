@@ -50,6 +50,7 @@ public class SimpleCostEstimate implements CostEstimate{
     protected double indexLookupRows =-1.0d;
     protected double projectionCost =-1.0d;
     protected double projectionRows =-1.0d;
+    protected double scannedBaseTableRows = -1.0d;
     private double localCostPerPartition;
     /* consecutive broadcast joins memory used in bytes */
     private double accumulatedMemory = 0.0d;
@@ -115,6 +116,7 @@ public class SimpleCostEstimate implements CostEstimate{
         this.indexLookupRows = other.getIndexLookupRows();
         this.projectionCost = other.getProjectionCost();
         this.projectionRows = other.getProjectionRows();
+        this.scannedBaseTableRows = other.getScannedBaseTableRows();
         this.localCostPerPartition = other.localCostPerPartition();
         this.accumulatedMemory = other.getAccumulatedMemory();
     }
@@ -126,17 +128,17 @@ public class SimpleCostEstimate implements CostEstimate{
 
     @Override
     public String prettyProcessingString(String attrDelim) {
-        return prettyStringOutput(localCost, getEstimatedRowCount(), attrDelim);
+        return prettyStringOutput(localCost, getEstimatedRowCount(), -1, attrDelim);
     }
 
     @Override
     public String prettyFromBaseTableString() {
-        return prettyStringOutput(getFromBaseTableCost(),Math.round(getFromBaseTableRows()));
+        return prettyStringOutput(getFromBaseTableCost(),Math.round(getFromBaseTableRows()), Math.round(getScannedBaseTableRows()));
     }
 
     @Override
     public String prettyFromBaseTableString(String attrDelim) {
-        return prettyStringOutput(getFromBaseTableCost(),Math.round(getFromBaseTableRows()), attrDelim);
+        return prettyStringOutput(getFromBaseTableCost(),Math.round(getFromBaseTableRows()),Math.round(getScannedBaseTableRows()), attrDelim);
     }
 
     @Override
@@ -146,7 +148,7 @@ public class SimpleCostEstimate implements CostEstimate{
 
     @Override
     public String prettyIndexLookupString(String attrDelim) {
-        return prettyStringOutput(getIndexLookupCost(), Math.round(getIndexLookupRows()), attrDelim);
+        return prettyStringOutput(getIndexLookupCost(), Math.round(getIndexLookupRows()), -1, attrDelim);
     }
 
     @Override
@@ -165,11 +167,11 @@ public class SimpleCostEstimate implements CostEstimate{
         return sb.toString();
     }
 
-    private String prettyStringOutput(double cost, long rows) {
-        return prettyStringOutput(cost, rows, ",");
+    private String prettyStringOutput(double cost, long rows, long scannedRows) {
+        return prettyStringOutput(cost, rows, scannedRows, ",");
     }
 
-    private String prettyStringOutput(double cost, long rows, String attrDelim) {
+    private String prettyStringOutput(double cost, long rows, long scannedRows, String attrDelim) {
         DecimalFormat df = new DecimalFormat();
         df.setMaximumFractionDigits(3);
         df.setGroupingUsed(false);
@@ -185,6 +187,8 @@ public class SimpleCostEstimate implements CostEstimate{
 
         StringBuilder sb = new StringBuilder();
         sb.append("totalCost=").append(df.format(cost/1000));
+        if (scannedRows != -1)
+            sb.append(attrDelim).append("scannedRows=").append(scannedRows);
         sb.append(attrDelim).append("outputRows=").append(rows);
         sb.append(attrDelim).append("outputHeapSize=").append(df.format(eHeap)).append(unit);
         sb.append(attrDelim).append("partitions=").append(partitionCount());
@@ -199,7 +203,7 @@ public class SimpleCostEstimate implements CostEstimate{
 
     @Override
     public String prettyProjectionString(String attrDelim) {
-        return prettyStringOutput(getProjectionCost(), Math.round(getProjectionRows()), attrDelim);
+        return prettyStringOutput(getProjectionCost(), Math.round(getProjectionRows()), -1, attrDelim);
     }
 
     @Override
@@ -209,7 +213,7 @@ public class SimpleCostEstimate implements CostEstimate{
 
     @Override
     public String prettyScrollInsensitiveString(String attrDelim) {
-        return prettyStringOutput(getEstimatedCost(), getEstimatedRowCount(), attrDelim);
+        return prettyStringOutput(getEstimatedCost(), getEstimatedRowCount(), -1, attrDelim);
     }
 
     @Override
@@ -291,6 +295,7 @@ public class SimpleCostEstimate implements CostEstimate{
         clone.setIndexLookupRows(indexLookupRows);
         clone.setProjectionCost(projectionCost);
         clone.setProjectionRows(projectionRows);
+        clone.setScannedBaseTableRows(scannedBaseTableRows);
         clone.setLocalCostPerPartition(localCostPerPartition);
         return clone;
     }
@@ -447,6 +452,14 @@ public class SimpleCostEstimate implements CostEstimate{
 
     public void setFromBaseTableRows(double fromBaseTableRows) {
         this.fromBaseTableRows = fromBaseTableRows == 0.0d?1.0d:fromBaseTableRows;
+    }
+
+    public double getScannedBaseTableRows() {
+        return getBaseCostInternal().scannedBaseTableRows == -1.0d?getBaseCostInternal().getEstimatedRowCount():getBaseCostInternal().scannedBaseTableRows;
+    }
+
+    public void setScannedBaseTableRows(double scannedBaseTableRows) {
+        this.scannedBaseTableRows = scannedBaseTableRows == 0.0d?1.0d:scannedBaseTableRows;
     }
 
     public double getFromBaseTableCost() {

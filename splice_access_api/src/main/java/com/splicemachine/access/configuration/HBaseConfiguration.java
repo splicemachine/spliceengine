@@ -63,6 +63,12 @@ public class HBaseConfiguration implements ConfigurationDefault {
      */
     public static final String TRANSACTION_PATH = "/transactions";
 
+
+    /**
+     * The Path in zookeeper for coordinating concurrent HMasters booting up
+     */
+    public static final String MASTER_INIT_PATH = "/masterInitialization";
+
     /**
      * The Path in zookeeper for storing the minimum active transaction.
      * Defaults to [TRANSACTION_PATH]/minimum
@@ -102,6 +108,7 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String SPLICE_ROOT_PATH = "splice.root.path";
     public static final String DEFAULT_ROOT_PATH="/splice";
 
+    public static final String OLD_TRANSACTIONS_NODE = "/transactions/v1transactions";
     /**
      * The number of timestamps to 'reserve' at a time in the Timestamp Server.
      * Defaults to 32768

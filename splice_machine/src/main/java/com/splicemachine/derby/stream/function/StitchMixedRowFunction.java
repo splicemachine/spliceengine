@@ -77,11 +77,19 @@ public class StitchMixedRowFunction<Op extends SpliceOperation> extends SpliceFu
             initialized = true;
         }
         operationContext.recordRead();
-
-        if (srcRow1 == null) return srcRow2;
-        if (srcRow2 == null) return srcRow1;
-
         ExecRow valueRow;
+
+        if (srcRow1 == null) {
+            valueRow = aggregateOperation.getExecRowDefinition();
+            copyRow(valueRow, srcRow2);
+            return valueRow;
+        }
+        if (srcRow2 == null) {
+            valueRow = aggregateOperation.getExecRowDefinition();
+            copyRow(valueRow, srcRow1);
+            return valueRow;
+        }
+
 
         if (srcRow1.size() == numOfGroupKeys + aggregates.length*3) {
             valueRow = srcRow1;

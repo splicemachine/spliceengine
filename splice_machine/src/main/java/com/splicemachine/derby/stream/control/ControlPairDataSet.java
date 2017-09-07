@@ -44,6 +44,7 @@ import org.spark_project.guava.collect.*;
 import scala.Tuple2;
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Consumer;
 
 import static com.splicemachine.derby.stream.control.ControlUtils.entryToTuple;
 import static com.splicemachine.derby.stream.control.ControlUtils.limit;
@@ -69,8 +70,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
         return new ControlDataSet<>(Iterators.transform(source,new Function<Tuple2<K,V>, V>() {
             @Nullable @Override
             public V apply(@Nullable Tuple2<K,V>t) {
-                assert t!=null;
-                return t._2();
+                return t==null?null:t._2();
             }
         }));
     }
@@ -99,22 +99,46 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public <Op extends SpliceOperation> PairDataSet<K, V> reduceByKey(final SpliceFunction2<Op,V, V, V> function2) {
-        Multimap<K,V> newMap = multimapFromIterator(limit(source, function2.operationContext));
-        return new ControlPairDataSet<>(entryToTuple(Multimaps.<K,V>forMap(transformValues(newMap.asMap(),
-                new Function<Collection<V>, V>() {
+        final Iterator<Tuple2<K,V>> limitIterator = limit(source, function2.operationContext);
+        return new ControlPairDataSet(new Iterator<Tuple2<K,V>>(){
+            private Iterator<Map.Entry<K,V>> set;
             @Override
-            public V apply(@Nullable Collection<V> vs) {
-                try {
-                    V returnValue = null;
-                    for (V v : vs) {
-                        returnValue = function2.call(returnValue, v);
+            public boolean hasNext() {
+                if (set == null) {
+                    try {
+                        HashMap<K, V> map = Maps.newHashMap();
+                        while (limitIterator.hasNext()) {
+                            Tuple2<K, V> t = limitIterator.next();
+                            if (map.containsKey(t._1())) {
+                                function2.call( map.get(t._1()),t._2());
+                            } else {
+                                map.put((K)((ExecRow)t._1).getClone(), function2.call(null,t._2()));
+                            }
+                        }
+                        set = map.entrySet().iterator();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
                     }
-                    return returnValue;
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
                 }
+                return set.hasNext();
             }
-        })).entries()));
+
+            @Override
+            public Tuple2<K,V> next() {
+                Map.Entry<K,V> entry = set.next();
+                return Tuple2.apply(entry.getKey(),entry.getValue());
+            }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException("Not Implemented");
+            }
+
+            @Override
+            public void forEachRemaining(Consumer action) {
+                throw new UnsupportedOperationException("Not Implemented");
+            }
+        });
     }
 
     @Override

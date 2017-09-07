@@ -44,6 +44,8 @@ public interface WindowAggregator {
 
     boolean[] getKeyOrders();
 
+    boolean[] getNullOrders();
+
     FrameDefinition getFrameDefinition();
 
     String getName();

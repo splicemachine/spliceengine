@@ -21,7 +21,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>2.6.1.1731-SNAPSHOT</version>
+        <version>2.6.1.1735-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
@@ -41,9 +41,6 @@
             <version>${spark.version}</version>
             <classifier>CNI</classifier>
         </dependency>
-
-
-
     </dependencies>
     <properties>
         <jenkins.build.number>1</jenkins.build.number>
@@ -72,8 +69,6 @@
                     </execution>
                 </executions>
             </plugin>
-
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -111,58 +106,50 @@
                                     <exclude>org.apache.spark:spark-core_2.11</exclude>
                                 </excludes>
                             </artifactSet>
-
                             <relocations>
                                 <relocation>
                                     <pattern>com.fasterxml</pattern>
                                     <shadedPattern>splice.com.fasterxml</shadedPattern>
                                 </relocation>
-
                                 <relocation>
                                     <pattern>org.codehaus.jackson</pattern>
                                     <shadedPattern>splice.org.codehaus.jackson</shadedPattern>
                                 </relocation>
-
                                 <relocation>
                                     <pattern>org.jboss.netty</pattern>
                                     <shadedPattern>splice.org.jboss.netty</shadedPattern>
                                 </relocation>
-
                                 <relocation>
                                     <pattern>io.netty</pattern>
                                     <shadedPattern>splice.io.netty</shadedPattern>
                                 </relocation>
-
                                 <relocation>
                                     <pattern>javax.ws</pattern>
                                     <shadedPattern>splice.javax.ws</shadedPattern>
                                 </relocation>
-
                             </relocations>
                             <shadedArtifactAttached>true</shadedArtifactAttached>
                             <shadedClassifierName>splice-uber</shadedClassifierName>
-                        <filters>
-                            <filter>
-                                <artifact>*:*</artifact>
-                                <excludes>
-                                    <exclude>META-INF/maven/**</exclude>
-                                    <exclude>META-INF/*.RSA</exclude>
-                                    <exclude>META-INF/*.DSA</exclude>
-                                    <exclude>META-INF/*.SF</exclude>
-                                    <exclude>META-INF/licence/**</exclude>
-                                    <exclude>**/core-site.xml</exclude>
-                                    <exclude>**/hbase-site.xml</exclude>
-                                    <exclude>**/splice-site.xml</exclude>
-                                    <exclude>**/yarn-site.xml</exclude>
-                                    <exclude>org/apache/spark/sql/execution/BufferedRowIterator</exclude>
-                                </excludes>
-                            </filter>
-
-                        </filters>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/maven/**</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/licence/**</exclude>
+                                        <exclude>**/core-site.xml</exclude>
+                                        <exclude>**/hbase-site.xml</exclude>
+                                        <exclude>**/splice-site.xml</exclude>
+                                        <exclude>**/yarn-site.xml</exclude>
+                                        <exclude>org/apache/spark/sql/execution/BufferedRowIterator</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                             </transformers>
-
                         </configuration>
                     </execution>
                     <execution>
@@ -217,18 +204,14 @@
                                         <exclude>org/apache/spark/sql/execution/BufferedRowIterator.class</exclude>
                                     </excludes>
                                 </filter>
-
                             </filters>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                             </transformers>
-
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
-
-
             <plugin>
                 <!-- This used to be confinded to the spark-prepare profile, but is now done always by default
                      To disable, use skipSparkPrepare on the command line -->
@@ -243,7 +226,6 @@
                             <goal>copy-dependencies</goal>
                         </goals>
                         <configuration>
-
                             <includeArtifactIds>
                                 db-client,
                                 db-tools-i18n,
@@ -253,8 +235,6 @@
                                 javax.servlet-api,
                                 javax.ws.rs-api
                             </includeArtifactIds>
-
-
                         </configuration>
                     </execution>
                 </executions>
@@ -274,27 +254,27 @@
                 <dependency>
                     <groupId>com.splicemachine</groupId>
                     <artifactId>splice_ee-${envClassifier}</artifactId>
-                    <version>2.6.1.1731-SNAPSHOT</version>
+                    <version>2.6.1.1735-SNAPSHOT</version>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
                     <artifactId>splice_backup-${envClassifier}</artifactId>
-                    <version>2.6.1.1731-SNAPSHOT</version>
+                    <version>2.6.1.1735-SNAPSHOT</version>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
                     <artifactId>splice_auth</artifactId>
-                    <version>2.6.1.1731-SNAPSHOT</version>
+                    <version>2.6.1.1735-SNAPSHOT</version>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
                     <artifactId>splice_colperms</artifactId>
-                    <version>2.6.1.1731-SNAPSHOT</version>
+                    <version>2.6.1.1735-SNAPSHOT</version>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
                     <artifactId>splice_encryption</artifactId>
-                    <version>2.6.1.1731-SNAPSHOT</version>
+                    <version>2.6.1.1735-SNAPSHOT</version>
                 </dependency>
             </dependencies>
         </profile>
@@ -339,7 +319,6 @@
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib">
                                             <fileset dir="target/" includes="*splice-yarn-webproxy*"/>
                                         </copy>
-
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib">
                                             <fileset dir="target/dependency" includes="**/*"/>
                                         </copy>
@@ -353,10 +332,8 @@
                                             <fileset dir="target/classes/scripts" includes="**/*"/>
                                             <fileset dir="common/src/main/resources/scripts" includes="**/*"/>
                                         </copy>
-                                        <move file="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-${envClassifier}-${project.version}-splice-uber.jar"
-                                              tofile="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-uber.jar" />
-                                        <move file="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-${envClassifier}-${project.version}-splice-yarn-webproxy.jar"
-                                              tofile="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-yarn-webproxy.jar" />
+                                        <move file="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-${envClassifier}-${project.version}-splice-uber.jar" tofile="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-uber.jar"/>
+                                        <move file="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-${envClassifier}-${project.version}-splice-yarn-webproxy.jar" tofile="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-yarn-webproxy.jar"/>
                                         <!-- el6 -->
                                         <replace token="FULL_VERSION" value="${project.version}.${envClassifier}.${parcel.patch}-el6" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta">
                                             <include name="parcel.json"/>
@@ -467,10 +444,8 @@
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib">
                                             <fileset dir="target/" includes="*splice-yarn-webproxy*"/>
                                         </copy>
-                                        <move file="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-${envClassifier}-${project.version}-splice-uber.jar"
-                                              tofile="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-uber.jar" />
-                                        <move file="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-${envClassifier}-${project.version}-splice-yarn-webproxy.jar"
-                                              tofile="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-yarn-webproxy.jar" />
+                                        <move file="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-${envClassifier}-${project.version}-splice-uber.jar" tofile="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-uber.jar"/>
+                                        <move file="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-${envClassifier}-${project.version}-splice-yarn-webproxy.jar" tofile="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-yarn-webproxy.jar"/>
                                         <tar compression="gzip" destfile="target/installer/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}.tar.gz">
                                             <tarfileset username="root" group="root" filemode="755" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin"/>
                                             <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/conf" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/conf"/>

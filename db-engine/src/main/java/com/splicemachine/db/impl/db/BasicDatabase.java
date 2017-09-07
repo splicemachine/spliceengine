@@ -235,7 +235,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
                 // the sequence generators.
                 dd.clearSequenceCaches();
             } catch (StandardException se) {
-                se.printStackTrace(Monitor.getStream().getPrintWriter());
+				Monitor.getStream().printThrowable(se);
             }
         }
 		active = false;

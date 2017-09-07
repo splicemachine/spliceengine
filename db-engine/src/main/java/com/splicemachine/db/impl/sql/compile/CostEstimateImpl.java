@@ -545,6 +545,16 @@ public class CostEstimateImpl implements CostEstimate {
     }
 
     @Override
+    public double getScannedBaseTableRows() {
+        return 0;
+    }
+
+    @Override
+    public void setScannedBaseTableRows(double scannedBaseTableRows) {
+
+    }
+
+    @Override
     public double getFromBaseTableCost() {
         return 0;
     }

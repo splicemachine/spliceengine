@@ -17,9 +17,8 @@
     <parent>
         <groupId>com.splicemachine</groupId>
         <artifactId>spliceengine-parent</artifactId>
-        <version>2.6.1.1731-SNAPSHOT</version>
+        <version>2.6.1.1735-SNAPSHOT</version>
     </parent>
-
     <artifactId>splice_aws</artifactId>
     <name>splice_aws</name>
     <description>AWS Shaded Client</description>
@@ -30,7 +29,6 @@
             <version>1.11.82</version>
         </dependency>
     </dependencies>
-
     <build>
         <plugins>
             <plugin>
@@ -46,22 +44,22 @@
                         </excludes>
                     </artifactSet>
                     <relocations>
-                    <relocation>
-                        <pattern>com</pattern>
-                        <shadedPattern>splice.aws.com</shadedPattern>
-                        <excludes>
-                            <exclude>com.sun.**.*</exclude>
-                            <exclude>com.sun.xml.*</exclude>
-                        </excludes>
-                    </relocation>
-                    <relocation>
-                        <pattern>org</pattern>
-                        <shadedPattern>splice.aws.org</shadedPattern>
-                        <excludes>
-                            <exclude>org.xml.**.*</exclude>
-                            <exclude>org.xml.*</exclude>
-                        </excludes>
-                    </relocation>
+                        <relocation>
+                            <pattern>com</pattern>
+                            <shadedPattern>splice.aws.com</shadedPattern>
+                            <excludes>
+                                <exclude>com.sun.**.*</exclude>
+                                <exclude>com.sun.xml.*</exclude>
+                            </excludes>
+                        </relocation>
+                        <relocation>
+                            <pattern>org</pattern>
+                            <shadedPattern>splice.aws.org</shadedPattern>
+                            <excludes>
+                                <exclude>org.xml.**.*</exclude>
+                                <exclude>org.xml.*</exclude>
+                            </excludes>
+                        </relocation>
                     </relocations>
                     <shadedArtifactAttached>true</shadedArtifactAttached>
                     <shadedClassifierName>shade</shadedClassifierName>
@@ -77,5 +75,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>
