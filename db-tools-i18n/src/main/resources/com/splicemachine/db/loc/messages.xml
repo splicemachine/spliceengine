@@ -9192,6 +9192,20 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <arg>regionName2</arg>
            </msg>
 
+           <msg>
+               <name>TS006</name>
+               <text>SplitKey cannot be null.</text>
+           </msg>
+
+           <msg>
+               <name>OS001</name>
+	       <text>OLAP server connection exception, see next exception for more details.</text>
+           </msg>
+
+           <msg>
+               <name>TSS01</name>
+	       <text>Timestamp server connection exception, see next exception for more details.</text>
+           </msg>
        </family>
     </section>
 
