@@ -27,10 +27,16 @@ public class NetworkUtils {
     public static String getHostname(SConfiguration config) {
         String hostname = config.getConfigSource().getString("hbase.regionserver.hostname",null); // Added to Support CNI Networks
         if (hostname == null) {
-            try {
-                hostname = InetAddress.getLocalHost().getHostName();
-            } catch (UnknownHostException e) {
-                hostname = "unknown";
+            hostname = config.getConfigSource().getString("hbase.master.hostname", null); // Added to Support CNI Networks
+            if (hostname == null) {
+                hostname = config.getConfigSource().getString("olap.server.hostname", null); // Added to Support CNI Networks
+                if (hostname == null) {
+                    try {
+                        hostname = InetAddress.getLocalHost().getHostName();
+                    } catch (UnknownHostException e) {
+                        hostname = "unknown";
+                    }
+                }
             }
         }
         return hostname;

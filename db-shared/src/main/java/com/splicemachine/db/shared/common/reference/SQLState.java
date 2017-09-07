@@ -2010,5 +2010,7 @@ public interface SQLState {
 	String WRONG_REGION_NAME_TYPE 									= "TS004";
 	String REGION_NOT_ADJACENT                                      = "TS005";
 	String SPLIT_KEY_CANNOT_BE_NULL									= "TS006";
+
+	String OLAP_SERVER_CONNECTION                                   = "OS001";
 }
 

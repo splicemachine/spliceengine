@@ -62,6 +62,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
     private final ProtobufDecoder decoder=new ProtobufDecoder(OlapMessage.Response.getDefaultInstance(),buildExtensionRegistry());
     private final OlapServerProvider hostProvider;
     private final Object connectionLock = new Object();
+    private volatile boolean connected = false;
 
     private ExtensionRegistry buildExtensionRegistry(){
         ExtensionRegistry er=ExtensionRegistry.newInstance();
@@ -76,12 +77,13 @@ public class AsyncOlapNIOLayer implements JobExecutor{
     public AsyncOlapNIOLayer(OlapServerProvider hostProvider, int retries){
         this.maxRetries = retries;
         this.hostProvider = hostProvider;
-        connect();
-
     }
 
     private void connect() {
         synchronized (connectionLock) {
+            if (connected) {
+                return;
+            }
             if (channelPool != null)
                 channelPool.close();
             if (executorService != null)
@@ -116,6 +118,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
                 }
             });
             executorService = group;
+            connected = true;
         }
     }
 
@@ -124,10 +127,17 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         assert job.isSubmitted();
         if (LOG.isTraceEnabled())
             LOG.trace("Submitting job request " + job.getUniqueName());
+        connectIfNeeded();
         synchronized (connectionLock) {
             OlapFuture future = new OlapFuture(job);
             future.doSubmit();
             return future;
+        }
+    }
+
+    private void connectIfNeeded() {
+        if (!connected) {
+            connect();
         }
     }
 
@@ -276,7 +286,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
             if (LOG.isTraceEnabled())
                 LOG.trace("Failed job "+ job.getUniqueName() + " due to " + cause);
             if (cause instanceof SocketException || cause instanceof SocketTimeoutException) {
-                connect();
+                connected = false;
             }
             this.cause=cause;
             this.failed=true;

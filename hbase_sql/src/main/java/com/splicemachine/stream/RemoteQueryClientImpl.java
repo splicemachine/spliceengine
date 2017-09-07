@@ -20,6 +20,7 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.util.NetworkUtils;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -118,7 +119,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
                 }
             }, MoreExecutors.sameThreadExecutor());
         } catch (IOException e) {
-            throw Exceptions.parseException(e);
+            throw StandardException.newException(SQLState.OLAP_SERVER_CONNECTION, e);
         }
     }
 
@@ -155,6 +156,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
     @Override
     public void close() throws Exception {
         streamListener.stopAllStreams();
-        olapFuture.cancel(true);
+        if (olapFuture != null)
+            olapFuture.cancel(true);
     }
 }

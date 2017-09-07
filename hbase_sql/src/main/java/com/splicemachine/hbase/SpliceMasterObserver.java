@@ -19,8 +19,9 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
+import com.splicemachine.lifecycle.DatabaseLifecycleService;
 import com.splicemachine.lifecycle.MasterLifecycle;
-import com.splicemachine.olap.OlapServer;
+import com.splicemachine.olap.OlapServerSubmitter;
 import com.splicemachine.pipeline.InitializationCompleted;
 import com.splicemachine.si.data.hbase.coprocessor.CoprocessorUtils;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
@@ -29,30 +30,21 @@ import com.splicemachine.timestamp.api.TimestampBlockManager;
 import com.splicemachine.timestamp.hbase.ZkTimestampBlockManager;
 import com.splicemachine.timestamp.impl.TimestampServer;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.curator.RetryPolicy;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.framework.recipes.locks.InterProcessLock;
-import org.apache.curator.framework.recipes.locks.InterProcessMutex;
-import org.apache.curator.retry.ExponentialBackoffRetry;
-import org.apache.curator.utils.ZookeeperFactory;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.PleaseHoldException;
+import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.coprocessor.BaseMasterObserver;
 import org.apache.hadoop.hbase.coprocessor.MasterCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
-import org.apache.hadoop.hbase.zookeeper.ZKConfig;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooKeeper;
 
+import javax.management.MBeanServer;
 import java.io.IOException;
 
 /**
@@ -66,7 +58,6 @@ public class SpliceMasterObserver extends BaseMasterObserver {
 
     private TimestampServer timestampServer;
     private DatabaseLifecycleManager manager;
-    private OlapServer olapServer;
 
     @Override
     public void start(CoprocessorEnvironment ctx) throws IOException {
@@ -89,10 +80,6 @@ public class SpliceMasterObserver extends BaseMasterObserver {
             this.timestampServer =new TimestampServer(timestampPort,tbm,timestampBlockSize);
 
             this.timestampServer.startServer();
-
-            int olapPort=configuration.getOlapServerBindPort();
-            this.olapServer = new OlapServer(olapPort,env.systemClock());
-            this.olapServer.startServer(configuration);
 
             /*
              * We create a new instance here rather than referring to the singleton because we have
@@ -128,7 +115,7 @@ public class SpliceMasterObserver extends BaseMasterObserver {
             if (Bytes.equals(desc.getTableName().getName(), INIT_TABLE)) {
                 switch(manager.getState()){
                     case NOT_STARTED:
-                        boot();
+                    	boot(ctx.getEnvironment().getMasterServices().getServerName());
                     case BOOTING_ENGINE:
                     case BOOTING_GENERAL_SERVICES:
                     case BOOTING_SERVER:
@@ -149,16 +136,41 @@ public class SpliceMasterObserver extends BaseMasterObserver {
     @Override
     public void postStartMaster(ObserverContext<MasterCoprocessorEnvironment> ctx) throws IOException {
         try {
-            boot();
+            boot(ctx.getEnvironment().getMasterServices().getServerName());
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
     }
 
-    private synchronized void boot() throws IOException{
+    private synchronized void boot(ServerName serverName) throws IOException{
         //make sure the SIDriver is booted
         if (! manager.getState().equals(DatabaseLifecycleManager.State.NOT_STARTED))
             return; // Race Condition, only load one...
+
+        try {
+            manager.registerNetworkService(new DatabaseLifecycleService() {
+                OlapServerSubmitter serverSubmitter;
+
+                @Override
+                public void start() throws Exception {
+                    serverSubmitter = new OlapServerSubmitter(serverName);
+                    new Thread(serverSubmitter).start();
+                }
+
+                @Override
+                public void registerJMX(MBeanServer mbs) throws Exception {
+
+                }
+
+                @Override
+                public void shutdown() throws Exception {
+                    serverSubmitter.stop();
+                }
+            });
+        } catch (Exception e) {
+            LOG.error("Unexpected exception registering Olap Server service", e);
+            throw new DoNotRetryIOException(e);
+        }
 
         //make sure only one master boots at a time
         String lockPath = HConfiguration.getConfiguration().getSpliceRootPath()+HConfiguration.MASTER_INIT_PATH;

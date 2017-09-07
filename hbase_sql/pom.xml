@@ -1241,6 +1241,13 @@
                                     -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020
                                     -enableassertions
                                 </argument>
+                                <argument>-Dsplice.olap.extraJavaOptions=
+                                    -Dhbase.rootdir=${project.build.directory}/hbase
+                                    -Dlog4j.configuration=${log4j.config.uri}
+                                    -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4025
+                                    -enableassertions
+                                    -Djava.net.preferIPv4Stack=true
+                                </argument>
                                 <argument>-Dsplice.spark.shuffle.file.buffer=128k</argument>
                                 <argument>-Dsplice.spark.shuffle.memoryFraction=0.7</argument>
                                 <argument>-Dsplice.spark.shuffle.service.enabled=true</argument>
