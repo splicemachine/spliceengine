@@ -58,26 +58,40 @@ public class HBaseSubregionSplitter implements SubregionSplitter{
                             }
                         }
                     });
-            Iterator<Map.Entry<byte[],String>> foo = map.entrySet().iterator();
-            if (!foo.hasNext()) {
+            Iterator<Map.Entry<byte[],String>> iter = map.entrySet().iterator();
+            if (!iter.hasNext()) {
                 throw new IOException("split points not available");
             }
-            byte[] firstKey = foo.next().getKey();
-            while (foo.hasNext()) {
-                Map.Entry<byte[],String> entry = foo.next();
+            Map.Entry<byte[],String> firstElem = iter.next();
+            String hostname = firstElem.getValue();
+            byte[] firstKey = firstElem.getKey();
+
+            while (iter.hasNext()) {
+                Map.Entry<byte[],String> entry = iter.next();
+                hostname = entry.getValue();
                 results.add(new SMSplit(
                         new TableSplit(
                                 table.getName(),
                                 firstKey,
                                 entry.getKey(),
-                                entry.getValue())));
+                                hostname)));
                firstKey = entry.getKey();
             }
+            // add last split
+            byte[] stopKey = splits.get(splits.size() - 1).getEndKey();
+            results.add(new SMSplit(
+                    new TableSplit(
+                            table.getName(),
+                            firstKey,
+                            stopKey,
+                            hostname)));
+
     } catch (Throwable throwable) {
                 LOG.error("Error while computing cutpoints, falling back to whole region partition", throwable);
 
                 try {
                     final HBaseTableInfoFactory infoFactory = HBaseTableInfoFactory.getInstance(HConfiguration.getConfiguration());
+                    results.clear();
                     for (final Partition split : splits) {
                         results.add(new SMSplit(
                                 new TableSplit(
