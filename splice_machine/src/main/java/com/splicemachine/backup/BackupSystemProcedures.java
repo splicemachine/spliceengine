@@ -64,6 +64,7 @@ public class BackupSystemProcedures {
         type = type.trim();
         Connection conn = SpliceAdmin.getDefaultConn();
         LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+
         try {
             // Check directory
             if (directory == null || directory.isEmpty()) {
@@ -72,14 +73,15 @@ public class BackupSystemProcedures {
 
             BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
             // Check backup type
+            long backupId = 0;
             if (type.compareToIgnoreCase("FULL") == 0) {
-                backupManager.fullBackup(directory);
+                backupId = backupManager.fullBackup(directory);
             } else if (type.compareToIgnoreCase("INCREMENTAL") == 0) {
-                backupManager.incrementalBackup(directory);
+                backupId = backupManager.incrementalBackup(directory);
             } else {
                 throw StandardException.newException(SQLState.INVALID_BACKUP_TYPE, type);
             }
-            resultSets[0] = ProcedureUtils.generateResult("Success", String.format("%s backup to %s", type, directory));
+            resultSets[0] = ProcedureUtils.generateResult("Status", String.format("Launched %s backup %d to %s at background.", type, backupId, directory));
         } catch (Throwable t) {
             resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
             SpliceLogUtils.error(LOG, "Database backup error", t);
