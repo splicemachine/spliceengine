@@ -14,14 +14,17 @@
 
 package com.splicemachine.derby.lifecycle;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 
 import com.google.common.net.HostAndPort;
 import com.splicemachine.SqlExceptionFactory;
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.ServiceDiscovery;
+import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
@@ -34,12 +37,14 @@ import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.impl.sql.HSqlExceptionFactory;
 import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.hbase.ZkServiceDiscovery;
+import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.management.DatabaseAdministrator;
 import com.splicemachine.management.JmxDatabaseAdminstrator;
 import com.splicemachine.management.Manager;
 import com.splicemachine.olap.AsyncOlapNIOLayer;
 import com.splicemachine.olap.JobExecutor;
 import com.splicemachine.olap.TimedOlapClient;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.uuid.Snowflake;
 
@@ -114,14 +119,20 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
     /*private helper methods*/
     private OlapClient initializeOlapClient(SConfiguration config,Clock clock) {
         int timeoutMillis = config.getOlapClientWaitTime();
-        int port = config.getOlapServerBindPort();
         int retries = config.getOlapClientRetries();
         HBaseConnectionFactory hbcf = HBaseConnectionFactory.getInstance(config);
         JobExecutor onl = new AsyncOlapNIOLayer(() -> {
             try {
-                return HostAndPort.fromParts(hbcf.getMasterServer().getHostname(), port);
+                String serverName = hbcf.getMasterServer().getServerName();
+                byte[] bytes = ZkUtils.getData(HConfiguration.getConfiguration().getSpliceRootPath() + HBaseConfiguration.OLAP_SERVER_PATH + "/" + serverName);
+                String hostAndPort = Bytes.toString(bytes);
+                return HostAndPort.fromString(hostAndPort);
             } catch (SQLException e) {
-                throw new RuntimeException(e);
+                Throwable cause = e.getCause();
+                if (cause instanceof IOException)
+                    throw (IOException) cause;
+                else
+                    throw new IOException(e);
             }
         },retries);
         return new TimedOlapClient(onl,timeoutMillis);

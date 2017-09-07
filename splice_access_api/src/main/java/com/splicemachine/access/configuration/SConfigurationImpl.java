@@ -112,6 +112,8 @@ public final class SConfigurationImpl implements SConfiguration {
     private final int olapServerThreads;
     private final int olapServerTickLimit;
     private final int olapClientRetries;
+    private final int olapServerSubmitAttempts;
+    private final int olapServerMemory;
 
     // SIConfigurations
     private final  int activeTransactionCacheSize;
@@ -425,6 +427,14 @@ public final class SConfigurationImpl implements SConfiguration {
         return olapServerBindPort;
     }
     @Override
+    public int getOlapServerSubmitAttempts() {
+        return olapServerSubmitAttempts;
+    }
+    @Override
+    public int getOlapServerMemory() {
+        return olapServerMemory;
+    }
+    @Override
     public int getOlapServerThreads() {
         return olapServerThreads;
     }
@@ -726,6 +736,8 @@ public final class SConfigurationImpl implements SConfiguration {
         olapServerBindPort = builder.olapServerBindPort;
         olapServerThreads = builder.olapServerThreads;
         olapServerTickLimit = builder.olapServerTickLimit;
+        olapServerSubmitAttempts = builder.olapServerSubmitAttempts;
+        olapServerMemory = builder.olapServerMemory;
         olapClientRetries = builder.olapClientRetries;
         sparkResultStreamingBatches = builder.sparkResultStreamingBatches;
         sparkResultStreamingBatchSize = builder.sparkResultStreamingBatchSize;

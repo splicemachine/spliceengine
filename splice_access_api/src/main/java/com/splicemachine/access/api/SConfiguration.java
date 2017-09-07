@@ -164,6 +164,10 @@ public interface SConfiguration {
 
     int getOlapServerThreads();
 
+    int getOlapServerSubmitAttempts();
+
+    int getOlapServerMemory();
+
     int getOlapClientRetries();
 
     int getTimestampClientWaitTime();

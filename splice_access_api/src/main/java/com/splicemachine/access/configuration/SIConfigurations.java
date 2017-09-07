@@ -148,6 +148,12 @@ public class SIConfigurations implements ConfigurationDefault {
     public static final String OLAP_SERVER_TICK_LIMIT = "splice.olap_server.tickLimit";
     private static final int DEFAULT_OLAP_SERVER_TICK_LIMIT = 120;
 
+    public static final String OLAP_SERVER_SUBMIT_ATTEMPTS = "splice.olap_server.submitAttempts";
+    private static final int DEFAULT_OLAP_SERVER_SUBMIT_ATTEMPTS = 50;
+
+    public static final String OLAP_SERVER_MEMORY = "splice.olap_server.memory";
+    private static final int DEFAULT_OLAP_SERVER_MEMORY = 1536;
+
     public static final String OLAP_CLIENT_RETRIES = "splice.olap_client.retries";
     private static final int DEFAULT_OLAP_CLIENT_RETRIES = 10;
 
@@ -171,6 +177,8 @@ public class SIConfigurations implements ConfigurationDefault {
         builder.olapServerThreads = configurationSource.getInt(OLAP_SERVER_THREADS, DEFAULT_OLAP_SERVER_THREADS);
         builder.olapServerTickLimit = configurationSource.getInt(OLAP_SERVER_TICK_LIMIT,DEFAULT_OLAP_SERVER_TICK_LIMIT);
         builder.olapClientRetries = configurationSource.getInt(OLAP_CLIENT_RETRIES,DEFAULT_OLAP_CLIENT_RETRIES);
+        builder.olapServerSubmitAttempts = configurationSource.getInt(OLAP_SERVER_SUBMIT_ATTEMPTS, DEFAULT_OLAP_SERVER_SUBMIT_ATTEMPTS);
+        builder.olapServerMemory = configurationSource.getInt(OLAP_SERVER_MEMORY, DEFAULT_OLAP_SERVER_MEMORY);
 
         builder.transactionTimeout = configurationSource.getLong(TRANSACTION_TIMEOUT, DEFAULT_TRANSACTION_TIMEOUT);
         builder.transactionKeepAliveInterval = configurationSource.getLong(TRANSACTION_KEEP_ALIVE_INTERVAL, DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL);
