@@ -33,6 +33,7 @@ package com.splicemachine.db.iapi.stats;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.yahoo.memory.NativeMemory;
+import com.yahoo.sketches.frequencies.ErrorType;
 import com.yahoo.sketches.quantiles.ItemsSketch;
 import com.yahoo.sketches.theta.Sketch;
 import com.yahoo.sketches.theta.UpdateSketch;
@@ -40,6 +41,8 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+
+import static com.splicemachine.db.iapi.types.Orderable.*;
 
 /**
  *
@@ -54,6 +57,7 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
     protected Sketch thetaSketch;
     protected long nullCount;
     protected DataValueDescriptor dvd;
+    private long rpv=-1; //rows per value excluding skewed values
 
     public ColumnStatisticsImpl() {
 
@@ -90,6 +94,7 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
         this.frequenciesSketch = frequenciesSketch;
         this.thetaSketch = thetaSketch;
         this.nullCount = nullCount;
+        this.rpv = 0;
     }
 
     @Override
@@ -226,9 +231,45 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
         if (count>0)
             return count;
         // Return Cardinality Based Estimate
-        return (long) ( ((double) quantilesSketch.getN())/thetaSketch.getEstimate()); // Should we remove frequent items?
+        if (rpv == -1)
+            rpv = getAvgRowsPerValueExcludingSkews();
+        return rpv;
     }
 
+    private long getAvgRowsPerValueExcludingSkews() {
+        long skewCount = 0;
+        long skewNum = 0;
+        com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] items = frequenciesSketch.getFrequentItems(ErrorType.NO_FALSE_POSITIVES);
+        for (com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor> row: items) {
+            skewCount += row.getEstimate();
+            skewNum ++;
+        }
+        long nonSkewedNum = (long)(thetaSketch.getEstimate() - skewNum);
+        if (nonSkewedNum <= 0)
+            nonSkewedNum = 1;
+        long nonSkewCount = quantilesSketch.getN() - skewCount;
+        if (nonSkewCount < 0)
+            nonSkewCount = 0;
+        return (long) (((double)nonSkewCount)/nonSkewedNum);
+    }
+
+    private long getSkewedRowCountInRange(DataValueDescriptor start, DataValueDescriptor stop, boolean includeStart, boolean includeStop) {
+        long skewCount = 0;
+        com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] items = frequenciesSketch.getFrequentItems(ErrorType.NO_FALSE_POSITIVES);
+        for (com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor> row: items) {
+            DataValueDescriptor skewedValue = row.getItem();
+            try {
+                if (skewedValue != null &&
+                        (start == null || start.isNull() || skewedValue.compare(includeStart ? ORDER_OP_GREATEROREQUALS : ORDER_OP_GREATERTHAN, start, false, false)) &&
+                        (stop == null || stop.isNull() || skewedValue.compare(includeStop ? ORDER_OP_LESSOREQUALS : ORDER_OP_LESSTHAN, stop, false, false)))
+                    skewCount += row.getEstimate();
+            } catch (StandardException e) {
+                // cost estimation error does not need to fail the query
+            }
+        }
+
+        return skewCount;
+    }
     /**
      *
      * Using the Cumulative Distribution Function from the quantiles sketch to determine the
@@ -246,6 +287,36 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
      */
     @Override
     public long rangeSelectivity(DataValueDescriptor start, DataValueDescriptor stop, boolean includeStart, boolean includeStop) {
+        long qualifiedRows = 0;
+
+        //for range beyond [min,max], return directly
+        try {
+            DataValueDescriptor maxValue = quantilesSketch.getMaxValue();
+            if (maxValue != null &&
+                    start != null && !start.isNull() && start.compare(includeStart ? ORDER_OP_GREATERTHAN : ORDER_OP_GREATEROREQUALS, maxValue, false, false))
+                return 0;
+            DataValueDescriptor minValue = quantilesSketch.getMinValue();
+            if (minValue != null &&
+                    stop != null && !stop.isNull() && stop.compare(includeStop ? ORDER_OP_LESSTHAN : ORDER_OP_LESSOREQUALS, minValue, false, false))
+                return 0;
+        } catch (StandardException e) {
+            // cost estimation error does not need to fail the query
+        }
+
+        //if point range, take the point range selectivity path
+        if ((start == null || start.isNull()) && (stop == null || stop.isNull()) && includeStart && includeStop)
+            return selectivity(start);
+        if (includeStart && includeStop && start != null && stop != null && start.equals(stop))
+            return selectivity(start);
+
+        /** range selectivity path:
+         * we want to be a bit conservative to avoid extreme under-estimation. So we compare the following 3 points:
+         * 1. range selectivity returned by CDF
+         * 2. selectivity of skewed values fall in the current range
+         * 3. average selectivity
+         * And take the maximum among 3.
+         */
+        /* 1. range selectivity returned by CDF */
         if (!includeStart && start!=null&& !start.isNull())
             start = new StatsExcludeStartDVD(start);
         double startSelectivity = start==null||start.isNull()?0.0d:quantilesSketch.getCDF(new DataValueDescriptor[]{start})[0];
@@ -255,8 +326,23 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
         double totalSelectivity = stopSelectivity-startSelectivity;
         double count = (double)quantilesSketch.getN();
         if (totalSelectivity==Double.NaN || count == 0)
-            return 0;
-        return Math.round(totalSelectivity * count);
+            qualifiedRows = 0;
+        else
+            qualifiedRows = Math.round(totalSelectivity * count);
+
+        /* 2. selectivity of skewed values fall in the current range */
+        long skewedRowCountInRange = getSkewedRowCountInRange(start, stop, includeStart, includeStop);
+        if (qualifiedRows < skewedRowCountInRange)
+            qualifiedRows = skewedRowCountInRange;
+
+        /* 3. average selectivity */
+        if (rpv == -1)
+            rpv = getAvgRowsPerValueExcludingSkews();
+
+        if (qualifiedRows < rpv)
+            qualifiedRows = rpv;
+
+        return qualifiedRows;
     }
 
     /**
