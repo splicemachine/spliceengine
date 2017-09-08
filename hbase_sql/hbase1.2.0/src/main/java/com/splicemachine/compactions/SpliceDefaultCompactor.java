@@ -14,6 +14,7 @@
 
 package com.splicemachine.compactions;
 
+import com.google.common.net.HostAndPort;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
@@ -51,6 +52,10 @@ import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.*;
 import org.apache.hadoop.hbase.security.User;
 import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
+import org.apache.hadoop.hdfs.DistributedFileSystem;
+import org.apache.hadoop.hdfs.client.HdfsAdmin;
+import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
+import org.apache.hadoop.hdfs.protocol.HdfsConstants;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -121,7 +126,26 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         postCreateCoprocScanner(request, scanType, null,user);
 
         ServerName sn = scr.getRegionServerServices().getServerName();
-        InetSocketAddress[] addresses = new InetSocketAddress[]{ InetSocketAddress.createUnresolved(sn.getHostname(), sn.getPort())};
+        InetSocketAddress[] addresses = null;
+        if (store.getFileSystem() instanceof DistributedFileSystem) {
+            DistributedFileSystem dfs = ((DistributedFileSystem)store.getFileSystem());
+            for (DatanodeInfo di : dfs.getDataNodeStats(HdfsConstants.DatanodeReportType.LIVE)) {
+                if (di.getHostName().equals(sn.getHostname())) {
+                    HostAndPort hap = HostAndPort.fromString(di.getXferAddrWithHostname());
+                    addresses = new InetSocketAddress[]{ InetSocketAddress.createUnresolved(hap.getHostText(), hap.getPort())};
+                    break;
+                }
+            }
+            if (addresses == null) {
+                for (DatanodeInfo di : dfs.getDataNodeStats(HdfsConstants.DatanodeReportType.ALL)) {
+                    if (di.getHostName().equals(sn.getHostname())) {
+                        HostAndPort hap = HostAndPort.fromString(di.getXferAddrWithHostname());
+                        addresses = new InetSocketAddress[]{ InetSocketAddress.createUnresolved(hap.getHostText(), hap.getPort())};
+                        break;
+                    }
+                }
+            }
+        }
 
         String regionLocation = getRegionLocation(store);
         SConfiguration config = HConfiguration.getConfiguration();
