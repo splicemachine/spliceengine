@@ -104,7 +104,8 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         // trigger MemstoreAwareObserver
         postCreateCoprocScanner(request, scanType, null);
 
-        InetSocketAddress[] addresses = scr.getRegionServerServices().getFavoredNodesForRegion(store.getRegionInfo().getEncodedName());
+        ServerName sn = scr.getRegionServerServices().getServerName();
+        InetSocketAddress[] addresses = new InetSocketAddress[]{ InetSocketAddress.createUnresolved(sn.getHostname(), sn.getPort())};
 
         String regionLocation = getRegionLocation(store);
         SConfiguration config = HConfiguration.getConfiguration();
