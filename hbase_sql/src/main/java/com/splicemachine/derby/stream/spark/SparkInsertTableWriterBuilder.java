@@ -51,7 +51,7 @@ public class SparkInsertTableWriterBuilder<K,V> extends InsertTableWriterBuilder
         }
         final Configuration conf=new Configuration(HConfiguration.unwrapDelegate());
         try{
-            conf.set("mapreduce.output.fileoutputformat.outputdir","/tmp"); // What should this be?
+            conf.set("mapreduce.output.fileoutputformat.outputdir","/tmp");
             TableWriterUtils.serializeInsertTableWriterBuilder(conf,this);
         }catch(IOException e){
             throw Exceptions.parseException(e);
