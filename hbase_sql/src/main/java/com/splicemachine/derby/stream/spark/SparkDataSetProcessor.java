@@ -56,7 +56,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Spark-based DataSetProcessor.
@@ -350,7 +349,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
             }
             if (storedAs.toLowerCase().equals("t")) {
-                schema =  SpliceSpark.getSession().read().csv(location).schema();
+                schema =  SpliceSpark.getSession().read().option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").csv(location).schema();
             }
         }
 
@@ -385,7 +384,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
                     }
                     if (storedAs.toLowerCase().equals("t")) {
-                        empty.write().option("compression",compression).mode(SaveMode.Append).csv(location);
+                        empty.write().option("compression",compression).option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").mode(SaveMode.Append).csv(location);
                     }
             }
 
@@ -479,7 +478,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         try {
             Dataset<Row> table = null;
             try {
-                table = SpliceSpark.getSession().read().csv(location);
+                table = SpliceSpark.getSession().read().option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").csv(location);
 
                 if (op == null) {
                     // stats collection scan

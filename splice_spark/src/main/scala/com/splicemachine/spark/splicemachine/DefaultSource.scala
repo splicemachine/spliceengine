@@ -50,7 +50,7 @@ class DefaultSource extends RelationProvider with CreatableRelationProvider
     val isTruncate = jdbcOptions.isTruncate
     val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
     try {
-      val tableExists = JdbcUtils.tableExists(conn, url, table)
+      val tableExists = JdbcUtils.tableExists(conn, jdbcOptions)
       if (tableExists) {
         val actualRelation = new SpliceRelation(new JDBCOptions(parameters))(sqlContext,Option.apply(df.schema))
 
@@ -64,7 +64,7 @@ class DefaultSource extends RelationProvider with CreatableRelationProvider
             } else {
               // Otherwise, do not truncate the table, instead drop and recreate it
               dropTable(conn, table)
-              createTable(df.schema, url, table, createTableOptions, conn)
+              createTable(conn, df, jdbcOptions)
               actualRelation.insert(df,false)
               actualRelation
             }
@@ -83,7 +83,7 @@ class DefaultSource extends RelationProvider with CreatableRelationProvider
           // Therefore, it is okay to do nothing here and then just return the relation below.
         }
       } else {
-        createTable(df.schema, url, table, createTableOptions, conn)
+        createTable(conn, df, jdbcOptions)
         val actualRelation = new SpliceRelation(new JDBCOptions(parameters))(sqlContext,Option.apply(df.schema))
         actualRelation.insert(df,false)
         actualRelation
