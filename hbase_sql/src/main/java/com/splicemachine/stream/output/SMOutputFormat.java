@@ -55,6 +55,8 @@ public class SMOutputFormat extends OutputFormat<RowLocation,Either<Exception, E
     @Override
     public RecordWriter<RowLocation,Either<Exception, ExecRow>> getRecordWriter(TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
         try {
+            if (outputCommitter == null)
+                getOutputCommitter(taskAttemptContext);
             DataSetWriterBuilder dsWriter = TableWriterUtils.deserializeTableWriter(taskAttemptContext.getConfiguration());
             TxnView childTxn = outputCommitter.getChildTransaction(taskAttemptContext.getTaskAttemptID());
             if (childTxn == null)
