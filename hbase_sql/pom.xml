@@ -1195,6 +1195,8 @@
                                 <argument>-Xms1g</argument>
                                 <!-- Spark Sys props -->
                                 <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
+				<argument>-Dsplice.spark.eventLog.enabled=true</argument>
+				<argument>-Dsplice.spark.eventLog.dir=${project.build.directory}/SpliceTestYarnPlatform/</argument>
                                 <argument>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse</argument>
                                 <!--                                <argument>-Dsplice.spark.broadcast.factory=org.apache.spark.broadcast.HttpBroadcastFactory</argument> -->
                                 <argument>-Dsplice.spark.driver.host=localhost</argument>
@@ -1205,8 +1207,6 @@
                                 <argument>-Dsplice.spark.driver.maxResultSize=1g</argument>
                                 <argument>-Dsplice.spark.driver.memory=1g</argument>
                                 <argument>-Dsplice.spark.enabled=true</argument>
-                                <!--<argument>-Dsplice.spark.eventLog.dir=hdfs:///user/spark/applicationHistory</argument>-->
-                                <!--<argument>-Dsplice.spark.eventLog.enabled=true</argument>-->
                                 <argument>-Dsplice.spark.executor.cores=3</argument>
                                 <argument>
                                     -Dsplice.spark.executor.extraClassPath=${project.build.directory}/classes:${project.build.directory}/dependency/*
@@ -1393,6 +1393,48 @@
                                 </configuration>
                             </execution>
                         </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>sparkHistory</id>
+            <activation>
+                <property>
+                    <name>sparkHistory</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <classpathScope>test</classpathScope>
+                            <executable>java</executable>
+                            <arguments>
+                                <!-- <argument>-verbose:gc</argument> -->
+                                <argument>-classpath</argument>
+                                <classpath/>
+                                <argument>-Xdebug</argument>
+                                <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
+                                <argument>-Djava.net.preferIPv4Stack=true</argument>
+                                <argument>-Djava.awt.headless=true</argument>
+                                <argument>-Dzookeeper.sasl.client=false</argument>
+                                <argument>-Dcom.sun.management.jmxremote.ssl=false</argument>
+                                <argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
+                                <argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
+				<argument>org.apache.spark.deploy.history.HistoryServer</argument>
+				<argument>${project.build.directory}/SpliceTestYarnPlatform/</argument>
+                            </arguments>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>
