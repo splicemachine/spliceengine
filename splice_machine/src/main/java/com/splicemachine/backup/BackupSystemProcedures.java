@@ -20,7 +20,6 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.TimeZone;
 
-import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.procedures.ProcedureUtils;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.Lists;
@@ -113,30 +112,21 @@ public class BackupSystemProcedures {
             backupManager.restoreDatabase(directory,backupId);
 
             // Print reboot statement
-            ResultColumnDescriptor[] rcds = new ResultColumnDescriptor[]{
-                    new GenericColumnDescriptor("result", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 30)),
-                    new GenericColumnDescriptor("warnings", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 1024))
+
+            ResultColumnDescriptor[] rcds = {
+                    new GenericColumnDescriptor("Status", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 200))
             };
-            ExecRow template = new ValueRow(2);
-            template.setRowArray(new DataValueDescriptor[]{new SQLVarchar(), new SQLVarchar()});
+            ExecRow template = new ValueRow(1);
+            template.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
             List<ExecRow> rows = Lists.newArrayList();
 
-            Activation activation = lcc.getLastActivation();
-            SQLWarning warning = activation.getWarnings();
-            while (warning != null) {
-                String warningMessage = warning.getLocalizedMessage();
-                template.getColumn(1).setValue(warning.getSQLState());
-                template.getColumn(2).setValue(warning.getLocalizedMessage());
-                rows.add(template.getClone());
-                warning = warning.getNextWarning();
-            }
-            template.getColumn(1).setValue("Restore completed");
-            template.getColumn(2).setValue("Database has to be rebooted");
+            String message = String.format("Launched restore job for backup %d from %s", backupId, directory);
+            template.getColumn(1).setValue(message);
             rows.add(template.getClone());
 
             inprs = new IteratorNoPutResultSet(rows,rcds,lcc.getLastActivation());
             inprs.openCore();
-            LOG.info("Restore completed. Database reboot is required.");
+            LOG.info(message);
 
         } catch (Throwable t) {
             ResultColumnDescriptor[] rcds = new ResultColumnDescriptor[]{
