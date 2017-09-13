@@ -489,8 +489,9 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(UserDefinedAggregator.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(BulkWrite.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(KVPair.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(SpliceStddevPop.class);
-        instance.register(SpliceStddevSamp.class);
+        instance.register(SpliceStddevPop.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SpliceStddevSamp.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SpliceUDAVariance.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(Properties.class, new MapSerializer());
 
 //        instance.register(com.splicemachine.derby.client.sql.execute.ValueRow.class,EXTERNALIZABLE_SERIALIZER);
