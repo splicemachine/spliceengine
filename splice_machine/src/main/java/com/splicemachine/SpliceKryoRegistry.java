@@ -620,8 +620,8 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                 return new KVPair(rowKey,value,t);
             }
         },143);
-        instance.register(SpliceStddevPop.class,144);
-        instance.register(SpliceStddevSamp.class,145);
+        instance.register(SpliceStddevPop.class,EXTERNALIZABLE_SERIALIZER,144);
+        instance.register(SpliceStddevSamp.class,EXTERNALIZABLE_SERIALIZER,145);
         instance.register(Properties.class,new MapSerializer(),146);
 
         //instance.register(com.splicemachine.derby.client.sql.execute.ValueRow.class,EXTERNALIZABLE_SERIALIZER,147);
@@ -831,5 +831,8 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(DistinctAggregateKeyCreation.class,EXTERNALIZABLE_SERIALIZER, 290);
         instance.register(MergeStatisticsHolder.class,EXTERNALIZABLE_SERIALIZER,291);
         instance.register(ColumnStatisticsMerge.class,EXTERNALIZABLE_SERIALIZER,292);
+        instance.register(SpliceUDAVariance.class,EXTERNALIZABLE_SERIALIZER,293);
+
+
     }
 }
