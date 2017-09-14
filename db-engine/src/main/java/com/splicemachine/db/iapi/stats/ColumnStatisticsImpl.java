@@ -37,6 +37,8 @@ import com.yahoo.sketches.frequencies.ErrorType;
 import com.yahoo.sketches.quantiles.ItemsSketch;
 import com.yahoo.sketches.theta.Sketch;
 import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.log4j.Logger;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -52,6 +54,7 @@ import static com.splicemachine.db.iapi.types.Orderable.*;
  * @see <a href="https://datasketches.github.io/">https://datasketches.github.io/</a>
  */
 public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>, Externalizable {
+    private static Logger LOG=Logger.getLogger(ColumnStatisticsImpl.class);
     protected com.yahoo.sketches.quantiles.ItemsSketch<DataValueDescriptor> quantilesSketch;
     protected com.yahoo.sketches.frequencies.ItemsSketch<DataValueDescriptor> frequenciesSketch;
     protected Sketch thetaSketch;
@@ -264,7 +267,8 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
                         (stop == null || stop.isNull() || skewedValue.compare(includeStop ? ORDER_OP_LESSOREQUALS : ORDER_OP_LESSTHAN, stop, false, false)))
                     skewCount += row.getEstimate();
             } catch (StandardException e) {
-                // cost estimation error does not need to fail the query
+                // this should not happen, but if it happens, cost estimation error does not need to fail the query
+                LOG.warn("Failure is not expected but we don't want to fail the query because of estimation error", e);
             }
         }
 
@@ -300,7 +304,8 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
                     stop != null && !stop.isNull() && stop.compare(includeStop ? ORDER_OP_LESSTHAN : ORDER_OP_LESSOREQUALS, minValue, false, false))
                 return 0;
         } catch (StandardException e) {
-            // cost estimation error does not need to fail the query
+            // this should not happen, but if it happens, cost estimation error does not need to fail the query
+            LOG.warn("Failure is not expected but we don't want to fail the query because of estimation error", e);
         }
 
         //if point range, take the point range selectivity path
