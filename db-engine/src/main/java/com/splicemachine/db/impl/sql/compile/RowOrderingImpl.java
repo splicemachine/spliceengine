@@ -235,9 +235,11 @@ public class RowOrderingImpl implements RowOrdering{
             for(int i=0;i<ordering.size();i++){
                 retval+=" ColumnOrdering "+i+": "+ordering.get(i);
             }
+
+            return retval.toString();
         }
 
-        return retval;
+        return null;
     }
 
     /**
