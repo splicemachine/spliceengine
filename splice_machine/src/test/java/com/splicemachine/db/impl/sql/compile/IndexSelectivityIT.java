@@ -24,7 +24,6 @@ import org.junit.rules.TestRule;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.Timestamp;
 
 import static com.splicemachine.test_tools.Rows.row;
@@ -142,6 +141,35 @@ public class IndexSelectivityIT extends SpliceUnitTest {
                 "call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s',false)",
                 spliceSchemaWatcher));
         conn.commit();
+
+        new TableCreator(conn)
+                .withCreate("create table t1 (c1 int, c2 int, c3 int, c4 int, c5 int, c6 int, c7 int, c8 int, c9 int, c10 int, " +
+                        "c11 int, c12 int, c13 int, c14 int, c15 int, c16 int, c17 int, c18 int, c19 int, c20 int, " +
+                        "c21 int, c22 int, c23 int, c24 int, c25 int, c26 int, c27 int, c28 int, c29 int, c30 int, primary key (c1))")
+                .withInsert("insert into t1 values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+                .withRows(rows(
+                        row(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0),
+                        row(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1),
+                        row(2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2),
+                        row(3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3),
+                        row(4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4),
+                        row(5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5),
+                        row(6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6),
+                        row(7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7),
+                        row(8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8),
+                        row(9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9)))
+                .withIndex("create index t1_idx on t1(c3,c4,c5)")
+                .create();
+
+        // we purposely leave t1 out from stats collection, as the test case is to test the plan selection without stats.
+        int factor = 10;
+        for (int i = 1; i <= 12; i++) {
+            spliceClassWatcher.executeUpdate(format("insert into t1 select c1+%d, c2, c3, c4, c5, c6, c7, c8, c9, c10, " +
+                    "c11, c12, c13, c14, c15, c16, c17, c18, c19, c20," +
+                    "c21, c22, c23, c24, c25, c26, c27, c28, c29, c30 from t1", factor));
+            factor = factor * 2;
+        }
+        conn.commit();
     }
 
     @Test
@@ -150,6 +178,15 @@ public class IndexSelectivityIT extends SpliceUnitTest {
         rowContainsQuery(3,"explain select c1,c2 from ts_low_cardinality where c1 = 1","IndexScan[TS_LOW_CARDINALITY_IX_3",methodWatcher);
         rowContainsQuery(3,"explain select c2 from ts_low_cardinality where c2 = '1'","IndexScan[TS_LOW_CARDINALITY_IX_2",methodWatcher);
         rowContainsQuery(6,"explain select count(*) from ts_low_cardinality where c2 = '1'","IndexScan[TS_LOW_CARDINALITY_IX_2",methodWatcher);
+    }
+
+    @Test
+    public void testCoveringIndexOverBaseTableScanWithoutStats () throws Exception {
+        //covering index should be picked
+        rowContainsQuery(3, "explain select c3, c4, c5 from t1 where c4=10", "IndexScan[T1_IDX", methodWatcher);
+        //if not covering index, base table scan should be picked
+        rowContainsQuery(3, "explain select c3, c4, c5, c6 from t1 where c4=10", "TableScan[T1", methodWatcher);
+
     }
 
     @Test @Ignore
