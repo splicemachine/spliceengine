@@ -200,6 +200,60 @@ public class SelectivityIT extends SpliceUnitTest {
                         row(4, "4", "1990-01-01 23:03:20", false),
                         row(5, "5", "1995-01-01 23:03:20", false))).create();
 
+        new TableCreator(conn)
+                .withCreate("create table t1 (a1 char(10), b1 int, c1 int, primary key(a1, b1))").create();
+
+        new TableCreator(conn)
+                .withCreate("create table t1s (a1 char(10), b1 int, c1 int, primary key(a1, b1))").create();
+
+        PreparedStatement ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
+                        "'%s'," +  // schema name
+                        "'%s'," +  // table name
+                        "null," +  // insert column list
+                        "'%s'," +  // file path
+                        "','," +   // column delimiter
+                        "null," +  // character delimiter
+                        "null," +  // timestamp format
+                        "null," +  // date format
+                        "null," +  // time format
+                        "%d," +    // max bad records
+                        "'%s'," +  // bad record dir
+                        "true," +  // has one line records
+                        "null)",   // char set
+                spliceSchemaWatcher.schemaName, "T1",
+                getResourceDirectory()+"even_distribution_t1.csv",
+                0,
+                getResourceDirectory() + "baddir"));
+        ps.execute();
+
+        ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
+                        "'%s'," +  // schema name
+                        "'%s'," +  // table name
+                        "null," +  // insert column list
+                        "'%s'," +  // file path
+                        "','," +   // column delimiter
+                        "null," +  // character delimiter
+                        "null," +  // timestamp format
+                        "null," +  // date format
+                        "null," +  // time format
+                        "%d," +    // max bad records
+                        "'%s'," +  // bad record dir
+                        "true," +  // has one line records
+                        "null)",   // char set
+                spliceSchemaWatcher.schemaName, "T1S",
+                getResourceDirectory()+"skewed_distribution_t1s.csv",
+                0,
+                getResourceDirectory() + "baddir"));
+        ps.execute();
+
+        spliceClassWatcher.executeQuery(format(
+                "call SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','T1', false)",
+                spliceSchemaWatcher.schemaName));
+
+        spliceClassWatcher.executeQuery(format(
+                "call SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','T1S', false)",
+                spliceSchemaWatcher.schemaName));
+
         conn.commit();
     }
 
@@ -424,5 +478,53 @@ public class SelectivityIT extends SpliceUnitTest {
             count++;
         }
         Assert.assertTrue(count>0);
+    }
+
+    @Test
+    public void testEvenDistributionSelectivity() throws Exception {
+        /* T1's data demographics are as follows:
+        a1: char, 100,000 rows, 1000 distinct values, rows per value(rpv) is 100
+        b1: int, unique
+        c1: int, 100,000 rows, 100 distinct values, rows per value(rpv) is 1000
+         */
+        double rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t1 where a1='CCC'", methodWatcher));
+        Assert.assertEquals(99, rowCount, 10);
+        double rangeRowCount = parseOutputRows(getExplainMessage(3, "explain select * from t1 where a1>='CCC' and a1<'CCD'", methodWatcher));
+        Assert.assertTrue(rangeRowCount>=rowCount);
+
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t1 where c1=50", methodWatcher));
+        Assert.assertEquals(1000, rowCount, 100);
+        rangeRowCount = parseOutputRows(getExplainMessage(3, "explain select * from t1 where c1>=50 and c1<51", methodWatcher));
+        Assert.assertTrue(rangeRowCount >= rowCount);
+    }
+
+    @Test
+    public void testSkewedDistributionSelectivity() throws Exception {
+        /* T1S's data demographics are as follows:
+        a1: char, 100,000 rows, 1001 distinct values, rows per value(rpv) is 50 for all values except for one skewed value 'KKK' which has rpv 50,000
+        b1: int, unique
+        c1: int, 100,000 rows, 51 distinct values, rows per value(rpv) is rows per value(rpv) is 1000 except for one skewed value 50 which has rpv 50,000
+         */
+        /* test skewed value */
+        double rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t1s where a1='KKK'", methodWatcher));
+        Assert.assertEquals(50000, rowCount, 1000);
+        double rangeRowCount = parseOutputRows(getExplainMessage(3, "explain select * from t1s where a1>='KKK' and a1<'KKL'", methodWatcher));
+        Assert.assertTrue(rangeRowCount >= rowCount);
+
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t1s where c1=50", methodWatcher));
+        Assert.assertEquals(50000, rowCount, 1000);
+        rangeRowCount = parseOutputRows(getExplainMessage(3, "explain select * from t1s where c1>=50 and c1<51", methodWatcher));
+        Assert.assertTrue(rangeRowCount >= rowCount);
+
+        /* test non-skewed value */
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t1s where a1='CCC'", methodWatcher));
+        Assert.assertEquals(49, rowCount, 5);
+        rangeRowCount = parseOutputRows(getExplainMessage(3, "explain select * from t1s where a1>='CCC' and a1<'CCD'", methodWatcher));
+        Assert.assertTrue(rangeRowCount >= rowCount);
+
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t1s where c1=31", methodWatcher));
+        Assert.assertEquals(1000, rowCount, 100);
+        rangeRowCount = parseOutputRows(getExplainMessage(3, "explain select * from t1s where c1>30 and c1<=31", methodWatcher));
+        Assert.assertTrue(rangeRowCount >= rowCount);
     }
 }

@@ -123,10 +123,11 @@ public class SQLVarcharTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(347,stats.selectivity(new SQLVarchar(new char[]{'F'})));
 
                 double range = stats.rangeSelectivity(new SQLVarchar(new char[]{'C'}),new SQLVarchar(new char[]{'G'}),true,false);
-                Assert.assertTrue((range == 1372.0d || range == 1404.0d));
+                //avg rows per value is 347/346
+                Assert.assertTrue((range == 1388.0d || range == 1404.0d));
 
                 range = stats.rangeSelectivity(new SQLVarchar(),new SQLVarchar(new char[]{'C'}),true,false);
-                Assert.assertTrue((range == 702.0d || range == 670.0d));
+                Assert.assertTrue((range == 702.0d || range == 694.0d));
 
                 Assert.assertEquals(2392.0d,(double) stats.rangeSelectivity(new SQLVarchar(new char[]{'T'}),new SQLVarchar(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
         }

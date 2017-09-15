@@ -31,24 +31,17 @@
 
 package com.splicemachine.db.iapi.types;
 
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.joda.time.DateTime;
+
 import java.io.InputStream;
-import java.sql.Blob;
-import java.sql.Clob;
-import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.ResultSet;
-import java.sql.RowId;
+import java.sql.*;
 import java.util.Calendar;
-import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 
 /**
  *
@@ -1059,6 +1052,12 @@ public abstract class DataType extends NullValueData
 			case Orderable.ORDER_OP_EQUALS:
 				// = -> = 
 				return Orderable.ORDER_OP_EQUALS;
+			case Orderable.ORDER_OP_GREATERTHAN:
+				// > -> <
+				return Orderable.ORDER_OP_LESSTHAN;
+			case Orderable.ORDER_OP_GREATEROREQUALS:
+				// >= -> <=
+				return Orderable.ORDER_OP_LESSOREQUALS;
 			default:
 				// These operators only appear due to flipping.
 				// They should never be flipped themselves.
