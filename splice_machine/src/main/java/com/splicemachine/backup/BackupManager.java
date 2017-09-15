@@ -24,9 +24,9 @@ import java.util.List;
  */
 public interface BackupManager{
 
-    void fullBackup(String backupDirectory) throws StandardException;
+    long fullBackup(String backupDirectory) throws StandardException;
 
-    void incrementalBackup(String directory) throws StandardException;
+    long incrementalBackup(String directory) throws StandardException;
 
     long getRunningBackup() throws StandardException;
 

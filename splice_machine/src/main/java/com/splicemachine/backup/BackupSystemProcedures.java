@@ -20,7 +20,6 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.TimeZone;
 
-import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.procedures.ProcedureUtils;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.Lists;
@@ -65,6 +64,7 @@ public class BackupSystemProcedures {
         type = type.trim();
         Connection conn = SpliceAdmin.getDefaultConn();
         LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+
         try {
             // Check directory
             if (directory == null || directory.length() == 0) {
@@ -73,14 +73,15 @@ public class BackupSystemProcedures {
 
             BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
             // Check backup type
+            long backupId = 0;
             if (type.compareToIgnoreCase("FULL") == 0) {
-                backupManager.fullBackup(directory);
+                backupId = backupManager.fullBackup(directory);
             } else if (type.compareToIgnoreCase("INCREMENTAL") == 0) {
-                backupManager.incrementalBackup(directory);
+                backupId = backupManager.incrementalBackup(directory);
             } else {
                 throw StandardException.newException(SQLState.INVALID_BACKUP_TYPE, type);
             }
-            resultSets[0] = ProcedureUtils.generateResult("Success", String.format("%s backup to %s", type, directory));
+            resultSets[0] = ProcedureUtils.generateResult("Status", String.format("Launched %s backup %d to %s at background.", type, backupId, directory));
         } catch (Throwable t) {
             resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
             SpliceLogUtils.error(LOG, "Database backup error", t);
@@ -111,30 +112,21 @@ public class BackupSystemProcedures {
             backupManager.restoreDatabase(directory,backupId);
 
             // Print reboot statement
-            ResultColumnDescriptor[] rcds = new ResultColumnDescriptor[]{
-                    new GenericColumnDescriptor("result", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 30)),
-                    new GenericColumnDescriptor("warnings", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 1024))
+
+            ResultColumnDescriptor[] rcds = {
+                    new GenericColumnDescriptor("Status", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 200))
             };
-            ExecRow template = new ValueRow(2);
-            template.setRowArray(new DataValueDescriptor[]{new SQLVarchar(), new SQLVarchar()});
+            ExecRow template = new ValueRow(1);
+            template.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
             List<ExecRow> rows = Lists.newArrayList();
 
-            Activation activation = lcc.getLastActivation();
-            SQLWarning warning = activation.getWarnings();
-            while (warning != null) {
-                String warningMessage = warning.getLocalizedMessage();
-                template.getColumn(1).setValue(warning.getSQLState());
-                template.getColumn(2).setValue(warning.getLocalizedMessage());
-                rows.add(template.getClone());
-                warning = warning.getNextWarning();
-            }
-            template.getColumn(1).setValue("Restore completed");
-            template.getColumn(2).setValue("Database has to be rebooted");
+            String message = String.format("Launched restore job for backup %d from %s", backupId, directory);
+            template.getColumn(1).setValue(message);
             rows.add(template.getClone());
 
             inprs = new IteratorNoPutResultSet(rows,rcds,lcc.getLastActivation());
             inprs.openCore();
-            LOG.info("Restore completed. Database reboot is required.");
+            LOG.info(message);
 
         } catch (Throwable t) {
             ResultColumnDescriptor[] rcds = new ResultColumnDescriptor[]{
@@ -245,15 +237,21 @@ public class BackupSystemProcedures {
 
             //Get backups that are more than backupWindow days old
             List<Long> backupIdList=new ArrayList<>();
-            String sqlText = "select backup_id from sys.sysbackup where begin_timestamp<?";
+            String sqlText = "select backup_id, begin_timestamp, incremental_backup from sys.sysbackup order by begin_timestamp desc";
             try(PreparedStatement ps = conn.prepareStatement(sqlText)){
-                ps.setTimestamp(1,ts);
-
                 BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
                 try(ResultSet rs=ps.executeQuery()){
+                    int fullBackupCount = 0;
                     while(rs.next()){
                         long backupId=rs.getLong(1);
-                        backupIdList.add(backupId);
+                        Timestamp beginTimestamp = rs.getTimestamp(2);
+                        boolean isFullBackup = !rs.getBoolean(3);
+                        if (fullBackupCount > 0 && beginTimestamp.compareTo(ts) < 0) {
+                            backupIdList.add(backupId);
+                        }
+                        if (isFullBackup) {
+                            fullBackupCount++;
+                        }
                     }
                 }
                 backupManager.removeBackup(backupIdList);
