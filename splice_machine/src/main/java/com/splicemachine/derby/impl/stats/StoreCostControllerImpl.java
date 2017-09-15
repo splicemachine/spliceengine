@@ -92,8 +92,13 @@ public class StoreCostControllerImpl implements StoreCostController {
         fallbackRemoteLatencyRatio =config.getFallbackRemoteLatencyRatio();
         String tableId = Long.toString(td.getBaseConglomerateDescriptor().getConglomerateNumber());
         baseTableRow = td.getEmptyExecRow();
-        if (conglomerateDescriptor.getIndexDescriptor() != null && conglomerateDescriptor.getIndexDescriptor().getIndexDescriptor() != null) {
-            conglomerateColumns = conglomerateDescriptor.getIndexDescriptor().numberOfOrderedColumns();
+        if (conglomerateDescriptor.getIndexDescriptor() != null &&
+            conglomerateDescriptor.getIndexDescriptor().getIndexDescriptor() != null)
+        {
+            if (conglomerateDescriptor.getIndexDescriptor().isPrimaryKey())
+                conglomerateColumns = td.getNumberOfColumns();
+            else
+                conglomerateColumns = conglomerateDescriptor.getIndexDescriptor().numberOfOrderedColumns();
         } else {
             conglomerateColumns = (conglomerateDescriptor.getColumnNames() == null) ? 2 : conglomerateDescriptor.getColumnNames().length;
         }
