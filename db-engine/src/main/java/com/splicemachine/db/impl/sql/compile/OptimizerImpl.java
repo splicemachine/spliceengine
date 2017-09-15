@@ -462,17 +462,9 @@ public class OptimizerImpl implements Optimizer{
 		 * circuit if both currentCost and currentSortAvoidanceCost
 		 * (if the latter is applicable) are greater than bestCost.
 		 */
-		/* the total cost of a plan = localcost of all conglomerates participated in the join
-		 * + remotecost of the last join in the join sequence.
-		 * total cost is not monotonically increasing as we add more joins due to the remotecost
-		 * of the last join which is affected by the number of output rows of the last join
-		 * and could vary from join to join. To use the alreadyCostsMore flag to prune the join order
-		 * search space, we can not use the totalcost but just the sum of local cost, which should
-		 * be monotonically increasing.
-		 */
         boolean alreadyCostsMore=!bestCost.isUninitialized() &&
-                (currentCost.compareLocal(bestCost)>0) &&
-                ((requiredRowOrdering==null) || (currentSortAvoidanceCost.compareLocal(bestCost)>0));
+                (currentCost.compare(bestCost)>0) &&
+                ((requiredRowOrdering==null) || (currentSortAvoidanceCost.compare(bestCost)>0));
 
         if((joinPosition<(numOptimizables-1)) && !alreadyCostsMore && (!timeExceeded)){
 			/*

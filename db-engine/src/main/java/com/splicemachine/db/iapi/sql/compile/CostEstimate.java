@@ -107,8 +107,6 @@ public interface CostEstimate extends StoreCostResult {
      */
     double compare(CostEstimate other);
 
-    double compareLocal(CostEstimate other);
-
     /**
      * Add this cost estimate to another one.  This presumes that any row
      * ordering is destroyed.

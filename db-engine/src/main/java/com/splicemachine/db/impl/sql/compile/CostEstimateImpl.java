@@ -190,10 +190,6 @@ public class CostEstimateImpl implements CostEstimate {
         return 0.0d;
     }
 
-    public double compareLocal(CostEstimate other) {
-        return compare(other);
-    }
-
     /** @see CostEstimate#add */
     public CostEstimate add(CostEstimate other, CostEstimate retval) {
         if (SanityManager.DEBUG) {

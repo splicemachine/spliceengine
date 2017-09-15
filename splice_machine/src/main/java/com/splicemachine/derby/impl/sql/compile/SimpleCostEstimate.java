@@ -329,28 +329,6 @@ public class SimpleCostEstimate implements CostEstimate{
     }
 
     @Override
-    public double compareLocal(CostEstimate other){
-        assert other!=null: "Cannot compare with a null CostEstimate";
-
-        double thisCost=this.localCost();
-        double otherCost=other.localCost();
-
-        if((thisCost!=Double.POSITIVE_INFINITY) || (otherCost!= Double.POSITIVE_INFINITY)){
-            return thisCost-otherCost;
-        }
-
-        if((this.numRows !=Double.POSITIVE_INFINITY)|| (other.rowCount()!=Double.POSITIVE_INFINITY)){
-            return this.numRows-other.rowCount();
-        }
-
-        if((this.singleScanRowCount != Double.POSITIVE_INFINITY)||
-                (other.singleScanRowCount() != Double.POSITIVE_INFINITY)){
-            return this.singleScanRowCount - other.singleScanRowCount();
-        }
-        return 0.0d;
-    }
-
-    @Override
     public CostEstimate add(CostEstimate addend,CostEstimate retval){
         assert addend!=null: "Cannot add a null cost estimate";
 
