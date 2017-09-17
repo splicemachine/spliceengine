@@ -162,7 +162,6 @@ public class SpliceSpark {
         LOG.warn("##############################################################################");
 
         SparkConf conf = new SparkConf();
-
         // Set default warehouse directory, currently spark can get confused.
         // User Supplied splice.spark.sql.warehouse.dir will overwrite it.
         conf.set("spark.sql.warehouse.dir","/user/splice/spark-warehouse");

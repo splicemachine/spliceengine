@@ -418,4 +418,9 @@ public class IndexValueRow implements ExecIndexRow, Serializable {
 	public void setKey(byte[] key) {
 		valueRow.setKey(key);
 	}
+
+	@Override
+	public void transfer(ExecRow execRow) throws StandardException {
+		valueRow.transfer(execRow);
+	}
 }

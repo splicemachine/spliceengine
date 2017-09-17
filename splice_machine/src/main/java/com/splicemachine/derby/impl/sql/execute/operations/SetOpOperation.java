@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.stream.function.CloneFunction;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.spark_project.guava.base.Strings;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -157,16 +158,16 @@ public class SetOpOperation extends SpliceBaseOperation {
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext operationContext = dsp.createOperationContext(this);
         if (this.opType==IntersectOrExceptNode.INTERSECT_OP) {
-            return leftSource.getDataSet(dsp).intersect(
-                    rightSource.getDataSet(dsp),
+            return leftSource.getDataSet(dsp).map(new CloneFunction<SetOpOperation>(operationContext)).intersect(
+                    rightSource.getDataSet(dsp).map(new CloneFunction<SetOpOperation>(operationContext)),
                     OperationContext.Scope.INTERSECT.displayName(),
                     operationContext,
                     true,
                     OperationContext.Scope.INTERSECT.displayName());
         }
         else if (this.opType==IntersectOrExceptNode.EXCEPT_OP) {
-            return leftSource.getDataSet(dsp).subtract(
-                    rightSource.getDataSet(dsp),
+            return leftSource.getDataSet(dsp).map(new CloneFunction<SetOpOperation>(operationContext)).subtract(
+                    rightSource.getDataSet(dsp).map(new CloneFunction<SetOpOperation>(operationContext)),
                     OperationContext.Scope.SUBTRACT.displayName(),
                     operationContext,
                     true,

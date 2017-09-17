@@ -22,8 +22,8 @@ import com.splicemachine.si.constants.SIConstants;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -34,7 +34,7 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
 
     private AtomicLong counter;
     protected LongOpenHashSet rolledback = new LongOpenHashSet();
-    protected Set<Txn> children = new HashSet<>();
+    protected List<Txn> children = new ArrayList<>();
     protected Txn parentReference;
     private boolean subtransactionsAllowed = true;
 
@@ -153,7 +153,8 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
     @Override
     public boolean canSee(TxnView otherTxn) {
         // Protects against reading data written by the "self-insert transaction"
-        for (Txn c : children) {
+        for (int i = 0; i< children.size(); i++) {
+            Txn c = children.get(i);
             if (c.getTxnId() == otherTxn.getTxnId() && c.getState() == State.ACTIVE) {
                 return false;
             }

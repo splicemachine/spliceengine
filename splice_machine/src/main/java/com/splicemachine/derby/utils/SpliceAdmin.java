@@ -1458,6 +1458,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         for (Pair<UUID, SpliceOperation> pair : operations) {
             ExecRow row = new ValueRow(3);
             Activation activation = pair.getSecond().getActivation();
+            assert activation.getPreparedStatement() != null:"Prepared Statement is null";
             row.setColumn(1, new SQLVarchar(pair.getFirst().toString()));
             row.setColumn(2, new SQLVarchar(activation.getLanguageConnectionContext().getCurrentUserId(activation)));
             row.setColumn(3, new SQLVarchar(hostname + ":" + port));

@@ -56,6 +56,8 @@ public interface ExecRow extends Row, KeyableRow, org.apache.spark.sql.Row, Comp
 	 */
 	ExecRow getClone();
 
+	void transfer(ExecRow execRow) throws StandardException  ;
+
 	/**
 	 * Clone the Row.  The cloned row will contain clones of the
 	 * specified columns and the same object as the original row
