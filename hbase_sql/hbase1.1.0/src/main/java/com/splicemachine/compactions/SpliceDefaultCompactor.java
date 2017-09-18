@@ -196,6 +196,8 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             sb.append(delim);
         }
         sb.append(String.format("Conglomerate=%s", conglomId));
+        sb.append(delim);
+        sb.append(String.format("RegionName=%s, RegionId=%d",this.store.getRegionInfo().getRegionNameAsString(), this.store.getRegionInfo().getRegionId()));
         return sb.toString();
     }
 
