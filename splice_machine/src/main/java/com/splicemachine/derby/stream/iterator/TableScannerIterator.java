@@ -46,10 +46,12 @@ public class TableScannerIterator implements Iterable<ExecRow>, Iterator<ExecRow
     protected Qualifier[][] qualifiers;
     protected int[] baseColumnMap;
     protected boolean rowIdKey; // HACK Row ID Qualifiers point to the projection above them ?  TODO JL
+    protected HBaseRowLocation hBaseRowLocation;
 
     public TableScannerIterator(TableScannerBuilder siTableBuilder, SpliceOperation operation) throws StandardException {
         this.siTableBuilder = siTableBuilder;
         this.operation = (ScanOperation) operation;
+        this.hBaseRowLocation = new HBaseRowLocation();
         if (operation != null) {
             this.qualifiers = ((ScanOperation) operation).getScanInformation().getScanQualifiers();
             this.baseColumnMap = ((ScanOperation) operation).getOperationInformation().getBaseColumnMap();
@@ -109,13 +111,13 @@ public class TableScannerIterator implements Iterable<ExecRow>, Iterator<ExecRow
     public ExecRow next() {
         slotted = false;
         rows++;
-        ExecRow nextRow = execRow.getClone();
         if (operation != null) {
-            StreamLogUtils.logOperationRecord(nextRow, operation);
-            operation.setCurrentRow(nextRow);
-            operation.setCurrentRowLocation(new HBaseRowLocation(nextRow.getKey()));
+            StreamLogUtils.logOperationRecord(execRow, operation);
+            operation.setCurrentRow(execRow);
+            hBaseRowLocation.setValue(execRow.getKey());
+            operation.setCurrentRowLocation(hBaseRowLocation);
         }
-        return nextRow;
+        return execRow;
     }
 
     @Override

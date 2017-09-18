@@ -110,6 +110,7 @@ public class ValueRow implements ExecRow, Externalizable {
 	//
 	///////////////////////////////////////////////////////////////////////
 
+
 	// this is the actual current # of columns
 	public int nColumns() {
 		return ncols;
@@ -180,6 +181,12 @@ public class ValueRow implements ExecRow, Externalizable {
 		}
 		rowClone.setKey(getKey());
 		return rowClone;
+	}
+
+	public void transfer(ExecRow execRow) throws StandardException {
+		for (int i = 0; i< ncols; i++) {
+			column[i].setValue(execRow.getColumn(i+1));
+		}
 	}
 
 	// position is 1-based

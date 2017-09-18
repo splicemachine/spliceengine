@@ -35,6 +35,7 @@ public class NestedLoopJoinIterator<Op extends SpliceOperation> implements Itera
 
     public NestedLoopJoinIterator(IterableJoinFunction iterableJoinFunction) throws StandardException, IOException {
         this.iterableJoinFunction = iterableJoinFunction;
+        populatedRow = iterableJoinFunction.getExecutionFactory().getValueRow(iterableJoinFunction.getNumberOfColumns());
     }
 
     @Override
@@ -44,10 +45,9 @@ public class NestedLoopJoinIterator<Op extends SpliceOperation> implements Itera
         }
             populated = false;
             if (iterableJoinFunction.hasNext()) {
-                ExecRow mergedRow = JoinUtils.getMergedRow(iterableJoinFunction.getLeftRow(),
+                populatedRow = JoinUtils.getMergedRow(iterableJoinFunction.getLeftRow(),
                         iterableJoinFunction.getRightRow(),iterableJoinFunction.wasRightOuterJoin()
-                        ,iterableJoinFunction.getExecutionFactory().getValueRow(iterableJoinFunction.getNumberOfColumns()));
-                populatedRow = mergedRow;
+                        ,populatedRow);
                 populated = true;
             }
             StreamLogUtils.logOperationRecordWithMessage(iterableJoinFunction.getLeftLocatedRow(), iterableJoinFunction.getOperationContext(), "exhausted");

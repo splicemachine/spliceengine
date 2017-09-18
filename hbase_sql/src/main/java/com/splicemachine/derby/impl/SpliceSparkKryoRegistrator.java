@@ -597,7 +597,8 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
 
         instance.register(OuterJoinPairFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(OuterJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(ProjectRestrictFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(ProjectRestrictMapFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(ProjectRestrictPredicateFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(RowComparator.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(RowOperationFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ScalarAggregateFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
@@ -610,7 +611,8 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(SpliceJoinFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(SplicePairFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(SplicePredicateFunction.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(TableScanTupleFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(TableScanTupleMapFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(TableScanPredicateFunction.class,EXTERNALIZABLE_SERIALIZER);
 
         instance.register(UpdateNoOpPredicateFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(WindowFinisherFunction.class,EXTERNALIZABLE_SERIALIZER);

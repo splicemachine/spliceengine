@@ -15,6 +15,7 @@
 package com.splicemachine.storage;
 
 import org.spark_project.guava.base.Function;
+import org.spark_project.guava.collect.Iterators;
 import org.spark_project.guava.collect.Lists;
 import com.splicemachine.metrics.Counter;
 import com.splicemachine.metrics.MetricFactory;
@@ -41,12 +42,11 @@ public class RegionDataScanner implements DataScanner{
 
     private List<Cell> internalList;
 
-    //private final HCell cell = new HCell();
+    private HCell cell = new HCell();
 
     private final Function<Cell,DataCell> transform = new Function<Cell, DataCell>(){
         @Override
         public DataCell apply(Cell input){
-            HCell cell = new HCell();
             cell.set(input);
             return cell;
         }
@@ -78,7 +78,6 @@ public class RegionDataScanner implements DataScanner{
             collectMetrics(internalList);
         }else
             readTimer.stopTiming();
-
         return Lists.transform(internalList,transform);
     }
 

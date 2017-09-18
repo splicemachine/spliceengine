@@ -100,7 +100,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                 nLeftRows++;
                 ExecRow execRow = leftSideIterator.next();
                 GetNLJoinIterator getNLJoinIterator =  GetNLJoinIterator.makeGetNLJoinIterator(joinType,
-                        operationContextList.remove(0), execRow);
+                        operationContextList.remove(0), execRow.getClone());
                 completionService.submit(getNLJoinIterator);
             }
             if (nLeftRows > 0) {
@@ -136,7 +136,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                     // If we haven't consumed left side iterator, submit a task to scan righ side
                     ExecRow execRow = leftSideIterator.next();
                     GetNLJoinIterator getNLJoinIterator = GetNLJoinIterator.makeGetNLJoinIterator(joinType,
-                            operationContextList.remove(0), execRow);
+                            operationContextList.remove(0), execRow.getClone());
                     completionService.submit(getNLJoinIterator);
                     nLeftRows++;
                 }
