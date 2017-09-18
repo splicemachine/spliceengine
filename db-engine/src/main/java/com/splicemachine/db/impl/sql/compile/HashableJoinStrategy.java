@@ -40,7 +40,6 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.util.Vector;
 
@@ -276,12 +275,12 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         int numArgs;
 		/* If we're going to generate a list of IN-values for index probing
 		 * at execution time then we push TableScanResultSet arguments plus
-		 * two additional arguments: 1) the list of IN-list values, and 2)
+		 * three additional arguments: 1) the list of IN-list values, and 2)
 		 * a boolean indicating whether or not the IN-list values are already
-		 * sorted.
+		 * sorted, 3) the in-list column position in the index or primary key.
 		 */
         if (genInListVals) {
-            numArgs = 35;
+            numArgs = 36;
         }
         else {
             numArgs = 33 ;

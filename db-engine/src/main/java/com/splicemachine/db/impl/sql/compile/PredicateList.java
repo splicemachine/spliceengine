@@ -522,17 +522,6 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                                 || (indexCol.getColumnNumber() != baseColumnPositions[indexPosition])
                                 || inNode.selfReference(indexCol))
                             indexCol = null;
-                        else if (pred.isInListProbePredicate() && (indexPosition > 0)) {
-						/* If the predicate is an IN-list probe predicate
-						 * then we only consider it to be useful if the
-						 * referenced column is the *first* one in the
-						 * index (i.e. if (indexPosition == 0)).  Otherwise
-						 * the predicate would be treated as a qualifier
-						 * for store, which could lead to incorrect
-						 * results.
-						 */
-                            indexCol = null;
-                        }
                     }
                 } else {
                     indexCol = relop.getColumnOperand(optTable, baseColumnPositions[indexPosition]);
@@ -744,14 +733,26 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 		** Create an array of useful predicates.  Also, count how many
 		** useful predicates there are.
 		*/
+		Integer inlistPosition = -2;
+		Predicate inlistPred = null;
+		List<Predicate> inlistPreds = new ArrayList<>();
         List<Predicate> predicates=new ArrayList<>();
         for(int index=0;index<size;index++){
             Predicate pred=elementAt(index);
             Integer position=isIndexUseful(pred,optTable,pushPreds,skipProbePreds,baseColumnPositions);
             if(position!=null){
-                pred.setIndexPosition(position);
+                if (pred.isInListProbePredicate()) {
+                    inlistPreds.add(pred);
+                    //we keep track of the inlist at lowest index position excluding rowid whose position is -1
+                    if (inlistPosition == -2 || inlistPosition > position) {
+                        inlistPosition = position;
+                        inlistPred = pred;
+                    }
+                } else {
+                    pred.setIndexPosition(position);
                 /* Remember the useful predicate */
-                usefulPredicates[usefulCount++]=pred;
+                    usefulPredicates[usefulCount++] = pred;
+                }
             }else{
                 if(primaryKey && isQualifier(pred,optTable,pushPreds) ||
                 isHashableJoin && isQualifierForHashableJoin(pred, optTable, pushPreds)){
@@ -764,6 +765,61 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 }
             }
         }
+
+        /** inlistPosition of -1 means inlist on rowid, however, currently MultiProbeTableScan for inlist on rowid
+		  returns wrong result, so do not consider MultiProbeTableScan for inlist on rowid.
+		  eligible inlist for MultiProbeScan are:
+		  1. inlist with indexPosition =0, that is, inlist on the leading index/PK column; or
+          2. inlist with indexPosition > 0 if all predicates with indexPosition prior to the inlist all having equality conditions
+        */
+        boolean inlistQualified;
+        if (inlistPosition >= 0) {
+            inlistQualified = true;
+            if (inlistPosition > 0) {
+                boolean[] isEquality = new boolean[inlistPosition];
+                for (int i = 0; i < usefulCount; i++) {
+                    Predicate pred = usefulPredicates[i];
+                    int pos = pred.getIndexPosition();
+                    if (pos < inlistPosition && pos >= 0 && !isEquality[pos]) {
+                        RelationalOperator relop = pred.getRelop();
+                        if (relop != null && relop.getOperator() == RelationalOperator.EQUALS_RELOP &&
+                                pred.compareWithKnownConstant(optTable, true))
+                            isEquality[pos] = true;
+                    }
+                }
+
+                for (int pos = 0; pos < inlistPosition; pos++) {
+                    if (!isEquality[pos]) {
+                        inlistQualified = false;
+                        break;
+                    }
+                }
+            }
+
+            if (inlistQualified) {
+                inlistPred.setIndexPosition(inlistPosition);
+                /* Remember the useful predicate */
+                usefulPredicates[usefulCount++] = inlistPred;
+            }
+        } else
+            inlistQualified = false;
+        
+        //we still need to mark the remaining inlist conditions
+        for (Predicate pred: inlistPreds) {
+            if (!inlistQualified || pred != inlistPred) {
+                if(primaryKey && isQualifier(pred,optTable,pushPreds) ||
+                        isHashableJoin && isQualifierForHashableJoin(pred, optTable, pushPreds)){
+                    pred.markQualifier();
+                    if(pushPreds){
+                        if(optTable.pushOptPredicate(pred)){
+                            predicates.add(pred);
+                        }
+                    }
+                }
+            }
+        }
+
+
         for(Predicate pred : predicates){
             removeOptPredicate(pred);
         }
@@ -2671,6 +2727,12 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 		         */
                 mb.push(RowOrdering.DONTCARE);
             }
+
+            /* With DB-6231's enhancmenet, inlist may not be the first column in the index or primary key,
+               so push the column position of the inlist column in the index or primary key */
+            int inlistPosition = pred.getIndexPosition();
+            assert inlistPosition >= 0: "inlistPosition of " + inlistPosition + " for MultiProbeScan is not expected";
+            mb.push(inlistPosition);
 
             return;
         }

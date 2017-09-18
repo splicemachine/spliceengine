@@ -961,6 +961,7 @@ public interface ResultSetFactory {
 								String qualifiersField,
 								DataValueDescriptor [] probeVals,
 								int sortRequired,
+								int inlistPosition,
 								String tableName,
 								String userSuppliedOptimizerOverrides,
 								String indexName,
