@@ -180,7 +180,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 
         // Prepare Left
 
-        DataSet<ExecRow> leftDataSet1 = leftResultSet.getDataSet(dsp);
+        DataSet<ExecRow> leftDataSet1 = leftResultSet.getDataSet(dsp).map(new CloneFunction<>(operationContext));
 
        // operationContext.pushScopeForOp("Prepare Left Side");
         DataSet<ExecRow> leftDataSet2 =
@@ -189,7 +189,7 @@ public class MergeSortJoinOperation extends JoinOperation {
             leftDataSet2 = leftDataSet2.filter(new InnerJoinNullFilterFunction(operationContext,leftHashKeys));
 
         // Prepare Right
-        DataSet<ExecRow> rightDataSet1 = rightResultSet.getDataSet(dsp);
+        DataSet<ExecRow> rightDataSet1 = rightResultSet.getDataSet(dsp).map(new CloneFunction<>(operationContext));
         DataSet<ExecRow> rightDataSet2 =
             rightDataSet1.map(new CountJoinedRightFunction(operationContext));
 //        if (!isOuterJoin) Remove all nulls from the right side...

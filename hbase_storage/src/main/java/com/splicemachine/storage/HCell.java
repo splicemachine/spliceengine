@@ -248,4 +248,9 @@ public class HCell implements DataCell{
         }
         return CellType.OTHER;
     }
+
+    @Override
+    public String toString() {
+        return delegate==null?"null":delegate.toString();
+    }
 }

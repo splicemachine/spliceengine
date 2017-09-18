@@ -142,7 +142,7 @@ public class CreatePinConstantOperation implements ConstantAction, ScopeNamed {
                 .transaction(parentTxn)
                 .scan(DDLUtils.createFullScan())
                 .keyColumnEncodingOrder(conglomerate.getColumnOrdering())
-                .reuseRowLocation(false)
+                .reuseRowLocation(true)
                 .keyColumnSortOrder(conglomerate.getAscDescInfo())
                 .baseColumnMap(baseColumnMap)
                 .keyColumnTypes(ScanOperation.getKeyFormatIds(conglomerate.getColumnOrdering(),

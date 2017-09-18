@@ -28,14 +28,14 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.Restriction;
-import com.splicemachine.derby.stream.function.ProjectRestrictFlatMapFunction;
+import com.splicemachine.derby.stream.function.ProjectRestrictMapFunction;
+import com.splicemachine.derby.stream.function.ProjectRestrictPredicateFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.EngineUtils;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Strings;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -62,6 +62,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         public ExecRow projectionResult;
 		public NoPutResultSet[] subqueryTrackingArray;
 		private ExecRow execRowDefinition;
+		private ExecRow projRow;
 
 	    protected static final String NAME = ProjectRestrictOperation.class.getSimpleName().replaceAll("Operation","");
 
@@ -170,12 +171,14 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		}
 
 		public ExecRow doProjection(ExecRow sourceRow) throws StandardException {
+			if (reuseResult && projRow != null)
+				return projRow;
             source.setCurrentRow(sourceRow);
             ExecRow result;
 				if (projection != null) {
 						result = projection.invoke();
 				} else {
-						result = mappedResultRow.getNewNullRow();
+						result = mappedResultRow;
 				}
 				// Copy any mapped columns from the source
 				for (int index = 0; index < projectMapping.length; index++) {
@@ -189,6 +192,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 								result.setColumn(index + 1, dvd);
 						}
 				}
+				if (reuseResult)
+					projRow = result;
         /* Remember the result if reusing it */
 				return result;
 		}
@@ -288,22 +293,14 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         DataSet<ExecRow> sourceSet = source.getDataSet(dsp);
         try {
             operationContext.pushScope();
-            return sourceSet.flatMap(new ProjectRestrictFlatMapFunction<SpliceOperation>(operationContext), true);
+			if (restrictionMethodName != null)
+				sourceSet = sourceSet.filter(new ProjectRestrictPredicateFunction<>(operationContext));
+			return sourceSet.map(new ProjectRestrictMapFunction<>(operationContext));
         } finally {
             operationContext.popScope();
         }
     }
 
-
-    public static ExecRow copyProjectionToNewRow(ExecRow projectedRow, ExecRow newRow) {
-        if (newRow == null) {
-            return null;
-        }
-        DataValueDescriptor[] projectRowArray = projectedRow.getRowArray();
-        DataValueDescriptor[] rightRowArray = newRow.getRowArray();
-        System.arraycopy(projectRowArray, 0, rightRowArray, 0, projectRowArray.length);
-        return newRow;
-    }
 	@Override
 	public ExecIndexRow getStartPosition() throws StandardException {
 		return source.getStartPosition();

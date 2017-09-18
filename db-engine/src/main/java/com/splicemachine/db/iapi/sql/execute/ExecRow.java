@@ -57,6 +57,16 @@ public interface ExecRow extends Row, KeyableRow, org.apache.spark.sql.Row, Comp
 	ExecRow getClone();
 
 	/**
+	 *
+	 * Transfer results from one exec row to this row.  This is key for merge join
+	 * when we do not want to create a bunch of objects.
+	 *
+	 * @param execRow
+	 * @throws StandardException
+     */
+	void transfer(ExecRow execRow) throws StandardException  ;
+
+	/**
 	 * Clone the Row.  The cloned row will contain clones of the
 	 * specified columns and the same object as the original row
 	 * for the other columns.

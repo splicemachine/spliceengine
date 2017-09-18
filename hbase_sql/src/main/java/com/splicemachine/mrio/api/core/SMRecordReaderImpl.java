@@ -128,16 +128,8 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 	@Override
 	public boolean nextKeyValue() throws IOException, InterruptedException {
 		try {
-			ExecRow nextRow = siTableScanner.next();
-            RowLocation nextLocation = siTableScanner.getCurrentRowLocation();
-			if (nextRow != null) {
-				currentRow = nextRow.getClone();
-                if (nextLocation!=null)
-    				rowLocation = new HBaseRowLocation(nextLocation.getBytes());
-			} else {
-				currentRow = null;
-				rowLocation = null;
-			}			
+			currentRow = siTableScanner.next();
+			rowLocation = siTableScanner.getCurrentRowLocation();
 			return currentRow != null;
 		} catch (StandardException e) {
 			throw new IOException(e);

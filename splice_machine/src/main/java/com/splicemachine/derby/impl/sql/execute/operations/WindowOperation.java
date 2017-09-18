@@ -20,6 +20,7 @@ import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.splicemachine.derby.stream.function.CloneFunction;
 import org.spark_project.guava.base.Strings;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
@@ -122,7 +123,7 @@ public class WindowOperation extends SpliceBaseOperation {
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext<WindowOperation> operationContext = dsp.createOperationContext(this);
         operationContext.pushScopeForOp(OperationContext.Scope.WINDOW);
-        DataSet dataSet = source.getDataSet(dsp);
+        DataSet dataSet = source.getDataSet(dsp).map(new CloneFunction<>(operationContext));
         operationContext.popScope();
 
         try {

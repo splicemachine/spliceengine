@@ -33,7 +33,7 @@ public class MergeAntiJoinIterator extends AbstractMergeJoinIterator {
      * @param rightKeys     Join Key(s) on which right side is sorted
      * @param operationContext
      */
-    public MergeAntiJoinIterator(Iterator<ExecRow> leftRS,
+    public MergeAntiJoinIterator(PeekingIterator<ExecRow> leftRS,
                                  PeekingIterator<ExecRow> rightRS,
                                  int[] leftKeys, int[] rightKeys,
                                  JoinOperation mergeJoinOperation, OperationContext<JoinOperation> operationContext) {
@@ -44,6 +44,10 @@ public class MergeAntiJoinIterator extends AbstractMergeJoinIterator {
     public boolean internalHasNext() {
         try {
             while (leftRS.hasNext()) {
+                if (left == null)
+                    left = leftRS.next().getClone();
+                else
+                    left.transfer(leftRS.next());
                 left = leftRS.next();
                 currentRightIterator = rightsForLeft(left);
                 boolean returnedRows = false;

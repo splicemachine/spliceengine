@@ -22,20 +22,15 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.Scans;
-import org.apache.commons.collections.iterators.SingletonIterator;
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.io.Serializable;
-import java.util.Collections;
-import java.util.Iterator;
 
 /**
- * This function applies table scan qualifiers to each row.
- *
+ * Created by jleach on 5/1/15.
  */
-
-public class TableScanQualifierFunction<Op extends SpliceOperation> extends SpliceFlatMapFunction<Op,ExecRow,ExecRow> implements Serializable {
+public class TableScanPredicateFunction<Op extends SpliceOperation> extends SplicePredicateFunction<Op,ExecRow> {
     protected boolean initialized;
     protected ScanOperation op;
     protected ExecutionFactory executionFactory;
@@ -44,11 +39,15 @@ public class TableScanQualifierFunction<Op extends SpliceOperation> extends Spli
     protected boolean rowIdKey; // HACK Row ID Qualifiers point to the projection above them ?  TODO JL
     protected DataValueDescriptor optionalProbeValue;
 
-    public TableScanQualifierFunction() {
+    public TableScanPredicateFunction() {
         super();
     }
 
-    public TableScanQualifierFunction(OperationContext<Op> operationContext, DataValueDescriptor optionalProbeValue) {
+    public TableScanPredicateFunction(OperationContext<Op> operationContext) {
+        this(operationContext,null);
+    }
+
+    public TableScanPredicateFunction(OperationContext<Op> operationContext, DataValueDescriptor optionalProbeValue) {
         super(operationContext);
         this.optionalProbeValue = optionalProbeValue;
     }
@@ -67,25 +66,26 @@ public class TableScanQualifierFunction<Op extends SpliceOperation> extends Spli
         if (in.readBoolean())
             optionalProbeValue = (DataValueDescriptor) in.readObject();
     }
-
     @Override
-    public Iterator<ExecRow> call(ExecRow from) throws Exception {
-        if (!initialized) {
-            initialized = true;
-            op = (ScanOperation) getOperation();
-            if (op != null) {
-                this.qualifiers = op.getScanInformation().getScanQualifiers();
-                this.baseColumnMap = op.getOperationInformation().getBaseColumnMap();
-                this.rowIdKey = op.getRowIdKey();
+    public boolean apply(@Nullable ExecRow from) {
+        try {
+            if (!initialized) {
+                initialized = true;
+                op = (ScanOperation) getOperation();
+                if (op != null) {
+                    this.qualifiers = op.getScanInformation().getScanQualifiers();
+                    this.baseColumnMap = op.getOperationInformation().getBaseColumnMap();
+                    this.rowIdKey = op.getRowIdKey();
+                }
             }
+            if (qualifiers == null || rowIdKey || Scans.qualifyRecordFromRow(from.getRowArray(), qualifiers, baseColumnMap, optionalProbeValue)) {
+                this.operationContext.recordRead();
+                return true;
+            }
+            this.operationContext.recordFilter();
+            return false;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-        if (qualifiers == null || rowIdKey || Scans.qualifyRecordFromRow(from.getRowArray(), qualifiers,baseColumnMap,optionalProbeValue)) {
-            this.operationContext.recordRead();
-            if (op!=null)
-                op.setCurrentRow(from);
-            return new SingletonIterator(from);
-        }
-        this.operationContext.recordFilter();
-        return Collections.<ExecRow>emptyList().iterator();
     }
 }

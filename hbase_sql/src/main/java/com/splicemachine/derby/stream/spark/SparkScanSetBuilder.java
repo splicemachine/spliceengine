@@ -23,8 +23,8 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
-import com.splicemachine.derby.stream.function.TableScanQualifierFunction;
-import com.splicemachine.derby.stream.function.TableScanTupleFunction;
+import com.splicemachine.derby.stream.function.TableScanPredicateFunction;
+import com.splicemachine.derby.stream.function.TableScanTupleMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.derby.stream.utils.AvroUtils;
@@ -72,7 +72,7 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
 
         if (pin) {
             ScanOperation operation = (ScanOperation) op;
-            return dsp.readPinnedTable(Long.parseLong(tableName),baseColumnMap,location,operationContext,operation.getScanInformation().getScanQualifiers(),null,operation.getExecRowDefinition()).flatMap(new TableScanQualifierFunction(operationContext,null));
+            return dsp.readPinnedTable(Long.parseLong(tableName),baseColumnMap,location,operationContext,operation.getScanInformation().getScanQualifiers(),null,operation.getExecRowDefinition()).filter(new TableScanPredicateFunction(operationContext));
         }
         if (storedAs!= null) {
             ScanOperation operation = op==null?null:(ScanOperation) op;
@@ -92,7 +92,7 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
             else {
                 throw new UnsupportedOperationException("storedAs Type not supported -> " + storedAs);
             }
-            return qualifiers == null?locatedRows:locatedRows.flatMap(new TableScanQualifierFunction(operationContext,null));
+            return qualifiers == null?locatedRows:locatedRows.filter(new TableScanPredicateFunction<>(operationContext));
         }
 
         JavaSparkContext ctx = SpliceSpark.getContext();
@@ -115,10 +115,11 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         // rawRDD.setName(String.format(SparkConstants.RDD_NAME_SCAN_TABLE, tableDisplayName));
         rawRDD.setName("Perform Scan");
         SpliceSpark.popScope();
-        SparkFlatMapFunction f = new SparkFlatMapFunction(new TableScanTupleFunction<SpliceOperation>(operationContext,this.optionalProbeValue));
+        SparkSpliceFunctionWrapper f = new SparkSpliceFunctionWrapper(new TableScanTupleMapFunction<SpliceOperation>(operationContext));
+        SparkSpliceFunctionWrapper pred = new SparkSpliceFunctionWrapper(new TableScanPredicateFunction<>(operationContext,this.optionalProbeValue));
         SpliceSpark.pushScope(String.format("%s: Deserialize", scopePrefix));
         try {
-            return new SparkDataSet<>(useSample?rawRDD.flatMap(f).sample(false, sampleFraction):rawRDD.flatMap(f),
+            return new SparkDataSet<>(useSample?rawRDD.map(f).filter(pred).sample(false, sampleFraction):rawRDD.map(f).filter(pred),
                                       op != null ? op.getPrettyExplainPlan() : f.getPrettyFunctionName());
         } finally {
             SpliceSpark.popScope();

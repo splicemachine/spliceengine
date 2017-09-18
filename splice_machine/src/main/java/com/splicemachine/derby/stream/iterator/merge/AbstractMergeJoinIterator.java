@@ -30,12 +30,12 @@ import java.util.NoSuchElementException;
 
 public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, Iterable<ExecRow> {
     private static final Logger LOG = Logger.getLogger(MergeOuterJoinIterator.class);
-    final Iterator<ExecRow> leftRS;
+    final PeekingIterator<ExecRow> leftRS;
     final PeekingIterator<ExecRow> rightRS;
     final int[] joinKeys;
     protected final OperationContext<?> operationContext;
-    protected List<ExecRow> currentRights = new ArrayList<ExecRow>();
     protected ExecRow left;
+    protected List<ExecRow> currentRights = new ArrayList<ExecRow>();
     protected Iterator<ExecRow> currentRightIterator;
     protected ExecRow currentExecRow;
     protected JoinOperation mergeJoinOperation;
@@ -43,6 +43,8 @@ public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, It
     private List<Closeable> closeables = new ArrayList<>();
     private transient boolean populated =false;
     private transient boolean hasNext = false;
+    protected ExecRow mergedRow;
+    protected RightsForLeftsIterator rightsForLeftsIterator;
 
     /**
      * MergeJoinRows constructor. Note that keys for left & right sides
@@ -54,13 +56,16 @@ public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, It
      * @param rightKeys     Join Key(s) on which right side is sorted
      * @param operationContext
      */
-    public AbstractMergeJoinIterator(Iterator<ExecRow> leftRS,
+    public AbstractMergeJoinIterator(PeekingIterator<ExecRow> leftRS,
                                      PeekingIterator<ExecRow> rightRS,
                                      int[] leftKeys, int[] rightKeys,
                                      JoinOperation mergeJoinOperation, OperationContext<?> operationContext) {
         this.mergeJoinOperation = mergeJoinOperation;
+        this.mergedRow = mergeJoinOperation.getExecutionFactory().getValueRow(
+                mergeJoinOperation.getRightNumCols() + mergeJoinOperation.getLeftNumCols());
         this.leftRS = leftRS;
         this.rightRS = rightRS;
+        this.rightsForLeftsIterator = new RightsForLeftsIterator(rightRS);
         assert(leftKeys.length == rightKeys.length);
         joinKeys = new int[leftKeys.length * 2];
         for (int i = 0, s = leftKeys.length; i < s; i++){
@@ -83,25 +88,42 @@ public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, It
         return 0;
     }
 
+    private int compareLefts(ExecRow lastLeft, ExecRow nextLeft) throws StandardException {
+        for (int i = 0, s = joinKeys.length; i < s; i = i + 2) {
+            int result = lastLeft.getColumn(joinKeys[i])
+                    .compare(nextLeft.getColumn(joinKeys[i]));
+            if (result != 0) {
+                return result;
+            }
+        }
+        return 0;
+    }
+
     protected Iterator<ExecRow> rightsForLeft(ExecRow left) throws IOException, StandardException {
         if (!currentRights.isEmpty() // Check to see if we've already collected the right rows
                 && compare(left, currentRights.get(0)) == 0){ // that match this left
             return currentRights.iterator();
         }
-        // If not, look for the ones that do
-        currentRights = new ArrayList<ExecRow>();
-        while (rightRS.hasNext()){
-            int comparison = compare(left, rightRS.peek());
-            if (comparison == 0) { // if matches left, add to buffer
-                currentRights.add(rightRS.next().getClone());
-            } else if (comparison < 0) { // if is greater than left, stop
-                break;
-            } else {
-                // if is less than left, read next right
-                rightRS.next();
+
+        if (leftRS.hasNext() && compareLefts(left,leftRS.peek()) == 0) { // Next Left
+            // If not, look for the ones that do
+            currentRights = new ArrayList<ExecRow>();
+            while (rightRS.hasNext()) {
+                int comparison = compare(left, rightRS.peek());
+                if (comparison == 0) { // if matches left, add to buffer
+                    currentRights.add(rightRS.next().getClone());
+                } else if (comparison < 0) { // if is greater than left, stop
+                    break;
+                } else {
+                    // if is less than left, read next right
+                    rightRS.next();
+                }
             }
+            return currentRights.iterator();
+        } else {
+            rightsForLeftsIterator.setLeft(left);
+            return rightsForLeftsIterator;
         }
-        return currentRights.iterator();
     }
 
     @Override
@@ -155,8 +177,7 @@ public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, It
         try {
             ExecRow execRow = JoinUtils.getMergedRow(leftRow, rightRow == null ? mergeJoinOperation.getEmptyRow() : rightRow,
                     mergeJoinOperation.wasRightOuterJoin,
-                    mergeJoinOperation.getExecutionFactory().getValueRow(
-                            mergeJoinOperation.getRightNumCols() + mergeJoinOperation.getLeftNumCols()));
+                    mergedRow);
             mergeJoinOperation.setCurrentRow(execRow);
             return execRow;
         } catch (Exception e ) {
@@ -166,6 +187,45 @@ public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, It
 
     public void registerCloseable(Closeable closeable) {
         closeables.add(closeable);
+    }
+
+
+    public class RightsForLeftsIterator implements Iterator<ExecRow>{
+        private ExecRow leftRow;
+        private PeekingIterator<ExecRow> rightRS;
+
+        public RightsForLeftsIterator(PeekingIterator<ExecRow> rightRS) {
+            this.rightRS = rightRS;
+        }
+
+        public void setLeft(ExecRow leftRow) throws StandardException {
+            this.leftRow = leftRow;
+        }
+
+        @Override
+        public boolean hasNext() {
+            try {
+                while (rightRS.hasNext()) {
+                    int comparison = compare(left, rightRS.peek());
+                    if (comparison == 0) { // if matches left, add to buffer
+                        return true;
+                    } else if (comparison < 0) { // if is greater than left, stop
+                        return false;
+                    } else {
+                        // if is less than left, read next right
+                        rightRS.next();
+                    }
+                }
+                return false;
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public ExecRow next() {
+            return rightRS.next();
+        }
     }
 
 }
