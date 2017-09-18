@@ -66,7 +66,8 @@ public class SpliceHFileCleaner extends BaseHFileCleanerDelegate {
             }
         }
         catch(Exception e) {
-            //ignores any exception
+            deletable = false;
+            SpliceLogUtils.warn(LOG, "An error encountered when trying to clean a file %s", e.getLocalizedMessage());
         }
         return deletable;
     }
