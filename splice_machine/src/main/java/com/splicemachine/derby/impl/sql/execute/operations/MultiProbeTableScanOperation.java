@@ -64,6 +64,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
     private static final long serialVersionUID = 1l;
     /** The values with which we will probe the table. */
     protected DataValueDescriptor [] probeValues;
+    protected int inlistPosition;
 //    /**
 //     * The values with which we will probe the table, as they were passed to
 //     * the constructor. We need to keep them unchanged in case the result set
@@ -103,6 +104,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         String qualifiersField,
         DataValueDescriptor [] probingVals,
         int sortRequired,
+        int inlistPosition,
         String tableName,
         String userSuppliedOptimizerOverrides,
         String indexName,
@@ -195,6 +197,8 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 Arrays.sort(probeValues, Collections.reverseOrder());
             this.probeValues = probeValues;
         }
+        this.inlistPosition = inlistPosition;
+
         this.scanInformation = new MultiProbeDerbyScanInformation(
                 resultRowAllocator.getMethodName(),
                 startKeyGetter==null?null:startKeyGetter.getMethodName(),
@@ -206,6 +210,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 startSearchOperator,
                 stopSearchOperator,
                 probeValues,
+                inlistPosition,
                 tableVersion
         );
         init();
@@ -222,12 +227,15 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         super.readExternal(in);
         probeValues = new DataValueDescriptor[in.readInt()];
         ArrayUtil.readArrayItems(in,probeValues);
+        inlistPosition = in.readInt();
+
     }
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
         ArrayUtil.writeArray(out,probeValues);
+        out.writeInt(inlistPosition);
     }
 
     @Override
