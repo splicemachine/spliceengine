@@ -87,12 +87,12 @@ public abstract class SparkValueRowSerializer<T extends ExecRow> extends Seriali
                 if (formatId == StoredFormatIds.SQL_USERTYPE_ID_V3) {
                     Object o = dvds[i].getObject();
                     boolean useKryo = false;
-                    if (o != null && o instanceof UDTBase) {
+                    if (o != null && o instanceof UDTBase && 1==2) {
                         // This is a UDT or UDA, do not serialize using Kryo
                         output.writeBoolean(useKryo);
                         ByteArrayOutputStream outputBuffer = new ByteArrayOutputStream();
                         ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputBuffer);
-                        objectOutputStream.writeObject(o);
+                        objectOutputStream.writeUnshared(o);
                         objectOutputStream.flush();
                         objectOutputStream.reset();
                         byte[] bytes = outputBuffer.toByteArray();
@@ -140,7 +140,7 @@ public abstract class SparkValueRowSerializer<T extends ExecRow> extends Seriali
                         input.read(bytes, 0, len);
                         ByteArrayInputStream in = new ByteArrayInputStream(bytes);
                         UDTInputStream inputStream = new UDTInputStream(in, cf);
-                        Object o = inputStream.readObject();
+                        Object o = inputStream.readUnshared();
                         rowTemplate[i].setValue(o);
                         inputStream.close();
                     }
