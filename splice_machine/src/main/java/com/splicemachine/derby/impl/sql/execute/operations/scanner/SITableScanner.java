@@ -44,6 +44,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -186,7 +187,6 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         do{
             template.resetRowArray(); //necessary to deal with null entries--maybe make the underlying call faster?
             List<DataCell> keyValues=regionScanner.next(-1);
-
             if(keyValues.size()<=0){
                 currentRowLocation = null;
                 return null;

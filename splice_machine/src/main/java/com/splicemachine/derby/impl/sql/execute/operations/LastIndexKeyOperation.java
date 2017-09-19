@@ -121,7 +121,7 @@ public class LastIndexKeyOperation extends ScanOperation {
                 .template(currentTemplate)
                 .tableVersion(tableVersion)
                 .indexName(indexName)
-                .reuseRowLocation(false)
+                .reuseRowLocation(true)
                 .keyColumnEncodingOrder(scanInformation.getColumnOrdering())
                 .keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
                 .keyColumnTypes(getKeyFormatIds())

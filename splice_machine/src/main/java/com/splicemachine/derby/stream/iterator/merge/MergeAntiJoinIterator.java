@@ -19,7 +19,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.PeekingIterator;
-import java.util.Iterator;
 
 public class MergeAntiJoinIterator extends AbstractMergeJoinIterator {
     private static final Logger LOG = Logger.getLogger(MergeAntiJoinIterator.class);
@@ -33,7 +32,7 @@ public class MergeAntiJoinIterator extends AbstractMergeJoinIterator {
      * @param rightKeys     Join Key(s) on which right side is sorted
      * @param operationContext
      */
-    public MergeAntiJoinIterator(Iterator<ExecRow> leftRS,
+    public MergeAntiJoinIterator(PeekingIterator<ExecRow> leftRS,
                                  PeekingIterator<ExecRow> rightRS,
                                  int[] leftKeys, int[] rightKeys,
                                  JoinOperation mergeJoinOperation, OperationContext<JoinOperation> operationContext) {
@@ -44,7 +43,10 @@ public class MergeAntiJoinIterator extends AbstractMergeJoinIterator {
     public boolean internalHasNext() {
         try {
             while (leftRS.hasNext()) {
-                left = leftRS.next();
+                if (left == null)
+                    left = leftRS.next().getClone();
+                else
+                    left.transfer(leftRS.next());
                 currentRightIterator = rightsForLeft(left);
                 boolean returnedRows = false;
                 while (currentRightIterator.hasNext()) {

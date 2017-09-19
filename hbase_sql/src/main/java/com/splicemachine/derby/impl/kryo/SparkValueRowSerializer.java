@@ -94,6 +94,7 @@ public abstract class SparkValueRowSerializer<T extends ExecRow> extends Seriali
                         ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputBuffer);
                         objectOutputStream.writeObject(o);
                         objectOutputStream.flush();
+                        objectOutputStream.reset();
                         byte[] bytes = outputBuffer.toByteArray();
                         output.writeInt(bytes.length);
                         output.write(bytes);

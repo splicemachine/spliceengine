@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.stream.function.CloneFunction;
 import org.spark_project.guava.base.Strings;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
@@ -197,7 +198,7 @@ public class SortOperation extends SpliceBaseOperation{
     @SuppressWarnings({"rawtypes","unchecked"})
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException{
         OperationContext operationContext=dsp.createOperationContext(this);
-        DataSet dataSet=source.getDataSet(dsp);
+        DataSet dataSet=source.getDataSet(dsp).map(new CloneFunction<>(operationContext));
 
         if (distinct) {
             dataSet = dataSet.distinct(OperationContext.Scope.DISTINCT.displayName(),

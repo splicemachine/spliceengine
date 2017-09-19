@@ -142,7 +142,7 @@ public class BatchOnceFunction<Op extends SpliceOperation>
             //
             newRow.setColumn(ROW_LOC_COL, new SQLRef(new HBaseRowLocation(sourceRow.getKey())));
 
-            sourceRowsMap.put(Bytes.toHex(sourceKey), newRow);
+            sourceRowsMap.put(Bytes.toHex(sourceKey), newRow.getClone());
         }
 
         /* Don't execute the subquery again if there were no more source rows. */
@@ -164,7 +164,7 @@ public class BatchOnceFunction<Op extends SpliceOperation>
             ExecRow nextRowCore;
             Set<String> uniqueKeySet = Sets.newHashSetWithExpectedSize(batchSize);
             while (subqueryIterator.hasNext()) {
-                nextRowCore = subqueryIterator.next();
+                nextRowCore = subqueryIterator.next().getClone();
                 byte[] keyColumn = subqueryKeyEncoder.getKey(nextRowCore);
                 Collection<ExecRow> correspondingSourceRows = sourceRowsMap.get(Bytes.toHex(keyColumn));
                 for (ExecRow correspondingSourceRow : correspondingSourceRows) {

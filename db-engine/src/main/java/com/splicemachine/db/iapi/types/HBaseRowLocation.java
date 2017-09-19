@@ -128,7 +128,7 @@ public class HBaseRowLocation extends DataType implements RowLocation {
      */
     @Override
     public HBaseRowLocation cloneValue(boolean forceMaterialization) {
-        return forceMaterialization?deepClone(this):new HBaseRowLocation(this);
+        return deepClone(this);
     }
 
     @Override

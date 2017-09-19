@@ -38,11 +38,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DerbyOperationInformation;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
-import com.splicemachine.derby.stream.function.MergeStatisticsFlatMapFunction;
-import com.splicemachine.derby.stream.function.MergeStatisticsHolder;
-import com.splicemachine.derby.stream.function.MergeStatisticsHolderFlatMapFunction;
-import com.splicemachine.derby.stream.function.ReturnStatisticsFlatMapFunction;
-import com.splicemachine.derby.stream.function.StatisticsFlatMapFunction;
+import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -107,7 +103,7 @@ public class StatisticsOperation extends SpliceBaseOperation {
                     throw new UnsupportedOperationException("storedAs Type not supported -> " + storedAs);
                 }
             } else {
-                statsDataSet = scanSetBuilder.buildDataSet(scope);
+                statsDataSet = scanSetBuilder.buildDataSet(scope).map(new CloneFunction<>(operationContext));
             }
             DataSet stats = statsDataSet
                     .mapPartitions(

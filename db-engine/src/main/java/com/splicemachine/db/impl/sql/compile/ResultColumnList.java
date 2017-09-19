@@ -1026,229 +1026,15 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         // }
         // static Method exprN = method pointer to exprN;
 
+
         // this sets up the method and the static field.
-        MethodBuilder userExprFun=acb.newUserExprFun();
+        MethodBuilder userExprFun = acb.newUserExprFun();
 
-		/* Declare the field */
-        LocalField field=acb.newFieldDeclaration(Modifier.PRIVATE,ClassName.ExecRow);
-
-        // Generate the code to create the row in the constructor
-        genCreateRow(acb,field,"getValueRow",ClassName.ExecRow,size());
-
-        acb.pushGetExecutionFactoryExpression(userExprFun); // instance
-        userExprFun.push(size());
-        userExprFun.callMethod(VMOpcode.INVOKEINTERFACE,null,"getValueRow",ClassName.ExecRow,1);
-        userExprFun.setField(field);
-
-        ResultColumn rc;
-        int size=size();
-
-        MethodBuilder cb=acb.getConstructor();
-
-        for(int index=0;index<size;index++){
-            // generate statements of the form
-            // fieldX.setColumn(columnNumber, (DataValueDescriptor) columnExpr);
-            // and add them to exprFun.
-            rc=elementAt(index);
-
-			/* If we are not generating nulls, then we can skip this RC if
-			 * it is simply propagating a column from the source result set.
-			 */
-            if(!genNulls){
-                ValueNode sourceExpr=rc.getExpression();
-
-                if(sourceExpr instanceof VirtualColumnNode && !(((VirtualColumnNode)sourceExpr).getCorrelated())){
-                    continue;
-                }
-
-                //DERBY-4631 - For INNER JOINs and LEFT OUTER
-                // JOINs, Derby retrieves the join column values 
-                // from the left table's join column. But for 
-                // RIGHT OUTER JOINs, the join column's value
-                // will be picked up based on following logic.
-                //1)if the left table's column value is null
-                // then pick up the right table's column's value.
-                //2)If the left table's column value is non-null, 
-                // then pick up that value 
-                if(rc.getJoinResultSet()!=null){
-                    //We are dealing with a join column for 
-                    // RIGHT OUTER JOIN with USING/NATURAL eg
-                    //	 select c from t1 right join t2 using (c)
-                    //We are talking about column c as in "select c"
-                    ResultColumnList jnRCL= rc.getJoinResultSet().getResultColumns();
-                    ResultColumn joinColumn;
-                    int joinResultSetNumber= rc.getJoinResultSet().getResultSetNumber();
-
-                    //We need to know the column positions of left
-                    // table's join column and right table's join
-                    // column to generate the code explained above
-                    int virtualColumnIdRightTable=-1;
-                    int virtualColumnIdLeftTable=-1;
-                    for(int i=0;i<jnRCL.size();i++){
-                        joinColumn=jnRCL.elementAt(i);
-                        if(joinColumn.getName().equals(rc.getUnderlyingOrAliasName())){
-                            if(joinColumn.isRightOuterJoinUsingClause())
-                                virtualColumnIdRightTable=joinColumn.getVirtualColumnId();
-                            else
-                                virtualColumnIdLeftTable=joinColumn.getVirtualColumnId();
-                        }
-                    }
-
-                    userExprFun.getField(field); // instance
-                    userExprFun.push(index+1); // arg1
-
-                    String resultTypeName=
-                            getTypeCompiler(
-                                    DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getTypeId()).interfaceName();
-                    String receiverType=ClassName.DataValueDescriptor;
-
-                    //Our plan is to generate DERBY-4631
-                    //  if(lefTablJoinColumnValue is null) 
-                    //  then
-                    //    use rightTablJoinColumnValue 
-                    //   else
-                    //    use lefTablJoinColumnValue 
-
-                    //Following will generate 
-                    //  if(lefTablJoinColumnValue is null) 
-                    acb.pushColumnReference(userExprFun,joinResultSetNumber, virtualColumnIdLeftTable);
-                    userExprFun.cast(rc.getTypeCompiler().interfaceName());
-                    userExprFun.cast(receiverType);
-                    userExprFun.callMethod(VMOpcode.INVOKEINTERFACE,null, "isNullOp",resultTypeName,0);
-                    //Then call generateExpression on left Table's column
-                    userExprFun.cast(ClassName.BooleanDataValue);
-                    userExprFun.push(true);
-                    userExprFun.callMethod(VMOpcode.INVOKEINTERFACE,null,"equals","boolean",1);
-                    //Following will generate 
-                    //  then
-                    //    use rightTablJoinColumnValue 
-                    userExprFun.conditionalIf();
-                    acb.pushColumnReference(userExprFun,joinResultSetNumber,
-                            virtualColumnIdRightTable);
-                    userExprFun.cast(rc.getTypeCompiler().interfaceName());
-                    //Following will generate 
-                    //   else
-                    //    use lefTablJoinColumnValue 
-                    userExprFun.startElseCode();
-                    acb.pushColumnReference(userExprFun,joinResultSetNumber, virtualColumnIdLeftTable);
-                    userExprFun.cast(rc.getTypeCompiler().interfaceName());
-                    userExprFun.completeConditional();
-                    userExprFun.cast(ClassName.DataValueDescriptor);
-                    userExprFun.callMethod(VMOpcode.INVOKEINTERFACE,ClassName.Row,"setColumn","void",2);
-                    continue;
-                }
-
-                if(sourceExpr instanceof ColumnReference &&
-                        !(((ColumnReference)sourceExpr).getCorrelated()) &&
-                        sourceExpr.getColumnName().compareToIgnoreCase("ROWID")!=0){
-                    continue;
-                }
-            }
-
-
-            // row add is 1-based, and iterator index is 0-based
-            if(SanityManager.DEBUG){
-                if(index+1!=rc.getVirtualColumnId()){
-                    SanityManager.THROWASSERT(
-                            "VirtualColumnId ("+ rc.getVirtualColumnId()+
-                                    ") does not agree with position within Vector ("+ (index+1)+ ")");
-                }
-            }
-
-            //
-            // Generated columns should be populated after the base row because
-            // the generation clauses may refer to base columns that have to be filled
-            // in first. Population of generated columns is done in another
-            // method, which (like CHECK CONSTRAINTS) is explicitly called by
-            // InsertResultSet and UpdateResultSet.
-            //
-            // For LEFT JOINs, we may need to stuff a NULL into the generated column slot,
-            // just as we do for non-generated columns in a LEFT JOIN. We look at the source
-            // expression for the ResultColumn to determine whether this ResultColumnList
-            // represents an INSERT/UPDATE vs. a SELECT. If this ResultColumnList represents a
-            // LEFT JOIN, then the source expression will be a VirtualColumnNode.
-            // See DERBY-6346.
-            //
-            if(rc.hasGenerationClause()) {
-                ValueNode expr = rc.getExpression();
-                if ((expr != null) && !(expr instanceof VirtualColumnNode)) {
-                    continue;
-                }
-            }
-            // we need the expressions to be Columns exactly.
-
-			/* SPECIAL CASE:  Expression is a non-null constant.
-			 *	Generate the setColumn() call in the constructor
-			 *  so that it will only be executed once per instantiation.
-			 *
-		 	 * Increase the statement counter in constructor.  Code size in
-		 	 * constructor can become too big (more than 64K) for Java compiler
-		 	 * to handle (beetle 4293).  We set constant columns in other
-		 	 * methods if constructor has too many statements already.
-		 	 */
-//            if((!genNulls) &&
-//                    (rc.getExpression() instanceof ConstantNode) &&
-//                    !((ConstantNode)rc.getExpression()).isNull() &&
-//                    !cb.statementNumHitLimit(1)){
-//
-//
-//                cb.getField(field); // instance
-//                cb.push(index+1); // first arg;
-//
-//                rc.generateExpression(acb,cb);
-//                cb.cast(ClassName.DataValueDescriptor); // second arg
-//                cb.callMethod(VMOpcode.INVOKEINTERFACE,ClassName.Row,"setColumn","void",2);
-//                continue;
-//            }
-
-            userExprFun.getField(field); // instance
-            userExprFun.push(index+1); // arg1
-
-			/* We want to reuse the null values instead of doing a new each time
-			 * if the caller said to generate nulls or the underlying expression
-			 * is a typed null value.
-			 */
-            boolean needDVDCast=true;
-
-            if(rc.isAutoincrementGenerated()){
-                // (com.ibm.db2j.impl... DataValueDescriptor)
-                // this.getSetAutoincValue(column_number)
-
-                userExprFun.pushThis();
-
-                userExprFun.push(rc.getColumnPosition());
-                userExprFun.push(rc.getTableColumnDescriptor().getAutoincInc());
-
-                userExprFun.callMethod(VMOpcode.INVOKEVIRTUAL,ClassName.BaseActivation,
-                        "getSetAutoincrementValue",ClassName.DataValueDescriptor,2);
-                needDVDCast=false;
-
-            }else if(genNulls ||
-                    ((rc.getExpression() instanceof ConstantNode) && ((ConstantNode)rc.getExpression()).isNull())){
-                userExprFun.getField(field);
-                userExprFun.push(index+1);
-                userExprFun.callMethod(VMOpcode.INVOKEINTERFACE,ClassName.Row,"getColumn",ClassName.DataValueDescriptor,1); // the express
-
-                acb.generateNullWithExpress(userExprFun,rc.getTypeCompiler(),
-                        rc.getTypeServices(),null);
-            }else{
-                rc.generateExpression(acb,userExprFun);
-            }
-            if(needDVDCast)
-                userExprFun.cast(ClassName.DataValueDescriptor);
-
-            userExprFun.callMethod(VMOpcode.INVOKEINTERFACE,ClassName.Row,"setColumn","void",2);
-        }
-
-        userExprFun.getField(field);
-        userExprFun.methodReturn();
-
-        // we are now done modifying userExprFun
-        userExprFun.complete();
+        generateEvaluatedRow( acb, userExprFun, genNulls, false );
 
         // what we return is the access of the field, i.e. the pointer to the method.
-        acb.pushMethodReference(mb,userExprFun);
-    }
+        acb.pushMethodReference(mb, userExprFun);
+           }
 
     /**
      * Build an empty row with the size and shape of the ResultColumnList.
@@ -3799,6 +3585,279 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         costEstimate.setSingleScanRowCount((double) cardinality);
         // TODO JL
     }
+
+    /**
+     * <p>
+     * Generate the code for a method (userExprFun) which creates a row
+     * and, column by column, stuffs it with the evaluated
+     * expressions of our ResultColumns. The method returns the
+     * stuffed row.
+     * </p>
+     *
+     * This is the method that does the work.
+     */
+    void generateEvaluatedRow
+    (
+            ExpressionClassBuilder acb,
+            MethodBuilder userExprFun,
+            boolean genNulls,
+            boolean forMatchingClause
+    )
+            throws StandardException
+    {
+        // generate the function and initializer:
+        // private ExecRow fieldX;
+        // In the constructor:
+        //	 fieldX = getExecutionFactory().getValueRow(# cols);
+        // private ExecRow exprN()
+        // {
+        //   fieldX.setColumn(1, col(1).generateColumn(ps)));
+        //   ... and so on for each column ...
+        //   return fieldX;
+        // }
+        // static Method exprN = method pointer to exprN;
+
+		/* Declare the field */
+        LocalField field = acb.newFieldDeclaration(Modifier.PRIVATE, ClassName.ExecRow);
+
+        // Generate the code to create the row in the constructor
+        genCreateRow(acb, field, "getValueRow", ClassName.ExecRow, size());
+
+        ResultColumn rc;
+        int size = size();
+
+        MethodBuilder cb = acb.getConstructor();
+
+        for (int index = 0; index < size; index++)
+        {
+            // generate statements of the form
+            // fieldX.setColumn(columnNumber, (DataValueDescriptor) columnExpr);
+            // and add them to exprFun.
+            rc = elementAt(index);
+
+			/* If we are not generating nulls, then we can skip this RC if
+			 * it is simply propagating a column from the source result set.
+			 */
+            if (!genNulls)
+            {
+                ValueNode sourceExpr = rc.getExpression();
+
+                if ( sourceExpr instanceof VirtualColumnNode && ! ( ((VirtualColumnNode) sourceExpr).getCorrelated()) )
+                {
+                    continue;
+                }
+
+                //DERBY-4631 - For INNER JOINs and LEFT OUTER
+                // JOINs, Derby retrieves the join column values
+                // from the left table's join column. But for
+                // RIGHT OUTER JOINs, the join column's value
+                // will be picked up based on following logic.
+                //1)if the left table's column value is null
+                // then pick up the right table's column's value.
+                //2)If the left table's column value is non-null,
+                // then pick up that value
+                if (rc.getJoinResultSet() != null) {
+                    //We are dealing with a join column for
+                    // RIGHT OUTER JOIN with USING/NATURAL eg
+                    //	 select c from t1 right join t2 using (c)
+                    //We are talking about column c as in "select c"
+                    ResultColumnList jnRCL =
+                            rc.getJoinResultSet().getResultColumns();
+                    int joinResultSetNumber =
+                            rc.getJoinResultSet().getResultSetNumber();
+
+                    //We need to know the column positions of left
+                    // table's join column and right table's join
+                    // column to generate the code explained above
+                    int virtualColumnIdRightTable = -1;
+                    int virtualColumnIdLeftTable = -1;
+
+                    for (ResultColumn joinColumn : jnRCL) {
+                        if (joinColumn.getName().equals(rc.getUnderlyingOrAliasName())) {
+                            if (joinColumn.isRightOuterJoinUsingClause())
+                                virtualColumnIdRightTable = joinColumn.getVirtualColumnId();
+                            else
+                                virtualColumnIdLeftTable = joinColumn.getVirtualColumnId();
+                        }
+                    }
+
+                    userExprFun.getField(field); // instance
+                    userExprFun.push(index + 1); // arg1
+
+                    String resultTypeName =
+                            getTypeCompiler(
+                                    DataTypeDescriptor.getBuiltInDataTypeDescriptor(
+                                            Types.BOOLEAN).getTypeId()).interfaceName();
+                    String	receiverType = ClassName.DataValueDescriptor;
+
+                    //Our plan is to generate DERBY-4631
+                    //  if(lefTablJoinColumnValue is null)
+                    //  then
+                    //    use rightTablJoinColumnValue
+                    //   else
+                    //    use lefTablJoinColumnValue
+
+                    //Following will generate
+                    //  if(lefTablJoinColumnValue is null)
+                    acb.pushColumnReference(userExprFun, joinResultSetNumber,
+                            virtualColumnIdLeftTable);
+                    userExprFun.cast(rc.getTypeCompiler().interfaceName());
+                    userExprFun.cast(receiverType);
+                    userExprFun.callMethod(VMOpcode.INVOKEINTERFACE, (String) null,
+                            "isNullOp",resultTypeName, 0);
+                    //Then call generateExpression on left Table's column
+                    userExprFun.cast(ClassName.BooleanDataValue);
+                    userExprFun.push(true);
+                    userExprFun.callMethod(
+                            VMOpcode.INVOKEINTERFACE, (String) null, "equals", "boolean", 1);
+                    //Following will generate
+                    //  then
+                    //    use rightTablJoinColumnValue
+                    userExprFun.conditionalIf();
+                    acb.pushColumnReference(userExprFun, joinResultSetNumber,
+                            virtualColumnIdRightTable);
+                    userExprFun.cast(rc.getTypeCompiler().interfaceName());
+                    //Following will generate
+                    //   else
+                    //    use lefTablJoinColumnValue
+                    userExprFun.startElseCode();
+                    acb.pushColumnReference(userExprFun, joinResultSetNumber,
+                            virtualColumnIdLeftTable);
+                    userExprFun.cast(rc.getTypeCompiler().interfaceName());
+                    userExprFun.completeConditional();
+                    userExprFun.cast(ClassName.DataValueDescriptor);
+                    userExprFun.callMethod(
+                            VMOpcode.INVOKEINTERFACE, ClassName.Row, "setColumn", "void", 2);
+                    continue;
+                }
+
+                if ( !forMatchingClause )
+                {
+                    if (sourceExpr instanceof ColumnReference && ! ( ((ColumnReference) sourceExpr).getCorrelated()))
+                    {
+                        continue;
+                    }
+                }
+            }
+
+
+            // row add is 1-based, and iterator index is 0-based
+            if (SanityManager.DEBUG)
+            {
+                if (index + 1 != rc.getVirtualColumnId())
+                {
+                    SanityManager.THROWASSERT(
+                            "VirtualColumnId (" +
+                                    rc.getVirtualColumnId() +
+                                    ") does not agree with position within Vector (" +
+                                    (index + 1) +
+                                    ")");
+                }
+            }
+
+            //
+            // Generated columns should be populated after the base row because
+            // the generation clauses may refer to base columns that have to be filled
+            // in first. Population of generated columns is done in another
+            // method, which (like CHECK CONSTRAINTS) is explicitly called by
+            // InsertResultSet and UpdateResultSet.
+            //
+            // For LEFT JOINs, we may need to stuff a NULL into the generated column slot,
+            // just as we do for non-generated columns in a LEFT JOIN. We look at the source
+            // expression for the ResultColumn to determine whether this ResultColumnList
+            // represents an INSERT/UPDATE vs. a SELECT. If this ResultColumnList represents a
+            // LEFT JOIN, then the source expression will be a VirtualColumnNode.
+            // See DERBY-6346.
+            //
+            if ( rc.hasGenerationClause() )
+            {
+                ValueNode   expr = rc.getExpression();
+                if ( (expr != null) && !(expr instanceof VirtualColumnNode) )
+                {
+                    continue;
+                }
+            }
+
+            // we need the expressions to be Columns exactly.
+
+			/* SPECIAL CASE:  Expression is a non-null constant.
+			 *	Generate the setColumn() call in the constructor
+			 *  so that it will only be executed once per instantiation.
+			 *
+		 	 * Increase the statement counter in constructor.  Code size in
+		 	 * constructor can become too big (more than 64K) for Java compiler
+		 	 * to handle (beetle 4293).  We set constant columns in other
+		 	 * methods if constructor has too many statements already.
+		 	 */
+            if ( (! genNulls) &&
+                    (rc.getExpression() instanceof ConstantNode) &&
+                    ! ((ConstantNode) rc.getExpression()).isNull() &&
+                    ! cb.statementNumHitLimit(1))
+            {
+
+
+                cb.getField(field); // instance
+                cb.push(index + 1); // first arg;
+
+                rc.generateExpression(acb, cb);
+                cb.cast(ClassName.DataValueDescriptor); // second arg
+                cb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.Row, "setColumn", "void", 2);
+                continue;
+            }
+
+            userExprFun.getField(field); // instance
+            userExprFun.push(index + 1); // arg1
+
+			/* We want to reuse the null values instead of doing a new each time
+			 * if the caller said to generate nulls or the underlying expression
+			 * is a typed null value.
+			 */
+            boolean needDVDCast = true;
+
+            if (rc.isAutoincrementGenerated())
+            {
+                // (com.ibm.db2j.impl... DataValueDescriptor)
+                // this.getSetAutoincValue(column_number)
+
+                userExprFun.pushThis();
+
+                userExprFun.push(rc.getColumnPosition());
+                userExprFun.push(rc.getTableColumnDescriptor().getAutoincInc());
+
+                userExprFun.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation,
+                        "getSetAutoincrementValue", ClassName.DataValueDescriptor, 2);
+                needDVDCast = false;
+
+            }
+            else if (genNulls ||
+                    ((rc.getExpression() instanceof ConstantNode) &&
+                            ((ConstantNode) rc.getExpression()).isNull()))
+            {
+                userExprFun.getField(field);
+                userExprFun.push(index + 1);
+                userExprFun.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.Row, "getColumn",
+                        ClassName.DataValueDescriptor, 1); // the express
+
+                acb.generateNullWithExpress(userExprFun, rc.getTypeCompiler(),
+                        rc.getTypeServices(),null);
+            }
+            else
+            {
+                rc.generateExpression(acb, userExprFun);
+            }
+            if (needDVDCast)
+                userExprFun.cast(ClassName.DataValueDescriptor);
+
+            userExprFun.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.Row, "setColumn", "void", 2);
+        }
+
+        userExprFun.getField(field);
+        userExprFun.methodReturn();
+
+        // we are now done modifying userExprFun
+        userExprFun.complete();
+    }
+
 
 
 }

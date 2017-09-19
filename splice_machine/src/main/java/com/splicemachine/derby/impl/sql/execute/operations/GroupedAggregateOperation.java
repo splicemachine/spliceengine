@@ -153,7 +153,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext<GroupedAggregateOperation> operationContext = dsp.createOperationContext(this);
-        
         DataSet set = source.getDataSet(dsp);
 
         operationContext.pushScope();

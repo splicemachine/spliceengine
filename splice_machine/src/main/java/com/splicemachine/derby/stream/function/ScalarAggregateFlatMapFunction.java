@@ -91,7 +91,7 @@ public class ScalarAggregateFlatMapFunction
             } else
                 return Collections.EMPTY_LIST.iterator();
         }
-        ExecRow r1 = locatedRows.next();
+        ExecRow r1 = locatedRows.next().getClone();
         if (!op.isInitialized(r1)) {
 //            if (RDDUtils.LOG.isTraceEnabled()) {
 //                RDDUtils.LOG.trace(String.format("Initializing and accumulating %s", r1));
