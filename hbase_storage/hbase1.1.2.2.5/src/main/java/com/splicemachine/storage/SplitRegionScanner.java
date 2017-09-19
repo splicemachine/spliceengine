@@ -62,6 +62,7 @@ public class SplitRegionScanner implements RegionScanner {
     private Clock clock;
     private Partition clientPartition;
     private Scan initialScan;
+    private volatile boolean closed = true;
 
     public SplitRegionScanner(Scan scan,
                               Table table,
@@ -83,9 +84,7 @@ public class SplitRegionScanner implements RegionScanner {
         scannerPosition = 1;
         scannerCount = 0;
         List<Partition> partitions = getPartitionsInRange(clientPartition, scan, refresh);
-        if (LOG.isDebugEnabled()) {
-            SpliceLogUtils.debug(LOG, "init split scanner with scan=%s, table=%s, location_number=%d ,partitions=%s", scan, htable, partitions.size(), partitions);
-        }
+        SpliceLogUtils.info(LOG, "init split scanner with table [%s], scan [%s]", htable.getName().toString(), initialScan);
         boolean hasAdditionalScanners = true;
         while (hasAdditionalScanners) {
             try {
@@ -123,6 +122,7 @@ public class SplitRegionScanner implements RegionScanner {
                     throw new IOException(ioe);
             }
         }
+        closed = false;
     }
 
     public void registerRegionScanner(RegionScanner regionScanner) {
@@ -136,8 +136,12 @@ public class SplitRegionScanner implements RegionScanner {
     public boolean nextInternal(List<Cell> results) throws IOException {
         try {
             boolean next = currentScanner.nextRaw(results);
-            scannerCount++;
-            totalScannerCount++;
+            if (closed) {
+                LOG.error("Called next() on closed scanner");
+                throw new IOException("Scanner is closed");
+            }
+	    scannerCount++;
+	    totalScannerCount++;
             if (!next && scannerPosition < regionScanners.size()) {
                 if (LOG.isDebugEnabled())
                     SpliceLogUtils.debug(LOG, "scanner [%d] exhausted after {%d} records with results=%s", scannerPosition, scannerCount, results);
@@ -168,7 +172,8 @@ public class SplitRegionScanner implements RegionScanner {
 
     @Override
     public void close() throws IOException {
-        SpliceLogUtils.warn(LOG, "close table [%s], scan [%s] with rowCount=%d, reinitCount=%d, scannerExceptionCount=%d",htable.getName().toString(),initialScan,totalScannerCount,reInitCount,scanExceptionCount);
+        SpliceLogUtils.info(LOG, "close split scanner with table [%s], scan [%s] with rowCount=%d, reinitCount=%d, scannerExceptionCount=%d",htable.getName().toString(),initialScan,totalScannerCount,reInitCount,scanExceptionCount);
+        closed = true;
         for (RegionScanner rs : regionScanners) {
             rs.close();
         }
