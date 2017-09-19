@@ -45,7 +45,6 @@ import static org.junit.Assert.assertTrue;
  * Created by dgomezferro on 3/17/16.
  */
 @SuppressWarnings("unused")
-@Ignore
 public class OlapClientTest {
     private static final Logger LOG = Logger.getLogger(OlapClientTest.class);
 
