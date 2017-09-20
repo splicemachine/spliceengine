@@ -219,6 +219,7 @@ public class DefaultIndexIT extends SpliceUnitTest{
     }
 
     @Test
+    @Ignore("DB-6248")
     public void testBulkHFileImport() throws Exception {
         try {
             methodWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s',',','\"',null,null,null,0,null,true,null, '%s', false)", schemaWatcher.schemaName, BULK_HFILE_BLANK_TABLE.tableName
