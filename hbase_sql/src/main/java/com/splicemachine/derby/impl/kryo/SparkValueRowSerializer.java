@@ -87,7 +87,7 @@ public abstract class SparkValueRowSerializer<T extends ExecRow> extends Seriali
                 if (formatId == StoredFormatIds.SQL_USERTYPE_ID_V3) {
                     Object o = dvds[i].getObject();
                     boolean useKryo = false;
-                    if (o != null && o instanceof UDTBase && 1==2) {
+                    if (o != null && o instanceof UDTBase) {
                         // This is a UDT or UDA, do not serialize using Kryo
                         output.writeBoolean(useKryo);
                         ByteArrayOutputStream outputBuffer = new ByteArrayOutputStream();
