@@ -276,12 +276,12 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         int numArgs;
 		/* If we're going to generate a list of IN-values for index probing
 		 * at execution time then we push TableScanResultSet arguments plus
-		 * two additional arguments: 1) the list of IN-list values, and 2)
+		 * three additional arguments: 1) the list of IN-list values, and 2)
 		 * a boolean indicating whether or not the IN-list values are already
-		 * sorted.
+		 * sorted, 3) the in-list column position in the index or primary key.
 		 */
         if (genInListVals) {
-            numArgs = 36;
+            numArgs = 37;
         }
         else {
             numArgs = 34 ;

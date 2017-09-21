@@ -42,6 +42,7 @@ import java.util.List;
 public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
     private DataValueDescriptor[] probeValues;
     private DataValueDescriptor probeValue;
+    private int inlistPosition;
 
 	@SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public MultiProbeDerbyScanInformation(String resultRowAllocatorMethodName,
@@ -53,10 +54,13 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
                                           boolean sameStartStopPosition,
                                           int startSearchOperator,
                                           int stopSearchOperator,
-                                          DataValueDescriptor[] probeValues, String tableVersion) {
+                                          DataValueDescriptor[] probeValues,
+										  int inlistPosition,
+										  String tableVersion) {
         super(resultRowAllocatorMethodName, startKeyGetterMethodName, stopKeyGetterMethodName,
                 scanQualifiersField, conglomId, colRefItem, -1, sameStartStopPosition, startSearchOperator, stopSearchOperator, false,tableVersion);
         this.probeValues = probeValues;
+        this.inlistPosition = inlistPosition;
     }
 
     @Deprecated
@@ -66,7 +70,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 		protected ExecIndexRow getStopPosition() throws StandardException {
 				ExecIndexRow stopPosition = sameStartStopPosition?super.getStartPosition():super.getStopPosition();
 				if (stopPosition != null) {
-						stopPosition.getRowArray()[0] = probeValue;
+					stopPosition.getRowArray()[inlistPosition] = probeValue;
 				}
 				return stopPosition;
 		}
@@ -77,7 +81,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
         if(sameStartStopPosition)
             startSearchOperator = ScanController.NA;
 		if(startPosition!=null)
-            startPosition.getRowArray()[0] = probeValue; 
+            startPosition.getRowArray()[inlistPosition] = probeValue;
 		return startPosition;
 	}
 
@@ -115,6 +119,8 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 					Qualifier first = ands[0];
 					if(first!=null && probeValue != null){
 							first.clearOrderableCache();
+							//Qualifiers are sorted in the code generation phase,
+						    //and inlist will already be put in the first
 							first.getOrderable().setValue(probeValue);
 					}
 			}
@@ -130,6 +136,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 						out.writeObject(dvd);
 				}
                 out.writeObject(probeValue);
+				out.writeInt(inlistPosition);
 		}
 
 		@Override
@@ -140,5 +147,6 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 						probeValues[i] = (DataValueDescriptor)in.readObject();
 				}
                 probeValue = (DataValueDescriptor)in.readObject();
+			    inlistPosition = in.readInt();
 		}
 }
