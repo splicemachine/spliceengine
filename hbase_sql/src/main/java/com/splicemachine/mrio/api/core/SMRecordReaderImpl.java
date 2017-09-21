@@ -45,13 +45,10 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.log4j.Logger;
-import org.apache.spark.TaskContext;
-import org.apache.spark.util.TaskFailureListener;
-
 import java.io.IOException;
 import java.util.*;
 
-public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> implements TaskFailureListener {
+public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
     protected static final Logger LOG = Logger.getLogger(SMRecordReaderImpl.class);
 	protected Table htable;
 	protected HRegion hregion;
@@ -66,9 +63,6 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
     private boolean statisticsRun = false;
 	private Txn localTxn;
 	private ActivationHolder activationHolder;
-	private volatile boolean closed = false;
-	private String closeExceptionString;
-	private InputSplit split;
 
 
 	public SMRecordReaderImpl(Configuration config) {
@@ -80,15 +74,12 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 			throws IOException, InterruptedException {	
 		if (LOG.isDebugEnabled())
 			SpliceLogUtils.debug(LOG, "initialize with split=%s", split);
-		closeExceptionString = String.format("Unexpected exception on close for split %s", split.toString());
-		this.split = split;
 		init(config==null?context.getConfiguration():config,split);
 	}
 	
 	public void init(Configuration config, InputSplit split) throws IOException, InterruptedException {	
 		if (LOG.isDebugEnabled())
 			SpliceLogUtils.debug(LOG, "init");
-		TaskContext.get().addTaskFailureListener(this);
 		String tableScannerAsString = config.get(MRConstants.SPLICE_SCAN_INFO);
 		String operationContextAsString = config.get(MRConstants.SPLICE_OPERATION_CONTEXT);
         if (tableScannerAsString == null)
@@ -137,10 +128,6 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 	@Override
 	public boolean nextKeyValue() throws IOException, InterruptedException {
 		try {
-			if (closed) {
-				LOG.error("Calling next() on closed record reader");
-				throw new IOException("RecordReader is closed");
-			}
 			ExecRow nextRow = siTableScanner.next();
             RowLocation nextLocation = siTableScanner.getCurrentRowLocation();
 			if (nextRow != null) {
@@ -174,47 +161,39 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 
 	@Override
 	public void close() throws IOException {
-		try {
-			IOException lastThrown = null;
-			closed = true;
-			if (LOG.isDebugEnabled())
-				SpliceLogUtils.debug(LOG, "close");
-			if (localTxn != null) {
+		IOException lastThrown = null;
+		if (LOG.isDebugEnabled())
+			SpliceLogUtils.debug(LOG, "close");
+		if (localTxn != null) {
+			try {
+				localTxn.commit();
+			} catch (IOException ioe) {
 				try {
-					localTxn.commit();
-				} catch (IOException ioe) {
-					try {
-						localTxn.rollback();
-					} catch (Exception e) {
-						ioe.addSuppressed(e);
-					}
-					lastThrown = ioe;
+					localTxn.rollback();
+				} catch (Exception e) {
+					ioe.addSuppressed(e);
 				}
+				lastThrown = ioe;
 			}
-			if (activationHolder != null) {
-				//activationHolder.close();
-			}
+		}
+        if (activationHolder!=null) {
+            //activationHolder.close();
+        }
 
-			for (AutoCloseable c : closeables) {
-				if (c != null) {
-					try {
-						c.close();
-					} catch (Exception e) {
-						if (lastThrown != null)
-							lastThrown.addSuppressed(e);
-						else
-							lastThrown = e instanceof IOException ? (IOException) e : new IOException(e);
-					}
+        for (AutoCloseable c : closeables) {
+			if (c != null) {
+				try {
+					c.close();
+				} catch (Exception e) {
+					if (lastThrown != null)
+						lastThrown.addSuppressed(e);
+					else
+						lastThrown = e instanceof IOException ? (IOException) e : new IOException(e);
 				}
 			}
-			if (lastThrown != null) {
-				throw lastThrown;
-			}
-		} catch (Throwable t) {
-			// Try to allocate as little as possible in case the error is caused by an OOM situation
-			LOG.error(closeExceptionString);
-			LOG.error("Exception: ", t);
-			throw t;
+		}
+		if (lastThrown != null) {
+			throw lastThrown;
 		}
 	}
 	
@@ -263,6 +242,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 				SpliceLogUtils.trace(LOG, "restart with builder=%s",builder);
 			siTableScanner = builder.build();
 			addCloseable(siTableScanner);
+			addCloseable(siTableScanner.getRegionScanner());
 		} else {
 			throw new IOException("htable not set");
 		}
@@ -290,8 +270,4 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 	}
 
 
-	@Override
-	public void onTaskFailure(TaskContext context, Throwable error) {
-		LOG.error("Task failed for split: " + split, error);
-	}
 }
