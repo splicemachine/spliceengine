@@ -5056,6 +5056,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             ti = getNonCoreTI(baseNum);
         }else if(constraint.getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT){
             ti=getPkTable();
+            faultInTabInfo(ti);
             indexNum=0;
         } else{
             baseNum=SYSKEYS_CATALOG_NUM;
