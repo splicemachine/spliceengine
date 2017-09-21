@@ -353,8 +353,9 @@ public class SelectivityIT extends SpliceUnitTest {
     public void testSinglePKMultiprobeScan() throws Exception {
         rowContainsQuery(3,"explain select * from ts_singlepk where c1 in (3,6,4,5)","outputRows=3,",methodWatcher);
         rowContainsQuery(3,"explain select * from ts_singlepk where c1 in (3,6,4,5)","MultiProbeTableScan",methodWatcher);
-        rowContainsQuery(3,"explain select * from ts_singlepk where c1 in (3,6,4,5) and c1 = 3","outputRows=1,",methodWatcher);
-        rowContainsQuery(3,"explain select * from ts_singlepk where c1 in (3,6,4,5) and c1 = 3","MultiProbeTableScan",methodWatcher);
+        rowContainsQuery(4,"explain select * from ts_singlepk where c1 in (3,6,4,5) and c1 = 3","outputRows=1,",methodWatcher);
+        // we will apply c1=3 first on the base table, and push the inlist to the PR Node
+        rowContainsQuery(4,"explain select * from ts_singlepk where c1 in (3,6,4,5) and c1 = 3","TableScan",methodWatcher);
     }
 
     @Test

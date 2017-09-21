@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
+
 import java.util.BitSet;
 import java.util.Hashtable;
 
@@ -57,7 +58,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      * closure for join clauses.  This is useful for eliminating redundant predicates.
      */
     int equivalenceClass=-1;
-    int indexPosition;
+    // indexPosition of -1 is used by rowId, so use -2 to indicate that it has been set
+    int indexPosition=-2;
     protected boolean startKey;
     protected boolean stopKey;
     protected boolean rowId;
@@ -296,6 +298,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         //
         boolean thisIsEquals=false, otherIsEquals=false;
         boolean thisIsNotEquals=true, otherIsNotEquals=true;
+        boolean thisEqualsConstant = false, otherEqualsConstant=false;
 
 		/* The call to "isRelationalOpPredicate()" will return false
 		 * for a "probe predicate" because a probe predicate is really
@@ -312,6 +315,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
                     thisOperator==RelationalOperator.IS_NULL_RELOP);
             thisIsNotEquals=(thisOperator==RelationalOperator.NOT_EQUALS_RELOP ||
                     thisOperator==RelationalOperator.IS_NOT_NULL_RELOP);
+            thisEqualsConstant = thisIsEquals &&
+                    (this.compareWithKnownConstant(null, true) || this.isInListProbePredicate());
         }
         // other is not "in" or other is a probe predicate
         if(otherPred.isRelationalOpPredicate() || otherPred.isInListProbePredicate()){
@@ -320,6 +325,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
                     otherOperator==RelationalOperator.IS_NULL_RELOP);
             otherIsNotEquals=(otherOperator==RelationalOperator.NOT_EQUALS_RELOP ||
                     otherOperator==RelationalOperator.IS_NOT_NULL_RELOP);
+            otherEqualsConstant = otherIsEquals &&
+                    (otherPred.compareWithKnownConstant(null,true) || otherPred.isInListProbePredicate());
         }
 
         boolean thisIsBefore=(thisIsEquals && !otherIsEquals) || (!thisIsNotEquals && otherIsNotEquals);
@@ -329,6 +336,13 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         boolean otherIsBefore=(otherIsEquals && !thisIsEquals) || (!otherIsNotEquals && thisIsNotEquals);
         if(otherIsBefore)
             return 1;
+
+        if (thisEqualsConstant && !otherEqualsConstant)
+            return -1;
+
+        if (otherEqualsConstant && !thisEqualsConstant)
+            return 1;
+
         return 0;
     }
 
@@ -583,6 +597,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         startKey=false;
         stopKey=false;
         isQualifier=false;
+        // indexPosition of -1 is used by rowId, so use -2 to indicate that it has been set
+        indexPosition = -2;
     }
 
     void generateExpressionOperand(Optimizable optTable,
@@ -1221,10 +1237,11 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     /**
      * Returns true if the predicate is a multi-probe qualifier.
      *
-     * A Multi-probe qualifier satisfies 3 criteria:
+     * A Multi-probe qualifier satisfies 2 criteria:
      * 1. It has an IN clause
-     * 2. It is applied against the first keyed column
-     * 3. There are only constant nodes in the IN list
+     * 2. There are only constant nodes in the IN list
+     *
+     * With DB-6231's enhancement, inlist does not need to be on the first index column anymore
      */
     public boolean isMultiProbeQualifier(int[] keyColumns){
         if(keyColumns==null)
@@ -1236,10 +1253,11 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         //if it doesn't refer to a column, then it can't be a qualifier
         if(!(lo instanceof ColumnReference))
             return false;
-        ColumnReference colRef = (ColumnReference)lo;
-        int colNum = colRef.getColumnNumber();
-        if(keyColumns[0]!=colNum)
-            return false; //doesn't point to the first keyed column
+
+        //if inlist is eligible for multiprobe index scan, its indexPosition will be set(>=0) and
+        //this predicate can be pushed down to base table
+        if(getIndexPosition() < 0)
+            return false;
 
         ValueNodeList rightOperandList=sourceInList.getRightOperandList();
         for(Object o:rightOperandList){
