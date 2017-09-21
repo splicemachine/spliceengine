@@ -89,28 +89,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         return new SpliceSystemProcedures(this);
     }
 
-    @Override
-    public SubKeyConstraintDescriptor getSubKeyConstraint(UUID constraintId,
-                                                          int type) throws StandardException{
-        if(type==DataDictionary.PRIMARYKEY_CONSTRAINT){
-            DataValueDescriptor constraintIDOrderable=getIDValueAsCHAR(constraintId);
-
-            TabInfoImpl ti=getPkTable();
-            faultInTabInfo(ti);
-
-            ScanQualifier[][] scanQualifiers=exFactory.getScanQualifier(1);
-            scanQualifiers[0][0].setQualifier(
-                    SYSPRIMARYKEYSRowFactory.SYSPRIMARYKEYS_CONSTRAINTID-1,
-                    constraintIDOrderable,
-                    Orderable.ORDER_OP_EQUALS,
-                    false,false,false);
-            return (SubKeyConstraintDescriptor)getDescriptorViaHeap(
-                    null,scanQualifiers,ti,null,null);
-        }
-        /*If it's a foreign key or unique constraint, then just do the derby default*/
-        return super.getSubKeyConstraint(constraintId,type);
-    }
-
 
     @Override
     protected void addSubKeyConstraint(KeyConstraintDescriptor descriptor,
