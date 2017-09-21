@@ -1010,10 +1010,7 @@ public class BinaryRelationalOperatorNode
         }
     }
 
-    @Override
-    public boolean compareWithKnownConstant(Optimizable optTable,boolean considerParameters){
-        ValueNode node;
-        node=keyColumnOnLeft(optTable)?rightOperand:leftOperand;
+    private boolean isKnownConstant(ValueNode node, boolean considerParameters) {
         if (node instanceof CastNode)
             node = ((CastNode) node).castOperand;
 
@@ -1023,6 +1020,17 @@ public class BinaryRelationalOperatorNode
                             (((ParameterNode)node).getDefaultValue()!=null));
         }else{
             return node instanceof ConstantNode;
+        }
+    }
+
+    @Override
+    public boolean compareWithKnownConstant(Optimizable optTable,boolean considerParameters){
+        ValueNode node;
+        if (optTable != null) {
+            node = keyColumnOnLeft(optTable) ? rightOperand : leftOperand;
+            return isKnownConstant(node, considerParameters);
+        } else {
+            return (isKnownConstant(rightOperand, considerParameters) || isKnownConstant(leftOperand, considerParameters));
         }
     }
 
