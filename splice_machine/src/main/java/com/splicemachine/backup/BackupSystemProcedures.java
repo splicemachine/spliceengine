@@ -20,6 +20,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.TimeZone;
 
+import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.procedures.ProcedureUtils;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.Lists;
@@ -49,21 +50,11 @@ public class BackupSystemProcedures {
 
     private static Logger LOG = Logger.getLogger(BackupSystemProcedures.class);
 
-    /**
-     * Entry point for system procedure SYSCS_UTIL.SYSCS_BACKUP_DATABASE
-     *
-     * @param directory The directory to store a database backup
-     * @param type type of backup, either 'FULL' or 'INCREMENTAL'
-     * @param resultSets returned results
-     * @throws SQLException, StandardException
-     */
     public static void SYSCS_BACKUP_DATABASE(String directory, String type, ResultSet[] resultSets)
             throws StandardException, SQLException {
-
         type = type.trim();
         Connection conn = SpliceAdmin.getDefaultConn();
         LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
-
         try {
             // Check directory
             if (directory == null || directory.isEmpty()) {
@@ -72,15 +63,14 @@ public class BackupSystemProcedures {
 
             BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
             // Check backup type
-            long backupId = 0;
             if (type.compareToIgnoreCase("FULL") == 0) {
-                backupId = backupManager.fullBackup(directory);
+                backupManager.fullBackup(directory, true);
             } else if (type.compareToIgnoreCase("INCREMENTAL") == 0) {
-                backupId = backupManager.incrementalBackup(directory);
+                backupManager.incrementalBackup(directory, true);
             } else {
                 throw StandardException.newException(SQLState.INVALID_BACKUP_TYPE, type);
             }
-            resultSets[0] = ProcedureUtils.generateResult("Status", String.format("Launched %s backup %d to %s at background.", type, backupId, directory));
+            resultSets[0] = ProcedureUtils.generateResult("Success", String.format("%s backup to %s", type, directory));
         } catch (Throwable t) {
             resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
             SpliceLogUtils.error(LOG, "Database backup error", t);
@@ -108,7 +98,111 @@ public class BackupSystemProcedures {
             if ( (runningBackupId = backupManager.getRunningBackup()) != 0) {
                 throw StandardException.newException(SQLState.NO_RESTORE_DURING_BACKUP, runningBackupId);
             }
-            backupManager.restoreDatabase(directory,backupId);
+            backupManager.restoreDatabase(directory,backupId, true);
+
+            // Print reboot statement
+            ResultColumnDescriptor[] rcds = {
+                    new GenericColumnDescriptor("result", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 30)),
+                    new GenericColumnDescriptor("warnings", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 1024))
+            };
+            ExecRow template = new ValueRow(2);
+            template.setRowArray(new DataValueDescriptor[]{new SQLVarchar(), new SQLVarchar()});
+            List<ExecRow> rows = Lists.newArrayList();
+
+            Activation activation = lcc.getLastActivation();
+            SQLWarning warning = activation.getWarnings();
+            while (warning != null) {
+                String warningMessage = warning.getLocalizedMessage();
+                template.getColumn(1).setValue(warning.getSQLState());
+                template.getColumn(2).setValue(warning.getLocalizedMessage());
+                rows.add(template.getClone());
+                warning = warning.getNextWarning();
+            }
+            template.getColumn(1).setValue("Restore completed");
+            template.getColumn(2).setValue("Database has to be rebooted");
+            rows.add(template.getClone());
+
+            inprs = new IteratorNoPutResultSet(rows,rcds,lcc.getLastActivation());
+            inprs.openCore();
+            LOG.info("Restore completed. Database reboot is required.");
+
+        } catch (Throwable t) {
+            ResultColumnDescriptor[] rcds = {
+                    new GenericColumnDescriptor("Error", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, t.getMessage().length()))};
+            ExecRow template = new ValueRow(1);
+            template.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
+            List<ExecRow> rows = Lists.newArrayList();
+            template.getColumn(1).setValue(t.getMessage());
+
+            rows.add(template.getClone());
+            inprs = new IteratorNoPutResultSet(rows,rcds,lcc.getLastActivation());
+            inprs.openCore();
+            SpliceLogUtils.error(LOG, "Error recovering backup", t);
+
+        } finally {
+            resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class),inprs,false,null,true);
+        }
+    }
+    /**
+     * Entry point for system procedure SYSCS_UTIL.SYSCS_BACKUP_DATABASE
+     *
+     * @param directory The directory to store a database backup
+     * @param type type of backup, either 'FULL' or 'INCREMENTAL'
+     * @param resultSets returned results
+     * @throws SQLException, StandardException
+     */
+    public static void SYSCS_BACKUP_DATABASE_ASYNC(String directory, String type, ResultSet[] resultSets)
+            throws StandardException, SQLException {
+
+        type = type.trim();
+        Connection conn = SpliceAdmin.getDefaultConn();
+        LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+
+        try {
+            // Check directory
+            if (directory == null || directory.isEmpty()) {
+                throw StandardException.newException(SQLState.INVALID_BACKUP_DIRECTORY, directory);
+            }
+
+            BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
+            // Check backup type
+            long backupId = 0;
+            if (type.compareToIgnoreCase("FULL") == 0) {
+                backupId = backupManager.fullBackup(directory, false);
+            } else if (type.compareToIgnoreCase("INCREMENTAL") == 0) {
+                backupId = backupManager.incrementalBackup(directory, false);
+            } else {
+                throw StandardException.newException(SQLState.INVALID_BACKUP_TYPE, type);
+            }
+            resultSets[0] = ProcedureUtils.generateResult("Status", String.format("Launched %s backup %d to %s at background.", type, backupId, directory));
+        } catch (Throwable t) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
+            SpliceLogUtils.error(LOG, "Database backup error", t);
+            t.printStackTrace();
+        }
+    }
+
+    /**
+     * Entry point for system procedure SYSCS_UTIL.SYSCS_RESTORE_DATABASE
+     * @param directory A directory in file system where backup data are stored
+     * @param backupId backup ID
+     * @param resultSets returned results
+     * @throws StandardException
+     * @throws SQLException
+     */
+    public static void SYSCS_RESTORE_DATABASE_ASYNC(String directory, long backupId, ResultSet[] resultSets) throws StandardException, SQLException {
+        IteratorNoPutResultSet inprs = null;
+
+        Connection conn = SpliceAdmin.getDefaultConn();
+        LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+        try {
+            BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
+            // Check for ongoing backup...
+            long runningBackupId = 0;
+            if ( (runningBackupId = backupManager.getRunningBackup()) != 0) {
+                throw StandardException.newException(SQLState.NO_RESTORE_DURING_BACKUP, runningBackupId);
+            }
+            backupManager.restoreDatabase(directory,backupId, false);
 
             // Print reboot statement
             ResultColumnDescriptor[] rcds = {
