@@ -24,13 +24,13 @@ import java.util.List;
  */
 public interface BackupManager{
 
-    long fullBackup(String backupDirectory) throws StandardException;
+    long fullBackup(String backupDirectory, boolean sync) throws StandardException;
 
-    long incrementalBackup(String directory) throws StandardException;
+    long incrementalBackup(String directory, boolean sync) throws StandardException;
 
     long getRunningBackup() throws StandardException;
 
-    void restoreDatabase(String directory,long backupId)throws StandardException;
+    void restoreDatabase(String directory,long backupId, boolean sync)throws StandardException;
 
     void removeBackup(List<Long> backupIds) throws StandardException;
 
