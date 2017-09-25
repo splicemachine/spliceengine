@@ -883,5 +883,15 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         return manager.isEnabled()?manager.getColPermsManager().getColumnPermissions(this,tableUUID,privType,forGrant,authorizationId):null;
     } // end of getColumnPermissions
 
+    /**
+     * is Enterprise Edition Manager enabled
+     * @return true if enabled
+     */
+    @Override
+    public boolean isEEManagerEnabled()  {
+        Manager manager = EngineDriver.driver().manager();
+        return manager.isEnabled();
+
+    }
 
 }
