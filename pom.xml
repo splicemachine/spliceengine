@@ -45,6 +45,10 @@
             <id>splicemachine</id>
             <url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
         </repository>
+         <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+	</repository>
     </repositories>
     <pluginRepositories>
         <pluginRepository>
