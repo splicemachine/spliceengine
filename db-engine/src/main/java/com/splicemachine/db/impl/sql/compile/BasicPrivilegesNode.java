@@ -105,8 +105,14 @@ public class BasicPrivilegesNode extends QueryTreeNode
 
 		for( int action = 0; action < TablePrivilegeInfo.ACTION_COUNT; action++)
 		{
-			if( columnLists[ action] != null)
-				columnBitSets[action] = columnLists[ action].bindResultColumnsByName( td, (DMLStatementNode) null);
+			if( columnLists[ action] != null) {
+				if (dd.isEEManagerEnabled())
+				    columnBitSets[action] = columnLists[ action].bindResultColumnsByName( td, (DMLStatementNode) null);
+				else if (actionAllowed[action])
+					// column level privileges allowed with Enterprise Edition only, error out
+					throw StandardException.newException(SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED,
+							columnLists[0].getColumnNames());
+			}
 
 			// Prevent granting non-SELECT privileges to views
 			if (td.getTableType() == TableDescriptor.VIEW_TYPE && action != TablePrivilegeInfo.SELECT_ACTION)
