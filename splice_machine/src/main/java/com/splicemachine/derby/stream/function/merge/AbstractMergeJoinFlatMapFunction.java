@@ -83,7 +83,7 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
             @Override
             public void close() throws IOException {
                 try {
-                    rightSide.close();
+                    rightSide.closeRegisteredClosable();
                 } catch (StandardException e) {
                     throw new RuntimeException(e);
                 }
