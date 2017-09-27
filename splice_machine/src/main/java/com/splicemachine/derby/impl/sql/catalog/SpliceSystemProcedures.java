@@ -792,6 +792,18 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .integer("backupWindow")
                             .build());
 
+                    procedures.add(Procedure.newBuilder().name("SYSCS_BACKUP_DATABASE_ASYNC")
+                            .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                            .varchar("directory", 32672)
+                            .varchar("type", 32672)
+                            .build());
+
+                    Procedure restore = Procedure.newBuilder().name("SYSCS_BACKUP_DATABASE_ASYNC")
+                            .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                            .varchar("directory", 32672)
+                            .bigint("backupId")
+                            .build();
+
                     /*
                      * Procedure to get a database property on all region servers in the cluster.
                      */
