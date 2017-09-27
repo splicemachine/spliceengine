@@ -93,6 +93,12 @@ public class AuthorizationIT {
     }
 
     @Test
+    public void testPermissionOnColumn() throws Exception {
+        assertFailed(user1Conn,  format("grant select(empnum) on staff to %s", USER2) , SQLState.MANAGER_DISABLED);
+    }
+
+
+    @Test
     public void testSuperUserCannotSeePasswordsInSysUsers() throws Exception {
         assertFailed(methodWatcher.getOrCreateConnection(), "select * from sys.sysusers", SQLState.HIDDEN_COLUMN);
     }

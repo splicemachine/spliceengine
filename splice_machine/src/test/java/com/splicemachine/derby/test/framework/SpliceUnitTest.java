@@ -623,7 +623,7 @@ public class SpliceUnitTest {
         } catch (Exception e) {
             assertTrue("Incorrect error type!", e instanceof SQLException);
             SQLException se = (SQLException) e;
-            assertEquals("Incorrect error state!", errorState, se.getSQLState());
+            assertTrue("Incorrect error state!",  errorState.startsWith( se.getSQLState()));
         }
     }
 }
