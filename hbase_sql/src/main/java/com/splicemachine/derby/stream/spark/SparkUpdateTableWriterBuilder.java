@@ -47,8 +47,10 @@ public class SparkUpdateTableWriterBuilder<K,V> extends UpdateTableWriterBuilder
                 operationContext.getOperation().fireBeforeStatementTriggers();
             }
             Configuration conf=new Configuration(HConfiguration.unwrapDelegate());
+            conf.set("mapreduce.output.fileoutputformat.outputdir","/tmp");
             TableWriterUtils.serializeUpdateTableWriterBuilder(conf,this);
             conf.setClass(JobContext.OUTPUT_FORMAT_CLASS_ATTR,SMOutputFormat.class,SMOutputFormat.class);
+
             return new SparkUpdateDataSetWriter<>(rdd,
                     operationContext,
                     conf,

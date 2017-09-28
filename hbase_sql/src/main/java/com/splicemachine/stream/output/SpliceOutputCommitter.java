@@ -34,7 +34,7 @@ public class SpliceOutputCommitter extends OutputCommitter {
     private static Logger LOG = Logger.getLogger(SpliceOutputCommitter.class);
     protected TxnView parentTxn;
     protected byte[] destinationTable;
-    protected volatile Map<TaskAttemptID,TxnView> taskAttemptMap =new ConcurrentHashMap<>();
+    public static ThreadLocal<TxnView> currentTxn = new ThreadLocal<>();
 
     private SpliceOutputCommitter() {
         super();
@@ -82,7 +82,7 @@ public class SpliceOutputCommitter extends OutputCommitter {
         // Create child additive transaction so we don't read rows inserted by ourselves in this operation
         TxnView txn = SIDriver.driver().lifecycleManager().beginChildTransaction(parentTxn, parentTxn.getIsolationLevel(), true, destinationTable);
         ActiveWriteTxn childTxn = new ActiveWriteTxn(txn.getTxnId(), txn.getTxnId(), parentTxn, true, parentTxn.getIsolationLevel());
-        taskAttemptMap.put(taskContext.getTaskAttemptID(), childTxn);
+        currentTxn.set(childTxn);
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"beginTxn=%s and destinationTable=%s",childTxn,destinationTable);
 
@@ -97,7 +97,7 @@ public class SpliceOutputCommitter extends OutputCommitter {
     public void commitTask(TaskAttemptContext taskContext) throws IOException {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"commitTask " + taskContext.getTaskAttemptID());
-        TxnView txn = taskAttemptMap.remove(taskContext.getTaskAttemptID());
+        TxnView txn = currentTxn.get();
         if (txn == null)
             throw new IOException("no transaction associated with task attempt Id "+taskContext.getTaskAttemptID());
         SIDriver.driver().lifecycleManager().commit(txn.getTxnId());
@@ -109,7 +109,7 @@ public class SpliceOutputCommitter extends OutputCommitter {
     public void abortTask(TaskAttemptContext taskContext) throws IOException {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"abortTask " + taskContext.getTaskAttemptID());
-        TxnView txn = taskAttemptMap.remove(taskContext.getTaskAttemptID());
+        TxnView txn = currentTxn.get();
         if (txn == null)
             throw new IOException("no transaction associated with task attempt Id "+taskContext.getTaskAttemptID());
         SIDriver.driver().lifecycleManager().rollback(txn.getTxnId());
@@ -130,7 +130,7 @@ public class SpliceOutputCommitter extends OutputCommitter {
     }
 
     public TxnView getChildTransaction(TaskAttemptID taskAttemptID) {
-        return taskAttemptMap.get(taskAttemptID);
+        return currentTxn.get();
     }
 
 }
