@@ -40,7 +40,8 @@ public abstract class AbstractTxnView implements TxnView {
     protected long txnId;
     private long beginTimestamp;
     protected Txn.IsolationLevel isolationLevel;
-    private boolean ignoreMissingTxns = SIDriver.driver().getConfiguration().getIgnoreMissingTxns();
+    private boolean ignoreMissingTxns;
+    private boolean initialized = false;
 
     public AbstractTxnView() {
     	
@@ -69,6 +70,13 @@ public abstract class AbstractTxnView implements TxnView {
         Txn.State currState = getState();
         if(currState== Txn.State.ROLLEDBACK) return currState; //if we are rolled back, then we were rolled back
         TxnView parentTxnView = getParentTxnView();
+        if (!initialized) {
+            SIDriver siDriver = SIDriver.driver();
+            if (siDriver != null) {
+                ignoreMissingTxns = siDriver.getConfiguration().getIgnoreMissingTxns();
+            }
+            initialized = true;
+        }
         if (parentTxnView == null && ignoreMissingTxns) {
             if (LOG.isDebugEnabled()) {
                 SpliceLogUtils.debug(LOG, "Parent view of %d cannot be found. Splice assumes the transaction was committed.", txnId);

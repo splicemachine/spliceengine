@@ -52,7 +52,8 @@ public class SimpleTxnFilter implements TxnFilter{
     private Long antiTombstonedTxnRow = null;
     private final ByteSlice rowKey=new ByteSlice();
     private final String tableName;
-    private final boolean ignoreMissingTxns;
+    private boolean ignoreMissingTxns;
+    private boolean initialized = false;
 
     /*
      * The most common case for databases is insert-only--that is, that there
@@ -76,8 +77,6 @@ public class SimpleTxnFilter implements TxnFilter{
         this.tableName=tableName;
         this.myTxn=myTxn;
         this.readResolver=readResolver;
-        SConfiguration conf = SIDriver.driver().getConfiguration();
-        ignoreMissingTxns = conf.getIgnoreMissingTxns();
     }
 
     @Override
@@ -212,6 +211,14 @@ public class SimpleTxnFilter implements TxnFilter{
     private boolean isVisible(long txnId) throws IOException{
         TxnView toCompare=fetchTransaction(txnId);
         // if we cannot find a txn, we conservatively assume it was committed
+        if (!initialized) {
+            SIDriver siDriver = SIDriver.driver();
+            if (siDriver != null) {
+                SConfiguration conf = siDriver.getConfiguration();
+                ignoreMissingTxns = conf.getIgnoreMissingTxns();
+            }
+            initialized = true;
+        }
         if(toCompare == null && ignoreMissingTxns) {
             if (LOG.isDebugEnabled()) {
                 SpliceLogUtils.debug(LOG, "Transaction %d cannot be found. Splice assumes it is visible.", txnId);

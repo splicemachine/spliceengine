@@ -526,8 +526,12 @@ public class SITransactor implements Transactor{
             final TxnView dataTransaction=txnSupplier.getTransaction(dataTransactionId);
 
             if (!initialized) {
-                SConfiguration conf = SIDriver.driver().getConfiguration();
-                ignoreMissingTxns = conf.getIgnoreMissingTxns();
+                SIDriver siDriver = SIDriver.driver();
+                if (siDriver != null) {
+                    SConfiguration conf = siDriver.getConfiguration();
+                    ignoreMissingTxns = conf.getIgnoreMissingTxns();
+                }
+                initialized = true;
             }
             if (dataTransaction == null && ignoreMissingTxns) {
                 if(LOG.isDebugEnabled()) {
