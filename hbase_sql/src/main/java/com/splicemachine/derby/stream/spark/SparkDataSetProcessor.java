@@ -27,9 +27,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataType;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
@@ -56,16 +54,14 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.*;
-import org.apache.spark.sql.types.*;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
-import java.sql.Struct;
 import java.util.*;
-
-
 
 /**
  * Spark-based DataSetProcessor.
@@ -396,7 +392,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 schema =  SpliceSpark.getSession().read().orc(location).schema();
             }
             else if (storedAs.toLowerCase().equals("t")) {
-                schema =  SpliceSpark.getSession().read().csv(location).schema();
+                schema =  SpliceSpark.getSession().read().option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").csv(location).schema();
             }
         }
 
@@ -434,7 +430,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                                 .mode(SaveMode.Append).orc(location);
                     }
                     else if (storedAs.toLowerCase().equals("t")) {
-                        empty.write().option("compression",compression).mode(SaveMode.Append).csv(location);
+                        empty.write().option("compression",compression).option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").mode(SaveMode.Append).csv(location);
                     }
             }
 
@@ -555,7 +551,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         try {
             Dataset<Row> table = null;
             try {
-                table = SpliceSpark.getSession().read().csv(location);
+                table = SpliceSpark.getSession().read().option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").csv(location);
 
                 if (op == null) {
                     // stats collection scan
