@@ -36,6 +36,7 @@ public class ConfigurationBuilder {
     public int transactionLockStripes;
     public long transactionKeepAliveInterval;
     public long transactionTimeout;
+    public boolean ignoreMissingTxns;
 
     // OperationConfiguration
     public int sequenceBlockSize;
