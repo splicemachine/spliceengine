@@ -123,6 +123,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  int transactionLockStripes;
     private final  long transactionKeepAliveInterval;
     private final  long transactionTimeout;
+    private final boolean ignoreMissingTxns;
 
     // SQLConfiguration
     private final  boolean debugDumpBindTree;
@@ -445,6 +446,10 @@ public final class SConfigurationImpl implements SConfiguration {
     public long getTransactionTimeout() {
         return transactionTimeout;
     }
+    @Override
+    public boolean getIgnoreMissingTxns() {
+        return ignoreMissingTxns;
+    }
 
     // SQLConfiguration
     @Override
@@ -721,6 +726,7 @@ public final class SConfigurationImpl implements SConfiguration {
         bulkImportSampleFraction = builder.bulkImportSampleFraction;
         bulkImportTasksPerRegion = builder.bulkImportTasksPerRegion;
         regionToLoadPerTask = builder.regionToLoadPerTask;
+        ignoreMissingTxns = builder.ignoreMissingTxns;
     }
 
     private static final Logger LOG = Logger.getLogger("splice.config");
