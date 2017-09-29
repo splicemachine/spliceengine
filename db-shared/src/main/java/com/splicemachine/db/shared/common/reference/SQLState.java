@@ -1163,7 +1163,7 @@ public interface SQLState {
 	String LANG_UDA_INSTANTIATION                                      = "42ZC8";
 
 	String LANG_RESUBMIT_DISTRIBUTED                                    = "42ZD0";
-	
+
 	//following 3 matches the DB2 sql states
 	String LANG_DECLARED_GLOBAL_TEMP_TABLE_ONLY_IN_SESSION_SCHEMA = "428EK";
 	String LANG_TEMP_TABLE_DELETE_ROWS_NO_SUPPORTED = "428C2";
