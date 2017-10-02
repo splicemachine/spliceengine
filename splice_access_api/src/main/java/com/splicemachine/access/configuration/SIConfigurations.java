@@ -148,6 +148,9 @@ public class SIConfigurations implements ConfigurationDefault {
     public static final String OLAP_CLIENT_RETRIES = "splice.olap_client.retries";
     private static final int DEFAULT_OLAP_CLIENT_RETRIES = 10;
 
+    public static final String OLAP_SHUFFLE_PARTITIONS = "splice.olap.shuffle.partitions";
+    private static final int DEFAULT_OLAP_SHUFFLE_PARTITIONS = 200;
+
     public static final String ACTIVE_TRANSACTION_CACHE_SIZE="splice.txn.activeCacheSize";
     private static final int DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE = 1<<12;
 
@@ -168,6 +171,7 @@ public class SIConfigurations implements ConfigurationDefault {
         builder.olapServerThreads = configurationSource.getInt(OLAP_SERVER_THREADS, DEFAULT_OLAP_SERVER_THREADS);
         builder.olapServerTickLimit = configurationSource.getInt(OLAP_SERVER_TICK_LIMIT,DEFAULT_OLAP_SERVER_TICK_LIMIT);
         builder.olapClientRetries = configurationSource.getInt(OLAP_CLIENT_RETRIES,DEFAULT_OLAP_CLIENT_RETRIES);
+        builder.olapShufflePartitions = configurationSource.getInt(OLAP_SHUFFLE_PARTITIONS,DEFAULT_OLAP_SHUFFLE_PARTITIONS);
 
         builder.transactionTimeout = configurationSource.getLong(TRANSACTION_TIMEOUT, DEFAULT_TRANSACTION_TIMEOUT);
         builder.transactionKeepAliveInterval = configurationSource.getLong(TRANSACTION_KEEP_ALIVE_INTERVAL, DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL);

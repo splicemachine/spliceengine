@@ -110,6 +110,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final int olapServerThreads;
     private final int olapServerTickLimit;
     private final int olapClientRetries;
+    private final int olapShufflePartitions;
 
     // SIConfigurations
     private final  int activeTransactionCacheSize;
@@ -422,6 +423,10 @@ public final class SConfigurationImpl implements SConfiguration {
         return olapClientRetries;
     }
     @Override
+    public int getOlapShufflePartitions() {
+        return olapShufflePartitions;
+    }
+    @Override
     public int getTimestampClientWaitTime() {
         return timestampClientWaitTime;
     }
@@ -710,6 +715,7 @@ public final class SConfigurationImpl implements SConfiguration {
         olapServerThreads = builder.olapServerThreads;
         olapServerTickLimit = builder.olapServerTickLimit;
         olapClientRetries = builder.olapClientRetries;
+        olapShufflePartitions = builder.olapShufflePartitions;
         sparkResultStreamingBatches = builder.sparkResultStreamingBatches;
         sparkResultStreamingBatchSize = builder.sparkResultStreamingBatchSize;
         compactionReservedSlots = builder.compactionReservedSlots;

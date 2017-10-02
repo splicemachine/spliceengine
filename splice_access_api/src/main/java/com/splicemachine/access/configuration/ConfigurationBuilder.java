@@ -144,6 +144,7 @@ public class ConfigurationBuilder {
     public int bulkImportTasksPerRegion;
     public int regionToLoadPerTask;
     public long controlExecutionRowLimit;
+    public int olapShufflePartitions;
 
     /**
      * Build the {@link SConfiguration} given the list of subsystem defaults and the configuration source.<br/>
