@@ -53,16 +53,16 @@ public class SparkUtils {
 
     private static final int DEFAULT_PARTITIONS = 20;
 
-    public static int getPartitions(JavaRDDLike<?,?> rdd, int defaultPartitions) {
+    public static int getPartitions(JavaRDDLike<?,?> rdd) {
         int rddPartitions = rdd.getNumPartitions();
-        return Math.max(rddPartitions, defaultPartitions);
+        return Math.max(rddPartitions, getDefaultPartitions());
     }
 
-    public static int getPartitions(JavaRDDLike<?,?> rdd1, JavaRDDLike<?,?> rdd2, int defaultPartitions) {
+    public static int getPartitions(JavaRDDLike<?,?> rdd1, JavaRDDLike<?,?> rdd2) {
         int rddPartitions1 = rdd1.getNumPartitions();
         int rddPartitions2 = rdd2.getNumPartitions();
         int max = Math.max(rddPartitions1, rddPartitions2);
-        return Math.max(max, defaultPartitions);
+        return Math.max(max, getDefaultPartitions());
     }
 
     public static JavaPairRDD<ExecRow, ExecRow> getKeyedRDD(JavaRDD<ExecRow> rdd, final int[] keyColumns)

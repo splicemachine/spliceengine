@@ -101,15 +101,12 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     public JavaRDD<V> rdd;
     private Map<String,String> attributes;
-    private int defaultPartitions;
     public SparkDataSet(JavaRDD<V> rdd) {
         this.rdd = rdd;
-        this.defaultPartitions = SparkUtils.getDefaultPartitions();
     }
 
     public SparkDataSet(JavaRDD<V> rdd, String rddname) {
         this.rdd = rdd;
-        this.defaultPartitions = SparkUtils.getDefaultPartitions();
         if (rdd != null && rddname != null) this.rdd.setName(rddname);
     }
 
