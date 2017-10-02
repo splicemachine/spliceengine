@@ -15,21 +15,17 @@
 package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongOpenHashSet;
-import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.si.api.filter.RowAccumulator;
 import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.readresolve.ReadResolver;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
 import com.splicemachine.si.impl.txn.CommittedTxn;
 import com.splicemachine.storage.CellType;
 import com.splicemachine.storage.DataCell;
 import com.splicemachine.storage.DataFilter;
 import com.splicemachine.utils.ByteSlice;
-import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
@@ -41,8 +37,6 @@ import java.io.IOException;
  *         Date: 6/23/14
  */
 public class SimpleTxnFilter implements TxnFilter{
-
-    private static final Logger LOG=Logger.getLogger(SimpleTxnFilter.class);
     private final TxnSupplier transactionStore;
     private final TxnView myTxn;
     private final ReadResolver readResolver;
@@ -52,8 +46,6 @@ public class SimpleTxnFilter implements TxnFilter{
     private Long antiTombstonedTxnRow = null;
     private final ByteSlice rowKey=new ByteSlice();
     private final String tableName;
-    private boolean ignoreMissingTxns;
-    private boolean initialized = false;
 
     /*
      * The most common case for databases is insert-only--that is, that there
@@ -210,21 +202,10 @@ public class SimpleTxnFilter implements TxnFilter{
 
     private boolean isVisible(long txnId) throws IOException{
         TxnView toCompare=fetchTransaction(txnId);
-        // if we cannot find a txn, we conservatively assume it was committed
-        if (!initialized) {
-            SIDriver siDriver = SIDriver.driver();
-            if (siDriver != null) {
-                SConfiguration conf = siDriver.getConfiguration();
-                ignoreMissingTxns = conf.getIgnoreMissingTxns();
-            }
-            initialized = true;
-        }
-        if(toCompare == null && ignoreMissingTxns) {
-            if (LOG.isDebugEnabled()) {
-                SpliceLogUtils.debug(LOG, "Transaction %d cannot be found. Splice assumes it is visible.", txnId);
-            }
-        }
-        return toCompare != null ? myTxn.canSee(toCompare) : (ignoreMissingTxns ? true :false);
+        // If the database is restored from a backup, it may contain data that were written by a transaction which
+        // is not present in SPLICE_TXN table, because SPLICE_TXN table is copied before the transaction begins.
+        // However, the table written by the txn was copied
+        return toCompare != null ? myTxn.canSee(toCompare) : false;
     }
 
     private TxnView fetchTransaction(long txnId) throws IOException{
