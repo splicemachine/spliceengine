@@ -210,7 +210,6 @@ public class SparkDataSet<V> implements DataSet<V> {
     public DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
         pushScopeIfNeeded(context, pushScope, scopeDetail);
         try {
-            int numPartitions = SparkUtils.getPartitions(rdd, defaultPartitions);
             Dataset<Row> result = toSparkRow(this,context)
                            .distinct();
 
