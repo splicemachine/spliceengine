@@ -34,13 +34,7 @@ import com.splicemachine.derby.stream.function.TakeFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
-import com.splicemachine.derby.stream.output.BulkDeleteDataSetWriterBuilder;
-import com.splicemachine.derby.stream.output.BulkInsertDataSetWriterBuilder;
-import com.splicemachine.derby.stream.output.DataSetWriter;
-import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
-import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
-import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
-import com.splicemachine.derby.stream.output.UpdateDataSetWriterBuilder;
+import com.splicemachine.derby.stream.output.*;
 import com.splicemachine.derby.stream.output.delete.DeletePipelineWriter;
 import com.splicemachine.derby.stream.output.delete.DeleteTableWriterBuilder;
 import com.splicemachine.derby.stream.output.insert.InsertPipelineWriter;
@@ -546,6 +540,11 @@ public class ControlDataSet<V> implements DataSet<V> {
     @Override
     public BulkInsertDataSetWriterBuilder bulkInsertData(OperationContext operationContext) throws StandardException {
        throw new RuntimeException("bulk load not supported");
+    }
+
+    @Override
+    public BulkLoadIndexDataSetWriterBuilder bulkLoadIndex(OperationContext operationContext) throws StandardException {
+        throw new RuntimeException("bulk load not supported");
     }
 
     @Override

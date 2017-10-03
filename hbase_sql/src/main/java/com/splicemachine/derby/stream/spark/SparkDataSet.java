@@ -47,6 +47,7 @@ import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.UpdateDataSetWriterBuilder;
 import com.splicemachine.derby.stream.utils.AvroUtils;
+import com.splicemachine.derby.stream.output.*;
 import com.splicemachine.utils.ByteDataInput;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
@@ -836,6 +837,11 @@ public class SparkDataSet<V> implements DataSet<V> {
     @Override
     public BulkInsertDataSetWriterBuilder bulkInsertData(OperationContext operationContext) throws StandardException {
         return new SparkBulkInsertTableWriterBuilder(this);
+    }
+
+    @Override
+    public BulkLoadIndexDataSetWriterBuilder bulkLoadIndex(OperationContext operationContext) throws StandardException {
+        return new SparkBulkLoadIndexDataSetWriterBuilder(this);
     }
 
     @Override

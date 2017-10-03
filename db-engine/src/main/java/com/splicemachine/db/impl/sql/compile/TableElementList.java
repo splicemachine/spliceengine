@@ -1297,6 +1297,7 @@ public class TableElementList extends QueryTreeNodeVector {
                     cdn.getBackingIndexUUID(),
 					excludeNulls,
 					excludeDefaults,
+					false,false,null,null,null,null,null,null,null,
                     checkIndexPageSizeProperty(cdn));
 		}
 	}
