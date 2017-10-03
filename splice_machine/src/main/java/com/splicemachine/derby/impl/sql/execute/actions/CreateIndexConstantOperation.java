@@ -15,7 +15,6 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.db.catalog.IndexDescriptor;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -47,7 +46,6 @@ import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.execute.RowUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -55,10 +53,8 @@ import org.apache.log4j.Logger;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Properties;
-import java.util.List;
 
 /**
  * Creates an Index transactionally.
@@ -151,7 +147,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
      * for a constraint declared in a CREATE TABLE
      * statement that requires a backing index.
      */
-    private final boolean forCreateTable;
+    private boolean         forCreateTable;
     private boolean			unique;
     private boolean			uniqueWithDuplicateNulls;
     private String			indexType;
@@ -160,9 +156,18 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
     private boolean			isConstraint;
     private UUID			conglomerateUUID;
     private Properties		properties;
-    private ExecRow indexTemplateRow;
-    private boolean excludeNulls;
-    private boolean excludeDefaults;
+    private ExecRow         indexTemplateRow;
+    private boolean         excludeNulls;
+    private boolean         excludeDefaults;
+    private boolean         preSplit;
+    private boolean         sampling;
+    private String          splitKeyPath;
+    private String          hfilePath;
+    private String          columnDelimiter;
+    private String          characterDelimiter;
+    private String          timestampFormat;
+    private String          dateFormat;
+    private String          timeFormat;
 
     /** Conglomerate number for the conglomerate created by this
      * constant action; -1L if this constant action has not been
@@ -186,6 +191,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
     private long droppedConglomNum;
 
     // CONSTRUCTORS
+    public CreateIndexConstantOperation(){}
     /**
      * 	Make the ConstantAction to create an index.
      *
@@ -231,6 +237,15 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             UUID			conglomerateUUID,
             boolean 		excludeNulls,
             boolean			excludeDefaults,
+            boolean         preSplit,
+            boolean         sampling,
+            String          splitKeyPath,
+            String          hfilePath,
+            String          columnDelimiter,
+            String          characterDelimiter,
+            String          timestampFormat,
+            String          dateFormat,
+            String          timeFormat,
             Properties		properties) {
         super(tableId, indexName, tableName, schemaName);
         SpliceLogUtils.trace(LOG, "CreateIndexConstantOperation for table %s.%s with index named %s for columns %s",schemaName,tableName,indexName,Arrays.toString(columnNames));
@@ -247,6 +262,15 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         this.droppedConglomNum          = -1L;
         this.excludeDefaults            = excludeDefaults;
         this.excludeNulls               = excludeNulls;
+        this.preSplit                   = preSplit;
+        this.sampling                   = sampling;
+        this.splitKeyPath               = splitKeyPath;
+        this.hfilePath                  = hfilePath;
+        this.columnDelimiter            = columnDelimiter;
+        this.characterDelimiter         = characterDelimiter;
+        this.timestampFormat            = timestampFormat;
+        this.dateFormat                 = dateFormat;
+        this.timeFormat                 = timeFormat;
     }
 
     /**
@@ -747,12 +771,12 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
     }
 
     private void createAndPopulateIndex(Activation activation,
-                                          TransactionController tc,
-                                          TableDescriptor td,
-                                          long indexConglomId,
-                                          long heapConglomerateId,
-                                          IndexDescriptor indexDescriptor,
-                                            DataValueDescriptor defaultValue) throws StandardException, IOException {
+                                        TransactionController tc,
+                                        TableDescriptor td,
+                                        long indexConglomId,
+                                        long heapConglomerateId,
+                                        IndexDescriptor indexDescriptor,
+                                        DataValueDescriptor defaultValue) throws StandardException, IOException {
         /*
          * Manages the Create and Populate index phases
          */
@@ -775,7 +799,9 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         String changeId = DDLUtils.notifyMetadataChange(ddlChange);
         tc.prepareDataDictionaryChange(changeId);
         Txn indexTransaction = DDLUtils.getIndexTransaction(tc, tentativeTransaction, td.getHeapConglomerateId(),indexName);
-        populateIndex(activation, indexTransaction, tentativeTransaction.getCommitTimestamp(), ddlChange.getTentativeIndex(), td);
+        populateIndex(td, activation, indexTransaction, tentativeTransaction.getCommitTimestamp(),
+                ddlChange.getTentativeIndex(), indexDescriptor, preSplit, sampling, splitKeyPath, hfilePath,
+                columnDelimiter, characterDelimiter, timestampFormat, dateFormat, timeFormat);
         indexTransaction.commit();
     }
 

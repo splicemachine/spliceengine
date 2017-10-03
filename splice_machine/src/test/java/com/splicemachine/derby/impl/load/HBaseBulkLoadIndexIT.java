@@ -12,7 +12,6 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
@@ -31,15 +30,16 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import static com.splicemachine.subquery.SubqueryITUtil.*;
+import static com.splicemachine.subquery.SubqueryITUtil.ONE_SUBQUERY_NODE;
+import static com.splicemachine.subquery.SubqueryITUtil.ZERO_SUBQUERY_NODES;
+import static com.splicemachine.subquery.SubqueryITUtil.assertSubqueryNodeCount;
 import static org.junit.Assert.assertEquals;
 
 /**
- * Created by jyuan on 3/27/17.
+ * Created by jyuan on 10/9/17.
  */
-public class HBaseBulkLoadIT extends SpliceUnitTest {
-
-    private static final String SCHEMA_NAME = HBaseBulkLoadIT.class.getSimpleName().toUpperCase();
+public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
+    private static final String SCHEMA_NAME = HBaseBulkLoadIndexIT.class.getSimpleName().toUpperCase();
     private static final String LINEITEM = "LINEITEM";
     private static final String ORDERS = "ORDERS";
     private static final String CUSTOMERS = "CUSTOMER";
@@ -62,7 +62,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
     @BeforeClass
     public static void loaddata() throws Exception {
         try {
-            TestUtils.executeSqlFile(spliceClassWatcher, "tcph/TPCHIT.sql", SCHEMA_NAME);
+            TestUtils.executeSqlFile(spliceClassWatcher, "tcph/createTable.sql", SCHEMA_NAME);
             spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, LINEITEM, getResource("lineitem.tbl"), getResource("data"))).execute();
             spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, ORDERS, getResource("orders.tbl"), getResource("data"))).execute();
             spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, CUSTOMERS, getResource("customer.tbl"), getResource("data"))).execute();
@@ -71,6 +71,36 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
             spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, PART, getResource("part.tbl"), getResource("data"))).execute();
             spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, NATION, getResource("nation.tbl"), getResource("data"))).execute();
             spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, REGION, getResource("region.tbl"), getResource("data"))).execute();
+
+            spliceClassWatcher.prepareStatement(format("create index O_CUST_IDX on ORDERS(\n" +
+                    " O_CUSTKEY,\n" +
+                    " O_ORDERKEY\n" +
+                    " ) splitkeys auto hfile location '%s'", getResource("data"))).execute();
+
+            spliceClassWatcher.prepareStatement(format("create index O_DATE_PRI_KEY_IDX on ORDERS(\n" +
+                    " O_ORDERDATE,\n" +
+                    " O_ORDERPRIORITY,\n" +
+                    " O_ORDERKEY\n" +
+                    " ) splitkeys auto hfile location '%s'", getResource("data"))).execute();
+
+            spliceClassWatcher.prepareStatement(format("create index L_SHIPDATE_IDX on LINEITEM(\n" +
+                    " L_SHIPDATE,\n" +
+                    " L_PARTKEY,\n" +
+                    " L_EXTENDEDPRICE,\n" +
+                    " L_DISCOUNT\n" +
+                    " ) splitkeys location '%s' columnDelimiter '|' hfile location '%s'", getResource("shipDateIndex.csv"),  getResource("data"))).execute();
+
+            spliceClassWatcher.prepareStatement(format(" create index L_PART_IDX on LINEITEM(\n" +
+                    " L_PARTKEY,\n" +
+                    " L_ORDERKEY,\n" +
+                    " L_SUPPKEY,\n" +
+                    " L_SHIPDATE,\n" +
+                    " L_EXTENDEDPRICE,\n" +
+                    " L_DISCOUNT,\n" +
+                    " L_QUANTITY,\n" +
+                    " L_SHIPMODE,\n" +
+                    " L_SHIPINSTRUCT\n" +
+                    " ) splitkeys auto hfile location '%s'", getResource("data"))).execute();
 
             spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s', false)", SCHEMA_NAME)).execute();
             spliceClassWatcher.prepareStatement(format("create table A(c varchar(200))"));
@@ -86,8 +116,8 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
         }
         catch (Exception e) {
             java.lang.Throwable ex = Throwables.getRootCause(e);
-             if (ex.getMessage().contains("bulk load not supported"))
-                 notSupported = true;
+            if (ex.getMessage().contains("bulk load not supported"))
+                notSupported = true;
         }
     }
 
@@ -349,73 +379,17 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testComputeTableSplitKeys() throws Exception {
-        if (notSupported)
-            return;
-       String sql =
-               " select conglomeratenumber from sys.systables t, sys.sysconglomerates c, sys.sysschemas s " +
-               "where c.tableid=t.tableid and t.tablename='LINEITEM' and s.schemaid=c.schemaid and s.schemaname='%s' order by 1";
+    public void verifySplitKeys() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("call syscs_util.get_regions('HBASEBULKLOADINDEXIT', 'LINEITEM', " +
+                "'L_SHIPDATE_IDX',null, null,null,null,null,null,null)");
+        String[] startKeys = {"{ NULL, NULL, NULL, NULL }", "{ 1993-05-30, 58476, 5737.88, 0.04 }",
+        "{ 1995-02-01, 133234, 24077.37, 0.03 }", "{ 1996-04-20, 94751, 48881, 0.06 }"};
+        int i = 0;
+        while(rs.next()) {
+            String k = rs.getString(2);
+            Assert.assertEquals(k, startKeys[i++]);
+        }
 
-        ResultSet rs = methodWatcher.executeQuery(format(sql, SCHEMA_NAME));
-        rs.next();
-        long conglomId = rs.getLong(1);
-        methodWatcher.execute(format("call SYSCS_UTIL.COMPUTE_SPLIT_KEY('%s','%s',null,'L_ORDERKEY,L_LINENUMBER'," +
-                        "'%s','|',null,null,null,null,-1,'/BAD',true,null,'%s')",SCHEMA_NAME,LINEITEM,
-                getResource("lineitemKey.csv"), getResource("data")));
-        rs.close();
-
-        String select =
-                "SELECT \"KEY\" " +
-                "from new com.splicemachine.derby.vti.SpliceFileVTI(" +
-                        "'%s',NULL,'|',NULL,'HH:mm:ss','yyyy-MM-dd','yyyy-MM-dd HH:mm:ss','true','UTF-8' ) " +
-                        "AS splitKey (\"KEY\" varchar(200))";
-        rs = methodWatcher.executeQuery(format(select, getResource("data/"+conglomId+"/keys")));
-        String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        String expected =
-                "KEY     |\n" +
-                "--------------\n" +
-                "    \\x81     |\n" +
-                "\\x81\\x00\\x82 |\n" +
-                "\\x81\\x00\\x84 |\n" +
-                "\\x81\\x00\\x86 |\n" +
-                "\\x81\\x00\\x88 |\n" +
-                "    \\x82     |\n" +
-                "\\x82\\x00\\x82 |";
-
-
-        Assert.assertEquals(expected, s);
-    }
-
-    @Test
-    public void testComputeIndexSplitKeys() throws Exception {
-        if (notSupported)
-            return;
-        String sql =
-                " select conglomeratenumber from sys.systables t, sys.sysconglomerates c, sys.sysschemas s " +
-                        "where c.tableid=t.tableid and t.tablename='ORDERS' and s.schemaid=c.schemaid and " +
-                        "s.schemaname='%s' and conglomeratename='O_CUST_IDX' order by 1";
-
-        ResultSet rs = methodWatcher.executeQuery(format(sql, SCHEMA_NAME));
-        rs.next();
-        long conglomId = rs.getLong(1);
-        methodWatcher.execute(format("call SYSCS_UTIL.COMPUTE_SPLIT_KEY('%s','%s','O_CUST_IDX'," +
-                        "'O_CUSTKEY,O_ORDERKEY'," +
-                        "'%s','|',null,null,null,null,-1,'/BAD',true,null,'%s')",SCHEMA_NAME,ORDERS,
-                getResource("custIndex.csv"), getResource("data")));
-        rs.close();
-
-        String select =
-                "SELECT \"KEY\" " +
-                        "from new com.splicemachine.derby.vti.SpliceFileVTI(" +
-                        "'%s',NULL,'|',NULL,'HH:mm:ss','yyyy-MM-dd','yyyy-MM-dd HH:mm:ss','true','UTF-8' ) " +
-                        "AS splitKey (\"KEY\" varchar(200))";
-        rs = methodWatcher.executeQuery(format(select, getResource("data/"+conglomId+"/keys")));
-        String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        String expected ="KEY           |\n" +
-                "-------------------------\n" +
-                "\\xE1(Q\\x00\\xE4<\\x8F\\x84 |";
-
-        Assert.assertEquals(expected, s);
     }
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

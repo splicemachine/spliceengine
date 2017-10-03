@@ -570,4 +570,33 @@ public abstract class NodeFactory
 
 		return  retval;
 	}
+
+	public final Node getNode(int nodeType,
+							  Object arg1,
+							  Object arg2,
+							  Object arg3,
+							  Object arg4,
+							  Object arg5,
+							  Object arg6,
+							  Object arg7,
+							  Object arg8,
+							  Object arg9,
+							  Object arg10,
+							  Object arg11,
+							  Object arg12,
+							  Object arg13,
+							  Object arg14,
+							  Object arg15,
+                              Object arg16,
+                              Object arg17,
+							  ContextManager cm)
+			throws StandardException
+	{
+		Node retval =  getNode(nodeType, cm);
+
+		retval.init(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9,
+				arg10, arg11, arg12, arg13, arg14, arg15, arg16, arg17);
+
+		return  retval;
+	}
 }

@@ -14,14 +14,26 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.access.api.PartitionAdmin;
+import com.splicemachine.db.catalog.IndexDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.derby.iapi.sql.olap.OlapClient;
+import com.splicemachine.derby.impl.sql.execute.index.BulkLoadIndexJob;
 import com.splicemachine.derby.impl.sql.execute.index.DistributedPopulateIndexJob;
 import com.splicemachine.derby.impl.sql.execute.index.PopulateIndexJob;
+import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.derby.stream.function.FileFunction;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
+import com.splicemachine.derby.utils.marshall.BareKeyHash;
+import com.splicemachine.derby.utils.marshall.DataHash;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.storage.PartitionLoad;
+import com.splicemachine.utils.IntArrays;
 import org.spark_project.guava.primitives.Ints;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.ddl.DDLMessage;
@@ -38,7 +50,6 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import java.io.IOException;
@@ -57,6 +68,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
         super(tableId);
     }
 
+    protected IndexConstantOperation() {}
 	/**
 	 *	Make the ConstantAction for a CREATE/DROP INDEX statement.
 	 *
@@ -103,11 +115,21 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 
 	@SuppressWarnings("unchecked")
 	@SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE",justification = "Dead variable is a side effect of writing data")
-	protected void populateIndex(Activation activation,
+	protected void populateIndex(TableDescriptor td,
+                                 Activation activation,
                                  Txn indexTransaction,
                                  long demarcationPoint,
                                  DDLMessage.TentativeIndex tentativeIndex,
-                                 TableDescriptor td) throws StandardException {
+                                 IndexDescriptor indexDescriptor,
+								 boolean         preSplit,
+								 boolean         sampling,
+								 String          splitKeyPath,
+								 String          hfilePath,
+								 String          columnDelimiter,
+								 String          characterDelimiter,
+								 String          timestampFormat,
+								 String          dateFormat,
+								 String          timeFormat) throws StandardException {
         // String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
 		/*
 		 * Backfill the index with any existing data.
@@ -151,7 +173,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 
 			String table = Long.toString(tentativeIndex.getTable().getConglomerate());
 			Collection<PartitionLoad> partitionLoadCollection = EngineDriver.driver().partitionLoadWatcher().tableLoad(table,false);
-			boolean distributed = false;
+			boolean distributed = preSplit;
 			for (PartitionLoad load: partitionLoadCollection) {
 				if (load.getMemStoreSizeMB() > 0 || load.getStorefileSizeMB() > 0)
 					distributed = true;
@@ -163,31 +185,48 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 				dsp = EngineDriver.driver().processorFactory().localProcessor(null,null);
 
             childTxn = beginChildTransaction(indexTransaction, tentativeIndex.getIndex().getConglomerate());
-			ScanSetBuilder<ExecRow> builder = dsp.newScanSet(null, Long.toString(tentativeIndex.getTable().getConglomerate()));
-			builder.tableDisplayName(tableName)
-			.demarcationPoint(demarcationPoint)
-			.transaction(indexTransaction)
-			.scan(DDLUtils.createFullScan())
-			.keyColumnEncodingOrder(Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()))
-			.reuseRowLocation(true)
-			.rowDecodingMap(rowDecodingMap)
-			.keyColumnTypes(ScanOperation.getKeyFormatIds(
-					Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()),
-					Ints.toArray(tentativeIndex.getTable().getFormatIdsList())
-					))
-			.keyDecodingMap(ScanOperation.getKeyDecodingMap(accessedKeyCols,
-					Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()),
-					baseColumnMap
-					))
-			.accessedKeyColumns(accessedKeyCols)
-			.template(WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds));
+            ScanSetBuilder<ExecRow> builder = dsp.newScanSet(null, Long.toString(tentativeIndex.getTable().getConglomerate()));
+            builder.tableDisplayName(tableName)
+                    .demarcationPoint(demarcationPoint)
+                    .transaction(indexTransaction)
+                    .scan(DDLUtils.createFullScan())
+                    .keyColumnEncodingOrder(Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()))
+                    .reuseRowLocation(false)
+                    .rowDecodingMap(rowDecodingMap)
+                    .keyColumnTypes(ScanOperation.getKeyFormatIds(
+                            Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()),
+                            Ints.toArray(tentativeIndex.getTable().getFormatIdsList())
+                    ))
+                    .keyDecodingMap(ScanOperation.getKeyDecodingMap(accessedKeyCols,
+                            Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()),
+                            baseColumnMap
+                    ))
+                    .accessedKeyColumns(accessedKeyCols)
+                    .template(WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds));
+
 			String scope = this.getScopeName();
 			String prefix = StreamUtils.getScopeString(this);
 			String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
 			String jobGroup = userId + " <" +indexTransaction.getTxnId() +">";
-			if (distributed)
-				EngineDriver.driver().getOlapClient().execute(new DistributedPopulateIndexJob(childTxn, builder, scope, jobGroup, prefix, tentativeIndex, indexFormatIds));
-			else
+			if (distributed) {
+				OlapClient olapClient = EngineDriver.driver().getOlapClient();
+				if (!preSplit) {
+					olapClient.execute(new DistributedPopulateIndexJob(childTxn, builder, scope, jobGroup, prefix,
+                            tentativeIndex, indexFormatIds));
+				}
+				else {
+                    if (!sampling) {
+                        if (splitKeyPath == null) {
+                            // TODO: throw an exception
+                        }
+                        splitIndex(indexDescriptor, splitKeyPath, columnDelimiter, characterDelimiter,
+                                timestampFormat, dateFormat, timeFormat, tentativeIndex, td);
+                    }
+                    ActivationHolder ah = new ActivationHolder(activation, null);
+					olapClient.execute(new BulkLoadIndexJob(ah, childTxn, builder, scope, jobGroup, prefix, tentativeIndex,
+                            indexFormatIds, sampling, hfilePath, td.getVersion(), indexName));
+				}
+			} else
 				PopulateIndexJob.populateIndex(tentativeIndex,builder,prefix,indexFormatIds,scope,childTxn);
             childTxn.commit();
         } catch (IOException e) {
@@ -206,4 +245,47 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 		return String.format("%s %s", super.getScopeName(), indexName);
 	}
 
+    private void splitIndex(IndexDescriptor indexDescriptor, String splitKeyPath, String columnDelimiter,
+                            String characterDelimiter, String timestampFormat, String dateTimeFormat, String timeFormat,
+                            DDLMessage.TentativeIndex tentativeIndex, TableDescriptor td) throws IOException, StandardException {
+
+        List<Integer> indexCols = tentativeIndex.getIndex().getIndexColsToMainColMapList();
+        List<Integer> allFormatIds = tentativeIndex.getTable().getFormatIdsList();
+        int[] indexFormatIds = new int[indexCols.size()];
+        for (int i = 0; i < indexCols.size(); ++i) {
+            indexFormatIds[i] = allFormatIds.get(indexCols.get(i)-1);
+        }
+        DataSetProcessor dsp = EngineDriver.driver().processorFactory().localProcessor(null,null);
+        DataSet<String> text = dsp.readTextFile(splitKeyPath);
+        OperationContext operationContext = dsp.createOperationContext((Activation)null);
+        ExecRow execRow = WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds);
+        DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
+                null, timeFormat, dateTimeFormat, timestampFormat, operationContext), true);
+        List<ExecRow> rows = dataSet.collect();
+        DataHash encoder = getEncoder(td, execRow, indexDescriptor);
+        PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
+        long conglomId = tentativeIndex.getIndex().getConglomerate();
+        if (LOG.isDebugEnabled()) {
+            SpliceLogUtils.debug(LOG, "Pre-splitting index splice:%d", conglomId);
+        }
+        for (ExecRow row : rows) {
+            encoder.setRow(row);
+            byte[] splitKey = encoder.encode();
+            if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.debug(LOG, "execRow = %s, splitKey = %s", execRow,
+                        org.apache.hadoop.hbase.util.Bytes.toStringBinary(splitKey));
+            }
+            admin.splitTable(new Long(conglomId).toString(), splitKey);
+        }
+    }
+
+    private DataHash getEncoder(TableDescriptor td, ExecRow execRow, IndexDescriptor indexDescriptor) {
+        DescriptorSerializer[] serializers= VersionedSerializers
+                .forVersion(td.getVersion(), true)
+                .getSerializers(execRow.getRowArray());
+        int[] rowColumns = IntArrays.count(execRow.nColumns());
+        boolean[] sortOrder = indexDescriptor.isAscending();
+        DataHash dataHash = BareKeyHash.encoder(rowColumns, sortOrder, serializers);
+        return dataHash;
+    }
 }
