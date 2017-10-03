@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
@@ -679,12 +680,11 @@ public class SubqueryNode extends ValueNode{
                 offset==null &&
                 fetchFirst==null &&
                 underTopAndNode && !havingSubquery &&
-                !isWhereExistsAnyInWithWhereSubquery() &&
                 (isIN() || isANY() || isEXISTS() || flattenableNotExists ||
                         parentComparisonOperator!=null);
 
         if(flattenable){
-
+            boolean hasSubquery = isWhereExistsAnyInWithWhereSubquery();
             SelectNode select=(SelectNode)resultSet;
             int topSelectNodeLevel =select.getNestingLevel() - 1;
             boolean nestedColumnReference = hasNestedCR(((SelectNode) resultSet).wherePredicates, topSelectNodeLevel);
@@ -713,7 +713,7 @@ public class SubqueryNode extends ValueNode{
 				/* Never flatten to normal join for NOT EXISTS.
 				 */
 
-                if((!flattenableNotExists) && select.uniqueSubquery(additionalEQ)){
+                if(!hasSubquery && (!flattenableNotExists) && select.uniqueSubquery(additionalEQ)){
                     // Flatten the subquery
                     return flattenToNormalJoin(outerFromList,outerSubqueryList,outerPredicateList);
                 }
@@ -748,7 +748,7 @@ public class SubqueryNode extends ValueNode{
                         select.getWherePredicates().allPushable()){
                     FromBaseTable fbt=singleFromBaseTable(select.getFromList());
 
-                    if(fbt!=null && (!flattenableNotExists
+                    if(!hasSubquery && fbt!=null && (!flattenableNotExists
                             || (select.getWherePredicates().allReference(fbt)
                             && rightOperandFlattenableToNotExists(numTables,fbt)))){
                         if (flattenableNotExists) {
@@ -757,6 +757,10 @@ public class SubqueryNode extends ValueNode{
                         return flattenToExistsJoin(
                                 outerFromList,outerSubqueryList,
                                 outerPredicateList,flattenableNotExists);
+                    } else {
+                        // / rewrite non-correlated IN/EXISTS subquery to FromSubquery but with indicator for inclusion-join
+                        if ((isIN() || isANY() || isEXISTS()) && isNonCorrelatedSubquery())
+                            return convertWhereSubqueryToDT(numTables, outerFromList, outerSubqueryList);
                     }
                 }
 
@@ -2449,4 +2453,82 @@ public class SubqueryNode extends ValueNode{
         return sb.toString();
     }
 
+    /* check if the current subquery is a correlated subquery */
+    public boolean isNonCorrelatedSubquery() throws StandardException {
+        if (!(resultSet instanceof SelectNode))
+            return false;
+
+        int rootNestingLvl = ((SelectNode)(resultSet)).getNestingLevel();
+
+        CheckCorrelatedSubqueryVisitor visitor=new CheckCorrelatedSubqueryVisitor(rootNestingLvl);
+        resultSet.accept(visitor);
+        return !visitor.getHasCorrelation();
+    }
+
+    public ValueNode convertWhereSubqueryToDT(int numTables,
+                                              FromList outerFromList,
+                                              SubqueryList outerSubqueryList)
+            throws StandardException
+    {
+        // Remove ourselves from the outer subquery list
+        outerSubqueryList.removeElement(this);
+
+        ResultColumnList resultColumns=resultSet.getResultColumns();
+
+		// Create a new PR node.  Put it over the original subquery.
+        ResultColumnList newRCL=resultColumns.copyListAndObjects();
+        newRCL.genVirtualColumnNodes(resultSet,resultColumns);
+        ResultSetNode newPRN = (ResultSetNode)getNodeFactory().getNode(
+                     C_NodeTypes.PROJECT_RESTRICT_NODE,
+                     resultSet,    // child
+                     newRCL,            // result columns
+                null,            // restriction
+                null,            // restriction list
+                null,            // project subqueries
+                null,            // restrict subqueries
+                null,
+                      getContextManager());
+        resultColumns=newRCL;
+
+        int tableNumber = getCompilerContext().getNextTableNumber();
+        JBitSet newJBS = new JBitSet(numTables);
+        newJBS.set(tableNumber);
+        newJBS.or(resultSet.getReferencedTableMap());
+
+        newPRN.setReferencedTableMap(newJBS);
+        ((FromTable) newPRN).setTableNumber(tableNumber);
+
+        // set exists flag, dependencyMap. Ideally we should only include the outer relation that the subquery is connected to
+        // in the dependencyMap, not all the tabled in the outer block. this could be a performance enhancement
+        JBitSet dependencyMap=new JBitSet(numTables);
+        int outerSize=outerFromList.size();
+        for(int outer=0;outer<outerSize;outer++)
+            dependencyMap.or(((FromTable)outerFromList.elementAt(outer)).getReferencedTableMap());
+        ((FromTable) newPRN).setExistsTable(true, dependencyMap, false, false);
+
+        // add the current subquery as a FromSubquery(DT) in the outer block's fromList
+        outerFromList.addElement(newPRN);
+
+        // prepare join condition
+        ResultColumn firstRC = resultColumns.elementAt(0);
+        ColumnReference rightOperand = (ColumnReference) getNodeFactory().getNode(
+                C_NodeTypes.COLUMN_REFERENCE,
+                firstRC.getName(),
+                null,
+                ContextService.getService().getCurrentContextManager());
+        rightOperand.setSource(firstRC);
+        rightOperand.setTableNumber(tableNumber);
+        rightOperand.setColumnNumber(firstRC.getVirtualColumnId());
+
+        rightOperand.setNestingLevel(((SelectNode)resultSet).getNestingLevel());
+        rightOperand.setSourceLevel(rightOperand.getNestingLevel());
+
+        ValueNode bcoNode;
+        if (isEXISTS()) {
+            bcoNode = getTrueNode();
+        } else
+            bcoNode=getNewJoinCondition(leftOperand,rightOperand);
+
+        return bcoNode;
+    }
 }

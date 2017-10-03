@@ -24,8 +24,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.*;
 import org.spark_project.guava.base.Throwables;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -33,9 +31,7 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import static com.splicemachine.subquery.SubqueryITUtil.ONE_SUBQUERY_NODE;
-import static com.splicemachine.subquery.SubqueryITUtil.ZERO_SUBQUERY_NODES;
-import static com.splicemachine.subquery.SubqueryITUtil.assertSubqueryNodeCount;
+import static com.splicemachine.subquery.SubqueryITUtil.*;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -322,7 +318,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
             return;
         String sql = getContent("20.sql");
         executeQuery(sql, "", true);
-        assertSubqueryNodeCount(conn(), sql, ONE_SUBQUERY_NODE);
+        assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
     }
 
     @Test

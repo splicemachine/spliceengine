@@ -1041,7 +1041,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
             //table q3 (the first and the last predicate) should be removed while
             //evaluating outer query for uniqueness.
             //
-            if(fbt.getExistsBaseTable()){
+            if(fbt.getExistsTable()){
                 int existsTableNumber=fbt.getTableNumber();
                 int predicatesTempSize=predicatesTemp.size();
                 for(int predicatesTempIndex=predicatesTempSize-1;
@@ -1086,7 +1086,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
             FromBaseTable fbt=(FromBaseTable)prn.getChildResult();
 
             // Skip over EXISTS FBT since they cannot introduce duplicates
-            if(fbt.getExistsBaseTable()){
+            if(fbt.getExistsTable()){
                 oneRow[index]=true;
                 continue;
             }
@@ -1238,7 +1238,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
                 ProjectRestrictNode prn=(ProjectRestrictNode)fromTable;
                 if(prn.getChildResult() instanceof FromBaseTable){
                     FromBaseTable fbt=(FromBaseTable)prn.getChildResult();
-                    fbt.setExistsBaseTable(true,(JBitSet)dependencyMap.clone(),isNotExists, matchRowId);
+                    fbt.setExistsTable(true,(JBitSet)dependencyMap.clone(),isNotExists, matchRowId);
                 }
             }
         }
