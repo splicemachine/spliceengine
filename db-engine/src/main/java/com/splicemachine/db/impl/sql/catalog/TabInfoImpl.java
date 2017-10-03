@@ -129,7 +129,7 @@ public class TabInfoImpl
      *
      * @return long     The conglomerate for the specified index.
      */
-    long getIndexConglomerate(int indexID)
+    public long getIndexConglomerate(int indexID)
     {
         if (SanityManager.DEBUG)
         {
