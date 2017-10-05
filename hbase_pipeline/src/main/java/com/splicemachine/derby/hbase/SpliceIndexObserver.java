@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.hbase;
 
+import com.splicemachine.si.data.hbase.coprocessor.CoprocessorUtils;
 import org.spark_project.guava.base.Function;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.ServerControl;
@@ -75,25 +76,25 @@ public class SpliceIndexObserver extends BaseRegionObserver {
 
     @Override
     public void start(final CoprocessorEnvironment e) throws IOException{
-        RegionCoprocessorEnvironment rce=((RegionCoprocessorEnvironment)e);
+        try {
+            RegionCoprocessorEnvironment rce=((RegionCoprocessorEnvironment)e);
 
-        String tableName=rce.getRegion().getTableDesc().getTableName().getQualifierAsString();
-        TableType table=EnvUtils.getTableType(HConfiguration.getConfiguration(),rce);
-        switch(table){
-            case DERBY_SYS_TABLE:
-                conglomId=-1; //bypass index management on derby system tables
-                break;
-            case USER_TABLE:
-                conglomId=Long.parseLong(tableName);
-                break;
-            default:
-                return; //disregard table environments which are not user or system tables
-        }
+            String tableName=rce.getRegion().getTableDesc().getTableName().getQualifierAsString();
+            TableType table=EnvUtils.getTableType(HConfiguration.getConfiguration(),rce);
+            switch(table){
+                case DERBY_SYS_TABLE:
+                    conglomId=-1; //bypass index management on derby system tables
+                    break;
+                case USER_TABLE:
+                    conglomId=Long.parseLong(tableName);
+                    break;
+                default:
+                    return; //disregard table environments which are not user or system tables
+            }
 
-        final long cId = conglomId;
-        final RegionPartition baseRegion=new RegionPartition((HRegion)rce.getRegion());
-        ServerControl sc = new RegionServerControl((HRegion)rce.getRegion(),rce.getRegionServerServices());
-        try{
+            final long cId = conglomId;
+            final RegionPartition baseRegion=new RegionPartition((HRegion)rce.getRegion());
+            ServerControl sc = new RegionServerControl((HRegion)rce.getRegion(),rce.getRegionServerServices());
             if(service==null){
                 service=new PipelineLoadService<TableName>(sc,baseRegion,cId){
                     @Override
@@ -135,65 +136,73 @@ public class SpliceIndexObserver extends BaseRegionObserver {
                 };
             }
             DatabaseLifecycleManager.manager().registerGeneralService(service);
-        }catch(Exception ex){
-            throw new IOException(ex);
+        } catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
         }
     }
 
     @Override
     public void stop(CoprocessorEnvironment e) throws IOException {
-        super.stop(e);
-        if (region != null)
-            region.close();
-        if(service!=null)
-            try{
+        try {
+            super.stop(e);
+            if (region != null)
+                region.close();
+            if(service!=null)
                 service.shutdown();
-            }catch(Exception e1){
-                throw new IOException(e1);
-            }
+        } catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
+        }
     }
 
     @Override
     public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put, WALEdit edit, Durability durability) throws IOException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "prePut %s",put);
-        if(conglomId>0){
-            if(put.getAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)!=null) return;
-            if(factoryLoader==null){
-                try{
-                    DatabaseLifecycleManager.manager().awaitStartup();
-                }catch(InterruptedException e1){
-                    throw new InterruptedIOException();
+        try {
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG, "prePut %s",put);
+            if(conglomId>0){
+                if(put.getAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)!=null) return;
+                if(factoryLoader==null){
+                    try{
+                        DatabaseLifecycleManager.manager().awaitStartup();
+                    }catch(InterruptedException e1){
+                        throw new InterruptedIOException();
+                    }
                 }
+                //we can't update an index if the conglomerate id isn't positive--it's probably a temp table or something
+                byte[] row = put.getRow();
+                List<Cell> data = put.get(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES);
+                KVPair kv;
+                if(data!=null&&!data.isEmpty()){
+                    byte[] value = CellUtil.cloneValue(data.get(0));
+                    if(put.getAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)!=null){
+                        kv = new KVPair(row,value, KVPair.Type.UPDATE);
+                    }else
+                        kv = new KVPair(row,value);
+                }else{
+                    kv = new KVPair(row, HConstants.EMPTY_BYTE_ARRAY);
+                }
+                byte[] txnData = put.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
+                TxnView txn = operationFactory.fromWrites(txnData,0,txnData.length);
+                mutate(kv,txn);
             }
-            //we can't update an index if the conglomerate id isn't positive--it's probably a temp table or something
-            byte[] row = put.getRow();
-            List<Cell> data = put.get(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES);
-            KVPair kv;
-            if(data!=null&& !data.isEmpty()){
-                byte[] value = CellUtil.cloneValue(data.get(0));
-                if(put.getAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)!=null){
-                    kv = new KVPair(row,value, KVPair.Type.UPDATE);
-                }else
-                    kv = new KVPair(row,value);
-            }else{
-                kv = new KVPair(row, HConstants.EMPTY_BYTE_ARRAY);
-            }
-            byte[] txnData = put.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
-            TxnView txn = operationFactory.fromWrites(txnData,0,txnData.length);
-            mutate(kv,txn);
+            super.prePut(e, put, edit, durability);
+        } catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
         }
-        super.prePut(e, put, edit, durability);
     }
 
     @Override
     public void postRollBackSplit(ObserverContext<RegionCoprocessorEnvironment> ctx) throws IOException{
-        RegionCoprocessorEnvironment rce=ctx.getEnvironment();
-        start(rce);
-        RegionCoprocessorHost coprocessorHost=rce.getRegion().getCoprocessorHost();
-        Coprocessor coprocessor=coprocessorHost.findCoprocessor(SpliceIndexEndpoint.class.getName());
-        coprocessor.start(rce);
-        super.postRollBackSplit(ctx);
+        try {
+            RegionCoprocessorEnvironment rce=ctx.getEnvironment();
+            start(rce);
+            RegionCoprocessorHost coprocessorHost=rce.getRegion().getCoprocessorHost();
+            Coprocessor coprocessor=coprocessorHost.findCoprocessor(SpliceIndexEndpoint.class.getName());
+            coprocessor.start(rce);
+            super.postRollBackSplit(ctx);
+        } catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
+        }
     }
 
     /**
