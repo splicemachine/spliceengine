@@ -22,6 +22,7 @@ import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.lifecycle.MasterLifecycle;
 import com.splicemachine.olap.OlapServer;
 import com.splicemachine.pipeline.InitializationCompleted;
+import com.splicemachine.si.data.hbase.coprocessor.CoprocessorUtils;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.timestamp.api.TimestampBlockManager;
@@ -69,73 +70,89 @@ public class SpliceMasterObserver extends BaseMasterObserver {
 
     @Override
     public void start(CoprocessorEnvironment ctx) throws IOException {
-        LOG.info("Starting SpliceMasterObserver");
+        try {
+            LOG.info("Starting SpliceMasterObserver");
 
-        LOG.info("Starting Timestamp Master Observer");
+            LOG.info("Starting Timestamp Master Observer");
 
-        ZooKeeperWatcher zkw = ((MasterCoprocessorEnvironment)ctx).getMasterServices().getZooKeeper();
-        RecoverableZooKeeper rzk = zkw.getRecoverableZooKeeper();
+            ZooKeeperWatcher zkw = ((MasterCoprocessorEnvironment)ctx).getMasterServices().getZooKeeper();
+            RecoverableZooKeeper rzk = zkw.getRecoverableZooKeeper();
 
-        HBaseSIEnvironment env=HBaseSIEnvironment.loadEnvironment(new SystemClock(),rzk);
-        SConfiguration configuration=env.configuration();
+            HBaseSIEnvironment env=HBaseSIEnvironment.loadEnvironment(new SystemClock(),rzk);
+            SConfiguration configuration=env.configuration();
 
-        String timestampReservedPath=configuration.getSpliceRootPath()+HConfiguration.MAX_RESERVED_TIMESTAMP_PATH;
-        int timestampPort=configuration.getTimestampServerBindPort();
-        int timestampBlockSize = configuration.getTimestampBlockSize();
+            String timestampReservedPath=configuration.getSpliceRootPath()+HConfiguration.MAX_RESERVED_TIMESTAMP_PATH;
+            int timestampPort=configuration.getTimestampServerBindPort();
+            int timestampBlockSize = configuration.getTimestampBlockSize();
 
-        TimestampBlockManager tbm= new ZkTimestampBlockManager(rzk,timestampReservedPath);
-        this.timestampServer =new TimestampServer(timestampPort,tbm,timestampBlockSize);
+            TimestampBlockManager tbm= new ZkTimestampBlockManager(rzk,timestampReservedPath);
+            this.timestampServer =new TimestampServer(timestampPort,tbm,timestampBlockSize);
 
-        this.timestampServer.startServer();
+            this.timestampServer.startServer();
 
-        int olapPort=configuration.getOlapServerBindPort();
-        this.olapServer = new OlapServer(olapPort,env.systemClock());
-        this.olapServer.startServer(configuration);
+            int olapPort=configuration.getOlapServerBindPort();
+            this.olapServer = new OlapServer(olapPort,env.systemClock());
+            this.olapServer.startServer(configuration);
 
-        /*
-         * We create a new instance here rather than referring to the singleton because we have
-         * a problem when booting the master and the region server in the same JVM; the singleton
-         * then is unable to boot on the master side because the regionserver has already started it.
-         *
-         * Generally, this isn't a problem because the underlying singleton is constructed on demand, so we
-         * will still only create a single manager per JVM in a production environment, and we avoid the deadlock
-         * issue during testing
-         */
-        this.manager = new DatabaseLifecycleManager();
-        super.start(ctx);
+            /*
+             * We create a new instance here rather than referring to the singleton because we have
+             * a problem when booting the master and the region server in the same JVM; the singleton
+             * then is unable to boot on the master side because the regionserver has already started it.
+             *
+             * Generally, this isn't a problem because the underlying singleton is constructed on demand, so we
+             * will still only create a single manager per JVM in a production environment, and we avoid the deadlock
+             * issue during testing
+             */
+            this.manager = new DatabaseLifecycleManager();
+            super.start(ctx);
+        } catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
+        }
     }
 
     @Override
     public void stop(CoprocessorEnvironment ctx) throws IOException {
-        LOG.warn("Stopping SpliceMasterObserver");
-        manager.shutdown();
-        this.timestampServer.stopServer();
+        try {
+            LOG.warn("Stopping SpliceMasterObserver");
+            manager.shutdown();
+            this.timestampServer.stopServer();
+        } catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
+        }
     }
 
     @Override
     public void preCreateTable(ObserverContext<MasterCoprocessorEnvironment> ctx, HTableDescriptor desc, HRegionInfo[] regions) throws IOException {
-        SpliceLogUtils.info(LOG, "preCreateTable %s", Bytes.toString(desc.getTableName().getName()));
-        if (Bytes.equals(desc.getTableName().getName(), INIT_TABLE)) {
-            switch(manager.getState()){
-                case NOT_STARTED:
-                    boot();
-                case BOOTING_ENGINE:
-                case BOOTING_GENERAL_SERVICES:
-                case BOOTING_SERVER:
-                    throw new PleaseHoldException("Please Hold - Starting");
-                case RUNNING:
-                    throw new InitializationCompleted("Success");
-                case STARTUP_FAILED:
-                case SHUTTING_DOWN:
-                case SHUTDOWN:
-                    throw new IllegalStateException("Startup failed");
+        try {
+            SpliceLogUtils.info(LOG, "preCreateTable %s", Bytes.toString(desc.getTableName().getName()));
+            if (Bytes.equals(desc.getTableName().getName(), INIT_TABLE)) {
+                switch(manager.getState()){
+                    case NOT_STARTED:
+                        boot();
+                    case BOOTING_ENGINE:
+                    case BOOTING_GENERAL_SERVICES:
+                    case BOOTING_SERVER:
+                        throw new PleaseHoldException("Please Hold - Starting");
+                    case RUNNING:
+                        throw new InitializationCompleted("Success");
+                    case STARTUP_FAILED:
+                    case SHUTTING_DOWN:
+                    case SHUTDOWN:
+                        throw new IllegalStateException("Startup failed");
+                }
             }
+        } catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
         }
     }
 
     @Override
     public void postStartMaster(ObserverContext<MasterCoprocessorEnvironment> ctx) throws IOException {
-        boot();
+        try {
+            boot();
+        } catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
+        }
     }
 
     private synchronized void boot() throws IOException{
