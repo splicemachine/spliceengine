@@ -85,27 +85,31 @@ public class SIObserver extends BaseRegionObserver{
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException{
-        SpliceLogUtils.trace(LOG,"starting %s",SIObserver.class);
-        RegionCoprocessorEnvironment rce=(RegionCoprocessorEnvironment)e;
-        tableEnvMatch=doesTableNeedSI(rce.getRegion().getTableDesc().getTableName());
-        if(tableEnvMatch){
-            HBaseSIEnvironment env=HBaseSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper());
-            SIDriver driver = env.getSIDriver();
-            operationStatusFactory = driver.getOperationStatusLib();
-            //noinspection unchecked
-            txnOperationFactory=new SimpleTxnOperationFactory(driver.getExceptionFactory(),HOperationFactory.INSTANCE);
-            //noinspection unchecked
-            Partition regionPartition = new RegionPartition((HRegion)rce.getRegion());
-            region=new TxnRegion(regionPartition,
-                    driver.getRollForward(),
-                    driver.getReadResolver(regionPartition),
-                    driver.getTxnSupplier(),
-                    driver.getTransactor(),
-                    driver.getOperationFactory()
-                    );
-            Tracer.traceRegion(region.getTableName(),rce.getRegion());
+        try {
+            SpliceLogUtils.trace(LOG, "starting %s", SIObserver.class);
+            RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment) e;
+            tableEnvMatch = doesTableNeedSI(rce.getRegion().getTableDesc().getTableName());
+            if (tableEnvMatch) {
+                HBaseSIEnvironment env = HBaseSIEnvironment.loadEnvironment(new SystemClock(), ZkUtils.getRecoverableZooKeeper());
+                SIDriver driver = env.getSIDriver();
+                operationStatusFactory = driver.getOperationStatusLib();
+                //noinspection unchecked
+                txnOperationFactory = new SimpleTxnOperationFactory(driver.getExceptionFactory(), HOperationFactory.INSTANCE);
+                //noinspection unchecked
+                Partition regionPartition = new RegionPartition((HRegion) rce.getRegion());
+                region = new TxnRegion(regionPartition,
+                        driver.getRollForward(),
+                        driver.getReadResolver(regionPartition),
+                        driver.getTxnSupplier(),
+                        driver.getTransactor(),
+                        driver.getOperationFactory()
+                );
+                Tracer.traceRegion(region.getTableName(), rce.getRegion());
+            }
+            super.start(e);
+        } catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
         }
-        super.start(e);
     }
 
     @Override
@@ -116,143 +120,167 @@ public class SIObserver extends BaseRegionObserver{
 
     @Override
     public void preGetOp(ObserverContext<RegionCoprocessorEnvironment> e,Get get,List<Cell> results) throws IOException{
-        SpliceLogUtils.trace(LOG,"preGet %s",get);
-        if(tableEnvMatch && shouldUseSI(get)){
-            get.setMaxVersions();
-            get.setTimeRange(0L,Long.MAX_VALUE);
-            assert (get.getMaxVersions()==Integer.MAX_VALUE);
-            addSIFilterToGet(get);
+        try {
+            SpliceLogUtils.trace(LOG,"preGet %s",get);
+            if(tableEnvMatch && shouldUseSI(get)){
+                get.setMaxVersions();
+                get.setTimeRange(0L,Long.MAX_VALUE);
+                assert (get.getMaxVersions()==Integer.MAX_VALUE);
+                addSIFilterToGet(get);
+            }
+            SpliceLogUtils.trace(LOG,"preGet after %s",get);
+            super.preGetOp(e,get,results);
+        } catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
         }
-        SpliceLogUtils.trace(LOG,"preGet after %s",get);
-        super.preGetOp(e,get,results);
     }
 
     @Override
     public RegionScanner preScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e,Scan scan,RegionScanner s) throws IOException{
-        SpliceLogUtils.trace(LOG,"preScannerOpen %s with tableEnvMatch=%s, shouldUseSI=%s",scan,tableEnvMatch,shouldUseSI(scan));
-        if(tableEnvMatch && shouldUseSI(scan)){
-            scan.setMaxVersions();
-            scan.setTimeRange(0L,Long.MAX_VALUE);
-//            txnReadController.preProcessScan(scan);
-            assert (scan.getMaxVersions()==Integer.MAX_VALUE);
-            addSIFilterToScan(scan);
+        try {
+            SpliceLogUtils.trace(LOG,"preScannerOpen %s with tableEnvMatch=%s, shouldUseSI=%s",scan,tableEnvMatch,shouldUseSI(scan));
+            if(tableEnvMatch && shouldUseSI(scan)){
+                scan.setMaxVersions();
+                scan.setTimeRange(0L,Long.MAX_VALUE);
+    //            txnReadController.preProcessScan(scan);
+                assert (scan.getMaxVersions()==Integer.MAX_VALUE);
+                addSIFilterToScan(scan);
+            }
+            return super.preScannerOpen(e,scan,s);
+        } catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
         }
-        return super.preScannerOpen(e,scan,s);
     }
 
     @Override
-    public void postCompact(ObserverContext<RegionCoprocessorEnvironment> e,Store store,StoreFile resultFile){
-        if(tableEnvMatch){
-            Tracer.compact();
+    public void postCompact(ObserverContext<RegionCoprocessorEnvironment> e,Store store,StoreFile resultFile) throws IOException {
+        try {
+            if(tableEnvMatch){
+                Tracer.compact();
+            }
+        } catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
         }
     }
 
     @Override
     public void preDelete(ObserverContext<RegionCoprocessorEnvironment> e,Delete delete,WALEdit edit,
                           Durability writeToWAL) throws IOException{
-        if(tableEnvMatch){
-            if(delete.getAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)==null){
-                TableName tableName=e.getEnvironment().getRegion().getTableDesc().getTableName();
-                String message="Direct deletes are not supported under snapshot isolation. "+
-                        "Instead a Put is expected that will set a record level tombstone. tableName="+tableName;
-                throw new RuntimeException(message);
+        try {
+            if(tableEnvMatch){
+                if(delete.getAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)==null){
+                    TableName tableName=e.getEnvironment().getRegion().getTableDesc().getTableName();
+                    String message="Direct deletes are not supported under snapshot isolation. "+
+                            "Instead a Put is expected that will set a record level tombstone. tableName="+tableName;
+                    throw new RuntimeException(message);
+                }
             }
+            super.preDelete(e,delete,edit,writeToWAL);
+        } catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
         }
-        super.preDelete(e,delete,edit,writeToWAL);
     }
 
     @Override
     public InternalScanner preCompact(ObserverContext<RegionCoprocessorEnvironment> e,Store store,
                                       InternalScanner scanner,ScanType scanType,CompactionRequest compactionRequest) throws IOException{
-        if(tableEnvMatch){
-            SIDriver driver=SIDriver.driver();
-            SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
-                    driver.getRollForward(),
-                    driver.getConfiguration().getActiveTransactionCacheSize());
-            return new SICompactionScanner(state,scanner,false);
-        }else{
-            return super.preCompact(e,store,scanner,scanType,compactionRequest);
+        try {
+            if(tableEnvMatch){
+                SIDriver driver=SIDriver.driver();
+                SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
+                        driver.getRollForward(),
+                        driver.getConfiguration().getActiveTransactionCacheSize());
+                return new SICompactionScanner(state,scanner,false);
+            }else{
+                return super.preCompact(e,store,scanner,scanType,compactionRequest);
+            }
+        } catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
         }
     }
 
     @Override
     public void prePut(ObserverContext<RegionCoprocessorEnvironment> e,Put put,WALEdit edit,Durability writeToWAL) throws IOException{
+        try {
         /*
 		 * This is relatively expensive--it's better to use the write pipeline when you need to load a lot of rows.
 		 */
-        if(!tableEnvMatch || put.getAttribute(SIConstants.SI_NEEDED)==null){
-            super.prePut(e,put,edit,writeToWAL);
-            return;
-        }
-        byte[] attribute=put.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
-        assert attribute!=null: "Transaction not specified!";
-
-
-        TxnView txn=txnOperationFactory.fromWrites(attribute,0,attribute.length);
-        boolean isDelete=put.getAttribute(SIConstants.SI_DELETE_PUT)!=null;
-        byte[] row=put.getRow();
-        boolean isSIDataOnly=true;
-        //convert the put into a collection of KVPairs
-        Map<byte[], Map<byte[], KVPair>> familyMap=Maps.newHashMap();
-        Iterable<Cell> keyValues=Iterables.concat(put.getFamilyCellMap().values());
-        for(Cell kv : keyValues){
-            @SuppressWarnings("deprecation") byte[] family=kv.getFamily();
-            @SuppressWarnings("deprecation") byte[] column=kv.getQualifier();
-            if(!Bytes.equals(column,SIConstants.PACKED_COLUMN_BYTES)) continue; //skip SI columns
-
-            isSIDataOnly=false;
-            @SuppressWarnings("deprecation") byte[] value=kv.getValue();
-            Map<byte[], KVPair> columnMap=familyMap.get(family);
-            if(columnMap==null){
-                columnMap=Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
-                familyMap.put(family,columnMap);
+            if (!tableEnvMatch || put.getAttribute(SIConstants.SI_NEEDED) == null) {
+                super.prePut(e, put, edit, writeToWAL);
+                return;
             }
-            columnMap.put(column,new KVPair(row,value,isDelete?KVPair.Type.DELETE:KVPair.Type.INSERT));
-        }
-        if(isSIDataOnly){
-            byte[] family=SIConstants.DEFAULT_FAMILY_BYTES;
-            byte[] column=SIConstants.PACKED_COLUMN_BYTES;
-            byte[] value=HConstants.EMPTY_BYTE_ARRAY;
-            Map<byte[], KVPair> columnMap=familyMap.get(family);
-            if(columnMap==null){
-                columnMap=Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
-                familyMap.put(family,columnMap);
+            byte[] attribute = put.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
+            assert attribute != null : "Transaction not specified!";
+
+
+            TxnView txn = txnOperationFactory.fromWrites(attribute, 0, attribute.length);
+            boolean isDelete = put.getAttribute(SIConstants.SI_DELETE_PUT) != null;
+            byte[] row = put.getRow();
+            boolean isSIDataOnly = true;
+            //convert the put into a collection of KVPairs
+            Map<byte[], Map<byte[], KVPair>> familyMap = Maps.newHashMap();
+            Iterable<Cell> keyValues = Iterables.concat(put.getFamilyCellMap().values());
+            for (Cell kv : keyValues) {
+                @SuppressWarnings("deprecation") byte[] family = kv.getFamily();
+                @SuppressWarnings("deprecation") byte[] column = kv.getQualifier();
+                if (!Bytes.equals(column, SIConstants.PACKED_COLUMN_BYTES)) continue; //skip SI columns
+
+                isSIDataOnly = false;
+                @SuppressWarnings("deprecation") byte[] value = kv.getValue();
+                Map<byte[], KVPair> columnMap = familyMap.get(family);
+                if (columnMap == null) {
+                    columnMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+                    familyMap.put(family, columnMap);
+                }
+                columnMap.put(column, new KVPair(row, value, isDelete ? KVPair.Type.DELETE : KVPair.Type.INSERT));
             }
-            columnMap.put(column,new KVPair(row,value,isDelete?KVPair.Type.DELETE:KVPair.Type.EMPTY_COLUMN));
-        }
-        for(Map.Entry<byte[], Map<byte[], KVPair>> family : familyMap.entrySet()){
-            byte[] fam=family.getKey();
-            Map<byte[], KVPair> cols=family.getValue();
-            for(Map.Entry<byte[], KVPair> column : cols.entrySet()){
-                boolean processed=false;
-                while (!processed) {
-                    @SuppressWarnings("unchecked") Iterable<MutationStatus> status =
-                            region.bulkWrite(txn, fam, column.getKey(), operationStatusFactory.getNoOpConstraintChecker(), Collections.singleton(column.getValue()), false, false);
-                    Iterator<MutationStatus> itr = status.iterator();
-                    if (!itr.hasNext())
-                        throw new IllegalStateException();
-                    OperationStatus ms = ((HMutationStatus) itr.next()).unwrapDelegate();
-                    switch (ms.getOperationStatusCode()) {
-                        case NOT_RUN:
-                            break;
-                        case BAD_FAMILY:
-                            throw new NoSuchColumnFamilyException(ms.getExceptionMsg());
-                        case SANITY_CHECK_FAILURE:
-                            throw new IOException("Sanity Check failure:" + ms.getExceptionMsg());
-                        case FAILURE:
-                            if (ms instanceof ExtendedOperationStatus) {
-                                throw ((ExtendedOperationStatus)ms).getException();
-                            }
-                            throw new IOException(ms.getExceptionMsg());
-                        default:
-                            processed = true;
+            if (isSIDataOnly) {
+                byte[] family = SIConstants.DEFAULT_FAMILY_BYTES;
+                byte[] column = SIConstants.PACKED_COLUMN_BYTES;
+                byte[] value = HConstants.EMPTY_BYTE_ARRAY;
+                Map<byte[], KVPair> columnMap = familyMap.get(family);
+                if (columnMap == null) {
+                    columnMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+                    familyMap.put(family, columnMap);
+                }
+                columnMap.put(column, new KVPair(row, value, isDelete ? KVPair.Type.DELETE : KVPair.Type.EMPTY_COLUMN));
+            }
+            for (Map.Entry<byte[], Map<byte[], KVPair>> family : familyMap.entrySet()) {
+                byte[] fam = family.getKey();
+                Map<byte[], KVPair> cols = family.getValue();
+                for (Map.Entry<byte[], KVPair> column : cols.entrySet()) {
+                    boolean processed = false;
+                    while (!processed) {
+                        @SuppressWarnings("unchecked") Iterable<MutationStatus> status =
+                                region.bulkWrite(txn, fam, column.getKey(), operationStatusFactory.getNoOpConstraintChecker(), Collections.singleton(column.getValue()), false, false);
+                        Iterator<MutationStatus> itr = status.iterator();
+                        if (!itr.hasNext())
+                            throw new IllegalStateException();
+                        OperationStatus ms = ((HMutationStatus) itr.next()).unwrapDelegate();
+                        switch (ms.getOperationStatusCode()) {
+                            case NOT_RUN:
+                                break;
+                            case BAD_FAMILY:
+                                throw new NoSuchColumnFamilyException(ms.getExceptionMsg());
+                            case SANITY_CHECK_FAILURE:
+                                throw new IOException("Sanity Check failure:" + ms.getExceptionMsg());
+                            case FAILURE:
+                                if (ms instanceof ExtendedOperationStatus) {
+                                    throw ((ExtendedOperationStatus) ms).getException();
+                                }
+                                throw new IOException(ms.getExceptionMsg());
+                            default:
+                                processed = true;
+                        }
                     }
                 }
             }
-        }
 
-        e.bypass();
-        e.complete();
+            e.bypass();
+            e.complete();
+        } catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
+        }
     }
 
     /* ****************************************************************************************************************/
