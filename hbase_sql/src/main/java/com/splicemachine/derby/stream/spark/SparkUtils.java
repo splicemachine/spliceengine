@@ -25,9 +25,11 @@ import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.stream.function.LocatedRowToRowFunction;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaRDDLike;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
@@ -48,6 +50,20 @@ import static org.apache.spark.sql.functions.*;
 
 public class SparkUtils {
     public static final Logger LOG = Logger.getLogger(SparkUtils.class);
+
+    private static final int DEFAULT_PARTITIONS = 20;
+
+    public static int getPartitions(JavaRDDLike<?,?> rdd) {
+        int rddPartitions = rdd.getNumPartitions();
+        return Math.max(rddPartitions, getDefaultPartitions());
+    }
+
+    public static int getPartitions(JavaRDDLike<?,?> rdd1, JavaRDDLike<?,?> rdd2) {
+        int rddPartitions1 = rdd1.getNumPartitions();
+        int rddPartitions2 = rdd2.getNumPartitions();
+        int max = Math.max(rddPartitions1, rddPartitions2);
+        return Math.max(max, getDefaultPartitions());
+    }
 
     public static JavaPairRDD<ExecRow, ExecRow> getKeyedRDD(JavaRDD<ExecRow> rdd, final int[] keyColumns)
             throws StandardException {
@@ -251,6 +267,10 @@ public class SparkUtils {
     }
 
 
+    public static int getDefaultPartitions() {
+        SIDriver driver = SIDriver.driver();
+        return driver != null ? driver.getConfiguration().getOlapShufflePartitions() : DEFAULT_PARTITIONS;
+    }
 }
 
 
