@@ -16,6 +16,7 @@ package com.splicemachine.hbase;
 
 import com.google.common.collect.ImmutableList;
 import com.splicemachine.coprocessor.SpliceMessage;
+import com.splicemachine.si.data.hbase.coprocessor.CoprocessorUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -110,12 +111,16 @@ public abstract class BackupBaseRegionObserver extends SpliceMessage.BackupCopro
     }
 
     public void postSplit(ObserverContext<RegionCoprocessorEnvironment> e, HRegion l, HRegion r) throws IOException {
-        if (LOG.isDebugEnabled()) {
-            HRegion region = (HRegion)e.getEnvironment().getRegion();
-            SpliceLogUtils.debug(LOG, "split %s:%s into %s and %s",
-                    region.getRegionInfo().getTable().getNameAsString(),
-                    region.getRegionInfo().getEncodedName(), l.getRegionInfo().getEncodedName(),
-                    r.getRegionInfo().getEncodedName());
+        try {
+            if (LOG.isDebugEnabled()) {
+                HRegion region = (HRegion)e.getEnvironment().getRegion();
+                SpliceLogUtils.debug(LOG, "split %s:%s into %s and %s",
+                        region.getRegionInfo().getTable().getNameAsString(),
+                        region.getRegionInfo().getEncodedName(), l.getRegionInfo().getEncodedName(),
+                        r.getRegionInfo().getEncodedName());
+            }
+        } catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
         }
     }
 
