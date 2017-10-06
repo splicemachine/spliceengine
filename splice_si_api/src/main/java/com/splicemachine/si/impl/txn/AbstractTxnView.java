@@ -19,7 +19,6 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.Txn.IsolationLevel;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.ByteSlice;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -27,7 +26,6 @@ import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.Iterator;
 
-import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
@@ -40,8 +38,6 @@ public abstract class AbstractTxnView implements TxnView {
     protected long txnId;
     private long beginTimestamp;
     protected Txn.IsolationLevel isolationLevel;
-    private boolean ignoreMissingTxns;
-    private boolean initialized = false;
 
     public AbstractTxnView() {
     	
@@ -70,19 +66,6 @@ public abstract class AbstractTxnView implements TxnView {
         Txn.State currState = getState();
         if(currState== Txn.State.ROLLEDBACK) return currState; //if we are rolled back, then we were rolled back
         TxnView parentTxnView = getParentTxnView();
-        if (!initialized) {
-            SIDriver siDriver = SIDriver.driver();
-            if (siDriver != null) {
-                ignoreMissingTxns = siDriver.getConfiguration().getIgnoreMissingTxns();
-            }
-            initialized = true;
-        }
-        if (parentTxnView == null && ignoreMissingTxns) {
-            if (LOG.isDebugEnabled()) {
-                SpliceLogUtils.debug(LOG, "Parent view of %d cannot be found. Splice assumes the transaction was committed.", txnId);
-            }
-            return Txn.State.COMMITTED;
-        }
         if(Txn.ROOT_TRANSACTION.equals(parentTxnView)) return currState;
         else return parentTxnView.getEffectiveState();
     }
