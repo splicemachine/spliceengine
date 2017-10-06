@@ -27,6 +27,7 @@ import com.splicemachine.access.client.SkeletonClientSideRegionScanner;
 import com.splicemachine.concurrent.Clock;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.*;
@@ -61,6 +62,7 @@ public class SplitRegionScanner implements RegionScanner {
     private Partition clientPartition;
     private Scan initialScan;
     private volatile boolean closed = true;
+    private Cell lastCell = null;
 
     public SplitRegionScanner(Scan scan,
                               Table table,
@@ -138,6 +140,9 @@ public class SplitRegionScanner implements RegionScanner {
                 throw new IOException("Scanner is closed");
             }
             boolean next = currentScanner.nextRaw(results);
+            if (!results.isEmpty()) {
+                lastCell = results.get(0);
+            }
             scannerCount++;
             totalScannerCount++;
             if (!next && scannerPosition < regionScanners.size()) {
@@ -170,7 +175,8 @@ public class SplitRegionScanner implements RegionScanner {
 
     @Override
     public void close() throws IOException {
-        SpliceLogUtils.info(LOG, "close split scanner with table [%s], scan [%s] with rowCount=%d, reinitCount=%d, scannerExceptionCount=%d",htable.getName().toString(),initialScan,totalScannerCount,reInitCount,scanExceptionCount);
+        String lastRow = lastCell != null ? CellUtil.getCellKeyAsString(lastCell) : null;
+        LOG.info(String.format("close split scanner with table [%s], scan [%s] with rowCount=%d, reinitCount=%d, scannerExceptionCount=%d, lastRows=%s",htable.getName().toString(),initialScan,totalScannerCount,reInitCount,scanExceptionCount,lastRow), new RuntimeException());
         closed = true;
         for (RegionScanner rs : regionScanners) {
             rs.close();
