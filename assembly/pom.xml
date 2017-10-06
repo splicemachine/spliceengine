@@ -329,7 +329,7 @@
                                             <fileset dir="target/classes/bin" includes="**/*"/>
                                         </copy>
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts">
-                                            <fileset dir="target/classes/scripts" includes="**/*"/>
+                                            <fileset dir="target/classes/scripts" includes="**/*" excludes="**/flatten.sh,**/restart.sh" />
                                             <fileset dir="common/src/main/resources/scripts" includes="**/*"/>
                                         </copy>
                                         <move file="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-${envClassifier}-${project.version}-splice-uber.jar" tofile="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-uber.jar"/>
@@ -432,7 +432,7 @@
                                             <fileset dir="target/classes/conf" includes="**/*"/>
                                         </copy>
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts">
-                                            <fileset dir="target/classes/scripts" includes="**/*"/>
+                                            <fileset dir="target/classes/scripts" includes="**/*" excludes="**/flatten.sh,**/restart.sh" />
                                             <fileset dir="common/src/main/resources/scripts" includes="**/*"/>
                                         </copy>
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib">
