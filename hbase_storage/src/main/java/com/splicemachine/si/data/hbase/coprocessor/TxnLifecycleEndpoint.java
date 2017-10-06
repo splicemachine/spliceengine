@@ -71,34 +71,42 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
 
     @Override
     public void start(CoprocessorEnvironment env) throws IOException{
-        RegionCoprocessorEnvironment rce=(RegionCoprocessorEnvironment)env;
-        HRegion region=(HRegion)rce.getRegion();
-        HBaseSIEnvironment siEnv = HBaseSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper());
-        SConfiguration configuration=siEnv.configuration();
-        TableType table=EnvUtils.getTableType(configuration,rce);
-        if(table.equals(TableType.TRANSACTION_TABLE)){
-            TransactionResolver resolver=resolverRef.get();
-            SIDriver driver=siEnv.getSIDriver();
-            assert driver!=null:"SIDriver Cannot be null";
-            long txnKeepAliveTimeout = configuration.getTransactionTimeout();
-            @SuppressWarnings("unchecked") TxnPartition regionStore=new RegionTxnStore(region,
-                    driver.getTxnSupplier(),
-                    resolver,
-                    txnKeepAliveTimeout,
-                    new SystemClock());
-            TimestampSource timestampSource=driver.getTimestampSource();
-            int txnLockStrips = configuration.getTransactionLockStripes();
-            lifecycleStore = new StripedTxnLifecycleStore(txnLockStrips,regionStore,
-                    new RegionServerControl(region,rce.getRegionServerServices()),timestampSource);
-            isTxnTable=true;
+        try {
+            RegionCoprocessorEnvironment rce=(RegionCoprocessorEnvironment)env;
+            HRegion region=(HRegion)rce.getRegion();
+            HBaseSIEnvironment siEnv = HBaseSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper());
+            SConfiguration configuration=siEnv.configuration();
+            TableType table=EnvUtils.getTableType(configuration,rce);
+            if(table.equals(TableType.TRANSACTION_TABLE)){
+                TransactionResolver resolver=resolverRef.get();
+                SIDriver driver=siEnv.getSIDriver();
+                assert driver!=null:"SIDriver Cannot be null";
+                long txnKeepAliveTimeout = configuration.getTransactionTimeout();
+                @SuppressWarnings("unchecked") TxnPartition regionStore=new RegionTxnStore(region,
+                        driver.getTxnSupplier(),
+                        resolver,
+                        txnKeepAliveTimeout,
+                        new SystemClock());
+                TimestampSource timestampSource=driver.getTimestampSource();
+                int txnLockStrips = configuration.getTransactionLockStripes();
+                lifecycleStore = new StripedTxnLifecycleStore(txnLockStrips,regionStore,
+                        new RegionServerControl(region,rce.getRegionServerServices()),timestampSource);
+                isTxnTable=true;
+            }
+        } catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
         }
     }
 
     @Override
-    public void stop(CoprocessorEnvironment env){
-        SpliceLogUtils.info(LOG, "Shutting down TxnLifecycleEndpoint");
-        if(isTxnTable) {
-            resolverRef.release(true);
+    public void stop(CoprocessorEnvironment env) throws IOException {
+        try {
+            SpliceLogUtils.info(LOG, "Shutting down TxnLifecycleEndpoint");
+            if(isTxnTable) {
+                resolverRef.release(true);
+            }
+        } catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
         }
     }
 

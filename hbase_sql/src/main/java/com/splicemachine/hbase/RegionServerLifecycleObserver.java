@@ -24,6 +24,7 @@ import com.splicemachine.lifecycle.PipelineEnvironmentLoadService;
 import com.splicemachine.pipeline.PipelineEnvironment;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.si.data.hbase.ZkUpgradeK2;
+import com.splicemachine.si.data.hbase.coprocessor.CoprocessorUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionServerObserver;
@@ -61,15 +62,23 @@ public class RegionServerLifecycleObserver extends BaseRegionServerObserver{
      */
     @Override
     public void start(CoprocessorEnvironment e) throws IOException{
-        isHbaseJVM= true;
-        lifecycleManager = startEngine(e);
-        SpliceClient.isRegionServer = true;
+        try {
+            isHbaseJVM= true;
+            lifecycleManager = startEngine(e);
+            SpliceClient.isRegionServer = true;
+        } catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
+        }
     }
 
     @Override
     public void preStopRegionServer(ObserverContext<RegionServerCoprocessorEnvironment> env) throws IOException{
-        lifecycleManager.shutdown();
-        HBaseRegionLoads.INSTANCE.stopWatching();
+        try {
+            lifecycleManager.shutdown();
+            HBaseRegionLoads.INSTANCE.stopWatching();
+        } catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
+        }
     }
 
     /* ****************************************************************************************************************/
