@@ -157,7 +157,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
             }
             memScannerList.add(getMemStoreScanner());
             this.region = openHRegion();
-            RegionScanner regionScanner = BaseHRegionUtil.getScanner(region, scan, memScannerList);
+            RegionScanner regionScanner = new CountingRegionScanner(BaseHRegionUtil.getScanner(region, scan, memScannerList), region, scan);
             if (flushed) {
                 if (scanner != null)
                     scanner.close();

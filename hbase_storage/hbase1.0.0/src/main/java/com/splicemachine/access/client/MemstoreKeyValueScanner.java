@@ -37,6 +37,7 @@ public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner
     protected Cell[] cells;
     int cellScannerIndex=0;
     private boolean closed=false;
+    private long rows = 0;
 
     public MemstoreKeyValueScanner(ResultScanner resultScanner) throws IOException{
         assert resultScanner!=null:"Passed Result Scanner is null";
@@ -59,6 +60,7 @@ public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner
         if(currentResult!=null){
             cells=currentResult.rawCells();
             peakKeyValue=(KeyValue)current();
+            rows++;
             return true;
         }else{
             cells=null;
@@ -148,6 +150,7 @@ public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner
     @Override
     public void close(){
         if(closed) return;
+        LOG.info("Closed MemstoreScanner after reading " + rows + " rows.");
         if(LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"close");
         resultScanner.close();
