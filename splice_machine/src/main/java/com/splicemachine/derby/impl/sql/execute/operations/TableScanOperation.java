@@ -146,6 +146,7 @@ public class TableScanOperation extends ScanOperation{
                               double optimizerEstimatedCost,
                               String tableVersion,
                               boolean pin,
+                              int splits,
                               String delimited,
                               String escaped,
                               String lines,
@@ -155,7 +156,7 @@ public class TableScanOperation extends ScanOperation{
         super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,
                 sameStartStopPosition,rowIdKey,qualifiersField,resultRowAllocator,lockMode,tableLocked,isolationLevel,
                 colRefItem,indexColItem,oneRowScan,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion,
-                pin,delimited,escaped,lines,storedAs,location,partitionByRefItem);
+                pin,splits,delimited,escaped,lines,storedAs,location,partitionByRefItem);
         SpliceLogUtils.trace(LOG,"instantiated for tablename %s or indexName %s with conglomerateID %d",
                 tableName,indexName,conglomId);
         this.forUpdate=forUpdate;

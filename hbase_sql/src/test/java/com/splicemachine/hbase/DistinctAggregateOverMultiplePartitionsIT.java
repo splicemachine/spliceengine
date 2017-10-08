@@ -13,24 +13,34 @@
  */
 package com.splicemachine.hbase;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
+import org.json4s.jackson.Json;
+import org.json4s.jackson.JsonMethods;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.util.List;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Created by yxia on 6/28/17.
@@ -486,5 +496,89 @@ public class DistinctAggregateOverMultiplePartitionsIT extends SpliceUnitTest {
         resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
         assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
         rs.close();
+    }
+
+    @Test
+    public void testSplitsSparkProperty() throws Exception {
+        TestConnection c = methodWatcher.createConnection();
+        ResultSet rs = c.createStatement().executeQuery("CALL SYSCS_UTIL.SYSCS_GET_SESSION_INFO()");
+        assertTrue(rs.next());
+        String host = rs.getString(1);
+        int session = rs.getInt(2);
+        String id = host + "," + session;
+        rs.close();
+
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+        URL url = new URL("http://localhost:4040/api/v1/applications");
+        List<SparkApp> apps = mapper.readValue(url, new TypeReference<List<SparkApp>>(){});
+        SparkApp app = apps.get(0);
+
+        String sql = "select count(*) from " + spliceSchemaWatcher.schemaName + ".t2 --splice-properties useSpark=true";
+
+        rs = c.createStatement().executeQuery(sql);
+        assertTrue(rs.next());
+        rs.close();
+
+
+        url = new URL(url.toExternalForm() +"/"+app.id+"/jobs");
+        List<SparkJob> jobs =  mapper.readValue(url, new TypeReference<List<SparkJob>>(){});
+        int initialTasks = -1;
+        int splitsTasks = -1;
+
+        for (SparkJob job : jobs) {
+            if (job.jobGroup.contains(id)) {
+                initialTasks = job.numTasks;
+            }
+        }
+
+        assertTrue("Job not found",initialTasks > 0);
+
+        rs = c.createStatement().executeQuery(sql + ", splits=100");
+        assertTrue(rs.next());
+        rs.close();
+
+        jobs =  mapper.readValue(url, new TypeReference<List<SparkJob>>(){});
+        for (SparkJob job : jobs) {
+            if (job.jobGroup.contains(id) && job.numTasks > initialTasks) {
+                splitsTasks = job.numTasks;
+            }
+        }
+
+        assertTrue("Job not found",splitsTasks > initialTasks + 10);
+    }
+
+    public static class SparkJob {
+        private  String jobGroup;
+        private int numTasks;
+
+        public String getJobGroup() {
+            return jobGroup;
+        }
+
+        public void setJobGroup(String jobGroup) {
+            this.jobGroup = jobGroup;
+        }
+
+        public int getNumTasks() {
+            return numTasks;
+        }
+
+        public void setNumTasks(int numTasks) {
+            this.numTasks = numTasks;
+        }
+    }
+
+    public static class SparkApp {
+        private String id;
+
+        public String getId() {
+            return id;
+        }
+
+        public void setId(String id) {
+            this.id = id;
+        }
     }
 }

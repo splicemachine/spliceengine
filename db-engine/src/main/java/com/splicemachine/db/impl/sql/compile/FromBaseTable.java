@@ -111,6 +111,7 @@ public class FromBaseTable extends FromTable {
     private boolean pin;
     int updateOrDelete;
     boolean skipStats;
+    int splits;
 
     /*
     ** The number of rows to bulkFetch.
@@ -659,12 +660,20 @@ public class FromBaseTable extends FromTable {
                 try {
                     skipStats = Boolean.parseBoolean(StringUtil.SQLToUpperCase(value));
                 } catch (Exception skipStatsE) {
-                    throw StandardException.newException(SQLState.LANG_INVALIDE_FORCED_SKIPSTATS,value);
+                    throw StandardException.newException(SQLState.LANG_INVALIDE_FORCED_SKIPSTATS, value);
+                }
+            } else if (key.equals("splits")) {
+                try {
+                    splits = Integer.parseInt(value);
+                    if (splits <= 0)
+                        throw StandardException.newException(SQLState.LANG_INVALID_SPLITS, value);
+                } catch (Exception skipStatsE) {
+                    throw StandardException.newException(SQLState.LANG_INVALID_SPLITS, value);
                 }
             } else{
                 // No other "legal" values at this time
                 throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key,
-                        "index, constraint, joinStrategy, useSpark, pin, skipStats");
+                        "index, constraint, joinStrategy, useSpark, pin, skipStats, splits");
             }
 
 
@@ -2206,6 +2215,7 @@ public class FromBaseTable extends FromTable {
         mb.push(tableDescriptor.getVersion());
         mb.push(printExplainInformationForActivation());
         mb.push(pin);
+        mb.push(splits);
         BaseJoinStrategy.pushNullableString(mb,tableDescriptor.getDelimited());
         BaseJoinStrategy.pushNullableString(mb,tableDescriptor.getEscaped());
         BaseJoinStrategy.pushNullableString(mb,tableDescriptor.getLines());
@@ -2213,7 +2223,7 @@ public class FromBaseTable extends FromTable {
         BaseJoinStrategy.pushNullableString(mb,tableDescriptor.getLocation());
         mb.push(partitionReferenceItem);
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getDistinctScanResultSet",
-                ClassName.NoPutResultSet,25);
+                ClassName.NoPutResultSet,26);
     }
 
     private int getScanArguments(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException{
@@ -2299,6 +2309,7 @@ public class FromBaseTable extends FromTable {
                 multiProbing,
                 tableDescriptor.getVersion(),
                 pin,
+                splits,
                 tableDescriptor.getDelimited(),
                 tableDescriptor.getEscaped(),
                 tableDescriptor.getLines(),

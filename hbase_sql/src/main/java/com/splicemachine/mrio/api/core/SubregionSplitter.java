@@ -26,5 +26,5 @@ import java.util.List;
  * Used to compute a list of splits for a given table smaller than regions
  */
 public interface SubregionSplitter {
-    List<InputSplit> getSubSplits(Table table, List<Partition> splits, byte[] startRow, byte[] stopRow) throws HMissedSplitException;
+    List<InputSplit> getSubSplits(Table table, List<Partition> splits, byte[] startRow, byte[] stopRow, int requestedSplits) throws HMissedSplitException;
 }

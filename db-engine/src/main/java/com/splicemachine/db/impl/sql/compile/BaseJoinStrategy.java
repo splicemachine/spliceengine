@@ -126,6 +126,7 @@ public abstract class BaseJoinStrategy implements JoinStrategy{
                                       boolean tableLocked,
                                       int isolationLevel, String tableVersion,
                                       boolean pin,
+                                      int splits,
                                       String delimited,
                                       String escaped,
                                       String lines,
@@ -194,6 +195,7 @@ public abstract class BaseJoinStrategy implements JoinStrategy{
         mb.push(tableVersion);
         mb.push(innerTable instanceof ResultSetNode ? ((ResultSetNode)innerTable).printExplainInformationForActivation() : "");
         mb.push(pin);
+        mb.push(splits);
         pushNullableString(mb,delimited);
         pushNullableString(mb,escaped);
         pushNullableString(mb,lines);

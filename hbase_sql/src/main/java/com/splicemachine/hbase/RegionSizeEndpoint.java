@@ -69,7 +69,11 @@ public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorServ
         try {
             ByteString beginKey = request.getBeginKey();
             ByteString endKey = request.getEndKey();
-            List<byte[]> splits = computeSplits(region, beginKey.toByteArray(), endKey.toByteArray());
+            int requestedSplits = 0;
+            if (request.hasRequestedSplits()) {
+                requestedSplits = request.getRequestedSplits();
+            }
+            List<byte[]> splits = computeSplits(region, beginKey.toByteArray(), endKey.toByteArray(), requestedSplits);
 
             if (LOG.isDebugEnabled())
                 SpliceLogUtils.debug(LOG,"computeSplits with beginKey=%s, endKey=%s, numberOfSplits=%s",beginKey,endKey,splits.size());
@@ -98,8 +102,8 @@ public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorServ
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
-    private static List<byte[]> computeSplits(HRegion region, byte[] beginKey, byte[] endKey) throws IOException {
-        return BytesCopyTaskSplitter.getCutPoints(region, beginKey, endKey);
+    private static List<byte[]> computeSplits(HRegion region, byte[] beginKey, byte[] endKey, int requestedSplits) throws IOException {
+        return BytesCopyTaskSplitter.getCutPoints(region, beginKey, endKey, requestedSplits);
     }
 
     /**

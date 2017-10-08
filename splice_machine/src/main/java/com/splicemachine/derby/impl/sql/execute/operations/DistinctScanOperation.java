@@ -110,6 +110,7 @@ public class DistinctScanOperation extends ScanOperation {
                                  double optimizerEstimatedCost,
                                  String tableVersion,
                                  boolean pin,
+                                 int splits,
                                  String delimited,
                                  String escaped,
                                  String lines,
@@ -136,7 +137,7 @@ public class DistinctScanOperation extends ScanOperation {
                 optimizerEstimatedRowCount,
                 optimizerEstimatedCost,
                 tableVersion,
-                pin,delimited,escaped,lines,storedAs,location,partitionByRefItem);
+                pin,splits,delimited,escaped,lines,storedAs,location,partitionByRefItem);
         this.hashKeyItem = hashKeyItem;
         this.tableName = Long.toString(scanInformation.getConglomerateId());
         this.tableDisplayName = tableName;
