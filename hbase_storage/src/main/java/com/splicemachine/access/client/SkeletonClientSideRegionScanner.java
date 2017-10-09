@@ -198,10 +198,16 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
         if (matchingFamily(result,ClientRegionConstants.HOLD)) {
             // Second Hold, null out scanner
             if (result.get(0).getTimestamp()== HConstants.LATEST_TIMESTAMP) {
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Second hold, close scanner");
+                }
                 result.clear();
                 return false;
             }
             else { // First Hold, traverse to real records.
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("First hold, skip to real records");
+                }
                 result.clear();
                 return nextMerged(result);
             }
