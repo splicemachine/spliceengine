@@ -99,7 +99,7 @@ public class PropertyConglomerate {
 			//
 			serviceProperties.put(Property.PROPERTIES_CONGLOM_ID, Long.toString(propertiesConglomId));
 			serviceProperties.put(Property.ROW_LOCKING, "false");
-			serviceProperties.put("derby.language.logStatementText", "false");
+			serviceProperties.put("derby.language.logStatementText", "true");
 			serviceProperties.put("derby.language.logQueryPlan", "false");
 			serviceProperties.put(Property.LOCKS_ESCALATION_THRESHOLD, "500");
 			serviceProperties.put(Property.DATABASE_PROPERTIES_ONLY, "false");
