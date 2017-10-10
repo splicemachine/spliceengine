@@ -74,11 +74,11 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 		@Override
 		public KeyValue peek() {
 			if (didWeFlush()) {
-				if (LOG.isTraceEnabled())
-					SpliceLogUtils.trace(LOG, "already Flushed");
+//				if (LOG.isTraceEnabled())
+//					SpliceLogUtils.trace(LOG, "already Flushed");
 				if (flushAlreadyReturned) {
-					if (LOG.isTraceEnabled())
-						SpliceLogUtils.trace(LOG, "returning counter");				
+//					if (LOG.isTraceEnabled())
+//						SpliceLogUtils.trace(LOG, "returning counter");
 					return new KeyValue(Bytes.toBytes(counter),ClientRegionConstants.FLUSH,ClientRegionConstants.FLUSH, 0l,ClientRegionConstants.FLUSH);
 				}
 				else {
@@ -92,8 +92,8 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 			Cell peek = super.peek();
 			if (peek == null) {
 				endRowNeedsToBeReturned = true;
-                if (LOG.isTraceEnabled())
-                    SpliceLogUtils.trace(LOG, "endRow -->" + counter);
+//                if (LOG.isTraceEnabled())
+//                    SpliceLogUtils.trace(LOG, "endRow -->" + counter);
                 return new KeyValue(Bytes.toBytes(counter),ClientRegionConstants.HOLD,ClientRegionConstants.HOLD, HConstants.LATEST_TIMESTAMP,ClientRegionConstants.HOLD);
 			}
 			return (KeyValue)peek;
