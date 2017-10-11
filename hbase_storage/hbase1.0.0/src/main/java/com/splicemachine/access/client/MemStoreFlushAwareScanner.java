@@ -74,11 +74,7 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 		@Override
 		public KeyValue peek() {
 			if (didWeFlush()) {
-//				if (LOG.isTraceEnabled())
-//					SpliceLogUtils.trace(LOG, "already Flushed");
 				if (flushAlreadyReturned) {
-//					if (LOG.isTraceEnabled())
-//						SpliceLogUtils.trace(LOG, "returning counter");
 					return new KeyValue(Bytes.toBytes(counter),ClientRegionConstants.FLUSH,ClientRegionConstants.FLUSH, 0l,ClientRegionConstants.FLUSH);
 				}
 				else {
@@ -87,13 +83,14 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 					return ClientRegionConstants.MEMSTORE_BEGIN_FLUSH;
 				}
 			}
-			if (beginRow)
+			if (beginRow) {
+				if (LOG.isTraceEnabled())
+					SpliceLogUtils.trace(LOG, "Peek: memstore begin");
 				return ClientRegionConstants.MEMSTORE_BEGIN;
+			}
 			Cell peek = super.peek();
 			if (peek == null) {
 				endRowNeedsToBeReturned = true;
-//                if (LOG.isTraceEnabled())
-//                    SpliceLogUtils.trace(LOG, "endRow -->" + counter);
                 return new KeyValue(Bytes.toBytes(counter),ClientRegionConstants.HOLD,ClientRegionConstants.HOLD, HConstants.LATEST_TIMESTAMP,ClientRegionConstants.HOLD);
 			}
 			return (KeyValue)peek;
@@ -123,6 +120,8 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 		public boolean internalNext(List<Cell> outResult) throws IOException {
                 if (beginRow) {
                     beginRow = false;
+					if (LOG.isTraceEnabled())
+						SpliceLogUtils.trace(LOG, "Next: memstore begin");
                     return outResult.add(ClientRegionConstants.MEMSTORE_BEGIN);
                 }
                 if (endRowNeedsToBeReturned) {
@@ -142,6 +141,8 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
                         }
                     } else {
                         flushAlreadyReturned = true;
+						if (LOG.isTraceEnabled())
+							SpliceLogUtils.trace(LOG, "Next: returning begin flush ");
                         outResult.add(ClientRegionConstants.MEMSTORE_BEGIN_FLUSH);
                     }
                     return true;
