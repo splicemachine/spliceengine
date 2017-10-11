@@ -114,7 +114,7 @@ public class BasicPrivilegesNode extends QueryTreeNode
 					throw StandardException.newException(SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED,
 									td.getQualifiedName());
 
-			if (dd.isEEManagerEnabled() && (action == TablePrivilegeInfo.SELECT_ACTION) && (actionAllowed[action]))
+			if (dd.isEEManagerEnabled() && action == TablePrivilegeInfo.SELECT_ACTION)
 				// Make table level privileges to column level
 				if (columnBitSets[action] == null) {
 					int size = td.getColumnDescriptorList().size();
