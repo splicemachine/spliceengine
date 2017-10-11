@@ -72,8 +72,6 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
     public List<InputSplit> getSplits(JobContext context) throws IOException,
             InterruptedException {
         setConf(context.getConfiguration());
-        if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG, "getSplits with context=%s",context);
         Scan s;
         try {
             TableScannerBuilder tsb = TableScannerBuilder.getTableScannerBuilderFromBase64String(conf.get(MRConstants.SPLICE_SCAN_INFO));
@@ -82,6 +80,8 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
             SpliceLogUtils.error(LOG, e);
             throw new IOException(e);
         }
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "getSplits with context={%s}, scan={%s}",context,s);
         SIDriver driver = SIDriver.driver();
         HBaseConnectionFactory instance = HBaseConnectionFactory.getInstance(driver.getConfiguration());
         Clock clock = driver.getClock();
@@ -115,6 +115,7 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
                         throw new RuntimeException("MAX_RETRIES exceeded during getSplits");
                     }
                 } else {
+                    LOG.info("Splits: " + lss);
                    return lss;
                 }
 
