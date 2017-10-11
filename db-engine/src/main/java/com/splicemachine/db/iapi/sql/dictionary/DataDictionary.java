@@ -1819,12 +1819,6 @@ public interface DataDictionary{
     ColPermsDescriptor getColumnPermissions(UUID tableUUID,int privType,boolean forGrant,String authorizationId) throws StandardException;
 
     /**
-     * is Enterprise Edition Manager is enabled
-     * @return true if enabled
-     */
-    public boolean isEEManagerEnabled();
-
-    /**
      * Get one user's column privileges on a table using colPermsUUID
      *
      * @param colPermsUUID the uuid of the column permissions to fetch

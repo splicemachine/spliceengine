@@ -100,9 +100,7 @@ public class BasicPrivilegesNode extends QueryTreeNode
 	public void bind( TableDescriptor td, boolean isGrant) throws StandardException
 	{
 		this.td = td;
-		LanguageConnectionContext lcc = getLanguageConnectionContext();
-		DataDictionary dd = lcc.getDataDictionary();
-
+			
 		for( int action = 0; action < TablePrivilegeInfo.ACTION_COUNT; action++)
 		{
 			if( columnLists[ action] != null)
@@ -113,20 +111,7 @@ public class BasicPrivilegesNode extends QueryTreeNode
 				if (actionAllowed[action])
 					throw StandardException.newException(SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED,
 									td.getQualifiedName());
-
-			if (dd.isEEManagerEnabled() && action == TablePrivilegeInfo.SELECT_ACTION)
-				// Make table level privileges to column level
-				if (columnBitSets[action] == null) {
-					int size = td.getColumnDescriptorList().size();
-					FormatableBitSet keys = new FormatableBitSet(size + 1);
-					for (int j = 0; j < size; j++) {
-						int colPos = td.getColumnDescriptorList().get(j).getPosition() - 1;
-						keys.set(colPos);
-					}
-					columnBitSets[action] = keys;
-				}
-
-			}
+		}
 		
 		if (isGrant && td.getTableType() == TableDescriptor.VIEW_TYPE)
 		{
