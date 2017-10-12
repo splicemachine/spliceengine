@@ -1223,7 +1223,7 @@ public class JoinNode extends TableOperatorNode{
      * be overridden for other types of joins (for example, outer joins).
      */
     protected int getNumJoinArguments(){
-        return 12;
+        return 13;
     }
 
     /**
@@ -1854,6 +1854,9 @@ public class JoinNode extends TableOperatorNode{
 
         // Does right side return a single row
         oneRowRightSide(acb,mb);
+
+        // Is the right from SSQ
+        mb.push(rightResultSet.getFromSSQ());
 
         // estimated row count
         mb.push(costEstimate.rowCount());

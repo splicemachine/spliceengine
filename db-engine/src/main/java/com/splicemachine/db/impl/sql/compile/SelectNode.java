@@ -403,6 +403,7 @@ public class SelectNode extends ResultSetNode{
      */
     public SubqueryList getWhereSubquerys(){ return whereSubquerys; }
 
+    public SubqueryList getHavingSubquerys() {return havingSubquerys; }
     /**
      * Bind the tables in this SelectNode.  This includes getting their
      * TableDescriptors from the DataDictionary and numbering the FromTables.
@@ -929,6 +930,15 @@ public class SelectNode extends ResultSetNode{
                 }
             }
         }
+
+        /**
+         * Now that we have flatten all flattenable subqueries. For table in FromList, it is originally from the
+         * Scalar subquery in the Select List, we want them to be joined last after all the other tables are joined.
+         * These joins need to be done as outer join and also we need to enforce scalar subquery's "at most one row"
+         * semantic check at run time, so they could be expensive.
+         * Set their dependencyMap so that they can be joined last.
+         */
+        fromList.setDependencyMapForSSQ(numTables);
 
 		/* A valid group by without any aggregates or a having clause
 		 * is equivalent to a distinct without the group by.  We do the transformation
@@ -1715,18 +1725,33 @@ public class SelectNode extends ResultSetNode{
 			/* Now we're finally ready to generate the JoinNode and have it
 			 * replace the 1st 2 entries in the FromList.
 			 */
-            JoinNode joinNode = (JoinNode)getNodeFactory().getNode(
-                    C_NodeTypes.JOIN_NODE,
-                    leftResultSet,
-                    rightResultSet,
-                    null,
-                    null,
-                    leftRCList,
-                    null,
-                    //user supplied optimizer overrides
-                    fromList.properties,
-                    getContextManager()
-            );
+			JoinNode joinNode;
+			if (!rightResultSet.getFromSSQ()) {
+                joinNode = (JoinNode) getNodeFactory().getNode(
+                        C_NodeTypes.JOIN_NODE,
+                        leftResultSet,
+                        rightResultSet,
+                        null,
+                        null,
+                        leftRCList,
+                        null,
+                        //user supplied optimizer overrides
+                        fromList.properties,
+                        getContextManager()
+                );
+            } else {
+			    joinNode = (JoinNode)getNodeFactory().getNode(
+                        C_NodeTypes.HALF_OUTER_JOIN_NODE,
+                        leftResultSet,
+                        rightResultSet,
+                        null,                          // join clause
+                        null,                                // using clause
+                        Boolean.FALSE,                       // is right join
+                        null,                                // table props
+                        getContextManager());
+			    rightRCList.setNullability(true);
+                joinNode.setResultColumns(leftRCList);
+            }
 
             fromList.setElementAt(joinNode.genProjectRestrict(),
                     0
@@ -2314,7 +2339,7 @@ public class SelectNode extends ResultSetNode{
     public static class SelectNodeWithSubqueryPredicate implements org.spark_project.guava.base.Predicate<Visitable> {
         @Override
         public boolean apply(Visitable input) {
-            return (input instanceof SelectNode) && !((SelectNode) input).getWhereSubquerys().isEmpty();
+            return (input instanceof SelectNode) && (!((SelectNode) input).getWhereSubquerys().isEmpty() || !((SelectNode) input).getSelectSubquerys().isEmpty());
         }
     }
     public static class SelectNodeNestingLevelFunction implements org.spark_project.guava.base.Function<SelectNode, Integer> {

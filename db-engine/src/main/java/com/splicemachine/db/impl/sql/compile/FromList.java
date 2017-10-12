@@ -1343,4 +1343,21 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
     public Properties getProperties() {
         return properties;
     }
+
+    public void setDependencyMapForSSQ(int numTables) {
+        // iterate through the list to collect the tablenumber
+        JBitSet dependencyMap = new JBitSet(numTables);
+        for(int i=0; i<size(); i++) {
+            FromTable fromTable = (FromTable) elementAt(i);
+            if (!fromTable.getFromSSQ())
+                dependencyMap.or(fromTable.getReferencedTableMap());
+        }
+
+        // set dependencyMap
+        for (int i=0; i<size(); i++) {
+            FromTable fromTable = (FromTable) elementAt(i);
+            if (fromTable.getFromSSQ())
+                fromTable.setDependencyMap((JBitSet)dependencyMap.clone());
+        }
+    }
 }

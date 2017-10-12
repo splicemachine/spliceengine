@@ -45,6 +45,7 @@ public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, It
     private transient boolean hasNext = false;
     protected ExecRow mergedRow;
     protected RightsForLeftsIterator rightsForLeftsIterator;
+    protected boolean forSSQ = false;
 
     /**
      * MergeJoinRows constructor. Note that keys for left & right sides
@@ -75,6 +76,8 @@ public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, It
             joinKeys[i * 2 + 1] = rightKeys[i] + 1;
         }
         this.operationContext = operationContext;
+        if (mergeJoinOperation.rightFromSSQ)
+            forSSQ = true;
     }
 
     private int compare(ExecRow left, ExecRow right) throws StandardException {

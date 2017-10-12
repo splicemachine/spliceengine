@@ -33,10 +33,13 @@ package com.splicemachine.db.impl.sql.compile.subquery;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.ast.CollectingVisitorBuilder;
+import com.splicemachine.db.impl.sql.compile.CursorNode;
+import com.splicemachine.db.impl.sql.compile.InsertNode;
 import com.splicemachine.db.impl.sql.compile.SelectNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.compile.subquery.aggregate.AggregateSubqueryFlatteningVisitor;
 import com.splicemachine.db.impl.sql.compile.subquery.exists.ExistsSubqueryFlatteningVisitor;
+import com.splicemachine.db.impl.sql.compile.subquery.ssq.ScalarSubqueryFaltteningVisitor;
 import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.collect.Multimap;
 import org.spark_project.guava.collect.Multimaps;
@@ -85,10 +88,15 @@ public class SubqueryFlattening {
             Collection<SelectNode> selectNodes = selectMap.get(nestingLevel);
             AggregateSubqueryFlatteningVisitor aggregateFlatteningVisitor = new AggregateSubqueryFlatteningVisitor(nestingLevel);
             ExistsSubqueryFlatteningVisitor existsFlatteningVisitor = new ExistsSubqueryFlatteningVisitor(nestingLevel);
+            ScalarSubqueryFaltteningVisitor scalarSubqueryFaltteningVisitor = new ScalarSubqueryFaltteningVisitor(nestingLevel);
+
 
             for (SelectNode selectNode : selectNodes) {
                 selectNode.accept(aggregateFlatteningVisitor);
                 selectNode.accept(existsFlatteningVisitor);
+                // restrict the optimization for SELECT operation and INSERT operation (create table as, insert-select)
+                if (statementNode instanceof CursorNode || statementNode instanceof InsertNode)
+                    selectNode.accept(scalarSubqueryFaltteningVisitor);
             }
 
         }
