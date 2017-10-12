@@ -1,4 +1,4 @@
-/*
+ /*
  * Copyright (c) 2012 - 2017 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.IterableJoinFunction;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -57,6 +58,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
     protected boolean isLeftOuterJoin;
     protected boolean isAntiJoin;
     protected boolean isOneRowInnerJoin;
+    protected boolean hasMatch;
 
     protected ExecutorCompletionService<Pair<OperationContext, Iterator<ExecRow>>> completionService;
 
@@ -112,6 +114,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                 leftRowLocation = new HBaseRowLocation(leftRow.getKey());
                 operationContext.getOperation().getLeftOperation().setCurrentRow(getLeftLocatedRow());
                 operationContext.getOperation().getLeftOperation().setCurrentRowLocation(getLeftRowLocation());
+                hasMatch = false;
                 nLeftRows--;
             }
         }
@@ -152,10 +155,21 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                     leftRowLocation = new HBaseRowLocation(leftRow.getKey());
                     operationContext.getOperation().getLeftOperation().setCurrentRow(getLeftLocatedRow());
                     operationContext.getOperation().getLeftOperation().setCurrentRowLocation(getLeftRowLocation());
+                    hasMatch = false;
                 }
             }
 
-            return rightSideNLJIterator.hasNext();
+            boolean result = rightSideNLJIterator.hasNext();
+            if (result) {
+                if (!hasMatch)
+                    hasMatch = true;
+                else {
+                    // for SSQ, if we get a second matching row for the same left row, report error
+                    if (forSSQ)
+                        throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
+                }
+            }
+            return result;
         }
         catch (Exception e) {
             throw new RuntimeException(e);

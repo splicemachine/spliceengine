@@ -1048,8 +1048,25 @@ public class OptimizerImpl implements Optimizer{
             return;
         }
 
+        /* if the current optimizable is from SSQ, we need to use outer join, set the OuterJoin flag in cost accordingly */
+        boolean savedOuterJFlag = false;
+        if (optimizable instanceof FromTable) {
+            FromTable fromTable = (FromTable)optimizable;
+            if (fromTable.getFromSSQ()) {
+                savedOuterJFlag = outerCost.isOuterJoin();
+                outerCost.setOuterJoin(true);
+            }
+        }
 		/* Cost the optimizable at the current join position */
         optimizable.optimizeIt(this,predicateList,outerCost,currentRowOrdering);
+        /* reset the OuterJoin flag so that we can cost correctly if the outer optimizable later joins with
+           other optimizable through inner join
+         */
+        if (optimizable instanceof FromTable) {
+            FromTable fromTable = (FromTable)optimizable;
+            if (fromTable.getFromSSQ())
+                outerCost.setOuterJoin(savedOuterJFlag);
+        }
     }
 
     @Override

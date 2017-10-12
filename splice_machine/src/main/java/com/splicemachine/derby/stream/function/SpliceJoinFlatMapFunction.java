@@ -30,6 +30,7 @@ public abstract class SpliceJoinFlatMapFunction<Op extends SpliceOperation, From
     public boolean initialized = false;
     public int numberOfColumns = 0;
     public ExecutionFactory executionFactory;
+    public boolean forSSQ = false;
 
     public SpliceJoinFlatMapFunction() {
 	}
@@ -43,6 +44,7 @@ public abstract class SpliceJoinFlatMapFunction<Op extends SpliceOperation, From
             op = (JoinOperation) getOperation();
             numberOfColumns = op.getLeftNumCols()+op.getRightNumCols();
             executionFactory = op.getExecutionFactory();
+            forSSQ = op.rightFromSSQ;
             initialized = true;
         }
     }

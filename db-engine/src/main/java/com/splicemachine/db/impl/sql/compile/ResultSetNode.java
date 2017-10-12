@@ -985,6 +985,10 @@ public abstract class ResultSetNode extends QueryTreeNode{
         return false;
     }
 
+    public boolean getFromSSQ() {
+        // Default is false
+        return false;
+    }
     /**
      * Accept the visitor for all visitable children of this node.
      *
