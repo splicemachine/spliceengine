@@ -147,7 +147,7 @@ public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner
     @Override
     public void close(){
         if(closed) return;
-        LOG.info("Closed MemstoreScanner after reading " + rows + " rows.");
+        LOG.info("Closed MemstoreScanner after reading " + rows + " rows.", new RuntimeException());
         if(LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"close");
         resultScanner.close();

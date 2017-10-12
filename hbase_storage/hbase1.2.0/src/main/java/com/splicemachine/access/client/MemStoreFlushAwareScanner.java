@@ -77,11 +77,7 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
     @Override
     public KeyValue peek() {
         if (didWeFlush()) {
-//            if (LOG.isTraceEnabled())
-//                SpliceLogUtils.trace(LOG, "Peek: already Flushed");
             if (flushAlreadyReturned) {
-//                if (LOG.isTraceEnabled())
-//                    SpliceLogUtils.trace(LOG, "returning counter " + counter);
                 return new KeyValue(Bytes.toBytes(counter),ClientRegionConstants.FLUSH,ClientRegionConstants.FLUSH, 0l,ClientRegionConstants.FLUSH);
             }
             else {
@@ -98,8 +94,6 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
         Cell peek = super.peek();
         if (peek == null) {
             endRowNeedsToBeReturned = true;
-//            if (LOG.isTraceEnabled())
-//                SpliceLogUtils.trace(LOG, "Peek: endRow -->" + counter);
             return new KeyValue(Bytes.toBytes(counter),ClientRegionConstants.HOLD,ClientRegionConstants.HOLD, HConstants.LATEST_TIMESTAMP,ClientRegionConstants.HOLD);
         }
         return (KeyValue)peek;
@@ -135,8 +129,6 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
         }
         if (endRowNeedsToBeReturned) {
             try {
-//                if (LOG.isTraceEnabled())
-//                    SpliceLogUtils.trace(LOG, "Next: memstore end");
                 outResult.add(new KeyValue(Bytes.toBytes(counter), ClientRegionConstants.HOLD, ClientRegionConstants.HOLD, HConstants.LATEST_TIMESTAMP, ClientRegionConstants.HOLD));
                 return HBasePlatformUtils.scannerEndReached(scannerContext);
             } finally {
@@ -144,12 +136,8 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
             }
         }
         if (didWeFlush()) {
-//            if (LOG.isTraceEnabled())
-//                SpliceLogUtils.trace(LOG, "Next: already flushed");
             if (flushAlreadyReturned) {
                 try {
-//                    if (LOG.isTraceEnabled())
-//                        SpliceLogUtils.trace(LOG, "Next: returning counter " + counter);
                     outResult.add(new KeyValue(Bytes.toBytes(counter),
                             ClientRegionConstants.FLUSH, ClientRegionConstants.FLUSH, Long.MAX_VALUE, ClientRegionConstants.FLUSH));
                     return HBasePlatformUtils.scannerEndReached(scannerContext);
@@ -170,7 +158,7 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
     @Override
     public void close() {
         if (LOG.isDebugEnabled()) {
-            SpliceLogUtils.debug(LOG, "close");
+            SpliceLogUtils.debug(LOG, "close", new RuntimeException());
         }
         super.close();
         boolean shouldC;
