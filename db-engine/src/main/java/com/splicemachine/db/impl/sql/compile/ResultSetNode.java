@@ -48,8 +48,12 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
-import java.util.*;
 import org.apache.commons.lang3.text.WordUtils;
+
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.Vector;
 
 /**
  * A ResultSetNode represents a result set, that is, a set of rows.  It is
@@ -1106,7 +1110,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
             OptimizerFactory optimizerFactory=lcc.getOptimizerFactory();
 
             int numTables=getCompilerContext().getNumTables();
-            optimizer=optimizerFactory.getOptimizer(optList,predList,dataDictionary,requiredRowOrdering,numTables,lcc);
+            optimizer=optimizerFactory.getOptimizer(optList,predList,dataDictionary,requiredRowOrdering,getCompilerContext().getMaximalPossibleTableCount(),lcc);
         }
 
         optimizer.prepForNextRound();
