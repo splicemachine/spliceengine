@@ -99,6 +99,17 @@ public class Subquery_Table_IT {
             s.executeUpdate("insert into childT select i+256, j+256, k+256 from parentT");
             s.executeUpdate("insert into childT select i+512, j+512, k+512 from parentT");
             s.executeUpdate("insert into childT select i+1024, j+1024, k+1024 from parentT");
+
+            s.executeUpdate("create table tt1 (a1 int, b1 int, c1 int)");
+            s.executeUpdate("insert into tt1 values (1,1,1),(2,2,2),(3,3,3),(4,4,4)");
+            s.executeUpdate("create table tt2 (a2 int, b2 int, c2 int)");
+            s.executeUpdate("insert into tt2 select * from tt1");
+            s.executeUpdate("create table tt3 (a3 int, b3 int, c3 int)");
+            s.executeUpdate("insert into tt3 select * from tt1");
+            s.executeUpdate("insert into tt3 select * from tt1");
+            s.executeUpdate("create table tt4 (a4 int, b4 int, c4 int)");
+            s.executeUpdate("insert into tt4 select * from tt1");
+            s.executeUpdate("insert into tt4 select * from tt1");
         }
     }
 
@@ -403,6 +414,494 @@ public class Subquery_Table_IT {
                 "10 |11 |13 |");
     }
 
+    @Test
+    public void testNonCorrelatedInSubqueryViaControl() throws Exception {
+        /* test logic to convert where clause non-flattenable, non-correlated subquery to
+           from subquery (DT), so that they can be joined to the outer table through inclusion join
+         */
+        /* Q1: non-correlated IN subquery with more than one table */
+        String sql = "select * from tt1 --splice-properties useSpark=false\n where a1 in (select a2 from tt2, tt4 where b2=b4)";
+        String expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 |\n" +
+                " 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q2: non-correlated IN subquery with nested correlated subquery */
+        sql = "select * from tt1  --splice-properties useSpark=false\n where a1 in (select a3 from tt3 where a3 in (select a4 from tt4 where b3=b4 and b4 in (1,2)))";
+        expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q3: non-correlated IN subquery with nested non-correlated subquery */
+        sql = "select * from tt1 --splice-properties useSpark=false\n where a1 in (select a3 from tt3 where a3 in (select a4 from tt4 where b4=1))";
+        expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 1 | 1 | 1 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q4: non-correlated subquery with multiple tables on left */
+        sql = "select * from tt1, tt2 --splice-properties useSpark=false\n where b1=b2 and a1 in (select a3 from tt3, tt4 where b3=b4)";
+        expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+                "------------------------\n" +
+                " 1 | 1 | 1 | 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 | 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 | 3 | 3 | 3 |\n" +
+                " 4 | 4 | 4 | 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q5: non-correlated subquery with expression on left */
+        sql = "select * from tt1, tt2 --splice-properties useSpark=false\n where b1=b2 and a1+a2 in (select a3 from tt3, tt4 where b3=b4)";
+        expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+                "------------------------\n" +
+                " 1 | 1 | 1 | 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 | 2 | 2 | 2 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q6: non-correlated subquery with expression on right */
+        sql = "select * from tt1, tt2 --splice-properties useSpark=false\n where b1=b2 and a1 in (select a3+a4 from tt3, tt4 where b3=b4)";
+        expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+                "------------------------\n" +
+                " 2 | 2 | 2 | 2 | 2 | 2 |\n" +
+                " 4 | 4 | 4 | 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q7: constant expression on left */
+        sql = "select * from tt1, tt2 --splice-properties useSpark=false\n where b1=b2 and 3 in (select a3 from tt3, tt4 where b3=b4)";
+        expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+                "------------------------\n" +
+                " 1 | 1 | 1 | 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 | 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 | 3 | 3 | 3 |\n" +
+                " 4 | 4 | 4 | 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q8: constant expression on right */
+        sql = "select * from tt1, tt2 --splice-properties useSpark=false\n where b1=b2 and a1 in (select 3 from tt3, tt4 where b3=b4)";
+        expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+                "------------------------\n" +
+                " 3 | 3 | 3 | 3 | 3 | 3 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q9: multiple level of non-correlated subqueries */
+        sql = "select * from tt1 --splice-properties useSpark=false\n where a1 in (select a2 from tt2 where c2= 3 and b2 in (select 3 from tt3, tt4 where b3=b4))";
+        expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 3 | 3 | 3 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q10: negative test case, non-flattened correlated subquery are not converted to from subquery */
+        sql = "select * from tt1 --splice-properties useSpark=false\n where a1 in (select a2 from tt2, tt4 where b2=b4 and b1=b2)";
+        expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 |\n" +
+                " 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ONE_SUBQUERY_NODE, expected);
+
+        /* Q11: negative test case, NOT IN non-flattened correlated subquery are not converted to from subquery */
+        sql = "select * from tt1 --splice-properties useSpark=false\n where a1 not in (select a2 from tt2, tt4 where b2=b4 and b2=3)";
+        expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 |\n" +
+                " 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ONE_SUBQUERY_NODE, expected);
+    }
+
+    @Test
+    public void testNonCorrelatedInSubqueryViaSpark() throws Exception {
+        /* test logic to convert where clause non-flattenable, non-correlated subquery to
+           from subquery (DT), so that they can be joined to the outer table through inclusion join
+         */
+        /* Q1: non-correlated IN subquery with more than one table */
+        String sql = "select * from tt1 --splice-properties useSpark=true\n where a1 in (select a2 from tt2, tt4 where b2=b4)";
+        String expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 |\n" +
+                " 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q2: non-correlated IN subquery with nested correlated subquery */
+        sql = "select * from tt1  --splice-properties useSpark=true\n where a1 in (select a3 from tt3 where a3 in (select a4 from tt4 where b3=b4 and b4 in (1,2)))";
+        expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q3: non-correlated IN subquery with nested non-correlated subquery */
+        sql = "select * from tt1 --splice-properties useSpark=true\n where a1 in (select a3 from tt3 where a3 in (select a4 from tt4 where b4=1))";
+        expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 1 | 1 | 1 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q4: non-correlated subquery with multiple tables on left */
+        sql = "select * from tt1, tt2 --splice-properties useSpark=true\n where b1=b2 and a1 in (select a3 from tt3, tt4 where b3=b4)";
+        expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+                "------------------------\n" +
+                " 1 | 1 | 1 | 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 | 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 | 3 | 3 | 3 |\n" +
+                " 4 | 4 | 4 | 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q5: non-correlated subquery with expression on left */
+        sql = "select * from tt1, tt2 --splice-properties useSpark=true\n where b1=b2 and a1+a2 in (select a3 from tt3, tt4 where b3=b4)";
+        expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+                "------------------------\n" +
+                " 1 | 1 | 1 | 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 | 2 | 2 | 2 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q6: non-correlated subquery with expression on right */
+        sql = "select * from tt1, tt2 --splice-properties useSpark=true\n where b1=b2 and a1 in (select a3+a4 from tt3, tt4 where b3=b4)";
+        expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+                "------------------------\n" +
+                " 2 | 2 | 2 | 2 | 2 | 2 |\n" +
+                " 4 | 4 | 4 | 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q7: constant expression on left */
+        sql = "select * from tt1, tt2 --splice-properties useSpark=true\n where b1=b2 and 3 in (select a3 from tt3, tt4 where b3=b4)";
+        expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+                "------------------------\n" +
+                " 1 | 1 | 1 | 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 | 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 | 3 | 3 | 3 |\n" +
+                " 4 | 4 | 4 | 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q8: constant expression on right */
+        sql = "select * from tt1, tt2 --splice-properties useSpark=true\n where b1=b2 and a1 in (select 3 from tt3, tt4 where b3=b4)";
+        expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+                "------------------------\n" +
+                " 3 | 3 | 3 | 3 | 3 | 3 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q9: multiple level of non-correlated subqueries */
+        sql = "select * from tt1 --splice-properties useSpark=true\n where a1 in (select a2 from tt2 where c2= 3 and b2 in (select 3 from tt3, tt4 where b3=b4))";
+        expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 3 | 3 | 3 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q10: negative test case, non-flattened correlated subquery are not converted to from subquery */
+        sql = "select * from tt1 --splice-properties useSpark=true\n where a1 in (select a2 from tt2, tt4 where b2=b4 and b1=b2)";
+        expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 |\n" +
+                " 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ONE_SUBQUERY_NODE, expected);
+
+        /* Q11: negative test case, NOT IN non-flattened correlated subquery are not converted to from subquery */
+        sql = "select * from tt1 --splice-properties useSpark=true\n where a1 not in (select a2 from tt2, tt4 where b2=b4 and b2=3)";
+        expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 |\n" +
+                " 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ONE_SUBQUERY_NODE, expected);
+    }
+
+    @Test
+    public void testNonCorrelatedExistsSubqueryViaControl() throws Exception {
+        /* many exists have been flattened before the optimize phase's preprocess(), for the remaining
+           cases that cannot be flattened and it is a non-correlated subquery, we convert it to
+           from subquery (DT), so that they can be joined to the outer table through inclusion join
+         */
+        /* Q1: non-correlated EXISTS subquery with more than one table, exists is flattened */
+        String sql = "select * from tt1 --splice-properties useSpark=false\n where exists (select a2 from tt2, tt4 where b2=b4)";
+        String expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 |\n" +
+                " 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q2: non-correlated EXISTS subquery with nested correlated subquery, exists is not flattened */
+        sql = "select * from tt1 --splice-properties useSpark=false\n where exists (select a3 from tt3 where a3 in (select a4 from tt4 where b3=b4 and b4 in (1,2)))";
+        expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 |\n" +
+                " 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q3: non-correlated EXISTS subquery with nested non-correlated subquery, exists is flattened */
+        sql = "select * from tt1 --splice-properties useSpark=false\n where exists (select a3 from tt3 where a3 in (select a4 from tt4 where b4=0))";
+        expected = "";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q4: non-correlated subquery with multiple tables on left, exists is flattened */
+        sql = "select * from tt1, tt2 --splice-properties useSpark=false\n where a1=a2 and exists (select a3 from tt3, tt4 where b3=b4)";
+        expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+                "------------------------\n" +
+                " 1 | 1 | 1 | 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 | 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 | 3 | 3 | 3 |\n" +
+                " 4 | 4 | 4 | 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q5: non-correlated subquery with expression on right, exists is flattened */
+        sql = "select * from tt1, tt2 --splice-properties useSpark=false\n where b1=b2 and exists (select a3+a4 from tt3, tt4 where b3=b4)";
+        expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+                "------------------------\n" +
+                " 1 | 1 | 1 | 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 | 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 | 3 | 3 | 3 |\n" +
+                " 4 | 4 | 4 | 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q6: negative test case, NOT exists */
+        sql = "select * from tt1, tt2 --splice-properties useSpark=false\n where b1=b2 and not exists (select a3+a4 from tt3, tt4 where b3=b4)";
+        expected = "";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ONE_SUBQUERY_NODE, expected);
+    }
+
+    @Test
+    public void testNonCorrelatedExistsSubqueryViaSpark() throws Exception {
+        /* many exists have been flattened before the optimize phase's preprocess(), for the remaining
+           cases that cannot be flattened and it is a non-correlated subquery, we convert it to
+           from subquery (DT), so that they can be joined to the outer table through inclusion join
+         */
+        /* Q1: non-correlated EXISTS subquery with more than one table, exists is flattened */
+        String sql = "select * from tt1 --splice-properties useSpark=true\n where exists (select a2 from tt2, tt4 where b2=b4)";
+        String expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 |\n" +
+                " 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q2: non-correlated EXISTS subquery with nested correlated subquery, exists is not flattened */
+        sql = "select * from tt1 --splice-properties useSpark=true\n where exists (select a3 from tt3 where a3 in (select a4 from tt4 where b3=b4 and b4 in (1,2)))";
+        expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 |\n" +
+                " 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q3: non-correlated EXISTS subquery with nested non-correlated subquery, exists is flattened */
+        sql = "select * from tt1 --splice-properties useSpark=true\n where exists (select a3 from tt3 where a3 in (select a4 from tt4 where b4=0))";
+        expected = "";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q4: non-correlated subquery with multiple tables on left, exists is flattened */
+        sql = "select * from tt1, tt2 --splice-properties useSpark=true\n where a1=a2 and exists (select a3 from tt3, tt4 where b3=b4)";
+        expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+                "------------------------\n" +
+                " 1 | 1 | 1 | 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 | 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 | 3 | 3 | 3 |\n" +
+                " 4 | 4 | 4 | 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q5: non-correlated subquery with expression on right, exists is flattened */
+        sql = "select * from tt1, tt2 --splice-properties useSpark=true\n where b1=b2 and exists (select a3+a4 from tt3, tt4 where b3=b4)";
+        expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+                "------------------------\n" +
+                " 1 | 1 | 1 | 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 | 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 | 3 | 3 | 3 |\n" +
+                " 4 | 4 | 4 | 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q6: negative test case, NOT exists */
+        sql = "select * from tt1, tt2 --splice-properties useSpark=true\n where b1=b2 and not exists (select a3+a4 from tt3, tt4 where b3=b4)";
+        expected = "";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ONE_SUBQUERY_NODE, expected);
+    }
+
+    @Test
+    public void testNonCorrelatedSubqueryWithANYQualifierViaControl() throws Exception {
+        /* Q1: non-correlated subquery with more than one table */
+        String sql = "select * from tt1 --splice-properties useSpark=false\n where a1 = ANY (select a2 from tt2, tt4 where b2=b4)";
+        String expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 |\n" +
+                " 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q2: non-correlated subquery with nested correlated subquery */
+        sql = "select * from tt1 --splice-properties useSpark=false\n where a1 > ANY (select a3 from tt3 where a3 in (select a4 from tt4 where b3=b4 and b4 in (1,2)))";
+        expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 |\n" +
+                " 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q3: non-correlated subquery with nested non-correlated subquery */
+        sql = "select * from tt1 --splice-properties useSpark=false\n where a1 <= ANY (select a3 from tt3 where a3 in (select a4 from tt4 where b4=1))";
+        expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 1 | 1 | 1 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q4: non-correlated subquery with multiple tables on left */
+        sql = "select * from tt1, tt2 --splice-properties useSpark=false\n where b1=b2 and a1 <> ANY (select a3 from tt3, tt4 where b3=b4)";
+        expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+                "------------------------\n" +
+                " 1 | 1 | 1 | 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 | 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 | 3 | 3 | 3 |\n" +
+                " 4 | 4 | 4 | 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q5: non-correlated subquery with expression on left */
+        sql = "select * from tt1, tt2 --splice-properties useSpark=false\n where b1=b2 and a1+a2 = ANY (select a3 from tt3, tt4 where b3=b4)";
+        expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+                "------------------------\n" +
+                " 1 | 1 | 1 | 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 | 2 | 2 | 2 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q6: non-correlated subquery with expression on right */
+        sql = "select * from tt1, tt2 --splice-properties useSpark=false\n where b1=b2 and a1 = ANY (select a3+a4 from tt3, tt4 where b3=b4)";
+        expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+                "------------------------\n" +
+                " 2 | 2 | 2 | 2 | 2 | 2 |\n" +
+                " 4 | 4 | 4 | 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q7: constant expression on left */
+        sql = "select * from tt1, tt2 --splice-properties useSpark=false\n where b1=b2 and 3 > ANY (select a3 from tt3, tt4 where b3=b4)";
+        expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+                "------------------------\n" +
+                " 1 | 1 | 1 | 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 | 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 | 3 | 3 | 3 |\n" +
+                " 4 | 4 | 4 | 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q8: constant expression on right */
+        sql = "select * from tt1, tt2 --splice-properties useSpark=false\n where b1=b2 and a1 > ANY (select 3 from tt3, tt4 where b3=b4)";
+        expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+                "------------------------\n" +
+                " 4 | 4 | 4 | 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q9: negative test case, non-flattened correlated subquery are not converted to from subquery */
+        sql = "select * from tt1 --splice-properties useSpark=false\n where a1 = ANY (select a2 from tt2, tt4 where b2=b4 and b1=b2)";
+        expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 |\n" +
+                " 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ONE_SUBQUERY_NODE, expected);
+
+        /* Q10: negative test case, ALL quantifier cannot be converted*/
+        sql = "select * from tt1 --splice-properties useSpark=false\n where a1 > ALL (select a2 from tt2, tt4 where b2=b4 and b1=b2)";
+        expected = "";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ONE_SUBQUERY_NODE, expected);
+    }
+
+    @Test
+    public void testNonCorrelatedSubqueryWithANYQualifierViaSpark() throws Exception {
+        /* Q1: non-correlated subquery with more than one table */
+        String sql = "select * from tt1 --splice-properties useSpark=true\n where a1 = ANY (select a2 from tt2, tt4 where b2=b4)";
+        String expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 |\n" +
+                " 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q2: non-correlated subquery with nested correlated subquery */
+        sql = "select * from tt1 --splice-properties useSpark=true\n where a1 > ANY (select a3 from tt3 where a3 in (select a4 from tt4 where b3=b4 and b4 in (1,2)))";
+        expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 |\n" +
+                " 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q3: non-correlated subquery with nested non-correlated subquery */
+        sql = "select * from tt1 --splice-properties useSpark=true\n where a1 <= ANY (select a3 from tt3 where a3 in (select a4 from tt4 where b4=1))";
+        expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 1 | 1 | 1 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q4: non-correlated subquery with multiple tables on left */
+        sql = "select * from tt1, tt2 --splice-properties useSpark=true\n where b1=b2 and a1 <> ANY (select a3 from tt3, tt4 where b3=b4)";
+        expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+                "------------------------\n" +
+                " 1 | 1 | 1 | 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 | 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 | 3 | 3 | 3 |\n" +
+                " 4 | 4 | 4 | 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q5: non-correlated subquery with expression on left */
+        sql = "select * from tt1, tt2 --splice-properties useSpark=true\n where b1=b2 and a1+a2 = ANY (select a3 from tt3, tt4 where b3=b4)";
+        expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+                "------------------------\n" +
+                " 1 | 1 | 1 | 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 | 2 | 2 | 2 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q6: non-correlated subquery with expression on right */
+        sql = "select * from tt1, tt2 --splice-properties useSpark=true\n where b1=b2 and a1 = ANY (select a3+a4 from tt3, tt4 where b3=b4)";
+        expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+                "------------------------\n" +
+                " 2 | 2 | 2 | 2 | 2 | 2 |\n" +
+                " 4 | 4 | 4 | 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q7: constant expression on left */
+        sql = "select * from tt1, tt2 --splice-properties useSpark=true\n where b1=b2 and 3 > ANY (select a3 from tt3, tt4 where b3=b4)";
+        expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+                "------------------------\n" +
+                " 1 | 1 | 1 | 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 | 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 | 3 | 3 | 3 |\n" +
+                " 4 | 4 | 4 | 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q8: constant expression on right */
+        sql = "select * from tt1, tt2 --splice-properties useSpark=true\n where b1=b2 and a1 > ANY (select 3 from tt3, tt4 where b3=b4)";
+        expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+                "------------------------\n" +
+                " 4 | 4 | 4 | 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q9: negative test case, non-flattened correlated subquery are not converted to from subquery */
+        sql = "select * from tt1 --splice-properties useSpark=true\n where a1 = ANY (select a2 from tt2, tt4 where b2=b4 and b1=b2)";
+        expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 |\n" +
+                " 3 | 3 | 3 |\n" +
+                " 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ONE_SUBQUERY_NODE, expected);
+
+        /* Q10: negative test case, ALL quantifier cannot be converted*/
+        sql = "select * from tt1 --splice-properties useSpark=true\n where a1 > ALL (select a2 from tt2, tt4 where b2=b4 and b1=b2)";
+        expected = "";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ONE_SUBQUERY_NODE, expected);
+    }
+
     private static void assertUnorderedResult(ResultSet rs, String expectedResult) throws Exception {
         assertEquals(expectedResult, TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
@@ -411,4 +910,7 @@ public class Subquery_Table_IT {
         assertEquals(expectedResult, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
     }
 
+    private TestConnection conn() {
+        return methodWatcher.getOrCreateConnection();
+    }
 }

@@ -24,13 +24,14 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
 import static com.splicemachine.subquery.SubqueryITUtil.*;
-import static java.lang.String.format;
 import static org.junit.Assert.assertEquals;
 
 public class TPCHIT extends SpliceUnitTest {
@@ -223,7 +224,7 @@ public class TPCHIT extends SpliceUnitTest {
     public void sql20() throws Exception {
         String sql = getContent("20.sql");
         executeQuery(sql, "", true);
-        assertSubqueryNodeCount(conn(), sql, ONE_SUBQUERY_NODE);
+        assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
     }
 
     @Test

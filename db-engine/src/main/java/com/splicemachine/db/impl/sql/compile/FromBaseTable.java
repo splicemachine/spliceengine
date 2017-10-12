@@ -174,12 +174,6 @@ public class FromBaseTable extends FromTable {
     public static final int UPDATE=1;
     public static final int DELETE=2;
 
-    /* Variables for EXISTS FBTs */
-    private boolean existsBaseTable;
-    private boolean isNotExists;  //is a NOT EXISTS base table
-    private boolean matchRowId;
-    private JBitSet dependencyMap;
-
     private boolean getUpdateLocks;
 
     // true if we are running with sql authorization and this is the SYSUSERS table
@@ -902,14 +896,14 @@ public class FromBaseTable extends FromTable {
         /* EXISTS FBT will never be a 1 row scan.
 		 * Otherwise call method in super class.
 		 */
-        return !existsBaseTable && super.isOneRowScan();
+        return !existsTable && super.isOneRowScan();
     }
 
     @Override
     public boolean legalJoinOrder(JBitSet assignedTableMap){
         // Only an issue for EXISTS FBTs
         /* Have all of our dependencies been satisfied? */
-        return !existsBaseTable || assignedTableMap.contains(dependencyMap);
+        return !existsTable || assignedTableMap.contains(dependencyMap);
     }
 
     /**
@@ -927,7 +921,7 @@ public class FromBaseTable extends FromTable {
                     "updateOrDelete: "+updateOrDelete+"\n"+
                     (tableProperties!=null?
                             tableProperties.toString():"null")+"\n"+
-                    "existsBaseTable: "+existsBaseTable+"\n"+
+                    "existsTable: "+existsTable+"\n"+
                     "dependencyMap: "+
                     (dependencyMap!=null
                             ?dependencyMap.toString()
@@ -938,28 +932,22 @@ public class FromBaseTable extends FromTable {
         }
     }
 
-    /*
-     * Does this FBT represent an EXISTS FBT.
-     *
-     * @return Whether or not this FBT represents
-     * an EXISTS FBT.
-     */
-    public boolean getExistsBaseTable(){ return existsBaseTable; }
 
     /*
      * Set whether or not this FBT represents an
      * EXISTS FBT.
      *
-     * @param existsBaseTable Whether or not an EXISTS FBT.
+     * @param existsTable Whether or not an EXISTS FBT.
      * @param dependencyMap   The dependency map for the EXISTS FBT.
      * @param isNotExists     Whether or not for NOT EXISTS, more specifically.
      */
-    void setExistsBaseTable(boolean existsBaseTable,JBitSet dependencyMap,boolean isNotExists,boolean matchRowId){
-        this.existsBaseTable=existsBaseTable;
+    @Override
+    public void setExistsTable(boolean existsTable,JBitSet dependencyMap,boolean isNotExists,boolean matchRowId){
+        this.existsTable=existsTable;
         this.isNotExists=isNotExists;
         this.matchRowId = matchRowId;
 		/* Set/clear the dependency map as needed */
-        if(existsBaseTable){
+        if(existsTable){
             this.dependencyMap=dependencyMap;
         }else{
             this.dependencyMap=null;
@@ -2587,7 +2575,7 @@ public class FromBaseTable extends FromTable {
         if (matchRowId) {
             return false;
         }
-        if(existsBaseTable ){
+        if(existsTable ){
             return true;
         }
 
@@ -3385,7 +3373,7 @@ public class FromBaseTable extends FromTable {
         return "tableName: " +  Objects.toString(tableName) + "<br/>" +
                 "updateOrDelete: " + updateOrDelete + "<br/>" +
                 "tableProperties: " + Objects.toString(tableProperties) + "<br/>" +
-                "existsBaseTable: " + existsBaseTable + "<br/>" +
+                "existsTable: " + existsTable + "<br/>" +
                 "dependencyMap: " + Objects.toString(dependencyMap) +
                 super.toHTMLString();
     }
