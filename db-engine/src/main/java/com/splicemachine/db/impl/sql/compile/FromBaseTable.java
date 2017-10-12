@@ -902,9 +902,9 @@ public class FromBaseTable extends FromTable {
 
     @Override
     public boolean legalJoinOrder(JBitSet assignedTableMap){
-        // Only an issue for EXISTS FBTs
+        // Only an issue for EXISTS FBTs and table converted from SSQ
         /* Have all of our dependencies been satisfied? */
-        return !existsTable || assignedTableMap.contains(dependencyMap);
+        return !existsTable && !fromSSQ || assignedTableMap.contains(dependencyMap);
     }
 
     /**

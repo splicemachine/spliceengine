@@ -115,6 +115,10 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
     public JBitSet dependencyMap;
 
     /**
+     * SSQ join related variables
+     */
+    public boolean fromSSQ;
+    /**
      * Initializer for a table in a FROM list.
      *
      * @param correlationName The correlation name
@@ -1240,5 +1244,20 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         int defaultValueItem=acb.addItem(defaultValueMap);
         mb.push(defaultValueItem);
         return 2;
+
+    @Override
+    public boolean getFromSSQ() {
+        return fromSSQ;
+    }
+
+    public void setFromSSQ(boolean set) {
+        fromSSQ = set;
+    }
+
+    public void setDependencyMap(JBitSet set) {
+        if (existsTable || fromSSQ)
+            dependencyMap = set;
+        else
+            dependencyMap = null;
     }
 }

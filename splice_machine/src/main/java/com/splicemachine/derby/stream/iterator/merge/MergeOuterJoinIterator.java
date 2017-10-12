@@ -14,12 +14,13 @@
 
 package com.splicemachine.derby.stream.iterator.merge;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.PeekingIterator;
-import java.util.Iterator;
 
 public class MergeOuterJoinIterator extends AbstractMergeJoinIterator {
     private static final Logger LOG = Logger.getLogger(MergeOuterJoinIterator.class);
@@ -48,6 +49,10 @@ public class MergeOuterJoinIterator extends AbstractMergeJoinIterator {
                     ExecRow right = currentRightIterator.next();
                     currentExecRow = mergeRows(left, right);
                     if (mergeJoinOperation.getRestriction().apply(currentExecRow)) {
+                        // if we reach here, it is the second match for the same left table row
+                        // the first match happens in the below while loop after the currentRightIterator is set
+                        if (forSSQ)
+                            throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
                         return true;
                     }
                     operationContext.recordFilter();

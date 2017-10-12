@@ -208,6 +208,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             boolean wasRightOuterJoin,
             boolean oneRowRightSide,
             boolean notExistsRightSide,
+            boolean rightFromSSQ,
             double optimizerEstimatedRowCount,
             double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
@@ -224,6 +225,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     wasRightOuterJoin,
                     oneRowRightSide,
                     notExistsRightSide,
+                    rightFromSSQ,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
                     userSuppliedOptimizerOverrides);
@@ -353,6 +355,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             boolean wasRightOuterJoin,
             boolean oneRowRightSide,
             boolean notExistsRightSide,
+            boolean rightFromSSQ,
             double optimizerEstimatedRowCount,
             double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
@@ -824,6 +827,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             GeneratedMethod joinClause, int resultSetNumber,
             GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
             boolean oneRowRightSide, boolean notExistsRightSide,
+            boolean rightFromSSQ,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan) throws StandardException {
@@ -839,6 +843,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     wasRightOuterJoin,
                     oneRowRightSide,
                     notExistsRightSide,
+                    rightFromSSQ,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
                     userSuppliedOptimizerOverrides);
@@ -857,6 +862,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             GeneratedMethod joinClause, int resultSetNumber,
             GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
             boolean oneRowRightSide, boolean notExistsRightSide,
+            boolean rightFromSSQ,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan) throws StandardException {
@@ -872,6 +878,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     wasRightOuterJoin,
                     oneRowRightSide,
                     notExistsRightSide,
+                    rightFromSSQ,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
                     userSuppliedOptimizerOverrides);
@@ -890,6 +897,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             GeneratedMethod joinClause, int resultSetNumber,
             GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
             boolean oneRowRightSide, boolean notExistsRightSide,
+            boolean rightFromSSQ,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan) throws StandardException {
@@ -905,6 +913,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     wasRightOuterJoin,
                     oneRowRightSide,
                     notExistsRightSide,
+                    rightFromSSQ,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
                     userSuppliedOptimizerOverrides);
@@ -923,6 +932,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             GeneratedMethod joinClause, int resultSetNumber,
             GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
             boolean oneRowRightSide, boolean notExistsRightSide,
+            boolean rightFromSSQ,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan) throws StandardException {
@@ -938,6 +948,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     wasRightOuterJoin,
                     oneRowRightSide,
                     notExistsRightSide,
+                    rightFromSSQ,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
                     userSuppliedOptimizerOverrides);
@@ -954,6 +965,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             NoPutResultSet rightResultSet, int rightNumCols,
             GeneratedMethod joinClause, int resultSetNumber,
             boolean oneRowRightSide, boolean notExistsRightSide,
+            boolean rightFromSSQ,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan) throws StandardException {
@@ -963,7 +975,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
             JoinOperation op = new NestedLoopJoinOperation(left.getOperation(), leftNumCols,
                     right.getOperation(), rightNumCols, leftResultSet.getActivation(), joinClause, resultSetNumber,
-                    oneRowRightSide, notExistsRightSide, optimizerEstimatedRowCount,
+                    oneRowRightSide, notExistsRightSide, rightFromSSQ, optimizerEstimatedRowCount,
                     optimizerEstimatedCost, userSuppliedOptimizerOverrides);
             op.setExplainPlan(explainPlan);
             return op;
@@ -978,7 +990,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             NoPutResultSet rightResultSet, int rightNumCols,
             int leftHashKeyItem, int rightHashKeyItem, GeneratedMethod joinClause,
             int resultSetNumber, boolean oneRowRightSide,
-            boolean notExistsRightSide, double optimizerEstimatedRowCount,
+            boolean notExistsRightSide, boolean rightFromSSQ, double optimizerEstimatedRowCount,
             double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan) throws StandardException {
@@ -988,7 +1000,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
             JoinOperation op = new MergeSortJoinOperation(left.getOperation(), leftNumCols,
                     right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem, leftResultSet.getActivation(), joinClause, resultSetNumber,
-                    oneRowRightSide, notExistsRightSide, optimizerEstimatedRowCount,
+                    oneRowRightSide, notExistsRightSide, rightFromSSQ, optimizerEstimatedRowCount,
                     optimizerEstimatedCost, userSuppliedOptimizerOverrides);
             op.setExplainPlan(explainPlan);
             return op;
@@ -1003,7 +1015,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             NoPutResultSet rightResultSet, int rightNumCols,
             int leftHashKeyItem, int rightHashKeyItem, GeneratedMethod joinClause,
             int resultSetNumber, boolean oneRowRightSide,
-            boolean notExistsRightSide, double optimizerEstimatedRowCount,
+            boolean notExistsRightSide, boolean rightFromSSQ, double optimizerEstimatedRowCount,
             double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan) throws StandardException {
@@ -1013,7 +1025,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
             JoinOperation op = new HalfMergeSortJoinOperation(left.getOperation(), leftNumCols,
                     right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem, leftResultSet.getActivation(), joinClause, resultSetNumber,
-                    oneRowRightSide, notExistsRightSide, optimizerEstimatedRowCount,
+                    oneRowRightSide, notExistsRightSide, rightFromSSQ, optimizerEstimatedRowCount,
                     optimizerEstimatedCost, userSuppliedOptimizerOverrides);
             op.setExplainPlan(explainPlan);
             return op;
@@ -1028,7 +1040,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             NoPutResultSet rightResultSet, int rightNumCols,
             int leftHashKeyItem, int rightHashKeyItem, GeneratedMethod joinClause,
             int resultSetNumber, boolean oneRowRightSide,
-            boolean notExistsRightSide, double optimizerEstimatedRowCount,
+            boolean notExistsRightSide, boolean rightFromSSQ, double optimizerEstimatedRowCount,
             double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan) throws StandardException {
@@ -1038,7 +1050,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
             JoinOperation op = new MergeJoinOperation(left.getOperation(), leftNumCols,
                     right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem, leftResultSet.getActivation(), joinClause, resultSetNumber,
-                    oneRowRightSide, notExistsRightSide, optimizerEstimatedRowCount,
+                    oneRowRightSide, notExistsRightSide, rightFromSSQ, optimizerEstimatedRowCount,
                     optimizerEstimatedCost, userSuppliedOptimizerOverrides);
             op.setExplainPlan(explainPlan);
             return op;
@@ -1053,7 +1065,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             NoPutResultSet rightResultSet, int rightNumCols,
             int leftHashKeyItem, int rightHashKeyItem, GeneratedMethod joinClause,
             int resultSetNumber, boolean oneRowRightSide,
-            boolean notExistsRightSide, double optimizerEstimatedRowCount,
+            boolean notExistsRightSide, boolean rightFromSSQ, double optimizerEstimatedRowCount,
             double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan) throws StandardException {
@@ -1063,7 +1075,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
             JoinOperation op = new BroadcastJoinOperation(left.getOperation(), leftNumCols,
                     right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem, leftResultSet.getActivation(), joinClause, resultSetNumber,
-                    oneRowRightSide, notExistsRightSide, optimizerEstimatedRowCount,
+                    oneRowRightSide, notExistsRightSide, rightFromSSQ, optimizerEstimatedRowCount,
                     optimizerEstimatedCost, userSuppliedOptimizerOverrides);
             op.setExplainPlan(explainPlan);
             return op;

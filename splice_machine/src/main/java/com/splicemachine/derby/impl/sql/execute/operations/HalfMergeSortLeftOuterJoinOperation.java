@@ -57,11 +57,12 @@ public class HalfMergeSortLeftOuterJoinOperation extends HalfMergeSortJoinOperat
                                                boolean wasRightOuterJoin,
                                                boolean oneRowRightSide,
                                                boolean notExistsRightSide,
+                                               boolean rightFromSSQ,
                                                double optimizerEstimatedRowCount,
                                                double optimizerEstimatedCost,
                                                String userSuppliedOptimizerOverrides) throws StandardException {
         super(leftResultSet, leftNumCols, rightResultSet, rightNumCols, leftHashKeyItem, rightHashKeyItem,
-                activation, restriction, resultSetNumber, oneRowRightSide, notExistsRightSide,
+                activation, restriction, resultSetNumber, oneRowRightSide, notExistsRightSide, rightFromSSQ,
                 optimizerEstimatedRowCount, optimizerEstimatedCost, userSuppliedOptimizerOverrides);
         SpliceLogUtils.trace(LOG, "instantiate");
         emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
