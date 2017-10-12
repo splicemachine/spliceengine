@@ -795,6 +795,9 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
     @Override
     public boolean legalJoinOrder(JBitSet assignedTableMap){
+        if (existsTable)
+            return assignedTableMap.contains(dependencyMap);
+
         return !(childResult instanceof Optimizable) || ((Optimizable)childResult).legalJoinOrder(assignedTableMap);
     }
 
@@ -1718,7 +1721,48 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
                 "correlationName: " + getCorrelationName() + "<br/>" +
                 "corrTableName: " + Objects.toString(corrTableName) + "<br/>" +
                 "tableNumber: " + getTableNumber() + "<br/>" +
+                "existsTable: " + existsTable + "<br/>" +
+                "dependencyMap: " + Objects.toString(dependencyMap) +
                 super.toHTMLString();
     }
 
+    /**
+     * Set whether or not this node represents an
+     * EXISTS table.
+     *
+     * @param existsTable Whether or not an EXISTS table.
+     * @param dependencyMap   The dependency map for the EXISTS table.
+     * @param isNotExists     Whether or not for NOT EXISTS, more specifically.
+     */
+    @Override
+    public void setExistsTable(boolean existsTable,JBitSet dependencyMap,boolean isNotExists,boolean matchRowId){
+        this.existsTable=existsTable;
+        this.isNotExists=isNotExists;
+        this.matchRowId = matchRowId;
+		/* Set/clear the dependency map as needed */
+        if(existsTable){
+            this.dependencyMap=dependencyMap;
+        }else{
+            this.dependencyMap=null;
+        }
+    }
+
+    /**
+     * Return whether or not the underlying ResultSet tree will return
+     * a single row, at most.
+     * This is important for join nodes where we can save the extra next
+     * on the right side if we know that it will return at most 1 row.
+     *
+     * @return Whether or not the underlying ResultSet tree will return a single row.
+     * @throws StandardException Thrown on error
+     */
+    public boolean isOneRowResultSet() throws StandardException{
+        if (matchRowId) {
+            return false;
+        }
+        if(existsTable ){
+            return true;
+        }
+        return childResult.isOneRowResultSet();
+    }
 }
