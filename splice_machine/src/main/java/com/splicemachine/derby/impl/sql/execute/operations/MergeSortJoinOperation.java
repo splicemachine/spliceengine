@@ -205,6 +205,8 @@ public class MergeSortJoinOperation extends JoinOperation {
                 joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.LEFTOUTER,false);
             else if (notExistsRightSide)
                 joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.LEFTANTI,false);
+            else if (isOneRowRightSide())
+                joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.LEFTSEMI,false);
             else
                 joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.INNER,false);
         } else{
