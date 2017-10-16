@@ -147,6 +147,11 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
     }
 
     @Override
+    public void waitForCompletion(int time, TimeUnit unit) throws InterruptedException, TimeoutException, ExecutionException {
+        olapFuture.get(time, unit);
+    }
+
+    @Override
     public void close() throws Exception {
         streamListener.stopAllStreams();
         olapFuture.cancel(true);
