@@ -52,8 +52,9 @@ public class SqlJJarIT extends SpliceUnitTest {
 
 	// Names of files and SQL objects.
 	private static final String SCHEMA_NAME = CLASS_NAME;
+	private static final String FILE_NAME = "SQLJ_IT_PROCS_JAR";
 	private static String STORED_PROCS_JAR_FILE;
-	private static final String JAR_FILE_SQL_NAME = SCHEMA_NAME + ".SQLJ_IT_PROCS_JAR";
+	private static final String JAR_FILE_SQL_NAME = SCHEMA_NAME + "." + FILE_NAME;
 
 	// SQL statements to create and drop stored procedures.
 	private static final String CREATE_PROC_SIMPLE_ONE_ARG = String.format("CREATE PROCEDURE %s.SIMPLE_ONE_ARG_PROC(IN name VARCHAR(30)) PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.sqlj.SqlJTestProcs.SIMPLE_ONE_ARG_PROC'", SCHEMA_NAME);
@@ -76,7 +77,8 @@ public class SqlJJarIT extends SpliceUnitTest {
 
 	// SQL queries.
 	private static final String SELECT_FROM_SYSFILES = "SELECT * FROM SYS.SYSFILES, sys.sysschemas " +
-			"where sys.sysschemas.schemaid = sys.sysfiles.schemaid and schemaname = 'SQLJARIT' and FILENAME = 'SQLJ_IT_PROCS_JAR'";
+			"where sys.sysschemas.schemaid = sys.sysfiles.schemaid and schemaname = '" +
+			SCHEMA_NAME + "' and FILENAME = '" + FILE_NAME + "'";
 
 	@ClassRule
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
