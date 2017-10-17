@@ -569,6 +569,13 @@
             <artifactId>parquet-hadoop</artifactId>
             <version>1.8.1</version>
         </dependency>
+
+         <dependency>
+            <artifactId>hive-exec</artifactId>
+            <groupId>org.apache.hive</groupId>
+            <version>${hive.version}</version>
+        </dependency>
+
     </dependencies>
     <build>
         <extensions>
