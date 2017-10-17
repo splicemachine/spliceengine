@@ -846,7 +846,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
                 restriction.treePrint(depth+1);
             }
 
-            if(restrictionList!=null){
+            if(restrictionList!=null  && !restrictionList.isEmpty()){
                 printLabel(depth,"restrictionList: ");
                 restrictionList.treePrint(depth+1);
             }
