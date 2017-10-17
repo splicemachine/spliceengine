@@ -22,8 +22,6 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
-import org.json4s.jackson.Json;
-import org.json4s.jackson.JsonMethods;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -32,6 +30,7 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
+import java.net.InetAddress;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -511,7 +510,9 @@ public class DistinctAggregateOverMultiplePartitionsIT extends SpliceUnitTest {
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-        URL url = new URL("http://localhost:4040/api/v1/applications");
+        String localHostname = InetAddress.getLocalHost().getHostName();
+
+        URL url = new URL("http://" + localHostname + ":4040/api/v1/applications");
         List<SparkApp> apps = mapper.readValue(url, new TypeReference<List<SparkApp>>(){});
         SparkApp app = apps.get(0);
 
