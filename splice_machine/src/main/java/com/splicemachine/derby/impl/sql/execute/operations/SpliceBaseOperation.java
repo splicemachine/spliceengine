@@ -203,7 +203,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
                 if (!isKilled) {
                     // wait for completion, it should be quick
                     try {
-                        remoteQueryClient.waitForCompletion(1, TimeUnit.MINUTES);
+                        remoteQueryClient.waitForCompletion(1, TimeUnit.HOURS);
                     } catch (InterruptedException | TimeoutException | ExecutionException e) {
                         // ignore, continue closing
                         LOG.warn("Exception while waiting for remote query client to wrap up", e);
