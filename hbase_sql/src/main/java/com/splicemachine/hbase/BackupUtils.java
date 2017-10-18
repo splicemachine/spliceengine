@@ -297,34 +297,42 @@ public class BackupUtils {
 
     private static boolean backupTimedout() throws Exception {
         String path = HConfiguration.getConfiguration().getBackupPath();
-        byte[] data = ZkUtils.getData(path);
         boolean timedout = true;
-        if (data != null) {
-            BackupJobStatus backupJobStatus = null;
-            long lastActiveTimestamp = 0;
-            try {
-                backupJobStatus = BackupJobStatus.parseFrom(data);
-                lastActiveTimestamp = backupJobStatus.getLastActiveTimestamp();
-                long currentTimestamp = System.currentTimeMillis();
-                long elapsedTime = currentTimestamp - lastActiveTimestamp;
-                timedout = (lastActiveTimestamp > 0 && elapsedTime > 2 * BackupRestoreConstants.BACKUP_JOB_TIMEOUT);
-            } catch (Exception e) {
-                // The data cannot be parsed. It's either corrupted or a leftover from previous version. In either
-                // case, delete the znode.
-                SpliceLogUtils.info(LOG, "Found a backup znode with unreadable data");
-                timedout = true;
-            }
-            try {
-                if (timedout) {
-                    ZkUtils.recursiveDelete(path);
-                    SpliceLogUtils.info(LOG, "Found a timeout backup that were active at %s", new Timestamp(lastActiveTimestamp));
+        try {
+            byte[] data = ZkUtils.getData(path);
+
+            if (data != null) {
+                BackupJobStatus backupJobStatus = null;
+                long lastActiveTimestamp = 0;
+                try {
+                    backupJobStatus = BackupJobStatus.parseFrom(data);
+                    lastActiveTimestamp = backupJobStatus.getLastActiveTimestamp();
+                    long currentTimestamp = System.currentTimeMillis();
+                    long elapsedTime = currentTimestamp - lastActiveTimestamp;
+                    long backupTimeout = HConfiguration.getConfiguration().getBackupTimeout();
+                    timedout = (lastActiveTimestamp > 0 && elapsedTime > backupTimeout);
+                } catch (Exception e) {
+                    // The data cannot be parsed. It's either corrupted or a leftover from previous version. In either
+                    // case, delete the znode.
+                    SpliceLogUtils.info(LOG, "Found a backup znode with unreadable data");
+                    timedout = true;
                 }
-            } catch (KeeperException e) {
-                if (e.code() != KeeperException.Code.NONODE) {
-                    // Ignore NONODE exception because it may be deleted by another thread.
-                    throw e;
+                try {
+                    if (timedout) {
+                        ZkUtils.recursiveDelete(path);
+                        SpliceLogUtils.info(LOG, "Found a timeout backup that were active at %s", new Timestamp(lastActiveTimestamp));
+                    }
+                } catch (KeeperException e) {
+                    if (e.code() != KeeperException.Code.NONODE) {
+                        // Ignore NONODE exception because it may be deleted by another thread.
+                        throw e;
+                    }
                 }
             }
+        }
+        catch (KeeperException.NoNodeException e) {
+            // Ignore NoNodeException because the /backup znode may have been removed
+            SpliceLogUtils.info(LOG, "Znode /backup was removed by another thread");
         }
         return timedout;
     }
