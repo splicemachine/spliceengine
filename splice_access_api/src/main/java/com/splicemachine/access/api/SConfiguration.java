@@ -176,6 +176,8 @@ public interface SConfiguration {
 
     long getTransactionTimeout();
 
+    boolean getIgnoreMissingTxns();
+
     // SQLConfiguration
     boolean debugDumpBindTree();
 

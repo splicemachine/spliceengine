@@ -15,6 +15,7 @@
 package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongOpenHashSet;
+import com.splicemachine.access.HConfiguration;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.spark_project.guava.collect.Iterators;
 import org.spark_project.guava.collect.Lists;
@@ -54,6 +55,7 @@ public class CoprocessorTxnStore implements TxnStore {
     private final TxnNetworkLayerFactory tableFactory;
     private TxnSupplier cache; //a transaction store which uses a global cache for us
     private volatile long oldTransactions;
+    private final boolean ignoreMissingTransactions;
     
     @ThreadSafe
     private final TimestampSource timestampSource;
@@ -71,6 +73,7 @@ public class CoprocessorTxnStore implements TxnStore {
         this.tableFactory=tableFactory;
         this.cache = txnCache==null?this:txnCache; // Not Used...
         this.timestampSource=timestampSource;
+        this.ignoreMissingTransactions = HConfiguration.getConfiguration().getIgnoreMissingTxns();
     }
 
     @Override
@@ -212,7 +215,7 @@ public class CoprocessorTxnStore implements TxnStore {
             for(TxnMessage.ActiveTxnResponse response : data){
                 int size=response.getTxnsCount();
                 for(int i=0;i<size;i++){
-                    txns.add(decode(response.getTxns(i)));
+                    txns.add(decode(0, response.getTxns(i)));
                 }
             }
             Collections.sort(txns,new Comparator<TxnView>(){
@@ -250,7 +253,7 @@ public class CoprocessorTxnStore implements TxnStore {
         try (TxnNetworkLayer table = tableFactory.accessTxnNetwork()){
 
             TxnMessage.Txn messageTxn=table.getTxn(rowKey,request);
-            return decode(messageTxn);
+            return decode(txnId, messageTxn);
         } catch(Throwable throwable){
             throw new IOException(throwable);
         }
@@ -262,7 +265,7 @@ public class CoprocessorTxnStore implements TxnStore {
 
         try (TxnNetworkLayer table = tableFactory.accessTxnNetwork()){
             TxnMessage.Txn messageTxn=table.getTxn(rowKey,request);
-            return decode(messageTxn);
+            return decode(txnId, messageTxn);
         } catch(Throwable throwable){
             throw new IOException(throwable);
         }
@@ -334,9 +337,22 @@ public class CoprocessorTxnStore implements TxnStore {
      * **************************************************************************************************************
      */
         /*private helper methods*/
-    private TxnView decode(TxnMessage.Txn message) throws IOException{
+    private TxnView decode(long queryId, TxnMessage.Txn message) throws IOException{
         TxnMessage.TxnInfo info=message.getInfo();
-        if(info.getTxnId()<0) return null; //we didn't find it
+        if(info.getTxnId()<0) {
+            // we didn't find it
+            if (ignoreMissingTransactions) {
+                // return committed mock transaction
+                return new InheritingTxnView(Txn.ROOT_TRANSACTION,queryId,queryId,
+                        Txn.IsolationLevel.SNAPSHOT_ISOLATION,
+                        false, false,
+                        true,true,
+                        queryId,queryId,
+                        Txn.State.COMMITTED,Iterators.emptyIterator(),System.currentTimeMillis());
+            } else {
+                return null;
+            }
+        }
 
         long txnId=info.getTxnId();
         long parentTxnId=info.getParentTxnid();

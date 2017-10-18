@@ -17,13 +17,26 @@ package com.splicemachine.derby.transactions;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.si.impl.TxnUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.Table;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.splicemachine.derby.test.framework.SpliceTestDataSource;
@@ -40,6 +53,9 @@ public class ClusterDDLTestIT {
 
 
     private SpliceTestDataSource dataSource;
+    
+    @ClassRule
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     @Before
     public void startup() {
@@ -210,4 +226,68 @@ public class ClusterDDLTestIT {
             System.out.println(connStatus);
         }
     }
+
+
+    @Test
+    public void testMissingTransactions() throws Exception {
+        Connection conn1 = dataSource.getConnection("localhost", 1527);
+
+        conn1.setAutoCommit(false);
+        conn1.setSchema(SCHEMA);
+        String tableName = "missing";
+        new TableDAO(conn1).drop(SCHEMA, tableName);
+
+
+        //noinspection unchecked
+        new TableCreator(conn1)
+                .withCreate("create table missing (i int)")
+                .create();
+
+        PreparedStatement ps = conn1.prepareStatement("insert into missing values 1");
+
+        ps.execute();
+        ResultSet rs = conn1.createStatement().executeQuery("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
+        assertTrue(rs.next());
+        long txnId = rs.getLong(1);
+
+        for (int i = 0; i<1024; ++i) {
+            ps.execute();
+        }
+
+        conn1.commit();
+
+        byte[] rowKey = TxnUtils.getRowKey(txnId);
+
+        Configuration config = HConfiguration.unwrapDelegate();
+        Table txnTable = ConnectionFactory.createConnection(config).getTable(TableName.valueOf("splice:SPLICE_TXN"));
+
+        Delete d = new Delete(rowKey);
+        txnTable.delete(d);
+
+        // the first region server doesn't ignore missing transactions, it should raise an error
+        try {
+            rs = conn1.createStatement().executeQuery("select count(*) from missing");
+            fail("Expected to throw an exception");
+        } catch (Exception e) {
+            // ignore, expected
+        }
+
+        // The other region server ignores missing transactions, verify it works fine
+        Connection conn2 = dataSource.getConnection("localhost", 1528);
+        conn2.setSchema(SCHEMA);
+        rs = conn2.createStatement().executeQuery("select count(*) from missing");
+        assertTrue(rs.next());
+        int count = rs.getInt(1);
+        assertEquals(1025, count);
+
+        // The missing transaction failure leaves conn1 in a bad state, shutdown everything manually
+        try {
+            dataSource.shutdown();
+        } catch (Exception e) {
+            //ignore
+        } finally {
+            dataSource = new SpliceTestDataSource();
+        }
+    }
+
 }
