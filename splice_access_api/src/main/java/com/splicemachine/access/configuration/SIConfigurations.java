@@ -50,6 +50,9 @@ public class SIConfigurations implements ConfigurationDefault {
     public static final String READ_RESOLVER_QUEUE_SIZE = "splice.txn.readresolver.queueSize";
     private static final int DEFAULT_READ_RESOLVER_QUEUE_SIZE=1<<16;
 
+    public static final String IGNORE_MISSING_TXN = "splice.ignore.missing.transactions";
+    private static final boolean DEFAULT_IGNORE_MISSING_TXN=false;
+
     /*
      * We use lock-striping to manage concurrent modifications/reads to the Transaction table. That is,
      * each Transaction is grouped into a bucket, and in order to read or modify that transaction, you must
@@ -172,5 +175,6 @@ public class SIConfigurations implements ConfigurationDefault {
         builder.transactionTimeout = configurationSource.getLong(TRANSACTION_TIMEOUT, DEFAULT_TRANSACTION_TIMEOUT);
         builder.transactionKeepAliveInterval = configurationSource.getLong(TRANSACTION_KEEP_ALIVE_INTERVAL, DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL);
 
+        builder.ignoreMissingTxns = configurationSource.getBoolean(IGNORE_MISSING_TXN, DEFAULT_IGNORE_MISSING_TXN);
     }
 }
