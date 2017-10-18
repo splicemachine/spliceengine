@@ -210,6 +210,10 @@ class SpliceTestPlatformConfig {
 
         config.setLong("splice.ddl.drainingWait.maximum", SECONDS.toMillis(15)); // wait 15 seconds before bailing on bad ddl statements
         config.setLong("splice.ddl.maxWaitSeconds",120000);
+        if (derbyPort > SQLConfiguration.DEFAULT_NETWORK_BIND_PORT) {
+            // we are a member, let's ignore transactions for testing
+            config.setBoolean("splice.ignore.missing.transactions", true);
+        }
         //
         // Snapshots
         //
