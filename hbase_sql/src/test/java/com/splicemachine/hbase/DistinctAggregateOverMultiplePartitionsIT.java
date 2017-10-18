@@ -498,6 +498,7 @@ public class DistinctAggregateOverMultiplePartitionsIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("SPLICE-1924")
     public void testSplitsSparkProperty() throws Exception {
         TestConnection c = methodWatcher.createConnection();
         ResultSet rs = c.createStatement().executeQuery("CALL SYSCS_UTIL.SYSCS_GET_SESSION_INFO()");
