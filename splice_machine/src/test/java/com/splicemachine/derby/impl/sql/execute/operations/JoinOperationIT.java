@@ -18,6 +18,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import org.junit.runner.RunWith;
@@ -29,6 +30,7 @@ import java.util.Collection;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.assertEquals;
 
 /**
  *
@@ -107,8 +109,8 @@ public class JoinOperationIT extends SpliceUnitTest {
                         "where foo.col1 = foo2.col1", this.joinStrategy,this.useSparkString
         ));
         rs.next();
-        Assert.assertEquals(String.format("Missing Records for %s", joinStrategy), 3, rs.getInt(1));
-        Assert.assertEquals(String.format("Wrong max for %s", joinStrategy), 5, rs.getInt(2));
+        assertEquals(String.format("Missing Records for %s", joinStrategy), 3, rs.getInt(1));
+        assertEquals(String.format("Wrong max for %s", joinStrategy), 5, rs.getInt(2));
     }
 
     @Test
@@ -119,8 +121,8 @@ public class JoinOperationIT extends SpliceUnitTest {
                         "on foo.col1 = foo2.col1 and foo.col1+foo2.col2>6", this.joinStrategy,this.useSparkString
         ));
         rs.next();
-        Assert.assertEquals(String.format("Missing Records for %s", joinStrategy), 2, rs.getInt(1));
-        Assert.assertEquals(String.format("Wrong min for %s", joinStrategy), 3, rs.getInt(2));
+        assertEquals(String.format("Missing Records for %s", joinStrategy), 2, rs.getInt(1));
+        assertEquals(String.format("Wrong min for %s", joinStrategy), 3, rs.getInt(2));
     }
 
     @Test
@@ -133,7 +135,7 @@ public class JoinOperationIT extends SpliceUnitTest {
                         "where foo.col1 = foo2.col1)", this.joinStrategy, this.useSparkString
         ));
         rs.next();
-        Assert.assertEquals(String.format("Missing Records for %s", joinStrategy), 2, rs.getInt(1));
+        assertEquals(String.format("Missing Records for %s", joinStrategy), 2, rs.getInt(1));
     }
 
     @Test
@@ -144,7 +146,7 @@ public class JoinOperationIT extends SpliceUnitTest {
                         "where foo.col1 = foo2.col1 and foo.col1+foo2.col2>6)", this.joinStrategy,this.useSparkString
         ));
         rs.next();
-        Assert.assertEquals(String.format("Missing Records for %s", joinStrategy), 3, rs.getInt(1));
+        assertEquals(String.format("Missing Records for %s", joinStrategy), 3, rs.getInt(1));
     }
 
     @Test
@@ -155,8 +157,8 @@ public class JoinOperationIT extends SpliceUnitTest {
                         "on foo.col1 = foo2.col1", this.joinStrategy, this.useSparkString
         ));
         rs.next();
-        Assert.assertEquals(String.format("Missing Records for %s", joinStrategy), 5, rs.getInt(1));
-        Assert.assertEquals(String.format("Missing Records for %s", joinStrategy), 3, rs.getInt(2));
+        assertEquals(String.format("Missing Records for %s", joinStrategy), 5, rs.getInt(1));
+        assertEquals(String.format("Missing Records for %s", joinStrategy), 3, rs.getInt(2));
     }
 
     @Test
@@ -167,8 +169,8 @@ public class JoinOperationIT extends SpliceUnitTest {
                         "on foo.col1 = foo2.col1 and foo.col1+foo2.col2>6", this.joinStrategy, this.useSparkString
         ));
         rs.next();
-        Assert.assertEquals(String.format("Missing Records for %s", joinStrategy), 5, rs.getInt(1));
-        Assert.assertEquals(String.format("Missing Records for %s", joinStrategy), 2, rs.getInt(2));
+        assertEquals(String.format("Missing Records for %s", joinStrategy), 5, rs.getInt(1));
+        assertEquals(String.format("Missing Records for %s", joinStrategy), 2, rs.getInt(2));
     }
 
     @Test
@@ -179,11 +181,11 @@ public class JoinOperationIT extends SpliceUnitTest {
                         "where rtrim(a.v) = b.v order by a.v", this.joinStrategy, this.useSparkString
         ));
         Assert.assertTrue("First Row Not Returned", rs.next());
-        Assert.assertEquals("1", rs.getString(1));
-        Assert.assertEquals("1", rs.getString(2));
+        assertEquals("1", rs.getString(1));
+        assertEquals("1", rs.getString(2));
         Assert.assertTrue("Second Row Not Returned", rs.next());
-        Assert.assertEquals("3 ", rs.getString(1));
-        Assert.assertEquals("3", rs.getString(2));
+        assertEquals("3 ", rs.getString(1));
+        assertEquals("3", rs.getString(2));
         Assert.assertFalse("Third Row Returned", rs.next());
     }
 
@@ -199,7 +201,19 @@ public class JoinOperationIT extends SpliceUnitTest {
         int i = 0;
         while (rs.next()) {
             i++;
-            Assert.assertEquals("not sorted correctly",i,rs.getInt(1));
+            assertEquals("not sorted correctly",i,rs.getInt(1));
         }
+    }
+
+    @Test
+    public void testInclusionMergeSortJoin() throws Exception {
+        String expected = "COL1 |COL2 |\n" +
+                "------------\n" +
+                "  1  |  5  |";
+
+        ResultSet rs = methodWatcher.executeQuery(String.format(
+                "select * from foo2 where col1 in (select col2 from foo --splice-properties joinStrategy=%s, useSpark=%s\n)", this.joinStrategy, this.useSparkString));
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+
     }
 }
