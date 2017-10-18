@@ -87,6 +87,10 @@ public interface SConfiguration {
 
     int getBackupParallelism();
 
+    long getBackupKeepAliveInterval();
+
+    long getBackupTimeout();
+
     String getCompressionAlgorithm();
 
     String getNamespace();

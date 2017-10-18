@@ -127,6 +127,12 @@ public class HBaseConfiguration implements ConfigurationDefault {
 
     public static final String SPLICE_BACKUP_PARALLELISM = "splice.backup.parallelism";
     public static final int DEFAULT_SPLICE_BACKUP_PARALLELISM = 16;
+
+    public static final String SPLICE_BACKUP_KEEPALIVE_INTERVAL = "splice.backup.keepAliveIntervalMs";
+    public static final long DEFAULT_SPLICE_BACKUP_KEEPALIVE_INTERVAL = 3000L;
+
+    public static final String SPLICE_BACKUP_TIMEOUT = "splice.backup.timeout";
+    public static final long DEFAULT_SPLICE_BACKUP_TIMEOUT = 10 * DEFAULT_SPLICE_BACKUP_KEEPALIVE_INTERVAL;
     /**
      * The Path in zookeeper for storing the maximum reserved timestamp
      * from the ZkTimestampSource implementation.
@@ -185,6 +191,7 @@ public class HBaseConfiguration implements ConfigurationDefault {
                                                                            DEFAULT_HBASE_SECURITY_AUTHORIZATION);
 
         builder.backupParallelism = configurationSource.getInt(SPLICE_BACKUP_PARALLELISM, DEFAULT_SPLICE_BACKUP_PARALLELISM);
-
+        builder.backupKeepAliveInterval = configurationSource.getLong(SPLICE_BACKUP_KEEPALIVE_INTERVAL, DEFAULT_SPLICE_BACKUP_KEEPALIVE_INTERVAL);
+        builder.backupTimeout = configurationSource.getLong(SPLICE_BACKUP_TIMEOUT, DEFAULT_SPLICE_BACKUP_TIMEOUT);
     }
 }
