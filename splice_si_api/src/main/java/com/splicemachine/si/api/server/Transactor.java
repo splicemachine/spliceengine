@@ -39,7 +39,7 @@ public interface Transactor{
                                     byte[] defaultFamilyBytes,
                                     byte[] packedColumnBytes,
                                     Collection<KVPair> toProcess,
-                                    long transactionId,
+                                    TxnView txn,
                                     ConstraintChecker constraintChecker) throws IOException;
 
     MutationStatus[] processKvBatch(Partition table,
