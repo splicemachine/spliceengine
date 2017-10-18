@@ -89,6 +89,8 @@ public class ConfigurationBuilder {
     public String hbaseSecurityAuthorization;
     public boolean hbaseSecurityAuthentication;
     public int backupParallelism;
+    public long backupKeepAliveInterval;
+    public long backupTimeout;
 
     // SQLConfiguration
     public boolean debugDumpBindTree;
