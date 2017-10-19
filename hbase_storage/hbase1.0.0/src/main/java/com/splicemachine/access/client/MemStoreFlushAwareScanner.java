@@ -60,6 +60,7 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 	   protected boolean endRowNeedsToBeReturned = false;
 	   protected boolean flushAlreadyReturned = false;
 	   protected int counter = 0;
+	   private final byte[] stopRow;
 
 		public MemStoreFlushAwareScanner(HRegion region, Store store, ScanInfo scanInfo, Scan scan,
                                          final NavigableSet<byte[]> columns, long readPt, AtomicReference<MemstoreAware> memstoreAware, MemstoreAware initialValue) throws IOException {
@@ -69,6 +70,7 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 			this.memstoreAware = memstoreAware;
 			this.initialValue = initialValue;
 			this.region = region;
+			this.stopRow = Bytes.equals(scan.getStopRow(), HConstants.EMPTY_END_ROW) ? null : scan.getStopRow();
 		}
 
 		@Override

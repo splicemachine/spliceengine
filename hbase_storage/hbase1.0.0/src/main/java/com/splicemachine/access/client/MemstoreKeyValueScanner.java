@@ -16,6 +16,7 @@ package com.splicemachine.access.client;
 
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -63,9 +64,8 @@ public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner
             rows++;
             return true;
         }else{
-            cells=null;
-            peakKeyValue=null;
-            return false;
+            // This shouldn't happen, throw exception and re-init the scanner
+            throw new DoNotRetryIOException("Memstore scanner shouldn't end prematurely");
         }
     }
 
