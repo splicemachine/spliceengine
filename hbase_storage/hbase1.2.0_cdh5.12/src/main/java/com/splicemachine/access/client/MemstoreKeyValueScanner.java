@@ -64,9 +64,8 @@ public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner
             rows++;
             return true;
         }else{
-            cells=null;
-            peakKeyValue=null;
-            return false;
+            // This shouldn't happen, throw exception and re-init the scanner
+            throw new DoNotRetryIOException("Memstore scanner shouldn't end prematurely");
         }
     }
 
