@@ -2,7 +2,7 @@
 
 ### Splice Machine Spark Adapter Architecture
 
-Splice Machine's Spark Adapter creates a transactionally correct, _transient_ Splice Machine node inside the Spark Driver application.  This allows Splice Machine to perform SQL operations as though it was executed via JDBC although it is being initialized through various spark client platforms (Scala, Python, etc).  This means Splice Machine parses, plans, and executes SQL and instructions inside the Spark Driver Application alongside existing spark instructions.
+Splice Machine's Spark Adapter creates a transactionally correct, _transient_ Splice Machine node inside the Spark Driver application.  This allows Splice Machine to perform SQL operations as though it was executed via JDBC although it is being initialized through various spark client platforms (Scala, Python, etc).  This means Splice Machine parses, plans, and executes SQL and instructions inside the Spark Driver Application alongside existing Spark instructions.
 
 The desired architecture is illustrated below.
 
@@ -61,7 +61,7 @@ All Crud operations are identified to the datasource via a property map that pro
 
 ```
 
-You will need to import certain libraries that will include **splicemachine** as a possible data source inside your spark client code or Apache Zeppelin notebook.
+You will need to import certain libraries that will include **splicemachine** as a possible data source inside your Spark client code or Apache Zeppelin notebook.
 
 ```scala
 %spark
