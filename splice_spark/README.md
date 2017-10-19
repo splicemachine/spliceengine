@@ -1,8 +1,8 @@
-## Splice Machine's Spark Adapter.
+## Splice Machine's Spark Adapter
 
 ### Splice Machine Spark Adapter Architecture
 
-Splice Machine's Spark Adapter creates a transactionally correct, _transient_ Splice Machine node inside the Spark Driver application.  This allows Splice Machine to perform SQL operations as though it was executed via JDBC although it is being initialized through various spark client platforms (Scala, Python, etc).  This means Splice Machine parses, plans, and executes SQL and instructions inside the Spark Driver Application alongside existing Spark instructions.
+Splice Machine's Spark Adapter creates a transactionally correct, _transient_ Splice Machine node inside the Spark driver application.  This allows Splice Machine to perform SQL operations as though it was executed via JDBC although it is being initialized through various spark client platforms (Scala, Python, etc).  This means Splice Machine parses, plans, and executes SQL and instructions inside the Spark driver application alongside existing Spark instructions.
 
 The desired architecture is illustrated below.
 
@@ -11,7 +11,7 @@ The desired architecture is illustrated below.
 
 #### Splice Spark Adapter Implementation
 
-The innovative piece of the implementation is creating a Splice Machine Node inside the Spark Driver.  This is peformed by this little snippet of code.
+The innovative piece of the implementation is creating a Splice Machine node inside the Spark driver.  This is peformed by this little snippet of code.
 
 ```scala
  
@@ -48,7 +48,7 @@ Splice Machine creates a dataframe from any SQL supplied.  Across the adapter, t
 
 ##### CRUD Operations
 
-All CRUD operations **maintain** indexes, constraints, and triggers.  The Splice Machine write pipeline will be initialized on each Spark Executor and stream into HBase via the same mechanism as a file Bulk Import (Fast).   
+All CRUD operations **maintain** indexes, constraints, and triggers.  The Splice Machine write pipeline will be initialized on each Spark executor and stream into HBase via the same mechanism as a file Bulk Import (Fast).   
 
 All Crud operations are identified to the datasource via a property map that provides the table and JDBC url.
 
