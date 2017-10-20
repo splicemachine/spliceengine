@@ -162,4 +162,9 @@ public class HScan implements DataScan{
     public Scan unwrapDelegate(){
         return scan;
     }
+
+    @Override
+    public void setSmall(boolean small) {
+        scan.setSmall(small);
+    }
 }
