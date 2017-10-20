@@ -14,6 +14,8 @@
 
 package com.splicemachine.storage;
 
+import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.spark_project.guava.base.Function;
 import com.splicemachine.si.data.HExceptionFactory;
 import com.splicemachine.si.impl.HNotServingRegion;

@@ -53,5 +53,5 @@ public interface DataScan extends Attributable{
 
     void returnAllVersions();
 
-
+    void setSmall(boolean small);
 }
