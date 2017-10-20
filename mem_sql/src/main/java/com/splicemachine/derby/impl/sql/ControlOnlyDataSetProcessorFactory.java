@@ -32,6 +32,9 @@ import org.apache.log4j.Logger;
 import org.apache.spark.sql.types.StructType;
 import javax.annotation.Nullable;
 import java.util.Iterator;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * A DataSetProcessor Factory which only generates Control-Side DataSet processors. This is because memory
@@ -92,6 +95,11 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
             @Override
             public Iterator<ExecRow> getIterator() {
                 return operation.getExecRowIterator();
+            }
+
+            @Override
+            public void waitForCompletion(int time, TimeUnit unit) throws InterruptedException, TimeoutException, ExecutionException {
+                // no-op
             }
 
             @Override
