@@ -104,6 +104,7 @@ public class PropertyConglomerate {
 			serviceProperties.put(Property.LOCKS_ESCALATION_THRESHOLD, "500");
 			serviceProperties.put(Property.DATABASE_PROPERTIES_ONLY, "false");
 			serviceProperties.put(Property.DEFAULT_CONNECTION_MODE_PROPERTY, "fullAccess");
+			serviceProperties.put(Property.AUTHENTICATION_BUILTIN_ALGORITHM, Property.AUTHENTICATION_BUILTIN_ALGORITHM_DEFAULT);
 			for (Object key: serviceProperties.keySet()) {
 				propertyManager.addProperty((String)key,serviceProperties.getProperty((String)key));
 			}
