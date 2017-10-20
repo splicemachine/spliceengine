@@ -133,4 +133,8 @@ public class MScan implements DataScan{
     public void setAllAttributes(Map<String, byte[]> attrMap){
         attrs.putAll(attrMap);
     }
+
+    @Override
+    public void setSmall(boolean small) {
+    }
 }
