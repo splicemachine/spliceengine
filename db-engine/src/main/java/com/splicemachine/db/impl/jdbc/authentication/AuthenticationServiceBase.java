@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.impl.jdbc.authentication;
 
+import com.splicemachine.db.catalog.SystemProcedures;
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.reference.Module;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.authentication.UserAuthenticator;
@@ -46,6 +48,9 @@ import com.splicemachine.db.iapi.services.daemon.Serviceable;
 import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
 import com.splicemachine.db.iapi.services.monitor.ModuleControl;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
+import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.services.property.PropertyFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -67,6 +72,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 import java.io.Serializable;
+import java.sql.SQLException;
 import java.util.Dictionary;
 import java.util.Properties;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -826,4 +832,51 @@ public abstract class AuthenticationServiceBase
         return StringUtil.toHexString(passwordSubstitute, 0,
                                       passwordSubstitute.length);
     }
+
+
+	/**
+	 * Create the DBO if it does not already exist in the local credentials database.
+	 * @param userName		The DBO user's name used to connect to JBMS system
+	 * @param userPassword	The DBO user's password used to connect to JBMS system
+	 * @param dd			data dictionary to store the user
+	 * @param tc			transaction for this operation
+	 * @throws StandardException
+	 * @throws SQLException
+	 */
+	protected void createDBOUserIfDoesNotExist(String userName, String userPassword, DataDictionary dd, TransactionController tc)
+			throws StandardException, SQLException {
+		// Check if the DBO already exists which may happen if the manual override for
+		// creation of the native credentials database is set.
+		if (dd.getUser(userName) == null) {
+			SystemProcedures.addUser( userName, userPassword, tc );
+			// Change the system schemas to be owned by the user.  This is needed for upgrading
+			// the Splice Machine 0.5 beta where the owner of the system schemas was APP.
+			// Splice Machine 1.0+ has the SPLICE user as the DBO of the system schemas.
+			SystemProcedures.updateSystemSchemaAuthorization(userName, tc);
+		}
+	}
+
+	/**
+	 * Create the default schema for the DBO if it does not already exist in the local credentials database.
+	 * @param userName		The DBO user's name used to connect to JBMS system
+	 * @param dd			data dictionary to store the DBO schema
+	 * @param tc			transaction for this operation
+	 * @throws StandardException
+	 * @throws SQLException
+	 */
+	protected void createDBOSchemaIfDoesNotExist(String userName, String userPassword, DataDictionary dd, TransactionController tc)
+			throws StandardException, SQLException {
+		LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+		DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
+
+		// Check if the DBO schema already exists which may happen if the manual override for
+		// creation of the native credentials database is set.
+		SchemaDescriptor sd = dd.getSchemaDescriptor(userName, tc, false);
+		if (sd == null || sd.getUUID() == null) {
+			UUID tmpSchemaId = dd.getUUIDFactory().createUUID();
+			dd.startWriting(lcc);
+			sd = ddg.newSchemaDescriptor(userName, userName, tmpSchemaId);
+			dd.addDescriptor(sd, null, DataDictionary.SYSSCHEMAS_CATALOG_NUM, false, tc);
+		}
+	}
 }

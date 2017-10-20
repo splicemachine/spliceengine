@@ -39,8 +39,9 @@ import java.util.Properties;
 
 public class JNDIAuthenticationService
 	extends AuthenticationServiceBase {
+	private boolean _creatingCredentialsDB;
 
-    //
+	//
 	// constructor
 	//
 
@@ -96,6 +97,14 @@ public class JNDIAuthenticationService
 		// we call the super in case there is anything to get initialized.
 		super.boot(create, properties);
 
+		// bootstrap the creation of the initial username/password when the dbo creates a credentials db
+		/*
+		 * DB-2088: Below, there is a manual override that can be enabled to force the creation of the
+		 * native credentials database after the Splice/Derby database has been created.
+		 * This is useful for beta Splice customers that wish to enable AnA.
+		 */
+		_creatingCredentialsDB = create ;
+
 		// We must retrieve and load the authentication scheme that we were
 		// told to.
 
@@ -110,5 +119,13 @@ public class JNDIAuthenticationService
 		// we're dealing with LDAP
 		aJNDIAuthscheme = ManagerLoader.load().getAuthenticationManager(this, properties);
 		this.setAuthenticationService(aJNDIAuthscheme);
+	}
+
+	public boolean isCreate() {
+		return _creatingCredentialsDB;
+	}
+
+	public void clearCreate() {
+		_creatingCredentialsDB = false;
 	}
 }
