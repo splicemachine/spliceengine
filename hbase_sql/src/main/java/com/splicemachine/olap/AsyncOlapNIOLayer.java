@@ -248,8 +248,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
                 checkLock.lock();
                 try{
                     if (!isDone()) {
-                        long remaining = signal.awaitNanos(nanosRemaining);
-                        nanosRemaining -= remaining;
+                        nanosRemaining = signal.awaitNanos(nanosRemaining);
                     }
                 }finally{
                     checkLock.unlock();

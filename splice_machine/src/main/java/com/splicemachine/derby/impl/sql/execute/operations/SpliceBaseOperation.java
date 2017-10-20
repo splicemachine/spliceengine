@@ -52,6 +52,9 @@ import java.io.*;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed, Externalizable{
     private static final long serialVersionUID=4l;
@@ -197,6 +200,15 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             if(LOG_CLOSE.isTraceEnabled())
                 LOG_CLOSE.trace(String.format("closing operation %s",this));
             if (remoteQueryClient != null) {
+                if (!isKilled) {
+                    // wait for completion, it should be quick
+                    try {
+                        remoteQueryClient.waitForCompletion(1, TimeUnit.MINUTES);
+                    } catch (InterruptedException | TimeoutException | ExecutionException e) {
+                        // ignore, continue closing
+                        LOG.warn("Exception while waiting for remote query client to wrap up", e);
+                    }
+                }
                 remoteQueryClient.close();
             }
             if(closeables!=null){
