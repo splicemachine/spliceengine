@@ -92,7 +92,8 @@ public class PropertyUtil {
 		"derby.language.logQueryPlan",
 		Property.LOCKS_ESCALATION_THRESHOLD,
 		Property.DATABASE_PROPERTIES_ONLY,
-		Property.DEFAULT_CONNECTION_MODE_PROPERTY
+		Property.DEFAULT_CONNECTION_MODE_PROPERTY,
+		Property.AUTHENTICATION_BUILTIN_ALGORITHM
 	};
 
 	/**
