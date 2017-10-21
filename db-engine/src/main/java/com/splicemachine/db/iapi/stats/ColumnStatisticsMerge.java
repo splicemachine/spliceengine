@@ -41,12 +41,7 @@ import com.yahoo.sketches.quantiles.ItemsUnion;
 import com.yahoo.sketches.theta.Sketches;
 import com.yahoo.sketches.theta.Union;
 
-import java.io.ByteArrayOutputStream;
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.io.ObjectOutputStream;
+import java.io.*;
 
 /**
  *
@@ -98,9 +93,12 @@ public class ColumnStatisticsMerge implements Aggregator<ColumnStatisticsImpl, C
             initialized = true;
         }
         assert columnStatistics.quantilesSketch !=null && columnStatistics.frequenciesSketch !=null && columnStatistics.thetaSketch !=null && value!=null:"Sketches should not be null";
-        quantilesSketchUnion.update(columnStatistics.quantilesSketch);
-        frequenciesSketch.merge(columnStatistics.frequenciesSketch);
-        thetaSketchUnion.update(columnStatistics.thetaSketch);
+        if (!columnStatistics.quantilesSketch.isEmpty()) {
+            // if stats is empty, no need to merge
+            quantilesSketchUnion.update(columnStatistics.quantilesSketch);
+            frequenciesSketch.merge(columnStatistics.frequenciesSketch);
+            thetaSketchUnion.update(columnStatistics.thetaSketch);
+        }
         nullCount =+ columnStatistics.nullCount();
     }
 
@@ -112,9 +110,12 @@ public class ColumnStatisticsMerge implements Aggregator<ColumnStatisticsImpl, C
     @Override
     public void merge(ColumnStatisticsMerge otherAggregator) {
         ColumnStatisticsMerge columnStatisticsMerge = (ColumnStatisticsMerge) otherAggregator;
-        quantilesSketchUnion.update(columnStatisticsMerge.quantilesSketchUnion.getResult());
-        frequenciesSketch.merge(columnStatisticsMerge.frequenciesSketch);
-        thetaSketchUnion.update(columnStatisticsMerge.thetaSketchUnion.getResult());
+        if (!columnStatisticsMerge.quantilesSketchUnion.getResult().isEmpty()) {
+            // if stats is empty, no need to merge
+            quantilesSketchUnion.update(columnStatisticsMerge.quantilesSketchUnion.getResult());
+            frequenciesSketch.merge(columnStatisticsMerge.frequenciesSketch);
+            thetaSketchUnion.update(columnStatisticsMerge.thetaSketchUnion.getResult());
+        }
         nullCount =+ columnStatisticsMerge.nullCount;
     }
 
