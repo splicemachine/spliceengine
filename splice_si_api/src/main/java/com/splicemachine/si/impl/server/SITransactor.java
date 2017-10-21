@@ -95,10 +95,10 @@ public class SITransactor implements Transactor{
             return new MutationStatus[0];
         }
 
-        Map<Long, Map<byte[], Map<byte[], List<KVPair>>>> kvPairMap=SITransactorUtil.putToKvPairMap(mutations,txnOperationFactory);
+        Map<TxnView, Map<byte[], Map<byte[], List<KVPair>>>> kvPairMap=SITransactorUtil.putToKvPairMap(mutations,txnOperationFactory);
         final Map<byte[], MutationStatus> statusMap= Maps.newTreeMap(Bytes.BASE_COMPARATOR);
-        for(Map.Entry<Long, Map<byte[], Map<byte[], List<KVPair>>>> entry : kvPairMap.entrySet()){
-            long txnId=entry.getKey();
+        for(Map.Entry<TxnView, Map<byte[], Map<byte[], List<KVPair>>>> entry : kvPairMap.entrySet()){
+            TxnView txnId=entry.getKey();
             Map<byte[], Map<byte[], List<KVPair>>> familyMap=entry.getValue();
             for(Map.Entry<byte[], Map<byte[], List<KVPair>>> familyEntry : familyMap.entrySet()){
                 byte[] family=familyEntry.getKey();
@@ -133,15 +133,16 @@ public class SITransactor implements Transactor{
         return retStatuses;
     }
 
+
+
     @Override
     public MutationStatus[] processKvBatch(Partition table,
                                             RollForward rollForward,
                                             byte[] defaultFamilyBytes,
                                             byte[] packedColumnBytes,
                                             Collection<KVPair> toProcess,
-                                            long txnId,
+                                            TxnView txn,
                                             ConstraintChecker constraintChecker) throws IOException{
-        TxnView txn=txnSupplier.getTransaction(txnId);
         return processKvBatch(table,rollForward,defaultFamilyBytes,packedColumnBytes,toProcess,txn,constraintChecker, false, false);
     }
 

@@ -18,6 +18,7 @@ import com.splicemachine.access.util.ByteComparisons;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.Attributable;
 import com.splicemachine.storage.DataCell;
@@ -36,7 +37,7 @@ import static com.splicemachine.si.constants.SIConstants.PACKED_COLUMN_BYTES;
  */
 class SITransactorUtil{
 
-    public static Map<Long,Map<byte[],Map<byte[],List<KVPair>>>> putToKvPairMap(DataPut[] mutations,
+    public static Map<TxnView,Map<byte[],Map<byte[],List<KVPair>>>> putToKvPairMap(DataPut[] mutations,
                                                                                 TxnOperationFactory txnOperationFactory) throws IOException{
 
         /*
@@ -64,9 +65,9 @@ class SITransactorUtil{
          * To be frank, this is only here to support legacy code without needing to rewrite everything under
          * the sun. You should almost certainly NOT use it.
          */
-        Map<Long, Map<byte[], Map<byte[], List<KVPair>>>> kvPairMap= Maps.newHashMap();
+        Map<TxnView, Map<byte[], Map<byte[], List<KVPair>>>> kvPairMap= Maps.newHashMap();
         for(DataPut mutation : mutations){
-            long txnId=txnOperationFactory.fromWrites(mutation).getTxnId();
+            TxnView txnView = txnOperationFactory.fromWrites(mutation);
             boolean isDelete=getDeletePutAttribute(mutation);
             byte[] row=mutation.key();
             Iterable<DataCell> dataValues=mutation.cells();
@@ -80,10 +81,10 @@ class SITransactorUtil{
 
                 isSIDataOnly=false;
                 byte[] value=data.value();
-                Map<byte[], Map<byte[], List<KVPair>>> familyMap=kvPairMap.get(txnId);
+                Map<byte[], Map<byte[], List<KVPair>>> familyMap=kvPairMap.get(txnView);
                 if(familyMap==null){
                     familyMap=Maps.newTreeMap(Bytes.BASE_COMPARATOR);
-                    kvPairMap.put(txnId,familyMap);
+                    kvPairMap.put(txnView,familyMap);
                 }
                 Map<byte[], List<KVPair>> columnMap=familyMap.get(family);
                 if(columnMap==null){
@@ -105,10 +106,10 @@ class SITransactorUtil{
                 byte[] family=DEFAULT_FAMILY_BYTES;
                 byte[] column=PACKED_COLUMN_BYTES;
                 byte[] value= {};
-                Map<byte[], Map<byte[], List<KVPair>>> familyMap=kvPairMap.get(txnId);
+                Map<byte[], Map<byte[], List<KVPair>>> familyMap=kvPairMap.get(txnView);
                 if(familyMap==null){
                     familyMap=Maps.newTreeMap(Bytes.BASE_COMPARATOR);
-                    kvPairMap.put(txnId,familyMap);
+                    kvPairMap.put(txnView,familyMap);
                 }
                 Map<byte[], List<KVPair>> columnMap=familyMap.get(family);
                 if(columnMap==null){
