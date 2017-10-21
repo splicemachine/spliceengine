@@ -84,7 +84,6 @@
                                     <exclude>org.apache.hive:*</exclude>
                                     <exclude>org.apache.zookeeper:zookeeper</exclude>
                                     <exclude>org.apache.hive.shims:*</exclude>
-                                    <exclude>org.apache.spark:*</exclude>
                                     <exclude>com.amazonaws:*</exclude>
                                     <exclude>com.mapr*:*</exclude>
                                     <exclude>mapr.fs*:*</exclude>
