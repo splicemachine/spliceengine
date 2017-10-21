@@ -1427,6 +1427,8 @@
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Djava.awt.headless=true</argument>
                                 <argument>-Dzookeeper.sasl.client=false</argument>
+				<argument>-Dspark.ui.retainedJobs=3000</argument>
+				<argument>-Dspark.ui.retainedStages=3000</argument>
                                 <argument>-Dcom.sun.management.jmxremote.ssl=false</argument>
                                 <argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
                                 <argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>

@@ -52,6 +52,7 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
     private static int MAX_RETRIES = 30;
     protected Configuration conf;
     protected Table table;
+    protected int splits;
 
     private List<InputSplit> toSMSplits (List<Partition> splits) throws IOException {
         List<InputSplit> sMSplits = Lists.newArrayList();
@@ -89,6 +90,7 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
         Partition clientPartition = new ClientPartition(connection, table.getName(), table, clock, driver.getPartitionInfoCache());
         int retryCounter = 0;
         boolean refresh = false;
+        this.splits = conf.getInt(MRConstants.SPLICE_SPLITS_PER_TABLE, 0);
         while (true) {
             try {
                 List<Partition> splits = clientPartition.subPartitions(s.getStartRow(), s.getStopRow(), refresh);
@@ -103,7 +105,7 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
                 }
                 SubregionSplitter splitter = new HBaseSubregionSplitter();
 
-                List<InputSplit> lss= splitter.getSubSplits(table, splits, s.getStartRow(), s.getStopRow());
+                List<InputSplit> lss= splitter.getSubSplits(table, splits, s.getStartRow(), s.getStopRow(), this.splits);
                 //check if split count changed in-between
                 List<Partition>  newSplits = clientPartition.subPartitions(s.getStartRow(), s.getStopRow(), true);
                 if (splits.size() != newSplits.size()) {

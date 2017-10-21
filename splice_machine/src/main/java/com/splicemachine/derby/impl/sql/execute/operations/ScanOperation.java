@@ -60,6 +60,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
     protected String tableVersion;
     protected boolean rowIdKey;
     protected boolean pin;
+    protected int splits;
     protected String delimited;
     protected String escaped;
     protected String lines;
@@ -85,7 +86,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
                          boolean oneRowScan,
                          double optimizerEstimatedRowCount,
                          double optimizerEstimatedCost,String tableVersion,
-                         boolean pin, String delimited, String escaped, String lines,
+                         boolean pin, int splits, String delimited, String escaped, String lines,
                          String storedAs, String location, int partitionRefItem
     ) throws StandardException{
         super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
@@ -96,6 +97,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         this.tableVersion=tableVersion;
         this.rowIdKey = rowIdKey;
         this.pin = pin;
+        this.splits = splits;
         this.delimited = delimited;
         this.escaped = escaped;
         this.lines = lines;
@@ -141,6 +143,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         storedAs = in.readBoolean()?in.readUTF():null;
         location = in.readBoolean()?in.readUTF():null;
         partitionRefItem = in.readInt();
+        splits = in.readInt();
     }
 
     @Override
@@ -169,6 +172,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         if (location!=null)
             out.writeUTF(location);
         out.writeInt(partitionRefItem);
+        out.writeInt(splits);
     }
 
     @Override
@@ -425,5 +429,9 @@ public abstract class ScanOperation extends SpliceBaseOperation{
 
     public String getStoredAs() {
         return storedAs;
+    }
+
+    public int getSplits() {
+        return splits;
     }
 }

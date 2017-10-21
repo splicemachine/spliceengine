@@ -82,6 +82,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     protected int[] partitionByColumns;
     protected boolean useSample = false;
     protected double sampleFraction = 0;
+    protected int splits;
 
 
     @Override

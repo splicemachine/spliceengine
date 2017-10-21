@@ -265,6 +265,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
             int isolationLevel,
             int maxMemoryPerTable,
             boolean genInListVals, String tableVersion, boolean pin,
+            int splits,
             String delimited,
             String escaped,
             String lines,
@@ -281,10 +282,10 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 		 * sorted, 3) the in-list column position in the index or primary key.
 		 */
         if (genInListVals) {
-            numArgs = 37;
+            numArgs = 38;
         }
         else {
-            numArgs = 34 ;
+            numArgs = 35 ;
         }
         // Splice: our Hashable joins (MSJ, Broadcast) don't have a notion of store vs. non-store
         // filters, so include any nonStoreRestrictions in the storeRestrictionList
@@ -314,7 +315,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         }
 
         fillInScanArgs2(mb,innerTable, bulkFetch, colRefItem, indexColItem, lockMode, tableLocked, isolationLevel,tableVersion,pin,
-            delimited, escaped, lines, storedAs, location, partitionRefItem);
+            splits, delimited, escaped, lines, storedAs, location, partitionRefItem);
         return numArgs;
     }
 

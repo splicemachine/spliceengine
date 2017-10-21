@@ -119,6 +119,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         double optimizerEstimatedRowCount,
         double optimizerEstimatedCost, String tableVersion,
                                         boolean pin,
+                                        int splits,
                                         String delimited,
                                         String escaped,
                                         String lines,
@@ -157,7 +158,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             1, // rowsPerRead
             oneRowScan,
             optimizerEstimatedRowCount,
-            optimizerEstimatedCost,tableVersion,pin,
+            optimizerEstimatedCost,tableVersion,pin,splits,
                 delimited,
                 escaped,
                 lines,

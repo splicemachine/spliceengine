@@ -142,6 +142,7 @@ service SpliceDerbyCoprocessorService {
 message SpliceSplitServiceRequest {
     optional bytes beginKey = 1;
     optional bytes endKey = 2;
+    optional int32 requestedSplits = 3;
 }
 
 message SpliceSplitServiceResponse {

@@ -41,12 +41,24 @@ import java.util.List;
 public class HBaseSubregionSplitter implements SubregionSplitter{
     private static final Logger LOG = Logger.getLogger(HBaseSubregionSplitter.class);
     @Override
-    public List<InputSplit> getSubSplits(Table table, List<Partition> splits, final byte[] scanStartRow, final byte[] scanStopRow) throws HMissedSplitException {
+    public List<InputSplit> getSubSplits(Table table, List<Partition> splits, final byte[] scanStartRow, final byte[] scanStopRow, int requestedSplits) throws HMissedSplitException {
         final List<InputSplit> results = new ArrayList<>();
+        int splitsPerPartition;
+        if (splits.size() > 3) {
+            // First and last partitions could be very small, don't take them into account
+            splitsPerPartition = requestedSplits / (splits.size() - 2);
+        } else {
+            splitsPerPartition = requestedSplits;
+        }
         try {
-            SpliceMessage.SpliceSplitServiceRequest message = SpliceMessage.SpliceSplitServiceRequest.newBuilder()
+
+            SpliceMessage.SpliceSplitServiceRequest.Builder builder = SpliceMessage.SpliceSplitServiceRequest.newBuilder()
                     .setBeginKey(ZeroCopyLiteralByteString.wrap(scanStartRow))
-                    .setEndKey(ZeroCopyLiteralByteString.wrap(scanStopRow)).build();
+                    .setEndKey(ZeroCopyLiteralByteString.wrap(scanStopRow));
+            if (splitsPerPartition > 0) {
+                builder.setRequestedSplits(splitsPerPartition);
+            }
+            SpliceMessage.SpliceSplitServiceRequest message = builder.build();
 
             table.batchCoprocessorService(com.splicemachine.coprocessor.SpliceMessage.
                     SpliceDerbyCoprocessorService.getDescriptor().findMethodByName("computeSplits"),message,

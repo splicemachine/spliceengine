@@ -101,6 +101,10 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         if (oneSplitPerRegion) {
             conf.set(MRConstants.ONE_SPLIT_PER_REGION, "true");
         }
+        if (op != null) {
+            ScanOperation sop = (ScanOperation) op;
+            conf.setInt(MRConstants.SPLICE_SPLITS_PER_TABLE, sop.getSplits());
+        }
         try {
              conf.set(MRConstants.SPLICE_SCAN_INFO,getTableScannerBuilderBase64String());
              conf.set(MRConstants.SPLICE_OPERATION_CONTEXT,  Base64.encodeBase64String(org.apache.commons.lang3.SerializationUtils.serialize(operationContext)));

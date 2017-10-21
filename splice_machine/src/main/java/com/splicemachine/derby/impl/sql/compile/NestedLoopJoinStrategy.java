@@ -130,6 +130,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
             boolean genInListVals,
             String tableVersion,
             boolean pin,
+            int splits,
             String delimited,
             String escaped,
             String lines,
@@ -157,9 +158,9 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
 		 * sorted, 3) the in-list column position in the index or primary key.
 		 */
         if(genInListVals){
-            numArgs=37;
+            numArgs=38;
         }else{
-            numArgs=34;
+            numArgs=35;
         }
 
 
@@ -200,6 +201,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
                 isolationLevel,
                 tableVersion,
                 pin,
+                splits,
                 delimited,
                 escaped,
                 lines,

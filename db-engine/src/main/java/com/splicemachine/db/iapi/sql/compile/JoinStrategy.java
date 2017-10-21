@@ -280,6 +280,7 @@ public interface JoinStrategy {
 							boolean genInListVals,
                             String tableVersion,
 							boolean pin,
+							int splits,
 							String delimited,
 							String escaped,
 							String lines,
