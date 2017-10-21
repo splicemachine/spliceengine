@@ -16,7 +16,7 @@ MYLIBDIR=${PARCELS_ROOT}/${PARCEL_DIRNAME}/lib
     exit 1
 }
 
-PREPENDSTRING=`echo ${MYLIBDIR}/javax.servlet-api-*.jar ${CDH_SPARK2_HOME}/jars/spark*.jar ${CDH_HIVE_HOME}/lib/hive-shims*.jar | sed 's/ /:/g'`
+PREPENDSTRING=`echo ${MYLIBDIR}/javax.servlet-api-*.jar ${CDH_SPARK2_HOME}/jars/*.jar | sed 's/ /:/g'`
 echo "prepending $PREPENDSTRING to HBASE_CLASSPATH_PREFIX"
 if [ -z $HBASE_CLASSPATH_PREFIX ] ; then
     export HBASE_CLASSPATH_PREFIX="${PREPENDSTRING}"
