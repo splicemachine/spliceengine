@@ -497,7 +497,7 @@ public class SpliceRegionAdmin {
         return dataHash;
     }
 
-    private static TableDescriptor getTableDescriptor(String schemaName, String tableName) throws Exception {
+    public static TableDescriptor getTableDescriptor(String schemaName, String tableName) throws Exception {
         EmbedConnection defaultConn=(EmbedConnection) SpliceAdmin.getDefaultConn();
         Activation lastActivation=defaultConn.getLanguageConnection().getLastActivation();
         LanguageConnectionContext lcc = lastActivation.getLanguageConnectionContext();
@@ -565,7 +565,7 @@ public class SpliceRegionAdmin {
         return preference;
     }
 
-    private static  ConglomerateDescriptor getIndex(TableDescriptor td, String indexName) {
+    public static  ConglomerateDescriptor getIndex(TableDescriptor td, String indexName) {
         ConglomerateDescriptorList list = td.getConglomerateDescriptorList();
         for (ConglomerateDescriptor searchCD :list) {
             if (searchCD.isIndex() && !searchCD.isPrimaryKey() && indexName != null &&

@@ -75,7 +75,9 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
             spliceClassWatcher.prepareStatement(format("create index O_CUST_IDX on ORDERS(\n" +
                     " O_CUSTKEY,\n" +
                     " O_ORDERKEY\n" +
-                    " ) splitkeys auto hfile location '%s'", getResource("data"))).execute();
+                    " ) splitkeys location '%s' columnDelimiter '|'", getResource("custIdx.csv"))).execute();
+
+            spliceClassWatcher.prepareStatement(format("call syscs_util.populate_index('%s', '%s', 'O_CUST_IDX', '%s')", SCHEMA_NAME, ORDERS, getResource("data"))).execute();
 
             spliceClassWatcher.prepareStatement(format("create index O_DATE_PRI_KEY_IDX on ORDERS(\n" +
                     " O_ORDERDATE,\n" +
@@ -123,7 +125,7 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
 
     @AfterClass
     public static void cleanup() throws Exception {
-        testBulkDelete();
+        ///testBulkDelete();
         String dir = getResource("data");
         FileUtils.deleteDirectory(new File(dir));
     }
@@ -380,6 +382,8 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
 
     @Test
     public void verifySplitKeys() throws Exception {
+        if (notSupported)
+            return;
         ResultSet rs = methodWatcher.executeQuery("call syscs_util.get_regions('HBASEBULKLOADINDEXIT', 'LINEITEM', " +
                 "'L_SHIPDATE_IDX',null, null,null,null,null,null,null)");
         String[] startKeys = {"{ NULL, NULL, NULL, NULL }", "{ 1993-05-30, 58476, 5737.88, 0.04 }",

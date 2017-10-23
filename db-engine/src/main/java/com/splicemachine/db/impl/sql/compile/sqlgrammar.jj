@@ -11988,17 +11988,16 @@ indexDefinition() throws StandardException :
 		    [ <_DEFAULT> <KEYS> { excludeDefaults = true;} ]
 		]
 		[   <SPLITKEYS> {preSplit = Boolean.TRUE;}
-		        [ <AUTO> {sampling = Boolean.TRUE; } |
+		        [ <AUTO> {sampling = Boolean.TRUE; } <HFILE> <LOCATION> {hfilePath = literal();}|
 		          <LOCATION> {splitKeysPath = literal();}
 		          [<COLUMNDELIMITER> {columnDelimiter = literal();}]
 		          [<CHARACTERDELIMITER> {characterDelimiter = literal();}]
                   [<TIMESTAMPFORMAT> {timestampFormat = literal();}]
                   [<DATEFORMAT> {dateFormat = literal();}]
                   [<TIMEFORMAT> {timeFormat = literal();}]
+		          [<HFILE> <LOCATION> {hfilePath = literal();} ]
 		        ]
-		    <HFILE> <LOCATION> {hfilePath = literal();}
 		]
-
 	{
 		/* User allowed to specify schema name on table and index.
 		 * If no schema name specified for index, then it "inherits" 

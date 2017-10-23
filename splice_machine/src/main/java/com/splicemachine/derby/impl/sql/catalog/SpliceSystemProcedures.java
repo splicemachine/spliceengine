@@ -426,6 +426,14 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(bulkImportHFile);
 
+                    Procedure populateIndex = Procedure.newBuilder().name("POPULATE_INDEX")
+                            .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .catalog("indexName")
+                            .varchar("bulkImportDirectory", 32672)
+                            .build();
+                    procedures.add(populateIndex);
 
                     Procedure sampleData = Procedure.newBuilder().name("SAMPLE_DATA")
                             .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())

@@ -14,16 +14,21 @@
 
 package com.splicemachine.derby.impl.load;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.db.catalog.DefaultInfo;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
+import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLLongint;
@@ -36,13 +41,33 @@ import com.splicemachine.db.impl.load.ColumnInfo;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.iapi.sql.olap.OlapClient;
+import com.splicemachine.derby.impl.sql.execute.actions.IndexConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.index.BulkLoadIndexJob;
+import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
+import com.splicemachine.derby.impl.storage.SpliceRegionAdmin;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
+import com.splicemachine.derby.stream.output.WriteReadUtils;
+import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.derby.vti.SpliceFileVTI;
 import com.splicemachine.pipeline.ErrorState;
+import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
+import org.spark_project.guava.primitives.Ints;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -107,6 +132,68 @@ public class HdfsImport {
             new GenericColumnDescriptor("dataSize", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
             new GenericColumnDescriptor("failedLog", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR))
     };
+
+    public static void POPULATE_INDEX(String sName,
+                                      String tName,
+                                      String iName,
+                                      String hPath,
+                                      ResultSet[] results ) throws Exception {
+        String schemaName = sName.toUpperCase().trim();
+        String tableName = tName.toUpperCase().trim();
+        String indexName = iName.toUpperCase().trim();
+        String hfilePath = hPath.trim();
+
+        TableDescriptor td = SpliceRegionAdmin.getTableDescriptor(schemaName, tableName);
+
+        ConglomerateDescriptor index = null;
+        if (indexName != null) {
+            indexName = indexName.toUpperCase();
+            index = SpliceRegionAdmin.getIndex(td, indexName);
+            if (index == null) {
+                throw StandardException.newException(SQLState.LANG_INDEX_NOT_FOUND, indexName);
+            }
+        }
+
+        EmbedConnection conn = (EmbedConnection)SpliceAdmin.getDefaultConn();
+        LanguageConnectionContext lcc = conn.getLanguageConnection();
+        Activation activation = conn.getLanguageConnection().getLastActivation();
+        elevateTransaction(activation);
+        SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute();
+        TxnView txnView = tc.getActiveStateTxn();
+        DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(txnView.getTxnId(),
+                activation.getLanguageConnectionContext(),
+                td.getHeapConglomerateId(), index.getConglomerateNumber(),
+                td, index.getIndexDescriptor(),td.getDefaultValue(index.getIndexDescriptor().baseColumnPositions()[0]));
+        DDLMessage.TentativeIndex tentativeIndex = ddlChange.getTentativeIndex();
+
+        int[] indexFormatIds = IndexConstantOperation.getIndexFormatIds(tentativeIndex);
+        ScanSetBuilder builder = IndexConstantOperation.getScanSetBuilder(tentativeIndex, true, tableName, txnView, 0);
+
+        String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+        String jobGroup = userId + " <" +txnView.getTxnId() +">";
+        String prefix = "Populate Index";
+        ActivationHolder ah = new ActivationHolder(activation, null);
+        OlapClient olapClient = EngineDriver.driver().getOlapClient();
+        olapClient.execute(new BulkLoadIndexJob(ah, txnView, builder, "Populate Index: " + indexName,
+                jobGroup, prefix, ddlChange.getTentativeIndex(),
+                indexFormatIds, false, hfilePath, td.getVersion(), indexName));
+    }
+
+    private static TxnView elevateTransaction(Activation activation) throws StandardException{
+		/*
+		 * Elevate the current transaction to make sure that we are writable
+		 */
+        TransactionController transactionExecute=activation.getLanguageConnectionContext().getTransactionExecute();
+        Transaction rawStoreXact=((TransactionManager)transactionExecute).getRawStoreXact();
+        BaseSpliceTransaction rawTxn=(BaseSpliceTransaction)rawStoreXact;
+        TxnView currentTxn = rawTxn.getActiveStateTxn();
+        if (currentTxn instanceof ActiveWriteTxn)
+            return rawTxn.getActiveStateTxn();
+        else if (rawTxn instanceof SpliceTransaction)
+            return ((SpliceTransaction) rawTxn).elevate("populateIndex".getBytes());
+        else
+            throw new IllegalStateException("Programmer error: " + "cannot elevate transaction");
+    }
 
     public static void COMPUTE_SPLIT_KEY(String schemaName,
                                          String tableName,
