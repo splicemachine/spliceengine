@@ -160,6 +160,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
     private boolean         excludeNulls;
     private boolean         excludeDefaults;
     private boolean         preSplit;
+    private boolean         populate;
     private boolean         sampling;
     private String          splitKeyPath;
     private String          hfilePath;
@@ -238,6 +239,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             boolean 		excludeNulls,
             boolean			excludeDefaults,
             boolean         preSplit,
+            boolean         populate,
             boolean         sampling,
             String          splitKeyPath,
             String          hfilePath,
@@ -263,6 +265,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         this.excludeDefaults            = excludeDefaults;
         this.excludeNulls               = excludeNulls;
         this.preSplit                   = preSplit;
+        this.populate                   = populate;
         this.sampling                   = sampling;
         this.splitKeyPath               = splitKeyPath;
         this.hfilePath                  = hfilePath;
@@ -800,7 +803,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         tc.prepareDataDictionaryChange(changeId);
         Txn indexTransaction = DDLUtils.getIndexTransaction(tc, tentativeTransaction, td.getHeapConglomerateId(),indexName);
         populateIndex(td, activation, indexTransaction, tentativeTransaction.getCommitTimestamp(),
-                ddlChange.getTentativeIndex(), indexDescriptor, preSplit, sampling, splitKeyPath, hfilePath,
+                ddlChange.getTentativeIndex(), indexDescriptor, preSplit, populate, sampling, splitKeyPath, hfilePath,
                 columnDelimiter, characterDelimiter, timestampFormat, dateFormat, timeFormat);
         indexTransaction.commit();
     }

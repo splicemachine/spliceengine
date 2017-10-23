@@ -11972,6 +11972,7 @@ indexDefinition() throws StandardException :
     ValueNode   timeFormat = null;
     Boolean     sampling = Boolean.FALSE;
     Boolean     preSplit = Boolean.FALSE;
+    Boolean     populate = Boolean.TRUE;
 	Vector	indexColumnList = new Vector();
 }
 {
@@ -11988,15 +11989,17 @@ indexDefinition() throws StandardException :
 		    [ <_DEFAULT> <KEYS> { excludeDefaults = true;} ]
 		]
 		[   <SPLITKEYS> {preSplit = Boolean.TRUE;}
-		        [ <AUTO> {sampling = Boolean.TRUE; } <HFILE> <LOCATION> {hfilePath = literal();}|
+		        [ <AUTO> {sampling = Boolean.TRUE; } (<HFILE> <LOCATION> {hfilePath = literal();}|<NO> <DATA> {populate = Boolean.FALSE;})
+		          |
 		          <LOCATION> {splitKeysPath = literal();}
 		          [<COLUMNDELIMITER> {columnDelimiter = literal();}]
 		          [<CHARACTERDELIMITER> {characterDelimiter = literal();}]
                   [<TIMESTAMPFORMAT> {timestampFormat = literal();}]
                   [<DATEFORMAT> {dateFormat = literal();}]
                   [<TIMEFORMAT> {timeFormat = literal();}]
-		          [<HFILE> <LOCATION> {hfilePath = literal();} ]
+		          (<HFILE> <LOCATION> {hfilePath = literal();} | <NO> <DATA> {populate = Boolean.FALSE;})
 		        ]
+		    | <NO> <DATA> {populate = Boolean.FALSE;}
 		]
 	{
 		/* User allowed to specify schema name on table and index.
@@ -12036,6 +12039,7 @@ indexDefinition() throws StandardException :
 								excludeNulls,
 								excludeDefaults,
 								preSplit,
+								populate,
 								sampling,
 								splitKeysPath,
 								columnDelimiter,

@@ -176,7 +176,7 @@ public class HdfsImport {
         OlapClient olapClient = EngineDriver.driver().getOlapClient();
         olapClient.execute(new BulkLoadIndexJob(ah, txnView, builder, "Populate Index: " + indexName,
                 jobGroup, prefix, ddlChange.getTentativeIndex(),
-                indexFormatIds, false, hfilePath, td.getVersion(), indexName));
+                indexFormatIds, false, true, hfilePath, td.getVersion(), indexName));
     }
 
     private static TxnView elevateTransaction(Activation activation) throws StandardException{

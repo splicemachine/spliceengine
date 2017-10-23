@@ -35,6 +35,7 @@ public class SparkBulkLoadIndexDataSetWriterBuilder implements BulkLoadIndexData
     private OperationContext operationContext;
     private DDLMessage.TentativeIndex tentativeIndex;
     private String indexName;
+    private boolean populate;
 
     public SparkBulkLoadIndexDataSetWriterBuilder(DataSet dataSet){
         this.dataSet = dataSet;
@@ -84,8 +85,14 @@ public class SparkBulkLoadIndexDataSetWriterBuilder implements BulkLoadIndexData
     }
 
     @Override
+    public BulkLoadIndexDataSetWriterBuilder populate(boolean populate) {
+        this.populate = populate;
+        return this;
+    }
+
+    @Override
     public DataSetWriter build() throws StandardException {
-        return new BulkLoadIndexDataSetWriter(dataSet, bulkLoadDirectory, sampling,
+        return new BulkLoadIndexDataSetWriter(dataSet, bulkLoadDirectory, sampling, populate,
                 destConglomerate, txn, operationContext, tentativeIndex, indexName);
     }
 }

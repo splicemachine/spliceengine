@@ -40,12 +40,14 @@ import java.util.List;
 public class BulkLoadIndexDataSetWriter extends BulkDataSetWriter implements DataSetWriter {
     private String  bulkLoadDirectory;
     private boolean sampling;
+    private boolean populate;
     private DDLMessage.TentativeIndex tentativeIndex;
     private String indexName;
 
     public BulkLoadIndexDataSetWriter(DataSet dataSet,
                                       String  bulkLoadDirectory,
                                       boolean sampling,
+                                      boolean populate,
                                       long destConglomerate,
                                       TxnView txn,
                                       OperationContext operationContext,
@@ -55,6 +57,7 @@ public class BulkLoadIndexDataSetWriter extends BulkDataSetWriter implements Dat
         super(dataSet, operationContext, destConglomerate, txn);
         this.bulkLoadDirectory = bulkLoadDirectory;
         this.sampling = sampling;
+        this.populate = populate;
         this.tentativeIndex = tentativeIndex;
         this.indexName = indexName;
     }
@@ -86,24 +89,27 @@ public class BulkLoadIndexDataSetWriter extends BulkDataSetWriter implements Dat
         if (sampling) {
             sampleAndSplitIndex();
         }
-        final List<BulkImportPartition> bulkLoadPartitions =
-                getBulkImportPartitions(allCongloms, bulkLoadDirectory);
-        String compressionAlgorithm = HConfiguration.getConfiguration().getCompressionAlgorithm();
 
-        // Write to HFile
-        HFileGenerationFunction hfileGenerationFunction =
-                new BulkInsertHFileGenerationFunction(operationContext, txn.getTxnId(),
-                        heapConglom, compressionAlgorithm, bulkLoadPartitions);
+        if(populate) {
 
-        DataSet rowAndIndexes = dataSet
-                .map(new IndexTransformFunction(tentativeIndex), null, false, true,
-                        String.format("Create Index %s: Generate HFiles", indexName))
-                .map(new BulkLoadKVPairFunction(heapConglom), null, false, true,
-                        String.format("Create Index %s: Generate HFiles", indexName));
+            final List<BulkImportPartition> bulkLoadPartitions =
+                    getBulkImportPartitions(allCongloms, bulkLoadDirectory);
+            String compressionAlgorithm = HConfiguration.getConfiguration().getCompressionAlgorithm();
 
-        partitionUsingRDDSortUsingDataFrame(bulkLoadPartitions, rowAndIndexes, hfileGenerationFunction);
-        bulkLoad(bulkLoadPartitions, bulkLoadDirectory, String.format("Create Index %s:", indexName));
+            // Write to HFile
+            HFileGenerationFunction hfileGenerationFunction =
+                    new BulkInsertHFileGenerationFunction(operationContext, txn.getTxnId(),
+                            heapConglom, compressionAlgorithm, bulkLoadPartitions);
 
+            DataSet rowAndIndexes = dataSet
+                    .map(new IndexTransformFunction(tentativeIndex), null, false, true,
+                            String.format("Create Index %s: Generate HFiles", indexName))
+                    .map(new BulkLoadKVPairFunction(heapConglom), null, false, true,
+                            String.format("Create Index %s: Generate HFiles", indexName));
+
+            partitionUsingRDDSortUsingDataFrame(bulkLoadPartitions, rowAndIndexes, hfileGenerationFunction);
+            bulkLoad(bulkLoadPartitions, bulkLoadDirectory, String.format("Create Index %s:", indexName));
+        }
         ValueRow valueRow=new ValueRow(1);
         valueRow.setColumn(1,new SQLLongint(operationContext.getRecordsWritten()));
         return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
@@ -130,7 +136,9 @@ public class BulkLoadIndexDataSetWriter extends BulkDataSetWriter implements Dat
         List<Tuple2<Long, byte[][]>> cutPoints = getCutPoints(sampleFraction, result);
 
         // dump cut points to file system for reference
-        dumpCutPoints(cutPoints, bulkLoadDirectory);
+        if (bulkLoadDirectory != null) {
+            dumpCutPoints(cutPoints, bulkLoadDirectory);
+        }
 
         if (cutPoints != null && cutPoints.size() > 0) {
             splitTables(cutPoints);

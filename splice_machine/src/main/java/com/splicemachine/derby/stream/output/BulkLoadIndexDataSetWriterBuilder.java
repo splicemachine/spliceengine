@@ -39,5 +39,7 @@ public interface BulkLoadIndexDataSetWriterBuilder {
 
     BulkLoadIndexDataSetWriterBuilder indexName(String indexName);
 
+    BulkLoadIndexDataSetWriterBuilder populate(boolean populate);
+
     DataSetWriter build() throws StandardException;
 }

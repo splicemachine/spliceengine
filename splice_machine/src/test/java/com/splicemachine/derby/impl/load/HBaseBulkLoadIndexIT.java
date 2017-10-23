@@ -72,10 +72,28 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
             spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, NATION, getResource("nation.tbl"), getResource("data"))).execute();
             spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, REGION, getResource("region.tbl"), getResource("data"))).execute();
 
+            spliceClassWatcher.prepareStatement("create index O_CUST_IDX on ORDERS(\n" +
+                    " O_CUSTKEY,\n" +
+                    " O_ORDERKEY\n" +
+                    " ) splitkeys auto no data").execute();
+            ResultSet rs = spliceClassWatcher.prepareStatement("select count(*) from orders --splice-properties index=O_CUST_IDX").executeQuery();
+            rs.next();
+            Assert.assertEquals(0, rs.getInt(1));
+            spliceClassWatcher.prepareStatement("drop index O_CUST_IDX").execute();
+
+            spliceClassWatcher.prepareStatement("create index O_CUST_IDX on ORDERS(\n" +
+                    " O_CUSTKEY,\n" +
+                    " O_ORDERKEY\n" +
+                    " ) no data").execute();
+            rs = spliceClassWatcher.prepareStatement("select count(*) from orders --splice-properties index=O_CUST_IDX").executeQuery();
+            rs.next();
+            Assert.assertEquals(0, rs.getInt(1));
+            spliceClassWatcher.prepareStatement("drop index O_CUST_IDX").execute();
+
             spliceClassWatcher.prepareStatement(format("create index O_CUST_IDX on ORDERS(\n" +
                     " O_CUSTKEY,\n" +
                     " O_ORDERKEY\n" +
-                    " ) splitkeys location '%s' columnDelimiter '|'", getResource("custIdx.csv"))).execute();
+                    " ) splitkeys location '%s' columnDelimiter '|' no data", getResource("custIdx.csv"))).execute();
 
             spliceClassWatcher.prepareStatement(format("call syscs_util.populate_index('%s', '%s', 'O_CUST_IDX', '%s')", SCHEMA_NAME, ORDERS, getResource("data"))).execute();
 
@@ -120,6 +138,8 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
             java.lang.Throwable ex = Throwables.getRootCause(e);
             if (ex.getMessage().contains("bulk load not supported"))
                 notSupported = true;
+            else
+                throw e;
         }
     }
 

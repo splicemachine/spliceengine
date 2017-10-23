@@ -122,6 +122,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
                                  DDLMessage.TentativeIndex tentativeIndex,
                                  IndexDescriptor indexDescriptor,
 								 boolean         preSplit,
+                                 boolean         populate,
 								 boolean         sampling,
 								 String          splitKeyPath,
 								 String          hfilePath,
@@ -141,11 +142,21 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             String table = Long.toString(tentativeIndex.getTable().getConglomerate());
             Collection<PartitionLoad> partitionLoadCollection = EngineDriver.driver().partitionLoadWatcher().tableLoad(table,false);
 
-            boolean distributed = preSplit;
+            /**
+             * Run on spark in any of the following cases
+             * 1) the dataset is large
+             * 2) hfile path is specified
+             * 3) needs to sample data for split
+             */
+            boolean distributed = false;
             for (PartitionLoad load: partitionLoadCollection) {
                 if (load.getMemStoreSizeMB() > 0 || load.getStorefileSizeMB() > 0)
                     distributed = true;
             }
+
+            boolean bulkLoad = hfilePath!= null;
+            if (bulkLoad || sampling)
+                distributed = true;
 
             int[] indexFormatIds = getIndexFormatIds(tentativeIndex);
             ScanSetBuilder builder = getScanSetBuilder(tentativeIndex, distributed, tableName, indexTransaction, demarcationPoint);
@@ -156,25 +167,28 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 			String prefix = StreamUtils.getScopeString(this);
 			String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
 			String jobGroup = userId + " <" +indexTransaction.getTxnId() +">";
-			if (distributed) {
-				OlapClient olapClient = EngineDriver.driver().getOlapClient();
-				if (!preSplit) {
-					olapClient.execute(new DistributedPopulateIndexJob(childTxn, builder, scope, jobGroup, prefix,
+
+            if (preSplit && !sampling) {
+                splitIndex(indexDescriptor, splitKeyPath, columnDelimiter, characterDelimiter,
+                        timestampFormat, dateFormat, timeFormat, tentativeIndex, td);
+            }
+
+            if (distributed) {
+                OlapClient olapClient = EngineDriver.driver().getOlapClient();
+                if (!bulkLoad && populate) {
+                    olapClient.execute(new DistributedPopulateIndexJob(childTxn, builder, scope, jobGroup, prefix,
                             tentativeIndex, indexFormatIds));
-				}
-				else {
-                    if (!sampling) {
-                        splitIndex(indexDescriptor, splitKeyPath, columnDelimiter, characterDelimiter,
-                                timestampFormat, dateFormat, timeFormat, tentativeIndex, td);
-                    }
-					if (hfilePath != null) {
-						ActivationHolder ah = new ActivationHolder(activation, null);
-						olapClient.execute(new BulkLoadIndexJob(ah, childTxn, builder, scope, jobGroup, prefix, tentativeIndex,
-								indexFormatIds, sampling, hfilePath, td.getVersion(), indexName));
-					}
-				}
-			} else
-				PopulateIndexJob.populateIndex(tentativeIndex,builder,prefix,indexFormatIds,scope,childTxn);
+                } else {
+                    ActivationHolder ah = new ActivationHolder(activation, null);
+                    olapClient.execute(new BulkLoadIndexJob(ah, childTxn, builder, scope, jobGroup, prefix, tentativeIndex,
+                            indexFormatIds, sampling, populate,hfilePath, td.getVersion(), indexName));
+                }
+            } else {
+                if (populate) {
+                    PopulateIndexJob.populateIndex(tentativeIndex, builder, prefix, indexFormatIds, scope, childTxn);
+                }
+            }
+
             childTxn.commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);

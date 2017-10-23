@@ -71,6 +71,7 @@ public class CreateIndexNode extends DDLStatementNode
 	boolean 			excludeNulls;
 	boolean				excludeDefaults;
     boolean             preSplit;
+	boolean             populate;
     boolean             sampling;
     String              splitKeyPath;
     String              hfilePath;
@@ -105,6 +106,7 @@ public class CreateIndexNode extends DDLStatementNode
 					Object excludeNulls,
 					Object excludeDefaults,
                     Object preSplit,
+                    Object populate,
                     Object sampling,
                     Object splitKeyPath,
                     Object columnDelimiter,
@@ -126,6 +128,7 @@ public class CreateIndexNode extends DDLStatementNode
 		this.excludeNulls = (Boolean) excludeNulls;
 		this.excludeDefaults = (Boolean) excludeDefaults;
         this.preSplit = (Boolean)preSplit;
+        this.populate = (Boolean) populate;
         this.sampling = (Boolean)sampling;
         this.splitKeyPath = splitKeyPath!=null ? ((CharConstantNode)splitKeyPath).getString() : null;
         this.columnDelimiter = columnDelimiter != null ? ((CharConstantNode)columnDelimiter).getString() : null;
@@ -344,6 +347,7 @@ public class CreateIndexNode extends DDLStatementNode
                 excludeNulls,
                 excludeDefaults,
                 preSplit,
+                populate,
                 sampling,
                 splitKeyPath,
                 hfilePath,

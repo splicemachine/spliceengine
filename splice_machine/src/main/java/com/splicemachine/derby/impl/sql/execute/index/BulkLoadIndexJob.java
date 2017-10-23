@@ -44,6 +44,7 @@ public class BulkLoadIndexJob extends DistributedJob implements Externalizable {
     DDLMessage.TentativeIndex tentativeIndex;
     int[] indexFormatIds;
     boolean sampling;
+    boolean populate;
     String  hfilePath;
     ActivationHolder ah;
     String tableVersion;
@@ -59,6 +60,7 @@ public class BulkLoadIndexJob extends DistributedJob implements Externalizable {
                             DDLMessage.TentativeIndex tentativeIndex,
                             int[]    indexFormatIds,
                             boolean  sampling,
+                            boolean  populate,
                             String   hfilePath,
                             String   tableVersion,
                             String   indexName) {
@@ -71,6 +73,7 @@ public class BulkLoadIndexJob extends DistributedJob implements Externalizable {
         this.tentativeIndex = tentativeIndex;
         this.indexFormatIds = indexFormatIds;
         this.sampling = sampling;
+        this.populate = populate;
         this.hfilePath = hfilePath;
         this.tableVersion = tableVersion;
         this.indexName = indexName;
@@ -97,8 +100,12 @@ public class BulkLoadIndexJob extends DistributedJob implements Externalizable {
         ArrayUtil.writeIntArray(out,indexFormatIds);
         SIDriver.driver().getOperationFactory().writeTxn(childTxn,out);
         out.writeUTF(tableVersion);
-        out.writeUTF(hfilePath);
+        out.writeBoolean(hfilePath != null);
+        if (hfilePath != null) {
+            out.writeUTF(hfilePath);
+        }
         out.writeBoolean(sampling);
+        out.writeBoolean(populate);
         out.writeUTF(indexName);
     }
 
@@ -114,8 +121,11 @@ public class BulkLoadIndexJob extends DistributedJob implements Externalizable {
         indexFormatIds = ArrayUtil.readIntArray(in);
         childTxn = SIDriver.driver().getOperationFactory().readTxn(in);
         tableVersion = in.readUTF();
-        hfilePath = in.readUTF();
+        if (in.readBoolean()) {
+            hfilePath = in.readUTF();
+        }
         sampling = in.readBoolean();
+        populate = in.readBoolean();
         indexName = in.readUTF();
     }
 }
