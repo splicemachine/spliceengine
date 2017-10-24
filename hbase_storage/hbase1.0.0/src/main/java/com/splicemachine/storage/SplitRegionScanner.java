@@ -163,7 +163,7 @@ public class SplitRegionScanner implements RegionScanner {
                     scan.setStartRow(Bytes.add(topCell.getRow(), new byte[]{0})); // set to previous start row
                 }
                 close();
-                SpliceLogUtils.warn(LOG, "re-init split scanner with scan=%s, table=%s",scan,htable);
+                LOG.warn(String.format("re-init split scanner with scan=%s, table=%s", scan, htable), ioe);
                 init(true); // Refresh
                 results.clear();
                 return nextInternal(results);
