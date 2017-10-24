@@ -19,7 +19,6 @@ import com.splicemachine.homeless.TestUtils;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-import org.spark_project.guava.base.Throwables;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -216,38 +215,6 @@ public class DefaultIndexIT extends SpliceUnitTest{
             Assert.assertEquals("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.", sqle.getMessage());
         }
 
-    }
-
-    @Test
-    @Ignore("DB-6248")
-    public void testBulkHFileImport() throws Exception {
-        try {
-            methodWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s',',','\"',null,null,null,0,null,true,null, '%s', false)", schemaWatcher.schemaName, BULK_HFILE_BLANK_TABLE.tableName
-                    , getResourceDirectory() + "null_and_blanks.csv", getResourceDirectory() + "data")).execute();
-
-            try {
-                methodWatcher.executeQuery(String.format("SELECT * FROM BULK_HFILE_BLANK_TABLE --SPLICE-PROPERTIES index=BULK_HFILE_BLANK_TABLE_IX\n where i =''"));
-                Assert.fail("did not throw exception");
-            }
-            catch (SQLException sqle) {
-                Assert.assertEquals("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.", sqle.getMessage());
-            }
-            ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM BULK_HFILE_BLANK_TABLE --SPLICE-PROPERTIES index=BULK_HFILE_BLANK_TABLE_IX\n where i ='SD'"));
-
-
-            Assert.assertEquals("I | J |\n" +
-                    "--------\n" +
-                    "SD |SD |", TestUtils.FormattedResult.ResultFactory.toString(rs));
-
-        }
-        catch (Exception e) {
-            java.lang.Throwable ex = Throwables.getRootCause(e);
-            if (ex.getMessage().contains("bulk load not supported")) {
-                // swallow (Control Tests)
-            } else {
-                throw e;
-            }
-        }
     }
 
     @Test
@@ -958,26 +925,4 @@ public class DefaultIndexIT extends SpliceUnitTest{
         }
     }
 
-    @Test
-    public void testBulkDelete() throws Exception {
-        try {
-            methodWatcher.executeUpdate(format("delete from T1 --splice-properties bulkDeleteDirectory='%s", getResourceDirectory() + "data"));
-
-            ResultSet rs = methodWatcher.executeQuery("select * from t1");
-
-            Assert.assertEquals("", TestUtils.FormattedResult.ResultFactory.toString(rs));
-
-            rs = methodWatcher.executeQuery(String.format("SELECT * FROM T1 --SPLICE-PROPERTIES index=T1_IX_B1_EXCL_DEFAULTS\n where b1 <> 5"));
-
-            Assert.assertEquals("", TestUtils.FormattedResult.ResultFactory.toString(rs));
-        }
-        catch (Exception e) {
-            java.lang.Throwable ex = Throwables.getRootCause(e);
-            if (ex.getMessage().contains("bulk load not supported")) {
-                // swallow (Control Tests)
-            } else {
-                throw e;
-            }
-        }
-    }
 }
