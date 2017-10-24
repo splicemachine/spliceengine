@@ -72,6 +72,15 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 			this.region = region;
 			this.stopRow = Bytes.equals(scan.getStopRow(), HConstants.EMPTY_END_ROW) ? null : scan.getStopRow();
 		}
+		
+	protected boolean isStopRow(Cell peek) {
+		byte[] currentRow = peek.getRowArray();
+		int offset = peek.getRowOffset();
+		short length = peek.getRowLength();
+		return (stopRow!= null &&
+				region.getComparator().compareRows(stopRow, 0, stopRow.length,
+						currentRow, offset, length) <= 0);
+	}
 
 		@Override
 		public KeyValue peek() {
@@ -91,7 +100,7 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 				return ClientRegionConstants.MEMSTORE_BEGIN;
 			}
 			Cell peek = super.peek();
-			if (peek == null) {
+			if (peek == null || isStopRow(peek)) {
 				endRowNeedsToBeReturned = true;
                 return new KeyValue(Bytes.toBytes(counter),ClientRegionConstants.HOLD,ClientRegionConstants.HOLD, HConstants.LATEST_TIMESTAMP,ClientRegionConstants.HOLD);
 			}
