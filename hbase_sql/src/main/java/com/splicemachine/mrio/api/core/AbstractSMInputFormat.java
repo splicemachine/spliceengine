@@ -22,7 +22,6 @@ import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.mrio.MRConstants;
-import com.splicemachine.si.impl.HMissedSplitException;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.HScan;
@@ -92,44 +91,32 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
         boolean refresh = false;
         this.splits = conf.getInt(MRConstants.SPLICE_SPLITS_PER_TABLE, 0);
         while (true) {
-            try {
-                List<Partition> splits = clientPartition.subPartitions(s.getStartRow(), s.getStopRow(), refresh);
+            List<Partition> splits = clientPartition.subPartitions(s.getStartRow(), s.getStopRow(), refresh);
 
-                if (oneSplitPerRegion(conf))
-                    return toSMSplits(splits);
-                if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.debug(LOG, "getSplits " + splits);
-                    for (Partition split : splits) {
-                        SpliceLogUtils.debug(LOG, "split -> " + split);
-                    }
+            if (oneSplitPerRegion(conf))
+                return toSMSplits(splits);
+            if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.debug(LOG, "getSplits " + splits);
+                for (Partition split : splits) {
+                    SpliceLogUtils.debug(LOG, "split -> " + split);
                 }
-                SubregionSplitter splitter = new HBaseSubregionSplitter();
+            }
+            SubregionSplitter splitter = new HBaseSubregionSplitter();
 
-                List<InputSplit> lss= splitter.getSubSplits(table, splits, s.getStartRow(), s.getStopRow(), this.splits);
-                //check if split count changed in-between
-                List<Partition>  newSplits = clientPartition.subPartitions(s.getStartRow(), s.getStopRow(), true);
-                if (splits.size() != newSplits.size()) {
-                    // retry
-                    refresh = true;
-                    LOG.warn("mismatched splits: earlier [" + splits.size() + "], later [" + newSplits.size() + "] for region " + clientPartition);
-                    retryCounter++;
-                    if (retryCounter > MAX_RETRIES) {
-                        throw new RuntimeException("MAX_RETRIES exceeded during getSplits");
-                    }
-                } else {
-                    LOG.info("Splits: " + lss);
-                   return lss;
-                }
-
-
-            } catch (HMissedSplitException e) {
-                // retry;
+            List<InputSplit> lss= splitter.getSubSplits(table, splits, s.getStartRow(), s.getStopRow(), this.splits);
+            //check if split count changed in-between
+            List<Partition>  newSplits = clientPartition.subPartitions(s.getStartRow(), s.getStopRow(), true);
+            if (splits.size() != newSplits.size()) {
+                // retry
                 refresh = true;
-                LOG.warn("Missed split computing subtasks for region " + clientPartition);
+                LOG.warn("mismatched splits: earlier [" + splits.size() + "], later [" + newSplits.size() + "] for region " + clientPartition);
                 retryCounter++;
                 if (retryCounter > MAX_RETRIES) {
-                    throw e;
+                    throw new RuntimeException("MAX_RETRIES exceeded during getSplits");
                 }
+            } else {
+                LOG.info("Splits: " + lss);
+               return lss;
             }
         }
     }
