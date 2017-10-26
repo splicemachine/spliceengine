@@ -27,7 +27,6 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.locks.Lock;
 
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.impl.HMissedSplitException;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.io.hfile.BlockType;
 import org.apache.hadoop.hbase.io.hfile.HFile;
