@@ -20,7 +20,6 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.hbase.CellUtils;
-import com.splicemachine.si.impl.HMissedSplitException;
 import com.splicemachine.storage.Partition;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
@@ -31,8 +30,10 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author Scott Fines
@@ -41,8 +42,7 @@ import java.util.List;
 public class HBaseSubregionSplitter implements SubregionSplitter{
     private static final Logger LOG = Logger.getLogger(HBaseSubregionSplitter.class);
     @Override
-    public List<InputSplit> getSubSplits(Table table, List<Partition> splits, final byte[] scanStartRow, final byte[] scanStopRow, int requestedSplits) throws HMissedSplitException {
-        final List<InputSplit> results = new ArrayList<>();
+    public List<InputSplit> getSubSplits(Table table, List<Partition> splits, final byte[] scanStartRow, final byte[] scanStopRow, int requestedSplits) {
         int splitsPerPartition;
         if (splits.size() > 3) {
             // First and last partitions could be very small, don't take them into account
@@ -51,7 +51,9 @@ public class HBaseSubregionSplitter implements SubregionSplitter{
             splitsPerPartition = requestedSplits;
         }
         try {
-
+            // Results has to be synchronized because we are adding to it from multiple threads concurrently
+            final List<InputSplit> results = Collections.synchronizedList(new ArrayList<>());
+            final AtomicBoolean failure = new AtomicBoolean(false);
             SpliceMessage.SpliceSplitServiceRequest.Builder builder = SpliceMessage.SpliceSplitServiceRequest.newBuilder()
                     .setBeginKey(ZeroCopyLiteralByteString.wrap(scanStartRow))
                     .setEndKey(ZeroCopyLiteralByteString.wrap(scanStopRow));
@@ -67,6 +69,9 @@ public class HBaseSubregionSplitter implements SubregionSplitter{
                         @Override
                         public void update(byte[] region, byte[] row, SpliceMessage.SpliceSplitServiceResponse result) {
                             try {
+                                if (LOG.isDebugEnabled()) {
+                                    LOG.debug("Update for region " + Bytes.toStringBinary(region) + " and row " + Bytes.toStringBinary(row) + " results " + result.getCutPointList());
+                                }
                                 Iterator<ByteString> it = result.getCutPointList().iterator();
                                 byte[] first = it.next().toByteArray();
                                 while (it.hasNext()) {
@@ -89,29 +94,34 @@ public class HBaseSubregionSplitter implements SubregionSplitter{
                                     }
                                     first = end;
                                 }
-                            } catch (IOException ioe) {
-                                throw new RuntimeException(ioe);
+                            } catch (Throwable t) {
+                                LOG.error("Unexpected exception, will fallback to whole region partitions", t);
+                                failure.set(true);
+                                throw new RuntimeException(t);
                             }
                         }
                     });
-    } catch (Throwable throwable) {
-                LOG.error("Error while computing cutpoints, falling back to whole region partition", throwable);
-
-                try {
-                    final HBaseTableInfoFactory infoFactory = HBaseTableInfoFactory.getInstance(HConfiguration.getConfiguration());
-                    for (final Partition split : splits) {
-                        results.add(new SMSplit(
-                                new TableSplit(
-                                        infoFactory.getTableInfo(split.getTableName()),
-                                        split.getStartKey(),
-                                        split.getEndKey(),
-                                        split.owningServer().getHostname())));
-                    }
-                } catch (IOException e) {
-                    // Failed to add split, bail out
-                    throw new RuntimeException(e);
-                }
+            if (!failure.get())
+                return results;
+        } catch (Throwable throwable) {
+            LOG.error("Error while computing cutpoints, falling back to whole region partitions", throwable);
+        }
+        // There was a failure somewhere, just return one split per region
+        final List<InputSplit> results = new ArrayList<>();
+        try {
+            final HBaseTableInfoFactory infoFactory = HBaseTableInfoFactory.getInstance(HConfiguration.getConfiguration());
+            for (final Partition split : splits) {
+                results.add(new SMSplit(
+                        new TableSplit(
+                                infoFactory.getTableInfo(split.getTableName()),
+                                split.getStartKey(),
+                                split.getEndKey(),
+                                split.owningServer().getHostname())));
             }
-        return results;
+            return results;
+        } catch (IOException e) {
+            // Failed to add split, bail out
+            throw new RuntimeException(e);
+        }
     }
 }

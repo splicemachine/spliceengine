@@ -66,6 +66,7 @@ public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorServ
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "computeSplits");
         SpliceMessage.SpliceSplitServiceResponse.Builder writeResponse = SpliceMessage.SpliceSplitServiceResponse.newBuilder();
+        writeResponse.setHostName(hostName);
         try {
             ByteString beginKey = request.getBeginKey();
             ByteString endKey = request.getEndKey();
@@ -79,7 +80,6 @@ public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorServ
                 SpliceLogUtils.debug(LOG,"computeSplits with beginKey=%s, endKey=%s, numberOfSplits=%s",beginKey,endKey,splits.size());
             for (byte[] split : splits)
                 writeResponse.addCutPoint(com.google.protobuf.ByteString.copyFrom(split));
-                writeResponse.setHostName(hostName);
         } catch (java.io.IOException e) {
             org.apache.hadoop.hbase.protobuf.ResponseConverter.setControllerException(controller, e);
         }
