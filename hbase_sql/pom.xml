@@ -496,12 +496,6 @@
 	    </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.apache.hive</groupId>
-            <artifactId>hive-shims</artifactId>
-            <scope>provided</scope>
-            <version>${hive.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-yarn-common</artifactId>
             <version>${hadoop.version}</version>
@@ -569,13 +563,6 @@
             <artifactId>parquet-hadoop</artifactId>
             <version>1.8.1</version>
         </dependency>
-
-         <dependency>
-            <artifactId>hive-exec</artifactId>
-            <groupId>org.apache.hive</groupId>
-            <version>${hive.version}</version>
-        </dependency>
-
     </dependencies>
     <build>
         <extensions>
