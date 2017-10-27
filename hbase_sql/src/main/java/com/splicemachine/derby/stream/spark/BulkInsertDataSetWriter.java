@@ -28,6 +28,8 @@ import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLDriver;
+import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
@@ -130,7 +132,20 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
         List<Long> allCongloms = Lists.newArrayList();
         allCongloms.add(td.getHeapConglomerateId());
         ArrayList<DDLMessage.TentativeIndex> tentativeIndexList = new ArrayList();
-        
+        DDLDriver ddlDriver=DDLDriver.driver();
+        for(DDLMessage.DDLChange ddlChange : ddlDriver.ddlWatcher().getTentativeDDLs()){
+            DDLMessage.TentativeIndex tentativeIndex = ddlChange.getTentativeIndex();
+            if (tentativeIndex != null) {
+                long table = tentativeIndex.getTable().getConglomerate();
+                TxnView indexTxn = DDLUtils.getLazyTransaction(ddlChange.getTxnId());
+                if (table == td.getHeapConglomerateId() && indexTxn.getCommitTimestamp() > 0 &&
+                    indexTxn.getCommitTimestamp() < txn.getTxnId()) {
+                    tentativeIndexList.add(tentativeIndex);
+                    allCongloms.add(tentativeIndex.getIndex().getConglomerate());
+                }
+            }
+        }
+
         if (outputKeysOnly) {
             // This option is for calculating split row keys in HBase format, provided that split row keys are
             // stored in a csv file
