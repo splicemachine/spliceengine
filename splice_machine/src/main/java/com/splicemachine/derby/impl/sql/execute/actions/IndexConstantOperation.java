@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -23,17 +22,11 @@ import com.splicemachine.derby.impl.sql.execute.index.BulkLoadIndexJob;
 import com.splicemachine.derby.impl.sql.execute.index.DistributedPopulateIndexJob;
 import com.splicemachine.derby.impl.sql.execute.index.PopulateIndexJob;
 import com.splicemachine.derby.stream.ActivationHolder;
-import com.splicemachine.derby.stream.function.FileFunction;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
-import com.splicemachine.derby.utils.marshall.BareKeyHash;
-import com.splicemachine.derby.utils.marshall.DataHash;
-import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
-import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.storage.PartitionLoad;
-import com.splicemachine.utils.IntArrays;
 import org.spark_project.guava.primitives.Ints;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.ddl.DDLMessage;
@@ -216,13 +209,6 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
                             tentativeIndex, indexFormatIds));
 				}
 				else {
-                    if (!sampling) {
-                        if (splitKeyPath == null) {
-                            // TODO: throw an exception
-                        }
-                        splitIndex(indexDescriptor, splitKeyPath, columnDelimiter, characterDelimiter,
-                                timestampFormat, dateFormat, timeFormat, tentativeIndex, td);
-                    }
                     ActivationHolder ah = new ActivationHolder(activation, null);
 					olapClient.execute(new BulkLoadIndexJob(ah, childTxn, builder, scope, jobGroup, prefix, tentativeIndex,
                             indexFormatIds, sampling, hfilePath, td.getVersion(), indexName));
@@ -245,48 +231,4 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 	public String getScopeName() {
 		return String.format("%s %s", super.getScopeName(), indexName);
 	}
-
-    private void splitIndex(IndexDescriptor indexDescriptor, String splitKeyPath, String columnDelimiter,
-                            String characterDelimiter, String timestampFormat, String dateTimeFormat, String timeFormat,
-                            DDLMessage.TentativeIndex tentativeIndex, TableDescriptor td) throws IOException, StandardException {
-
-        List<Integer> indexCols = tentativeIndex.getIndex().getIndexColsToMainColMapList();
-        List<Integer> allFormatIds = tentativeIndex.getTable().getFormatIdsList();
-        int[] indexFormatIds = new int[indexCols.size()];
-        for (int i = 0; i < indexCols.size(); ++i) {
-            indexFormatIds[i] = allFormatIds.get(indexCols.get(i)-1);
-        }
-        DataSetProcessor dsp = EngineDriver.driver().processorFactory().localProcessor(null,null);
-        DataSet<String> text = dsp.readTextFile(splitKeyPath);
-        OperationContext operationContext = dsp.createOperationContext((Activation)null);
-        ExecRow execRow = WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds);
-        DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
-                null, timeFormat, dateTimeFormat, timestampFormat, operationContext), true);
-        List<ExecRow> rows = dataSet.collect();
-        DataHash encoder = getEncoder(td, execRow, indexDescriptor);
-        PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
-        long conglomId = tentativeIndex.getIndex().getConglomerate();
-        if (LOG.isDebugEnabled()) {
-            SpliceLogUtils.debug(LOG, "Pre-splitting index splice:%d", conglomId);
-        }
-        for (ExecRow row : rows) {
-            encoder.setRow(row);
-            byte[] splitKey = encoder.encode();
-            if (LOG.isDebugEnabled()) {
-                SpliceLogUtils.debug(LOG, "execRow = %s, splitKey = %s", execRow,
-                        org.apache.hadoop.hbase.util.Bytes.toStringBinary(splitKey));
-            }
-            admin.splitTable(new Long(conglomId).toString(), splitKey);
-        }
-    }
-
-    private DataHash getEncoder(TableDescriptor td, ExecRow execRow, IndexDescriptor indexDescriptor) {
-        DescriptorSerializer[] serializers= VersionedSerializers
-                .forVersion(td.getVersion(), true)
-                .getSerializers(execRow.getRowArray());
-        int[] rowColumns = IntArrays.count(execRow.nColumns());
-        boolean[] sortOrder = indexDescriptor.isAscending();
-        DataHash dataHash = BareKeyHash.encoder(rowColumns, sortOrder, serializers);
-        return dataHash;
-    }
 }
