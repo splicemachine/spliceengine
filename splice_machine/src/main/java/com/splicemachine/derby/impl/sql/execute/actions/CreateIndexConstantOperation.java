@@ -14,18 +14,30 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.EngineDriver;
+import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
+import com.splicemachine.derby.stream.function.FileFunction;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.utils.FormatableBitSetUtils;
+import com.splicemachine.derby.utils.marshall.BareKeyHash;
+import com.splicemachine.derby.utils.marshall.DataHash;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.db.catalog.UUID;
@@ -54,6 +66,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -793,9 +806,14 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             LOG.error("Couldn't start transaction for tentative DDL operation");
             throw Exceptions.parseException(e);
         }
+
         DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(tentativeTransaction.getTxnId(),
                 activation.getLanguageConnectionContext(),
                 td.getHeapConglomerateId(), indexConglomId, td, indexDescriptor, defaultValue);
+        if (preSplit && !sampling) {
+            splitIndex(indexDescriptor, splitKeyPath, columnDelimiter, characterDelimiter,
+                    timestampFormat, dateFormat, timeFormat, ddlChange.getTentativeIndex(), td);
+        }
         String changeId = DDLUtils.notifyMetadataChange(ddlChange);
         tc.prepareDataDictionaryChange(changeId);
         Txn indexTransaction = DDLUtils.getIndexTransaction(tc, tentativeTransaction, td.getHeapConglomerateId(),indexName);
@@ -805,4 +823,47 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         indexTransaction.commit();
     }
 
+    private void splitIndex(IndexDescriptor indexDescriptor, String splitKeyPath, String columnDelimiter,
+                            String characterDelimiter, String timestampFormat, String dateTimeFormat, String timeFormat,
+                            DDLMessage.TentativeIndex tentativeIndex, TableDescriptor td) throws IOException, StandardException {
+
+        List<Integer> indexCols = tentativeIndex.getIndex().getIndexColsToMainColMapList();
+        List<Integer> allFormatIds = tentativeIndex.getTable().getFormatIdsList();
+        int[] indexFormatIds = new int[indexCols.size()];
+        for (int i = 0; i < indexCols.size(); ++i) {
+            indexFormatIds[i] = allFormatIds.get(indexCols.get(i)-1);
+        }
+        DataSetProcessor dsp = EngineDriver.driver().processorFactory().localProcessor(null,null);
+        DataSet<String> text = dsp.readTextFile(splitKeyPath);
+        OperationContext operationContext = dsp.createOperationContext((Activation)null);
+        ExecRow execRow = WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds);
+        DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
+                null, timeFormat, dateTimeFormat, timestampFormat, operationContext), true);
+        List<ExecRow> rows = dataSet.collect();
+        DataHash encoder = getEncoder(td, execRow, indexDescriptor);
+        PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
+        long conglomId = tentativeIndex.getIndex().getConglomerate();
+        if (LOG.isDebugEnabled()) {
+            SpliceLogUtils.debug(LOG, "Pre-splitting index splice:%d", conglomId);
+        }
+        for (ExecRow row : rows) {
+            encoder.setRow(row);
+            byte[] splitKey = encoder.encode();
+            if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.debug(LOG, "execRow = %s, splitKey = %s", execRow,
+                        org.apache.hadoop.hbase.util.Bytes.toStringBinary(splitKey));
+            }
+            admin.splitTable(new Long(conglomId).toString(), splitKey);
+        }
+    }
+
+    private DataHash getEncoder(TableDescriptor td, ExecRow execRow, IndexDescriptor indexDescriptor) {
+        DescriptorSerializer[] serializers= VersionedSerializers
+                .forVersion(td.getVersion(), true)
+                .getSerializers(execRow.getRowArray());
+        int[] rowColumns = IntArrays.count(execRow.nColumns());
+        boolean[] sortOrder = indexDescriptor.isAscending();
+        DataHash dataHash = BareKeyHash.encoder(rowColumns, sortOrder, serializers);
+        return dataHash;
+    }
 }

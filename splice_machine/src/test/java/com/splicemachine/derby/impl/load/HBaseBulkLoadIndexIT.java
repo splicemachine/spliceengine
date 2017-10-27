@@ -380,6 +380,8 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
 
     @Test
     public void verifySplitKeys() throws Exception {
+        if (notSupported)
+            return;
         ResultSet rs = methodWatcher.executeQuery("call syscs_util.get_regions('HBASEBULKLOADINDEXIT', 'LINEITEM', " +
                 "'L_SHIPDATE_IDX',null, null,null,null,null,null,null)");
         String[] startKeys = {"{ NULL, NULL, NULL, NULL }", "{ 1993-05-30, 58476, 5737.88, 0.04 }",
