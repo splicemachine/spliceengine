@@ -70,6 +70,16 @@ public class CreateIndexNode extends DDLStatementNode
 	int[]				boundColumnIDs;
 	boolean 			excludeNulls;
 	boolean				excludeDefaults;
+    boolean             preSplit;
+    boolean             sampling;
+    String              splitKeyPath;
+    String              hfilePath;
+    String              columnDelimiter;
+    String              characterDelimiter;
+    String              timestampFormat;
+    String              dateFormat;
+    String              timeFormat;
+
 
 	TableDescriptor		td;
 
@@ -94,6 +104,15 @@ public class CreateIndexNode extends DDLStatementNode
 					Object columnNameList,
 					Object excludeNulls,
 					Object excludeDefaults,
+                    Object preSplit,
+                    Object sampling,
+                    Object splitKeyPath,
+                    Object columnDelimiter,
+                    Object characterDelimite,
+                    Object timestampFormat,
+                    Object dateFormat,
+                    Object timeFormat,
+                    Object hfilePath,
 					Object properties)
 		throws StandardException
 	{
@@ -106,6 +125,15 @@ public class CreateIndexNode extends DDLStatementNode
 		this.properties = (Properties) properties;
 		this.excludeNulls = (Boolean) excludeNulls;
 		this.excludeDefaults = (Boolean) excludeDefaults;
+        this.preSplit = (Boolean)preSplit;
+        this.sampling = (Boolean)sampling;
+        this.splitKeyPath = splitKeyPath!=null ? ((CharConstantNode)splitKeyPath).getString() : null;
+        this.columnDelimiter = columnDelimiter != null ? ((CharConstantNode)columnDelimiter).getString() : null;
+        this.characterDelimiter = characterDelimite != null ? ((CharConstantNode)characterDelimite).getString() : null;
+        this.timestampFormat = timestampFormat != null ? ((CharConstantNode)timestampFormat).getString() : null;
+        this.dateFormat = dateFormat != null ? ((CharConstantNode)dateFormat).getString() : null;
+        this.timeFormat = timeFormat != null ? ((CharConstantNode)timeFormat).getString() : null;
+        this.hfilePath = hfilePath != null ? ((CharConstantNode)hfilePath).getString() : null;
 	}
 
 	/**
@@ -299,22 +327,31 @@ public class CreateIndexNode extends DDLStatementNode
         }
 
 
-		return getGenericConstantActionFactory().getCreateIndexConstantAction(
-                    false, // not for CREATE TABLE
-                    unique,
-                    uniqueWithDuplicateNulls, // UniqueWithDuplicateNulls Index is a unique 
-                    indexType,					//  index but with no "not null" constraint
-                    sd.getSchemaName(),			//  on column in schema
-                    indexName.getTableName(),
-                    tableName.getTableName(),
-                    td.getUUID(),
-                    columnNames,
-                    isAscending,
-                    false,
-                    null,
-				excludeNulls,
-				excludeDefaults,
-                    properties);
+        return getGenericConstantActionFactory().getCreateIndexConstantAction(
+                false, // not for CREATE TABLE
+                unique,
+                uniqueWithDuplicateNulls, // UniqueWithDuplicateNulls Index is a unique
+                indexType,					//  index but with no "not null" constraint
+                sd.getSchemaName(),			//  on column in schema
+                indexName.getTableName(),
+                tableName.getTableName(),
+                td.getUUID(),
+                columnNames,
+                isAscending,
+                false,
+                null,
+                excludeNulls,
+                excludeDefaults,
+                preSplit,
+                sampling,
+                splitKeyPath,
+                hfilePath,
+                columnDelimiter,
+                characterDelimiter,
+                timestampFormat,
+                dateFormat,
+                timeFormat,
+                properties);
 	}
 
 	/**

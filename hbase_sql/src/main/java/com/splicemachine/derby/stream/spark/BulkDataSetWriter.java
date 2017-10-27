@@ -23,6 +23,9 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptorList;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
+import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
+import com.splicemachine.db.iapi.types.SQLBlob;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.function.*;
@@ -35,6 +38,10 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.yahoo.sketches.quantiles.ItemsSketch;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaRDD;
@@ -42,11 +49,13 @@ import org.apache.spark.sql.*;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import scala.Tuple2;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.io.OutputStreamWriter;
+import java.net.URI;
+import java.util.*;
 
 /**
  * Created by jyuan on 5/31/17.
@@ -75,7 +84,7 @@ public class BulkDataSetWriter  {
      * @param congloms
      * @return
      */
-    protected List<BulkImportPartition> getBulkImportPartitions(
+    public static List<BulkImportPartition> getBulkImportPartitions(
             List<Long> congloms,
             String bulkImportDirectory) throws StandardException {
 
@@ -132,10 +141,8 @@ public class BulkDataSetWriter  {
     }
 
     protected void partitionUsingRDDSortUsingDataFrame(List<BulkImportPartition> bulkImportPartitions,
-                                                       RowAndIndexGenerator rowAndIndexGenerator,
+                                                       DataSet rowAndIndexes,
                                                        HFileGenerationFunction hfileGenerationFunction) {
-        DataSet rowAndIndexes = dataSet.flatMap(rowAndIndexGenerator);
-        assert rowAndIndexes instanceof SparkDataSet;
 
         // Create a data frame for main table and index key/values, and sort data
         PairDataSet pairDataSet = rowAndIndexes.keyBy(new BulkImportKeyerFunction());
@@ -181,12 +188,14 @@ public class BulkDataSetWriter  {
      * @param bulkImportPartitions
      * @throws StandardException
      */
-    protected void bulkLoad(List<BulkImportPartition> bulkImportPartitions, String bulkImportDirectory) throws StandardException{
+    protected void bulkLoad(List<BulkImportPartition> bulkImportPartitions, String bulkImportDirectory, String prefix) throws StandardException{
         SConfiguration sConfiguration = HConfiguration.getConfiguration();
         int regionsPerTask = sConfiguration.getRegionToLoadPerTask();
         int numTasks = Math.max(bulkImportPartitions.size()/regionsPerTask, 1);
+        SpliceSpark.pushScope(prefix + " Load HFiles");
         SpliceSpark.getContext().parallelize(bulkImportPartitions, numTasks)
                 .foreach(new BulkImportFunction(bulkImportDirectory));
+        SpliceSpark.popScope();
     }
 
     protected void getAllConglomerates(List<Long> allCongloms, ArrayList<DDLMessage.TentativeIndex> tentativeIndexList)  throws StandardException{
@@ -208,5 +217,166 @@ public class BulkDataSetWriter  {
                 allCongloms.add(searchCD.getConglomerateNumber());
             }
         }
+    }
+
+    /**
+     * Calculate cut points according to statistics. Number of cut points is decided by max region size.
+     * @param statistics
+     * @return
+     * @throws StandardException
+     */
+    protected List<Tuple2<Long, byte[][]>> getCutPoints(double sampleFraction,
+                                                      List<Tuple2<Long, Tuple2<Double, ColumnStatisticsImpl>>> statistics) throws StandardException{
+        Map<Long, Tuple2<Double, ColumnStatisticsImpl>> mergedStatistics = mergeResults(statistics);
+        List<Tuple2<Long, byte[][]>> result = Lists.newArrayList();
+
+        SConfiguration sConfiguration = HConfiguration.getConfiguration();
+        long maxRegionSize = sConfiguration.getRegionMaxFileSize()/2;
+
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "maxRegionSize = %d", maxRegionSize);
+
+        // determine how many regions the table/index should be split into
+        Map<Long, Integer> numPartitions = new HashMap<>();
+        for (Long conglomId : mergedStatistics.keySet()) {
+            Tuple2<Double, ColumnStatisticsImpl> stats = mergedStatistics.get(conglomId);
+            double size = stats._1;
+            int numPartition = (int)(size/sampleFraction/(1.0*maxRegionSize)) + 1;
+
+            if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.debug(LOG, "total size of the table is %d", size);
+            }
+            if (numPartition > 1) {
+                numPartitions.put(conglomId, numPartition);
+            }
+        }
+
+        // calculate cut points for each table/index using histogram
+        for (Long conglomId : numPartitions.keySet()) {
+            int numPartition = numPartitions.get(conglomId);
+            byte[][] cutPoints = new byte[numPartition-1][];
+
+            ColumnStatisticsImpl columnStatistics = mergedStatistics.get(conglomId)._2;
+            ItemsSketch itemsSketch = columnStatistics.getQuantilesSketch();
+            for (int i = 1; i < numPartition; ++i) {
+                SQLBlob blob = (SQLBlob) itemsSketch.getQuantile(i*1.0d/(double)numPartition);
+                cutPoints[i-1] = blob.getBytes();
+            }
+            Tuple2<Long, byte[][]> tuple = new Tuple2<>(conglomId, cutPoints);
+            result.add(tuple);
+        }
+        return result;
+    }
+
+    /**
+     * Split a table using cut points
+     * @param cutPointsList
+     * @throws StandardException
+     */
+    protected void splitTables(List<Tuple2<Long, byte[][]>> cutPointsList) throws StandardException {
+        SIDriver driver=SIDriver.driver();
+        try(PartitionAdmin pa = driver.getTableFactory().getAdmin()){
+            for (Tuple2<Long, byte[][]> tuple : cutPointsList) {
+                String table = tuple._1.toString();
+                byte[][] cutpoints = tuple._2;
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "split keys for table %s", table);
+                    for(byte[] cutpoint : cutpoints) {
+                        SpliceLogUtils.debug(LOG, "%s", Bytes.toHex(cutpoint));
+                    }
+                }
+                pa.splitTable(table, cutpoints);
+            }
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+    /**
+     * Output cut points to files
+     * @param cutPointsList
+     * @throws IOException
+     */
+    protected void dumpCutPoints(List<Tuple2<Long, byte[][]>> cutPointsList, String bulkImportDirectory) throws StandardException {
+
+        BufferedWriter br = null;
+        try {
+            Configuration conf = HConfiguration.unwrapDelegate();
+            FileSystem fs = FileSystem.get(URI.create(bulkImportDirectory), conf);
+
+            for (Tuple2<Long, byte[][]> t : cutPointsList) {
+                Long conglomId = t._1;
+
+                Path path = new Path(bulkImportDirectory, conglomId.toString());
+                FSDataOutputStream os = fs.create(new Path(path, "cutpoints"));
+                br = new BufferedWriter( new OutputStreamWriter( os, "UTF-8" ) );
+
+                byte[][] cutPoints = t._2;
+
+                for (byte[] cutPoint : cutPoints) {
+                    br.write(Bytes.toStringBinary(cutPoint) + "\n");
+                }
+                br.close();
+            }
+        }catch (IOException e) {
+            throw StandardException.plainWrapException(e);
+        } finally {
+            try {
+                if (br != null)
+                    br.close();
+            } catch (IOException e) {
+                throw StandardException.plainWrapException(e);
+            }
+        }
+    }
+
+    /**
+     * Merge statistics from each RDD partition
+     * @param tuples
+     * @return
+     * @throws StandardException
+     */
+    protected Map<Long, Tuple2<Double, ColumnStatisticsImpl>> mergeResults(
+            List<Tuple2<Long, Tuple2<Double, ColumnStatisticsImpl>>> tuples) throws StandardException{
+
+        Map<Long, ColumnStatisticsMerge> sm = new HashMap<>();
+        Map<Long, Double> sizeMap = new HashMap<>();
+
+        for (Tuple2<Long,Tuple2<Double, ColumnStatisticsImpl>> t : tuples) {
+            Long conglomId = t._1;
+            Double size = t._2._1;
+            if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.debug(LOG, "conglomerate=%d, size=%d", conglomId, size);
+            }
+            // Merge statistics for keys
+            ColumnStatisticsImpl cs = t._2._2;
+            ColumnStatisticsMerge columnStatisticsMerge = sm.get(conglomId);
+            if (columnStatisticsMerge == null) {
+                columnStatisticsMerge = new ColumnStatisticsMerge();
+                sm.put(conglomId, columnStatisticsMerge);
+            }
+            columnStatisticsMerge.accumulate(cs);
+
+            // merge key/value size from all partition
+            Double totalSize = sizeMap.get(conglomId);
+            if (totalSize == null)
+                totalSize = new Double(0);
+            totalSize += size;
+            if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.debug(LOG, "totalSize=%s", totalSize);
+            }
+            sizeMap.put(conglomId, totalSize);
+        }
+
+        Map<Long, Tuple2<Double, ColumnStatisticsImpl>> statisticsMap = new HashMap<>();
+        for (Long conglomId : sm.keySet()) {
+            Double totalSize = sizeMap.get(conglomId);
+            ColumnStatisticsImpl columnStatistics = sm.get(conglomId).terminate();
+            statisticsMap.put(conglomId, new Tuple2(totalSize, columnStatistics));
+        }
+
+        return statisticsMap;
     }
 }

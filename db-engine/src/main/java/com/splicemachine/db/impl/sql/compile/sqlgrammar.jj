@@ -2809,17 +2809,21 @@ TOKEN [IGNORE_CASE] :
 |    <ABSVAL: "absval">
 |	<ACTION: "action">
 |	<ALWAYS: "always">
+|   <AUTO: "auto">
 |	<BLOB: "blob">
-  |	<C: "c">
-  | <CALLED: "called">
+|	<C: "c">
+|   <CALLED: "called">
+|   <CHARACTERDELIMITER: "characterDelimiter">
 |	<CLOB: "clob">
-  |	<COBOL: "cobol">
+|	<COBOL: "cobol">
+|   <COLUMNDELIMITER: "columnDelimiter">
 |	<COMMITTED: "committed">
 |   <CONCAT: "concat">
 |	<CONTAINS: "contains">
 |	<CYCLE: "cycle">
 |	<DATA: "data">
 |	<DATE: "date">
+|	<DATEFORMAT: "dateFormat">
 |	<DAY: "day">
 |	<DAYOFYEAR: "dayofyear">
 |	<DEFINER: "definer">
@@ -2829,6 +2833,7 @@ TOKEN [IGNORE_CASE] :
 |   <EXTRACT: "extract">
 |	<FORTRAN: "fortran">
 |   <GENERATED: "generated">
+|   <HFILE: "hfile">
 |	<IDENTITY_VAL_LOCAL: "identity_val_local">
 |	<IGNORE: "ignore">
 |	<INCREMENT: "increment">
@@ -2887,6 +2892,8 @@ TOKEN [IGNORE_CASE] :
 |	<PIN: "pin">
 |	<UNPIN: "unpin">
 |	<TEXTFILE: "textfile">
+|   <TIMEFORMAT: "timeFormat">
+|   <TIMESTAMPFORMAT: "timestampFormat">
 |	<PARQUET: "parquet">
 |   <AVRO: "avro">
 |	<ORC: "orc">
@@ -2894,6 +2901,7 @@ TOKEN [IGNORE_CASE] :
 |	<SCALE: "scale">
 |	<SECURITY: "security">
 |	<SERIALIZABLE: "serializable">
+|   <SPLITKEYS: "splitKeys">
 |	<SQL_TSI_FRAC_SECOND: "sql_tsi_frac_second">
 |	<SQL_TSI_SECOND: "sql_tsi_second">
 |	<SQL_TSI_MINUTE: "sql_tsi_minute">
@@ -12087,6 +12095,15 @@ indexDefinition() throws StandardException :
 	Properties	properties = null;
 	TableName	indexName;
 	TableName	tableName;
+	ValueNode   hfilePath = null;
+	ValueNode   splitKeysPath = null;
+	ValueNode   columnDelimiter = null;
+	ValueNode   characterDelimiter = null;
+    ValueNode   timestampFormat = null;
+    ValueNode   dateFormat = null;
+    ValueNode   timeFormat = null;
+    Boolean     sampling = Boolean.FALSE;
+    Boolean     preSplit = Boolean.FALSE;
 	Vector	indexColumnList = new Vector();
 }
 {
@@ -12101,6 +12118,17 @@ indexDefinition() throws StandardException :
 		[ <EXCLUDE>
 		    [ <NULL> <KEYS> { excludeNulls = true;} ]
 		    [ <_DEFAULT> <KEYS> { excludeDefaults = true;} ]
+		]
+		[   <SPLITKEYS> {preSplit = Boolean.TRUE;}
+		        [ <AUTO> {sampling = Boolean.TRUE; } |
+		          <LOCATION> {splitKeysPath = literal();}
+		          [<COLUMNDELIMITER> {columnDelimiter = literal();}]
+		          [<CHARACTERDELIMITER> {characterDelimiter = literal();}]
+                  [<TIMESTAMPFORMAT> {timestampFormat = literal();}]
+                  [<DATEFORMAT> {dateFormat = literal();}]
+                  [<TIMEFORMAT> {timeFormat = literal();}]
+		        ]
+		    <HFILE> <LOCATION> {hfilePath = literal();}
 		]
 
 	{
@@ -12140,6 +12168,15 @@ indexDefinition() throws StandardException :
 								indexColumnList,
 								excludeNulls,
 								excludeDefaults,
+								preSplit,
+								sampling,
+								splitKeysPath,
+								columnDelimiter,
+								characterDelimiter,
+								timestampFormat,
+								dateFormat,
+								timeFormat,
+								hfilePath,
 								properties,
 								getContextManager());
 	}
@@ -16483,6 +16520,7 @@ nonReservedKeyword()  :
 	|	tok = <AFTER>
 	|	tok = <AGGREGATE>
 	|	tok = <ALWAYS>
+	|   tok = <AUTO>
 	|	tok = <BEFORE>
 	|	tok = <BINARY>
 	|	tok = <BLOB>
@@ -16492,7 +16530,9 @@ nonReservedKeyword()  :
 	|	tok = <CLOB>
     |	tok = <COALESCE>
     |	tok = <NVL>
+    |   tok = <CHARACTERDELIMITER>
 	|	tok = <COBOL>
+	|   tok = <COLUMNDELIMITER>
 	|	tok = <COMMITTED>
 	|	tok = <COMPRESS>
 	|	tok = <CONCAT>
@@ -16506,6 +16546,7 @@ nonReservedKeyword()  :
 	|	tok = <D>
 	|	tok = <DATA>
 	|	tok = <DATE>
+	|   tok = <DATEFORMAT>
 	|	tok = <DAY>
 	|	tok = <DAYOFYEAR>
 	|	tok = <DEFRAGMENT>
@@ -16527,6 +16568,7 @@ nonReservedKeyword()  :
 	|	tok = <FN>
 	|	tok = <FORTRAN>
 	|	tok = <GENERATED>
+	|   tok = <HFILE>
 	|	tok = <IDENTITY_VAL_LOCAL>
 	|	tok = <IGNORE>
 	|	tok = <INCREMENT>
@@ -16638,6 +16680,7 @@ nonReservedKeyword()  :
 	|	tok = <SETS>
 	|	tok = <SHARE>
 	|   tok = <SPECIFIC>
+	|   tok = <SPLITKEYS>
 	|	tok = <SQLID>
 	|	tok = <SQL_TSI_FRAC_SECOND>
 	|	tok = <SQL_TSI_SECOND>
@@ -16659,8 +16702,10 @@ nonReservedKeyword()  :
 	|	tok = <T>
 	|	tok = <THEN>
 	|	tok = <TIME>
+	|   tok = <TIMEFORMAT>
 	|	tok = <TIMESTAMP>
 	|	tok = <TIMESTAMPADD>
+	|   tok = <TIMESTAMPFORMAT>
 	|	tok = <TIMESTAMPDIFF>
     |   tok = <TRIGGER>
 	|	tok = <TRUNCATE>
