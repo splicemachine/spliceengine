@@ -18,12 +18,21 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.loader.ClassFactory;
+import com.splicemachine.db.iapi.sql.execute.ExecAggregator;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLDouble;
+import com.splicemachine.db.iapi.types.UserType;
+import com.splicemachine.db.impl.services.reflect.ReflectClassesJava2;
+import com.splicemachine.db.impl.sql.execute.UserDefinedAggregator;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.SpliceSparkKryoRegistrator;
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceStddevSamp;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -33,6 +42,15 @@ import java.io.*;
 import static org.junit.Assert.assertEquals;
 
 public class SparkValueRowSerializerTest {
+    private static ClassFactory cf;
+    private static UserDefinedAggregator userDefinedAggregator;
+
+    static {
+        cf = new ReflectClassesJava2();
+        userDefinedAggregator = new UserDefinedAggregator();
+        userDefinedAggregator.setup(cf,SpliceStddevSamp.class.getCanonicalName(), DataTypeDescriptor.DOUBLE);
+
+    }
 
     private static Kryo kryo;
 
@@ -40,6 +58,29 @@ public class SparkValueRowSerializerTest {
     public static void setup() {
         kryo = new Kryo();
         new SpliceSparkKryoRegistrator().registerClasses(kryo);
+    }
+
+    @Test
+    public void testSTDDEV_SAMP() throws StandardException {
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        Output output = new Output(out);
+
+        for (int i = 0; i < 10; i++) {
+            kryo.writeClassAndObject(output, getCustomAggregateFunctions(13));
+        }
+        output.close();
+
+        InputStream in = new ByteArrayInputStream(out.toByteArray());
+        Input input = new Input(in);
+        for (int i = 0; i < 10; i++) {
+            ExecRow row = (ExecRow) kryo.readClassAndObject(input);
+            Assert.assertTrue(row.getRowArray()[0] instanceof UserType);
+            Assert.assertTrue(row.getRowArray()[1].getObject() instanceof UserDefinedAggregator);
+        }
+        input.close();
+
+
     }
 
     @Test
@@ -91,4 +132,17 @@ public class SparkValueRowSerializerTest {
             return null;
         }
     }
+
+    public static ExecRow getCustomAggregateFunctions(int numberOfRecords) throws StandardException {
+        ValueRow vr = new ValueRow(numberOfRecords);
+        for (int i = 0; i<numberOfRecords;i++) {
+            ExecAggregator foo = userDefinedAggregator.newAggregator();
+            foo.accumulate(new SQLDouble(2.0),null);
+            vr.setColumn(i+1,new UserType(foo));
+        }
+        return vr;
+    }
+
+
+
 }
