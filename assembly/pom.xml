@@ -246,7 +246,36 @@
             </plugin>
         </plugins>
     </build>
+
     <profiles>
+        <profile>
+            <id>cdh</id>
+            <activation>
+                <property>
+                    <name>cdh.parcel.version</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-shade-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>1</id>
+                                <configuration>
+                                    <artifactSet>
+                                        <excludes>
+                                            <exclude>org.apache.spark*:*</exclude>
+                                        </excludes>
+                                    </artifactSet>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
         <profile>
             <id>ee</id>
             <activation>
