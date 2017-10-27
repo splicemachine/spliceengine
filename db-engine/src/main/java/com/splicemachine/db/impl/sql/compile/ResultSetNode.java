@@ -48,7 +48,6 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
-import org.apache.commons.lang3.text.WordUtils;
 
 import java.util.List;
 import java.util.Objects;
