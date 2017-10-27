@@ -49,7 +49,6 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 import java.util.*;
-import org.apache.commons.lang3.text.WordUtils;
 
 /**
  * A ResultSetNode represents a result set, that is, a set of rows.  It is
