@@ -66,8 +66,11 @@ public class BulkDeleteDataSetWriter extends BulkDataSetWriter implements DataSe
                 new BulkDeleteHFileGenerationFunction(operationContext, txn.getTxnId(),
                         heapConglom, compressionAlgorithm, bulkImportPartitions);
 
-        partitionUsingRDDSortUsingDataFrame(bulkImportPartitions, rowAndIndexGenerator, hfileGenerationFunction);
-        bulkLoad(bulkImportPartitions, bulkDeleteDirectory);
+        DataSet rowAndIndexes = dataSet.flatMap(rowAndIndexGenerator);
+        assert rowAndIndexes instanceof SparkDataSet;
+
+        partitionUsingRDDSortUsingDataFrame(bulkImportPartitions, rowAndIndexes, hfileGenerationFunction);
+        bulkLoad(bulkImportPartitions, bulkDeleteDirectory, "Delete:");
 
         ValueRow valueRow=new ValueRow(1);
         valueRow.setColumn(1,new SQLLongint(operationContext.getRecordsWritten()));

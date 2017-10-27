@@ -44,7 +44,9 @@ import java.util.List;
 public class SpliceRegionAdminIT {
     private static final String SCHEMA_NAME = SpliceRegionAdminIT.class.getSimpleName().toUpperCase();
     private static final String LINEITEM = "LINEITEM";
+    private static final String ORDERS = "ORDERS";
     private static final String SHIPDATE_IDX = "L_SHIPDATE_IDX";
+    private static final String CUST_IDX = "O_CUST_IDX";
     private static List<String> spliceTableSplitKeys = Lists.newArrayList();
     private static List<String> hbaseTableSplitKeys = Lists.newArrayList();
     private static List<String> spliceIndexSplitKeys = Lists.newArrayList();
@@ -66,10 +68,10 @@ public class SpliceRegionAdminIT {
                         "'%s','|',null,null,null,null,-1,'/BAD',true,null)",SCHEMA_NAME,LINEITEM,
                 getResource("lineitemKey.csv")));
 
-        spliceClassWatcher.execute(String.format("call SYSCS_UTIL.SYSCS_SPLIT_TABLE_OR_INDEX('%s','%s','L_SHIPDATE_IDX'," +
-                        "'L_SHIPDATE,L_PARTKEY,L_EXTENDEDPRICE,L_DISCOUNT'," +
-                        "'%s','|',null,null,null,null,-1,'/BAD',true,null)",SCHEMA_NAME,LINEITEM,
-                getResource("shipDateIndex.csv")));
+        spliceClassWatcher.execute(String.format("call SYSCS_UTIL.SYSCS_SPLIT_TABLE_OR_INDEX('%s','%s','O_CUST_IDX'," +
+                        "'O_CUSTKEY,O_ORDERKEY'," +
+                        "'%s','|',null,null,null,null,-1,'/BAD',true,null)",SCHEMA_NAME,ORDERS,
+                getResource("custIndex.csv")));
         spliceClassWatcher.execute(String.format("CALL SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', true)", SCHEMA_NAME, LINEITEM, getResource("lineitem.tbl"), getResource("data")));
 
         spliceTableSplitKeys.add(0, "{ NULL, NULL }");
@@ -90,13 +92,11 @@ public class SpliceRegionAdminIT {
         hbaseTableSplitKeys.add(6, "\\x82");
         hbaseTableSplitKeys.add(7, "\\x82\\x00\\x82");
 
-        spliceIndexSplitKeys.add(0, "{ NULL, NULL, NULL, NULL }");
-        spliceIndexSplitKeys.add(1, "{ 1996-03-13, 155190, 21168.23, 0.04 }");
-        spliceIndexSplitKeys.add(2, "{ 1996-04-12, 67310, 45983.16, 0.09 }");
+        spliceIndexSplitKeys.add(0, "{ NULL, NULL }");
+        spliceIndexSplitKeys.add(1, "{ 75857, 3968900 }");
 
         hbaseIndexSplitKeys.add(0, "");
-        hbaseIndexSplitKeys.add(1, "\\xEC\\xC0y\\xAE\\x80\\x00\\x00\\xE2^6\\x00\\xE42'\\x93@\\x01\\x00\\xDEP\\x01");
-        hbaseIndexSplitKeys.add(2, "\\xEC\\xC1\\x14-H\\x00\\x00\\xE1\\x06\\xEE\\x00\\xE4V\\xA9Bp\\x01\\x00\\xDE\\xA0\\x01");
+        hbaseIndexSplitKeys.add(1, "\\xE1(Q\\x00\\xE4<\\x8F\\x84");
     }
 
     @Test
@@ -135,7 +135,7 @@ public class SpliceRegionAdminIT {
         HBaseTestingUtility testingUtility = new HBaseTestingUtility((Configuration) config.getConfigSource().unwrapDelegate());
         HBaseAdmin admin = testingUtility.getHBaseAdmin();
 
-        long conglomerateId = TableSplit.getConglomerateId(connection, SCHEMA_NAME, LINEITEM, SHIPDATE_IDX);
+        long conglomerateId = TableSplit.getConglomerateId(connection, SCHEMA_NAME, ORDERS, CUST_IDX);
         TableName tn = TableName.valueOf(config.getNamespace(),Long.toString(conglomerateId));
         List<HRegionInfo> partitions = admin.getTableRegions(tn.getName());
         for (HRegionInfo partition : partitions) {
@@ -144,8 +144,8 @@ public class SpliceRegionAdminIT {
             String encodedRegionName = partition.getEncodedName();
             PreparedStatement ps = methodWatcher.prepareStatement("CALL SYSCS_UTIL.GET_START_KEY(?,?,?,?)");
             ps.setString(1, SCHEMA_NAME);
-            ps.setString(2, LINEITEM);
-            ps.setString(3, SHIPDATE_IDX);
+            ps.setString(2, ORDERS);
+            ps.setString(3, CUST_IDX);
             ps.setString(4, encodedRegionName);
 
             ResultSet rs = ps.executeQuery();
@@ -179,7 +179,7 @@ public class SpliceRegionAdminIT {
     @Test
     public void testListIndexRegions() throws Exception {
 
-        ResultSet rs = methodWatcher.executeQuery(String.format("call syscs_util.get_regions('%s', '%s', '%s', null, null,'|', null,null,null,null)", SCHEMA_NAME, LINEITEM, SHIPDATE_IDX));
+        ResultSet rs = methodWatcher.executeQuery(String.format("call syscs_util.get_regions('%s', '%s', '%s', null, null,'|', null,null,null,null)", SCHEMA_NAME, ORDERS, CUST_IDX));
         int i = 0;
         while(rs.next()) {
             String spliceStartKey = rs.getString("SPLICE_START_KEY");
