@@ -100,24 +100,35 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
 
 
     @Override
-    public ConstantAction getCreateIndexConstantAction(boolean forCreateTable,
-                                                       boolean unique,
-                                                       boolean uniqueWithDuplicateNulls,
-                                                       String indexType,String schemaName,
-                                                       String indexName,String tableName,
-                                                       UUID tableId,String[] columnNames,
-                                                       boolean[] isAscending,boolean isConstraint,
-                                                       UUID conglomerateUUID,
-                                                       boolean excludeNulls,
-                                                       boolean excludeDefaults,
-                                                       Properties properties){
+    public ConstantAction getCreateIndexConstantAction(boolean      forCreateTable,
+                                                       boolean		unique,
+                                                       boolean		uniqueWithDuplicateNulls,
+                                                       String		indexType,
+                                                       String		schemaName,
+                                                       String		indexName,
+                                                       String		tableName,
+                                                       UUID			tableId,
+                                                       String[]		columnNames,
+                                                       boolean[]    isAscending,
+                                                       boolean		isConstraint,
+                                                       UUID			conglomerateUUID,
+                                                       boolean		excludeNulls,
+                                                       boolean 		excludeDefaults,
+                                                       boolean      preSplit,
+                                                       boolean      sampling,
+                                                       String       splitKeyPath,
+                                                       String       hfilePath,
+                                                       String       columnDelimiter,
+                                                       String       characterDelimiter,
+                                                       String       timestampFormat,
+                                                       String       dateFormat,
+                                                       String       timeFormat,
+                                                       Properties	properties){
         SpliceLogUtils.trace(LOG,"getCreateIndexConstantAction for index {%s.%s} on {%s.%s} with columnNames %s",schemaName,indexName,schemaName,tableName,Arrays.toString(columnNames));
-        return new CreateIndexConstantOperation
-                (forCreateTable,unique,uniqueWithDuplicateNulls,indexType,
-                        schemaName,indexName,tableName,tableId,
-                        columnNames,isAscending,isConstraint,
-                        conglomerateUUID,
-                        excludeNulls,excludeDefaults,properties);
+        return new CreateIndexConstantOperation(forCreateTable,unique,uniqueWithDuplicateNulls,indexType, schemaName,
+                indexName,tableName,tableId,columnNames,isAscending,isConstraint, conglomerateUUID, excludeNulls,
+                excludeDefaults,preSplit,sampling,splitKeyPath,hfilePath,columnDelimiter,characterDelimiter,
+                timestampFormat, dateFormat,timeFormat,properties);
     }
 
     @Override

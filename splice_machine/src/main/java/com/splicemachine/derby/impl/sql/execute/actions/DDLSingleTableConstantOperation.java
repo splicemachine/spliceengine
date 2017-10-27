@@ -42,7 +42,8 @@ import com.splicemachine.utils.SpliceLogUtils;
 public abstract class DDLSingleTableConstantOperation extends DDLConstantOperation {
 	private static final Logger LOG = Logger.getLogger(DDLSingleTableConstantOperation.class);
 	protected UUID tableId;
-	
+
+	DDLSingleTableConstantOperation(){}
 	/**
 	 * constructor
 	 *
@@ -272,7 +273,8 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
                         td.getSchemaName(), 
                         cd.getConglomerateName(), td.getName(), td.getUUID(),
                         cols, cd.getIndexDescriptor().isAscending(),
-                        true, cd.getUUID(), false, false, prop);
+                        true, cd.getUUID(), false, false, false,false,
+						null,null,null,null,null,null,null,prop);
 
         //create index
         action.executeConstantAction(activation);

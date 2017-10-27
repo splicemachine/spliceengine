@@ -105,7 +105,8 @@ public abstract class HFileGenerationFunction implements MapPartitionsFunction<R
                 }
                 writeToHFile(key, value);
                 if (conglomerateId.equals(heapConglom)) {
-                    operationContext.recordWrite();
+                    if (operationContext != null)
+                        operationContext.recordWrite();
                 }
             }
             close(writer);
@@ -179,7 +180,10 @@ public abstract class HFileGenerationFunction implements MapPartitionsFunction<R
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeObject(operationContext);
+        out.writeBoolean(operationContext != null);
+        if (operationContext != null) {
+            out.writeObject(operationContext);
+        }
         out.writeLong(txnId);
         out.writeLong(heapConglom);
         out.writeUTF(compressionAlgorithm);
@@ -192,7 +196,9 @@ public abstract class HFileGenerationFunction implements MapPartitionsFunction<R
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        operationContext = (OperationContext) in.readObject();
+        if(in.readBoolean()) {
+            operationContext = (OperationContext) in.readObject();
+        }
         txnId = in.readLong();
         heapConglom = in.readLong();
         compressionAlgorithm = in.readUTF();
