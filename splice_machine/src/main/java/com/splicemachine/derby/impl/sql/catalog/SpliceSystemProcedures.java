@@ -426,6 +426,14 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(bulkImportHFile);
 
+                    Procedure populateIndex = Procedure.newBuilder().name("POPULATE_INDEX")
+                            .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .catalog("indexName")
+                            .varchar("bulkImportDirectory", 32672)
+                            .build();
+                    procedures.add(populateIndex);
 
                     Procedure sampleData = Procedure.newBuilder().name("SAMPLE_DATA")
                             .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
@@ -798,11 +806,11 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .varchar("type", 32672)
                             .build());
 
-                    Procedure restore = Procedure.newBuilder().name("SYSCS_BACKUP_DATABASE_ASYNC")
+                    procedures.add(Procedure.newBuilder().name("SYSCS_RESTORE_DATABASE_ASYNC")
                             .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
                             .varchar("directory", 32672)
                             .bigint("backupId")
-                            .build();
+                            .build());
 
                     /*
                      * Procedure to get a database property on all region servers in the cluster.

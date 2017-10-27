@@ -315,6 +315,7 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
 
     BulkDeleteDataSetWriterBuilder bulkDeleteData(OperationContext operationContext) throws StandardException;
 
+    BulkLoadIndexDataSetWriterBuilder bulkLoadIndex(OperationContext operationContext) throws StandardException;
     DataSetWriterBuilder deleteData(OperationContext operationContext) throws StandardException;
     InsertDataSetWriterBuilder insertData(OperationContext operationContext) throws StandardException;
     UpdateDataSetWriterBuilder updateData(OperationContext operationContext) throws StandardException;
