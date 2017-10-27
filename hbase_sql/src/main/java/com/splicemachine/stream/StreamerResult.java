@@ -10,30 +10,33 @@
  * See the GNU Affero General Public License for more details.
  * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
  * If not, see <http://www.gnu.org/licenses/>.
+ *
  */
 
 package com.splicemachine.stream;
 
-import org.apache.spark.TaskContext;
-import scala.collection.Iterator;
-import scala.reflect.ClassTag;
-import scala.runtime.AbstractFunction1;
-import scala.runtime.AbstractFunction2;
-
 import java.io.Serializable;
 
-/**
- * Created by dgomezferro on 6/1/16.
- */
-public class FunctionAdapter extends AbstractFunction2<TaskContext, Iterator<StreamerResult>, StreamerResult> implements Serializable {
+public class StreamerResult implements Serializable {
+    State result;
+    int partition;
 
-    private final static ClassTag<String> tag = scala.reflect.ClassTag$.MODULE$.apply(StreamerResult.class);
+    public StreamerResult(State result, int partition) {
+        this.result = result;
+        this.partition = partition;
+    }
 
-    @Override
-    public StreamerResult apply(TaskContext tc, scala.collection.Iterator<StreamerResult> it) {
-        StreamerResult result = it.next();
-        // This iterator is what's returned on ResultStreamer.call(), which is a list of one element
-        assert !it.hasNext();
+    public State getResult() {
         return result;
     }
+
+    public int getPartition() {
+        return partition;
+    }
+}
+
+enum State {
+    STUCK,
+    CONTINUE,
+    STOP
 }

@@ -27,7 +27,6 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-
 /**
  * This class handles connections from Spark tasks streaming data to the query client. One connection is created from
  * each task, it handles failures and recovery in case the task is retried.
@@ -37,14 +36,18 @@ import java.util.concurrent.ConcurrentMap;
 @ChannelHandler.Sharable
 public class StreamListener<T> extends ChannelInboundHandlerAdapter implements Iterator<T> {
     private static final Logger LOG = Logger.getLogger(StreamListener.class);
-    private static final Object SENTINEL = new Object();
+    private static final int MAX_EXCEPTIONS = 10;
+    private static final Object ADVANCE = new Object();
     private static final Object FAILURE = new Object();
     private static final Object RETRY = new Object();
+    private static final Object INIT = new Object();
     private final int queueSize;
     private final int batchSize;
     private final UUID uuid;
+    private final int batches;
     private long limit;
     private long offset;
+    private volatile int caughtExceptions = 0;
 
     private Map<Channel, PartitionState> partitionMap = new ConcurrentHashMap<>();
     private ConcurrentMap<Integer, PartitionState> partitionStateMap = new ConcurrentHashMap<>();
@@ -71,11 +74,13 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         this.offset = offset;
         this.limit = limit;
         this.batchSize = batchSize;
+        this.batches = batches;
         this.queueSize = batches*batchSize;
         // start with this to force a channel advancement
         PartitionState first = new PartitionState(0, 0);
-        first.messages.add(SENTINEL);
+        first.messages.add(ADVANCE);
         first.initialized = true;
+        first.limitSent = true;
         this.partitionStateMap.put(-1, first);
         this.uuid = UUID.randomUUID();
     }
@@ -92,9 +97,12 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) { // (4)
-        LOG.error("Exception caught", cause);
-        failed(cause);
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        PartitionState ps = partitionMap.get(ctx.channel());
+        LOG.error("Exception caught for : " + ps, cause);
+        ++caughtExceptions;
+        if (caughtExceptions > MAX_EXCEPTIONS)
+            failed(cause);
         ctx.close();
     }
 
@@ -110,7 +118,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         }
         if (msg instanceof StreamProtocol.RequestClose) {
             // We can't block here, we negotiate throughput with the server to guarantee it
-            state.messages.add(SENTINEL);
+            state.messages.add(ADVANCE);
             // Let server know it can close the connection
             ctx.writeAndFlush(new StreamProtocol.ConfirmClose());
             ctx.close().sync();
@@ -120,7 +128,12 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         } else {
             // Data or StreamProtocol.Skipped
             // We can't block here, we negotiate throughput with the server to guarantee it
-            state.messages.add(msg);
+            try {
+                state.messages.add(msg);
+            } catch (Exception e) {
+                LOG.error("We should have enough capacity here, remaining: " + state.messages.remainingCapacity(), e);
+                throw e;
+            }
         }
     }
 
@@ -157,33 +170,59 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
                     currentResult = null;
                     return;
                 }
-                if (!state.initialized && (offset > 0 || limit > 0)) {
-                    if (LOG.isTraceEnabled())
-                        LOG.trace("Sending skip " + limit + ", " + offset);
-                    // Limit on the server counts from its first element, we have to add offset to it
-                    long serverLimit = limit > 0 ? limit + offset : -1;
-                    state.channel.writeAndFlush(new StreamProtocol.Skip(serverLimit, offset));
-                }
-                state.initialized = true;
-                if (msg == RETRY) {
-                    // There was a retried task
-                    long currentRead = state.readTotal;
-                    long currentOffset = offset + currentRead;
-                    long serverLimit = limit > 0 ? limit + currentOffset : -1;
-
-                    // Skip all records already read from the previous run of the task
-                    state.next.channel.writeAndFlush(new StreamProtocol.Skip(serverLimit, currentOffset));
-                    state.next.initialized = true;
-                    state.messages.clear();
-                    offset = currentOffset;
-
-                    // Update maps with the new state/channel
-                    partitionStateMap.put(currentQueue, state.next);
-                    if (LOG.isTraceEnabled()) {
-                        LOG.trace("Retried task, currentRead " + currentRead + " offset " + offset +
-                                " currentOffset " + currentOffset + " serverLimit " + serverLimit + " state " + state);
+                if (!state.limitSent) {
+                    if (offset > 0 || limit > 0) {
+                        if (LOG.isTraceEnabled())
+                            LOG.trace("Sending skip " + limit + ", " + offset);
+                        // Limit on the server counts from its first element, we have to add offset to it
+                        long serverLimit = limit > 0 ? limit + offset : -1;
+                        state.channel.writeAndFlush(new StreamProtocol.Skip(serverLimit, offset));
                     }
-                } else if (msg == SENTINEL) {
+                    state.limitSent = true;
+                }
+                if (!state.initialized) {
+                    // Resize the messages queue
+                    state.resizeQueue();
+                    state.initialized = true;
+
+                    if (LOG.isTraceEnabled())
+                        LOG.trace("Sending initial CONTs to " + currentQueue );
+                    for (int i = 0; i < batches; ++i) {
+                        state.channel.write(new StreamProtocol.Continue());
+                    }
+                    state.channel.flush();
+                }
+                if (msg == RETRY) {
+                    // if there are multiple retries we want to read from the last
+                    synchronized (this) {
+                        // There was a retried task
+                        long currentRead = state.readTotal;
+                        long currentOffset = offset + currentRead;
+                        long serverLimit = limit > 0 ? limit + currentOffset : -1;
+
+                        // Skip all records already read from the previous run of the task
+                        state.next.channel.write(new StreamProtocol.Skip(serverLimit, currentOffset));
+
+                        if (!state.next.initialized) {
+                            state.next.resizeQueue();
+                            state.next.initialized = true;
+                            LOG.trace("Sending retry CONTs to " + currentQueue);
+                            for (int i = 0; i < batches; ++i) {
+                                state.next.channel.write(new StreamProtocol.Continue());
+                            }
+                            state.next.channel.flush();
+                        }
+                        state.messages.clear();
+                        offset = currentOffset;
+
+                        // Update maps with the new state/channel
+                        partitionStateMap.put(currentQueue, state.next);
+                        if (LOG.isTraceEnabled()) {
+                            LOG.trace("Retried task, currentRead " + currentRead + " offset " + offset +
+                                    " currentOffset " + currentOffset + " serverLimit " + serverLimit + " state " + state);
+                        }
+                    }
+                } else if (msg == ADVANCE) {
                     // This queue is finished, start reading from the next queue
                     LOG.trace("Moving queues");
 
@@ -200,15 +239,29 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
                     }
 
                     // Set the partitionState so we can block on the queue in case the connection hasn't opened yet
-                    PartitionState ps = partitionStateMap.putIfAbsent(currentQueue, new PartitionState(currentQueue, queueSize));
+                    PartitionState ps = new PartitionState(currentQueue, queueSize);
+                    PartitionState old = partitionStateMap.putIfAbsent(currentQueue, ps);
+                    ps = old != null ? old : ps;
+
+                    initNextQueues();
+
+                    if (LOG.isTraceEnabled())
+                        LOG.trace("Moving queues " + (old != null ? ", old state: " : ", new state:") + ps);
+
                     if (failure != null) {
                         ps.messages.add(FAILURE);
                     }
+                } else if (msg == INIT) {
+                    // do nothing
+                    if (LOG.isTraceEnabled())
+                        LOG.trace("Received INIT for partition " + currentQueue);
                 } else {
                     if (msg instanceof StreamProtocol.Skipped) {
                         StreamProtocol.Skipped skipped = (StreamProtocol.Skipped) msg;
                         offset -= skipped.skipped;
                         state.readTotal += skipped.skipped;
+                        if (LOG.isTraceEnabled())
+                            LOG.trace("Skipped " + skipped.skipped);
                     } else if (offset > 0) {
                         // We still have to ignore 'offset' messages
                         offset--;
@@ -230,7 +283,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
 
                     if (state.consumed > batchSize) {
                         if (LOG.isTraceEnabled())
-                            LOG.trace("Writing CONT");
+                            LOG.trace("Writing CONT after consuming " + state.consumed);
                         state.channel.writeAndFlush(new StreamProtocol.Continue());
                         state.consumed -= batchSize;
                     }
@@ -239,6 +292,38 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
             currentResult = next;
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private void initNextQueues() {
+        for (int queue = currentQueue; queue<currentQueue+3; queue++) {
+            PartitionState ps = partitionStateMap.get(queue);
+            if (ps == null)
+                continue;
+            synchronized (ps) {
+                if (!ps.initialized && ps.channel != null) {
+                    // Resize the messages queue
+                    ps.resizeQueue();
+                    ps.initialized = true;
+
+                    if (LOG.isTraceEnabled())
+                        LOG.trace("Sending initial CONTs to " + queue);
+                    for (int i = 0; i < batches; ++i) {
+                        ps.channel.write(new StreamProtocol.Continue());
+                    }
+                    ps.channel.flush();
+                    if (ps.next != null && !ps.next.initialized) {
+                        ps.next.resizeQueue();
+                        ps.next.initialized = true;
+                        if (LOG.isTraceEnabled())
+                            LOG.trace("Sending retry CONTs to " + queue);
+                        for (int i = 0; i < batches; ++i) {
+                            ps.next.channel.write(new StreamProtocol.Continue());
+                        }
+                        ps.next.channel.flush();
+                    }
+                }
+            }
         }
     }
 
@@ -270,7 +355,8 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         // create fake queue with finish message so the next call to next() returns null
         currentQueue = (int) numPartitions + 1;
         PartitionState ps = new PartitionState(currentQueue, 0);
-        ps.messages.add(SENTINEL);
+        ps.initialized = true;
+        ps.messages.add(ADVANCE);
         partitionStateMap.putIfAbsent(currentQueue, ps);
         close();
     }
@@ -291,22 +377,33 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         PartitionState old = partitionStateMap.putIfAbsent(partition, ps);
         ps = old != null ? old : ps;
 
-        if (failure != null) {
-            ps.messages.add(FAILURE);
-        }
         Channel previousChannel = ps.channel;
+
         if (previousChannel != null) {
             LOG.info("Received connection from retried task, current state " + ps);
-            PartitionState nextState = new PartitionState(partition, queueSize);
-            nextState.channel = channel;
-            ps.next = nextState;
-            partitionMap.put(channel, ps.next);
-            partitionMap.remove(ps.channel); // don't accept more messages from this channel
-            // this is a new connection from a retried task
-            ps.messages.add(RETRY);
+            // make sure we don't reassing the messages buffer in this case
+            synchronized (ps) {
+                PartitionState nextState = new PartitionState(partition, queueSize);
+                nextState.channel = channel;
+                PartitionState oldRetry = ps.next;
+                ps.next = nextState;
+                partitionMap.put(channel, ps.next);
+                partitionMap.remove(ps.channel); // don't accept more messages from this channel
+
+                // try to insert a RETRY message, the only case this would fail is if there's already more RETRY
+                // messages in the queue
+                ps.messages.offer(RETRY);
+
+                if (oldRetry != null) {
+                    partitionMap.remove(oldRetry.channel);
+                }
+                if (LOG.isTraceEnabled())
+                    LOG.trace("End state: " + ps);
+            }
         } else {
             partitionMap.put(channel, ps);
             ps.channel = channel;
+            ps.messages.add(INIT);
         }
         if (stopped) {
             // we are already stopped, ask this stream to close
@@ -315,6 +412,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
 
         ctx.pipeline().addLast(this);
     }
+
 
     private void close() {
         if (closed) {
@@ -377,24 +475,31 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         for (PartitionState state : partitionStateMap.values()) {
             if (state != null) {
                 state.messages.add(FAILURE);
+                if (state.next != null) {
+                    state.next.messages.add(FAILURE);
+                }
             }
         }
     }
 }
 
 class PartitionState {
+    private final int queueSize;
     int partition;
-    Channel channel;
-    ArrayBlockingQueue<Object> messages;
+    volatile Channel channel;
+    volatile ArrayBlockingQueue<Object> messages;
     long consumed;
     long readTotal;
     boolean initialized;
+    boolean limitSent;
     volatile PartitionState next = null; // used when a task is retried after a failure
 
     PartitionState(int partition, int queueSize) {
         this.partition = partition;
-        this.messages = new ArrayBlockingQueue<>(queueSize + 4);  // Extra to account for out of band messages
+        this.queueSize = queueSize;
+        this.messages = new ArrayBlockingQueue<>(3);  // INIT, RETRY, FAILURE
     }
+
 
     @Override
     public String toString() {
@@ -406,5 +511,11 @@ class PartitionState {
                 ", initialized=" + initialized +
                 ", next=" + next +
                 '}';
+    }
+
+    public synchronized void resizeQueue() {
+        ArrayBlockingQueue<Object> oldMessages = this.messages;
+        this.messages = new ArrayBlockingQueue<>(queueSize + 5);  // Extra to account for out of band messages
+        oldMessages.drainTo(this.messages);
     }
 }

@@ -82,7 +82,7 @@ public class QueryJob implements Callable<Void>{
             int numPartitions = sparkDataSet.rdd.getNumPartitions();
 
             StreamableRDD streamableRDD = new StreamableRDD<>(sparkDataSet.rdd, context, uuid, clientHost, clientPort,
-                    queryRequest.streamingBatches, queryRequest.streamingBatchSize);
+                    queryRequest.streamingBatches, queryRequest.streamingBatchSize, queryRequest.timeout);
             streamableRDD.submit();
 
             status.markCompleted(new QueryResult(numPartitions));

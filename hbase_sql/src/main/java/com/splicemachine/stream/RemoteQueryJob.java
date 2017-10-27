@@ -36,11 +36,12 @@ public class RemoteQueryJob extends DistributedJob {
     String sql;
     int streamingBatches;
     int streamingBatchSize;
+    int timeout;
 
 
     public RemoteQueryJob(ActivationHolder ah, int rootResultSetNumber, UUID uuid, String host, int port,
                           String session, String userId, String sql,
-                          int streamingBatches, int streamingBatchSize) {
+                          int streamingBatches, int streamingBatchSize, int timeout) {
         this.ah = ah;
         this.rootResultSetNumber = rootResultSetNumber;
         this.uuid = uuid;
@@ -51,6 +52,7 @@ public class RemoteQueryJob extends DistributedJob {
         this.sql = sql;
         this.streamingBatches = streamingBatches;
         this.streamingBatchSize = streamingBatchSize;
+        this.timeout = timeout;
     }
 
     @Override
