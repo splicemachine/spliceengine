@@ -214,7 +214,7 @@ public abstract class GenericConstantActionFactory {
      */
 	public abstract	ConstantAction	getCreateIndexConstantAction
 	(
-        boolean forCreateTable,
+        boolean         forCreateTable,
 		boolean			unique,
 		boolean			uniqueWithDuplicateNulls,
 		String			indexType,
@@ -228,7 +228,16 @@ public abstract class GenericConstantActionFactory {
 		UUID			conglomerateUUID,
 		boolean			excludeNulls,
 		boolean 		excludeDefaults,
-		Properties		properties
+		boolean         preSplit,
+        boolean         sampling,
+        String          splitKeyPath,
+        String          hfilePath,
+        String          columnDelimiter,
+        String          characterDelimiter,
+        String          timestampFormat,
+        String          dateFormat,
+        String          timeFormat,
+        Properties		properties
     );
 
 

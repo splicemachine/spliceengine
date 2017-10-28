@@ -87,6 +87,10 @@ public interface SConfiguration {
 
     int getBackupParallelism();
 
+    long getBackupKeepAliveInterval();
+
+    long getBackupTimeout();
+
     String getCompressionAlgorithm();
 
     String getNamespace();
@@ -173,6 +177,8 @@ public interface SConfiguration {
     long getTransactionKeepAliveInterval();
 
     long getTransactionTimeout();
+
+    boolean getIgnoreMissingTxns();
 
     // SQLConfiguration
     boolean debugDumpBindTree();

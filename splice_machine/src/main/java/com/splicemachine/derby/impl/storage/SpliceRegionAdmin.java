@@ -26,12 +26,16 @@ import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
+import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stream.function.FileFunction;
 import com.splicemachine.derby.stream.function.MutableCSVTokenizer;
@@ -43,15 +47,22 @@ import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.DataResult;
+import com.splicemachine.storage.DataResultScanner;
+import com.splicemachine.storage.DataScan;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.IntArrays;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.spark_project.guava.collect.Lists;
 import org.supercsv.prefs.CsvPreference;
@@ -67,6 +78,8 @@ import java.util.*;
  * Created by jyuan on 8/14/17.
  */
 public class SpliceRegionAdmin {
+
+    private static final Logger LOG=Logger.getLogger(SpliceRegionAdmin.class);
 
     public static void GET_REGIONS(String schemaName,
                                    String tableName,
@@ -142,6 +155,14 @@ public class SpliceRegionAdmin {
                 new SQLVarchar()
         };
 
+        EmbedConnection conn = (EmbedConnection)SpliceAdmin.getDefaultConn();
+        LanguageConnectionContext lcc = conn.getLanguageConnection();
+        Activation activation = conn.getLanguageConnection().getLastActivation();
+
+        TransactionController transactionExecute=activation.getLanguageConnectionContext().getTransactionExecute();
+        Transaction rawStoreXact=((TransactionManager)transactionExecute).getRawStoreXact();
+        BaseSpliceTransaction rawTxn=(BaseSpliceTransaction)rawStoreXact;
+        TxnView txnView = rawTxn.getActiveStateTxn();
         // get all partitions
         PartitionFactory partitionFactory = SIDriver.driver().getTableFactory();
         String conglomId = Long.toString(index == null ? td.getHeapConglomerateId() : index.getConglomerateNumber());
@@ -151,22 +172,33 @@ public class SpliceRegionAdmin {
         Iterable<? extends Partition> partitions =  table.subPartitions(startKeyBytes, endKeyBytes, true);
         List<Partition> partitionList = Lists.newArrayList(partitions);
 
+
         for (Partition partition : partitionList) {
 
+            ExecRow row = new ValueRow(dvds.length);
             byte[] start = partition.getStartKey();
             byte[] end = partition.getEndKey();
             String name = partition.getName();
             String encodedName = partition.getEncodedName();
-            decoder.set(start, 0, start.length);
-            decoder.decode(execRow);
-
-            ExecRow row=new ValueRow(dvds.length);
+            try {
+                decoder.set(start, 0, start.length);
+                decoder.decode(execRow);
+            }
+            catch(Exception e) {
+                SpliceLogUtils.info(LOG,"Start key %s cannot be decoded", Bytes.toHex(start));
+                decodeNextRow(partition, decoder, execRow, false, txnView);
+            }
             row.setRowArray(dvds);
             dvds[0].setValue(encodedName);
             dvds[1].setValue(execRow.toString());
 
-            decoder.set(end, 0, end.length);
-            decoder.decode(execRow);
+            try {
+                decoder.set(end, 0, end.length);
+                decoder.decode(execRow);
+            } catch (Exception e) {
+                SpliceLogUtils.info(LOG,"End key %s cannot be decoded", Bytes.toHex(end));
+                decodeNextRow(partition, decoder, execRow, true, txnView);
+            }
             dvds[2].setValue(execRow.toString());
 
             dvds[3].setValue(Bytes.toStringBinary(start));
@@ -414,11 +446,13 @@ public class SpliceRegionAdmin {
         Iterable<? extends Partition> partitions =  admin.allPartitions(conglomId);
         List<Partition> partitionList = Lists.newArrayList(partitions);
         byte[] rowKey  = null;
+        Partition partition = null;
         // Find the region and get its start key
         for(Partition p:partitionList) {
             String s = p.getEncodedName();
             if (s.compareTo(encodedRegionName) == 0) {
                 rowKey = p.getStartKey();
+                partition = p;
                 break;
             }
         }
@@ -426,13 +460,28 @@ public class SpliceRegionAdmin {
             throw StandardException.newException(SQLState.REGION_DOESNOT_EXIST, encodedRegionName);
         }
 
+        EmbedConnection conn = (EmbedConnection)SpliceAdmin.getDefaultConn();
+        LanguageConnectionContext lcc = conn.getLanguageConnection();
+        Activation activation = conn.getLanguageConnection().getLastActivation();
+
+        TransactionController transactionExecute=activation.getLanguageConnectionContext().getTransactionExecute();
+        Transaction rawStoreXact=((TransactionManager)transactionExecute).getRawStoreXact();
+        BaseSpliceTransaction rawTxn=(BaseSpliceTransaction)rawStoreXact;
+        TxnView txnView = rawTxn.getActiveStateTxn();
+
         // Decode startKey from byte[] to ExecRow
         ExecRow execRow = getExecRow(td, index);
         if (execRow != null) {
             DataHash dataHash = getEncoder(td, index, execRow);
             KeyHashDecoder decoder =  dataHash.getDecoder();
-            decoder.set(rowKey, 0, rowKey.length);
-            decoder.decode(execRow);
+            try {
+                decoder.set(rowKey, 0, rowKey.length);
+                decoder.decode(execRow);
+            }
+            catch(Exception e) {
+                SpliceLogUtils.info(LOG,"Start key %s cannot be decoded", Bytes.toHex(rowKey));
+                decodeNextRow(partition, decoder, execRow, false, txnView);
+            }
         }
 
         ArrayList<ExecRow> rows=new ArrayList<>(1);
@@ -635,5 +684,30 @@ public class SpliceRegionAdmin {
         Path table = new Path(splice, conglomId);
         Path region = new Path(table, encodedName);
         return region;
+    }
+
+    private static void decodeNextRow(Partition partition, KeyHashDecoder decoder, ExecRow execRow, boolean reverse, TxnView txnView) throws IOException, StandardException{
+
+        TxnOperationFactory txnOperationFactory = SIDriver.driver().getOperationFactory();
+        DataScan scan = txnOperationFactory.newDataScan(txnView);
+
+        scan.setSmall(true);
+        scan.cacheRows(1);
+
+        if (!reverse) {
+            scan.startKey(partition.getStartKey());
+        }
+        else {
+            scan.startKey(partition.getEndKey());
+            scan.reverseOrder();
+        }
+        DataResultScanner scanner = partition.openResultScanner(scan);
+        DataResult result = scanner.next();
+        if (result != null) {
+            byte[] key = result.key();
+            decoder.set(key, 0, key.length);
+            decoder.decode(execRow);
+            SpliceLogUtils.info(LOG, "Use %s %s as %s", Bytes.toHex(key), execRow, reverse ? "endKey" : "startKey");
+        }
     }
 }

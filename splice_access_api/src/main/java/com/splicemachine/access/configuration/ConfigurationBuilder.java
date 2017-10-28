@@ -36,6 +36,7 @@ public class ConfigurationBuilder {
     public int transactionLockStripes;
     public long transactionKeepAliveInterval;
     public long transactionTimeout;
+    public boolean ignoreMissingTxns;
 
     // OperationConfiguration
     public int sequenceBlockSize;
@@ -88,6 +89,8 @@ public class ConfigurationBuilder {
     public String hbaseSecurityAuthorization;
     public boolean hbaseSecurityAuthentication;
     public int backupParallelism;
+    public long backupKeepAliveInterval;
+    public long backupTimeout;
 
     // SQLConfiguration
     public boolean debugDumpBindTree;
