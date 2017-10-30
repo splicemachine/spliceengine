@@ -66,7 +66,7 @@ public class LastIndexKeyOperation extends ScanOperation {
             true, false, null, resultRowAllocator, lockMode, tableLocked, isolationLevel,
 
         colRefItem, -1, false,optimizerEstimatedRowCount, optimizerEstimatedCost,tableVersion,false,
-                null,null,null,null,null);
+                null,null,null,null,null,null, -1);
         this.tableName = Long.toString(scanInformation.getConglomerateId());
         this.tableDisplayName = tableName;
         this.indexName = indexName;

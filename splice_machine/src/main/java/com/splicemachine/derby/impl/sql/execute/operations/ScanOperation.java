@@ -63,6 +63,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
     protected String lines;
     protected String storedAs;
     protected String location;
+    protected ExecRow defaultRow;
 
     public ScanOperation(){
         super();
@@ -82,7 +83,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
                          double optimizerEstimatedRowCount,
                          double optimizerEstimatedCost,String tableVersion,
                          boolean pin, String delimited, String escaped, String lines,
-                         String storedAs, String location
+                         String storedAs, String location, GeneratedMethod defaultRowFunc, int defaultValueMapItem
     ) throws StandardException{
         super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
         this.lockMode=lockMode;
@@ -108,7 +109,9 @@ public abstract class ScanOperation extends SpliceBaseOperation{
                 startSearchOperator,
                 stopSearchOperator,
                 rowIdKey,
-                tableVersion
+                tableVersion,
+                defaultRowFunc!=null?defaultRowFunc.getMethodName():null,
+                defaultValueMapItem
         );
     }
 
@@ -175,6 +178,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
             currentTemplate=currentRow.getClone();
             if(currentRowLocation==null)
                 currentRowLocation=new HBaseRowLocation();
+            defaultRow = scanInformation.getDefaultRow();
         }catch(Exception e){
             SpliceLogUtils.logAndThrowRuntime(LOG,"Operation Init Failed!",e);
         }

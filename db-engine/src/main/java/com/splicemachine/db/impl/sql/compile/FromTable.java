@@ -31,17 +31,19 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.catalog.types.DefaultInfoImpl;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
+
 import java.util.*;
 
 /**
@@ -1173,5 +1175,71 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 
     public void setExistsTable(boolean existsTable,JBitSet dependencyMap,boolean isNotExists,boolean matchRowId) {
         return;
+    }
+
+    private FormatableBitSet buildDefaultRow(ResultColumnList defaultRow) throws StandardException {
+        FormatableBitSet defaultValueMap = new FormatableBitSet(resultColumns.size());
+
+        for (int i=0; i < resultColumns.size(); i++) {
+            ResultColumn rc = resultColumns.elementAt(i);
+            ValueNode defaultTree;
+            ResultColumn newResultColumn;
+            if (rc.getExpression() instanceof CurrentRowLocationNode) {
+                //add a dummy value for the rowlocation reference, this value won't be used
+                newResultColumn = (ResultColumn) getNodeFactory().getNode
+                        (C_NodeTypes.RESULT_COLUMN, DataTypeDescriptor.INTEGER, getNullNode(DataTypeDescriptor.INTEGER), getContextManager());
+            } else {
+                ColumnDescriptor colDesc = rc.columnDescriptor;
+                DataTypeDescriptor colType = colDesc.getType();
+
+
+                // Check for defaults
+                DefaultInfoImpl defaultInfo = (DefaultInfoImpl) colDesc.getDefaultInfo();
+
+                if (defaultInfo != null && !colDesc.isAutoincrement() && !colDesc.hasGenerationClause() && !colDesc.getType().isNullable()) {
+                    // Generate the tree for the default
+                    String defaultText = defaultInfo.getDefaultText();
+                    defaultTree = parseDefault(defaultText);
+
+                    defaultTree = defaultTree.bindExpression
+                            (getFromList(), (SubqueryList) null, (Vector) null);
+                    defaultValueMap.set(i);
+                } else {
+                    defaultTree = getNullNode(colType);
+                }
+
+                newResultColumn = (ResultColumn) getNodeFactory().getNode
+                        (C_NodeTypes.RESULT_COLUMN, defaultTree.getTypeServices(), defaultTree, getContextManager());
+            }
+
+            defaultRow.addResultColumn(newResultColumn);
+        }
+
+        return defaultValueMap;
+
+    }
+
+    public int generateDefaultRow(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException{
+        if (!(this instanceof FromBaseTable) && !(this instanceof IndexToBaseRowNode)) {
+            if (SanityManager.DEBUG) {
+                SanityManager.THROWASSERT("generateDefaultRow() not expected to be called for " + getClass().toString());
+            }
+            return 0;
+        }
+
+        if (resultColumns.indexRow) {
+            mb.pushNull(ClassName.GeneratedMethod);
+            mb.push(-1);
+            return 2;
+        }
+
+        ResultColumnList defaultRow = (ResultColumnList)getNodeFactory().getNode(
+                C_NodeTypes.RESULT_COLUMN_LIST,
+                getContextManager());
+        FormatableBitSet defaultValueMap = buildDefaultRow(defaultRow);
+        defaultRow.generate(acb, mb);
+        int defaultValueItem=acb.addItem(defaultValueMap);
+        mb.push(defaultValueItem);
+        return 2;
     }
 }
