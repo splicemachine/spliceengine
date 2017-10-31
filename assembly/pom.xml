@@ -288,6 +288,10 @@
             <id>cdh5.9.0</id>
             <properties><extraExclude>org.apache.spark:*</extraExclude></properties>
         </profile>
+        <profile>
+            <id>cdh5.12.0</id>
+            <properties><extraExclude>org.apache.spark:*</extraExclude></properties>
+        </profile>
 
         <profile>
             <id>ee</id>
