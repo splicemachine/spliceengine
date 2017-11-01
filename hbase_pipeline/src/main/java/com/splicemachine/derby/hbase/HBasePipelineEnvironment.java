@@ -20,7 +20,6 @@ import java.net.URISyntaxException;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.access.api.ServiceDiscovery;
 import com.splicemachine.access.api.SnowflakeFactory;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.concurrent.Clock;
@@ -51,6 +50,7 @@ import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.driver.SIEnvironment;
+import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
 import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
@@ -123,6 +123,7 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
     @Override public OperationStatusFactory statusFactory(){ return delegate.statusFactory(); }
     @Override public TimestampSource timestampSource(){ return delegate.timestampSource(); }
     @Override public TxnSupplier txnSupplier(){ return delegate.txnSupplier(); }
+    @Override public IgnoreTxnSupplier ignoreTxnSupplier(){ return delegate.ignoreTxnSupplier(); }
     @Override public RollForward rollForward(){ return delegate.rollForward(); }
     @Override public TxnOperationFactory operationFactory(){ return delegate.operationFactory(); }
     @Override public SIDriver getSIDriver(){ return delegate.getSIDriver(); }

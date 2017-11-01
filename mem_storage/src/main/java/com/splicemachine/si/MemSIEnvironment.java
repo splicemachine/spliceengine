@@ -44,6 +44,7 @@ import com.splicemachine.si.impl.data.MExceptionFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.driver.SIEnvironment;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
+import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
 import com.splicemachine.storage.*;
 import com.splicemachine.timestamp.api.TimestampSource;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -121,6 +122,11 @@ public class MemSIEnvironment implements SIEnvironment{
     @Override
     public TxnSupplier txnSupplier(){
         return txnStore;
+    }
+
+    @Override
+    public IgnoreTxnSupplier ignoreTxnSupplier(){
+        return null;
     }
 
     @Override

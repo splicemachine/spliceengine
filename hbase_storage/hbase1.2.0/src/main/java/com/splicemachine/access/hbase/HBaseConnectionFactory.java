@@ -245,6 +245,17 @@ public class HBaseConnectionFactory{
         }
     }
 
+    public void createRestoreTable() {
+
+        try(Admin admin=connection.getAdmin()){
+            HTableDescriptor td=generateNonSITable(HConfiguration.IGNORE_TXN_TABLE_NAME);
+            admin.createTable(td);
+            SpliceLogUtils.info(LOG, HConfiguration.IGNORE_TXN_TABLE_NAME +" created");
+        }catch(Exception e) {
+            SpliceLogUtils.error(LOG, "Unable to create SPLICE_IGNORE_TXN Table", e);
+        }
+    }
+
     public static String escape(String first){
         // escape single quotes | compress multiple whitespace chars into one,
         // (replacing tab, newline, etc)

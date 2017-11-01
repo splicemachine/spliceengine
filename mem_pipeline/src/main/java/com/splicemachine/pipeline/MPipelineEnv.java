@@ -42,6 +42,7 @@ import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.driver.SIEnvironment;
+import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
 import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
@@ -106,6 +107,11 @@ public class MPipelineEnv  implements PipelineEnvironment{
     @Override
     public TxnSupplier txnSupplier(){
         return siEnv.txnSupplier();
+    }
+
+    @Override
+    public IgnoreTxnSupplier ignoreTxnSupplier(){
+        return siEnv.ignoreTxnSupplier();
     }
 
     @Override
