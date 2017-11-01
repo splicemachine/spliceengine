@@ -137,4 +137,10 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
     {
         admin.assign(partition);
     }
+
+    @Override
+    public boolean tableExists(String tableName) throws IOException
+    {
+        return admin.tableExists(tableName);
+    }
 }

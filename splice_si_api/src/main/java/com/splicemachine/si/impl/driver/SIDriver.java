@@ -19,7 +19,6 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.SnowflakeFactory;
 import com.splicemachine.concurrent.Clock;
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
@@ -41,6 +40,7 @@ import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.si.impl.rollforward.RollForwardStatus;
 import com.splicemachine.si.impl.server.SITransactor;
+import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
 import com.splicemachine.si.impl.txn.SITransactionReadController;
 import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.Partition;
@@ -82,6 +82,7 @@ public class SIDriver {
     private final OperationStatusFactory operationStatusFactory;
     private final TimestampSource timestampSource;
     private final TxnSupplier txnSupplier;
+    private final IgnoreTxnSupplier ignoreTxnSupplier;
     private final Transactor transactor;
     private final TxnOperationFactory txnOpFactory;
     private final RollForward rollForward;
@@ -109,7 +110,7 @@ public class SIDriver {
         this.clock = env.systemClock();
         this.partitionInfoCache = env.partitionInfoCache();
         this.snowflakeFactory = env.snowflakeFactory();
-
+        this.ignoreTxnSupplier = env.ignoreTxnSupplier();
         //noinspection unchecked
         this.transactor = new SITransactor(
                 this.txnSupplier,
@@ -159,7 +160,9 @@ public class SIDriver {
     public TxnSupplier getTxnSupplier(){
         return txnSupplier;
     }
-
+    public IgnoreTxnSupplier getIgnoreTxnSupplier(){
+        return ignoreTxnSupplier;
+    }
     public OperationStatusFactory getOperationStatusLib() {
         return operationStatusFactory;
     }

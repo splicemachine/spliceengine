@@ -26,6 +26,7 @@ import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.filter.HRowAccumulator;
 import com.splicemachine.si.impl.filter.PackedTxnFilter;
+import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
 import org.spark_project.guava.collect.Iterators;
