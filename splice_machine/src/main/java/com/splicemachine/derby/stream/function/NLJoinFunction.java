@@ -129,47 +129,54 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
         try {
             if (rightSideNLJIterator == null)
                 return false;
-            while (nLeftRows > 0 && !rightSideNLJIterator.hasNext()) {
+            while (true) {
+                while (nLeftRows > 0 && !rightSideNLJIterator.hasNext()) {
 
-                // We have consumed all rows from right side iterator, reclaim operation context
-                currentOperationContext.getOperation().close();
-                operationContextList.add(currentOperationContext);
+                    // We have consumed all rows from right side iterator, reclaim operation context
+                    currentOperationContext.getOperation().close();
+                    operationContextList.add(currentOperationContext);
 
-                if (leftSideIterator.hasNext()) {
-                    // If we haven't consumed left side iterator, submit a task to scan righ side
-                    ExecRow execRow = leftSideIterator.next();
-                    GetNLJoinIterator getNLJoinIterator = GetNLJoinIterator.makeGetNLJoinIterator(joinType,
-                            operationContextList.remove(0), execRow.getClone());
-                    completionService.submit(getNLJoinIterator);
-                    nLeftRows++;
+                    if (leftSideIterator.hasNext()) {
+                        // If we haven't consumed left side iterator, submit a task to scan righ side
+                        ExecRow execRow = leftSideIterator.next();
+                        GetNLJoinIterator getNLJoinIterator = GetNLJoinIterator.makeGetNLJoinIterator(joinType,
+                                operationContextList.remove(0), execRow.getClone());
+                        completionService.submit(getNLJoinIterator);
+                        nLeftRows++;
+                    }
+
+                    if (nLeftRows > 0) {
+                        // If there are pending tasks, wait to get an iterator to righ side
+                        Future<Pair<OperationContext, Iterator<ExecRow>>> future = completionService.take();
+                        Pair<OperationContext, Iterator<ExecRow>> result = future.get();
+                        nLeftRows--;
+                        currentOperationContext = result.getFirst();
+                        rightSideNLJIterator = result.getSecond();
+                        leftRow = currentOperationContext.getOperation().getLeftOperation().getCurrentRow();
+                        leftRowLocation = new HBaseRowLocation(leftRow.getKey());
+                        operationContext.getOperation().getLeftOperation().setCurrentRow(getLeftLocatedRow());
+                        operationContext.getOperation().getLeftOperation().setCurrentRowLocation(getLeftRowLocation());
+                        hasMatch = false;
+                    }
                 }
 
-                if(nLeftRows > 0) {
-                    // If there are pending tasks, wait to get an iterator to righ side
-                    Future<Pair<OperationContext, Iterator<ExecRow>>> future = completionService.take();
-                    Pair<OperationContext, Iterator<ExecRow>> result = future.get();
-                    nLeftRows--;
-                    currentOperationContext = result.getFirst();
-                    rightSideNLJIterator = result.getSecond();
-                    leftRow = currentOperationContext.getOperation().getLeftOperation().getCurrentRow();
-                    leftRowLocation = new HBaseRowLocation(leftRow.getKey());
-                    operationContext.getOperation().getLeftOperation().setCurrentRow(getLeftLocatedRow());
-                    operationContext.getOperation().getLeftOperation().setCurrentRowLocation(getLeftRowLocation());
-                    hasMatch = false;
+                boolean result = rightSideNLJIterator.hasNext();
+                if (result) {
+                    if (!hasMatch)
+                        hasMatch = true;
+                    else {
+                        if (isSemiJoin) {
+                            //skip the subsequent rows
+                            rightSideNLJIterator.next();
+                            continue;
+                        }
+                        // for SSQ, if we get a second matching row for the same left row, report error
+                        if (forSSQ)
+                            throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
+                    }
                 }
+                return result;
             }
-
-            boolean result = rightSideNLJIterator.hasNext();
-            if (result) {
-                if (!hasMatch)
-                    hasMatch = true;
-                else {
-                    // for SSQ, if we get a second matching row for the same left row, report error
-                    if (forSSQ)
-                        throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
-                }
-            }
-            return result;
         }
         catch (Exception e) {
             throw new RuntimeException(e);

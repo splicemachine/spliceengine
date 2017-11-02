@@ -722,9 +722,9 @@ public class HalfOuterJoinNode extends JoinNode{
     }
 
     @Override
-    protected void oneRowRightSide(ActivationClassBuilder acb, MethodBuilder mb){
+    protected void oneRowRightSide(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException {
         // always return false for now
-        mb.push(false);
+        mb.push(rightResultSet.getFromSSQ() && rightResultSet.isOneRowResultSet());
         mb.push(false);  //isNotExists?
     }
 

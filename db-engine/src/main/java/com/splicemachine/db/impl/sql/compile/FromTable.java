@@ -1174,8 +1174,10 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         return existsTable;
     }
 
-    public void setExistsTable(boolean existsTable,JBitSet dependencyMap,boolean isNotExists,boolean matchRowId) {
-        return;
+    public void setExistsTable(boolean existsTable, boolean isNotExists,boolean matchRowId) {
+        this.existsTable=existsTable;
+        this.isNotExists=isNotExists;
+        this.matchRowId = matchRowId;
     }
 
     @Override

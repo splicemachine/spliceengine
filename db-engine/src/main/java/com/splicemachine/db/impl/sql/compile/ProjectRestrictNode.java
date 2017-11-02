@@ -1726,26 +1726,6 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
                 super.toHTMLString();
     }
 
-    /**
-     * Set whether or not this node represents an
-     * EXISTS table.
-     *
-     * @param existsTable Whether or not an EXISTS table.
-     * @param dependencyMap   The dependency map for the EXISTS table.
-     * @param isNotExists     Whether or not for NOT EXISTS, more specifically.
-     */
-    @Override
-    public void setExistsTable(boolean existsTable,JBitSet dependencyMap,boolean isNotExists,boolean matchRowId){
-        this.existsTable=existsTable;
-        this.isNotExists=isNotExists;
-        this.matchRowId = matchRowId;
-		/* Set/clear the dependency map as needed */
-        if(existsTable){
-            this.dependencyMap=dependencyMap;
-        }else{
-            this.dependencyMap=null;
-        }
-    }
 
     /**
      * Return whether or not the underlying ResultSet tree will return

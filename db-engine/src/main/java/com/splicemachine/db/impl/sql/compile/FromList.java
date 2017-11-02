@@ -1243,7 +1243,8 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
                 ProjectRestrictNode prn=(ProjectRestrictNode)fromTable;
                 if(prn.getChildResult() instanceof FromBaseTable){
                     FromBaseTable fbt=(FromBaseTable)prn.getChildResult();
-                    fbt.setExistsTable(true,(JBitSet)dependencyMap.clone(),isNotExists, matchRowId);
+                    fbt.setExistsTable(true,isNotExists, matchRowId);
+                    fbt.setDependencyMap((JBitSet)dependencyMap.clone());
                 }
             }
         }

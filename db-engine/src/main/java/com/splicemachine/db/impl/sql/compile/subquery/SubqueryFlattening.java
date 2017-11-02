@@ -39,7 +39,7 @@ import com.splicemachine.db.impl.sql.compile.SelectNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.compile.subquery.aggregate.AggregateSubqueryFlatteningVisitor;
 import com.splicemachine.db.impl.sql.compile.subquery.exists.ExistsSubqueryFlatteningVisitor;
-import com.splicemachine.db.impl.sql.compile.subquery.ssq.ScalarSubqueryFaltteningVisitor;
+import com.splicemachine.db.impl.sql.compile.subquery.ssq.ScalarSubqueryFlatteningVisitor;
 import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.collect.Multimap;
 import org.spark_project.guava.collect.Multimaps;
@@ -88,7 +88,7 @@ public class SubqueryFlattening {
             Collection<SelectNode> selectNodes = selectMap.get(nestingLevel);
             AggregateSubqueryFlatteningVisitor aggregateFlatteningVisitor = new AggregateSubqueryFlatteningVisitor(nestingLevel);
             ExistsSubqueryFlatteningVisitor existsFlatteningVisitor = new ExistsSubqueryFlatteningVisitor(nestingLevel);
-            ScalarSubqueryFaltteningVisitor scalarSubqueryFaltteningVisitor = new ScalarSubqueryFaltteningVisitor(nestingLevel);
+            ScalarSubqueryFlatteningVisitor scalarSubqueryFlatteningVisitor = new ScalarSubqueryFlatteningVisitor(nestingLevel);
 
 
             for (SelectNode selectNode : selectNodes) {
@@ -96,7 +96,7 @@ public class SubqueryFlattening {
                 selectNode.accept(existsFlatteningVisitor);
                 // restrict the optimization for SELECT operation and INSERT operation (create table as, insert-select)
                 if (statementNode instanceof CursorNode || statementNode instanceof InsertNode)
-                    selectNode.accept(scalarSubqueryFaltteningVisitor);
+                    selectNode.accept(scalarSubqueryFlatteningVisitor);
             }
 
         }
