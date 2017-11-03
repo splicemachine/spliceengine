@@ -123,8 +123,12 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
                 byte[] bytes = ZkUtils.getData(HConfiguration.getConfiguration().getSpliceRootPath() + HBaseConfiguration.OLAP_SERVER_PATH + "/" + serverName);
                 String hostAndPort = Bytes.toString(bytes);
                 return HostAndPort.fromString(hostAndPort);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
+            } catch (SQLException e) {
+                Throwable cause = e.getCause();
+                if (cause instanceof IOException)
+                    throw (IOException) cause;
+                else
+                    throw new IOException(e);
             }
         },retries);
         return new TimedOlapClient(onl,timeoutMillis);

@@ -79,7 +79,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         this.hostProvider = hostProvider;
     }
 
-    private void connect() {
+    private void connect() throws IOException {
         synchronized (connectionLock) {
             if (connected) {
                 return;
@@ -135,7 +135,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         }
     }
 
-    private void connectIfNeeded() {
+    private void connectIfNeeded() throws IOException {
         if (!connected) {
             connect();
         }

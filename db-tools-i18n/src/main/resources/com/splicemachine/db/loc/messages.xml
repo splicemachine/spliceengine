@@ -9178,6 +9178,7 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <name>TS006</name>
                <text>SplitKey cannot be null.</text>
            </msg>
+           <msg>
                <name>OS001</name>
 	       <text>OLAP server connection exception, see next exception for more details.</text>
            </msg>
