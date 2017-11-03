@@ -42,7 +42,7 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
 import org.apache.log4j.Logger;
-import parquet.Closeables;
+import org.apache.parquet.Closeables;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
