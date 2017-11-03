@@ -126,6 +126,11 @@
             <artifactId>derbyclient</artifactId>
             <version>10.9.1.0</version>
         </dependency>
+        <dependency>
+            <groupId>com.twitter</groupId>
+            <artifactId>parquet-hadoop-bundle</artifactId>
+            <version>1.6.0</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

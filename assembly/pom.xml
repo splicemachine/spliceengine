@@ -100,6 +100,7 @@
                                     <exclude>com.splicemachine:db-tools-ij</exclude>
                                     <exclude>com.splicemachine:db-shared</exclude>
                                     <exclude>com.splicemachine:db-drda</exclude>
+                                    <exclude>${extraExclude}</exclude>
                                 </excludes>
                             </artifactSet>
                             <relocations>
@@ -237,7 +238,53 @@
             </plugin>
         </plugins>
     </build>
+
     <profiles>
+        <profile>
+            <id>cdh5.6.0</id>
+            <properties><extraExclude>org.apache.spark:*</extraExclude></properties>
+        </profile>
+        <profile>
+            <id>cdh5.6.1</id>
+            <properties><extraExclude>org.apache.spark:*</extraExclude></properties>
+        </profile>
+        <profile>
+            <id>cdh5.7.2</id>
+            <properties><extraExclude>org.apache.spark:*</extraExclude></properties>
+        </profile>
+        <profile>
+            <id>cdh5.7.3</id>
+            <properties><extraExclude>org.apache.spark:*</extraExclude></properties>
+        </profile>
+        <profile>
+            <id>cdh5.7.4</id>
+            <properties><extraExclude>org.apache.spark:*</extraExclude></properties>
+        </profile>
+        <profile>
+            <id>cdh5.7.5</id>
+            <properties><extraExclude>org.apache.spark:*</extraExclude></properties>
+        </profile>
+        <profile>
+            <id>cdh5.8.0</id>
+            <properties><extraExclude>org.apache.spark:*</extraExclude></properties>
+        </profile>
+        <profile>
+            <id>cdh5.8.2</id>
+            <properties><extraExclude>org.apache.spark:*</extraExclude></properties>
+        </profile>
+        <profile>
+            <id>cdh5.8.3</id>
+            <properties><extraExclude>org.apache.spark:*</extraExclude></properties>
+        </profile>
+        <profile>
+            <id>cdh5.9.0</id>
+            <properties><extraExclude>org.apache.spark:*</extraExclude></properties>
+        </profile>
+        <profile>
+            <id>cdh5.12.0</id>
+            <properties><extraExclude>org.apache.spark:*</extraExclude></properties>
+        </profile>
+
         <profile>
             <id>ee</id>
             <activation>
