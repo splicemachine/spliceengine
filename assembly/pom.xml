@@ -31,15 +31,13 @@
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-core_${scala.binary.version}p</artifactId>
+            <artifactId>spark-core_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
-            <classifier>CNI</classifier>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-mesos_${scala.binary.version}p</artifactId>
+            <artifactId>spark-mesos_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
-            <classifier>CNI</classifier>
         </dependency>
     </dependencies>
     <properties>
@@ -102,8 +100,6 @@
                                     <exclude>com.splicemachine:db-tools-ij</exclude>
                                     <exclude>com.splicemachine:db-shared</exclude>
                                     <exclude>com.splicemachine:db-drda</exclude>
-                                    <exclude>org.apache.spark:spark-mesos_2.11</exclude>
-                                    <exclude>org.apache.spark:spark-core_2.11</exclude>
                                 </excludes>
                             </artifactSet>
                             <relocations>
