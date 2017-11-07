@@ -45,7 +45,6 @@ import com.splicemachine.homeless.TestUtils;
  * @author Jeff Cunningham
  *         Date: 1/25/15
  */
-@Ignore("DB-4272")
 public class TempTableIT {
     public static final String CLASS_NAME = TempTableIT.class.getSimpleName().toUpperCase();
     private static SpliceSchemaWatcher tableSchema = new SpliceSchemaWatcher(CLASS_NAME);
@@ -798,7 +797,7 @@ public class TempTableIT {
         connection1.commit();
         methodWatcher.closeAll();
 
-        Thread.sleep(1000);  // TODO: JC - This is what the bug is about now. We have to wait for table drop before connecting.
+        Thread.sleep(5000);  // TODO: JC - This is what the bug is about now. We have to wait for table drop before connecting.
         Connection connection2 = methodWatcher.createConnection();
         try {
             SQLClosures.query(connection2, String.format("select id from %s.%s", tableSchema.schemaName, MY_TABLE),
