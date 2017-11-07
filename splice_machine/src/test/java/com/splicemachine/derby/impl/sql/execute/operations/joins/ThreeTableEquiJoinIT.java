@@ -38,7 +38,6 @@ import java.util.*;
  *         Date: 7/28/14
  */
 @RunWith(Parameterized.class)
-@Ignore("DB-4272")
 public class ThreeTableEquiJoinIT {
 
     @Parameterized.Parameters
