@@ -16,9 +16,7 @@ package com.splicemachine.derby.stream.spark.fake;
 
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stream.output.SpliceOutputCommitter;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
@@ -64,5 +62,4 @@ public class FakeOutputCommitter extends SpliceOutputCommitter {
         File file = new File(abortDirectory, taskAttemptContext.getTaskAttemptID().getTaskID().toString());
         file.createNewFile();
     }
-
 }

@@ -97,7 +97,6 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
         this.frequenciesSketch = frequenciesSketch;
         this.thetaSketch = thetaSketch;
         this.nullCount = nullCount;
-        this.rpv = 0;
     }
 
     @Override
