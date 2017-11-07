@@ -376,9 +376,37 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         executeUpdate(lcc, updateStmt);
     }
 
+    private void updateNonPhysicallyPopulatedColumnToDefault(ColumnDescriptor columnDescriptor, TableDescriptor td, LanguageConnectionContext lcc)
+            throws StandardException {
+        DefaultInfo defaultInfo = columnDescriptor.getDefaultInfo();
+        String  columnName = columnDescriptor.getColumnName();
+        String  defaultText;
+
+        defaultText = columnDescriptor.getDefaultInfo().getDefaultText();
+
+		/* Need to use delimited identifiers for all object names
+		 * to ensure correctness.
+		 */
+        String updateStmt = "UPDATE " +
+                IdUtil.mkQualifiedName(td.getSchemaName(), td.getName()) +
+                " SET " + IdUtil.normalToDelimited(columnName) + "=" +
+                defaultText + " where " + IdUtil.normalToDelimited(columnName) + " = " + defaultText;
+
+
+        executeUpdate(lcc, updateStmt);
+    }
     private void modifyColumnDefault(LanguageConnectionContext lcc, DataDictionary dd,TableDescriptor td,int ix) throws StandardException {
         ColumnInfo colInfo = columnInfo[ix];
         ColumnDescriptor columnDescriptor = td.getColumnDescriptor(colInfo.name);
+
+        boolean needUpdate = columnDescriptor.hasNonNullDefault() &&
+                        columnDescriptor.getDefaultValue() != null &&   /* has default value */
+                        !columnDescriptor.isAutoincrement() && /* not an auto-increment column */
+                        !columnDescriptor.hasGenerationClause() && /* not a generated column */
+                        !columnDescriptor.getType().isNullable(); /* is not nullable */
+        if (needUpdate)
+            updateNonPhysicallyPopulatedColumnToDefault(columnDescriptor, td, lcc);
+
         int columnPosition = columnDescriptor.getPosition();
         int storagePosition = columnDescriptor.getStoragePosition();
 
@@ -521,6 +549,15 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         DataDictionary dd = lcc.getDataDictionary();
         TransactionController tc = activation.getTransactionController();
         ColumnDescriptor columnDescriptor = td.getColumnDescriptor(colName), newColumnDescriptor;
+
+        boolean needUpdate = nullability &&
+                columnDescriptor.hasNonNullDefault() &&
+                columnDescriptor.getDefaultValue() != null &&   /* has default value */
+                !columnDescriptor.isAutoincrement() && /* not an auto-increment column */
+                !columnDescriptor.hasGenerationClause() && /* not a generated column */
+                !columnDescriptor.getType().isNullable(); /* is not nullable */
+        if (needUpdate)
+            updateNonPhysicallyPopulatedColumnToDefault(columnDescriptor, td, lcc);
 
         // Get the type and change the nullability
         DataTypeDescriptor dataType = columnDescriptor.getType().getNullabilityType(nullability);

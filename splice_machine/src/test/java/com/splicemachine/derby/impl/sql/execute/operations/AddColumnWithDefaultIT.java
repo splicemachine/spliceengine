@@ -424,4 +424,164 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
     }
+
+    @Test
+    public void testAlterColumnDefaultInteraction() throws Exception {
+        // alter column change default value
+        methodWatcher.executeUpdate("alter table t1 alter column d1 default 888");
+
+        // check the content
+        String sql = format("select * from t1 --splice-properties useSpark=%s", useSparkString);
+
+        String expected = "A1 |B1 |C1 |D1  |\n" +
+                "-----------------\n" +
+                " 1 | 1 | 1 |999 |\n" +
+                " 2 | 2 | 2 |999 |\n" +
+                " 3 | 3 | 3 |999 |\n" +
+                " 4 | 4 | 4 |999 |";
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+         /* insert more rows to t1, d1 now should take the default value 888 */
+        methodWatcher.executeUpdate(format("insert into t1(a1,b1,c1) select a1+10, b1, c1 from t1 --splice-properties useSpark=%s", useSparkString));
+
+        /* check the content  */
+        sql = format("select * from t1 --splice-properties useSpark=%s", useSparkString);
+
+        expected = "A1 |B1 |C1 |D1  |\n" +
+                "-----------------\n" +
+                " 1 | 1 | 1 |999 |\n" +
+                "11 | 1 | 1 |888 |\n" +
+                "12 | 2 | 2 |888 |\n" +
+                "13 | 3 | 3 |888 |\n" +
+                "14 | 4 | 4 |888 |\n" +
+                " 2 | 2 | 2 |999 |\n" +
+                " 3 | 3 | 3 |999 |\n" +
+                " 4 | 4 | 4 |999 |";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* check content with predicate */
+        sql = format("select * from t1 --splice-properties useSpark=%s\n where d1<>888", useSparkString);
+
+        expected = "A1 |B1 |C1 |D1  |\n" +
+                "-----------------\n" +
+                " 1 | 1 | 1 |999 |\n" +
+                " 2 | 2 | 2 |999 |\n" +
+                " 3 | 3 | 3 |999 |\n" +
+                " 4 | 4 | 4 |999 |";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testDropColumnDefaultInteraction() throws Exception {
+        // alter column change default value
+        methodWatcher.executeUpdate("alter table t1 alter column d1 drop default");
+
+        // check the content
+        String sql = format("select * from t1 --splice-properties useSpark=%s", useSparkString);
+
+        String expected = "A1 |B1 |C1 |D1  |\n" +
+                "-----------------\n" +
+                " 1 | 1 | 1 |999 |\n" +
+                " 2 | 2 | 2 |999 |\n" +
+                " 3 | 3 | 3 |999 |\n" +
+                " 4 | 4 | 4 |999 |";
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+         /* insert more rows to t1, we need to explicitly provide value for d1 as no default is specified now */
+        methodWatcher.executeUpdate(format("insert into t1(a1,b1,c1,d1) select a1+10, b1, c1, c1 from t1 --splice-properties useSpark=%s", useSparkString));
+
+        /* check the content  */
+        sql = format("select * from t1 --splice-properties useSpark=%s", useSparkString);
+
+        expected = "A1 |B1 |C1 |D1  |\n" +
+                "-----------------\n" +
+                " 1 | 1 | 1 |999 |\n" +
+                "11 | 1 | 1 | 1  |\n" +
+                "12 | 2 | 2 | 2  |\n" +
+                "13 | 3 | 3 | 3  |\n" +
+                "14 | 4 | 4 | 4  |\n" +
+                " 2 | 2 | 2 |999 |\n" +
+                " 3 | 3 | 3 |999 |\n" +
+                " 4 | 4 | 4 |999 |";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* check content with predicate */
+        sql = format("select * from t1 --splice-properties useSpark=%s\n where d1>500", useSparkString);
+
+        expected = "A1 |B1 |C1 |D1  |\n" +
+                "-----------------\n" +
+                " 1 | 1 | 1 |999 |\n" +
+                " 2 | 2 | 2 |999 |\n" +
+                " 3 | 3 | 3 |999 |\n" +
+                " 4 | 4 | 4 |999 |";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testModifyColumnAsNullableInteraction() throws Exception {
+        // alter column change default value
+        methodWatcher.executeUpdate("alter table t1 alter column d1 null");
+
+        // check the content
+        String sql = format("select * from t1 --splice-properties useSpark=%s", useSparkString);
+
+        String expected = "A1 |B1 |C1 |D1  |\n" +
+                "-----------------\n" +
+                " 1 | 1 | 1 |999 |\n" +
+                " 2 | 2 | 2 |999 |\n" +
+                " 3 | 3 | 3 |999 |\n" +
+                " 4 | 4 | 4 |999 |";
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+         /* insert more rows to t1 */
+        methodWatcher.executeUpdate(format("insert into t1(a1,b1,c1) select a1+10, b1, c1 from t1 --splice-properties useSpark=%s", useSparkString));
+
+        /* check the content  */
+        sql = format("select * from t1 --splice-properties useSpark=%s", useSparkString);
+
+        expected = "A1 |B1 |C1 |D1  |\n" +
+                "-----------------\n" +
+                " 1 | 1 | 1 |999 |\n" +
+                "11 | 1 | 1 |999 |\n" +
+                "12 | 2 | 2 |999 |\n" +
+                "13 | 3 | 3 |999 |\n" +
+                "14 | 4 | 4 |999 |\n" +
+                " 2 | 2 | 2 |999 |\n" +
+                " 3 | 3 | 3 |999 |\n" +
+                " 4 | 4 | 4 |999 |";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* check content with predicate */
+        sql = format("select * from t1 --splice-properties useSpark=%s\n where d1>500", useSparkString);
+
+        expected = "A1 |B1 |C1 |D1  |\n" +
+                "-----------------\n" +
+                " 1 | 1 | 1 |999 |\n" +
+                "11 | 1 | 1 |999 |\n" +
+                "12 | 2 | 2 |999 |\n" +
+                "13 | 3 | 3 |999 |\n" +
+                "14 | 4 | 4 |999 |\n" +
+                " 2 | 2 | 2 |999 |\n" +
+                " 3 | 3 | 3 |999 |\n" +
+                " 4 | 4 | 4 |999 |";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
 }
