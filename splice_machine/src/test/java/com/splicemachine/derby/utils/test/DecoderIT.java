@@ -56,7 +56,6 @@ import org.junit.runner.Description;
  * @author Jeff Cunningham
  *         Date: 1/6/14
  */
-@Ignore("DB-4272")
 public class DecoderIT {
     private static final Logger LOG = Logger.getLogger(DecoderIT.class);
 
