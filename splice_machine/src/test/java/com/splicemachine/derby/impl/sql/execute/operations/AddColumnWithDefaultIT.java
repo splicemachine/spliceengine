@@ -354,4 +354,74 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
     }
+
+    @Test
+    public void testSystemVariableAsDefaultValue() throws Exception {
+        // add not null column with default to current user
+        methodWatcher.executeUpdate("alter table t1 add column e1 varchar(30) not null default USER");
+
+         /* insert more rows to t1 */
+        methodWatcher.executeUpdate(format("insert into t1 select a1+10, b1, c1, d1, 'Alice' from t1 --splice-properties useSpark=%s", useSparkString));
+
+        /* Q1 -- select */
+        String sql = format("select * from t1 --splice-properties useSpark=%s\n where e1='Alice'", useSparkString);
+
+        String expected = "A1 |B1 |C1 |D1  | E1   |\n" +
+                "------------------------\n" +
+                "11 | 1 | 1 |999 |Alice |\n" +
+                "12 | 2 | 2 |999 |Alice |\n" +
+                "13 | 3 | 3 |999 |Alice |\n" +
+                "14 | 4 | 4 |999 |Alice |";
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* Q2 */
+        sql = format("select * from t1 --splice-properties useSpark=%s\n where e1=USER", useSparkString);
+
+        expected = "A1 |B1 |C1 |D1  |  E1   |\n" +
+                "-------------------------\n" +
+                " 1 | 1 | 1 |999 |SPLICE |\n" +
+                " 2 | 2 | 2 |999 |SPLICE |\n" +
+                " 3 | 3 | 3 |999 |SPLICE |\n" +
+                " 4 | 4 | 4 |999 |SPLICE |";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testConstantExpressionAsDefaultValue() throws Exception {
+        // add not null column with default to current user
+        methodWatcher.executeUpdate("alter table t1 add column e1 date not null default DATE('2017-11-06')");
+
+         /* insert more rows to t1 */
+        methodWatcher.executeUpdate(format("insert into t1 select a1+10, b1, c1, d1, e1-1 from t1 --splice-properties useSpark=%s", useSparkString));
+
+        /* Q1 -- select */
+        String sql = format("select * from t1 --splice-properties useSpark=%s\n where e1=DATE ('2017-11-05')", useSparkString);
+
+        String expected = "A1 |B1 |C1 |D1  |    E1     |\n" +
+                "-----------------------------\n" +
+                "11 | 1 | 1 |999 |2017-11-05 |\n" +
+                "12 | 2 | 2 |999 |2017-11-05 |\n" +
+                "13 | 3 | 3 |999 |2017-11-05 |\n" +
+                "14 | 4 | 4 |999 |2017-11-05 |";
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* Q2 */
+        sql = format("select * from t1 --splice-properties useSpark=%s\n where e1<>DATE ('2017-11-05')", useSparkString);
+
+        expected = "A1 |B1 |C1 |D1  |    E1     |\n" +
+                "-----------------------------\n" +
+                " 1 | 1 | 1 |999 |2017-11-06 |\n" +
+                " 2 | 2 | 2 |999 |2017-11-06 |\n" +
+                " 3 | 3 | 3 |999 |2017-11-06 |\n" +
+                " 4 | 4 | 4 |999 |2017-11-06 |";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
 }

@@ -195,11 +195,6 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         SIFilter filter = getSIFilter();
         do{
             template.resetRowArray(); //necessary to deal with null entries--maybe make the underlying call faster?
-            if (defaultRow != null && defaultValueMap != null) {
-                for (int i=defaultValueMap.anySetBit(); i>=0; i=defaultValueMap.anySetBit(i)) {
-                    template.setColumn(i+1, defaultRow.getColumn(i+1).cloneValue(false));
-                }
-            }
             List<DataCell> keyValues=regionScanner.next(-1);
 
             if(keyValues.size()<=0){
@@ -220,6 +215,13 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                 } else {
                     if (LOG.isTraceEnabled())
                         SpliceLogUtils.trace(LOG,"miss columns=%d",template.nColumns());
+                }
+                //fill the unpopulated non-null columns with default values
+                if (defaultRow != null && defaultValueMap != null) {
+                    for (int i=defaultValueMap.anySetBit(); i>=0; i=defaultValueMap.anySetBit(i)) {
+                        if (template.getColumn(i+1).isNull())
+                            template.setColumn(i+1, defaultRow.getColumn(i+1).cloneValue(false));
+                    }
                 }
                 measureOutputSize(keyValues);
                 currentKeyValue = keyValues.get(0);
