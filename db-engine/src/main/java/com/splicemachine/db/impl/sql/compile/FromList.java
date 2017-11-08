@@ -1227,8 +1227,13 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
 		 */
         if(dependencyMap.getFirstSetBit()==-1){
             int outerSize=outerFromList.size();
-            for(int outer=0;outer<outerSize;outer++)
-                dependencyMap.or(((FromTable)outerFromList.elementAt(outer)).getReferencedTableMap());
+            for(int outer=0;outer<outerSize;outer++) {
+                FromTable ft = (FromTable) outerFromList.elementAt(outer);
+                // SSQ need to be processed after all the joins (including the join with where subquery) ar done,
+                // so we should not include SSQs in the where subquery's dependencyMap
+                if (!ft.fromSSQ)
+                    dependencyMap.or(ft.getReferencedTableMap());
+            }
         }
 
 		/* Do the marking */

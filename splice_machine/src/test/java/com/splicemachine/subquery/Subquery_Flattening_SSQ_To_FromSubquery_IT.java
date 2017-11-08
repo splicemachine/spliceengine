@@ -79,7 +79,7 @@ public class Subquery_Flattening_SSQ_To_FromSubquery_IT extends SpliceUnitTest {
     }
 
     @Test
-    public void testSSQflattenedToFromSubquery() throws Exception {
+    public void testSSQFlattenedToFromSubquery() throws Exception {
         /* Q1 : equality correlating condition */
         String sql = "select d1, (select d2 from t2, t3 where a1=a2 and a2 = a3 and a2<>2) as D from t1";
 
@@ -304,6 +304,31 @@ public class Subquery_Flattening_SSQ_To_FromSubquery_IT extends SpliceUnitTest {
     }
 
     @Test
+    public void testSSQInteractionWithFlattenedWhereSubquery() throws Exception {
+        /* Q1 correlated where subquery with one table is flattened to a base table */
+        String sql = "select a1, b1, c1, d1, (select d2 from t2 where a1=a2 and a2<>2) as D from t1 where b1 in (select b3 from t3 where c1=c3)";
+
+        String expected = "A1 |B1 |C1 |D1 |  D  |\n" +
+                "----------------------\n" +
+                " 1 | 1 | 1 | 1 |  1  |\n" +
+                " 1 | 1 | 1 |11 |  1  |\n" +
+                " 2 | 2 | 2 | 2 |NULL |\n" +
+                " 4 | 4 | 4 | 4 |  4  |";
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q2 non-correlated where subquery with multiple tables is flattened to a fromSubquery(derived table) */
+        sql = "select a1, b1, c1, d1, (select d2 from t2 where a1=a2 and a2<>2) as D from t1 where b1 in (select b3 from t2, t3 where c2=c3)";
+
+        expected = "A1 |B1 |C1 |D1 |  D  |\n" +
+                "----------------------\n" +
+                " 1 | 1 | 1 | 1 |  1  |\n" +
+                " 1 | 1 | 1 |11 |  1  |\n" +
+                " 2 | 2 | 2 | 2 |NULL |\n" +
+                " 4 | 4 | 4 | 4 |  4  |";
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+    }
+
+    @Test
     public void testNonFlattenedCases() throws Exception {
         /* Q1: subquery cannot contain limit n/top n */
         String sql = "select d1, (select top 1 d2 from t2, t3 where a1=a2 and a2 = a3 and a2<>2) as D from t1";
@@ -411,7 +436,7 @@ public class Subquery_Flattening_SSQ_To_FromSubquery_IT extends SpliceUnitTest {
     }
 
     @Test
-    public void testSSQInInsertSelet() throws Exception {
+    public void testSSQInInsertSelect() throws Exception {
         methodWatcher.executeUpdate("drop table if exists t4");
         methodWatcher.executeUpdate("create table t4 (d1 int, d int)");
         String sql = "insert into t4 select d1, (select d2 from  t2 where a1 = a2 and a2<>2) as D from t1";
