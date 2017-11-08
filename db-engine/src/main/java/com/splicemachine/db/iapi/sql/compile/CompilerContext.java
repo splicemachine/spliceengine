@@ -244,6 +244,16 @@ public interface CompilerContext extends Context
 	void setNumTables(int num);
 
 	/**
+	 * Some where subqueries can be converted to fromSubquery, so the number of tables could increase
+	 * during preprocess of optimization. maximalPossibleTableCount takes the where Subqueries into
+	 * considration as potentially the maximal possible table count.
+	 * @return
+	 */
+	int getMaximalPossibleTableCount();
+
+	void setMaximalPossibleTableCount(int num);
+
+	/**
 	 * Get the current next subquery number from this CompilerContext.
 	 *
 	 * @return int	The next subquery number for the current statement.

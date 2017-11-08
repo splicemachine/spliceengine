@@ -106,6 +106,12 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      */
     protected TableName origTableName;
 
+    /* semi-join related variables */
+    public boolean existsTable;
+    public boolean isNotExists;
+    public boolean matchRowId;
+    public JBitSet dependencyMap;
+
     /**
      * Initializer for a table in a FROM list.
      *
@@ -1154,5 +1160,18 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
             return trulyTheBestAccessPath.getCostEstimate().getBase().getEstimatedHeapSize();
 
         return 0.0d;
+    }
+
+    /**
+     * Does this node represent an EXISTS table that requires semi-join
+     * @return Whether or not this node represents
+     * an EXISTS table
+     */
+    public boolean getExistsTable() {
+        return existsTable;
+    }
+
+    public void setExistsTable(boolean existsTable,JBitSet dependencyMap,boolean isNotExists,boolean matchRowId) {
+        return;
     }
 }

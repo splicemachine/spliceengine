@@ -189,6 +189,14 @@ public class CompilerContextImpl extends ContextImpl
 		nextTableNumber = num;
 	}
 
+	public int getMaximalPossibleTableCount() {
+		return maximalPossibleTableCount;
+	}
+
+	public void setMaximalPossibleTableCount(int num) {
+		maximalPossibleTableCount = num;
+	}
+
 	/**
 	 * Get the current next subquery number from this CompilerContext.
 	 *
@@ -1023,6 +1031,8 @@ public class CompilerContextImpl extends ContextImpl
 	private Vector				savedObjects;
 	private String				classPrefix;
 	private SchemaDescriptor	compilationSchema;
+	/* this is the number of tables taking into consideration the where Subqueries */
+	private int                 maximalPossibleTableCount;
 
 	/**
 	 * Saved execution time default schema, if we need to change it

@@ -191,6 +191,19 @@ public class BroadcastJoinOperation extends JoinOperation{
         boolean useDataset = SpliceClient.isClient ||
                 rightResultSet.getEstimatedCost() / 1000 > configuration.getBroadcastDatasetCostThreshold() ||
                         rightResultSet.accessExternalTable();
+        /** For semi-join, it is possible that the right side is a result from complex operations, like a sequence
+         * of joins or some aggregations on top of base table. So heuristically it is better to go through the dataset implementation
+         * if the rightResultSet is not a simple access of the base table
+         */
+        if (!useDataset && isOneRowRightSide()) {
+            SpliceOperation tempOp = rightResultSet;
+            while (tempOp instanceof ProjectRestrictOperation) {
+                tempOp = tempOp.getLeftOperation();
+            }
+            if (!(tempOp instanceof TableScanOperation ||
+                tempOp instanceof MultiProbeTableScanOperation))
+                useDataset = true;
+        }
 
         DataSet<ExecRow> result;
         if (useDataset && dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
@@ -203,8 +216,8 @@ public class BroadcastJoinOperation extends JoinOperation{
 
             else { // Inner Join
                 if (isOneRowRightSide()) {
-                    result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
-                            .flatMap(new InnerJoinRestrictionFlatMapFunction(operationContext));
+                    result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTSEMI,true)
+                            .filter(new JoinRestrictionPredicateFunction(operationContext));
                 } else {
                     result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.INNER,true)
                             .filter(new JoinRestrictionPredicateFunction(operationContext));

@@ -1106,7 +1106,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
             OptimizerFactory optimizerFactory=lcc.getOptimizerFactory();
 
             int numTables=getCompilerContext().getNumTables();
-            optimizer=optimizerFactory.getOptimizer(optList,predList,dataDictionary,requiredRowOrdering,numTables,lcc);
+            optimizer=optimizerFactory.getOptimizer(optList,predList,dataDictionary,requiredRowOrdering,getCompilerContext().getMaximalPossibleTableCount(),lcc);
         }
 
         optimizer.prepForNextRound();

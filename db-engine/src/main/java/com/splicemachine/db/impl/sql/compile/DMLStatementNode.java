@@ -41,7 +41,8 @@ import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.impl.sql.compile.subquery.SubqueryFlattening;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Vector;
 
 /**
  * A DMLStatementNode represents any type of DML statement: a cursor declaration, an INSERT statement, and UPDATE
@@ -134,8 +135,18 @@ public abstract class DMLStatementNode extends StatementNode {
 
         /* Perform subquery flattening if applicable. */
         SubqueryFlattening.flatten(this);
+        /* it is possible that some where clause subquery will be converted to fromSubquery in preprocess(),
+           so we need to compute the maximum possible number of tables that take into consideration
+           of the where subqueries
+         */
+        CountWhereSubqueryVisitor countWhereSubqueryVisitor = new CountWhereSubqueryVisitor();
+        accept(countWhereSubqueryVisitor);
+        int numOfWhereSubqueries = countWhereSubqueryVisitor.getCount();
 
-        resultSet = resultSet.preprocess(getCompilerContext().getNumTables(), null, null);
+        int maximalPossibleTableCount = getCompilerContext().getNumTables() + numOfWhereSubqueries;
+        getCompilerContext().setMaximalPossibleTableCount(maximalPossibleTableCount);
+
+        resultSet = resultSet.preprocess(maximalPossibleTableCount, null, null);
         // Evaluate expressions with constant operands here to simplify the
         // query tree and to reduce the runtime cost. Do it before optimize()
         // since the simpler tree may have more accurate information for
