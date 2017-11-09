@@ -2502,8 +2502,13 @@ public class SubqueryNode extends ValueNode{
         // in the dependencyMap, not all the tabled in the outer block. this could be a performance enhancement
         JBitSet dependencyMap=new JBitSet(numTables);
         int outerSize=outerFromList.size();
-        for(int outer=0;outer<outerSize;outer++)
-            dependencyMap.or(((FromTable)outerFromList.elementAt(outer)).getReferencedTableMap());
+        for(int outer=0;outer<outerSize;outer++) {
+            FromTable ft = (FromTable) outerFromList.elementAt(outer);
+            // SSQ need to be processed after all the joins (including the join with where subquery) ar done,
+            // so we should not include SSQs in the where subquery's dependencyMap
+            if (!ft.fromSSQ)
+                dependencyMap.or(((FromTable) outerFromList.elementAt(outer)).getReferencedTableMap());
+        }
         ((FromTable) newPRN).setExistsTable(true, dependencyMap, false, false);
 
         // add the current subquery as a FromSubquery(DT) in the outer block's fromList
