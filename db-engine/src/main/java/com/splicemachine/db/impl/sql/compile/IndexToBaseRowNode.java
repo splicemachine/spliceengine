@@ -37,9 +37,13 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.AccessPath;
+import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.compile.RequiredRowOrdering;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
+
 import java.util.Collection;
 import java.util.Vector;
 
@@ -259,7 +263,10 @@ public class IndexToBaseRowNode extends FromTable{
         mb.push(source.getTableDescriptor().getVersion());
         mb.push(printExplainInformationForActivation());
 
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getIndexRowToBaseRowResultSet", ClassName.NoPutResultSet,16);
+        //generate default row for columns
+        generateDefaultRow(acb,mb);
+
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getIndexRowToBaseRowResultSet", ClassName.NoPutResultSet,18);
 
 		/* The IndexRowToBaseRowResultSet generator is what we return */
 
@@ -405,5 +412,4 @@ public class IndexToBaseRowNode extends FromTable{
         sb.append(")");
         return sb.toString();
     }
-
 }

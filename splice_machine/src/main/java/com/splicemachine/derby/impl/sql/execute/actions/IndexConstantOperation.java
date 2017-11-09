@@ -14,41 +14,44 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.catalog.IndexDescriptor;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.impl.sql.execute.index.BulkLoadIndexJob;
 import com.splicemachine.derby.impl.sql.execute.index.DistributedPopulateIndexJob;
 import com.splicemachine.derby.impl.sql.execute.index.PopulateIndexJob;
-import com.splicemachine.derby.stream.ActivationHolder;
-import com.splicemachine.derby.stream.utils.StreamUtils;
-import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
+import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
-import com.splicemachine.storage.PartitionLoad;
-import org.spark_project.guava.primitives.Ints;
-import com.splicemachine.EngineDriver;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.stream.iapi.*;
+import com.splicemachine.derby.stream.utils.StreamUtils;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.PartitionLoad;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.Activation;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
+import org.spark_project.guava.primitives.Ints;
+
 import java.io.IOException;
 import java.util.Collection;
-import java.util.concurrent.TimeoutException;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 public abstract class IndexConstantOperation extends DDLSingleTableConstantOperation {
 	private static final Logger LOG = Logger.getLogger(IndexConstantOperation.class);
@@ -122,7 +125,8 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 								 String          characterDelimiter,
 								 String          timestampFormat,
 								 String          dateFormat,
-								 String          timeFormat) throws StandardException {
+								 String          timeFormat,
+								 ExecRow         baseDefaultRow) throws StandardException {
         // String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
 		/*
 		 * Backfill the index with any existing data.
@@ -139,11 +143,17 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 			int[] baseColumnMap = new int[allFormatIds.size()];
 			int counter = 0;
 			int[] indexFormatIds = new int[indexCols.size()];
+			ExecRow indexDefaultRow = new ValueRow(indexCols.size());
+			FormatableBitSet defaultValueMap = new FormatableBitSet(indexCols.size());
+
 			for (int i = 0; i < rowDecodingMap.length;i++) {
 				rowDecodingMap[i] = -1;
 				if (indexCols.contains(i+1)) {
 					baseColumnMap[i] = counter;
 					indexFormatIds[counter] = allFormatIds.get(indexCols.get(indexCols.indexOf(i+1))-1);
+					indexDefaultRow.setColumn(counter+1, baseDefaultRow.getColumn(i+1));
+					if (!baseDefaultRow.getColumn(i+1).isNull())
+						defaultValueMap.set(counter);
 					counter++;
 				} else {
 					baseColumnMap[i] = -1;
@@ -194,7 +204,8 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
                             baseColumnMap
                     ))
                     .accessedKeyColumns(accessedKeyCols)
-                    .template(WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds));
+                    .template(WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds))
+			         .defaultRow(indexDefaultRow, defaultValueMap);
 
 			String scope = this.getScopeName();
 			String prefix = StreamUtils.getScopeString(this);

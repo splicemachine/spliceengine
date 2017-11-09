@@ -828,7 +828,9 @@ public interface ResultSetFactory {
 								String escaped,
 								String lines,
 								String storedAs,
-								String location)
+								String location,
+								GeneratedMethod defaultRowFunc,
+								int defaultValueMapItem)
 			throws StandardException;
 
 	/**
@@ -927,7 +929,9 @@ public interface ResultSetFactory {
 								String escaped,
 								String lines,
 								String storedAs,
-								String location
+								String location,
+								GeneratedMethod defaultRowFunc,
+								int defaultValueMapItem
 								)
 			throws StandardException;
 
@@ -982,7 +986,9 @@ public interface ResultSetFactory {
 								String escaped,
 								String lines,
 								String storedAs,
-								String location
+								String location,
+								GeneratedMethod defaultRowFunc,
+								int defaultValueMapItem
 								)
 			throws StandardException;
     /**
@@ -1040,7 +1046,9 @@ public interface ResultSetFactory {
 								double optimizerEstimatedRowCount,
 								double optimizerEstimatedCost,
                                 String tableVersion,
-								String explainPlan)
+								String explainPlan,
+								GeneratedMethod defaultRowFunc,
+								int defaultValueMapItem)
 			throws StandardException;
 
 

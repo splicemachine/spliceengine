@@ -123,7 +123,9 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                                         String escaped,
                                         String lines,
                                         String storedAs,
-                                        String location
+                                        String location,
+                                        GeneratedMethod defaultRowFunc,
+                                        int defaultValueMapItem
                                         )
             throws StandardException
     {
@@ -161,7 +163,9 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 escaped,
                 lines,
                 storedAs,
-                location);
+                location,
+                defaultRowFunc,
+                defaultValueMapItem);
 
         if (SanityManager.DEBUG)
         {
@@ -209,7 +213,9 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 stopSearchOperator,
                 probeValues,
                 inlistPosition,
-                tableVersion
+                tableVersion,
+                defaultRowFunc==null?null:defaultRowFunc.getMethodName(),
+                defaultValueMapItem
         );
         init();
     }
@@ -269,6 +275,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                         .rowDecodingMap(getRowDecodingMap())
                         .baseColumnMap(baseColumnMap)
                         .optionalProbeValue(probeValues[i])
+                        .defaultRow(defaultRow, scanInformation.getDefaultValueMap())
                         .buildDataSet(this);
                 dataSet = dataSet.union(ds);
                 i++;

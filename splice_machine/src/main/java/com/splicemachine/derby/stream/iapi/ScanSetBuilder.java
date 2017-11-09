@@ -250,4 +250,21 @@ public interface ScanSetBuilder<V>{
      * @return
      */
     double getSampleFraction();
+
+    /**
+     * Get the default row
+     */
+    ExecRow getDefaultRow();
+
+    /**
+     * Get the default value map
+     * defaultRow and defaultValueMap are used together
+     */
+    FormatableBitSet getDefaultValueMap();
+
+    /**
+     * set the defaultRow
+     * @return
+     */
+    ScanSetBuilder<V> defaultRow(ExecRow defaultRow, FormatableBitSet defaultValueMap);
 }

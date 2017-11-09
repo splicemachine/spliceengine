@@ -130,7 +130,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                         double optimizerEstimatedRowCount,
                                                         double optimizerEstimatedCost,
                                                         String tableVersion,
-                                                        String explainPlan)
+                                                        String explainPlan,
+                                                        GeneratedMethod defaultRowFunc,
+                                                        int defaultValueMapItem)
         throws StandardException {
 
         SpliceLogUtils.trace(LOG, "getIndexRowToBaseRowResultSet");
@@ -152,7 +154,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     forUpdate,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
-                    tableVersion);
+                    tableVersion,
+                    defaultRowFunc,
+                    defaultValueMapItem);
             indexOp.setExplainPlan(explainPlan);
             return indexOp;
         }catch(Exception e){
@@ -282,7 +286,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                 String escaped,
                                                 String lines,
                                                 String storedAs,
-                                                String location)
+                                                String location,
+                                                GeneratedMethod defaultRowFunc,
+                                                int defaultValueMapItem)
             throws StandardException {
         SpliceLogUtils.trace(LOG, "getTableScanResultSet");
         try{
@@ -321,7 +327,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     escaped,
                     lines,
                     storedAs,
-                    location);
+                    location,
+                    defaultRowFunc,
+                    defaultValueMapItem);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -530,7 +538,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             String escaped,
             String lines,
             String storedAs,
-            String location
+            String location,
+            GeneratedMethod defaultRowFunc,
+            int defaultValueMapItem
             ) throws StandardException {
         try{
             StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().getSavedObject(scociItem));
@@ -557,7 +567,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     escaped,
                     lines,
                     storedAs,
-                    location);
+                    location,
+                    defaultRowFunc,
+                    defaultValueMapItem);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -668,7 +680,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             String escaped,
             String lines,
             String storedAs,
-            String location)
+            String location,
+            GeneratedMethod defaultRowFunc,
+            int defaultValueMapItem)
 
             throws StandardException {
         try{
@@ -710,7 +724,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     escaped,
                     lines,
                     storedAs,
-                    location
+                    location,
+                    defaultRowFunc,
+                    defaultValueMapItem
                     );
             op.setExplainPlan(explainPlan);
             return op;
