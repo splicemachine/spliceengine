@@ -14,22 +14,14 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Strings;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.DynamicCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
@@ -48,6 +40,15 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
+import org.spark_project.guava.base.Strings;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Maps between an Index Table and a data Table.
@@ -78,6 +79,8 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
     protected int heapOnlyColRefItem;
     protected int indexColMapItem;
     private ExecRow compactRow;
+    protected String defaultRowMethodName;
+    protected int defaultValueMapItem;
     int[] columnOrdering;
     int[] format_ids;
     SpliceConglomerate conglomerate;
@@ -111,7 +114,8 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
                                       String indexName, int heapColRefItem, int allColRefItem,
                                       int heapOnlyColRefItem, int indexColMapItem,
                                       GeneratedMethod restriction, boolean forUpdate,
-                                      double optimizerEstimatedRowCount, double optimizerEstimatedCost, String tableVersion) throws StandardException {
+                                      double optimizerEstimatedRowCount, double optimizerEstimatedCost, String tableVersion,
+                                      GeneratedMethod defaultRowFunc, int defaultValueMapItem) throws StandardException {
         super(activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
         SpliceLogUtils.trace(LOG,"instantiate with parameters");
         this.resultRowAllocatorMethodName = resultRowAllocator.getMethodName();
@@ -126,6 +130,8 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
         this.indexColMapItem = indexColMapItem;
         this.restrictionMethodName = restriction==null? null: restriction.getMethodName();
         this.tableVersion = tableVersion;
+        this.defaultRowMethodName = defaultRowFunc==null? null: defaultRowFunc.getMethodName();
+        this.defaultValueMapItem = defaultValueMapItem;
         init();
     }
 
@@ -144,6 +150,8 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
         indexName = in.readUTF();
         restrictionMethodName = readNullableString(in);
         tableVersion = in.readUTF();
+        defaultRowMethodName = readNullableString(in);
+        defaultValueMapItem = in.readInt();
     }
 
     @Override
@@ -161,6 +169,8 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
         out.writeUTF(indexName);
         writeNullableString(restrictionMethodName, out);
         out.writeUTF(tableVersion);
+        writeNullableString(defaultRowMethodName, out);
+        out.writeInt(defaultValueMapItem);
     }
 
     @Override
@@ -192,7 +202,21 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
             resultRow = generatedMethod.invoke();
 
             compactRow = operationInformation.compactRow(resultRow, accessedAllCols, false);
-
+            // get the info related to defaultRow
+            FormatableBitSet defaultValueMap = null;
+            if (defaultValueMapItem != -1)
+                defaultValueMap = (FormatableBitSet) saved[defaultValueMapItem];
+            ExecRow defaultRow = null;
+            if (defaultRowMethodName != null) {
+                SpliceMethod<ExecRow> defaultRowMethod = new SpliceMethod<ExecRow>(defaultRowMethodName, activation);
+                defaultRow = defaultRowMethod.invoke();
+            }
+            //update compactRow with the default value info
+            if (defaultRow != null && defaultValueMap != null) {
+                for (int i=defaultValueMap.anySetBit(); i>=0; i=defaultValueMap.anySetBit(i)) {
+                    compactRow.setColumn(i+1, defaultRow.getColumn(i+1));
+                }
+            }
             int[] baseColumnMap = operationInformation.getBaseColumnMap();
             if(heapOnlyColRefItem!=-1){
                 this.heapOnlyCols = (FormatableBitSet)saved[heapOnlyColRefItem];
@@ -231,6 +255,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
                     }
                 }
             }
+
             SpliceLogUtils.trace(LOG,"accessedAllCols=%s,accessedHeapCols=%s,heapOnlyCols=%s,accessedCols=%s",accessedAllCols,accessedHeapCols,heapOnlyCols,accessedCols);
             SpliceLogUtils.trace(LOG,"rowArray=%s,compactRow=%s,resultRow=%s,resultSetNumber=%d",
                     Arrays.asList(rowArray),compactRow,resultRow,resultSetNumber);

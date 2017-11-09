@@ -88,6 +88,8 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     private final Counter outputBytesCounter;
     private long demarcationPoint;
     private DataValueDescriptor optionalProbeValue;
+    private ExecRow defaultRow;
+    private FormatableBitSet defaultValueMap;
 
     protected SITableScanner(DataScanner scanner,
                              final TransactionalRegion region,
@@ -103,7 +105,9 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                              boolean reuseRowLocation,
                              String indexName,
                              final String tableVersion,
-                             SIFilterFactory filterFactory) {
+                             SIFilterFactory filterFactory,
+                             ExecRow defaultRow,
+                             FormatableBitSet defaultValueMap) {
         assert template!=null:"Template cannot be null into a scanner";
         this.region = region;
         regionId.set(region.getRegionName());
@@ -127,6 +131,8 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         }
         else
             this.filterFactory = filterFactory;
+        this.defaultRow = defaultRow;
+        this.defaultValueMap = defaultValueMap;
     }
 
     protected SITableScanner(DataScanner scanner,
@@ -144,10 +150,12 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                              String indexName,
                              final String tableVersion,
                              SIFilterFactory filterFactory,
-                             final long demarcationPoint) {
+                             final long demarcationPoint,
+                             ExecRow defaultRow,
+                             FormatableBitSet defaultValueMap) {
         this(scanner, region, template, scan, rowDecodingMap, txn, keyColumnEncodingOrder,
                 keyColumnSortOrder, keyColumnTypes, keyDecodingMap, accessedPks, reuseRowLocation, indexName,
-                tableVersion, filterFactory);
+                tableVersion, filterFactory, defaultRow, defaultValueMap);
         this.demarcationPoint = demarcationPoint;
         if(filterFactory==null)
             this.filterFactory = createFilterFactory(txn, demarcationPoint);
@@ -169,10 +177,12 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                              final String tableVersion,
                              SIFilterFactory filterFactory,
                              final long demarcationPoint,
-                             DataValueDescriptor optionalProbeValue) {
+                             DataValueDescriptor optionalProbeValue,
+                             ExecRow defaultRow,
+                             FormatableBitSet defaultValueMap) {
         this(scanner, region, template, scan, rowDecodingMap, txn, keyColumnEncodingOrder,
                 keyColumnSortOrder, keyColumnTypes, keyDecodingMap, accessedPks, reuseRowLocation, indexName,
-                tableVersion, filterFactory,demarcationPoint);
+                tableVersion, filterFactory,demarcationPoint, defaultRow, defaultValueMap);
         this.optionalProbeValue = optionalProbeValue;
     }
 
@@ -205,6 +215,13 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                 } else {
                     if (LOG.isTraceEnabled())
                         SpliceLogUtils.trace(LOG,"miss columns=%d",template.nColumns());
+                }
+                //fill the unpopulated non-null columns with default values
+                if (defaultRow != null && defaultValueMap != null) {
+                    for (int i=defaultValueMap.anySetBit(); i>=0; i=defaultValueMap.anySetBit(i)) {
+                        if (template.getColumn(i+1).isNull())
+                            template.setColumn(i+1, defaultRow.getColumn(i+1).cloneValue(false));
+                    }
                 }
                 measureOutputSize(keyValues);
                 currentKeyValue = keyValues.get(0);

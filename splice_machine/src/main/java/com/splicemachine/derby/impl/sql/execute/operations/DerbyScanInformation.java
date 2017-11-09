@@ -74,6 +74,10 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
     private int colRefItem;
     private int indexColItem;
     private String tableVersion;
+    private String defaultRowMethodName;
+    private SpliceMethod<ExecRow> defaultRowAllocator;
+    private int defaultValueMapItem;
+    private FormatableBitSet defaultValueMap;
 
     @SuppressWarnings("UnusedDeclaration")
     @Deprecated
@@ -91,7 +95,9 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
                                 int startSearchOperator,
                                 int stopSearchOperator,
                                 boolean rowIdKey,
-                                String tableVersion) {
+                                String tableVersion,
+                                String defaultRowMethodName,
+                                int defaultValueMapItem) {
         this.resultRowAllocatorMethodName = resultRowAllocatorMethodName;
         this.startKeyGetterMethodName = startKeyGetterMethodName;
         this.stopKeyGetterMethodName = stopKeyGetterMethodName;
@@ -104,6 +110,8 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         this.stopSearchOperator = stopSearchOperator;
         this.rowIdKey = rowIdKey;
         this.tableVersion = tableVersion;
+        this.defaultRowMethodName = defaultRowMethodName;
+        this.defaultValueMapItem = defaultValueMapItem;
     }
 
     @Override
@@ -117,6 +125,28 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         if (resultRowAllocator == null)
             resultRowAllocator = new SpliceMethod<>(resultRowAllocatorMethodName, activation);
         return resultRowAllocator.invoke();
+    }
+
+    @Override
+    public ExecRow getDefaultRow() throws StandardException {
+        if (defaultRowMethodName == null)
+            return null;
+
+        if (defaultRowAllocator == null)
+            defaultRowAllocator = new SpliceMethod<>(defaultRowMethodName, activation);
+        return defaultRowAllocator.invoke();
+    }
+
+    @Override
+    public FormatableBitSet getDefaultValueMap() throws StandardException {
+        if (defaultValueMap == null) {
+            if (defaultValueMapItem == -1) {
+                defaultValueMap = null;
+            } else {
+                defaultValueMap = (FormatableBitSet) gsps.getSavedObject(defaultValueMapItem);
+            }
+        }
+        return defaultValueMap;
     }
 
     @Override
@@ -225,6 +255,8 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         SerializationUtils.writeNullableString(stopKeyGetterMethodName, out);
         out.writeUTF(tableVersion);
         out.writeBoolean(rowIdKey);
+        SerializationUtils.writeNullableString(defaultRowMethodName, out);
+        out.writeInt(defaultValueMapItem);
     }
 
     @Override
@@ -241,6 +273,8 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         stopKeyGetterMethodName = SerializationUtils.readNullableString(in);
         this.tableVersion = in.readUTF();
         this.rowIdKey = in.readBoolean();
+        defaultRowMethodName = SerializationUtils.readNullableString(in);
+        defaultValueMapItem = in.readInt();
     }
 
     @Override
