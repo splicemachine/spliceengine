@@ -72,4 +72,8 @@ public interface ScanInformation<T> {
     SpliceConglomerate getConglomerate() throws StandardException;
 
     ExecIndexRow getStartPosition() throws StandardException;
+
+    ExecRow getDefaultRow() throws StandardException;
+
+    FormatableBitSet getDefaultValueMap() throws StandardException;
 }

@@ -22,6 +22,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.impl.sql.compile.ActivationClassBuilder;
+import com.splicemachine.db.impl.sql.compile.FromTable;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -31,12 +32,12 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.List;
-import com.splicemachine.db.impl.sql.compile.FromTable;
 
 /**
  *
@@ -114,6 +115,8 @@ public class TableScanOperation extends ScanOperation{
      * @param location
      * @param pin
      * @param storedAs
+     * @param defaultRowFunc
+     * @param defaultValueMapItem
      *
      * @throws StandardException
      */
@@ -151,11 +154,13 @@ public class TableScanOperation extends ScanOperation{
                               String lines,
                               String storedAs,
                               String location,
-                              int partitionByRefItem) throws StandardException{
+                              int partitionByRefItem,
+                              GeneratedMethod defaultRowFunc,
+                              int defaultValueMapItem) throws StandardException{
         super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,
                 sameStartStopPosition,rowIdKey,qualifiersField,resultRowAllocator,lockMode,tableLocked,isolationLevel,
                 colRefItem,indexColItem,oneRowScan,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion,
-                pin,delimited,escaped,lines,storedAs,location,partitionByRefItem);
+                pin,delimited,escaped,lines,storedAs,location,partitionByRefItem,defaultRowFunc,defaultValueMapItem);
         SpliceLogUtils.trace(LOG,"instantiated for tablename %s or indexName %s with conglomerateID %d",
                 tableName,indexName,conglomId);
         this.forUpdate=forUpdate;
@@ -351,6 +356,7 @@ public class TableScanOperation extends ScanOperation{
                 .storedAs(storedAs)
                 .location(location)
                 .partitionByColumns(getPartitionColumnMap())
+                .defaultRow(defaultRow,scanInformation.getDefaultValueMap())
                 .buildDataSet(this);
     }
 }
