@@ -458,9 +458,9 @@
                     <version>2.0.11</version>
                 </plugin>
                 <plugin>
-                    <groupId>net.dongliu</groupId>
-                    <artifactId>maven-protoc-plugin</artifactId>
-                    <version>0.3.5</version>
+                    <groupId>org.xolstice.maven.plugins</groupId>
+                    <artifactId>protobuf-maven-plugin</artifactId>
+                    <version>0.5.1</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
