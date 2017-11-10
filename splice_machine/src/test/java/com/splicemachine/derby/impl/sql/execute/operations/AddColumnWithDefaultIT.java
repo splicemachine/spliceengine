@@ -18,8 +18,10 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.spark_project.guava.collect.Lists;
@@ -35,6 +37,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * Created by yxia on 10/30/17.
  */
+@Category(value = {SerialTest.class})
 @RunWith(Parameterized.class)
 public class AddColumnWithDefaultIT extends SpliceUnitTest {
     private static final String CLASS_NAME = AddColumnWithDefaultIT.class.getSimpleName().toUpperCase();
