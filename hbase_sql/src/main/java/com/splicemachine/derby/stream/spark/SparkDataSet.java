@@ -765,6 +765,7 @@ public class SparkDataSet<V> implements DataSet<V> {
             for (int i = 0; i < baseColumnMap.length; i++) {
                 cols.add(new Column(ValueRow.getNamedColumn(baseColumnMap[i])));
             }
+            // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
             insertDF.write().option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ")
                     .mode(SaveMode.Append).csv(location);
             ValueRow valueRow=new ValueRow(1);

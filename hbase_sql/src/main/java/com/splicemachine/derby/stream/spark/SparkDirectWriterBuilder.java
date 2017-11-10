@@ -51,6 +51,7 @@ public class SparkDirectWriterBuilder<K,V> extends DirectTableWriterBuilder{
     public DataSetWriter build() throws StandardException{
         try{
             Configuration conf=new Configuration(HConfiguration.unwrapDelegate());
+            // workaround for SPARK-21549 on spark-2.2.0
             conf.set("mapreduce.output.fileoutputformat.outputdir","/tmp");
             TableWriterUtils.serializeHTableWriterBuilder(conf,this);
             conf.setClass(JobContext.OUTPUT_FORMAT_CLASS_ATTR,HTableOutputFormat.class,HTableOutputFormat.class);
