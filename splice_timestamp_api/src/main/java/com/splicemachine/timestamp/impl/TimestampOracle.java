@@ -48,7 +48,7 @@ public class TimestampOracle implements TimestampOracleStatistics{
     private AtomicLong _numTimestampsCreated = new AtomicLong(0);
 
     private TimestampBlockManager timestampBlockManager;
-    private int blockSize;
+    private long blockSize;
 
     public static TimestampOracle getInstance(TimestampBlockManager timestampBlockManager, int blockSize) throws TimestampIOException{
 		TimestampOracle to = _instance;
@@ -66,7 +66,7 @@ public class TimestampOracle implements TimestampOracleStatistics{
 	
 	private TimestampOracle(TimestampBlockManager timestampBlockManager, int blockSize) throws TimestampIOException {
         this.timestampBlockManager=timestampBlockManager;
-        this.blockSize = blockSize;
+        this.blockSize = blockSize * TIMESTAMP_INCREMENT;
 		initialize();
 	}
 
