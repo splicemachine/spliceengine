@@ -68,6 +68,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
     protected String location;
     int partitionRefItem;
     protected int[] partitionColumnMap;
+    protected ExecRow defaultRow;
 
     public ScanOperation(){
         super();
@@ -87,7 +88,8 @@ public abstract class ScanOperation extends SpliceBaseOperation{
                          double optimizerEstimatedRowCount,
                          double optimizerEstimatedCost,String tableVersion,
                          boolean pin, int splits, String delimited, String escaped, String lines,
-                         String storedAs, String location, int partitionRefItem
+                         String storedAs, String location, int partitionRefItem, GeneratedMethod defaultRowFunc, int defaultValueMapItem
+
     ) throws StandardException{
         super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
         this.lockMode=lockMode;
@@ -115,7 +117,9 @@ public abstract class ScanOperation extends SpliceBaseOperation{
                 startSearchOperator,
                 stopSearchOperator,
                 rowIdKey,
-                tableVersion
+                tableVersion,
+                defaultRowFunc!=null?defaultRowFunc.getMethodName():null,
+                defaultValueMapItem
         );
     }
 
@@ -191,6 +195,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
                 partitionColumnMap = DerbyScanInformation.Empty_Array;
             else
                 partitionColumnMap = ((ReferencedColumnsDescriptorImpl) statement.getSavedObject(partitionRefItem)).getReferencedColumnPositions();
+            defaultRow = scanInformation.getDefaultRow();
         }catch(Exception e){
             SpliceLogUtils.logAndThrowRuntime(LOG,"Operation Init Failed!",e);
         }

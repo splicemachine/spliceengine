@@ -116,7 +116,9 @@ public class DistinctScanOperation extends ScanOperation {
                                  String lines,
                                  String storedAs,
                                  String location,
-                                 int partitionByRefItem) throws StandardException {
+                                 int partitionByRefItem,
+                                 GeneratedMethod defaultRowFunc,
+                                 int defaultValueMapItem) throws StandardException {
         super(conglomId,
                 activation,
                 resultSetNumber,
@@ -137,7 +139,7 @@ public class DistinctScanOperation extends ScanOperation {
                 optimizerEstimatedRowCount,
                 optimizerEstimatedCost,
                 tableVersion,
-                pin,splits,delimited,escaped,lines,storedAs,location,partitionByRefItem);
+                pin,splits,delimited,escaped,lines,storedAs,location,partitionByRefItem,defaultRowFunc,defaultValueMapItem);
         this.hashKeyItem = hashKeyItem;
         this.tableName = Long.toString(scanInformation.getConglomerateId());
         this.tableDisplayName = tableName;
@@ -285,6 +287,7 @@ public class DistinctScanOperation extends ScanOperation {
                 .location(location)
                 .baseColumnMap(operationInformation.getBaseColumnMap())
                 .partitionByColumns(getPartitionColumnMap())
+                .defaultRow(defaultRow, scanInformation.getDefaultValueMap())
                 .buildDataSet(this).map(new CloneFunction<>(operationContext));
                 return dataset.distinct(OperationContext.Scope.DISTINCT.displayName(), true, operationContext, true, OperationContext.Scope.DISTINCT.displayName());
     }

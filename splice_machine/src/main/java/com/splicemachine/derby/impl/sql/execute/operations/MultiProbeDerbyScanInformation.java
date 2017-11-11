@@ -56,9 +56,12 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
                                           int stopSearchOperator,
                                           DataValueDescriptor[] probeValues,
 										  int inlistPosition,
-										  String tableVersion) {
+										  String tableVersion,
+										  String defaultRowMethodName,
+										  int defaultValueMapItem) {
         super(resultRowAllocatorMethodName, startKeyGetterMethodName, stopKeyGetterMethodName,
-                scanQualifiersField, conglomId, colRefItem, -1, sameStartStopPosition, startSearchOperator, stopSearchOperator, false,tableVersion);
+                scanQualifiersField, conglomId, colRefItem, -1, sameStartStopPosition, startSearchOperator, stopSearchOperator, false,tableVersion,
+				defaultRowMethodName, defaultValueMapItem);
         this.probeValues = probeValues;
         this.inlistPosition = inlistPosition;
     }

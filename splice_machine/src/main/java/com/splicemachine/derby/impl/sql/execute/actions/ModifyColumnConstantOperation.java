@@ -14,11 +14,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.log4j.Logger;
-
 import com.splicemachine.db.catalog.DefaultInfo;
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
@@ -36,21 +31,7 @@ import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Parser;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.dictionary.CheckConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.DefaultDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DependencyDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.GenericDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.ReferencedKeyConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.RowUtil;
 import com.splicemachine.db.iapi.store.access.ScanController;
@@ -65,6 +46,10 @@ import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.pipeline.ErrorState;
+import org.apache.log4j.Logger;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Scott Fines
@@ -269,10 +254,15 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         }
 
         // Update the new column to its default, if it has a non-null default
-        if (columnDescriptor.hasNonNullDefault()) {
+        boolean skipPhysicalUpdate = !columnDescriptor.hasNonNullDefault() ||
+                columnDescriptor.getDefaultValue() != null &&   /* has default value */
+                !columnDescriptor.isAutoincrement() && /* not an auto-increment column */
+                !columnDescriptor.hasGenerationClause() && /* not a generated column */
+                !columnDescriptor.getType().isNullable(); /* is not nullable */
+
+        if (!skipPhysicalUpdate) {
             updateNewColumnToDefault(columnDescriptor, tableDescriptor, lcc);
         }
-
         //
         // Add dependencies. These can arise if a generated column depends
         // on a user created function.
@@ -386,9 +376,37 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         executeUpdate(lcc, updateStmt);
     }
 
+    private void updateNonPhysicallyPopulatedColumnToDefault(ColumnDescriptor columnDescriptor, TableDescriptor td, LanguageConnectionContext lcc)
+            throws StandardException {
+        DefaultInfo defaultInfo = columnDescriptor.getDefaultInfo();
+        String  columnName = columnDescriptor.getColumnName();
+        String  defaultText;
+
+        defaultText = columnDescriptor.getDefaultInfo().getDefaultText();
+
+		/* Need to use delimited identifiers for all object names
+		 * to ensure correctness.
+		 */
+        String updateStmt = "UPDATE " +
+                IdUtil.mkQualifiedName(td.getSchemaName(), td.getName()) +
+                " SET " + IdUtil.normalToDelimited(columnName) + "=" +
+                defaultText + " where " + IdUtil.normalToDelimited(columnName) + " = " + defaultText;
+
+
+        executeUpdate(lcc, updateStmt);
+    }
     private void modifyColumnDefault(LanguageConnectionContext lcc, DataDictionary dd,TableDescriptor td,int ix) throws StandardException {
         ColumnInfo colInfo = columnInfo[ix];
         ColumnDescriptor columnDescriptor = td.getColumnDescriptor(colInfo.name);
+
+        boolean needUpdate = columnDescriptor.hasNonNullDefault() &&
+                        columnDescriptor.getDefaultValue() != null &&   /* has default value */
+                        !columnDescriptor.isAutoincrement() && /* not an auto-increment column */
+                        !columnDescriptor.hasGenerationClause() && /* not a generated column */
+                        !columnDescriptor.getType().isNullable(); /* is not nullable */
+        if (needUpdate)
+            updateNonPhysicallyPopulatedColumnToDefault(columnDescriptor, td, lcc);
+
         int columnPosition = columnDescriptor.getPosition();
         int storagePosition = columnDescriptor.getStoragePosition();
 
@@ -531,6 +549,15 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         DataDictionary dd = lcc.getDataDictionary();
         TransactionController tc = activation.getTransactionController();
         ColumnDescriptor columnDescriptor = td.getColumnDescriptor(colName), newColumnDescriptor;
+
+        boolean needUpdate = nullability &&
+                columnDescriptor.hasNonNullDefault() &&
+                columnDescriptor.getDefaultValue() != null &&   /* has default value */
+                !columnDescriptor.isAutoincrement() && /* not an auto-increment column */
+                !columnDescriptor.hasGenerationClause() && /* not a generated column */
+                !columnDescriptor.getType().isNullable(); /* is not nullable */
+        if (needUpdate)
+            updateNonPhysicallyPopulatedColumnToDefault(columnDescriptor, td, lcc);
 
         // Get the type and change the nullability
         DataTypeDescriptor dataType = columnDescriptor.getType().getNullabilityType(nullability);

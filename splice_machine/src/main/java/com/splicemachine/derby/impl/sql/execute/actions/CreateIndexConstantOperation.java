@@ -17,34 +17,10 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.db.catalog.IndexDescriptor;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.db.iapi.types.HBaseRowLocation;
-import com.splicemachine.derby.stream.function.FileFunction;
-import com.splicemachine.derby.stream.iapi.DataSet;
-import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.output.WriteReadUtils;
-import com.splicemachine.derby.utils.FormatableBitSetUtils;
-import com.splicemachine.derby.utils.marshall.BareKeyHash;
-import com.splicemachine.derby.utils.marshall.DataHash;
-import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
-import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
-import com.splicemachine.protobuf.ProtoUtil;
-import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnLifecycleManager;
-import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.utils.IntArrays;
-import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -58,10 +34,35 @@ import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.execute.RowUtil;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.stream.function.FileFunction;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.output.WriteReadUtils;
+import com.splicemachine.derby.utils.FormatableBitSetUtils;
+import com.splicemachine.derby.utils.marshall.BareKeyHash;
+import com.splicemachine.derby.utils.marshall.DataHash;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnLifecycleManager;
+import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.utils.IntArrays;
+import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
+
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.Serializable;
@@ -572,13 +573,22 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             ColumnDescriptorList cdl = td.getColumnDescriptorList();
             int	cdlSize = cdl.size();
             DataValueDescriptor defaultValue = null;
+            ExecRow defaultRow = new ValueRow(cdlSize);
             for (int index = 0, numSet = 0; index < cdlSize; index++) {
+                ColumnDescriptor cd = cdl.elementAt(index);
+                DataTypeDescriptor dts = cd.getType();
+
+                // we need to populate a defaultRow with default value for the columns with default value
+                // but the default value is not physically filled
+                if (cd.getDefaultValue() != null && !cd.isAutoincrement() && !cd.hasGenerationClause() && !dts.isNullable()) {
+                    defaultRow.setColumn(index+1, cd.getDefaultValue());
+                } else
+                    defaultRow.setColumn(index+1, dts.getNull());
+
                 if (! zeroBasedBitSet.get(index)) {
                     continue;
                 }
                 numSet++;
-                ColumnDescriptor cd = cdl.elementAt(index);
-                DataTypeDescriptor dts = cd.getType();
                 if (defaultValue == null && numSet==1) {
                     defaultValue = cd.getDefaultValue();
                 }
@@ -625,7 +635,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             //
             if(!alreadyHaveConglomDescriptor){
                 long indexCId=createConglomerateDescriptor(dd,userTransaction,sd,td,indexRowGenerator,ddg);
-                createAndPopulateIndex(activation,userTransaction,td,indexCId,heapConglomerateId,indexRowGenerator,defaultValue);
+                createAndPopulateIndex(activation,userTransaction,td,indexCId,heapConglomerateId,indexRowGenerator,defaultValue, defaultRow);
             }
         }catch (Throwable t) {
             throw Exceptions.parseException(t);
@@ -789,7 +799,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                                         long indexConglomId,
                                         long heapConglomerateId,
                                         IndexDescriptor indexDescriptor,
-                                        DataValueDescriptor defaultValue) throws StandardException, IOException {
+                                        DataValueDescriptor defaultValue,
+                                        ExecRow defaultRow) throws StandardException, IOException {
         /*
          * Manages the Create and Populate index phases
          */
@@ -819,7 +830,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         Txn indexTransaction = DDLUtils.getIndexTransaction(tc, tentativeTransaction, td.getHeapConglomerateId(),indexName);
         populateIndex(td, activation, indexTransaction, tentativeTransaction.getCommitTimestamp(),
                 ddlChange.getTentativeIndex(), indexDescriptor, preSplit, sampling, splitKeyPath, hfilePath,
-                columnDelimiter, characterDelimiter, timestampFormat, dateFormat, timeFormat);
+                columnDelimiter, characterDelimiter, timestampFormat, dateFormat, timeFormat, defaultRow);
         indexTransaction.commit();
     }
 
