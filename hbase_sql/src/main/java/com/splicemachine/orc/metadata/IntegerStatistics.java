@@ -54,7 +54,10 @@ public class IntegerStatistics
 
 
     public static ColumnStatistics getPartitionColumnStatistics(String value) throws IOException {
-        IntegerStatistics integerStatistics = new IntegerStatistics(Long.valueOf(value),Long.valueOf(value));
+        IntegerStatistics integerStatistics = null;
+        if(value != null) {
+            integerStatistics = new IntegerStatistics(Long.valueOf(value),Long.valueOf(value));
+        }
         return new ColumnStatistics(SpliceOrcNewInputFormat.DEFAULT_PARTITION_SIZE,
                 null,integerStatistics,null,null,null,null,null);
     }
