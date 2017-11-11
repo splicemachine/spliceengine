@@ -55,8 +55,11 @@ public class StringStatistics
     }
 
     public static ColumnStatistics getPartitionColumnStatistics(String value) throws IOException {
-        Slice slice = Slices.wrappedBuffer(value.getBytes("UTF-8"));
-        StringStatistics stringStatistics = new StringStatistics(slice,slice);
+        StringStatistics stringStatistics = null;
+        if(value != null) {
+            Slice slice = Slices.wrappedBuffer(value.getBytes("UTF-8"));
+            stringStatistics = new StringStatistics(slice,slice);
+        }
         return new ColumnStatistics(SpliceOrcNewInputFormat.DEFAULT_PARTITION_SIZE,
                 null,null,null,stringStatistics,null,null,null);
     }
