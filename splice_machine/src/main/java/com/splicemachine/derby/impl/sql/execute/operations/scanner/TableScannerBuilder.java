@@ -83,6 +83,8 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     protected boolean useSample = false;
     protected double sampleFraction = 0;
 
+    protected ExecRow defaultRow;
+    protected FormatableBitSet defaultValueMap;
 
     @Override
     public ScanSetBuilder<V> metricFactory(MetricFactory metricFactory){
@@ -404,7 +406,9 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                     tableVersion,
                     filterFactory,
                     demarcationPoint,
-                    optionalProbeValue);
+                    optionalProbeValue,
+                    defaultRow,
+                    defaultValueMap);
     }
 
     @Override
@@ -472,6 +476,12 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
             writeNullableString(location,out);
             out.writeBoolean(useSample);
             out.writeDouble(sampleFraction);
+            out.writeBoolean(defaultRow != null);
+            if (defaultRow != null)
+                out.writeObject(defaultRow);
+            out.writeBoolean(defaultValueMap != null);
+            if (defaultValueMap != null)
+                out.writeObject(defaultValueMap);
     }
     private void writeNullableString (String nullableString,ObjectOutput out) throws IOException {
         out.writeBoolean(nullableString!=null);
@@ -547,6 +557,10 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                 location = in.readUTF();
             useSample = in.readBoolean();
             sampleFraction = in.readDouble();
+            if (in.readBoolean())
+                defaultRow = (ExecRow)in.readObject();
+            if (in.readBoolean())
+                defaultValueMap = (FormatableBitSet) in.readObject();
     }
 
     protected TxnView readTxn(ObjectInput in) throws IOException{
@@ -676,4 +690,22 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     public double getSampleFraction() {
         return sampleFraction;
     }
+
+    @Override
+    public ExecRow getDefaultRow() {
+        return defaultRow;
+    }
+
+    @Override
+    public FormatableBitSet getDefaultValueMap() {
+        return defaultValueMap;
+    }
+
+    @Override
+    public ScanSetBuilder<V> defaultRow(ExecRow defaultRow, FormatableBitSet defaultValueMap){
+        this.defaultRow=defaultRow;
+        this.defaultValueMap = defaultValueMap;
+        return this;
+    }
+
 }

@@ -130,7 +130,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                         double optimizerEstimatedRowCount,
                                                         double optimizerEstimatedCost,
                                                         String tableVersion,
-                                                        String explainPlan)
+                                                        String explainPlan,
+                                                        GeneratedMethod defaultRowFunc,
+                                                        int defaultValueMapItem)
         throws StandardException {
 
         SpliceLogUtils.trace(LOG, "getIndexRowToBaseRowResultSet");
@@ -152,7 +154,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     forUpdate,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
-                    tableVersion);
+                    tableVersion,
+                    defaultRowFunc,
+                    defaultValueMapItem);
             indexOp.setExplainPlan(explainPlan);
             return indexOp;
         }catch(Exception e){
@@ -283,7 +287,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                 String lines,
                                                 String storedAs,
                                                 String location,
-                                                int partitionByRefItem)
+                                                int partitionByRefItem,
+                                                GeneratedMethod defaultRowFunc,
+                                                int defaultValueMapItem)
             throws StandardException {
         SpliceLogUtils.trace(LOG, "getTableScanResultSet");
         try{
@@ -323,7 +329,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     lines,
                     storedAs,
                     location,
-                    partitionByRefItem);
+                    partitionByRefItem,
+                    defaultRowFunc,
+                    defaultValueMapItem);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -533,7 +541,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             String lines,
             String storedAs,
             String location,
-            int partitionByRefItem
+            int partitionByRefItem,
+            GeneratedMethod defaultRowFunc,
+            int defaultValueMapItem
             ) throws StandardException {
         try{
             StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().getSavedObject(scociItem));
@@ -561,7 +571,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     lines,
                     storedAs,
                     location,
-                    partitionByRefItem);
+                    partitionByRefItem,
+                    defaultRowFunc,
+                    defaultValueMapItem);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -673,7 +685,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             String lines,
             String storedAs,
             String location,
-            int partitionByRefItem)
+            int partitionByRefItem,
+            GeneratedMethod defaultRowFunc,
+            int defaultValueMapItem)
 
             throws StandardException {
         try{
@@ -716,7 +730,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     lines,
                     storedAs,
                     location,
-                    partitionByRefItem
+                    partitionByRefItem,
+                    defaultRowFunc,
+                    defaultValueMapItem
                     );
             op.setExplainPlan(explainPlan);
             return op;

@@ -15,15 +15,11 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.carrotsearch.hppc.BitSet;
-import com.splicemachine.EngineDriver;
-import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.concurrent.SameThreadExecutorService;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.utils.marshall.EntryDataDecoder;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.NoOpKeyHashDecoder;
@@ -35,12 +31,12 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.EntryPredicateFilter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Iterator;
-import java.util.concurrent.*;
 
 /**
  * @author Scott Fines
@@ -209,29 +205,25 @@ public class IndexRowReaderBuilder implements Externalizable{
     public void writeExternal(ObjectOutput out) throws IOException{
         SIDriver driver=SIDriver.driver();
 
-        try{
-            driver.getOperationFactory().writeTxn(txn,out);
-            out.writeInt(lookupBatchSize);
-            out.writeInt(numConcurrentLookups);
-            ArrayUtil.writeIntArray(out,WriteReadUtils.getExecRowTypeFormatIds(outputTemplate));
-            out.writeLong(mainTableConglomId);
-            ArrayUtil.writeIntArray(out,mainTableRowDecodingMap);
-            out.writeObject(mainTableAccessedRowColumns);
-            ArrayUtil.writeIntArray(out,mainTableKeyColumnEncodingOrder);
-            if(mainTableKeyColumnSortOrder!=null){
-                out.writeBoolean(true);
-                ArrayUtil.writeBooleanArray(out,mainTableKeyColumnSortOrder);
-            }else{
-                out.writeBoolean(false);
-            }
-            ArrayUtil.writeIntArray(out,mainTableKeyDecodingMap);
-            out.writeObject(mainTableAccessedKeyColumns);
-            ArrayUtil.writeIntArray(out,indexCols);
-            out.writeUTF(tableVersion);
-            ArrayUtil.writeIntArray(out,mainTableKeyColumnTypes);
-        }catch(StandardException se){
-            throw new IOException(se);
+        driver.getOperationFactory().writeTxn(txn,out);
+        out.writeInt(lookupBatchSize);
+        out.writeInt(numConcurrentLookups);
+        out.writeObject(outputTemplate);
+        out.writeLong(mainTableConglomId);
+        ArrayUtil.writeIntArray(out,mainTableRowDecodingMap);
+        out.writeObject(mainTableAccessedRowColumns);
+        ArrayUtil.writeIntArray(out,mainTableKeyColumnEncodingOrder);
+        if(mainTableKeyColumnSortOrder!=null){
+            out.writeBoolean(true);
+            ArrayUtil.writeBooleanArray(out,mainTableKeyColumnSortOrder);
+        }else{
+            out.writeBoolean(false);
         }
+        ArrayUtil.writeIntArray(out,mainTableKeyDecodingMap);
+        out.writeObject(mainTableAccessedKeyColumns);
+        ArrayUtil.writeIntArray(out,indexCols);
+        out.writeUTF(tableVersion);
+        ArrayUtil.writeIntArray(out,mainTableKeyColumnTypes);
     }
 
     @Override
@@ -239,8 +231,7 @@ public class IndexRowReaderBuilder implements Externalizable{
         txn=SIDriver.driver().getOperationFactory().readTxn(in);
         lookupBatchSize=in.readInt();
         numConcurrentLookups=in.readInt();
-        execRowTypeFormatIds=ArrayUtil.readIntArray(in);
-        outputTemplate=WriteReadUtils.getExecRowFromTypeFormatIds(execRowTypeFormatIds);
+        outputTemplate = (ExecRow) in.readObject();
         mainTableConglomId=in.readLong();
         mainTableRowDecodingMap=ArrayUtil.readIntArray(in);
         mainTableAccessedRowColumns=(FormatableBitSet)in.readObject();
