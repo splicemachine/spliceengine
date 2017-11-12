@@ -234,6 +234,16 @@ public class SpliceRegionAdminIT {
             Assert.assertEquals(sqlcode, SQLState.LANG_INDEX_NOT_FOUND);
         }
 
+        try{
+            ps.setString(1, SCHEMA_NAME);
+            ps.setString(2, null);
+            ps.setString(3, null);
+            ps.execute();
+        }catch (SQLException e) {
+            String sqlcode = e.getSQLState();
+            Assert.assertEquals(sqlcode, SQLState.TABLE_NAME_CANNOT_BE_NULL.substring(0,5));
+        }
+
         sql = "CALL SYSCS_UTIL.GET_START_KEY(?, ?, ?, ?)";
         ps = methodWatcher.prepareStatement(sql);
 
@@ -281,6 +291,60 @@ public class SpliceRegionAdminIT {
         }catch (SQLException e) {
             String sqlcode = e.getSQLState();
             Assert.assertEquals(sqlcode, SQLState.REGION_DOESNOT_EXIST);
+        }
+
+        try {
+            ps.setString(1, SCHEMA_NAME);
+            ps.setString(2, null);
+            ps.setString(3, SHIPDATE_IDX);
+            ps.setString(4, "region");
+            ps.execute();
+        }
+        catch (SQLException e) {
+            String sqlcode = e.getSQLState();
+            Assert.assertEquals(sqlcode, SQLState.TABLE_NAME_CANNOT_BE_NULL.substring(0,5));
+        }
+
+        sql = "CALL SYSCS_UTIL.COMPACT_REGION(?, ?, ?, ?)";
+        ps = methodWatcher.prepareStatement(sql);
+        try {
+            ps.setString(1, null);
+            ps.setString(2, null);
+            ps.setString(3, SHIPDATE_IDX);
+            ps.setString(4, "region");
+            ps.execute();
+        }
+        catch (SQLException e) {
+            String sqlcode = e.getSQLState();
+            Assert.assertEquals(sqlcode, SQLState.TABLE_NAME_CANNOT_BE_NULL.substring(0,5));
+        }
+
+        sql = "CALL SYSCS_UTIL.GET_REGIONS(?, ?, ?, 'start', 'end', '|', null, null, null, null)";
+        ps = methodWatcher.prepareStatement(sql);
+        try {
+            ps.setString(1, null);
+            ps.setString(2, null);
+            ps.setString(3, SHIPDATE_IDX);
+            ps.execute();
+        }
+        catch (SQLException e) {
+            String sqlcode = e.getSQLState();
+            Assert.assertEquals(sqlcode, SQLState.TABLE_NAME_CANNOT_BE_NULL.substring(0,5));
+        }
+
+        sql = "CALL SYSCS_UTIL.MERGE_REGIONS(?, ?, ?, ?, ?)";
+        ps = methodWatcher.prepareStatement(sql);
+        try {
+            ps.setString(1, SCHEMA_NAME);
+            ps.setString(2, null);
+            ps.setString(3, SHIPDATE_IDX);
+            ps.setString(4, "region1");
+            ps.setString(5, "region2");
+            ps.execute();
+        }
+        catch (SQLException e) {
+            String sqlcode = e.getSQLState();
+            Assert.assertEquals(sqlcode, SQLState.TABLE_NAME_CANNOT_BE_NULL.substring(0,5));
         }
     }
 
