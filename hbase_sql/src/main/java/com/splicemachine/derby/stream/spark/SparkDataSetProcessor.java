@@ -56,7 +56,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Spark-based DataSetProcessor.
@@ -350,7 +349,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
             }
             if (storedAs.toLowerCase().equals("t")) {
-                schema =  SpliceSpark.getSession().read().csv(location).schema();
+                // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
+                schema =  SpliceSpark.getSession().read().option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").csv(location).schema();
             }
         }
 
@@ -385,7 +385,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
                     }
                     if (storedAs.toLowerCase().equals("t")) {
-                        empty.write().option("compression",compression).mode(SaveMode.Append).csv(location);
+                        // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
+                        empty.write().option("compression",compression).option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").mode(SaveMode.Append).csv(location);
                     }
             }
 
@@ -479,7 +480,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         try {
             Dataset<Row> table = null;
             try {
-                table = SpliceSpark.getSession().read().csv(location);
+                // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
+                table = SpliceSpark.getSession().read().option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").csv(location);
 
                 if (op == null) {
                     // stats collection scan
