@@ -93,14 +93,10 @@ public class SpliceRegionAdmin {
                                    String timeFormat,
                                    ResultSet[] results) throws Exception {
 
-        // Check parameters
-        schemaName = schemaName.toUpperCase();
-        tableName = tableName.toUpperCase();
-
         TableDescriptor td = getTableDescriptor(schemaName, tableName);
         ConglomerateDescriptor index = null;
         if (indexName != null) {
-            indexName = indexName.toUpperCase();
+            indexName = indexName.trim();
             index = getIndex(td, indexName);
             if (index == null) {
                 throw StandardException.newException(SQLState.LANG_INDEX_NOT_FOUND, indexName);
@@ -238,14 +234,10 @@ public class SpliceRegionAdmin {
                                      String regionName1,
                                      String regionName2) throws Exception {
 
-        // Check parameters
-        schemaName = schemaName.toUpperCase();
-        tableName = tableName.toUpperCase();
-
         TableDescriptor td = getTableDescriptor(schemaName, tableName);
         ConglomerateDescriptor index = null;
         if (indexName != null) {
-            indexName = indexName.toUpperCase();
+            indexName = indexName.trim();
             index = getIndex(td, indexName);
             if (index == null) {
                 throw StandardException.newException(SQLState.LANG_INDEX_NOT_FOUND, indexName);
@@ -285,14 +277,11 @@ public class SpliceRegionAdmin {
                                String indexName,
                                String regionName,
                                boolean isMajor) throws Exception {
-        // Check parameters
-        schemaName = schemaName.toUpperCase();
-        tableName = tableName.toUpperCase();
 
         TableDescriptor td = getTableDescriptor(schemaName, tableName);
         ConglomerateDescriptor index = null;
         if (indexName != null) {
-            indexName = indexName.toUpperCase();
+            indexName = indexName.trim();
             index = getIndex(td, indexName);
             if (index == null) {
                 throw StandardException.newException(SQLState.LANG_INDEX_NOT_FOUND, indexName);
@@ -351,14 +340,10 @@ public class SpliceRegionAdmin {
                                                String timeFormat,
                                                ResultSet[] results) throws Exception {
 
-        // Check parameters
-        schemaName = schemaName.toUpperCase();
-        tableName = tableName.toUpperCase();
-
         TableDescriptor td = getTableDescriptor(schemaName, tableName);
         ConglomerateDescriptor index = null;
         if (indexName != null) {
-            indexName = indexName.toUpperCase();
+            indexName = indexName.trim();
             index = getIndex(td, indexName);
             if (index == null) {
                 throw StandardException.newException(SQLState.LANG_INDEX_NOT_FOUND, indexName);
@@ -425,15 +410,11 @@ public class SpliceRegionAdmin {
                                      String indexName,
                                      String encodedRegionName,
                                      ResultSet[] results) throws Exception {
-
-        // Validate parameters
-        schemaName = schemaName.toUpperCase();
-        tableName = tableName.toUpperCase();
         TableDescriptor td = getTableDescriptor(schemaName, tableName);
 
         ConglomerateDescriptor index = null;
         if (indexName != null) {
-            indexName = indexName.toUpperCase();
+            indexName = indexName.trim();
             index = getIndex(td, indexName);
             if (index == null) {
                 throw StandardException.newException(SQLState.LANG_INDEX_NOT_FOUND, indexName);
@@ -552,6 +533,20 @@ public class SpliceRegionAdmin {
         LanguageConnectionContext lcc = lastActivation.getLanguageConnectionContext();
         SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
+
+        // Check parameters
+        if (schemaName == null) {
+            schemaName = lcc.getCurrentSchemaName();
+        } else {
+            schemaName = schemaName.trim();
+        }
+
+        if (tableName != null) {
+            tableName = tableName.trim();
+        }
+        else {
+            throw StandardException.newException(SQLState.TABLE_NAME_CANNOT_BE_NULL);
+        }
 
         SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
         if (sd == null){
