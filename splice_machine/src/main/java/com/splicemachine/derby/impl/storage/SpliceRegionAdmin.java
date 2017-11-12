@@ -340,6 +340,9 @@ public class SpliceRegionAdmin {
                                                String timeFormat,
                                                ResultSet[] results) throws Exception {
 
+        if(splitKey == null)
+            throw StandardException.newException(SQLState.SPLIT_KEY_CANNOT_BE_NULL);
+
         TableDescriptor td = getTableDescriptor(schemaName, tableName);
         ConglomerateDescriptor index = null;
         if (indexName != null) {

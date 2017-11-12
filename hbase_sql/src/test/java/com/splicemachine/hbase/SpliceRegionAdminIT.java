@@ -346,6 +346,21 @@ public class SpliceRegionAdminIT {
             String sqlcode = e.getSQLState();
             Assert.assertEquals(sqlcode, SQLState.TABLE_NAME_CANNOT_BE_NULL.substring(0,5));
         }
+
+        sql = "CALL SYSCS_UTIL.GET_ENCODED_REGION_NAME(?, ?, ?, null, '|', null, null, null, null)";
+        ps = methodWatcher.prepareStatement(sql);
+
+        try {
+            ps.setString(1, SCHEMA_NAME);
+            ps.setString(2, LINEITEM);
+            ps.setString(3, null);
+            ps.execute();
+        }
+        catch (SQLException e) {
+            String sqlcode = e.getSQLState();
+            Assert.assertEquals(sqlcode, SQLState.SPLIT_KEY_CANNOT_BE_NULL);
+        }
+
     }
 
     private static String getResource(String name) {
