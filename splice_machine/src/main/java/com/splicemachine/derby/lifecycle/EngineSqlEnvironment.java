@@ -17,6 +17,7 @@ package com.splicemachine.derby.lifecycle;
 import com.splicemachine.SqlEnvironment;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.DatabaseVersion;
+import com.splicemachine.access.api.ServiceDiscovery;
 import com.splicemachine.uuid.Snowflake;
 
 import java.sql.Connection;

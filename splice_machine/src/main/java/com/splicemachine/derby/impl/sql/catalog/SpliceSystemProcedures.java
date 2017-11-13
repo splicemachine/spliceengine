@@ -579,6 +579,26 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(runningOperations);
 
+        			/*
+        			 * Procedure to get a list of running operations on the local server
+        			 */
+                    Procedure runningOperationsLocal = Procedure.newBuilder().name("SYSCS_GET_RUNNING_OPERATIONS_LOCAL")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(runningOperationsLocal);
+
+
+        			/*
+        			 * Procedure to kill an executing operation
+        			 */
+                    Procedure killOperationLocal = Procedure.newBuilder().name("SYSCS_KILL_OPERATION_LOCAL")
+                            .numOutputParams(0)
+                            .varchar("uuid",128)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(killOperationLocal);
 
         			/*
         			 * Procedure to kill an executing operation

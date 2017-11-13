@@ -51,6 +51,7 @@ import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.iapi.types.SQLReal;
 import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.splicemachine.db.iapi.types.SQLVarchar;
+import com.splicemachine.db.impl.drda.RemoteUser;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
@@ -86,6 +87,7 @@ import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.spark_project.guava.collect.Lists;
+import org.spark_project.guava.net.HostAndPort;
 
 import javax.management.MalformedObjectNameException;
 import javax.management.remote.JMXConnector;
@@ -1436,8 +1438,64 @@ public class SpliceAdmin extends BaseAdminProcedures{
         resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
     }
 
+    private static final GenericColumnDescriptor[] runningOpsDescriptors = {
+            new GenericColumnDescriptor("UUID", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
+            new GenericColumnDescriptor("USER", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
+            new GenericColumnDescriptor("HOSTNAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
+            new GenericColumnDescriptor("SESSION", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+            new GenericColumnDescriptor("SQL", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
+    };
 
-    public static void SYSCS_GET_RUNNING_OPERATIONS(final ResultSet[] resultSet) throws SQLException{
+    public static void SYSCS_GET_RUNNING_OPERATIONS(final ResultSet[] resultSet) throws SQLException {
+        List<ExecRow> rows = getRunningOperations();
+
+        EmbedConnection conn = (EmbedConnection)getDefaultConn();
+        LanguageConnectionContext lcc = conn.getLanguageConnection();
+        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
+        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, runningOpsDescriptors, lastActivation);
+        try {
+            resultsToWrap.openCore();
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
+        resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
+    }
+
+    private static List<ExecRow> getRunningOperations() throws SQLException {
+        List<HostAndPort> servers;
+        try {
+            servers = EngineDriver.driver().getServiceDiscovery().listServers();
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+
+        List<ExecRow> rows = new ArrayList<>();
+        for (HostAndPort server : servers) {
+            try (Connection connection = RemoteUser.getConnection(server.toString())) {
+                try (ResultSet rs = connection.createStatement().executeQuery("call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS_LOCAL()")) {
+                    while (rs.next()) {
+                        ExecRow row = new ValueRow(5);
+
+                        if (rs.getString(5).equalsIgnoreCase("call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS_LOCAL()")) {
+                            // Filter out the nested calls to SYSCS_GET_RUNNING_OPERATIONS_LOCAL triggered by this stored procedure
+                            continue;
+                        }
+
+                        row.setColumn(1, new SQLVarchar(rs.getString(1)));
+                        row.setColumn(2, new SQLVarchar(rs.getString(2)));
+                        row.setColumn(3, new SQLVarchar(rs.getString(3)));
+                        row.setColumn(4, new SQLInteger(rs.getInt(4)));
+                        row.setColumn(5, new SQLVarchar(rs.getString(5)));
+
+                        rows.add(row);
+                    }
+                }
+            }
+        }
+        return rows;
+    }
+
+    public static void SYSCS_GET_RUNNING_OPERATIONS_LOCAL(final ResultSet[] resultSet) throws SQLException{
         EmbedConnection conn = (EmbedConnection)getDefaultConn();
         LanguageConnectionContext lcc = conn.getLanguageConnection();
         Activation lastActivation = conn.getLanguageConnection().getLastActivation();
@@ -1454,7 +1512,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
         List<ExecRow> rows = new ArrayList<>(operations.size());
         for (Pair<UUID, SpliceOperation> pair : operations) {
-            ExecRow row = new ValueRow(3);
+            ExecRow row = new ValueRow(5);
             Activation activation = pair.getSecond().getActivation();
             row.setColumn(1, new SQLVarchar(pair.getFirst().toString()));
             row.setColumn(2, new SQLVarchar(activation.getLanguageConnectionContext().getCurrentUserId(activation)));
@@ -1464,14 +1522,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             rows.add(row);
         }
 
-        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, new GenericColumnDescriptor[]{
-                new GenericColumnDescriptor("UUID", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
-                new GenericColumnDescriptor("USER", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
-                new GenericColumnDescriptor("HOSTNAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
-                new GenericColumnDescriptor("SESSION", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
-                new GenericColumnDescriptor("SQL", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
-        },
-                lastActivation);
+        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, runningOpsDescriptors, lastActivation);
         try {
             resultsToWrap.openCore();
         } catch (StandardException se) {
@@ -1479,8 +1530,37 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
         resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
     }
+    public static void SYSCS_KILL_OPERATION(final String uuidString) throws SQLException {
+        ExecRow needle = null;
+        for (ExecRow row : getRunningOperations()) {
+                try {
+                    if (row.getColumn(1).getString().equals(uuidString)) {
+                        needle = row;
+                        break;
+                    }
+                } catch (StandardException se) {
+                    throw PublicAPI.wrapStandardException(se);
+                }
+        }
+        if (needle == null)
+            throw  PublicAPI.wrapStandardException(StandardException.newException(LANG_NO_SUCH_RUNNING_OPERATION, uuidString));
 
-    public static void SYSCS_KILL_OPERATION(final String uuidString) throws SQLException{
+        try {
+            String server = needle.getColumn(3).getString();
+
+            try (Connection connection = RemoteUser.getConnection(server)) {
+                try (PreparedStatement ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_KILL_OPERATION_LOCAL(?)")) {
+                    ps.setString(1, uuidString);
+                    ps.execute();
+                }
+            }
+        } catch (StandardException e) {
+            throw PublicAPI.wrapStandardException(e);
+        }
+    }
+
+    public static void SYSCS_KILL_OPERATION_LOCAL(final String uuidString) throws SQLException{
+
         EmbedConnection conn = (EmbedConnection)getDefaultConn();
         LanguageConnectionContext lcc = conn.getLanguageConnection();
         Activation lastActivation = conn.getLanguageConnection().getLastActivation();
