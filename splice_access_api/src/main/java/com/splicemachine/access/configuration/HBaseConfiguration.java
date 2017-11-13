@@ -87,6 +87,11 @@ public class HBaseConfiguration implements ConfigurationDefault {
      */
     public static final String DERBY_PROPERTY_PATH = "/derbyPropertyPath";
 
+    /**
+     * Path in ZooKeeper for registering servers
+     */
+    public static final String SERVERS_PATH = "/servers";
+
     public static final String DDL_PATH="/ddl";
     public static final String DDL_CHANGE_PATH="/ddlChange";
 

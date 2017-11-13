@@ -21,6 +21,7 @@ import com.google.common.net.HostAndPort;
 import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.api.ServiceDiscovery;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
@@ -32,6 +33,7 @@ import com.splicemachine.derby.iapi.sql.execute.OperationManagerImpl;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.impl.sql.HSqlExceptionFactory;
 import com.splicemachine.hbase.HBaseRegionLoads;
+import com.splicemachine.hbase.ZkServiceDiscovery;
 import com.splicemachine.management.DatabaseAdministrator;
 import com.splicemachine.management.JmxDatabaseAdminstrator;
 import com.splicemachine.management.Manager;
@@ -54,6 +56,7 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
     private DatabaseAdministrator dbAdmin;
     private OlapClient olapClient;
     private OperationManager operationManager;
+    private ZkServiceDiscovery serviceDiscovery;
 
     @Override
     public void initialize(SConfiguration config,
@@ -69,6 +72,7 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         this.dbAdmin = new JmxDatabaseAdminstrator();
         this.olapClient = initializeOlapClient(config,driver.getClock());
         this.operationManager = new OperationManagerImpl();
+        this.serviceDiscovery = new ZkServiceDiscovery();
     }
 
     @Override
@@ -131,5 +135,10 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
     @Override
     public OperationManager getOperationManager() {
         return operationManager;
+    }
+
+    @Override
+    public ServiceDiscovery serviceDiscovery() {
+        return serviceDiscovery;
     }
 }

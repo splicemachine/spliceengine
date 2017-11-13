@@ -26,6 +26,7 @@ package com.splicemachine.db.client.net;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
+import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.sql.*;
 import java.util.Properties;
@@ -628,16 +629,20 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
                 null); // publicKey
 
         try {
-            Configuration configuration = new JaasConfiguration("spliceClient", principal, keytab);
-            Configuration.setConfiguration(configuration);
+            Subject subject = Subject.getSubject(AccessController.getContext());
+            if (subject == null) {
+                Configuration configuration = new JaasConfiguration("spliceClient", principal, keytab);
+                Configuration.setConfiguration(configuration);
 
-            // Create a LoginContext with a callback handler
-            LoginContext loginContext = new LoginContext("spliceClient");
+                // Create a LoginContext with a callback handler
+                LoginContext loginContext = new LoginContext("spliceClient");
 
-            // Perform authentication
-            loginContext.login();
+                // Perform authentication
+                loginContext.login();
+                subject = loginContext.getSubject();
+            }
 
-            Exception exception = Subject.doAs(loginContext.getSubject(), new PrivilegedAction<Exception>() {
+            Exception exception = Subject.doAs(subject, new PrivilegedAction<Exception>() {
                 @Override
                 public Exception run() {
                     try {
@@ -682,6 +687,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
                         context.requestMutualAuth(true);  // Mutual authentication
                         context.requestConf(true);  // Will use confidentiality later
                         context.requestInteg(true); // Will use integrity later
+                        context.requestCredDeleg(true); // Will delegate credentials
 
                         // Do the context eastablishment loop
                         byte[] token = new byte[0];

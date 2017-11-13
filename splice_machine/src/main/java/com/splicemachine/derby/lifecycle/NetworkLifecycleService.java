@@ -17,6 +17,8 @@ package com.splicemachine.derby.lifecycle;
 import javax.management.MBeanServer;
 import java.net.InetAddress;
 
+import com.splicemachine.EngineDriver;
+import com.splicemachine.access.util.NetworkUtils;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.access.api.SConfiguration;
@@ -24,6 +26,8 @@ import com.splicemachine.db.drda.NetworkServerControl;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.lifecycle.DatabaseLifecycleService;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.zookeeper.ZKUtil;
+import org.spark_project.guava.net.HostAndPort;
 
 /**
  * @author Scott Fines
@@ -41,12 +45,14 @@ public class NetworkLifecycleService implements DatabaseLifecycleService{
     @Override
     public void start() throws Exception{
         try {
-
             String bindAddress = config.getNetworkBindAddress();
             int bindPort = config.getNetworkBindPort();
             server = new NetworkServerControl(InetAddress.getByName(bindAddress),bindPort);
             server.setLogConnections(true);
             server.start(new DerbyOutputLoggerWriter());
+
+            String hostname = NetworkUtils.getHostname(config);
+            EngineDriver.driver().getServiceDiscovery().registerServer(HostAndPort.fromParts(hostname, bindPort));
             SpliceLogUtils.info(LOG, "Ready to accept JDBC connections on %s:%s", bindAddress,bindPort);
         } catch (Exception e) {
             SpliceLogUtils.error(LOG, "Unable to start Client/Server Protocol", e);
@@ -63,5 +69,8 @@ public class NetworkLifecycleService implements DatabaseLifecycleService{
     public void shutdown() throws Exception{
         if (server != null)
             server.shutdown();
+        int bindPort = config.getNetworkBindPort();
+        String hostname = NetworkUtils.getHostname(config);
+        EngineDriver.driver().getServiceDiscovery().deregisterServer(HostAndPort.fromParts(hostname, bindPort));
     }
 }
