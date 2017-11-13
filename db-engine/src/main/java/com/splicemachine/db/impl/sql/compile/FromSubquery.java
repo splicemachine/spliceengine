@@ -524,6 +524,7 @@ public class FromSubquery extends FromTable
 		// carry-over the fromSSQ and dependencyMap
 		if (fromSSQ) {
 			((FromTable) newPRN).setFromSSQ(true);
+			((FromTable) newPRN).setExistsTable(existsTable, isNotExists, matchRowId);
 			((FromTable) newPRN).setDependencyMap(dependencyMap);
 		}
 		return newPRN;
@@ -596,7 +597,8 @@ public class FromSubquery extends FromTable
 				assert fromList.size() <= 1: "Scalar subquery with more than one tables in fromList cannot be flattened.";
 
 				FromTable ft = (FromTable)(fromList.elementAt(0));
-				ft.setFromSSQ(true);
+				ft.setFromSSQ(fromSSQ);
+				ft.setExistsTable(existsTable, isNotExists, matchRowId);
 				ft.setDependencyMap(this.dependencyMap);
 			}
 		}

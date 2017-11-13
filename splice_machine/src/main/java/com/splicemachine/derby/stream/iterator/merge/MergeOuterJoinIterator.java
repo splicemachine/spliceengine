@@ -69,6 +69,12 @@ public class MergeOuterJoinIterator extends AbstractMergeJoinIterator {
                     currentExecRow = mergeRows(left, currentRightIterator.next());
                     if (mergeJoinOperation.getRestriction().apply(currentExecRow)) {
                         returnedRows = true;
+                        if (isSemiJoin) {
+                            // we've already get a match from the left row, so we can skip scanning the
+                            // remaining right table rows.
+                            // Break out the loop here so that we can move on to the next left row
+                            left = null;
+                        }
                         return true;
                     }
                     operationContext.recordFilter();

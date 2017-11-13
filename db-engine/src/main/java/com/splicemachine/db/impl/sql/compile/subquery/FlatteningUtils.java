@@ -50,10 +50,10 @@ public class FlatteningUtils {
      *             references updated to reference the new FromSubquery table.
      */
     public static ValueNode addPredToTree(ValueNode node,
-                                          OperatorNode pred) throws StandardException {
+                                          ValueNode pred) throws StandardException {
         if (node instanceof AndNode) {
             AndNode root = (AndNode) node;
-            if (root.getLeftOperand() instanceof BinaryRelationalOperatorNode) {
+            if (root.getLeftOperand() instanceof BinaryRelationalOperatorNode || root.getLeftOperand() instanceof BinaryListOperatorNode) {
                 return newAndNode(node, pred, root);
             } else {
                 root.setLeftOperand(addPredToTree(root.getLeftOperand(), pred));
@@ -65,7 +65,7 @@ public class FlatteningUtils {
         }
     }
 
-    private static ValueNode newAndNode(ValueNode node, OperatorNode pred, ValueNode root) throws StandardException {
+    private static ValueNode newAndNode(ValueNode node, ValueNode pred, ValueNode root) throws StandardException {
         ValueNode andNode = (AndNode) node.getNodeFactory().getNode(C_NodeTypes.AND_NODE,
                 root,
                 pred,

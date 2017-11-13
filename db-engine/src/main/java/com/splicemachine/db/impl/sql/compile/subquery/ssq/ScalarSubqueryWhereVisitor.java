@@ -61,38 +61,24 @@ public class ScalarSubqueryWhereVisitor implements Visitor{
     public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
         if (node instanceof AndNode)
             return node;
-        if (node instanceof BinaryRelationalOperatorNode) {
-            BinaryRelationalOperatorNode bro = (BinaryRelationalOperatorNode) node;
-            ValueNode rightOperand = bro.getRightOperand();
-            ValueNode leftOperand = bro.getLeftOperand();
-
-            List<ColumnReference> leftReferences = RSUtils.collectNodes(leftOperand, ColumnReference.class);
-            List<ColumnReference> rightReferences = RSUtils.collectNodes(rightOperand, ColumnReference.class);
-
-            List<ColumnReference> leftReferencesCorrelated = Lists.newArrayList(filter(leftReferences, new ColumnUtils.IsCorrelatedPredicate()));
-            List<ColumnReference> rightReferencesCorrelated = Lists.newArrayList(filter(rightReferences, new ColumnUtils.IsCorrelatedPredicate()));
+        if (node instanceof BinaryRelationalOperatorNode || node instanceof BinaryListOperatorNode) {
+            List<ColumnReference> columnReferences = RSUtils.collectNodes(node, ColumnReference.class);
+            List<ColumnReference> referencesCorrelated = Lists.newArrayList(filter(columnReferences, new ColumnUtils.IsCorrelatedPredicate()));
 
             /* GOOD: Neither side had correlated predicates at any level. */
-            if (leftReferencesCorrelated.isEmpty() && rightReferencesCorrelated.isEmpty()) {
+            if (referencesCorrelated.isEmpty()) {
                 return node;
             }
 
             // check if SSQ is correlated with inner of an outer table in the outer query block
-            for (ColumnReference columnReference: leftReferencesCorrelated) {
+            for (ColumnReference columnReference: referencesCorrelated) {
                 if (innerTableSetFromOuterBlock.get(columnReference.getTableNumber())) {
                     foundUnsupported = true;
                     return node;
                 }
             }
-            if (!foundUnsupported) {
-                for (ColumnReference columnReference: rightReferencesCorrelated) {
-                    if (innerTableSetFromOuterBlock.get(columnReference.getTableNumber())) {
-                        foundUnsupported = true;
-                        return node;
-                    }
-                }
-            }
-            if (!leftReferencesCorrelated.isEmpty() || !rightReferencesCorrelated.isEmpty())
+
+            if (!referencesCorrelated.isEmpty())
                 foundEligibleCorrelation = true;
         } else {
             /* Can be anything as long as it is not correlated. */

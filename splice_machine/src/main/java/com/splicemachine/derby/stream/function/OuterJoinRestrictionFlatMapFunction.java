@@ -52,6 +52,8 @@ public class OuterJoinRestrictionFlatMapFunction<Op extends SpliceOperation> ext
         Iterator<ExecRow> it = tuple._2.iterator();
         boolean hasMatch = false;
         while (it.hasNext()) {
+            if (hasMatch && isSemiJoin)
+                return returnRows.iterator();
             rightRow = it.next();
             mergedRow = JoinUtils.getMergedRow(leftRow,
                     rightRow, op.wasRightOuterJoin,

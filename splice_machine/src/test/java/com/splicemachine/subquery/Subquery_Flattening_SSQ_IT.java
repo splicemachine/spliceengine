@@ -112,8 +112,22 @@ public class Subquery_Flattening_SSQ_IT extends SpliceUnitTest {
 
         SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
 
+        /* Q2 regular test case, query runs, top 1 without order by*/
+        sql = String.format(
+                "select d1, (select top 1 b2 from  t2 --splice-properties joinStrategy=%s, useSpark=%s\n" +
+                        "where a1 = a2) as B from t1", this.joinStrategy,this.useSparkString);
 
-        /* Q2 negative test case, error is reported */
+        expected = "D1 |  B  |\n" +
+                "----------\n" +
+                " 1 |  1  |\n" +
+                "11 |  1  |\n" +
+                " 2 |  2  |\n" +
+                " 3 |NULL |\n" +
+                " 4 |  4  |";
+
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q3 negative test case, error is reported */
         try {
             methodWatcher.executeQuery(String.format(
                     "select d1, (select d2 from  t2 --splice-properties joinStrategy=%s, useSpark=%s\n" +
