@@ -102,6 +102,8 @@ public interface RelationalOperator
 	ValueNode getOperand(ColumnReference cRef, int refSetSize,
 		boolean otherSide);
 
+	ValueNode getOperand(int tabNum, int colNum, int refSetSize,
+						 boolean otherSide);
 	/**
 	 * Check whether this RelationalOperator is a comparison of the given
 	 * column with an expression.  If so, return the expression

@@ -352,6 +352,11 @@ public class BinaryRelationalOperatorNode
      */
     public ValueNode getOperand(ColumnReference cRef,
                                 int refSetSize,boolean otherSide){
+        return getOperand(cRef.getTableNumber(), cRef.getColumnNumber(), refSetSize, otherSide);
+    }
+
+    public ValueNode getOperand(int tableNum, int colNum,
+                                int refSetSize,boolean otherSide){
         // Following call will initialize/reset the btnVis,
         // valNodeBaseTables, and optBaseTables fields of this object.
         initBaseTableVisitor(refSetSize,true);
@@ -365,8 +370,7 @@ public class BinaryRelationalOperatorNode
         try{
 
             // Use optBaseTables for cRef's base table numbers.
-            btnVis.setTableMap(optBaseTables);
-            cRef.accept(btnVis);
+            optBaseTables.set(tableNum);
 
             // Use valNodeBaseTables for operand base table nums.
             btnVis.setTableMap(valNodeBaseTables);
@@ -385,7 +389,7 @@ public class BinaryRelationalOperatorNode
 					** The table is correct, how about the column position?
 					*/
                     if(cr.getSource().getColumnPosition()==
-                            cRef.getColumnNumber()){
+                            colNum){
 						/*
 						** We've found the correct column -
 						** return the appropriate side.
@@ -411,7 +415,7 @@ public class BinaryRelationalOperatorNode
 					** The table is correct, how about the column position?
 					*/
                     if(cr.getSource().getColumnPosition()==
-                            cRef.getColumnNumber()){
+                            colNum){
 						/*
 						** We've found the correct column -
 						** return the appropriate side

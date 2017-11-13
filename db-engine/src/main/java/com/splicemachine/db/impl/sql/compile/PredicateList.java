@@ -3308,8 +3308,12 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         acb.pushMethodReference(mb,exprFun);
     }
 
-    /* Class implementation */
     boolean constantColumn(ColumnReference colRef){
+        return constantColumn(colRef.getTableNumber(), colRef.getColumnNumber());
+    }
+
+    /* Class implementation */
+    boolean constantColumn(int tableNum, int colNum){
         boolean retval=false;
 
 		  /*
@@ -3323,7 +3327,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             if(pred.isRelationalOpPredicate()){
                 assert relop != null;
                 if(relop.getOperator()==RelationalOperator.EQUALS_RELOP){
-                    ValueNode exprOp=relop.getOperand( colRef, pred.getReferencedSet().size(), true );
+                    ValueNode exprOp=relop.getOperand(tableNum, colNum, pred.getReferencedSet().size(), true );
 
                     if(exprOp!=null){
                         if(exprOp.isConstantExpression()){
@@ -3333,7 +3337,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     }
                 }else if(relop.getOperator()==RelationalOperator.IS_NULL_RELOP){
                     ColumnReference columnOp=
-                            (ColumnReference)relop.getOperand( colRef, pred.getReferencedSet().size(), false );
+                            (ColumnReference)relop.getOperand(tableNum, colNum, pred.getReferencedSet().size(), false );
 
                     if(columnOp!=null){
                         retval=true;
@@ -3344,7 +3348,6 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
         return retval;
     }
-
     /**
      * @see OptimizablePredicateList#adjustForSortElimination
      * <p/>

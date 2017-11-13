@@ -433,10 +433,17 @@ public class FromBaseTable extends FromTable {
 					 ** in the list.
 					 */
                     int rowOrderDirection=isAscending[i]?RowOrdering.ASCENDING:RowOrdering.DESCENDING;
-                    if(!rowOrdering.orderedOnColumn(rowOrderDirection,getTableNumber(),baseColumnPositions[i])){
+                    int pos = rowOrdering.orderedPositionForColumn(rowOrderDirection,getTableNumber(),baseColumnPositions[i]);
+                    if (pos == -1) {
                         rowOrdering.nextOrderPosition(rowOrderDirection);
-
-                        rowOrdering.addOrderedColumn(rowOrderDirection,getTableNumber(),baseColumnPositions[i]);
+                        pos = rowOrdering.addOrderedColumn(rowOrderDirection,getTableNumber(),baseColumnPositions[i]);
+                    }
+                    // check if the column has a constant predicate like "col=constant" defined on it,
+                    // if so, we can treat it as sorted as it has only one value
+                    if (pos >=0 &&    /* a column ordering is added or exists */
+                        hasConstantPredicate(getTableNumber(), baseColumnPositions[i], predList)) {
+                        ColumnOrdering co = rowOrdering.getOrderedColumn(pos);
+                        co.setBoundByConstant(true);
                     }
                 }
             }
@@ -3397,5 +3404,12 @@ public class FromBaseTable extends FromTable {
              getTrulyTheBestAccessPath().getCostEstimate().getEstimatedRowCount() > 20000)) {
             dataSetProcessorType = CompilerContext.DataSetProcessorType.SPARK;
         }
+    }
+
+    private boolean hasConstantPredicate(int tableNum, int colNum, OptimizablePredicateList predList) {
+        if (predList instanceof PredicateList)
+            return ((PredicateList)predList).constantColumn(tableNum, colNum);
+        else
+            return false;
     }
 }
