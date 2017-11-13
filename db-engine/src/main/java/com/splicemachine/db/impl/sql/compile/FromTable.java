@@ -1176,8 +1176,10 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         return existsTable;
     }
 
-    public void setExistsTable(boolean existsTable,JBitSet dependencyMap,boolean isNotExists,boolean matchRowId) {
-        return;
+    public void setExistsTable(boolean existsTable, boolean isNotExists,boolean matchRowId) {
+        this.existsTable=existsTable;
+        this.isNotExists=isNotExists;
+        this.matchRowId = matchRowId;
     }
 
     private FormatableBitSet buildDefaultRow(ResultColumnList defaultRow) throws StandardException {
@@ -1222,7 +1224,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 
     }
 
-    public int generateDefaultRow(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException{
+    public int generateDefaultRow(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException {
         if (!(this instanceof FromBaseTable) && !(this instanceof IndexToBaseRowNode)) {
             if (SanityManager.DEBUG) {
                 SanityManager.THROWASSERT("generateDefaultRow() not expected to be called for " + getClass().toString());
@@ -1236,14 +1238,15 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
             return 2;
         }
 
-        ResultColumnList defaultRow = (ResultColumnList)getNodeFactory().getNode(
+        ResultColumnList defaultRow = (ResultColumnList) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN_LIST,
                 getContextManager());
         FormatableBitSet defaultValueMap = buildDefaultRow(defaultRow);
         defaultRow.generate(acb, mb);
-        int defaultValueItem=acb.addItem(defaultValueMap);
+        int defaultValueItem = acb.addItem(defaultValueMap);
         mb.push(defaultValueItem);
         return 2;
+    }
 
     @Override
     public boolean getFromSSQ() {

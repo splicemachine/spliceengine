@@ -67,9 +67,20 @@ public class ScalarSubqueryPredicate implements org.spark_project.guava.base.Pre
     }
 
     private boolean doWeHandle(SubqueryNode subqueryNode) throws StandardException {
-        /* subquery cannot contain limit n/top n */
-        if (subqueryNode.getFetchFirst() != null)
+        /* subquery cannot contain limit n/top n except for top 1 without order by*/
+        if (subqueryNode.getFetchFirst() != null) {
+            ValueNode fetchFirstNode = subqueryNode.getFetchFirst();
+            long fetchFirstValue = -1;
+            if (fetchFirstNode instanceof NumericConstantNode) {
+                fetchFirstValue = ((NumericConstantNode)fetchFirstNode).getValue().getLong();
+            }
+
+            if (fetchFirstValue != 1 || subqueryNode.getOrderByList() != null)
+                return false;
+        }
+        if (subqueryNode.getOffset() != null)
             return false;
+        
         ResultSetNode subqueryResultSet = subqueryNode.getResultSet();
 
         /* subquery must be a select node */

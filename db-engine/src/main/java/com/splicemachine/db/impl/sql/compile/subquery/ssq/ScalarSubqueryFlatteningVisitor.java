@@ -49,12 +49,12 @@ import java.util.List;
  * Created by yxia on 10/11/17.
  * Flatten correlated SSQ in Select clause.
  */
-public class ScalarSubqueryFaltteningVisitor extends AbstractSpliceVisitor implements Visitor {
-    private static Logger LOG = Logger.getLogger(ScalarSubqueryFaltteningVisitor.class);
+public class ScalarSubqueryFlatteningVisitor extends AbstractSpliceVisitor implements Visitor {
+    private static Logger LOG = Logger.getLogger(ScalarSubqueryFlatteningVisitor.class);
     private final int originalNestingLevel;
     private int flattenedCount = 0;
 
-    public ScalarSubqueryFaltteningVisitor(int originalNestingLevel) {
+    public ScalarSubqueryFlatteningVisitor(int originalNestingLevel) {
         this.originalNestingLevel = originalNestingLevel;
     }
 
@@ -131,26 +131,8 @@ public class ScalarSubqueryFaltteningVisitor extends AbstractSpliceVisitor imple
          * The following lines collect correlated predicates from the subquery where clause while removing them.
          */
         ValueNode subqueryWhereClause = subquerySelectNode.getWhereClause();
-        List<BinaryRelationalOperatorNode> correlatedSubqueryPreds = new ArrayList<>();
-        subqueryWhereClause = FlatteningUtils.findCorrelatedSubqueryPredicates(
-                    subqueryWhereClause,
-                    correlatedSubqueryPreds,
-                    new org.spark_project.guava.base.Predicate<BinaryRelationalOperatorNode>() {
-                        @Override
-                        public boolean apply(BinaryRelationalOperatorNode bron) {
-                            boolean isCorrelated;
-                            try {
-                            isCorrelated = ColumnUtils.isSubtreeCorrelated(bron.getLeftOperand()) ||
-                                    ColumnUtils.isSubtreeCorrelated(bron.getRightOperand());
-                            } catch (StandardException e) {
-                                LOG.error("unexpected exception while considreing scalar subquery flattening", e);
-                                /* not expected, programmer error */
-                                throw new IllegalStateException(e);
-                            }
-
-                            return isCorrelated;
-                        }
-                    });
+        List<ValueNode> correlatedSubqueryPreds = new ArrayList<>();
+        subqueryWhereClause = findCorrelatedSubqueryPredicatesForSSQ(subqueryWhereClause, correlatedSubqueryPreds);
         subquerySelectNode.setWhereClause(subqueryWhereClause);
         subquerySelectNode.setOriginalWhereClause(subqueryWhereClause);
 
@@ -173,6 +155,11 @@ public class ScalarSubqueryFaltteningVisitor extends AbstractSpliceVisitor imple
         fromSubquery.setTableNumber(topSelectNode.getCompilerContext().getNextTableNumber());
         fromSubquery.setFromSSQ(true);
 
+        // for top 1 with no order by case, we need to flag the fromSubquery so that execution can return after getting the first
+        // matching row
+        if (subqueryNode.getFetchFirst() != null)
+            fromSubquery.setExistsTable(true, false, false);
+
         topSelectNode.getFromList().addFromTable(fromSubquery);
 
         /*
@@ -193,7 +180,7 @@ public class ScalarSubqueryFaltteningVisitor extends AbstractSpliceVisitor imple
                   new ScalarSubqueryCorrelatedPredicateVisitor(fromSubquery, subqueryNestingLevel, topSelectNode);
 
         for (int i = 0; i < correlatedSubqueryPreds.size(); i++) {
-            BinaryRelationalOperatorNode pred = correlatedSubqueryPreds.get(i);
+            ValueNode pred = correlatedSubqueryPreds.get(i);
             pred.accept(scalarSubqueryCorrelatedPredicateVisitor);
             /*
              * Finally add the predicate to the outer query.
@@ -207,6 +194,35 @@ public class ScalarSubqueryFaltteningVisitor extends AbstractSpliceVisitor imple
         topSelectNode.setOriginalWhereClause(newTopWhereClause);
         topSelectNode.setWhereClause(newTopWhereClause);
         return;
+    }
+
+    /**
+     * Collects (in the passed list) correlation predicates for the subquery and also
+     * removes them from the subquery where clause. The logic here is highly dependent on the shape of the where-clause
+     * subtree which we assert in ScalarSubqueryWhereVisitor.
+     */
+    private ValueNode findCorrelatedSubqueryPredicatesForSSQ(ValueNode root,
+                                                       List<ValueNode> predToSwitch)
+                     throws StandardException {
+        if (root instanceof AndNode) {
+            AndNode andNode = (AndNode) root;
+            ValueNode left = findCorrelatedSubqueryPredicatesForSSQ(andNode.getLeftOperand(), predToSwitch);
+            ValueNode right = findCorrelatedSubqueryPredicatesForSSQ(andNode.getRightOperand(), predToSwitch);
+            if (left == null) {
+                return right;
+            } else if (right == null) {
+                return left;
+            }
+            andNode.setLeftOperand(left);
+            andNode.setRightOperand(right);
+            return root;
+        } else if (root instanceof BinaryRelationalOperatorNode || root instanceof BinaryListOperatorNode) {
+            if (ColumnUtils.isSubtreeCorrelated(root)) {
+                predToSwitch.add(root);
+                return null;
+            }
+        }
+        return root;
     }
 
     private String getSubqueryAlias() {

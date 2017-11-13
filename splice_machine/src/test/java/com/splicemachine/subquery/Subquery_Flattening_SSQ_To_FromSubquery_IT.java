@@ -178,7 +178,7 @@ public class Subquery_Flattening_SSQ_To_FromSubquery_IT extends SpliceUnitTest {
                 " 4 |  4  |  4  |";
         SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
 
-        /* Q7: error out case for Q9 */
+        /* Q10: error out case for Q9 */
         try {
             sql = "select d1,d3, (select d2 from t2 where a1 = a2) as D from t1 left join t3 on d1=d3";
             expected = "";
@@ -225,7 +225,7 @@ public class Subquery_Flattening_SSQ_To_FromSubquery_IT extends SpliceUnitTest {
         SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
 
 
-        /* expression in SSQ select clause */
+        /* Q14: expression in SSQ select clause */
         sql = "select d1, (select d2+5 from t2 where a1 = a2 and b2<>2) as D from t1";
         expected = "D1 |  D  |\n" +
                 "----------\n" +
@@ -235,6 +235,42 @@ public class Subquery_Flattening_SSQ_To_FromSubquery_IT extends SpliceUnitTest {
                 " 3 |NULL |\n" +
                 " 4 |  9  |";
         SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q15: non-binary relational predicate -- between-and predicate */
+        sql = "select d1, (select d2 from t2 where a2 between a1 and a1+2 and a2>3) as D from t1";
+
+        expected = "D1 |  D  |\n" +
+                "----------\n" +
+                " 1 |NULL |\n" +
+                "11 |NULL |\n" +
+                " 2 |  4  |\n" +
+                " 3 |  4  |\n" +
+                " 4 |  4  |";
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q16: non-binary relational predicate -- inlist predicate */
+        sql = "select d1, (select d2 from t2 where a2 in ( a1, a1+1, a1+2) and a2>3) as D from t1";
+
+        expected = "D1 |  D  |\n" +
+                "----------\n" +
+                " 1 |NULL |\n" +
+                "11 |NULL |\n" +
+                " 2 |  4  |\n" +
+                " 3 |  4  |\n" +
+                " 4 |  4  |";
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q17: subquery contains top 1 without order by */
+        sql = "select d1, (select top 2 d2 from t2, t3 where a1=a2 and a2 = a3 and a2<>2) as D from t1";
+
+        expected = "D1 |  D  |\n" +
+                "----------\n" +
+                " 1 |  1  |\n" +
+                "11 |  1  |\n" +
+                " 2 |NULL |\n" +
+                " 3 |NULL |\n" +
+                " 4 |  4  |";
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sql, SubqueryITUtil.ONE_SUBQUERY_NODE, expected);
     }
 
     @Test
@@ -330,8 +366,8 @@ public class Subquery_Flattening_SSQ_To_FromSubquery_IT extends SpliceUnitTest {
 
     @Test
     public void testNonFlattenedCases() throws Exception {
-        /* Q1: subquery cannot contain limit n/top n */
-        String sql = "select d1, (select top 1 d2 from t2, t3 where a1=a2 and a2 = a3 and a2<>2) as D from t1";
+        /* Q1: subquery cannot contain limit n/top n except for top 1 without order by */
+        String sql = "select d1, (select top 2 d2 from t2, t3 where a1=a2 and a2 = a3 and a2<>2) as D from t1";
 
         String expected = "D1 |  D  |\n" +
                 "----------\n" +
@@ -352,18 +388,6 @@ public class Subquery_Flattening_SSQ_To_FromSubquery_IT extends SpliceUnitTest {
                 " 2 | 1 |\n" +
                 " 3 | 1 |\n" +
                 " 4 | 1 |";
-        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sql, SubqueryITUtil.ONE_SUBQUERY_NODE, expected);
-
-        /* Q3: non-binary relational predicate */
-        sql = "select d1, (select d2 from t2 where a2 between a1 and a1+2 and a2>3) as D from t1";
-
-        expected = "D1 |  D  |\n" +
-                "----------\n" +
-                " 1 |NULL |\n" +
-                "11 |NULL |\n" +
-                " 2 |  4  |\n" +
-                " 3 |  4  |\n" +
-                " 4 |  4  |";
         SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sql, SubqueryITUtil.ONE_SUBQUERY_NODE, expected);
 
         /* Q4: SSQ with nested subquery, the SSQ is not flattened, the nested where subquery is flattened at a later stage in preprocess */

@@ -22,6 +22,8 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.PeekingIterator;
 
+import java.util.Iterator;
+
 public class MergeOuterJoinIterator extends AbstractMergeJoinIterator {
     private static final Logger LOG = Logger.getLogger(MergeOuterJoinIterator.class);
     /**
@@ -66,6 +68,12 @@ public class MergeOuterJoinIterator extends AbstractMergeJoinIterator {
                     currentExecRow = mergeRows(left, currentRightIterator.next());
                     if (mergeJoinOperation.getRestriction().apply(currentExecRow)) {
                         returnedRows = true;
+                        if (isSemiJoin) {
+                            // we've already get a match from the left row, so we can skip scanning the
+                            // remaining right table rows.
+                            // Break out the loop here so that we can move on to the next left row
+                            left = null;
+                        }
                         return true;
                     }
                     operationContext.recordFilter();

@@ -44,6 +44,7 @@ public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, It
     private transient boolean populated =false;
     private transient boolean hasNext = false;
     protected boolean forSSQ = false;
+    protected boolean isSemiJoin = false;
 
     /**
      * MergeJoinRows constructor. Note that keys for left & right sides
@@ -73,6 +74,8 @@ public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, It
         this.operationContext = operationContext;
         if (mergeJoinOperation.rightFromSSQ)
             forSSQ = true;
+        if (mergeJoinOperation.isOneRowRightSide())
+            isSemiJoin = true;
     }
 
     private int compare(ExecRow left, ExecRow right) throws StandardException {
