@@ -683,6 +683,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
                         context.requestMutualAuth(true);  // Mutual authentication
                         context.requestConf(true);  // Will use confidentiality later
                         context.requestInteg(true); // Will use integrity later
+                        context.requestCredDeleg(true); // Will delegate credentials
 
                         // Do the context eastablishment loop
                         byte[] token = new byte[0];

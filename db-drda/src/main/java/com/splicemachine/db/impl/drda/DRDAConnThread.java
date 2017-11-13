@@ -70,6 +70,7 @@ import com.splicemachine.db.impl.jdbc.EmbedSQLException;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.db.iapi.jdbc.EnginePreparedStatement;
+import com.sun.security.jgss.GSSUtil;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSCredential;
@@ -693,6 +694,9 @@ class DRDAConnThread extends Thread {
         /* All sessions MUST start as EBCDIC */
         reader.setEbcdicCcsid();
         writer.setEbcdicCcsid();
+
+        // Associate current session remote user to this thread
+        RemoteUser.setRemoteUser(session.getRemoteUser());
 	}
 	/**      
 	 * In initial state for a session, 
@@ -1989,6 +1993,8 @@ class DRDAConnThread extends Thread {
 
 
 								try {
+
+
 									user = UserGroupInformation.getCurrentUser();
 
 									Exception exception = user.doAs(new PrivilegedAction<Exception>() {
@@ -3284,6 +3290,11 @@ class DRDAConnThread extends Thread {
 								securityCheckCode = CodePoint.SECCHKCD_CONTINUE;
 							} else {
 								securityCheckCode = CodePoint.SECCHKCD_OK;
+								boolean delegated = gssContext.getCredDelegState();
+								if (delegated) {
+									GSSCredential clientCr = gssContext.getDelegCred();
+									Subject client = GSSUtil.createSubject(gssContext.getSrcName(), clientCr);
+								}
 							}
 						} catch (Exception e) {
 							handleException(e);
@@ -3355,7 +3366,13 @@ class DRDAConnThread extends Thread {
 			else if (database.securityMechanism == CodePoint.SECMEC_USRIDPWD)
 			{
 			    if (database.password == null)
-				securityCheckCode = CodePoint.SECCHKCD_PASSWORDMISSING;
+					securityCheckCode = CodePoint.SECCHKCD_PASSWORDMISSING;
+			    else {
+			    	// initialize remote user connection
+					RemoteUser user = new RemoteUserPassword(database.userId, database.password);
+					session.setRemoteUser(user);
+					RemoteUser.setRemoteUser(user);
+				}
 			}
 			//Note, we'll ignore encryptedUserId and encryptedPassword if they
 			//are also set
@@ -3385,6 +3402,10 @@ class DRDAConnThread extends Thread {
 			if (gssContext.isEstablished()) {
 				try {
 					database.userId = gssContext.getSrcName().toString().split("@")[0];
+
+					RemoteUser user = new RemoteUserKerberos(gssContext);
+					session.setRemoteUser(user);
+					RemoteUser.setRemoteUser(user);
 				} catch (GSSException e) {
 					handleException(e);
 				}
