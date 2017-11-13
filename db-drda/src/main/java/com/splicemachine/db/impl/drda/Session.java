@@ -84,6 +84,8 @@ class Session
                                                         // message if tracing fails.
         private boolean enableOutboundCompression;
 
+	private RemoteUser remoteUser;
+
 	protected boolean canCompress()
  	{
  		return enableOutboundCompression;
@@ -310,5 +312,13 @@ class Session
 		s += database.buildRuntimeInfo(indent,localLangUtil);
 		s += "\n";
 		return s;
+	}
+	
+	public RemoteUser getRemoteUser() {
+		return remoteUser;
+	}
+
+	public void setRemoteUser(RemoteUser remoteUser) {
+		this.remoteUser = remoteUser;
 	}
 }

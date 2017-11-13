@@ -17,9 +17,12 @@ package com.splicemachine.si.data.hbase.coprocessor;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+
+import com.splicemachine.access.api.ServiceDiscovery;
 import com.splicemachine.access.api.SnowflakeFactory;
 import com.splicemachine.access.hbase.HSnowflakeFactory;
 import com.splicemachine.access.util.ByteComparisons;
+import com.splicemachine.hbase.ZkServiceDiscovery;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.si.api.server.ClusterHealth;
 import com.splicemachine.storage.HClusterHealthFactory;
