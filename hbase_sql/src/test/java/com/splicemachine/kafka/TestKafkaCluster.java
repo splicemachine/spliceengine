@@ -14,16 +14,20 @@
 
 package com.splicemachine.kafka;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Properties;
+/* Commenting until all platforms are on kafka 0.10.0
+
 import kafka.server.KafkaConfig;
 import kafka.server.KafkaServerStartable;
 import kafka.utils.TestUtils;
 import org.apache.kafka.common.protocol.SecurityProtocol;
 import scala.Option;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Properties;
+
 public class TestKafkaCluster {
+
     KafkaServerStartable kafkaServer;
 
     public TestKafkaCluster(String connectString) throws Exception {
@@ -43,8 +47,13 @@ public class TestKafkaCluster {
     private static KafkaConfig getKafkaConfig(final String zkConnectString) {
         final Option<File> noFile = scala.Option.apply(null);
         final Option<SecurityProtocol> noInterBrokerSecurityProtocol = scala.Option.apply(null);
+        final Option<Properties> noSaslProperties = scala.Option.apply(null);
+        HashMap<Object,String> emptyMap = new HashMap<Object,String>();
+        final Map<Object,String> noRackInfo = scala.collection.JavaConversions.mapAsScalaMap(emptyMap);
+
+        // for kafka 0.10.0
         scala.collection.Iterator<Properties> propsI =
-                TestUtils.createBrokerConfigs(1, zkConnectString, true, false, noInterBrokerSecurityProtocol, noFile, true, false, false, false).iterator();
+                TestUtils.createBrokerConfigs(1, zkConnectString, true, false, noInterBrokerSecurityProtocol, noFile, noSaslProperties, true, false, false, false, noRackInfo).iterator();
         assert propsI.hasNext();
         Properties props = propsI.next();
         assert props.containsKey("zookeeper.connect");
@@ -66,3 +75,4 @@ public class TestKafkaCluster {
         kafkaServer.shutdown();
     }
 }
+*/
