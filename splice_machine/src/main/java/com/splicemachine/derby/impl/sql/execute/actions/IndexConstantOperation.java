@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -27,6 +28,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
+import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.derby.impl.sql.execute.index.BulkLoadIndexJob;
 import com.splicemachine.derby.impl.sql.execute.index.DistributedPopulateIndexJob;
 import com.splicemachine.derby.impl.sql.execute.index.PopulateIndexJob;
@@ -51,7 +53,7 @@ import org.spark_project.guava.primitives.Ints;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 
 public abstract class IndexConstantOperation extends DDLSingleTableConstantOperation {
 	private static final Logger LOG = Logger.getLogger(IndexConstantOperation.class);
@@ -213,23 +215,40 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 			String jobGroup = userId + " <" +indexTransaction.getTxnId() +">";
 			if (distributed) {
 				OlapClient olapClient = EngineDriver.driver().getOlapClient();
+				Future<OlapResult> futureResult = null;
+                OlapResult result = null;
+                SConfiguration config = EngineDriver.driver().getConfiguration();
 				if (!preSplit) {
-					olapClient.execute(new DistributedPopulateIndexJob(childTxn, builder, scope, jobGroup, prefix,
+                    futureResult = olapClient.submit(new DistributedPopulateIndexJob(childTxn, builder, scope, jobGroup, prefix,
                             tentativeIndex, indexFormatIds));
 				}
 				else {
                     ActivationHolder ah = new ActivationHolder(activation, null);
-					olapClient.execute(new BulkLoadIndexJob(ah, childTxn, builder, scope, jobGroup, prefix, tentativeIndex,
+					futureResult = olapClient.submit(new BulkLoadIndexJob(ah, childTxn, builder, scope, jobGroup, prefix, tentativeIndex,
                             indexFormatIds, sampling, hfilePath, td.getVersion(), indexName));
 				}
+                while (result == null) {
+                    try {
+                        result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
+                    } catch (InterruptedException e) {
+                        //we were interrupted processing, so we're shutting down. Nothing to be done, just die gracefully
+                        Thread.currentThread().interrupt();
+                        throw new IOException(e);
+                    } catch (ExecutionException e) {
+                        throw Exceptions.rawIOException(e.getCause());
+                    } catch (TimeoutException e) {
+                        /*
+                         * A TimeoutException just means that tickTime expired. That's okay, we just stick our
+                         * head up and make sure that the client is still operating
+                         */
+                    }
+                }
 			} else
 				PopulateIndexJob.populateIndex(tentativeIndex,builder,prefix,indexFormatIds,scope,childTxn);
             childTxn.commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);
-        } catch (TimeoutException e) {
-			throw Exceptions.parseException(new IOException("PopulateIndex job failed", e));
-		}
+        }
 	}
 
     protected Txn beginChildTransaction(TxnView parentTxn, long indexConglomId) throws IOException{
