@@ -27,6 +27,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
+import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.rdd.RDDOperationScope;
 import org.apache.spark.sql.SparkSession;
@@ -302,5 +303,11 @@ public class SpliceSpark {
     public static void popScope() {
         SpliceSpark.getContext().setLocalProperty("spark.rdd.scope", null);
         SpliceSpark.getContext().setLocalProperty("spark.rdd.scope.noOverride", null);
+    }
+
+    public static void setContext(SparkContext sparkContext) {
+        session = SparkSession.builder().config(sparkContext.getConf()).getOrCreate();
+        ctx = new JavaSparkContext(sparkContext);
+        initialized = true;
     }
 }
