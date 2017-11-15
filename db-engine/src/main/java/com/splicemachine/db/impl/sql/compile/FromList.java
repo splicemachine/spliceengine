@@ -1227,8 +1227,13 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
 		 */
         if(dependencyMap.getFirstSetBit()==-1){
             int outerSize=outerFromList.size();
-            for(int outer=0;outer<outerSize;outer++)
-                dependencyMap.or(((FromTable)outerFromList.elementAt(outer)).getReferencedTableMap());
+            for(int outer=0;outer<outerSize;outer++) {
+                FromTable ft = (FromTable) outerFromList.elementAt(outer);
+                // SSQ need to be processed after all the joins (including the join with where subquery) ar done,
+                // so we should not include SSQs in the where subquery's dependencyMap
+                if (!ft.fromSSQ)
+                    dependencyMap.or(ft.getReferencedTableMap());
+            }
         }
 
 		/* Do the marking */
@@ -1238,7 +1243,8 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
                 ProjectRestrictNode prn=(ProjectRestrictNode)fromTable;
                 if(prn.getChildResult() instanceof FromBaseTable){
                     FromBaseTable fbt=(FromBaseTable)prn.getChildResult();
-                    fbt.setExistsTable(true,(JBitSet)dependencyMap.clone(),isNotExists, matchRowId);
+                    fbt.setExistsTable(true,isNotExists, matchRowId);
+                    fbt.setDependencyMap((JBitSet)dependencyMap.clone());
                 }
             }
         }
@@ -1342,5 +1348,22 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
 
     public Properties getProperties() {
         return properties;
+    }
+
+    public void setDependencyMapForSSQ(int numTables) {
+        // iterate through the list to collect the tablenumber
+        JBitSet dependencyMap = new JBitSet(numTables);
+        for(int i=0; i<size(); i++) {
+            FromTable fromTable = (FromTable) elementAt(i);
+            if (!fromTable.getFromSSQ())
+                dependencyMap.or(fromTable.getReferencedTableMap());
+        }
+
+        // set dependencyMap
+        for (int i=0; i<size(); i++) {
+            FromTable fromTable = (FromTable) elementAt(i);
+            if (fromTable.getFromSSQ())
+                fromTable.setDependencyMap((JBitSet)dependencyMap.clone());
+        }
     }
 }

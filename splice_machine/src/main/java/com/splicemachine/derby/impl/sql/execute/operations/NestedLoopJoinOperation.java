@@ -53,11 +53,12 @@ public class NestedLoopJoinOperation extends JoinOperation {
 																	 int resultSetNumber,
 																	 boolean oneRowRightSide,
 																	 boolean notExistsRightSide,
+									                                 boolean rightFromSSQ,
 																	 double optimizerEstimatedRowCount,
 																	 double optimizerEstimatedCost,
 																	 String userSuppliedOptimizerOverrides) throws StandardException {
 				super(leftResultSet,leftNumCols,rightResultSet,rightNumCols,activation,restriction,
-								resultSetNumber,oneRowRightSide,notExistsRightSide,optimizerEstimatedRowCount,
+								resultSetNumber,oneRowRightSide,notExistsRightSide,rightFromSSQ,optimizerEstimatedRowCount,
 								optimizerEstimatedCost,userSuppliedOptimizerOverrides);
 				this.isHash = false;
                 init();

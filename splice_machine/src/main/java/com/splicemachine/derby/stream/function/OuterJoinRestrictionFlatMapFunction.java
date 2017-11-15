@@ -14,7 +14,9 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -48,7 +50,10 @@ public class OuterJoinRestrictionFlatMapFunction<Op extends SpliceOperation> ext
         leftRow = tuple._1();
         List<ExecRow> returnRows = new ArrayList();
         Iterator<ExecRow> it = tuple._2.iterator();
+        boolean hasMatch = false;
         while (it.hasNext()) {
+            if (hasMatch && isSemiJoin)
+                return returnRows.iterator();
             rightRow = it.next();
             mergedRow = JoinUtils.getMergedRow(leftRow,
                     rightRow, op.wasRightOuterJoin,
@@ -56,6 +61,11 @@ public class OuterJoinRestrictionFlatMapFunction<Op extends SpliceOperation> ext
             mergedRow.setKey(leftRow.getKey());
             op.setCurrentRow(mergedRow);
             if (op.getRestriction().apply(mergedRow)) { // Has Row, abandon
+                if (!hasMatch)
+                    hasMatch = true;
+                else if (forSSQ) {
+                    throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
+                }
                 returnRows.add(mergedRow);
             }
             operationContext.recordFilter();
