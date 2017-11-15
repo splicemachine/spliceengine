@@ -420,19 +420,6 @@ public class FromBaseTable extends FromTable {
                 boolean[] isAscending=irg.isAscending();
 
                 for(int i=0;i<baseColumnPositions.length;i++){
-					/*
-					 ** Don't add the column to the ordering if it's already
-					 ** an ordered column.  This can happen in the following
-					 ** case:
-					 **
-					 **		create index ti on t(x, y);
-					 **		select * from t where x = 1 order by y;
-					 **
-					 ** Column x is always ordered, so we want to avoid the
-					 ** sort when using index ti.  This is accomplished by
-					 ** making column y appear as the first ordered column
-					 ** in the list.
-					 */
                     int rowOrderDirection=isAscending[i]?RowOrdering.ASCENDING:RowOrdering.DESCENDING;
                     int pos = rowOrdering.orderedPositionForColumn(rowOrderDirection,getTableNumber(),baseColumnPositions[i]);
                     if (pos == -1) {
