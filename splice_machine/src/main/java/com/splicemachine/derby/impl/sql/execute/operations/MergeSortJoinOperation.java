@@ -123,11 +123,12 @@ public class MergeSortJoinOperation extends JoinOperation {
                                   int resultSetNumber,
                                   boolean oneRowRightSide,
                                   boolean notExistsRightSide,
+                                  boolean rightFromSSQ,
                                   double optimizerEstimatedRowCount,
                                   double optimizerEstimatedCost,
                                   String userSuppliedOptimizerOverrides) throws StandardException {
         super(leftResultSet, leftNumCols, rightResultSet, rightNumCols,
-                activation, restriction, resultSetNumber, oneRowRightSide, notExistsRightSide,
+                activation, restriction, resultSetNumber, oneRowRightSide, notExistsRightSide, rightFromSSQ,
                 optimizerEstimatedRowCount, optimizerEstimatedCost, userSuppliedOptimizerOverrides);
         SpliceLogUtils.trace(LOG, "instantiate");
         this.leftHashKeyItem = leftHashKeyItem;
@@ -200,7 +201,7 @@ public class MergeSortJoinOperation extends JoinOperation {
                     isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
                 rightDataSet1.map(new CountJoinedRightFunction(operationContext));
         DataSet<ExecRow> joined;
-        if (dsp.getType().equals(DataSetProcessor.Type.SPARK) && restriction == null) {
+        if (dsp.getType().equals(DataSetProcessor.Type.SPARK) && restriction == null && !rightFromSSQ) {
             if (isOuterJoin)
                 joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.LEFTOUTER,false);
             else if (notExistsRightSide)
@@ -217,8 +218,8 @@ public class MergeSortJoinOperation extends JoinOperation {
                     leftDataSet2.keyBy(new KeyerFunction<ExecRow,JoinOperation>(operationContext, leftHashKeys));
 
             if (LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, hasRestriction=%s",
-                        isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
+                SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, rightFromSSQ=%s, hasRestriction=%s",
+                        isOuterJoin ? "outer" : "inner", notExistsRightSide, rightFromSSQ, restriction != null);
             joined = getJoinedDataset(operationContext, leftDataSet, rightDataSet);
         }
             return joined.map(new CountProducedFunction(operationContext), true);

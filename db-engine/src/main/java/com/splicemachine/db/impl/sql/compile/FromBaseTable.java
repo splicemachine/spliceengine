@@ -895,9 +895,9 @@ public class FromBaseTable extends FromTable {
 
     @Override
     public boolean legalJoinOrder(JBitSet assignedTableMap){
-        // Only an issue for EXISTS FBTs
+        // Only an issue for EXISTS FBTs and table converted from SSQ
         /* Have all of our dependencies been satisfied? */
-        return !existsTable || assignedTableMap.contains(dependencyMap);
+        return !existsTable && !fromSSQ || assignedTableMap.contains(dependencyMap);
     }
 
     /**
@@ -923,28 +923,6 @@ public class FromBaseTable extends FromTable {
                     super.toString();
         }else{
             return "";
-        }
-    }
-
-
-    /*
-     * Set whether or not this FBT represents an
-     * EXISTS FBT.
-     *
-     * @param existsTable Whether or not an EXISTS FBT.
-     * @param dependencyMap   The dependency map for the EXISTS FBT.
-     * @param isNotExists     Whether or not for NOT EXISTS, more specifically.
-     */
-    @Override
-    public void setExistsTable(boolean existsTable,JBitSet dependencyMap,boolean isNotExists,boolean matchRowId){
-        this.existsTable=existsTable;
-        this.isNotExists=isNotExists;
-        this.matchRowId = matchRowId;
-		/* Set/clear the dependency map as needed */
-        if(existsTable){
-            this.dependencyMap=dependencyMap;
-        }else{
-            this.dependencyMap=null;
         }
     }
 

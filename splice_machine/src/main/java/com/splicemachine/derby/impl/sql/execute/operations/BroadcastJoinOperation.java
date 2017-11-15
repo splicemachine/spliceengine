@@ -130,12 +130,13 @@ public class BroadcastJoinOperation extends JoinOperation{
                                   int resultSetNumber,
                                   boolean oneRowRightSide,
                                   boolean notExistsRightSide,
+                                  boolean rightFromSSQ,
                                   double optimizerEstimatedRowCount,
                                   double optimizerEstimatedCost,
                                   String userSuppliedOptimizerOverrides) throws
             StandardException{
         super(leftResultSet,leftNumCols,rightResultSet,rightNumCols,
-                activation,restriction,resultSetNumber,oneRowRightSide,notExistsRightSide,
+                activation,restriction,resultSetNumber,oneRowRightSide,notExistsRightSide, rightFromSSQ,
                 optimizerEstimatedRowCount,optimizerEstimatedCost,userSuppliedOptimizerOverrides);
         this.leftHashKeyItem=leftHashKeyItem;
         this.rightHashKeyItem=rightHashKeyItem;
@@ -204,6 +205,12 @@ public class BroadcastJoinOperation extends JoinOperation{
                 tempOp instanceof MultiProbeTableScanOperation))
                 useDataset = true;
         }
+
+        /** TODO don't know how to let spark report SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION error,
+         * so route to the rdd implementation for now for SSQ
+         */
+        if (rightFromSSQ)
+            useDataset = false;
 
         DataSet<ExecRow> result;
         if (useDataset && dsp.getType().equals(DataSetProcessor.Type.SPARK) &&

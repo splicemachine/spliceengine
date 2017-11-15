@@ -87,6 +87,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		protected int rightNumCols;
 		public boolean oneRowRightSide;
 		public boolean notExistsRightSide;
+		public boolean rightFromSSQ;
 		protected String userSuppliedOptimizerOverrides;
 		protected String restrictionMethodName;
 		protected SpliceOperation rightResultSet;
@@ -118,6 +119,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 												 int resultSetNumber,
 												 boolean oneRowRightSide,
 												 boolean notExistsRightSide,
+							                     boolean rightFromSSQ,
 												 double optimizerEstimatedRowCount,
 												 double optimizerEstimatedCost,
 												 String userSuppliedOptimizerOverrides) throws StandardException {
@@ -126,6 +128,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				this.rightNumCols = rightNumCols;
 				this.oneRowRightSide = oneRowRightSide;
 				this.notExistsRightSide = notExistsRightSide;
+				this.rightFromSSQ = rightFromSSQ;
 				this.userSuppliedOptimizerOverrides = userSuppliedOptimizerOverrides;
 				this.restrictionMethodName = (restriction == null) ? null : restriction.getMethodName();
 				this.leftResultSet = leftResultSet;
@@ -143,6 +146,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				userSuppliedOptimizerOverrides = readNullableString(in);
 				oneRowRightSide = in.readBoolean();
 				notExistsRightSide = in.readBoolean();
+				rightFromSSQ = in.readBoolean();
                 wasRightOuterJoin = in.readBoolean();
                 isOuterJoin = in.readBoolean();
                 emptyRowFunMethodName = readNullableString(in);
@@ -173,6 +177,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				writeNullableString(userSuppliedOptimizerOverrides, out);
 				out.writeBoolean(oneRowRightSide);
 				out.writeBoolean(notExistsRightSide);
+				out.writeBoolean(rightFromSSQ);
                 out.writeBoolean(wasRightOuterJoin);
                 out.writeBoolean(isOuterJoin);
                 writeNullableString(emptyRowFunMethodName, out);

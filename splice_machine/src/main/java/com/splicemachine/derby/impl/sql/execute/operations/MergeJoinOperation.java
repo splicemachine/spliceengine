@@ -69,13 +69,14 @@ public class MergeJoinOperation extends JoinOperation {
                               int resultSetNumber,
                               boolean oneRowRightSide,
                               boolean notExistsRightSide,
+                              boolean rightFromSSQ,
                               double optimizerEstimatedRowCount,
                               double optimizerEstimatedCost,
                               String userSuppliedOptimizerOverrides)
             throws StandardException {
         super(leftResultSet, leftNumCols, rightResultSet, rightNumCols,
                  activation, restriction, resultSetNumber, oneRowRightSide,
-                 notExistsRightSide, optimizerEstimatedRowCount,
+                 notExistsRightSide, rightFromSSQ, optimizerEstimatedRowCount,
                  optimizerEstimatedCost, userSuppliedOptimizerOverrides);
         this.leftHashKeyItem = leftHashKeyItem;
         this.rightHashKeyItem = rightHashKeyItem;
