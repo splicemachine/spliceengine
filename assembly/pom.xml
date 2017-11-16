@@ -30,11 +30,6 @@
             <artifactId>hbase_sql-${envClassifier}</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-core_${scala.binary.version}p</artifactId>
-            <version>${spark.version}</version>
-        </dependency>
 
     </dependencies>
     <properties>
