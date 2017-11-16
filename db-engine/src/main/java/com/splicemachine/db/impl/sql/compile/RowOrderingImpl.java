@@ -67,23 +67,32 @@ public class RowOrderingImpl implements RowOrdering{
     }
 
     @Override
-    public boolean orderedOnColumn(int direction,int orderPosition,
+    public int orderedOnColumn(int direction,int orderPosition,
                                    int tableNumber,int columnNumber) throws StandardException{
 
 		/*
 		** Return false if we're looking for an ordering position that isn't
 		** in this ordering.
 		*/
-        if(orderPosition>=ordering.size())
-            return false;
+        while (orderPosition < ordering.size()) {
 
-        ColumnOrdering co=ordering.get(orderPosition);
+            ColumnOrdering co = ordering.get(orderPosition);
 
-		/*
-		** Is the column in question ordered with the given direction at
-		** this position?
-		*/
-        return co.ordered(direction,tableNumber,columnNumber);
+		    /*
+		    ** Is the column in question ordered with the given direction at
+		    ** this position?
+		    */
+            Boolean isOrdered = co.ordered(direction, tableNumber, columnNumber);
+            if (isOrdered)
+                return orderPosition;
+
+            /* if this column has constant value, we can treat it as sorted and skip */
+            if (!co.getBoundByConstant())
+                return -1;
+
+            orderPosition ++;
+        }
+        return -1;
     }
 
     @Override
@@ -128,9 +137,9 @@ public class RowOrderingImpl implements RowOrdering{
     }
 
     @Override
-    public void addOrderedColumn(int direction, int tableNumber, int columnNumber){
+    public int addOrderedColumn(int direction, int tableNumber, int columnNumber){
         if(!unorderedOptimizables.isEmpty())
-            return;
+            return -1;
 
         ColumnOrdering currentColumnOrdering;
 
@@ -150,6 +159,7 @@ public class RowOrderingImpl implements RowOrdering{
         }
 
         currentColumnOrdering.addColumn(tableNumber,columnNumber);
+        return ordering.size() - 1;
     }
 
     @Override
@@ -310,4 +320,10 @@ public class RowOrderingImpl implements RowOrdering{
         return false;
     }
 
+    public ColumnOrdering getOrderedColumn(int pos) {
+        if (pos >= ordering.size())
+            return null;
+
+        return ordering.get(pos);
+    }
 }
