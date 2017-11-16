@@ -50,6 +50,11 @@ public class ColumnOrdering{
     */
     Vector tables=new Vector();
 
+    /*
+    ** boolean indicating whether it is bound by a constant like "col=constant"
+     */
+    Boolean boundByConstant = false;
+
     /**
      * @param direction See RowOrdering for possible values
      */
@@ -170,6 +175,7 @@ public class ColumnOrdering{
             retval.tables.addElement(tables.get(i));
         }
 
+        retval.setBoundByConstant(getBoundByConstant());
         return retval;
     }
 
@@ -217,6 +223,8 @@ public class ColumnOrdering{
                 retval+=" Table "+tables.get(i)+
                         ", Column "+columns.get(i);
             }
+
+            retval+=" BoundByConstant: " + boundByConstant;
         }
 
         return retval;
@@ -231,5 +239,13 @@ public class ColumnOrdering{
         tabCol[0]=(Integer)tables.get(i); // autobox: fix
         tabCol[1]=(Integer)columns.get(i); // autobox
         return tabCol;
+    }
+
+    public void setBoundByConstant(boolean flag) {
+        boundByConstant = flag;
+    }
+
+    public boolean getBoundByConstant() {
+        return boundByConstant;
     }
 }

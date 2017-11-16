@@ -93,7 +93,7 @@ public interface RowOrdering{
      * @return true means this ordering is ordered on the given column
      * in the given position.
      */
-    boolean orderedOnColumn(int direction,int orderPosition,int tableNumber,int columnNumber) throws StandardException;
+    int orderedOnColumn(int direction,int orderPosition,int tableNumber,int columnNumber) throws StandardException;
 
     /**
      * Tell whether this ordering is ordered on the given column.
@@ -125,8 +125,9 @@ public interface RowOrdering{
      *                     with constant value, and for one-row tables.
      * @param tableNumber  The table the column is in.
      * @param columnNumber The column number in the table (one-based)
+     * @return int which is the index of the newly added columnOrdering's position
      */
-    void addOrderedColumn(int direction, int tableNumber, int columnNumber);
+    int addOrderedColumn(int direction, int tableNumber, int columnNumber);
 
     /**
      * Move to the next order position for adding ordered columns.
@@ -174,4 +175,6 @@ public interface RowOrdering{
     void copy(RowOrdering copyTo);
 
     RowOrdering getClone();
+
+    public ColumnOrdering getOrderedColumn(int pos);
 }

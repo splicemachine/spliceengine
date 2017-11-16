@@ -419,24 +419,18 @@ public class FromBaseTable extends FromTable {
                 boolean[] isAscending=irg.isAscending();
 
                 for(int i=0;i<baseColumnPositions.length;i++){
-					/*
-					 ** Don't add the column to the ordering if it's already
-					 ** an ordered column.  This can happen in the following
-					 ** case:
-					 **
-					 **		create index ti on t(x, y);
-					 **		select * from t where x = 1 order by y;
-					 **
-					 ** Column x is always ordered, so we want to avoid the
-					 ** sort when using index ti.  This is accomplished by
-					 ** making column y appear as the first ordered column
-					 ** in the list.
-					 */
                     int rowOrderDirection=isAscending[i]?RowOrdering.ASCENDING:RowOrdering.DESCENDING;
-                    if(!rowOrdering.orderedOnColumn(rowOrderDirection,getTableNumber(),baseColumnPositions[i])){
+                    int pos = rowOrdering.orderedPositionForColumn(rowOrderDirection,getTableNumber(),baseColumnPositions[i]);
+                    if (pos == -1) {
                         rowOrdering.nextOrderPosition(rowOrderDirection);
-
-                        rowOrdering.addOrderedColumn(rowOrderDirection,getTableNumber(),baseColumnPositions[i]);
+                        pos = rowOrdering.addOrderedColumn(rowOrderDirection,getTableNumber(),baseColumnPositions[i]);
+                    }
+                    // check if the column has a constant predicate like "col=constant" defined on it,
+                    // if so, we can treat it as sorted as it has only one value
+                    if (pos >=0 &&    /* a column ordering is added or exists */
+                        hasConstantPredicate(getTableNumber(), baseColumnPositions[i], predList)) {
+                        ColumnOrdering co = rowOrdering.getOrderedColumn(pos);
+                        co.setBoundByConstant(true);
                     }
                 }
             }
@@ -3397,5 +3391,12 @@ public class FromBaseTable extends FromTable {
              getTrulyTheBestAccessPath().getCostEstimate().getEstimatedRowCount() > 20000)) {
             dataSetProcessorType = CompilerContext.DataSetProcessorType.SPARK;
         }
+    }
+
+    private boolean hasConstantPredicate(int tableNum, int colNum, OptimizablePredicateList predList) {
+        if (predList instanceof PredicateList)
+            return ((PredicateList)predList).constantColumn(tableNum, colNum);
+        else
+            return false;
     }
 }
