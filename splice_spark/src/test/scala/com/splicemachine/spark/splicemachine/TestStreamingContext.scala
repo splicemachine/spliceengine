@@ -126,7 +126,6 @@ trait TestStreamingContext extends BeforeAndAfterAll { self: Suite =>
   }
 
   override def afterAll() {
-    if (ssc != null) ssc.stop()
   }
 
   def deleteInternalRow(key: Int): Unit = {
@@ -163,7 +162,7 @@ trait TestStreamingContext extends BeforeAndAfterAll { self: Suite =>
             val l:Timestamp = new Timestamp(i)
             val m:String = if (i < 8) "sometestinfo" + i else null
             Row(a,b,c,d,e,f,g,h,j,k,l,m)
-        }).sliding(batchSize).foreach(s => queue.enqueue(ssc.sparkContext.parallelize(s)))
+        }).sliding(batchSize,batchSize).foreach(s => queue.enqueue(ssc.sparkContext.parallelize(s)))
   }
 
   /**

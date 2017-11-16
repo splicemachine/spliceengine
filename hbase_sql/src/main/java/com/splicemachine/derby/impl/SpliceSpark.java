@@ -305,7 +305,7 @@ public class SpliceSpark {
         SpliceSpark.getContext().setLocalProperty("spark.rdd.scope.noOverride", null);
     }
 
-    public static void setContext(SparkContext sparkContext) {
+    public synchronized static void setContext(SparkContext sparkContext) {
         session = SparkSession.builder().config(sparkContext.getConf()).getOrCreate(); // Claims this is a singleton from documentation
         ctx = new JavaSparkContext(sparkContext);
         initialized = true;
