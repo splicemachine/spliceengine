@@ -45,22 +45,22 @@ class SplicemachineContext(url: String) extends Serializable {
 
 
   @transient lazy val internalConnection = {
-    SpliceSpark.setupSpliceStaticComponents();
+    SpliceSpark.setupSpliceStaticComponents()
     val engineDriver: EngineDriver = EngineDriver.driver
     loadDriver()
     assert(engineDriver != null, "Not booted yet!")
     // Create a static statement context to enable nested connections
     val maker: EmbedConnectionMaker = new EmbedConnectionMaker
-    val dbProperties: Properties = new Properties;
+    val dbProperties: Properties = new Properties
     dbProperties.put("useSpark","true")
-    maker.createNew(dbProperties);
+    maker.createNew(dbProperties)
     dbProperties.put(EmbedConnection.INTERNAL_CONNECTION, "true")
     SpliceClient.isClient = true
     maker.createNew(dbProperties)
   }
 
   def getConnection(): Connection = {
-    internalConnection;
+    internalConnection
   }
 
   def tableExists(schemaTableName: String): Boolean = {
