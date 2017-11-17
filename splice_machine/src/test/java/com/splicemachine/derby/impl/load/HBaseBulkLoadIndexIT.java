@@ -332,7 +332,7 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
             return;
         String sql = getContent("18.sql");
         executeQuery(sql, "", true);
-        assertSubqueryNodeCount(conn(), sql, ONE_SUBQUERY_NODE);
+        assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
     }
 
     @Test
