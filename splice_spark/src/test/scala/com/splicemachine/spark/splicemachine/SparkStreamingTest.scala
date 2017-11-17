@@ -14,6 +14,8 @@
  */
 package com.splicemachine.spark.splicemachine
 
+import java.sql.SQLIntegrityConstraintViolationException
+
 import scala.collection.immutable.IndexedSeq
 import org.apache.spark.sql._
 import org.junit.runner.RunWith
@@ -21,7 +23,7 @@ import org.junit.Assert._
 import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
 import org.scalatest.junit.JUnitRunner
 import org.apache.spark.sql.functions._
-import java.util.concurrent.{CountDownLatch, TimeUnit}
+import java.util.concurrent.{CountDownLatch, TimeUnit, TimeoutException}
 
 import com.splicemachine.derby.impl.SpliceSpark
 import org.apache.spark.rdd.RDD
@@ -46,8 +48,7 @@ class SparkStreamingTest extends FunSuite with TestStreamingContext with BeforeA
     session = SpliceSpark.getSessionUnsafe
     splicemachineContext = new SplicemachineContext(defaultJDBCURL)
     
-    if (sqlContext == null)
-      sqlContext = SpliceSpark.getSessionUnsafe.sqlContext
+    sqlContext = SpliceSpark.getSessionUnsafe.sqlContext
     if (splicemachineContext.tableExists(internalTN)) {
       splicemachineContext.dropTable(internalTN)
     }
@@ -59,8 +60,9 @@ class SparkStreamingTest extends FunSuite with TestStreamingContext with BeforeA
   }
 
   after {
-    if (ssc != null)
+    if (ssc != null) {
       ssc.stop()
+    }
   }
 
   test("basic streaming working") {
@@ -79,117 +81,115 @@ class SparkStreamingTest extends FunSuite with TestStreamingContext with BeforeA
     assert(results.size === 10)
   }
 
-  test("multi streams working") {
-    val queue:Queue[RDD[Row]] = Queue()
+ test("multi streams working") {
+   val queue:Queue[RDD[Row]] = Queue()
 
-    val results = new ListenableQueue[Row]
+   val results = new ListenableQueue[Row]
 
-    val dstream = ssc.queueStream(queue, true, null)
-    dstream.foreachRDD(rdd => results ++= rdd.collect() )
-    enqueueRows(queue, 10)
+   val dstream = ssc.queueStream(queue, true, null)
+   dstream.foreachRDD(rdd => results ++= rdd.collect() )
+   enqueueRows(queue, 10)
 
-    ssc.start() // Start the computation
-    results.waitFor(10) // block until there are 10 rows in results (or 1 minute passes)
+   ssc.start() // Start the computation
+   results.waitFor(10) // block until there are 10 rows in results (or 1 minute passes)
 
-    enqueueRows(queue, 10)
-    enqueueRows(queue, 10)
+   enqueueRows(queue, 10)
+   enqueueRows(queue, 10)
 
-    results.waitFor(30) // block until there are 30 rows in results (or 1 minute passes)
+   results.waitFor(30) // block until there are 30 rows in results (or 1 minute passes)
 
-    assert(results.size === 30)
-  }
+   assert(results.size === 30)
+ }
 
+ test("insertion") {
+   val queue:Queue[RDD[Row]] = Queue()
 
-  test("insertion") {
-    val queue:Queue[RDD[Row]] = Queue()
+   val oldDF = sqlContext.read.options(internalOptions).splicemachine
+   assert(oldDF.count == 0)
 
-    val oldDF = sqlContext.read.options(internalOptions).splicemachine
-    assert(oldDF.count == 0)
+   val results = new ListenableQueue[Boolean]
 
-    val results = new ListenableQueue[Boolean]
+   val dstream = ssc.queueStream(queue, true, null)
 
-    val dstream = ssc.queueStream(queue, true, null)
+   dstream.foreachRDD(rdd => {
+     val df = sqlContext.createDataFrame(rdd, splicemachineContext.getSchema(internalTN))
 
-    dstream.foreachRDD(rdd => {
-      val df = sqlContext.createDataFrame(rdd, splicemachineContext.getSchema(internalTN))
+     splicemachineContext.insert(df, internalTN)
+     results.enqueue(true)
+   })
+   enqueueRows(queue, 10)
 
-      splicemachineContext.insert(df, internalTN)
-      results.enqueue(true)
-    })
-    enqueueRows(queue, 10)
+   ssc.start() // Start the computation
+   results.waitFor(5) // block until there are 10 batches in results (or 1 minute passes)
 
-    ssc.start() // Start the computation
-    results.waitFor(10) // block until there are 10 rows in results (or 1 minute passes)
+   val newDF = sqlContext.read.options(internalOptions).splicemachine
+   assert(newDF.count == 10)
+ }
 
-    val newDF = sqlContext.read.options(internalOptions).splicemachine
-    assert(newDF.count == 10)
-  }
+ test ("deletion") {
+   val queue:Queue[RDD[Row]] = Queue()
 
-  test ("deletion") {
-    val queue:Queue[RDD[Row]] = Queue()
+   //insert initial rows
 
-    //insert initial rows
+   insertInternalRows(10)
 
-    insertInternalRows(10)
+   val oldDF = sqlContext.read.options(internalOptions).splicemachine
+   assert(oldDF.count == 10)
 
-    val oldDF = sqlContext.read.options(internalOptions).splicemachine
-    assert(oldDF.count == 10)
+   val results = new ListenableQueue[Boolean]
 
-    val results = new ListenableQueue[Boolean]
+   val dstream = ssc.queueStream(queue, true, null)
 
-    val dstream = ssc.queueStream(queue, true, null)
+   dstream.foreachRDD(rdd => {
+     val df = sqlContext.createDataFrame(rdd, splicemachineContext.getSchema(internalTN))
 
-    dstream.foreachRDD(rdd => {
-      val df = sqlContext.createDataFrame(rdd, splicemachineContext.getSchema(internalTN))
+     val deleteDF = df.filter("c6_int < 5").select("C6_INT","C7_BIGINT")
+     splicemachineContext.delete(deleteDF, internalTN)
+     results.enqueue(true)
+   })
+   enqueueRows(queue, 10)
 
-      val deleteDF = df.filter("c6_int < 5").select("C6_INT","C7_BIGINT")
-      splicemachineContext.delete(deleteDF, internalTN)
-      results.enqueue(true)
-    })
-    enqueueRows(queue, 10)
+   ssc.start() // Start the computation
+   results.waitFor(5) // block until there are 10 batches in results (or 1 minute passes)
 
-    ssc.start() // Start the computation
-    results.waitFor(10) // block until there are 10 rows in results (or 1 minute passes)
+   val newDF = sqlContext.read.options(internalOptions).splicemachine
 
-    val newDF = sqlContext.read.options(internalOptions).splicemachine
+   assert(newDF.count == 5)
+ }
 
-    assert(newDF.count == 5)
-  }
-  
-  test ("update") {
-    val queue:Queue[RDD[Row]] = Queue()
+ test ("update") {
+   val queue:Queue[RDD[Row]] = Queue()
 
-    //insert initial rows
-    insertInternalRows(10)
+   //insert initial rows
+   insertInternalRows(10)
 
-    val oldDF = sqlContext.read.options(internalOptions).splicemachine
-    assert(oldDF.count == 10)
+   val oldDF = sqlContext.read.options(internalOptions).splicemachine
+   assert(oldDF.count == 10)
 
-    val results = new ListenableQueue[Boolean]
+   val results = new ListenableQueue[Boolean]
 
-    val dstream = ssc.queueStream(queue, true, null)
+   val dstream = ssc.queueStream(queue, true, null)
 
-    dstream.foreachRDD(rdd => {
-      val df = sqlContext.createDataFrame(rdd, splicemachineContext.getSchema(internalTN))
+   dstream.foreachRDD(rdd => {
+     val df = sqlContext.createDataFrame(rdd, splicemachineContext.getSchema(internalTN))
 
-      val updatedDF = df
-        .filter("C6_INT < 5")
-        .select("C6_INT","C7_BIGINT","C8_FLOAT","C9_SMALLINT")
-        .withColumn("C8_FLOAT", when(col("C8_FLOAT").leq(10.0), col("C8_FLOAT").plus(10.0)) )
-      splicemachineContext.update(updatedDF, internalTN)
-      results.enqueue(true)
-    })
-    enqueueRows(queue, 10)
+     val updatedDF = df
+       .filter("C6_INT < 5")
+       .select("C6_INT","C7_BIGINT","C8_FLOAT","C9_SMALLINT")
+       .withColumn("C8_FLOAT", when(col("C8_FLOAT").leq(10.0), col("C8_FLOAT").plus(10.0)) )
+     splicemachineContext.update(updatedDF, internalTN)
+     results.enqueue(true)
+   })
+   enqueueRows(queue, 10)
 
-    ssc.start() // Start the computation
-    results.waitFor(10) // block until there are 10 rows in results (or 1 minute passes)
+   ssc.start() // Start the computation
+   results.waitFor(5) // block until there are 10 batches in results (or 1 minute passes)
 
-    val newDF = sqlContext.read.options(internalOptions).splicemachine
+   val newDF = sqlContext.read.options(internalOptions).splicemachine
 
-    assertEquals(5, newDF.filter("c8_float >= 10.0").count())
-  }
-            
-  /* TODO fix join in SparkStreaming context
+   assertEquals(5, newDF.filter("c8_float >= 10.0").count())
+ }
+
   test ("join") {
     val queue:Queue[RDD[Row]] = Queue()
 
@@ -198,6 +198,10 @@ class SparkStreamingTest extends FunSuite with TestStreamingContext with BeforeA
 
     //create results table
     val conn = JdbcUtils.createConnectionFactory(internalJDBCOptions)()
+
+    if (splicemachineContext.tableExists(resultTN)) {
+      splicemachineContext.dropTable(resultTN)
+    }
     conn.createStatement().execute("create table "+resultTN + this.resultTypesCreateString)
 
     val oldDF = sqlContext.read.options(internalOptions).splicemachine
@@ -219,13 +223,45 @@ class SparkStreamingTest extends FunSuite with TestStreamingContext with BeforeA
     enqueueRows(queue, 10)
 
     ssc.start() // Start the computation
-    results.waitFor(10) // block until there are 10 rows in results (or 1 minute passes)
+    results.waitFor(5) // block until there are 5 batches in results (or 1 minute passes)
 
     val newDF = sqlContext.read.options(resultsOptions).splicemachine
 
     assert(newDF.count == 5)
   }
-  */
+
+  test("conflicts") {
+    val queue:Queue[RDD[Row]] = Queue()
+
+    val oldDF = sqlContext.read.options(internalOptions).splicemachine
+    assert(oldDF.count == 0)
+
+    val results = new ListenableQueue[Boolean]
+    val errors = new ListenableQueue[Exception]
+
+    val dstream = ssc.queueStream(queue, true, null)
+
+    dstream.foreachRDD(rdd => {
+      try {
+        val df = sqlContext.createDataFrame(rdd, splicemachineContext.getSchema(internalTN))
+
+        splicemachineContext.insert(df, internalTN)
+        results.enqueue(true)
+      } catch {
+        case e: Exception =>
+          errors.enqueue(e)
+      }
+    })
+    enqueueRows(queue, 10)
+    enqueueRows(queue, 10)
+
+    ssc.start() // Start the computation
+    results.waitFor(5) // block until there are 10 batches in results (or 1 minute passes)
+    errors.waitFor(5) // 5 batches raising exception
+
+    val newDF = sqlContext.read.options(internalOptions).splicemachine
+    assert(newDF.count == 10)
+  }
 
 }
 
@@ -245,6 +281,7 @@ private class ListenableQueue[A] extends Queue[A] {
     synchronized {
       latch = new CountDownLatch(count - size)
     }
-    latch.await(10, TimeUnit.SECONDS)
+    if (!latch.await(10, TimeUnit.SECONDS))
+      throw new TimeoutException("Timeout reached")
   }
 }
