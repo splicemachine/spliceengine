@@ -27,6 +27,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
+import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.rdd.RDDOperationScope;
 import org.apache.spark.sql.SparkSession;
@@ -78,7 +79,8 @@ public class SpliceSpark {
             session = initializeSparkSession();
             ctx =  new JavaSparkContext(session.sparkContext());
             initialized = true;
-        } else if (session.sparkContext().isStopped()) {
+        } else if (session.sparkContext().isStopped() && !SpliceClient.isClient) {
+            // Try to reinitialize the SparkContext, unless this is SpliceClient, in that case let the user handle the SparkContext
             LOG.warn("SparkContext is stopped, reinitializing...");
             session = initializeSparkSession();
             ctx =  new JavaSparkContext(session.sparkContext());
@@ -301,5 +303,11 @@ public class SpliceSpark {
     public static void popScope() {
         SpliceSpark.getContext().setLocalProperty("spark.rdd.scope", null);
         SpliceSpark.getContext().setLocalProperty("spark.rdd.scope.noOverride", null);
+    }
+
+    public synchronized static void setContext(SparkContext sparkContext) {
+        session = SparkSession.builder().config(sparkContext.getConf()).getOrCreate(); // Claims this is a singleton from documentation
+        ctx = new JavaSparkContext(sparkContext);
+        initialized = true;
     }
 }
