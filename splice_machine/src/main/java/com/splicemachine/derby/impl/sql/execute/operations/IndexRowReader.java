@@ -131,6 +131,7 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
             //merge the results
             ExecRow nextScannedRow=next.getFirst();
             DataResult nextFetchedData=next.getSecond();
+            byte[] rowKey = nextFetchedData.key();
             if(entryDecoder==null)
                 entryDecoder=new EntryDecoder();
             for(DataCell kv : nextFetchedData){
@@ -138,6 +139,7 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
                 rowDecoder.set(kv.valueArray(),kv.valueOffset(),kv.valueLength());
                 rowDecoder.decode(nextScannedRow);
             }
+            nextScannedRow.setKey(rowKey);
             heapRowToReturn=nextScannedRow;
             indexRowToReturn=nextScannedRow;
             return true;
