@@ -28,24 +28,26 @@ import org.apache.spark.sql.{Dataset, DataFrame, Row}
 import java.util.Properties
 import java.sql.Connection
 
-class SplicemachineContext() extends Serializable {
-  val url = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin"
+class SplicemachineContext(url: String) extends Serializable {
   JdbcDialects.registerDialect(new SplicemachineDialect)
 
   @transient lazy val internalConnection = {
-    SpliceSpark.setupSpliceStaticComponents();
+    SpliceSpark.setupSpliceStaticComponents()
     val engineDriver: EngineDriver = EngineDriver.driver
     assert(engineDriver != null, "Not booted yet!")
     // Create a static statement context to enable nested connections
     val maker: EmbedConnectionMaker = new EmbedConnectionMaker
-    val dbProperties: Properties = new Properties;
+    val dbProperties: Properties = new Properties
     dbProperties.put("useSpark","true")
-    maker.createNew(dbProperties);
+    maker.createNew(dbProperties)
     dbProperties.put(EmbedConnection.INTERNAL_CONNECTION, "true")
     SpliceClient.isClient = true
     maker.createNew(dbProperties)
   }
 
+  def getConnection(): Connection = {
+    internalConnection
+  }
 
   def tableExists(schemaTableName: String): Boolean = {
     val spliceOptions = Map(

@@ -15,7 +15,7 @@ case class SpliceRelation(jdbcOptions: JDBCOptions)(@transient val sqlContext: S
   with PrunedFilteredScan
   with InsertableRelation {
 
-  private val context: SplicemachineContext = new SplicemachineContext()
+  private val context: SplicemachineContext = new SplicemachineContext(jdbcOptions.url)
 
   override val needConversion: Boolean = true
 
