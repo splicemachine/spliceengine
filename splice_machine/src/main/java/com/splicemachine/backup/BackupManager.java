@@ -16,6 +16,7 @@ package com.splicemachine.backup;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
+import java.sql.Connection;
 import java.util.List;
 
 /**
@@ -39,4 +40,6 @@ public interface BackupManager{
     void cancelDailyBackup(long jobId) throws StandardException;
 
     void cancelBackup() throws StandardException;
+
+    Connection getInternalConnection() throws StandardException;
 }
