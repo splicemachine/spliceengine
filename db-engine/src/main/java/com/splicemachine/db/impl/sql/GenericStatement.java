@@ -726,9 +726,12 @@ public class GenericStatement implements Statement{
     private void walkAST(LanguageConnectionContext lcc, Visitable queryTree, CompilationPhase phase) throws StandardException {
         ASTVisitor visitor = lcc.getASTVisitor();
         if (visitor != null) {
-            visitor.begin(statementText, phase);
-            queryTree.accept(visitor);
-            visitor.end(phase);
+            try {
+                visitor.begin(statementText, phase);
+                queryTree.accept(visitor);
+            } finally {
+                visitor.end(phase);
+            }
         }
     }
 
