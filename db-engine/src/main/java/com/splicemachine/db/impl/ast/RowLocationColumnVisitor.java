@@ -158,13 +158,30 @@ public class RowLocationColumnVisitor extends AbstractSpliceVisitor {
             //
             else {
                 ResultColumnList currentResultColumns = currentNode.getResultColumns();
-
                 ResultSetNode nodeBelowMe = pathToLeaf.get(i + 1);
+                // if its child is a joinNode, we know all columns from the right table have been shifted by 1, so adjust
+                // accordingly
+                if (nodeBelowMe instanceof JoinNode) {
+                    for (ResultColumn rc : currentResultColumns) {
+                        if (rc.getExpression() instanceof VirtualColumnNode) {
+                            VirtualColumnNode vc = (VirtualColumnNode)(rc.getExpression());
+                            if (!vc.getSourceResultColumn().isFromLeftChild()) {
+                                // get the right source column by shifting the columnId by 1
+                                int columnId = vc.getSourceResultColumn().getVirtualColumnId()+1;
+                                ResultColumn childRC = nodeBelowMe.getResultColumns().elementAt(columnId-1);
+                                // create a new virtualColumnNode that points to this childRC
+                                VirtualColumnNode virtualColumnNode = createVirtualColumnNode(dmlNode, vc.getColumnId(), nodeBelowMe, childRC);
+                                rc.setExpression(virtualColumnNode);
+                            }
+                        }
+                    }
+                }
+                // add the RowLocation column
                 ResultColumn rowLocResultCol = nodeBelowMe.getResultColumns().getResultColumn(rowLocationResultColName);
                 int columnId = currentResultColumns.size() + 1;
                 VirtualColumnNode virtualColumnNode = createVirtualColumnNode(dmlNode, columnId, nodeBelowMe, rowLocResultCol);
 
-                ResultColumn newRC = currentResultColumns.getResultColumn(currentResultColumns.size());
+                ResultColumn newRC = currentResultColumns.elementAt(currentResultColumns.size()-1);
                 newRC = newRC.cloneMe();
                 newRC.setExpression(virtualColumnNode);
                 newRC.setName(rowLocationResultColName);
@@ -319,7 +336,7 @@ public class RowLocationColumnVisitor extends AbstractSpliceVisitor {
             /* Iterate over ResultColumns from right side of join only--only those have been shifted by adding
              * RolLocationColumn ResultColumn to left side below the join. */
             for (int position = leftResultColCount + 1; position <= joinResultColCount; position++) {
-                ResultColumn rightSideRC = joinNode.getResultColumns().getResultColumn(position);
+                ResultColumn rightSideRC = joinNode.getResultColumns().elementAt(position-1);
                 boolean equalColNames = rightSideRC.getName().equals(foundColumnRef.getColumnName());
                 boolean expectedMismatch = (foundColumnRef.getColumnNumber() + 1 == rightSideRC.getVirtualColumnId());
                 if (equalColNames && expectedMismatch) {
