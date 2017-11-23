@@ -13,22 +13,38 @@
  */
 package com.splicemachine.spark.splicemachine
 
+import java.security.PrivilegedExceptionAction
+
 import com.splicemachine.EngineDriver
 import com.splicemachine.client.SpliceClient
-import com.splicemachine.db.impl.jdbc.{EmbedConnection}
+import com.splicemachine.db.impl.jdbc.EmbedConnection
 import com.splicemachine.derby.impl.SpliceSpark
-import com.splicemachine.derby.stream.spark.{SparkUtils}
+import com.splicemachine.derby.stream.spark.SparkUtils
 import com.splicemachine.derby.vti.SpliceDatasetVTI
 import com.splicemachine.tools.EmbedConnectionMaker
 import org.apache.spark.rdd.RDD
+import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.sql.execution.datasources.jdbc._
 import org.apache.spark.sql.jdbc.JdbcDialects
-import org.apache.spark.sql.types.{StructType}
-import org.apache.spark.sql.{Dataset, DataFrame, Row}
+import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.{DataFrame, Dataset, Row}
+import org.apache.hadoop.mapreduce.Job
+import org.apache.spark.SerializableWritable
 import java.util.Properties
 import java.sql.{DriverManager, Connection}
 
+import com.splicemachine.access.HConfiguration
+import com.splicemachine.access.hbase.HBaseConnectionFactory
+import org.apache.hadoop.hbase.client.Put
+import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil
+import org.apache.hadoop.security.UserGroupInformation.AuthenticationMethod
+import org.apache.hadoop.security.{Credentials, UserGroupInformation}
+import org.apache.spark.broadcast.Broadcast
+
 class SplicemachineContext(url: String) extends Serializable {
+//  @transient var credentials = SparkHadoopUtil.get.getCurrentUserCredentials()
+//  @transient var appliedCredentials = false
+//  var broadcastCredentials: Broadcast[SerializableWritable[Credentials]] = null
   JdbcDialects.registerDialect(new SplicemachineDialect)
   loadDriver()
 
@@ -45,17 +61,19 @@ class SplicemachineContext(url: String) extends Serializable {
 
 
   @transient lazy val internalConnection = {
-    SpliceSpark.setupSpliceStaticComponents()
+    SpliceClient.isClient = true
+    System.err.println("Splice Client in SplicemachineContext "+SpliceClient.isClient)
+    new SpliceSpark().setupSpliceStaticComponents()
     val engineDriver: EngineDriver = EngineDriver.driver
     loadDriver()
     assert(engineDriver != null, "Not booted yet!")
     // Create a static statement context to enable nested connections
     val maker: EmbedConnectionMaker = new EmbedConnectionMaker
     val dbProperties: Properties = new Properties
-    dbProperties.put("useSpark","true")
-    maker.createNew(dbProperties)
+    dbProperties.put("useSpark", "true")
+    maker.createNew(dbProperties);
     dbProperties.put(EmbedConnection.INTERNAL_CONNECTION, "true")
-    SpliceClient.isClient = true
+
     maker.createNew(dbProperties)
   }
 
@@ -130,7 +148,7 @@ class SplicemachineContext(url: String) extends Serializable {
   }
 
   def rdd(schemaTableName: String,
-              columnProjection: Seq[String] = Nil): RDD[Row] = {
+          columnProjection: Seq[String] = Nil): RDD[Row] = {
     val columnList = SpliceJDBCUtil.listColumns(columnProjection.toArray)
     val sqlText = s"SELECT $columnList FROM ${schemaTableName}"
     df(sqlText).rdd
@@ -157,8 +175,8 @@ class SplicemachineContext(url: String) extends Serializable {
       "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
       s"as SDVTI ($schemaString) where "
     val dialect = JdbcDialects.get(url)
-    val whereClause = keys.map(x => schemaTableName+"."+dialect.quoteIdentifier(x) + " = SDVTI."++dialect.quoteIdentifier(x)).mkString(" AND ")
-    val combinedText = sqlText+whereClause+")"
+    val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) + " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
+    val combinedText = sqlText + whereClause + ")"
     internalConnection.createStatement().executeUpdate(combinedText)
   }
 
@@ -177,8 +195,8 @@ class SplicemachineContext(url: String) extends Serializable {
       "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
       s"as SDVTI ($schemaString) where "
     val dialect = JdbcDialects.get(url)
-    val whereClause = keys.map(x => schemaTableName+"."+dialect.quoteIdentifier(x) + " = SDVTI."++dialect.quoteIdentifier(x)).mkString(" AND ")
-    val combinedText = sqlText+whereClause+")"
+    val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) + " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
+    val combinedText = sqlText + whereClause + ")"
     internalConnection.createStatement().executeUpdate(combinedText)
   }
 
@@ -192,7 +210,7 @@ class SplicemachineContext(url: String) extends Serializable {
     }
     SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
     val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
-    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema,url)
+    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
     var properties = "--SPLICE-PROPERTIES "
     options foreach(option => properties += option._1 + "=" + option._2 +",")
     properties = properties.substring(0, properties.length-1) // what is this doing?
@@ -214,7 +232,7 @@ class SplicemachineContext(url: String) extends Serializable {
   /**
     * Prune all but the specified columns from the specified Catalyst schema.
     *
-    * @param schema - The Catalyst schema of the master table
+    * @param schema  - The Catalyst schema of the master table
     * @param columns - The list of desired columns
     * @return A Catalyst schema corresponding to columns in the given order.
     */

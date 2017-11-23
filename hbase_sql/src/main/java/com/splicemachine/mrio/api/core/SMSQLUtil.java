@@ -493,7 +493,7 @@ public class SMSQLUtil  {
         rs.next();
         byte[] activationHolderBytes = rs.getBytes(1);
         try {
-            SpliceSpark.setupSpliceStaticComponents();
+            new SpliceSpark().setupSpliceStaticComponents();
         } catch (IOException ioe) {
             StandardException.plainWrapException(ioe);
         }

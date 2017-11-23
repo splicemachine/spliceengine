@@ -80,6 +80,6 @@ public class BulkImportFunction implements VoidFunction<BulkImportPartition>, Ex
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         bulkImportDirectory = (String) in.readObject();
-        SpliceSpark.setupSpliceStaticComponents();
+        new SpliceSpark().setupSpliceStaticComponents();
     }
 }

@@ -166,7 +166,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         badRecordsSeen = in.readLong();
         badRecordThreshold = in.readLong();
         permissive=in.readBoolean();
-        SpliceSpark.setupSpliceStaticComponents();
+        new SpliceSpark().setupSpliceStaticComponents();
         boolean isOp=in.readBoolean();
         if(isOp){
             broadcastedActivation = (BroadcastedActivation)in.readObject();

@@ -20,6 +20,7 @@ import static com.splicemachine.si.constants.SIConstants.TRANSACTION_TABLE_BUCKE
 
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
+import java.security.PrivilegedExceptionAction;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,12 +38,16 @@ import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.regionserver.BloomType;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.SIConfigurations;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.spark.deploy.SparkHadoopUtil;
 
 
 /**
@@ -66,10 +71,40 @@ public class HBaseConnectionFactory{
         this.namespaceBytes=Bytes.toBytes(namespace);
         try{
             Configuration config = (Configuration) configuration.getConfigSource().unwrapDelegate();
-            this.connection=ConnectionFactory.createConnection(config);
-            Configuration clonedConfig = new Configuration(config);
-            clonedConfig.setInt("hbase.client.retries.number",1);
-            this.noRetryConnection=ConnectionFactory.createConnection(clonedConfig);
+            String keytab = System.getProperty("spark.yarn.keytab");
+            String principal = System.getProperty("spark.yarn.principal");
+            SpliceLogUtils.info(LOG, "Keytab "+keytab);
+            SpliceLogUtils.info(LOG, "Principal "+principal);
+            if(keytab != null && principal != null) {
+                final Connection[] connArray = new Connection[1];
+                final Connection[] noRetryConnArray = new Connection[1];
+                SpliceLogUtils.info(LOG, "Doing kinit ");
+                UserGroupInformation ugi=UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab);
+                UserGroupInformation.setLoginUser(ugi);
+                try {
+                    ugi.doAs(new PrivilegedExceptionAction<Void>() {
+                        @Override
+                        public Void run() throws IOException {
+                            SpliceLogUtils.info(LOG, "Do As ");
+                            connArray[0]=ConnectionFactory.createConnection(config);
+                            Configuration clonedConfig = new Configuration(config);
+                            clonedConfig.setInt("hbase.client.retries.number",1);
+                            noRetryConnArray[0]=ConnectionFactory.createConnection(clonedConfig);
+                            return null;
+                        }
+                    });
+                } catch (InterruptedException e) {
+                    SpliceLogUtils.info(LOG, e.getMessage());
+                }
+                SpliceLogUtils.info(LOG, "assigning the connection"+connArray[0]);
+                this.connection = connArray[0];
+                this.noRetryConnection = noRetryConnArray[0];
+            } else {
+                this.connection=ConnectionFactory.createConnection(config);
+                Configuration clonedConfig = new Configuration(config);
+                clonedConfig.setInt("hbase.client.retries.number",1);
+                this.noRetryConnection=ConnectionFactory.createConnection(clonedConfig);
+            }
         }catch(IOException ioe){
             throw new RuntimeException(ioe);
         }
