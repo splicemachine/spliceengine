@@ -672,7 +672,7 @@ public class HdfsImport {
                         throw PublicAPI.wrapStandardException(ErrorState.IMPORT_MISSING_NOT_NULL_KEY.newException("" + schemaName + "." + tableName + "." + pk + ""));
                 }
                 //compose the PK condition list
-                String pkConditions = getPKConditions(tableName, pkColums);
+                String pkConditions = getPKConditions(schemaName, tableName, pkColums);
 
                 // In the SET clause, even for column with default value, we don't want to use the case expression but
                 // just need the column name
@@ -943,7 +943,7 @@ public class HdfsImport {
         return pkNames;
     }
 
-    private static String getPKConditions(String tableName, String[] pkColumns) {
+    private static String getPKConditions(String schemaName, String tableName, String[] pkColumns) {
         StringBuffer sb = new StringBuffer();
         sb.append("WHERE ");
         boolean first = true;
@@ -952,6 +952,8 @@ public class HdfsImport {
                 sb.append(" AND ");
             else
                 first = false;
+            sb.append(IdUtil.normalToDelimited(schemaName));
+            sb.append(".");
             sb.append(IdUtil.normalToDelimited(tableName));
             sb.append(".");
             sb.append(IdUtil.normalToDelimited(pkColumns[i]));
