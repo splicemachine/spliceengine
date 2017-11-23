@@ -13,35 +13,53 @@
  */
 package com.splicemachine.spark.splicemachine
 
+import java.security.PrivilegedExceptionAction
+
 import com.splicemachine.EngineDriver
 import com.splicemachine.client.SpliceClient
-import com.splicemachine.db.impl.jdbc.{EmbedConnection}
+import com.splicemachine.db.impl.jdbc.EmbedConnection
 import com.splicemachine.derby.impl.SpliceSpark
-import com.splicemachine.derby.stream.spark.{SparkUtils}
+import com.splicemachine.derby.stream.spark.SparkUtils
 import com.splicemachine.derby.vti.SpliceDatasetVTI
 import com.splicemachine.tools.EmbedConnectionMaker
 import org.apache.spark.rdd.RDD
+import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.sql.execution.datasources.jdbc._
 import org.apache.spark.sql.jdbc.JdbcDialects
-import org.apache.spark.sql.types.{StructType}
-import org.apache.spark.sql.{Dataset, DataFrame, Row}
+import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.{DataFrame, Dataset, Row}
+import org.apache.hadoop.mapreduce.Job
+import org.apache.spark.SerializableWritable
 import java.util.Properties
 import java.sql.Connection
 
+import com.splicemachine.access.HConfiguration
+import com.splicemachine.access.hbase.HBaseConnectionFactory
+import org.apache.hadoop.hbase.client.Put
+import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil
+import org.apache.hadoop.security.UserGroupInformation.AuthenticationMethod
+import org.apache.hadoop.security.{Credentials, UserGroupInformation}
+import org.apache.spark.broadcast.Broadcast
+
 class SplicemachineContext(url: String) extends Serializable {
+//  @transient var credentials = SparkHadoopUtil.get.getCurrentUserCredentials()
+//  @transient var appliedCredentials = false
+//  var broadcastCredentials: Broadcast[SerializableWritable[Credentials]] = null
   JdbcDialects.registerDialect(new SplicemachineDialect)
 
   @transient lazy val internalConnection = {
-    SpliceSpark.setupSpliceStaticComponents()
+    SpliceClient.isClient = true
+    System.err.println("Splice Client in SplicemachineContext "+SpliceClient.isClient)
+    new SpliceSpark().setupSpliceStaticComponents()
     val engineDriver: EngineDriver = EngineDriver.driver
     assert(engineDriver != null, "Not booted yet!")
     // Create a static statement context to enable nested connections
     val maker: EmbedConnectionMaker = new EmbedConnectionMaker
     val dbProperties: Properties = new Properties
-    dbProperties.put("useSpark","true")
-    maker.createNew(dbProperties)
+    dbProperties.put("useSpark", "true")
+    maker.createNew(dbProperties);
     dbProperties.put(EmbedConnection.INTERNAL_CONNECTION, "true")
-    SpliceClient.isClient = true
+
     maker.createNew(dbProperties)
   }
 
@@ -63,11 +81,11 @@ class SplicemachineContext(url: String) extends Serializable {
   }
 
   def tableExists(schemaName: String, tableName: String): Boolean = {
-    tableExists(schemaName+"."+tableName)
+    tableExists(schemaName + "." + tableName)
   }
 
   def dropTable(schemaName: String, tableName: String): Unit = {
-    dropTable(schemaName+"."+tableName)
+    dropTable(schemaName + "." + tableName)
   }
 
 
@@ -84,8 +102,8 @@ class SplicemachineContext(url: String) extends Serializable {
     }
   }
 
-    def createTable(tableName: String,
-                    structType: StructType,
+  def createTable(tableName: String,
+                  structType: StructType,
                   keys: Seq[String],
                   createTableOptions: String): Unit = {
     val spliceOptions = Map(
@@ -94,7 +112,7 @@ class SplicemachineContext(url: String) extends Serializable {
     val jdbcOptions = new JDBCOptions(spliceOptions)
     val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
     try {
-      val schemaString = JdbcUtils.schemaString(structType,jdbcOptions.url)
+      val schemaString = JdbcUtils.schemaString(structType, jdbcOptions.url)
       val keyArray = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
       val primaryKeyString = new StringBuilder()
       val dialect = JdbcDialects.get(jdbcOptions.url)
@@ -116,7 +134,7 @@ class SplicemachineContext(url: String) extends Serializable {
   }
 
   def rdd(schemaTableName: String,
-              columnProjection: Seq[String] = Nil): RDD[Row] = {
+          columnProjection: Seq[String] = Nil): RDD[Row] = {
     val columnList = SpliceJDBCUtil.listColumns(columnProjection.toArray)
     val sqlText = s"SELECT $columnList FROM ${schemaTableName}"
     df(sqlText).rdd
@@ -125,8 +143,8 @@ class SplicemachineContext(url: String) extends Serializable {
   def insert(dataFrame: DataFrame, schemaTableName: String): Unit = {
     SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
     val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
-    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema,url)
-    val sqlText = "insert into " + schemaTableName + " (" + columnList + ") select "+columnList+" from " +
+    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
+    val sqlText = "insert into " + schemaTableName + " (" + columnList + ") select " + columnList + " from " +
       "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
       "as SpliceDatasetVTI (" + schemaString + ")"
     internalConnection.createStatement().executeUpdate(sqlText)
@@ -139,13 +157,13 @@ class SplicemachineContext(url: String) extends Serializable {
     SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
     val keys = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
     val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
-    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema,url)
+    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
     val sqlText = "delete from " + schemaTableName + " where exists (select 1 from " +
       "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
       "as SDVTI (" + schemaString + ") where "
     val dialect = JdbcDialects.get(url)
-    val whereClause = keys.map(x => schemaTableName+"."+dialect.quoteIdentifier(x) + " = SDVTI."++dialect.quoteIdentifier(x)).mkString(" AND ")
-    val combinedText = sqlText+whereClause+")"
+    val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) + " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
+    val combinedText = sqlText + whereClause + ")"
     internalConnection.createStatement().executeUpdate(combinedText)
   }
 
@@ -157,15 +175,15 @@ class SplicemachineContext(url: String) extends Serializable {
     val keys = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
     val prunedFields = dataFrame.schema.fieldNames.filter((p: String) => keys.indexOf(p) == -1)
     val columnList = SpliceJDBCUtil.listColumns(prunedFields)
-    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema,url)
+    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
     val sqlText = "update " + schemaTableName + " " +
-      "set ("+ columnList +") = (" +
+      "set (" + columnList + ") = (" +
       "select " + columnList + " from " +
       "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
       "as SDVTI (" + schemaString + ") where "
     val dialect = JdbcDialects.get(url)
-    val whereClause = keys.map(x => schemaTableName+"."+dialect.quoteIdentifier(x) + " = SDVTI."++dialect.quoteIdentifier(x)).mkString(" AND ")
-    val combinedText = sqlText+whereClause+")"
+    val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) + " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
+    val combinedText = sqlText + whereClause + ")"
     internalConnection.createStatement().executeUpdate(combinedText)
   }
 
@@ -179,13 +197,13 @@ class SplicemachineContext(url: String) extends Serializable {
     }
     SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
     val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
-    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema,url)
+    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
     var properties = "--SPLICE-PROPERTIES "
-    options foreach(option => properties += option._1 + "=" + option._2 +",")
-    properties = properties.substring(0, properties.length-1)
+    options foreach (option => properties += option._1 + "=" + option._2 + ",")
+    properties = properties.substring(0, properties.length - 1)
 
     val sqlText = "insert into " + schemaTableName + " (" + columnList + ") " + properties + "\n" +
-      "select "+columnList+" from " +
+      "select " + columnList + " from " +
       "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
       "as SpliceDatasetVTI (" + schemaString + ")"
     internalConnection.createStatement().executeUpdate(sqlText)
@@ -201,7 +219,7 @@ class SplicemachineContext(url: String) extends Serializable {
   /**
     * Prune all but the specified columns from the specified Catalyst schema.
     *
-    * @param schema - The Catalyst schema of the master table
+    * @param schema  - The Catalyst schema of the master table
     * @param columns - The list of desired columns
     * @return A Catalyst schema corresponding to columns in the given order.
     */

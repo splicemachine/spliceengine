@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Iterator;
 
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
@@ -24,11 +25,18 @@ import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.si.data.hbase.ZkUpgradeK2;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.SecurityUtil;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
+import org.apache.spark.SerializableWritable;
 import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.broadcast.Broadcast;
+import org.apache.spark.deploy.SparkHadoopUtil;
 import org.apache.spark.rdd.RDDOperationScope;
 import org.apache.spark.sql.SparkSession;
 import scala.Tuple2;
@@ -60,6 +68,9 @@ public class SpliceSpark {
     private static final String SCOPE_OVERRIDE = "spark.rdd.scope.noOverride";
     private static final String OLD_SCOPE_KEY = "spark.rdd.scope.old";
     private static final String OLD_SCOPE_OVERRIDE = "spark.rdd.scope.noOverride.old";
+    transient static Credentials credentials = SparkHadoopUtil.get().getCurrentUserCredentials();
+    transient static boolean appliedCredentials = false;
+    Broadcast<SerializableWritable<Credentials>> broadcastCredentials = null;
 
     // Sets both ctx and session
     public static synchronized SparkSession getSession() {
@@ -107,7 +118,44 @@ public class SpliceSpark {
         return !RegionServerLifecycleObserver.isHbaseJVM;
     }
 
-    public static synchronized void setupSpliceStaticComponents() throws IOException {
+    private void applyCreds() throws IOException {
+        credentials = SparkHadoopUtil.get().getCurrentUserCredentials();
+
+        LOG.info("appliedCredentials:" + appliedCredentials + ",credentials:" + credentials);
+
+        if (!appliedCredentials && credentials != null) {
+            appliedCredentials = true;
+            logCredInformation(credentials);
+
+            UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+            ugi.addCredentials(credentials);
+            // specify that this is a proxy user
+            ugi.setAuthenticationMethod(UserGroupInformation.AuthenticationMethod.PROXY);
+
+            ugi.addCredentials(broadcastCredentials.getValue().value());
+            LOG.info("Applied credentials");
+        }
+    }
+
+    private void logCredInformation(Credentials credentials2) {
+        LOG.info("credentials:" + credentials2);
+        for (int i =0 ; i < credentials2.getAllSecretKeys().size(); i++) {
+            LOG.info("getAllSecretKeys:" + i + ":" + credentials2.getAllSecretKeys().get(i));
+        }
+        Iterator it = credentials2.getAllTokens().iterator();
+        while (it.hasNext()) {
+            LOG.info("getAllTokens:" + it.next());
+        }
+    }
+
+    private void broadcastCreds() throws IOException {
+        Job job = Job.getInstance();
+        TableMapReduceUtil.initCredentials(job);
+        broadcastCredentials = SpliceSpark.getContextUnsafe().broadcast(new SerializableWritable(job.getCredentials()));
+        LOG.info("Broadcasted credentials");
+    }
+
+    public synchronized void setupSpliceStaticComponents() throws IOException {
         try {
             if (!spliceStaticComponentsSetup && isRunningOnSpark()) {
                 SynchronousReadResolver.DISABLED_ROLLFORWARD = true;
@@ -118,6 +166,12 @@ public class SpliceSpark {
 
                 //make sure the configuration is correct
                 SConfiguration config=driver.getConfiguration();
+
+                LOG.info("Splice Client in SpliceSpark "+SpliceClient.isClient);
+
+                if(!SpliceClient.isClient)
+                    applyCreds();
+
                 //boot derby components
                 new EngineLifecycleService(new DistributedDerbyStartup(){
                     @Override public void distributedStart() throws IOException{ }
@@ -125,12 +179,16 @@ public class SpliceSpark {
                     @Override public boolean connectAsFirstTime(){ return false; }
                 },config,false).start();
 
+                if(SpliceClient.isClient)
+                    broadcastCreds();
+
                 // Check upgrade from 2.0
                 ZkUpgradeK2 upgrade20 = new ZkUpgradeK2(config.getSpliceRootPath());
                 env.txnStore().setOldTransactions(upgrade20.getOldTransactions());
 
                 EngineDriver engineDriver = EngineDriver.driver();
                 assert engineDriver!=null: "Not booted yet!";
+                LOG.info("SpliceMachine booted");
 
                 // Create a static statement context to enable nested connections
                 EmbedConnection internalConnection = (EmbedConnection)engineDriver.getInternalConnection();
