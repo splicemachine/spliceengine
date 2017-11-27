@@ -652,6 +652,50 @@ public class UpportIT extends SpliceUnitTest {
         rs.close();
     }
 
+    @Test
+    public void testMergeIntoTableInDifferentSchema() throws Exception {
+        PreparedStatement ps = conn.prepareStatement("insert into " + occupiedTable + "(a,b) values (?,?)");
+        List<int[]> newCorrect = Lists.newArrayList(correctFullData);
+        for(int[] correctRow:newCorrect){
+            //add a row that's different
+            ps.setInt(1,correctRow[0]); ps.setInt(2,correctRow[1]/2); ps.executeUpdate();
+        }
+        //add one extra row so that we know that we don't overwrite the entire table
+        ps.setInt(1,size+1); ps.setInt(2,size+1); ps.executeUpdate();
+        newCorrect.add(new int[]{size + 1, size + 1});
+
+        // set to a schema different from the one where the table is located
+        conn.setSchema("SPLICE");
+        CallableStatement statement =
+                conn.prepareCall("call SYSCS_UTIL.MERGE_DATA_FROM_FILE(?,?,null,?,null,null,null,null,null,0,?,null,null)");
+        statement.setString(1,schema.schemaName);
+        statement.setString(2,occupiedTable.tableName);
+        statement.setString(3,fullTestFile.getFilePath());
+        statement.setString(4,BADDIR.getCanonicalPath());
+
+        ResultSet resultSet = statement.executeQuery();
+        //make sure that the bad records list is good
+        //all 5 rows are updated, no extra row inserted
+        validateMergeResults(resultSet,5,0, 0);
+
+        // set back the schema
+        conn.setSchema(schema.schemaName);
+        //make sure that the data matches
+        List<int[]> actualData = Lists.newArrayListWithExpectedSize(size);
+        ResultSet rs = conn.query("select * from "+ occupiedTable);
+        while(rs.next()){
+            int[] data = new int[2];
+            data[0] = rs.getInt(1);
+            Assert.assertFalse("Column a was null!",rs.wasNull());
+            data[1] = rs.getInt(2);
+            Assert.assertFalse("Column b was null!",rs.wasNull());
+            actualData.add(data);
+        }
+
+        Collections.sort(newCorrect, intArrayComparator);
+        Collections.sort(actualData, intArrayComparator);
+        assertCorrectResult(newCorrect, actualData);
+    }
     /*******************************************************************************************************************/
     /*helper methods*/
 
