@@ -1,4 +1,4 @@
-/*
+ /*
  * Copyright (c) 2012 - 2017 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.IterableJoinFunction;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -57,6 +58,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
     protected boolean isLeftOuterJoin;
     protected boolean isAntiJoin;
     protected boolean isOneRowInnerJoin;
+    protected boolean hasMatch;
 
     protected ExecutorCompletionService<Pair<OperationContext, Iterator<ExecRow>>> completionService;
 
@@ -112,6 +114,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                 leftRowLocation = new HBaseRowLocation(leftRow.getKey());
                 operationContext.getOperation().getLeftOperation().setCurrentRow(getLeftLocatedRow());
                 operationContext.getOperation().getLeftOperation().setCurrentRowLocation(getLeftRowLocation());
+                hasMatch = false;
                 nLeftRows--;
             }
         }
@@ -126,36 +129,53 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
         try {
             if (rightSideNLJIterator == null)
                 return false;
-            while (nLeftRows > 0 && !rightSideNLJIterator.hasNext()) {
+            while (true) {
+                while (nLeftRows > 0 && !rightSideNLJIterator.hasNext()) {
+                    // We have consumed all rows from right side iterator, reclaim operation context
+                    currentOperationContext.getOperation().close();
+                    operationContextList.add(currentOperationContext);
 
-                // We have consumed all rows from right side iterator, reclaim operation context
-                currentOperationContext.getOperation().close();
-                operationContextList.add(currentOperationContext);
-
-                if (leftSideIterator.hasNext()) {
-                    // If we haven't consumed left side iterator, submit a task to scan righ side
-                    ExecRow execRow = leftSideIterator.next();
-                    GetNLJoinIterator getNLJoinIterator = GetNLJoinIterator.makeGetNLJoinIterator(joinType,
-                            operationContextList.remove(0), execRow);
-                    completionService.submit(getNLJoinIterator);
-                    nLeftRows++;
+                    if (leftSideIterator.hasNext()) {
+                        // If we haven't consumed left side iterator, submit a task to scan righ side
+                        ExecRow execRow = leftSideIterator.next();
+                        GetNLJoinIterator getNLJoinIterator = GetNLJoinIterator.makeGetNLJoinIterator(joinType,
+                                operationContextList.remove(0), execRow);
+                        completionService.submit(getNLJoinIterator);
+                        nLeftRows++;
+                    }
+                    
+                    if (nLeftRows > 0) {
+                        // If there are pending tasks, wait to get an iterator to righ side
+                        Future<Pair<OperationContext, Iterator<ExecRow>>> future = completionService.take();
+                        Pair<OperationContext, Iterator<ExecRow>> result = future.get();
+                        nLeftRows--;
+                        currentOperationContext = result.getFirst();
+                        rightSideNLJIterator = result.getSecond();
+                        leftRow = currentOperationContext.getOperation().getLeftOperation().getCurrentRow();
+                        leftRowLocation = new HBaseRowLocation(leftRow.getKey());
+                        operationContext.getOperation().getLeftOperation().setCurrentRow(getLeftLocatedRow());
+                        operationContext.getOperation().getLeftOperation().setCurrentRowLocation(getLeftRowLocation());
+                        hasMatch = false;
+                    }
                 }
 
-                if(nLeftRows > 0) {
-                    // If there are pending tasks, wait to get an iterator to righ side
-                    Future<Pair<OperationContext, Iterator<ExecRow>>> future = completionService.take();
-                    Pair<OperationContext, Iterator<ExecRow>> result = future.get();
-                    nLeftRows--;
-                    currentOperationContext = result.getFirst();
-                    rightSideNLJIterator = result.getSecond();
-                    leftRow = currentOperationContext.getOperation().getLeftOperation().getCurrentRow();
-                    leftRowLocation = new HBaseRowLocation(leftRow.getKey());
-                    operationContext.getOperation().getLeftOperation().setCurrentRow(getLeftLocatedRow());
-                    operationContext.getOperation().getLeftOperation().setCurrentRowLocation(getLeftRowLocation());
+                boolean result = rightSideNLJIterator.hasNext();
+                if (result) {
+                    if (!hasMatch)
+                        hasMatch = true;
+                    else {
+                        if (isSemiJoin) {
+                            //skip the subsequent rows
+                            rightSideNLJIterator.next();
+                            continue;
+                        }
+                        // for SSQ, if we get a second matching row for the same left row, report error
+                        if (forSSQ)
+                            throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
+                    }
                 }
+                return result;
             }
-
-            return rightSideNLJIterator.hasNext();
         }
         catch (Exception e) {
             throw new RuntimeException(e);

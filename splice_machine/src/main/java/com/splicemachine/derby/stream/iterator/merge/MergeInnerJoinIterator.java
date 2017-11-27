@@ -19,6 +19,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.PeekingIterator;
+
 import java.util.Iterator;
 
 public class MergeInnerJoinIterator extends AbstractMergeJoinIterator {
@@ -59,7 +60,7 @@ public class MergeInnerJoinIterator extends AbstractMergeJoinIterator {
                 while (currentRightIterator.hasNext()) {
                     currentExecRow = mergeRows(left, currentRightIterator.next());
                     if (mergeJoinOperation.getRestriction().apply(currentExecRow)) {
-                        if (mergeJoinOperation.isOneRowRightSide()) {
+                        if (isSemiJoin) {
                             left = null; // only one joined row needed, force iteration on left side next time
                         }
                         return true;
