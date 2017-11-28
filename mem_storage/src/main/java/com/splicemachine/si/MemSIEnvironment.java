@@ -17,9 +17,13 @@ package com.splicemachine.si;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.FileSystems;
+import java.util.Arrays;
+import java.util.List;
+
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.api.ServiceDiscovery;
 import com.splicemachine.access.api.SnowflakeFactory;
 import com.splicemachine.access.configuration.ConfigurationBuilder;
 import com.splicemachine.access.configuration.HConfigurationDefaultsList;
@@ -43,6 +47,7 @@ import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.storage.*;
 import com.splicemachine.timestamp.api.TimestampSource;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.spark_project.guava.net.HostAndPort;
 
 /**
  * @author Scott Fines
@@ -80,7 +85,7 @@ public class MemSIEnvironment implements SIEnvironment{
         this.opFactory = new MOperationFactory(clock);
         this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory,opFactory);
         this.kaScheduler = new ManualKeepAliveScheduler(txnStore);
-            this.clock = clock;
+        this.clock = clock;
     }
 
     @Override
@@ -179,4 +184,5 @@ public class MemSIEnvironment implements SIEnvironment{
     public ClusterHealth clusterHealthFactory() {
         return new MClusterHealth();
     }
+
 }
