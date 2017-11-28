@@ -18,11 +18,14 @@ package com.splicemachine.derby.utils;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceTestDataSource;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test.SerialTest;
 import org.apache.log4j.Logger;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -33,6 +36,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -49,6 +53,17 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
     protected static SpliceTableWatcher bigTableWatcher = new SpliceTableWatcher("TEST_BIG",CLASS_NAME,"(a int)");
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     protected static final String USER_NAME = CLASS_NAME+"_USER";
+    private SpliceTestDataSource dataSource;
+
+    @Before
+    public void startup() {
+        dataSource = new SpliceTestDataSource();
+    }
+
+    @After
+    public void shutdown() {
+        dataSource.shutdown();
+    }
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher).
@@ -65,6 +80,8 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
                     try {
                         spliceClassWatcher.execute("GRANT EXECUTE ON PROCEDURE SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS TO " + USER_NAME);
                         spliceClassWatcher.execute("GRANT EXECUTE ON PROCEDURE SYSCS_UTIL.SYSCS_KILL_OPERATION TO " + USER_NAME);
+                        spliceClassWatcher.execute("GRANT EXECUTE ON PROCEDURE SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS_LOCAL TO " + USER_NAME);
+                        spliceClassWatcher.execute("GRANT EXECUTE ON PROCEDURE SYSCS_UTIL.SYSCS_KILL_OPERATION_LOCAL TO " + USER_NAME);
                         spliceClassWatcher.execute("GRANT ALL PRIVILEGES ON TABLE " + bigTableWatcher + " TO " + USER_NAME);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -235,7 +252,7 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
             connection2.execute(killCall);
             fail("Should have raised exception");
         } catch (SQLException se) {
-            assertEquals("4251N", se.getSQLState());
+            assertEquals("4251P", se.getSQLState());
         }
 
 
@@ -328,7 +345,7 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
             methodWatcher.getOrCreateConnection().execute(killCall);
             fail("Should have raised exception");
         } catch (SQLException se) {
-            assertEquals("22008", se.getSQLState());
+            assertEquals("4251P", se.getSQLState());
         }
 
         try {
@@ -338,6 +355,63 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
             fail("Should have raised exception");
         } catch (SQLException se) {
             assertEquals("4251P", se.getSQLState());
+        }
+    }
+
+    @Test
+    public void testOtherServersCanKillOperation() throws Exception {
+        Connection connection1 = dataSource.getConnection("localhost", 1527);
+        Connection connection2 = dataSource.getConnection("localhost", 1528);
+
+
+        String sql= "select * from "+bigTableWatcher;
+
+        PreparedStatement ps = connection1.prepareStatement(sql);
+        ResultSet rs = ps.executeQuery();
+        assertTrue(rs.next());
+
+
+        // View from conn1
+        String opsCall= "call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS()";
+
+        ResultSet opsRs = connection1.createStatement().executeQuery(opsCall);
+
+        int count = 0;
+        String uuid = null;
+        while(opsRs.next()) {
+            count++;
+            if (opsRs.getString(5).equals(sql)) {
+                uuid = opsRs.getString(1);
+            }
+        }
+        assertEquals(2, count); // 2 running operations, cursor + the procedure call itself
+        opsRs.close();
+
+
+        // View from conn2
+        opsRs = connection2.createStatement().executeQuery(opsCall);
+
+        count = 0;
+        while(opsRs.next()) {
+            count++;
+        }
+        assertEquals(2, count); // 2 running operations, cursor + the procedure call itself
+
+
+        // try to kill the cursor
+        String killCall = "call SYSCS_UTIL.SYSCS_KILL_OPERATION('"+uuid+"')";
+        connection2.createStatement().execute(killCall);
+
+        // iterate over the cursor, should raise exception
+        int rows = 0;
+        try {
+            while(rs.next()) {
+                rows++;
+            }
+            fail("Should have raised exception");
+        } catch (SQLException se) {
+            LOG.debug("Raised exception after " + rows + " rows.");
+            assertEquals("SE008", se.getSQLState());
         }
     }
 
