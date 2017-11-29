@@ -39,8 +39,6 @@ import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 
 import java.util.List;
 
-import static com.splicemachine.db.impl.sql.compile.SelectivityUtil.SelectivityJoinType.OUTER;
-
 /**
  *
  * This class incorporates all join selectivity algorithms for splice machine.  This still needs a little work with identifying situations where the
@@ -85,8 +83,6 @@ public class SelectivityUtil {
                     return 1-1d/innerRowCount;
             }
         }
-
-
         double selectivity = 1.d;
         if (predList != null) {
             for (int i = 0; i < predList.size(); i++) {
@@ -99,7 +95,7 @@ public class SelectivityUtil {
         //Outer join selectivity should be bounded by 1 / innerRowCount, so that the outputRowCount no less than
         // the left table's row count,
 
-        if (selectivityJoinType == OUTER) {
+        if (selectivityJoinType == selectivityJoinType.OUTER) {
             selectivity = Math.max(selectivity,1d / innerRowCount);
         }
         return selectivity;
@@ -238,7 +234,7 @@ public class SelectivityUtil {
      *
      * @param innerCost
      * @param outerCost
-     *W @return
+     * @return
      */
     public static double broadcastJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost) {
         return (outerCost.localCostPerPartition())+innerCost.localCost()+innerCost.remoteCost()+innerCost.getOpenCost()+innerCost.getCloseCost()+.01; // .01 Hash Cost//
@@ -281,8 +277,8 @@ public class SelectivityUtil {
                 +outerCost.getOpenCost()+outerCost.getCloseCost();
         double innerShuffleCost = innerCost.localCostPerPartition()+innerCost.getRemoteCost()/innerCost.partitionCount()
                 +innerCost.getOpenCost()+innerCost.getCloseCost();
-        double innerReadCost = innerCost.localCost()/outerCost.partitionCount();
         double outerReadCost = outerCost.localCost()/outerCost.partitionCount();
+        double innerReadCost = innerCost.localCost()/outerCost.partitionCount();
 
         return outerShuffleCost+innerShuffleCost+outerReadCost+innerReadCost;
     }
