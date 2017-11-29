@@ -31,13 +31,13 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import java.util.Collections;
-import java.util.List;
-
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.error.StandardException;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  * A VirtualColumnNode represents a virtual column reference to a column in
@@ -332,5 +332,9 @@ public class VirtualColumnNode extends ValueNode
 		else {
 			return sourceColumn.getTableNumber();
 		}
+	}
+
+	public int getColumnId() {
+		return columnId;
 	}
 }
