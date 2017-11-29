@@ -22,13 +22,13 @@ import com.splicemachine.derby.test.framework.SpliceTestDataSource;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test.SerialTest;
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -359,6 +359,7 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
     }
 
     @Test
+    @Category(HBaseTest.class) // we require a distributed environment for this test
     public void testOtherServersCanKillOperation() throws Exception {
         Connection connection1 = dataSource.getConnection("localhost", 1527);
         Connection connection2 = dataSource.getConnection("localhost", 1528);

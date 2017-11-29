@@ -177,7 +177,7 @@
                         </goals>
                         <configuration>
                             <groups>com.splicemachine.test.SerialTest</groups>
-                            <excludedGroups>${excluded.categories}</excludedGroups>
+                            <excludedGroups>com.splicemachine.test.HBaseTest, ${excluded.categories}</excludedGroups>
                             <argLine>-Xmx3g</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
@@ -199,7 +199,7 @@
                             <goal>verify</goal>
                         </goals>
                         <configuration>
-                            <excludedGroups>com.splicemachine.test.SerialTest, ${excluded.categories}</excludedGroups>
+                            <excludedGroups>com.splicemachine.test.SerialTest, com.splicemachine.test.HBaseTest, ${excluded.categories}</excludedGroups>
                             <!--<skipTests>${skip.integration.tests}</skipTests>-->
                             <parallel>classes</parallel>
                             <threadCount>4</threadCount>
