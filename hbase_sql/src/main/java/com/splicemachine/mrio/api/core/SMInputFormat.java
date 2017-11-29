@@ -83,7 +83,7 @@ public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
             }
         }
         try {
-            if (SIDriver.driver() == null) new SpliceSpark().setupSpliceStaticComponents();
+            if (SIDriver.driver() == null) SpliceSpark.setupSpliceStaticComponents();
             PartitionFactory tableFactory=SIDriver.driver().getTableFactory();
             setHTable(((ClientPartition)tableFactory.getTable(conglomerate)).unwrapDelegate());
         } catch (Exception e) {
