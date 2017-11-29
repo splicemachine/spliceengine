@@ -107,7 +107,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         storeColumn = new byte[in.readInt()];
         in.readFully(storeColumn);
         isMajor = in.readBoolean();
-        new SpliceSpark().setupSpliceStaticComponents();
+        SpliceSpark.setupSpliceStaticComponents();
     }
 
     @SuppressWarnings("unchecked")

@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.security.PrivilegedExceptionAction;
 import java.util.Iterator;
 
 import com.splicemachine.client.SpliceClient;
@@ -25,8 +26,6 @@ import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.si.data.hbase.ZkUpgrade;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
-import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -36,7 +35,6 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.broadcast.Broadcast;
-import org.apache.spark.deploy.SparkHadoopUtil;
 import org.apache.spark.rdd.RDDOperationScope;
 import org.apache.spark.sql.SparkSession;
 import scala.Tuple2;
@@ -60,17 +58,18 @@ import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
 
 public class SpliceSpark {
     private static Logger LOG = Logger.getLogger(SpliceSpark.class);
+
+    private SpliceSpark() {} // private constructor forbids creating instances
+
     static JavaSparkContext ctx;
     static SparkSession session;
     static boolean initialized = false;
     static boolean spliceStaticComponentsSetup = false;
+    static Broadcast<SerializableWritable<Credentials>> credentials;
     private static final String SCOPE_KEY = "spark.rdd.scope";
     private static final String SCOPE_OVERRIDE = "spark.rdd.scope.noOverride";
     private static final String OLD_SCOPE_KEY = "spark.rdd.scope.old";
     private static final String OLD_SCOPE_OVERRIDE = "spark.rdd.scope.noOverride.old";
-    transient static Credentials credentials = SparkHadoopUtil.get().getCurrentUserCredentials();
-    transient static boolean appliedCredentials = false;
-    Broadcast<SerializableWritable<Credentials>> broadcastCredentials = null;
 
     // Sets both ctx and session
     public static synchronized SparkSession getSession() {
@@ -82,6 +81,14 @@ public class SpliceSpark {
         return getSessionUnsafe();
     }
 
+    public static synchronized  void setCredentials(Broadcast<SerializableWritable<Credentials>> creds) {
+        credentials = creds;
+    }
+
+    public static synchronized  Broadcast<SerializableWritable<Credentials>> getCredentials() {
+        return credentials;
+    }
+    
     /** This method is unsafe, it should only be used on tests are as a convenience when trying to
      * get a local Spark Context, it should never be used when implementing Splice operations or functions
      */
@@ -118,26 +125,23 @@ public class SpliceSpark {
         return !RegionServerLifecycleObserver.isHbaseJVM;
     }
 
-    private void applyCreds() throws IOException {
-        credentials = SparkHadoopUtil.get().getCurrentUserCredentials();
+    private static UserGroupInformation applyCreds(Credentials credentials) throws IOException {
+        LOG.info("credentials:" + credentials);
 
-        LOG.info("appliedCredentials:" + appliedCredentials + ",credentials:" + credentials);
+        logCredInformation(credentials);
 
-        if (!appliedCredentials && credentials != null) {
-            appliedCredentials = true;
-            logCredInformation(credentials);
+        UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+        ugi.addCredentials(credentials);
+        // specify that this is a proxy user
+        ugi.setAuthenticationMethod(UserGroupInformation.AuthenticationMethod.PROXY);
+        System.out.println("Set auth to token");
 
-            UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
-            ugi.addCredentials(credentials);
-            // specify that this is a proxy user
-            ugi.setAuthenticationMethod(UserGroupInformation.AuthenticationMethod.PROXY);
+        LOG.info("Applied credentials");
 
-            ugi.addCredentials(broadcastCredentials.getValue().value());
-            LOG.info("Applied credentials");
-        }
+        return ugi;
     }
 
-    private void logCredInformation(Credentials credentials2) {
+    public static void logCredInformation(Credentials credentials2) {
         LOG.info("credentials:" + credentials2);
         for (int i =0 ; i < credentials2.getAllSecretKeys().size(); i++) {
             LOG.info("getAllSecretKeys:" + i + ":" + credentials2.getAllSecretKeys().get(i));
@@ -148,14 +152,25 @@ public class SpliceSpark {
         }
     }
 
-    private void broadcastCreds() throws IOException {
-        Job job = Job.getInstance();
-        TableMapReduceUtil.initCredentials(job);
-        broadcastCredentials = SpliceSpark.getContextUnsafe().broadcast(new SerializableWritable(job.getCredentials()));
-        LOG.info("Broadcasted credentials");
+    public static synchronized void setupSpliceStaticComponents(Credentials credentials) throws IOException {
+        if (!spliceStaticComponentsSetup && isRunningOnSpark()) {
+            UserGroupInformation ugi = applyCreds(credentials);
+            try {
+                ugi.doAs(new PrivilegedExceptionAction<Void>() {
+                    @Override
+                    public Void run() throws Exception {
+                        setupSpliceStaticComponents();
+                        return null;
+                    }
+                });
+            } catch (InterruptedException e) {
+                LOG.error("Interrupted exception", e);
+                throw new RuntimeException(e);
+            }
+        }
     }
-
-    public synchronized void setupSpliceStaticComponents() throws IOException {
+    
+    public static synchronized void setupSpliceStaticComponents() throws IOException {
         try {
             if (!spliceStaticComponentsSetup && isRunningOnSpark()) {
                 SynchronousReadResolver.DISABLED_ROLLFORWARD = true;
@@ -168,19 +183,13 @@ public class SpliceSpark {
                 SConfiguration config=driver.getConfiguration();
 
                 LOG.info("Splice Client in SpliceSpark "+SpliceClient.isClient);
-
-                if(!SpliceClient.isClient)
-                    applyCreds();
-
+                
                 //boot derby components
                 new EngineLifecycleService(new DistributedDerbyStartup(){
                     @Override public void distributedStart() throws IOException{ }
                     @Override public void markBootFinished() throws IOException{ }
                     @Override public boolean connectAsFirstTime(){ return false; }
                 },config,false).start();
-
-                if(SpliceClient.isClient)
-                    broadcastCreds();
 
                 EngineDriver engineDriver = EngineDriver.driver();
                 assert engineDriver!=null: "Not booted yet!";
@@ -359,6 +368,12 @@ public class SpliceSpark {
     public static void popScope() {
         SpliceSpark.getContext().setLocalProperty("spark.rdd.scope", null);
         SpliceSpark.getContext().setLocalProperty("spark.rdd.scope.noOverride", null);
+    }
+    
+    public synchronized static void setContext(JavaSparkContext sparkContext) {
+        session = SparkSession.builder().config(sparkContext.getConf()).getOrCreate(); // Claims this is a singleton from documentation
+        ctx = sparkContext;
+        initialized = true;
     }
 
     public synchronized static void setContext(SparkContext sparkContext) {
