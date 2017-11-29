@@ -71,16 +71,16 @@ public class SelectivityUtil {
                                                  long innerRowCount,long outerRowCount,
                                                  SelectivityJoinType selectivityJoinType) throws StandardException {
 
-        assert innerTable!=null:"Null values passed in to estimateJoinSelectivity " + innerTable ;
-        assert innerTable!=null:"Null values passed in to hashJoinSelectivity";
+        assert innerTable != null : "Null values passed in to estimateJoinSelectivity " + innerTable;
+        assert innerTable != null : "Null values passed in to hashJoinSelectivity";
 
         if (isOneRowResultSet(innerTable, innerCD, predList)) {
             switch (selectivityJoinType) {
                 case OUTER:
                 case INNER:
-                    return 1d/innerRowCount;
+                    return 1d / innerRowCount;
                 case ANTIJOIN:
-                    return 1-1d/innerRowCount;
+                    return 1 - 1d / innerRowCount;
             }
         }
         double selectivity = 1.d;
@@ -91,9 +91,15 @@ public class SelectivityUtil {
                 selectivity = Math.min(selectivity, p.joinSelectivity(innerTable, innerCD, innerRowCount, outerRowCount, selectivityJoinType));
             }
         }
-        return selectivity;
-    };
 
+        //Outer join selectivity should be bounded by 1 / innerRowCount, so that the outputRowCount no less than
+        // the left table's row count,
+
+        if (selectivityJoinType == selectivityJoinType.OUTER) {
+            selectivity = Math.max(selectivity, 1d / innerRowCount);
+        }
+        return selectivity;
+    }
     public static double estimateScanSelectivity(Optimizable innerTable, OptimizablePredicateList predList) throws StandardException {
         double selectivity = 1d;
         if (innerTable == null) {
