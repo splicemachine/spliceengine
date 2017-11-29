@@ -60,7 +60,7 @@ public class SelectivityUtil {
                             long innerRowCount,long outerRowCount,
                             CostEstimate outerCost) throws StandardException {
         if (outerCost.isOuterJoin())
-            return estimateJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount, OUTER);
+            return estimateJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount,SelectivityJoinType.OUTER);
         else if (outerCost.isAntiJoin())
             return estimateJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount,SelectivityJoinType.ANTIJOIN);
         else
