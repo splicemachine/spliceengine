@@ -126,6 +126,14 @@ public class JoinSelectivityNoIndexesIT extends SpliceUnitTest {
         conn.createStatement().executeQuery(format(
                 "call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s',false)",
                 spliceSchemaWatcher));
+        new TableCreator(conn)
+                .withCreate("create table t1_left_outer (a1 int)")
+                .withInsert("insert into t1_left_outer values (?)")
+                .withRows(rows(row(1),row(2),row(3),row(4),row(5),row(6),row(7),
+                        row(8),row(9),row(10),row(11),row(12),row(13),row(14),
+                        row(15),row(16),row(17),row(18),row(19),row(20),row(21))).create();
+        new TableCreator(conn).withCreate("create table t2 (a2 int)").create();
+        conn.createStatement().executeQuery("analyze table t1_left_outer");
         conn.commit();
 
     }
@@ -143,5 +151,10 @@ public class JoinSelectivityNoIndexesIT extends SpliceUnitTest {
     @Test
     public void leftAntiJoinNoRelationships() throws Exception {
         firstRowContainsQuery("explain select * from ts_10_npk where not exists (select * from ts_5_npk where ts_10_npk.c1 = ts_5_npk.c1)","rows=10",methodWatcher);
+    }
+
+    @Test
+    public void leftOuterJoinRowCount() throws Exception {
+        thirdRowContainsQuery("explain select * from t1_left_outer left join t2 on a1 = a2","outputRows=21", methodWatcher);
     }
 }
