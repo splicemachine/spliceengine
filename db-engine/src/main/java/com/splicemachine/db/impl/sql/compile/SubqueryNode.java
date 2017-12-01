@@ -686,9 +686,10 @@ public class SubqueryNode extends ValueNode{
         if(flattenable){
             boolean hasSubquery = isWhereExistsAnyInWithWhereSubquery();
             SelectNode select=(SelectNode)resultSet;
+            boolean hasAggregation = select.hasAggregatesInSelectList() || select.havingClause!=null;
             int topSelectNodeLevel =select.getNestingLevel() - 1;
             boolean nestedColumnReference = hasNestedCR(((SelectNode) resultSet).wherePredicates, topSelectNodeLevel);
-            if((!select.hasAggregatesInSelectList()) && (select.havingClause==null) && !nestedColumnReference){
+            if(!nestedColumnReference){
                 ValueNode origLeftOperand=leftOperand;
 
 				/* Check for uniqueness condition. */
@@ -713,7 +714,7 @@ public class SubqueryNode extends ValueNode{
 				/* Never flatten to normal join for NOT EXISTS.
 				 */
 
-                if(!hasSubquery && (!flattenableNotExists) && select.uniqueSubquery(additionalEQ)){
+                if(!hasSubquery && !hasAggregation && (!flattenableNotExists) && select.uniqueSubquery(additionalEQ)){
                     // Flatten the subquery
                     return flattenToNormalJoin(outerFromList,outerSubqueryList,outerPredicateList);
                 }
@@ -748,7 +749,7 @@ public class SubqueryNode extends ValueNode{
                         select.getWherePredicates().allPushable()){
                     FromBaseTable fbt=singleFromBaseTable(select.getFromList());
 
-                    if(!hasSubquery && fbt!=null && (!flattenableNotExists
+                    if(!hasSubquery && !hasAggregation && fbt!=null && (!flattenableNotExists
                             || (select.getWherePredicates().allReference(fbt)
                             && rightOperandFlattenableToNotExists(numTables,fbt)))){
                         if (flattenableNotExists) {
@@ -2474,6 +2475,15 @@ public class SubqueryNode extends ValueNode{
         outerSubqueryList.removeElement(this);
 
         ResultColumnList resultColumns=resultSet.getResultColumns();
+
+        // reset the groupByColumn's properties so that it is consistent with DB-3649's fix for
+        // fromSubquery in FromSubquery.preprocess()
+        for (ResultColumn rc: resultColumns) {
+            if (rc.isGroupingColumn()) {
+                rc.isGenerated = false;
+                rc.isReferenced = false;
+            }
+        }
 
 		// Create a new PR node.  Put it over the original subquery.
         ResultColumnList newRCL=resultColumns.copyListAndObjects();
