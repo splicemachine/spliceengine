@@ -2101,6 +2101,8 @@ public interface DataDictionary{
 
     List<BackupDescriptor> getBackupDescriptorList() throws StandardException;
 
+    List<BackupItemsDescriptor> getBackupItemDescriptorList() throws StandardException;
+
     void addBackupItem(TupleDescriptor descriptor, TransactionController tc) throws StandardException;
 
     void deleteAllBackupItems(long backupId, TransactionController tc) throws StandardException;
