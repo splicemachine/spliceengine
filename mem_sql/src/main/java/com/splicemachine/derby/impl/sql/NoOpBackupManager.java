@@ -18,6 +18,8 @@ import com.splicemachine.backup.BackupManager;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.shared.common.reference.SQLState;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.List;
 
 /**
@@ -33,6 +35,10 @@ public class NoOpBackupManager implements BackupManager{
 
     private NoOpBackupManager(){ }
 
+    @Override
+    public Connection getInternalConnection() throws StandardException {
+        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
+    }
     @Override
     public long fullBackup(String backupDirectory, boolean sync) throws StandardException {
         throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
