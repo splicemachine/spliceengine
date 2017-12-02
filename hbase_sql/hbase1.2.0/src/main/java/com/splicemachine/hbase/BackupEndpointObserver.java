@@ -30,6 +30,7 @@ import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.util.FSUtils;
+import org.apache.hadoop.hbase.zookeeper.ZKUtil;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs;
@@ -145,15 +146,20 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
                 canceled = BackupUtils.backupCanceled();
                 if (!canceled) {
                     // Create a ZNode to indicate that the region is being copied
-                    ZkUtils.recursiveSafeCreate(path, HConfiguration.BACKUP_IN_PROGRESS, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                    boolean created = ZkUtils.recursiveSafeCreate(path, HConfiguration.BACKUP_IN_PROGRESS, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
                     if (LOG.isDebugEnabled()) {
-                        SpliceLogUtils.debug(LOG,"create node %s to mark backup in progress", path);
+                        if (ZkUtils.getRecoverableZooKeeper().exists(path, false) != null) {
+                            SpliceLogUtils.debug(LOG,"created znode %s to mark backup in progress, created = %s", path, created);
+                        }else {
+                            SpliceLogUtils.warn(LOG, "failed to create znode %s, created = %s", path, created);
+                        }
                     }
 
                     if (isFlushing.get() || isCompacting.get() || isSplitting.get()) {
                         if (LOG.isDebugEnabled()) {
                             SpliceLogUtils.debug(LOG, "table %s region %s is not ready for backup: isSplitting=%s, isCompacting=%s, isFlushing=%s",
                                     isSplitting.get(), isCompacting.get(), isFlushing.get());
+                            SpliceLogUtils.debug(LOG, "delete znode %d", path);
                         }
                         ZkUtils.recursiveDelete(path);
                     }
