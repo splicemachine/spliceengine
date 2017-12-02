@@ -10183,6 +10183,47 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     @Override
+    public List<BackupItemsDescriptor> getBackupItemDescriptorList() throws StandardException {
+        TabInfoImpl ti=getNonCoreTI(SYSBACKUPITEMS_CATALOG_NUM);
+        SYSBACKUPITEMSRowFactory rf=(SYSBACKUPITEMSRowFactory)ti.getCatalogRowFactory();
+        ExecRow outRow;
+        ScanController scanController;
+        TransactionController tc;
+        List<BackupItemsDescriptor> backupItemDescriptorList = Lists.newArrayList();
+
+        // Get the current transaction controller
+        tc=getTransactionCompile();
+
+        outRow=rf.makeEmptyRow();
+        /*
+		** Table scan
+		*/
+        scanController=tc.openScan(
+                ti.getHeapConglomerate(),      // conglomerate to open
+                false,                          // don't hold open across commit
+                0,                              // for read
+                TransactionController.MODE_TABLE,
+                TransactionController.ISOLATION_REPEATABLE_READ,
+                null,               // all fields as objects
+                null, // start position - first row
+                0,                          // startSearchOperation - none
+                null,              // scanQualifier,
+                null, // stop position -through last row
+                0);                          // stopSearchOperation - none
+
+        try{
+            while(scanController.fetchNext(outRow.getRowArray())){
+                BackupItemsDescriptor bd = (BackupItemsDescriptor) rf.buildDescriptor(outRow, null, this);
+                backupItemDescriptorList.add(bd);
+            }
+        }finally{
+            scanController.close();
+        }
+
+        return backupItemDescriptorList;
+    }
+
+    @Override
     public void addBackupItem(TupleDescriptor descriptor, TransactionController tc) throws StandardException {
         TabInfoImpl ti=getNonCoreTI(SYSBACKUPITEMS_CATALOG_NUM);
         ExecRow row = ti.getCatalogRowFactory().makeRow(descriptor, null);
