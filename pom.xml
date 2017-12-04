@@ -917,7 +917,6 @@
                 <hive.version>1.1.0-cdh5.6.0</hive.version>
                 <zookeeper.version>3.4.5-cdh5.6.0</zookeeper.version>
                 <spark.version>2.1.0.cloudera1</spark.version>
-                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.6.0</spark-assembly-id>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
             <modules>
@@ -943,7 +942,6 @@
                 <hive.version>1.1.0-cdh5.6.1</hive.version>
                 <zookeeper.version>3.4.5-cdh5.6.1</zookeeper.version>
                 <spark.version>2.1.0.cloudera1</spark.version>
-                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.6.1</spark-assembly-id>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
             <modules>
@@ -969,7 +967,6 @@
                 <hive.version>1.1.0-cdh5.7.2</hive.version>
                 <zookeeper.version>3.4.5-cdh5.7.2</zookeeper.version>
                 <spark.version>2.1.0.cloudera1</spark.version>
-                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.7.2</spark-assembly-id>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
             <modules>
@@ -995,7 +992,6 @@
                 <hive.version>1.1.0-cdh5.7.3</hive.version>
                 <zookeeper.version>3.4.5-cdh5.7.3</zookeeper.version>
                 <spark.version>2.1.0.cloudera1</spark.version>
-                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.7.3</spark-assembly-id>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
             <modules>
@@ -1021,7 +1017,6 @@
                 <hive.version>1.1.0-cdh5.7.4</hive.version>
                 <zookeeper.version>3.4.5-cdh5.7.4</zookeeper.version>
                 <spark.version>2.1.0.cloudera1</spark.version>
-                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.7.4</spark-assembly-id>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
             <modules>
@@ -1047,7 +1042,6 @@
                 <hive.version>1.1.0-cdh5.7.5</hive.version>
                 <zookeeper.version>3.4.5-cdh5.7.5</zookeeper.version>
                 <spark.version>2.1.0.cloudera1</spark.version>
-                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.7.5</spark-assembly-id>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
             <modules>
@@ -1073,7 +1067,6 @@
                 <hive.version>1.1.0-cdh5.8.0</hive.version>
                 <zookeeper.version>3.4.5-cdh5.8.0</zookeeper.version>
                 <spark.version>2.1.0.cloudera1</spark.version>
-                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.8.0</spark-assembly-id>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
                 <netty.version>3.6.2.Final</netty.version>
             </properties>
@@ -1100,7 +1093,6 @@
                 <hive.version>1.1.0-cdh5.8.2</hive.version>
                 <zookeeper.version>3.4.5-cdh5.8.2</zookeeper.version>
                 <spark.version>2.1.0.cloudera1</spark.version>
-                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.8.2</spark-assembly-id>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
             <modules>
@@ -1126,14 +1118,12 @@
                 <hive.version>1.1.0-cdh5.8.3</hive.version>
                 <zookeeper.version>3.4.5-cdh5.8.3</zookeeper.version>
                 <spark.version>2.1.0.cloudera1</spark.version>
-                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.8.3</spark-assembly-id>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
-                <module>splice_spark</module>
             </modules>
         </profile>
         <profile>
@@ -1153,7 +1143,6 @@
                 <hive.version>1.1.0-cdh5.8.5</hive.version>
                 <zookeeper.version>3.4.5-cdh5.8.5</zookeeper.version>
                 <spark.version>2.1.0.cloudera1</spark.version>
-                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.9.0</spark-assembly-id>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
             <modules>
@@ -1179,14 +1168,12 @@
                 <hive.version>1.1.0-cdh5.12.0</hive.version>
                 <zookeeper.version>3.4.5-cdh5.12.0</zookeeper.version>
                 <spark.version>2.1.0.cloudera1</spark.version>
-                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.12.0</spark-assembly-id>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
-                <module>splice_spark</module>
             </modules>
         </profile>
         <profile>
