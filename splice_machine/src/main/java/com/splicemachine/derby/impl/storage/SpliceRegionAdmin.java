@@ -234,6 +234,14 @@ public class SpliceRegionAdmin {
                                      String regionName1,
                                      String regionName2) throws Exception {
 
+        if (regionName1 == null) {
+            throw StandardException.newException(SQLState.PARAMETER_CANNOT_BE_NULL, "regionName1");
+        }
+
+        if (regionName2 == null) {
+            throw StandardException.newException(SQLState.PARAMETER_CANNOT_BE_NULL, "regionName2");
+        }
+
         TableDescriptor td = getTableDescriptor(schemaName, tableName);
         ConglomerateDescriptor index = null;
         if (indexName != null) {
@@ -277,6 +285,13 @@ public class SpliceRegionAdmin {
                                String indexName,
                                String regionName,
                                boolean isMajor) throws Exception {
+
+        if (regionName == null) {
+            throw StandardException.newException(SQLState.PARAMETER_CANNOT_BE_NULL, "regionName");
+        }
+        else {
+            regionName = regionName.trim();
+        }
 
         TableDescriptor td = getTableDescriptor(schemaName, tableName);
         ConglomerateDescriptor index = null;
@@ -341,7 +356,7 @@ public class SpliceRegionAdmin {
                                                ResultSet[] results) throws Exception {
 
         if(splitKey == null)
-            throw StandardException.newException(SQLState.SPLIT_KEY_CANNOT_BE_NULL);
+            throw StandardException.newException(SQLState.PARAMETER_CANNOT_BE_NULL, "splitKey");
 
         TableDescriptor td = getTableDescriptor(schemaName, tableName);
         ConglomerateDescriptor index = null;
@@ -413,6 +428,10 @@ public class SpliceRegionAdmin {
                                      String indexName,
                                      String encodedRegionName,
                                      ResultSet[] results) throws Exception {
+        if (encodedRegionName == null) {
+            throw StandardException.newException(SQLState.PARAMETER_CANNOT_BE_NULL, "encodedRegionName");
+        }
+
         TableDescriptor td = getTableDescriptor(schemaName, tableName);
 
         ConglomerateDescriptor index = null;
@@ -505,7 +524,8 @@ public class SpliceRegionAdmin {
         for(Partition p : partitionList) {
             byte[] start = p.getStartKey();
             byte[] end = p.getEndKey();
-            if (Bytes.compareTo(rowKey, start) >= 0 && Bytes.compareTo(rowKey, end) < 0) {
+            if ((start.length == 0 || Bytes.compareTo(rowKey, start) >= 0) &&
+                    (end.length == 0 || Bytes.compareTo(rowKey, end) < 0)) {
                 return p;
             }
         }

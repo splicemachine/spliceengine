@@ -23,6 +23,12 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.pipeline.ErrorState;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -66,11 +72,22 @@ public class TableSplit{
                                                   String charset,
                                                   ResultSet[] results
     ) throws Exception {
-        Connection connection = getDefaultConn();
-        long conglomId = getConglomerateId(connection, schemaName, tableName, indexName);
+        EmbedConnection defaultConn=(EmbedConnection) SpliceAdmin.getDefaultConn();
+        Activation lastActivation=defaultConn.getLanguageConnection().getLastActivation();
+        LanguageConnectionContext lcc = lastActivation.getLanguageConnectionContext();
+
+        if (tableName == null) {
+            throw StandardException.newException(SQLState.TABLE_NAME_CANNOT_BE_NULL);
+        }
+
+        if (schemaName == null) {
+            schemaName = lcc.getCurrentSchemaName();
+        }
+
+        long conglomId = getConglomerateId(defaultConn, schemaName, tableName, indexName);
         String tempDir = new Path(badRecordDirectory, ".TMP").toString();
         String sql = "call syscs_util.compute_split_key(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-        PreparedStatement ps = connection.prepareStatement(sql);
+        PreparedStatement ps = defaultConn.prepareStatement(sql);
         ps.setString(1, schemaName);
         ps.setString(2, tableName);
         ps.setString(3, indexName);
@@ -115,7 +132,7 @@ public class TableSplit{
      * @throws SQLException if something goes wrong.
      */
     public static void SYSCS_SPLIT_TABLE_EVENLY(String schemaName, String tableName,
-                                         int numSplits) throws SQLException{
+                                         int numSplits) throws SQLException, StandardException {
         //build split points out of integers
         if (numSplits<2) return; //no point in splitting a table that's already the right size
 
@@ -143,7 +160,7 @@ public class TableSplit{
      * @param tableName the name of the table
      * @throws SQLException
      */
-    public static void SYSCS_SPLIT_TABLE(String schemaName, String tableName) throws SQLException{
+    public static void SYSCS_SPLIT_TABLE(String schemaName, String tableName) throws SQLException, StandardException {
         SYSCS_SPLIT_TABLE_AT_POINTS(schemaName, tableName, null);
     }
 
@@ -165,17 +182,17 @@ public class TableSplit{
      * @throws SQLException
      */
     public static void SYSCS_SPLIT_TABLE_AT_POINTS(String schemaName, String tableName,
-                                     String splitPoints) throws SQLException{
+                                     String splitPoints) throws SQLException, StandardException {
         splitTable(schemaName, tableName, null, splitPoints);
     }
 
     public static void SYSCS_SPLIT_TABLE_OR_INDEX_AT_POINTS(String schemaName, String tableName,
-                                                   String indexName, String splitPoints) throws SQLException{
+                                                   String indexName, String splitPoints) throws SQLException, StandardException {
         splitTable(schemaName, tableName, indexName, splitPoints);
     }
 
     private static void splitTable(String schemaName, String tableName,
-                                   String indexName, String splitPoints) throws SQLException {
+                                   String indexName, String splitPoints) throws SQLException, StandardException {
         Connection conn = getDefaultConn();
 
         try{
@@ -188,6 +205,8 @@ public class TableSplit{
                     se.setNextException(e);
                 }
                 throw se;
+            } catch (StandardException e) {
+                throw e;
             }
             conn.commit();
         }finally{
@@ -242,7 +261,20 @@ public class TableSplit{
     }
 
     public static void splitTable(Connection conn, String schemaName, String tableName,
-                                  String indexName, String splitPoints) throws SQLException{
+                                  String indexName, String splitPoints) throws SQLException, StandardException {
+
+        EmbedConnection defaultConn=(EmbedConnection) SpliceAdmin.getDefaultConn();
+        Activation lastActivation=defaultConn.getLanguageConnection().getLastActivation();
+        LanguageConnectionContext lcc = lastActivation.getLanguageConnectionContext();
+
+        if (tableName == null) {
+            throw StandardException.newException(SQLState.TABLE_NAME_CANNOT_BE_NULL);
+        }
+
+        if (schemaName == null) {
+            schemaName = lcc.getCurrentSchemaName();
+        }
+
         long conglomId = getConglomerateId(conn, schemaName, tableName, indexName);
 
         SIDriver driver=SIDriver.driver();
@@ -296,7 +328,8 @@ public class TableSplit{
         return sps.toArray(new byte[sps.size()][]);
     }
 
-    public static long getConglomerateId(Connection conn, String schemaName, String tableName, String indexName) throws SQLException {
+    public static long getConglomerateId(Connection conn, String schemaName, String tableName, String indexName) throws SQLException, StandardException {
+
         String sql =  "select " +
                 "conglomeratenumber " +
                 "from " +
