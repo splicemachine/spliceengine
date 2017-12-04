@@ -319,6 +319,20 @@ public class SpliceRegionAdminIT {
             Assert.assertEquals(sqlcode, SQLState.TABLE_NAME_CANNOT_BE_NULL.substring(0,5));
         }
 
+        sql = "CALL SYSCS_UTIL.COMPACT_REGION(?, ?, ?, ?)";
+        ps = methodWatcher.prepareStatement(sql);
+        try {
+            ps.setString(1, null);
+            ps.setString(2, LINEITEM);
+            ps.setString(3, SHIPDATE_IDX);
+            ps.setString(4, null);
+            ps.execute();
+        }
+        catch (SQLException e) {
+            String sqlcode = e.getSQLState();
+            Assert.assertEquals(sqlcode, SQLState.PARAMETER_CANNOT_BE_NULL.substring(0,5));
+        }
+
         sql = "CALL SYSCS_UTIL.GET_REGIONS(?, ?, ?, 'start', 'end', '|', null, null, null, null)";
         ps = methodWatcher.prepareStatement(sql);
         try {
@@ -358,9 +372,21 @@ public class SpliceRegionAdminIT {
         }
         catch (SQLException e) {
             String sqlcode = e.getSQLState();
-            Assert.assertEquals(sqlcode, SQLState.SPLIT_KEY_CANNOT_BE_NULL);
+            Assert.assertEquals(sqlcode, SQLState.PARAMETER_CANNOT_BE_NULL, sqlcode);
         }
 
+        sql = "CALL SYSCS_UTIL.GET_START_KEY(?,?,null,?)";
+        ps = methodWatcher.prepareStatement(sql);
+        try {
+            ps.setString(1, SCHEMA_NAME);
+            ps.setString(2, LINEITEM);
+            ps.setString(3, null);
+            ps.execute();
+        }
+        catch (SQLException e) {
+            String sqlcode = e.getSQLState();
+            Assert.assertEquals(sqlcode, SQLState.PARAMETER_CANNOT_BE_NULL, sqlcode);
+        }
     }
 
     private static String getResource(String name) {
