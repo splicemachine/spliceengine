@@ -91,9 +91,15 @@ public class SelectivityUtil {
                 selectivity = Math.min(selectivity, p.joinSelectivity(innerTable, innerCD, innerRowCount, outerRowCount, selectivityJoinType));
             }
         }
+
+        //Outer join selectivity should be bounded by 1 / innerRowCount, so that the outputRowCount no less than
+        // the left table's row count,
+
+        if (selectivityJoinType == selectivityJoinType.OUTER) {
+            selectivity = Math.max(selectivity,1d / innerRowCount);
+        }
         return selectivity;
     }
-
     public static double estimateScanSelectivity(Optimizable innerTable, OptimizablePredicateList predList) throws StandardException {
         double selectivity = 1d;
         if (innerTable == null) {

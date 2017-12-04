@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.api.ServiceDiscovery;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
@@ -59,6 +60,7 @@ public class EngineDriver{
     private final SqlEnvironment environment;
     private final ExecutorService threadPool;
     private final StatementLogger statementLogger;
+    private final ServiceDiscovery serviceDiscovery;
 
     public static void loadDriver(SqlEnvironment environment){
         INSTANCE=new EngineDriver(environment);
@@ -73,7 +75,6 @@ public class EngineDriver{
     public static EngineDriver driver(){
         return INSTANCE;
     }
-
     public EngineDriver(SqlEnvironment environment){
         this.environment = environment;
         this.uuidGen=environment.getUUIDGenerator();
@@ -116,6 +117,7 @@ public class EngineDriver{
         tpe.prestartAllCoreThreads();
         this.threadPool = new ManagedThreadPool(tpe);
         this.statementLogger = new FileStatementLogger();
+        this.serviceDiscovery = environment.serviceDiscovery();
     }
 
     public DatabaseAdministrator dbAdministrator(){
@@ -179,4 +181,9 @@ public class EngineDriver{
     public StatementLogger getStatementLogger() {
         return statementLogger;
     }
+
+    public ServiceDiscovery getServiceDiscovery() {
+        return serviceDiscovery;
+    }
+
 }

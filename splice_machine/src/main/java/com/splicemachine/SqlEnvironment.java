@@ -15,6 +15,7 @@
 package com.splicemachine;
 
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.api.ServiceDiscovery;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
@@ -59,4 +60,6 @@ public interface SqlEnvironment{
     void refreshEnterpriseFeatures();
 
     OperationManager getOperationManager();
+
+    ServiceDiscovery serviceDiscovery();
 }

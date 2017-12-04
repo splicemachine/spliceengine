@@ -315,8 +315,9 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
 			 *
              */
 
-            if (rowOrdering.orderedOnColumn(obc.isAscending() ? RowOrdering.ASCENDING : RowOrdering.DESCENDING, position, tableNumber, cr.getColumnNumber()))
-                position++;
+            int newPosition = rowOrdering.orderedOnColumn(obc.isAscending() ? RowOrdering.ASCENDING : RowOrdering.DESCENDING, position, tableNumber, cr.getColumnNumber());
+            if (newPosition >= position)
+                position = newPosition + 1;
             else
                 return RequiredRowOrdering.SORT_REQUIRED;
         }

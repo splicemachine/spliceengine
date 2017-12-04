@@ -101,22 +101,23 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
     private static void testBulkDelete() throws Exception {
         if (notSupported)
             return;
-        bulkDelete(LINEITEM);
-        bulkDelete(ORDERS);
-        bulkDelete(CUSTOMERS);
-        bulkDelete(PART);
-        bulkDelete(PARTSUPP);
-        bulkDelete(NATION);
-        bulkDelete(REGION);
-        bulkDelete(SUPPLIER);
+        bulkDelete(LINEITEM, "L_PART_IDX");
+        bulkDelete(ORDERS, "O_CUST_IDX");
+        bulkDelete(CUSTOMERS, null);
+        bulkDelete(PART,null);
+        bulkDelete(PARTSUPP,null);
+        bulkDelete(NATION,null);
+        bulkDelete(REGION,null);
+        bulkDelete(SUPPLIER,null);
         countUsingIndex(LINEITEM, "L_PART_IDX");
         countUsingIndex(LINEITEM, "L_SHIPDATE_IDX");
         countUsingIndex(ORDERS, "O_CUST_IDX");
         countUsingIndex(ORDERS, "O_DATE_PRI_KEY_IDX");
     }
 
-    private static void bulkDelete(String tableName) throws Exception {
-        String sql = String.format("delete from %s --splice-properties bulkDeleteDirectory='%s'", tableName, getResource("data"));
+    private static void bulkDelete(String tableName, String indexName) throws Exception {
+        String sql = String.format("delete from %s --splice-properties bulkDeleteDirectory='%s',index=%s", tableName, getResource("data"),
+                indexName!=null?indexName:"null");
         spliceClassWatcher.execute(sql);
         ResultSet rs = spliceClassWatcher.executeQuery(String.format("select count(*) from %s", tableName));
         rs.next();
@@ -302,7 +303,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
             return;
         String sql = getContent("18.sql");
         executeQuery(sql, "", true);
-        assertSubqueryNodeCount(conn(), sql, ONE_SUBQUERY_NODE);
+        assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
     }
 
     @Test

@@ -664,7 +664,7 @@ public class GenericStatement implements Statement{
 
     private void printStatementLine(LanguageConnectionContext lcc,HeaderPrintWriter istream,String endStatement){
         String xactId=lcc.getTransactionExecute().getActiveStateTxIdString();
-        istream.printlnWithHeader(LanguageConnectionContext.xidStr+ xactId+ "), "+
+        istream.printStatement(LanguageConnectionContext.xidStr+ xactId+ "), "+
                 LanguageConnectionContext.lccStr+ lcc.getInstanceNumber()+ "), "+
                 LanguageConnectionContext.dbnameStr+ lcc.getDbname()+ "), "+
                 LanguageConnectionContext.drdaStr+ lcc.getDrdaID()+
@@ -726,9 +726,12 @@ public class GenericStatement implements Statement{
     private void walkAST(LanguageConnectionContext lcc, Visitable queryTree, CompilationPhase phase) throws StandardException {
         ASTVisitor visitor = lcc.getASTVisitor();
         if (visitor != null) {
-            visitor.begin(statementText, phase);
-            queryTree.accept(visitor);
-            visitor.end(phase);
+            try {
+                visitor.begin(statementText, phase);
+                queryTree.accept(visitor);
+            } finally {
+                visitor.end(phase);
+            }
         }
     }
 

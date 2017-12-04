@@ -177,8 +177,12 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 		return null;
 	}
 
-	@Override
-	public ValueNode getOperand(ColumnReference cRef, int refSetSize, boolean otherSide) {
+	public ValueNode getOperand( ColumnReference cRef, int refSetSize, boolean otherSide) {
+		return getOperand(cRef.getTableNumber(), cRef.getColumnNumber(), refSetSize, otherSide);
+
+	}
+
+	public ValueNode getOperand(int tableNum, int colNum, int refSetSize, boolean otherSide) {
 		if (otherSide)
 		// there is no "other" side for Unary, so just return null.
 			return null;
@@ -197,8 +201,7 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 			cr = (ColumnReference) operand;
 			try {
 				cr.accept(btnVis);
-				btnVis.setTableMap(cRefTables);
-				cRef.accept(btnVis);
+				cRefTables.set(tableNum);
 			} catch (StandardException se) {
             	if (SanityManager.DEBUG) {
             	    SanityManager.THROWASSERT("Failed when trying to " +
@@ -211,7 +214,7 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 				/*
 				** The table is correct, how about the column position?
 				*/
-				if (cr.getSource().getColumnPosition() == cRef.getColumnNumber()) {
+				if (cr.getSource().getColumnPosition() == colNum) {
 					/* We've found the correct column - return it. */
 					return operand;
 				}

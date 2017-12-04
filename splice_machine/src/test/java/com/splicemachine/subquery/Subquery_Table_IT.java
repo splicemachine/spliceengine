@@ -902,6 +902,68 @@ public class Subquery_Table_IT {
         SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ONE_SUBQUERY_NODE, expected);
     }
 
+    @Test
+    public void testNonCorrelatedSubqueryWithAggregationViaControlPath() throws Exception {
+        /* Q1: subquery with having clause condition */
+        String sql = "select * from tt1 --splice-properties useSpark=false\n where a1 in (select a2 from tt2 group by a2 having a2=3)";
+        String expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 3 | 3 | 3 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q2: subquery with having subquery */
+        sql = "select * from tt1 --splice-properties useSpark=false\n where a1 in (select a2 from tt2 group by a2 having a2 in (values (3)))";
+        expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 3 | 3 | 3 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ONE_SUBQUERY_NODE, expected);
+
+        /* Q3: subquery with having subquery */
+        sql = "select * from tt1 --splice-properties useSpark=false\n where a1 in (select a3 from tt3 group by a3 having a3>3 and count(*) in (select a2 from tt2))";
+        expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ONE_SUBQUERY_NODE, expected);
+
+        /* Q4: subquery with aggregation in select clause */
+        sql = "select * from tt1 --splice-properties useSpark=false\n where a1 in (select count(*) from tt3 group by a3)";
+        expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 2 | 2 | 2 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+    }
+
+    @Test
+    public void testNonCorrelatedSubqueryWithAggregationViaSparkPath() throws Exception {
+        /* Q1: subquery with having clause condition */
+        String sql = "select * from tt1 --splice-properties useSpark=true\n where a1 in (select a2 from tt2 group by a2 having a2=3)";
+        String expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 3 | 3 | 3 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+
+        /* Q2: subquery with having subquery */
+        sql = "select * from tt1 --splice-properties useSpark=true\n where a1 in (select a2 from tt2 group by a2 having a2 in (values (3)))";
+        expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 3 | 3 | 3 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ONE_SUBQUERY_NODE, expected);
+
+        /* Q3: subquery with having subquery */
+        sql = "select * from tt1 --splice-properties useSpark=true\n where a1 in (select a3 from tt3 group by a3 having a3>3 and count(*) in (select a2 from tt2))";
+        expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 4 | 4 | 4 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ONE_SUBQUERY_NODE, expected);
+
+        /* Q4: subquery with aggregation in select clause */
+        sql = "select * from tt1 --splice-properties useSpark=true\n where a1 in (select count(*) from tt3 group by a3)";
+        expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 2 | 2 | 2 |";
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+    }
+
     private static void assertUnorderedResult(ResultSet rs, String expectedResult) throws Exception {
         assertEquals(expectedResult, TestUtils.FormattedResult.ResultFactory.toString(rs));
     }

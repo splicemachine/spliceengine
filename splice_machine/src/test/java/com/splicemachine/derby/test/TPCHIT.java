@@ -212,7 +212,7 @@ public class TPCHIT extends SpliceUnitTest {
     public void sql18() throws Exception {
         String sql = getContent("18.sql");
         executeQuery(sql, "", true);
-        assertSubqueryNodeCount(conn(), sql, ONE_SUBQUERY_NODE);
+        assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
     }
 
     @Test

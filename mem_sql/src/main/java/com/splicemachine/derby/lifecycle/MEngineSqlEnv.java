@@ -16,6 +16,7 @@ package com.splicemachine.derby.lifecycle;
 
 import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.api.ServiceDiscovery;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
@@ -29,8 +30,12 @@ import com.splicemachine.management.DirectDatabaseAdministrator;
 import com.splicemachine.management.Manager;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.uuid.Snowflake;
+import org.spark_project.guava.net.HostAndPort;
 
+import java.io.IOException;
 import java.sql.Connection;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * @author Scott Fines
@@ -44,6 +49,7 @@ public class MEngineSqlEnv extends EngineSqlEnvironment{
     private SqlExceptionFactory exceptionFactory;
     private DatabaseAdministrator dbAdmin;
     private OperationManager operationManager;
+    private ServiceDiscovery serviceDiscovery;
 
     @Override
     public void initialize(SConfiguration config,
@@ -57,6 +63,22 @@ public class MEngineSqlEnv extends EngineSqlEnvironment{
         this.exceptionFactory = new MSqlExceptionFactory(SIDriver.driver().getExceptionFactory());
         this.dbAdmin = new DirectDatabaseAdministrator();
         this.operationManager = new OperationManagerImpl();
+        this.serviceDiscovery = new ServiceDiscovery() {
+            @Override
+            public void registerServer(HostAndPort hostAndPort) throws IOException {
+                // no-op
+            }
+
+            @Override
+            public void deregisterServer(HostAndPort hostAndPort) throws IOException {
+                // no-op
+            }
+
+            @Override
+            public List<HostAndPort> listServers() throws IOException {
+                return Arrays.asList(HostAndPort.fromParts(config.getNetworkBindAddress(), config.getNetworkBindPort()));
+            }
+        };
     }
 
     @Override
@@ -102,5 +124,10 @@ public class MEngineSqlEnv extends EngineSqlEnvironment{
     @Override
     public OperationManager getOperationManager() {
         return operationManager;
+    }
+
+    @Override
+    public ServiceDiscovery serviceDiscovery() {
+        return serviceDiscovery;
     }
 }
