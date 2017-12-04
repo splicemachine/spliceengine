@@ -50,11 +50,6 @@
             <artifactId>akka-remote_${scala.binary.version}</artifactId>
             <version>2.4.8</version>
         </dependency>
-        <!--dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-mesos_${scala.binary.version}</artifactId>
-            <version>${spark.version}</version>
-        </dependency-->
 	<dependency>
 	    <groupId>com.github.databricks</groupId>
 	    <artifactId>spark-avro_${scala.binary.version}</artifactId>
@@ -468,11 +463,6 @@
             <version>${hadoop.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-common</artifactId>
-            <version>${hadoop.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-beeline</artifactId>
             <version>${hive.version}</version>
@@ -613,16 +603,6 @@
             <artifactId>hbase_storage-${envClassifier}</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
-        </dependency>
-        <!--dependency>
-            <groupId>com.twitter</groupId>
-            <artifactId>parquet-column</artifactId>
-            <version>1.5.0</version>
-        </dependency-->
-        <dependency>
-            <groupId>com.twitter</groupId>
-            <artifactId>parquet-hadoop</artifactId>
-            <version>1.5.0</version>
         </dependency>
         <dependency>
             <groupId>org.spark-project.hive</groupId>
