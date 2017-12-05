@@ -126,8 +126,6 @@ public class SpliceSpark {
     }
 
     private static UserGroupInformation applyCreds(Credentials credentials) throws IOException {
-        LOG.info("credentials:" + credentials);
-
         logCredInformation(credentials);
 
         UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
@@ -141,13 +139,15 @@ public class SpliceSpark {
     }
 
     public static void logCredInformation(Credentials credentials2) {
-        LOG.info("credentials:" + credentials2);
-        for (int i =0 ; i < credentials2.getAllSecretKeys().size(); i++) {
-            LOG.info("getAllSecretKeys:" + i + ":" + credentials2.getAllSecretKeys().get(i));
-        }
-        Iterator it = credentials2.getAllTokens().iterator();
-        while (it.hasNext()) {
-            LOG.info("getAllTokens:" + it.next());
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("credentials:" + credentials2);
+            for (int i = 0; i < credentials2.getAllSecretKeys().size(); i++) {
+                LOG.debug("getAllSecretKeys:" + i + ":" + credentials2.getAllSecretKeys().get(i));
+            }
+            Iterator it = credentials2.getAllTokens().iterator();
+            while (it.hasNext()) {
+                LOG.debug("getAllTokens:" + it.next());
+            }
         }
     }
 
