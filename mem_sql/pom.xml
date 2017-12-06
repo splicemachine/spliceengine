@@ -274,6 +274,7 @@
                                     <jvmarg value="-XX:+UseParNewGC"/>
                                     <jvmarg value="-XX:+CMSPermGenSweepingEnabled"/>
                                     <jvmarg value="-XX:+CMSClassUnloadingEnabled"/>
+                                    <jvmarg value="${jacocoAgent}"/>
                                     <sysproperty key="log4j.configuration" value="file://${basedir}/src/main/resources/log4j.properties"/>
                                     <sysproperty key="com.sun.management.jmxremote.ssl" value="false"/>
                                     <sysproperty key="com.sun.management.jmxremote.authenticate" value="false"/>
