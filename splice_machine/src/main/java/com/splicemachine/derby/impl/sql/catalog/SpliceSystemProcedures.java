@@ -1027,6 +1027,18 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(getAllRegions);
 
+                    Procedure deleteRegion = Procedure.newBuilder().name("DELETE_REGION")
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .catalog("indexName")
+                            .varchar("regionName", 128)
+                            .varchar("merge", 5)
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .ownerClass(SpliceRegionAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(deleteRegion);
+
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)
