@@ -31,6 +31,7 @@
         <ee_out/>
         <skipTests>${maven.skip.tests}</skipTests>
         <skip.dep.copy>${skipSparkPrepare}</skip.dep.copy>
+        <argLine>-Xmx4g -XX:MaxPermSize=256m ${jacocoAgent}</argLine>
     </properties>
     <dependencies>
         <!--
@@ -853,14 +854,14 @@
                                         <exec executable="${shell.command}" dir="${basedir}" spawn="false">
                                             <arg value="${start.script}"/>
                                             <arg value="-c"/>
-                                            <arg value="-p ${envClassifier},${envHbase}${ee_out}"/>
+                                            <arg value="-p ${envClassifier},${envHbase}${ee_out}${jacoco_out}"/>
                                         </exec>
                                     </then>
                                     <else>
                                         <!-- chaos monkey overridden: -DfailTasksRandomly=false -->
                                         <exec executable="${shell.command}" dir="${basedir}" spawn="false">
                                             <arg value="${start.script}"/>
-                                            <arg value="-p ${envClassifier},${envHbase}${ee_out}"/>
+                                            <arg value="-p ${envClassifier},${envHbase}${ee_out}${jacoco_out}"/>
                                         </exec>
                                     </else>
                                 </if>
@@ -1178,6 +1179,7 @@
                                 <!-- <argument>-verbose:gc</argument> -->
                                 <argument>-classpath</argument>
                                 <classpath/>
+                                <argument>${jacocoAgent}</argument>
                                 <argument>-Xdebug</argument>
                                 <!-- <argument>-XX:+UnlockCommercialFeatures</argument>
                                 <argument>-XX:+FlightRecorder</argument> -->
@@ -1240,6 +1242,7 @@
                                     -Dlog4j.configuration=${log4j.config.uri}
                                     -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020
                                     -enableassertions
+                                    ${jacocoAgent}
                                 </argument>
                                 <argument>-Dsplice.spark.shuffle.file.buffer=128k</argument>
                                 <argument>-Dsplice.spark.shuffle.memoryFraction=0.7</argument>
@@ -1305,6 +1308,7 @@
                             <arguments>
                                 <argument>-classpath</argument>
                                 <classpath/>
+                                <argument>${jacocoAgent}</argument>
                                 <argument>-Djava.awt.headless=true</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
@@ -1556,6 +1560,7 @@
                                 <argument>-Xdebug</argument>
                                 <!-- <argument>-XX:+UnlockCommercialFeatures</argument>
                                 <argument>-XX:+FlightRecorder</argument> -->
+                                <argument>${jacocoAgent}</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Djava.awt.headless=true</argument>
@@ -1615,6 +1620,7 @@
                                     -Dlog4j.configuration=${log4j.config.uri}
                                     -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020
                                     -enableassertions
+                                    ${jacocoAgent}
                                 </argument>
                                 <argument>-Dsplice.spark.shuffle.file.buffer=128k</argument>
                                 <argument>-Dsplice.spark.shuffle.memoryFraction=0.7</argument>
