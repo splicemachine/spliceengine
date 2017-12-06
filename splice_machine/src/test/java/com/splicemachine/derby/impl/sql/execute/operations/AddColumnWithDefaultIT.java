@@ -89,9 +89,23 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                         row(5, 5, 5),
                         row(5, 5, 5))).create();
 
-        // add not null column to t1 with default value
+        // add not null column to t2 with default value
         connection.createStatement().executeUpdate("alter table t2 add column d2 int not null default 999");
 
+        new TableCreator(connection)
+                .withCreate("create table t3 (a3 int, b3 int, c3 int)")
+                .withInsert("insert into t3 values(?,?,?)")
+                .withRows(rows(row(1, 1, 1),
+                        row(2, 2, 2),
+                        row(4, 4, 4),
+                        row(5, 5, 5))).create();
+
+        new TableCreator(connection)
+                .withCreate("create table t4 (a4 int)")
+                .withInsert("insert into t4 values(?)")
+                .withRows(rows(row(1),
+                        row(2),
+                        row(3))).create();
     }
 
     private Connection conn;
@@ -583,6 +597,180 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 " 2 | 2 | 2 |999 |\n" +
                 " 3 | 3 | 3 |999 |\n" +
                 " 4 | 4 | 4 |999 |";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testColumnsOfDateTime() throws Exception {
+        // add not null column to t3 with default value
+        methodWatcher.executeUpdate("alter table t3 add column d3 DATE not null default '2017-01-01'");
+        methodWatcher.executeUpdate("alter table t3 add column e3 TIME not null default '00:00:00'");
+        methodWatcher.executeUpdate("alter table t3 add column f3 TIMESTAMP not null default '2017-01-01 00:00:00'");
+
+        methodWatcher.executeUpdate("create index idx1_t3 on t3 (b3, d3)");
+        methodWatcher.executeUpdate("insert into t3 values (10, 10, 10, '2017-12-05', '17:11:24', '2017-12-05 17:11:24')");
+
+        /* case 1: check partial covering index */
+        String sql = format("select a3, d3, YEAR(d3), e3, f3, f3-1 from t3 --splice-properties index=idx1_t3, useSpark=%s\n where b3=10", useSparkString);
+        String expected = "A3 |    D3     |  3  |   E3    |         F3           |          6           |\n" +
+                "------------------------------------------------------------------------------\n" +
+                "10 |2017-12-05 |2017 |17:11:24 |2017-12-05 17:11:24.0 |2017-12-04 17:11:24.0 |";
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sql = format("select a3, d3, YEAR(d3), e3, f3, f3-1 from t3 --splice-properties index=idx1_t3, useSpark=%s\n where b3=5", useSparkString);
+        expected = "A3 |    D3     |  3  |   E3    |         F3           |          6           |\n" +
+                "------------------------------------------------------------------------------\n" +
+                " 5 |2017-01-01 |2017 |00:00:00 |2017-01-01 00:00:00.0 |2016-12-31 00:00:00.0 |";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* case 2: check covering index */
+        sql = format("select b3, d3, YEAR(d3) from t3 --splice-properties index=idx1_t3, useSpark=%s", useSparkString);
+        expected = "B3 |    D3     |  3  |\n" +
+                "----------------------\n" +
+                " 1 |2017-01-01 |2017 |\n" +
+                "10 |2017-12-05 |2017 |\n" +
+                " 2 |2017-01-01 |2017 |\n" +
+                " 4 |2017-01-01 |2017 |\n" +
+                " 5 |2017-01-01 |2017 |";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* case 3: check direct access of the base table */
+        sql = format("select a3, d3, YEAR(d3), e3, f3, f3-1 from t3 --splice-properties index=null, useSpark=%s", useSparkString);
+        expected = "A3 |    D3     |  3  |   E3    |         F3           |          6           |\n" +
+                "------------------------------------------------------------------------------\n" +
+                " 1 |2017-01-01 |2017 |00:00:00 |2017-01-01 00:00:00.0 |2016-12-31 00:00:00.0 |\n" +
+                "10 |2017-12-05 |2017 |17:11:24 |2017-12-05 17:11:24.0 |2017-12-04 17:11:24.0 |\n" +
+                " 2 |2017-01-01 |2017 |00:00:00 |2017-01-01 00:00:00.0 |2016-12-31 00:00:00.0 |\n" +
+                " 4 |2017-01-01 |2017 |00:00:00 |2017-01-01 00:00:00.0 |2016-12-31 00:00:00.0 |\n" +
+                " 5 |2017-01-01 |2017 |00:00:00 |2017-01-01 00:00:00.0 |2016-12-31 00:00:00.0 |";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testColumnsOfCharType() throws Exception {
+        // add not null column to t3 with default value
+        methodWatcher.executeUpdate("alter table t4 add column b4 VARCHAR(4) not null default 'Z'");
+        methodWatcher.executeUpdate("alter table t4 add column c4 CHAR(4) not null default 'ZZZZ'");
+        methodWatcher.executeUpdate("alter table t4 add column d4 LONG VARCHAR not null default 'LZZZZ'");
+
+        methodWatcher.executeUpdate("create index idx1_t4 on t4 (b4, c4)");
+        methodWatcher.executeUpdate("insert into t4 values (10, 'AA', 'AAAA', 'LAAAA')");
+
+        /* case 1: check partial covering index */
+        String sql = format("select a4, b4 || '-' || c4 || '-' || D4 from t4 --splice-properties index=idx1_t4, useSpark=%s\n where a4=10", useSparkString);
+        String expected = "A4 |      2       |\n" +
+                "-------------------\n" +
+                "10 |AA-AAAA-LAAAA |";
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sql = format("select a4, b4 || '-' || c4 || '-' || D4 from t4 --splice-properties index=idx1_t4, useSpark=%s\n where a4=3", useSparkString);
+        expected = "A4 |      2      |\n" +
+                "------------------\n" +
+                " 3 |Z-ZZZZ-LZZZZ |";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* case 2: check direct access of the base table */
+        sql = format("select a4, b4 || '-' || c4 || '-' || D4 from t4 --splice-properties index=null, useSpark=%s", useSparkString);
+        expected = "A4 |      2       |\n" +
+                "-------------------\n" +
+                " 1 |Z-ZZZZ-LZZZZ  |\n" +
+                "10 |AA-AAAA-LAAAA |\n" +
+                " 2 |Z-ZZZZ-LZZZZ  |\n" +
+                " 3 |Z-ZZZZ-LZZZZ  |";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testColumnsOfNumericType() throws Exception {
+        // add not null column to t3 with default value
+        methodWatcher.executeUpdate("alter table t4 add column b4 smallint not null default -32768");
+        methodWatcher.executeUpdate("alter table t4 add column c4 bigint not null default -9223372036854775808");
+        methodWatcher.executeUpdate("alter table t4 add column d4 real not null default -1.00");
+        methodWatcher.executeUpdate("alter table t4 add column e4 double not null default -2.00");
+        methodWatcher.executeUpdate("alter table t4 add column f4 decimal(5,2)  not null default -3.33");
+
+        methodWatcher.executeUpdate("create index idx1_t4 on t4 (b4, c4)");
+        methodWatcher.executeUpdate("insert into t4 values (10, 10, 1000000, 10.11, 10.22, 10.33)");
+
+        /* case 1: check partial covering index */
+        String sql = format("select a4, b4+1, c4+1, d4+1, e4+1, f4+1 from t4 --splice-properties index=idx1_t4, useSpark=%s\n where a4=10", useSparkString);
+        String expected = "A4 | 2 |   3    |  4   |  5   |  6   |\n" +
+                "--------------------------------------\n" +
+                "10 |11 |1000001 |11.11 |11.22 |11.33 |";
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sql = format("select a4, b4+1, c4+1, d4+1, e4+1, f4+1 from t4 --splice-properties index=idx1_t4, useSpark=%s\n where a4=3", useSparkString);
+        expected = "A4 |   2   |          3          | 4  |  5  |  6   |\n" +
+                "----------------------------------------------------\n" +
+                " 3 |-32767 |-9223372036854775807 |0.0 |-1.0 |-2.33 |";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* case 2: check direct access of the base table */
+        sql = format("select a4, b4+1, c4+1, d4+1, e4+1, f4+1 from t4 --splice-properties index=null, useSpark=%s", useSparkString);
+        expected = "A4 |   2   |          3          |  4   |  5   |  6   |\n" +
+                "-------------------------------------------------------\n" +
+                " 1 |-32767 |-9223372036854775807 | 0.0  |-1.0  |-2.33 |\n" +
+                "10 |  11   |       1000001       |11.11 |11.22 |11.33 |\n" +
+                " 2 |-32767 |-9223372036854775807 | 0.0  |-1.0  |-2.33 |\n" +
+                " 3 |-32767 |-9223372036854775807 | 0.0  |-1.0  |-2.33 |";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testColumnsOfBoolean() throws Exception {
+        // add not null column to t3 with default value
+        methodWatcher.executeUpdate("alter table t4 add column b4 boolean not null default false");
+
+        methodWatcher.executeUpdate("create index idx1_t4 on t4 (b4)");
+        methodWatcher.executeUpdate("insert into t4 values (10, true)");
+
+        /* case 1: check partial covering index */
+        String sql = format("select a4, b4 from t4 --splice-properties index=idx1_t4, useSpark=%s\n where a4=10", useSparkString);
+        String expected = "A4 | B4  |\n" +
+                "----------\n" +
+                "10 |true |";
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sql = format("select a4, b4 from t4 --splice-properties index=idx1_t4, useSpark=%s\n where a4=3", useSparkString);
+        expected = "A4 | B4   |\n" +
+                "-----------\n" +
+                " 3 |false |";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* case 2: check direct access of the base table */
+        sql = format("select a4, b4 from t4 --splice-properties index=null, useSpark=%s", useSparkString);
+        expected = "A4 | B4   |\n" +
+                "-----------\n" +
+                " 1 |false |\n" +
+                "10 |true  |\n" +
+                " 2 |false |\n" +
+                " 3 |false |";
         rs = methodWatcher.executeQuery(sql);
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
