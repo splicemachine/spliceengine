@@ -66,11 +66,11 @@ import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.execute.GenericConstantActionFactory;
 import com.splicemachine.db.impl.sql.execute.GenericExecutionFactory;
-import java.sql.Types;
-import java.util.*;
-
 import org.apache.commons.lang3.SystemUtils;
 import org.spark_project.guava.base.Strings;
+
+import java.sql.Types;
+import java.util.*;
 
 /**
  * QueryTreeNode is the root class for all query tree nodes. All
@@ -615,14 +615,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
         return false;
     }
 
-    /**
-     * Get a ConstantNode to represent a typed null value.
-     *
-     * @param type Type of the null node.
-     * @throws StandardException Thrown on error
-     * @return A ConstantNode with the specified type, and a value of null
-     */
-    public ValueNode getNullNode(DataTypeDescriptor type) throws StandardException{
+    public int getConstantNodeType(DataTypeDescriptor type) throws StandardException {
         int constantNodeType;
         switch(type.getTypeId().getJDBCTypeId()){
             case Types.VARCHAR:
@@ -692,6 +685,31 @@ public abstract class QueryTreeNode implements Node, Visitable{
                     throw StandardException.newException(SQLState.LANG_NONULL_DATATYPE, type.getTypeId().getSQLTypeName());
                 }
         }
+        return constantNodeType;
+    }
+
+    public ValueNode getConstantNode(DataTypeDescriptor type, DataValueDescriptor value) throws StandardException {
+        ConstantNode constantNode;
+        int constantNodeType = getConstantNodeType(type);
+        if (constantNodeType == C_NodeTypes.USERTYPE_CONSTANT_NODE) {
+            constantNode = (ConstantNode) getNodeFactory().getNode(constantNodeType, value, cm);
+        } else {
+            constantNode = (ConstantNode) getNodeFactory().getNode(constantNodeType, type.getTypeId(), cm);
+            constantNode.setValue(value);
+            constantNode.setType(type.getNullabilityType(false));
+        }
+        return constantNode;
+
+    }
+    /**
+     * Get a ConstantNode to represent a typed null value.
+     *
+     * @param type Type of the null node.
+     * @throws StandardException Thrown on error
+     * @return A ConstantNode with the specified type, and a value of null
+     */
+    public ValueNode getNullNode(DataTypeDescriptor type) throws StandardException{
+        int constantNodeType = getConstantNodeType(type);
 
         ValueNode constantNode=(ValueNode) getNodeFactory().getNode(constantNodeType, type.getTypeId(), cm);
 
