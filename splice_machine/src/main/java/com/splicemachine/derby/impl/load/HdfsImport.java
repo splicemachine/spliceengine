@@ -125,7 +125,9 @@ public class HdfsImport {
                                          String outputDirectory,
                                          ResultSet[] results
     ) throws SQLException {
-        SpliceFileVTI fileVTI = new SpliceFileVTI();
+        if(outputDirectory == null) {
+            throw new SQLException(StandardException.newException(SQLState.PARAMETER_CANNOT_BE_NULL, "outputDirectory"));
+        }
 
         doImport(schemaName,
                 tableName,
@@ -169,6 +171,9 @@ public class HdfsImport {
                                    String bulkImportDirectory,
                                    ResultSet[] results
     ) throws SQLException {
+        if(bulkImportDirectory == null) {
+            throw new SQLException(StandardException.newException(SQLState.PARAMETER_CANNOT_BE_NULL, "bulkImportDirectory"));
+        }
         doImport(schemaName,
                 tableName,
                 null,
@@ -231,6 +236,9 @@ public class HdfsImport {
                                          String skipSampling,
                                          ResultSet[] results
     ) throws SQLException {
+        if(bulkImportDirectory == null) {
+            throw new SQLException(StandardException.newException(SQLState.PARAMETER_CANNOT_BE_NULL, "bulkImportDirectory"));
+        }
         doImport(schemaName,
                 tableName,
                 null,
