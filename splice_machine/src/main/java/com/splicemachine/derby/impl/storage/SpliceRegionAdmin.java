@@ -49,6 +49,7 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.DataResult;
 import com.splicemachine.storage.DataResultScanner;
@@ -80,6 +81,96 @@ import java.util.*;
 public class SpliceRegionAdmin {
 
     private static final Logger LOG=Logger.getLogger(SpliceRegionAdmin.class);
+
+
+    /**
+     *
+     * @param schemaName name of the schema
+     * @param tableName name of the table
+     * @param indexName name of the index. NULL if it is to delete a region from a table
+     * @param encodedRegionName encoded region name
+     * @param merge If true, the region will be merged with one of its neighbors after data is deleted. Otherwise,
+     *              the region will be empty
+     * @throws Exception
+     */
+    public static void DELETE_REGION(String schemaName,
+                                     String tableName,
+                                     String indexName,
+                                     String encodedRegionName,
+                                     String merge) throws Exception {
+        TableDescriptor td = getTableDescriptor(schemaName, tableName);
+        ConglomerateDescriptor index = null;
+        if (indexName != null) {
+            indexName = indexName.trim();
+            index = getIndex(td, indexName);
+            if (index == null) {
+                throw StandardException.newException(SQLState.LANG_INDEX_NOT_FOUND, indexName);
+            }
+        }
+
+        if (encodedRegionName == null) {
+            throw StandardException.newException(SQLState.PARAMETER_CANNOT_BE_NULL, "encodedRegionName");
+        }
+        String conglomId = Long.toString(index == null ? td.getHeapConglomerateId() : index.getConglomerateNumber());
+        Configuration conf = (Configuration) SIDriver.driver().getConfiguration().getConfigSource().unwrapDelegate();
+        PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
+        String partitionName = null;
+
+        boolean regionClosed = false;
+        boolean fileMoved = false;
+        Partition p = getPartition(td, index, encodedRegionName);
+        try {
+            // close the region
+            partitionName = p.getName();
+            regionClosed = true;
+            admin.closeRegion(p);
+
+            SpliceLogUtils.info(LOG, "Closed region %s", partitionName);
+
+            // move all store files to a temporary directory
+            fileMoved = true;
+            moveToArchive(conf, conglomId, encodedRegionName);
+
+            // reopen the region by assigning it
+            regionClosed = false;
+            admin.assign(p);
+            SpliceLogUtils.info(LOG, "Assigned region %s", partitionName);
+
+            if ("TRUE".compareToIgnoreCase(merge) == 0) {
+                // Merge the region with its neighbor
+                if (p.getStartKey().length > 0 || p.getEndKey().length > 0) {
+                    Partition p2 = getNeighbor(td, index, p);
+                    admin.mergeRegions(p.getEncodedName(), p2.getEncodedName());
+                    SpliceLogUtils.info(LOG, "Merged regions %s and %s", p.getEncodedName(), p2.getEncodedName());
+                }
+            }
+
+            // purge store files from file system
+            deleteTempDir(conf, conglomId, encodedRegionName);
+        }
+        catch (Exception e) {
+
+            SpliceLogUtils.error(LOG, "Got an error:", e);
+            // If region is still open and we have moved files, it failed during merging
+            // close the region and move files back
+            try {
+                if (fileMoved) {
+                    if (!regionClosed) {
+                        admin.closeRegion(p);
+                        regionClosed = true;
+                    }
+                    restoreFromArchive(conf, conglomId, encodedRegionName);
+                }
+
+                // If the region is closed, reopen it
+                if (regionClosed)
+                    admin.assign(p);
+            } catch (Exception ex) {
+                SpliceLogUtils.error(LOG, "Got an error:", e);
+            }
+            throw e;
+        }
+    }
 
     public static void GET_REGIONS(String schemaName,
                                    String tableName,
@@ -325,6 +416,43 @@ public class SpliceRegionAdmin {
         }
         if (partition == null) {
             throw StandardException.newException(SQLState.REGION_DOESNOT_EXIST, regionName);
+        }
+        return partition;
+    }
+
+    private static Partition getNeighbor(TableDescriptor td, ConglomerateDescriptor index, Partition p) throws Exception{
+
+        byte[] startKey = p.getStartKey();
+        byte[] endKey = p.getEndKey();
+        byte[] searchKey = startKey;
+        boolean useStartKey = true;
+        if (startKey.length == 0) {
+            searchKey = endKey;
+            useStartKey = false;
+        }
+
+        // Get all regions for the table or index
+        PartitionAdmin admin= SIDriver.driver().getTableFactory().getAdmin();
+        String conglomId = Long.toString(index == null ? td.getHeapConglomerateId() : index.getConglomerateNumber());
+        Iterable<? extends Partition> partitions =  admin.allPartitions(conglomId);
+        List<Partition> partitionList = Lists.newArrayList(partitions);
+        // Find the region and get its start key
+        Partition partition = null;
+        for(Partition p1 : partitionList) {
+            byte[] s = p1.getStartKey();
+            byte[] e = p1.getEndKey();
+            if (useStartKey) {
+                if (Bytes.compareTo(e, searchKey) == 0) {
+                    partition = p1;
+                    break;
+                }
+            }
+            else {
+                if (Bytes.compareTo(s, searchKey) == 0) {
+                    partition = p1;
+                    break;
+                }
+            }
         }
         return partition;
     }
@@ -693,11 +821,94 @@ public class SpliceRegionAdmin {
         return 0;
     }
 
+    private static void  moveToArchive(Configuration conf,
+                                       String conglomId,
+                                       String encodedRegionName) throws IOException{
+        Path region = getRegionPath(conf, conglomId, encodedRegionName);
+        Path family = new Path(region, SIConstants.DEFAULT_FAMILY_NAME);
+        Path regionArchive = getTmpPath(conf, conglomId, encodedRegionName);
+        Path familyArchive = new Path(regionArchive, SIConstants.DEFAULT_FAMILY_NAME);
+        FileSystem fs = region.getFileSystem(conf);
+        if (!fs.exists(familyArchive))
+            fs.mkdirs(familyArchive);
+        FileStatus[] fileStatuses = fs.listStatus(family);
+        for (FileStatus fileStatus : fileStatuses) {
+            String name = fileStatus.getPath().getName();
+            Path src = fileStatus.getPath();
+            Path dest = new Path(familyArchive, name);
+            SpliceLogUtils.info(LOG, "Move %s to %s", src.toString(), dest.toString());
+            if (fs.rename(src, dest)) {
+                SpliceLogUtils.info(LOG, "Moved %s to %s", src.toString(), dest.toString());
+            }
+            else {
+                SpliceLogUtils.error(LOG, "Failed to move %s to %s", src.toString(), dest.toString());
+            }
+        }
+    }
+
+    private static void  restoreFromArchive(Configuration conf,
+                                            String conglomId,
+                                            String encodedRegionName) throws IOException{
+        Path region = getRegionPath(conf, conglomId, encodedRegionName);
+        Path family = new Path(region, SIConstants.DEFAULT_FAMILY_NAME);
+        Path regionArchive = getTmpPath(conf, conglomId, encodedRegionName);
+        Path familyArchive = new Path(regionArchive, SIConstants.DEFAULT_FAMILY_NAME);
+        FileSystem fs = region.getFileSystem(conf);
+        if (fs.exists(familyArchive)) {
+            FileStatus[] fileStatuses = fs.listStatus(familyArchive);
+            for (FileStatus fileStatus : fileStatuses) {
+                String name = fileStatus.getPath().getName();
+                Path src = fileStatus.getPath();
+                Path dest = new Path(family, name);
+                if (fs.rename(src, dest)) {
+                    SpliceLogUtils.info(LOG, "Moved %s to %s", src.toString(), dest.toString());
+                }
+                else {
+                    SpliceLogUtils.info(LOG, "Failed to move %s to %s", src.toString(), dest.toString());
+                }
+            }
+            if (!fs.delete(familyArchive, true)) {
+                SpliceLogUtils.error(LOG, "Failed to remove %s", familyArchive.toString());
+            }
+        }
+    }
+
+    private static void  deleteTempDir(Configuration conf,
+                                       String conglomId,
+                                       String encodedRegionName) throws IOException{
+        Path regionArchive = getTmpPath(conf, conglomId, encodedRegionName);
+        Path familyArchive = new Path(regionArchive, SIConstants.DEFAULT_FAMILY_NAME);
+        FileSystem fs = familyArchive.getFileSystem(conf);
+        if (fs.exists(familyArchive)) {
+
+            if (fs.delete(familyArchive, true)) {
+                SpliceLogUtils.info(LOG, "Deleted %s", familyArchive.toString());
+            }
+            else {
+                SpliceLogUtils.error(LOG, "Failed to delete %s", familyArchive.toString());
+            }
+        }
+
+    }
     private static Path getRegionPath(Configuration conf, String conglomId, String encodedName) throws IOException {
         Path p = new Path(conf.get(HConstants.HBASE_DIR));
         FileSystem fs = p.getFileSystem(conf);
         p =  p.makeQualified(fs);
         Path data = new Path(p, "data");
+        Path splice = new Path(data, "splice");
+        Path table = new Path(splice, conglomId);
+        Path region = new Path(table, encodedName);
+        return region;
+    }
+
+    private static Path getTmpPath(Configuration conf,
+                                             String conglomId,
+                                             String encodedName) throws IOException {
+        Path p = new Path(conf.get(HConstants.HBASE_DIR));
+        FileSystem fs = p.getFileSystem(conf);
+        p =  p.makeQualified(fs);
+        Path tmp = new Path(p, ".tmp");
+        Path data = new Path(tmp, "data");
         Path splice = new Path(data, "splice");
         Path table = new Path(splice, conglomId);
         Path region = new Path(table, encodedName);
