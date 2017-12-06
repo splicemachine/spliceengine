@@ -1201,13 +1201,14 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
                 // Check for defaults
                 DefaultInfoImpl defaultInfo = (DefaultInfoImpl) colDesc.getDefaultInfo();
 
-                if (defaultInfo != null && !colDesc.isAutoincrement() && !colDesc.hasGenerationClause() && !colDesc.getType().isNullable()) {
-                    // Generate the tree for the default
-                    String defaultText = defaultInfo.getDefaultText();
-                    defaultTree = parseDefault(defaultText);
-
-                    defaultTree = defaultTree.bindExpression
-                            (getFromList(), (SubqueryList) null, (Vector) null);
+                /* When a column has a system variable like USER as the default value,
+                   defaultInfo.defaultValue will be null. For such cases, we also need to physically store
+                   the value as USER could vary depending on the USER used to log in. We don't need to
+                   fetch default value for such cases.
+                 */
+                if (defaultInfo != null && defaultInfo.getDefaultValue() != null &&
+                        !colDesc.isAutoincrement() && !colDesc.hasGenerationClause() && !colDesc.getType().isNullable()) {
+                    defaultTree = getConstantNode(colType, defaultInfo.getDefaultValue().cloneValue(false));
                     defaultValueMap.set(i);
                 } else {
                     defaultTree = getNullNode(colType);
