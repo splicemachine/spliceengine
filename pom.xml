@@ -1189,7 +1189,6 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
-                <module>splice_spark</module>
             </modules>
         </profile>
         <profile>
