@@ -118,7 +118,7 @@ class SplicemachineContext(url: String) extends Serializable {
   }
 
   def broadcastCreds = {
-    SpliceSpark.logCredInformation(credentials)
+    SpliceSpark.logCredentialsInformation(credentials)
     broadcastCredentials = SpliceSpark.getContext.broadcast(new SerializableWritable(credentials))
   }
 
