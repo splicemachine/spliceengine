@@ -27,8 +27,11 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.derby.stream.control.BadRecordsRecorder;
 import com.splicemachine.stream.accumulator.BadRecordsAccumulator;
+import org.apache.hadoop.security.Credentials;
 import org.apache.log4j.Logger;
 import org.apache.spark.Accumulable;
+import org.apache.spark.SerializableWritable;
+import org.apache.spark.broadcast.Broadcast;
 import org.apache.spark.util.LongAccumulator;
 import java.io.*;
 import java.sql.SQLException;
@@ -130,6 +133,13 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException{
+        Broadcast<SerializableWritable<Credentials>> credentials = SpliceSpark.getCredentials();
+        if (credentials != null) {
+            out.writeBoolean(true);
+            out.writeObject(credentials);
+        } else {
+            out.writeBoolean(false);
+        }
         out.writeLong(badRecordsSeen);
         out.writeLong(badRecordThreshold);
         out.writeBoolean(permissive);
@@ -163,10 +173,16 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     @Override
     public void readExternal(ObjectInput in)
             throws IOException, ClassNotFoundException{
+        Credentials credentials = null;
+        if (in.readBoolean()) {
+            // we've got credentials to apply
+            Broadcast<SerializableWritable<Credentials>> bcast = (Broadcast<SerializableWritable<Credentials>>) in.readObject();
+            credentials = bcast.getValue().value();
+        }
         badRecordsSeen = in.readLong();
         badRecordThreshold = in.readLong();
         permissive=in.readBoolean();
-        SpliceSpark.setupSpliceStaticComponents();
+        SpliceSpark.setupSpliceStaticComponents(credentials);
         boolean isOp=in.readBoolean();
         if(isOp){
             broadcastedActivation = (BroadcastedActivation)in.readObject();
