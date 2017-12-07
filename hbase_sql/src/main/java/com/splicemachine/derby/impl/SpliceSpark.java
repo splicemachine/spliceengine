@@ -125,8 +125,8 @@ public class SpliceSpark {
         return !RegionServerLifecycleObserver.isHbaseJVM;
     }
 
-    private static UserGroupInformation applyCreds(Credentials credentials) throws IOException {
-        logCredInformation(credentials);
+    private static UserGroupInformation applyCredentials(Credentials credentials) throws IOException {
+        logCredentialsInformation(credentials);
 
         UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
         ugi.addCredentials(credentials);
@@ -138,13 +138,13 @@ public class SpliceSpark {
         return ugi;
     }
 
-    public static void logCredInformation(Credentials credentials2) {
+    public static void logCredentialsInformation(Credentials credentials) {
         if (LOG.isDebugEnabled()) {
-            LOG.debug("credentials:" + credentials2);
-            for (int i = 0; i < credentials2.getAllSecretKeys().size(); i++) {
-                LOG.debug("getAllSecretKeys:" + i + ":" + credentials2.getAllSecretKeys().get(i));
+            LOG.debug("credentials:" + credentials);
+            for (int i = 0; i < credentials.getAllSecretKeys().size(); i++) {
+                LOG.debug("getAllSecretKeys:" + i + ":" + credentials.getAllSecretKeys().get(i));
             }
-            Iterator it = credentials2.getAllTokens().iterator();
+            Iterator it = credentials.getAllTokens().iterator();
             while (it.hasNext()) {
                 LOG.debug("getAllTokens:" + it.next());
             }
@@ -153,7 +153,12 @@ public class SpliceSpark {
 
     public static synchronized void setupSpliceStaticComponents(Credentials credentials) throws IOException {
         if (!spliceStaticComponentsSetup && isRunningOnSpark()) {
-            UserGroupInformation ugi = applyCreds(credentials);
+            if (credentials == null) {
+                // no credentials, setup static components right away
+                setupSpliceStaticComponents();
+                return;
+            }
+            UserGroupInformation ugi = applyCredentials(credentials);
             try {
                 ugi.doAs(new PrivilegedExceptionAction<Void>() {
                     @Override
