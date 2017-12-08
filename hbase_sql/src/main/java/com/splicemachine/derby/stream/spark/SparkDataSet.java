@@ -737,6 +737,10 @@ public class SparkDataSet<V> implements DataSet<V> {
                 .map(new RowToLocatedRowFunction(context)));
     }
 
+    public static DataSet toSpliceLocatedRow(JavaRDD<Row> rdd, OperationContext context) throws StandardException {
+        return new SparkDataSet(rdd.map(new RowToLocatedRowFunction(context)));
+    }
+
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public DataSet<ExecRow> writeParquetFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
                                           OperationContext context) {
