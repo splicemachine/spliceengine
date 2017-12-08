@@ -15,6 +15,7 @@
 
 package com.splicemachine.derby.impl.load;
 
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -417,6 +418,27 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
                 "\\xE1(Q\\x00\\xE4<\\x8F\\x84 |";
 
         Assert.assertEquals(expected, s);
+    }
+
+    @Test
+    public void negativeTests() throws Exception {
+        if (notSupported)
+            return;
+
+        try {
+            methodWatcher.execute("call SYSCS_UTIL.SYSCS_SPLIT_TABLE_OR_INDEX_AT_POINTS(null,null,null,null)");
+        }catch (SQLException e) {
+            String sqlcode = e.getSQLState();
+            Assert.assertEquals(sqlcode, SQLState.TABLE_NAME_CANNOT_BE_NULL.substring(0,5), sqlcode);
+        }
+
+        try {
+            methodWatcher.execute("call SYSCS_UTIL.SYSCS_SPLIT_TABLE_OR_INDEX(null,null,null, 'L_ORDERKEY,L_LINENUMBER','hdfs:///tmp/test_hfile_import/lineitemKey.csv','|', null, null, null,null, -1, '/BAD', true, null)");
+        } catch (SQLException e) {
+            String sqlcode = e.getSQLState();
+            Assert.assertEquals(sqlcode, SQLState.TABLE_NAME_CANNOT_BE_NULL.substring(0,5), sqlcode);
+        }
+
     }
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

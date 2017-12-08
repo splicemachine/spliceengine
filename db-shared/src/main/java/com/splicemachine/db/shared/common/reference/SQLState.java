@@ -2009,6 +2009,6 @@ public interface SQLState {
 	String REGION_DOESNOT_EXIST 									= "TS003";
 	String WRONG_REGION_NAME_TYPE 									= "TS004";
 	String REGION_NOT_ADJACENT                                      = "TS005";
-	String SPLIT_KEY_CANNOT_BE_NULL									= "TS006";
+	String PARAMETER_CANNOT_BE_NULL									= "TS006";
 }
 
