@@ -56,6 +56,14 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     assert(newDF.count == 20)
   }
 
+  test("insertion using rdd") {
+    val df = sqlContext.read.options(internalOptions).splicemachine
+    val changedDF = df.withColumn("C6_INT", when(col("C6_INT").leq(10), col("C6_INT").plus(10)))
+    splicemachineContext.insert(changedDF.rdd, changedDF.schema, internalTN)
+    val newDF = sqlContext.read.options(internalOptions).splicemachine
+    assert(newDF.count == 20)
+  }
+
   test("bulkImportHFile") {
     val bulkImportOptions = scala.collection.mutable.Map(
       "useSpark" -> "true",
@@ -78,10 +86,41 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     assert(newDF.count == 20)
   }
 
+  test("bulkImportHFile using rdd") {
+    val bulkImportOptions = scala.collection.mutable.Map(
+      "useSpark" -> "true",
+      "skipSampling" -> "true"
+    )
+    val tmpDir: String = System.getProperty("java.io.tmpdir");
+    val bulkImportDirectory: File = new File(tmpDir, "bulkImport")
+    bulkImportDirectory.mkdirs()
+    val statusDirectory: File = new File(bulkImportDirectory, "BAD")
+    statusDirectory.mkdir()
+
+    bulkImportOptions += ("bulkImportDirectory" -> bulkImportDirectory.getAbsolutePath);
+    bulkImportOptions += ("statusDirectory" -> statusDirectory.getAbsolutePath);
+
+    val df = sqlContext.read.options(internalOptions).splicemachine
+    val changedDF = df.withColumn("C6_INT", when(col("C6_INT").leq(10), col("C6_INT").plus(20)) )
+
+    splicemachineContext.bulkImportHFile(changedDF.rdd, changedDF.schema, internalTN, bulkImportOptions)
+    val newDF = sqlContext.read.options(internalOptions).splicemachine
+    assert(newDF.count == 20)
+  }
+
   test ("deletion") {
     val df = sqlContext.read.options(internalOptions).splicemachine
     val deleteDF = df.filter("c6_int < 5").select("C6_INT","C7_BIGINT")
     splicemachineContext.delete(deleteDF, internalTN)
+    // read the data back
+    val newDF = sqlContext.read.options(internalOptions).splicemachine
+    assertEquals(5, newDF.filter("c6_int < 10").count())
+  }
+
+  test ("deletion using rdd") {
+    val df = sqlContext.read.options(internalOptions).splicemachine
+    val deleteDF = df.filter("c6_int < 5").select("C6_INT","C7_BIGINT")
+    splicemachineContext.delete(deleteDF.rdd, deleteDF.schema, internalTN)
     // read the data back
     val newDF = sqlContext.read.options(internalOptions).splicemachine
     assertEquals(5, newDF.filter("c6_int < 10").count())
@@ -99,7 +138,19 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     assertEquals(5, newDF.filter("c8_float >= 10.0").count())
   }
 
-    test("table scan") {
+  test ("update using rdd") {
+    val df = sqlContext.read.options(internalOptions).splicemachine
+    val updatedDF = df
+      .filter("C6_INT < 5")
+      .select("C6_INT","C7_BIGINT","C8_FLOAT","C9_SMALLINT")
+      .withColumn("C8_FLOAT", when(col("C8_FLOAT").leq(10.0), col("C8_FLOAT").plus(10.0)) )
+    splicemachineContext.update(updatedDF.rdd, updatedDF.schema, internalTN)
+    // read the data back
+    val newDF = sqlContext.read.options(internalOptions).splicemachine
+    assertEquals(5, newDF.filter("c8_float >= 10.0").count())
+  }
+
+  test("table scan") {
       val results = sqlContext.sql(s"SELECT * FROM $table").collectAsList()
       assert(results.size() == rowCount)
       assert(results.get(1).get(5).equals(1))
