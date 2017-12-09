@@ -151,4 +151,29 @@ public class SQLBooleanTest extends SQLDataValueDescriptorTest {
                 execRow2.getColumn(1).setSparkObject(row.get(0));
                 Assert.assertEquals("ExecRow Mismatch",execRow,execRow2);
         }
+
+        @Test
+        public void testSelectivityWithParameter() throws Exception {
+                /* let only the first 3 rows take different values, all remaining rows use a default value */
+                SQLBoolean value1 = new SQLBoolean();
+                ItemStatistics stats = new ColumnStatisticsImpl(value1);
+                SQLBoolean sqlBoolean;
+                sqlBoolean = new SQLBoolean(true);
+                stats.update(sqlBoolean);
+                sqlBoolean = new SQLBoolean(true);
+                stats.update(sqlBoolean);
+                sqlBoolean = new SQLBoolean(true);
+                stats.update(sqlBoolean);
+                for (int i = 3; i < 81920; i++) {
+                        sqlBoolean = new SQLBoolean(false);
+                        stats.update(sqlBoolean);
+                }
+                stats = serde(stats);
+
+                /* selectivityExcludingValueIfSkewed() is the function used to compute the electivity of equality
+                   predicate with parameterized value
+                 */
+                double range = stats.selectivityExcludingValueIfSkewed(sqlBoolean);
+                Assert.assertTrue(range + " did not match expected value of 1.0d", (range == 3.0d));
+        }
 }

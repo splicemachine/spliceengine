@@ -163,4 +163,29 @@ public class SQLRealTest extends SQLDataValueDescriptorTest {
                 execRow2.getColumn(1).setSparkObject(row.get(0));
                 Assert.assertEquals("ExecRow Mismatch",execRow,execRow2);
         }
+
+        @Test
+        public void testSelectivityWithParameter() throws Exception {
+                /* let only the first 3 rows take different values, all remaining rows use a default value */
+                SQLReal value1 = new SQLReal();
+                ItemStatistics stats = new ColumnStatisticsImpl(value1);
+                SQLReal sqlReal;
+                sqlReal = new SQLReal(1.0f);
+                stats.update(sqlReal);
+                sqlReal = new SQLReal(2.0f);
+                stats.update(sqlReal);
+                sqlReal = new SQLReal(3.0f);
+                stats.update(sqlReal);
+                for (int i = 3; i < 81920; i++) {
+                        sqlReal = new SQLReal(-1.0f);
+                        stats.update(sqlReal);
+                }
+                stats = serde(stats);
+
+                /* selectivityExcludingValueIfSkewed() is the function used to compute the electivity of equality
+                   predicate with parameterized value
+                 */
+                double range = stats.selectivityExcludingValueIfSkewed(sqlReal);
+                Assert.assertTrue(range + " did not match expected value of 1.0d", (range == 1.0d));
+        }
 }

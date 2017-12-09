@@ -232,4 +232,9 @@ public class FakePartitionStatisticsImpl implements PartitionStatistics {
     public <T extends Comparator<T>> long rangeSelectivity(T start, T stop, boolean includeStart, boolean includeStop, int positionNumber) {
         return (long) (extraQualifierMultiplier * (double) rowCount());
     }
+
+    @Override
+    public <T extends Comparator<T>> long selectivityExcludingValueIfSkewed(T element, int positionNumber) {
+        return 0l;
+    }
 }

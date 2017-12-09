@@ -43,7 +43,6 @@ import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.Decimal;
-import org.joda.time.DateTime;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -161,5 +160,30 @@ public class SQLDecimalTest extends SQLDataValueDescriptorTest {
                 execRow2.setRowArray(new DataValueDescriptor[]{new SQLDecimal()});
                 execRow2.getColumn(1).setSparkObject(row.get(0));
                 Assert.assertEquals("ExecRow Mismatch",execRow,execRow2);
+        }
+
+        @Test
+        public void testSelectivityWithParameter() throws Exception {
+                /* let only the first 3 rows take different values, all remaining rows use a default value */
+                SQLDecimal value1 = new SQLDecimal();
+                ItemStatistics stats = new ColumnStatisticsImpl(value1);
+                SQLDecimal sqlDecimal;
+                sqlDecimal = new SQLDecimal(new BigDecimal(1.0));
+                stats.update(sqlDecimal);
+                sqlDecimal = new SQLDecimal(new BigDecimal(2.0));
+                stats.update(sqlDecimal);
+                sqlDecimal = new SQLDecimal(new BigDecimal(3.0));
+                stats.update(sqlDecimal);
+                for (int i = 3; i < 81920; i++) {
+                        sqlDecimal = new SQLDecimal(new BigDecimal(-1.0));
+                        stats.update(sqlDecimal);
+                }
+                stats = serde(stats);
+
+                /* selectivityExcludingValueIfSkewed() is the function used to compute the electivity of equality
+                   predicate with parameterized value
+                 */
+                double range = stats.selectivityExcludingValueIfSkewed(sqlDecimal);
+                Assert.assertTrue(range + " did not match expected value of 1.0d", (range == 1.0d));
         }
 }

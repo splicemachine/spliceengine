@@ -643,4 +643,8 @@ public interface CompilerContext extends Context
 
 	public Vector<Integer> getSkipStatsTableList();
 
+	public boolean getSelectivityEstimationIncludingSkewedDefault();
+
+	public void setSelectivityEstimationIncludingSkewedDefault(boolean onOff);
+
 }

@@ -135,4 +135,29 @@ public class SQLTinyIntTest extends SQLDataValueDescriptorTest {
                 execRow2.getColumn(1).setSparkObject(row.get(0));
                 Assert.assertEquals("ExecRow Mismatch",execRow,execRow2);
         }
+
+        @Test
+        public void testSelectivityWithParameter() throws Exception {
+                /* let only the first 3 rows take different values, all remaining rows use a default value */
+                SQLTinyint value1 = new SQLTinyint();
+                ItemStatistics stats = new ColumnStatisticsImpl(value1);
+                SQLTinyint sqlTinyint;
+                sqlTinyint = new SQLTinyint(Byte.valueOf("1"));
+                stats.update(sqlTinyint);
+                sqlTinyint = new SQLTinyint(Byte.valueOf("2"));
+                stats.update(sqlTinyint);
+                sqlTinyint = new SQLTinyint(Byte.valueOf("3"));
+                stats.update(sqlTinyint);
+                for (int i = 3; i < 81920; i++) {
+                        sqlTinyint = new SQLTinyint(Byte.valueOf("-1"));
+                        stats.update(sqlTinyint);
+                }
+                stats = serde(stats);
+
+                /* selectivityExcludingValueIfSkewed() is the function used to compute the electivity of equality
+                   predicate with parameterized value
+                 */
+                double range = stats.selectivityExcludingValueIfSkewed(sqlTinyint);
+                Assert.assertTrue(range + " did not match expected value of 1.0d", (range == 1.0d));
+        }
 }
