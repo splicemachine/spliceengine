@@ -201,5 +201,28 @@ public class SQLCharTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals("ExecRow Mismatch",execRow,execRow2);
         }
 
+        @Test
+        public void testSelectivityWithParameter() throws Exception {
+                /* let only the first 3 rows take different values, all remaining rows use the default value 'ZZZZ' */
+                SQLChar value1 = new SQLChar();
+                ItemStatistics stats = new ColumnStatisticsImpl(value1);
+                SQLChar sqlChar;
+                sqlChar = new SQLChar("aaaa");
+                stats.update(sqlChar);
+                sqlChar = new SQLChar("bbbb");
+                stats.update(sqlChar);
+                sqlChar = new SQLChar("cccc");
+                stats.update(sqlChar);
+                for (int i = 3; i < 81920; i++) {
+                     sqlChar = new SQLChar("ZZZZ");
+                     stats.update(sqlChar);
+                }
+                stats = serde(stats);
 
+                /* selectivityExcludingValueIfSkewed() is the function used to compute the electivity of equality
+                   predicate with parameterized value
+                 */
+                double range = stats.selectivityExcludingValueIfSkewed(sqlChar);
+                Assert.assertTrue(range + " did not match expected value of 1.0d", (range == 1.0d));
+        }
 }

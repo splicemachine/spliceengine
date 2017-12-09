@@ -164,4 +164,10 @@ public class PartitionStatisticsImpl implements PartitionStatistics {
         else
             return stats.rangeSelectivity((T) start, (T) stop, includeStart, includeStop);
     }
+
+    @Override
+    public <T extends Comparator<T>> long selectivityExcludingValueIfSkewed(T element, int positionNumber) {
+        ItemStatistics stats = positionNumber >= itemStatistics.size()?null:itemStatistics.get(positionNumber);
+        return stats==null?(long) (( (double) rowCount()) * extraQualifierMultiplier ):stats.selectivityExcludingValueIfSkewed((T) element);
+    }
 }

@@ -180,4 +180,28 @@ public class SQLLongIntTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals("ExecRow Mismatch",execRow,execRow2);
         }
 
+        @Test
+        public void testSelectivityWithParameter() throws Exception {
+                /* let only the first 3 rows take different values, all remaining rows use a default value */
+                SQLLongint value1 = new SQLLongint();
+                ItemStatistics stats = new ColumnStatisticsImpl(value1);
+                SQLLongint sqlLongint;
+                sqlLongint = new SQLLongint(1L);
+                stats.update(sqlLongint);
+                sqlLongint = new SQLLongint(2L);
+                stats.update(sqlLongint);
+                sqlLongint = new SQLLongint(3L);
+                stats.update(sqlLongint);
+                for (int i = 3; i < 81920; i++) {
+                        sqlLongint = new SQLLongint(-1L);
+                        stats.update(sqlLongint);
+                }
+                stats = serde(stats);
+
+                /* selectivityExcludingValueIfSkewed() is the function used to compute the electivity of equality
+                   predicate with parameterized value
+                 */
+                double range = stats.selectivityExcludingValueIfSkewed(sqlLongint);
+                Assert.assertTrue(range + " did not match expected value of 1.0d", (range == 1.0d));
+        }
 }

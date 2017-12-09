@@ -111,5 +111,10 @@ public interface PartitionStatistics {
 
     PartitionStatisticsDescriptor getPartitionStatistics();
 
+    /**
+     * @param element the element to exclude
+     * @return average rows per value excluding the element if it is skewed
+     */
+    <T extends Comparator<T>> long selectivityExcludingValueIfSkewed(T element, int positionNumber);
 }
 
