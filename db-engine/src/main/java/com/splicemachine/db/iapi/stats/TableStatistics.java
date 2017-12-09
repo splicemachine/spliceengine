@@ -152,5 +152,6 @@ public interface TableStatistics {
      */
     <T extends Comparator<T>> double rangeSelectivity(T start,T stop, boolean includeStart,boolean includeStop,int positionNumber);
 
+    <T extends Comparator<T>> double selectivityExcludingValueIfSkewed(T element, int positionNumber);
 }
 
