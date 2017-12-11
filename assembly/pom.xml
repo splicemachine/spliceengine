@@ -94,6 +94,8 @@
                                     <exclude>com.splicemachine:db-tools-ij</exclude>
                                     <exclude>com.splicemachine:db-shared</exclude>
                                     <exclude>com.splicemachine:db-drda</exclude>
+                                    <exclude>io.dropwizard.metrics:*</exclude>
+                                    <exclude>com.yammer.metrics:*</exclude>
                                     <exclude>${extraExclude}</exclude>
                                 </excludes>
                             </artifactSet>
@@ -239,7 +241,6 @@
                                 javax.servlet-api,
                                 javax.ws.rs-api
                             </includeArtifactIds>
-
 
                         </configuration>
                     </execution>
