@@ -120,6 +120,10 @@
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>db-client</artifactId>
+        </dependency>
     </dependencies>
     <build>
         <!-- Enable build variable substitution ("filtering") for files in resource directory. -->
