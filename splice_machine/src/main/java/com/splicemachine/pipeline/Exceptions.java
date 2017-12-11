@@ -14,6 +14,7 @@
 
 package com.splicemachine.pipeline;
 
+import com.splicemachine.db.client.am.SqlException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Throwables;
@@ -50,6 +51,8 @@ public class Exceptions {
             Throwable rootCause = Throwables.getRootCause(e);
             if (rootCause instanceof StandardException) {
                 return (StandardException) rootCause;
+            } else if (rootCause instanceof SqlException) {
+                return StandardException.wrapSqlException((SqlException) rootCause);
             }
             if (pef != null) {
                 e = pef.processPipelineException(rootCause);
