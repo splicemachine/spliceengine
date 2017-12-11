@@ -93,6 +93,7 @@
                                     <exclude>${extraExclude}</exclude>
                                     <exclude>io.dropwizard.metrics:*</exclude>
                                     <exclude>com.yammer.metrics:*</exclude>
+                                    <exclude>org.apache.kafka:*</exclude>
                                 </excludes>
                             </artifactSet>
                             <relocations>
