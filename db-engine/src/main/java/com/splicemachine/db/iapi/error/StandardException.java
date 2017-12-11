@@ -496,6 +496,16 @@ public class StandardException extends Exception
 		else	{ return (SQLException) cause; }
 	}
 
+	public static StandardException wrapSqlException(com.splicemachine.db.client.am.SqlException sqlException) {
+		String state = sqlException.getSQLState();
+		StandardException se = new StandardException(state, sqlException.getMessage());
+		if (sqlException.getNextException() != null)
+		{
+			se.initCause(sqlException.getNextException());
+		}
+		return se;
+	}
+
 
 	public static StandardException unexpectedUserException(Throwable t)
 	{
