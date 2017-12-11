@@ -96,6 +96,7 @@
                                     <exclude>com.splicemachine:db-drda</exclude>
                                     <exclude>io.dropwizard.metrics:*</exclude>
                                     <exclude>com.yammer.metrics:*</exclude>
+                                    <exclude>org.apache.kafka:*</exclude>
                                     <exclude>${extraExclude}</exclude>
                                 </excludes>
                             </artifactSet>
