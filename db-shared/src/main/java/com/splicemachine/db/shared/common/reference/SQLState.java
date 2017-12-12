@@ -1942,6 +1942,8 @@ public interface SQLState {
 	String LANG_CANCELLATION_EXCEPTION							   = "SE008";
 	String LANG_INVALID_DAY										   = "SE022";
 	String ERROR_PARSING_EXCEPTION								   = "SE023";
+	String PARAMETER_CANNOT_BE_NULL								   = "SE024";
+	String PARAMETER_IS_NOT_HEXADECIMAL							   = "SE025";
 	/*
      * Backup and restore
      */
@@ -2005,6 +2007,5 @@ public interface SQLState {
 	String REGION_DOESNOT_EXIST 									= "TS003";
 	String WRONG_REGION_NAME_TYPE 									= "TS004";
 	String REGION_NOT_ADJACENT                                      = "TS005";
-	String PARAMETER_CANNOT_BE_NULL									= "TS006";
 }
 
