@@ -24,11 +24,11 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.FormatableBitSetUtils;
 import com.splicemachine.derby.utils.marshall.EntryDataDecoder;
@@ -42,7 +42,6 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
 import org.apache.log4j.Logger;
-import org.apache.parquet.Closeables;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -202,8 +201,13 @@ public abstract class SpliceController implements ConglomerateController{
         }catch(Exception e){
             throw Exceptions.parseException(e);
         } finally {
-            if (rowDecoder !=null)
-                Closeables.closeAndSwallowIOExceptions(rowDecoder);
+            if (rowDecoder != null) {
+                try {
+                    rowDecoder.close();
+                } catch (IOException e) {
+                    LOG.warn("Encountered exception closing closeable", e);
+                }
+            }
         }
 
     }

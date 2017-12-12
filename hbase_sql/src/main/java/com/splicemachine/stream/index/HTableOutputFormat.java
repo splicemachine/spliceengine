@@ -55,6 +55,9 @@ public class HTableOutputFormat extends OutputFormat<byte[],Either<Exception, KV
     @Override
     public RecordWriter<byte[],Either<Exception, KVPair>> getRecordWriter(TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
         try {
+            assert taskAttemptContext != null && taskAttemptContext.getConfiguration() != null:"configuration passed in is null";
+            if (outputCommitter == null)
+                getOutputCommitter(taskAttemptContext);
             DataSetWriterBuilder tableWriter =TableWriterUtils.deserializeTableWriter(taskAttemptContext.getConfiguration());
             TxnView childTxn = outputCommitter.getChildTransaction(taskAttemptContext.getTaskAttemptID());
             if (childTxn == null)
