@@ -49,6 +49,7 @@ public class MemDatabase{
 
         SIDriver.loadDriver(env);
         final SIDriver driver = env.getSIDriver();
+        SpliceClient.isRegionServer = true;
         //start the database sequence
         EngineLifecycleService els = new EngineLifecycleService(new DistributedDerbyStartup(){
             @Override

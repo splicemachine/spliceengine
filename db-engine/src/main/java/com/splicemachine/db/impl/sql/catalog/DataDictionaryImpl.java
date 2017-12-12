@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
+import com.carrotsearch.hppc.LongOpenHashSet;
+import com.splicemachine.db.impl.db.BasicDatabase;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Function;
@@ -100,7 +102,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     protected final AliasDescriptor[] sysfunDescriptors=new AliasDescriptor[SYSFUN_FUNCTIONS.length];
 
     // the structure that holds all the core table info
-    protected TabInfoImpl[] coreInfo;
+    volatile protected TabInfoImpl[] coreInfo;
 
     /*
     ** SchemaDescriptors for system and app schemas.  Both
@@ -139,7 +141,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 	*/
 
     // the structure that holds all the noncore info
-    protected TabInfoImpl[] noncoreInfo;
+    volatile protected TabInfoImpl[] noncoreInfo;
 
     // no other system tables have id's in the configuration.
 
@@ -538,6 +540,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         setDependencyManager();
         booting=false;
+
     }
 
     /**
@@ -1375,7 +1378,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         if (retval!=null) {
             ConglomerateDescriptor[] conglomerateDescriptors = retval.getConglomerateDescriptors();
             if (conglomerateDescriptors.length > 0 &&
-                    conglomerateDescriptors[0].getConglomerateNumber() < DataDictionary.FIRST_USER_TABLE_NUMBER)
+                    BasicDatabase.isSystemConglomerate(conglomerateDescriptors[0].getConglomerateNumber()))
                 retval.setVersion(SYSTABLESRowFactory.ORIGINAL_TABLE_VERSION);
             dataDictionaryCache.nameTdCacheAdd(tableKey, retval);
         }
@@ -6174,7 +6177,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 // to allow it to be garbage-collected. The idea
                 // is that a running database might never need to
                 // reference a non-core table after it was created.
-                clearNoncoreTable(noncoreCtr);
+                //clearNoncoreTable(noncoreCtr);
             }catch(Exception e){
                 e.printStackTrace();
                 System.out.println("Dictionary Table Failure - exiting");
@@ -6886,9 +6889,71 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     /**
      * Initialized the noncore info array.
      */
-    private void initializeNoncoreInfo(){
+    private void initializeNoncoreInfo() throws StandardException{
+
         noncoreInfo=new TabInfoImpl[NUM_NONCORE];
-    }
+        UUIDFactory luuidFactory=uuidFactory;
+        noncoreInfo[SYSCONSTRAINTS_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSCONSTRAINTSRowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSKEYS_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSKEYSRowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSPRIMARYKEYS_CATALOG_NUM-NUM_CORE] = new TabInfoImpl(new SYSPRIMARYKEYSRowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSDEPENDS_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSDEPENDSRowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSVIEWS_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSVIEWSRowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSCHECKS_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSCHECKSRowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSFOREIGNKEYS_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSFOREIGNKEYSRowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSSTATEMENTS_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSSTATEMENTSRowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSFILES_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSFILESRowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSALIASES_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSALIASESRowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSTRIGGERS_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSTRIGGERSRowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSSCHEMAPERMS_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSSCHEMAPERMSRowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSTABLEPERMS_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSTABLEPERMSRowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSCOLPERMS_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSCOLPERMSRowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSROUTINEPERMS_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSROUTINEPERMSRowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSROLES_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSROLESRowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSSEQUENCES_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSSEQUENCESRowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSPERMS_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSPERMSRowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSUSERS_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSUSERSRowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSBACKUP_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSBACKUPRowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSBACKUPFILESET_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSBACKUPFILESETRowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSBACKUPITEMS_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSBACKUPITEMSRowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSBACKUPJOBS_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSBACKUPJOBSRowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSCOLUMNSTATS_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSCOLUMNSTATISTICSRowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSPHYSICALSTATS_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSPHYSICALSTATISTICSRowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSTABLESTATS_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSTABLESTATISTICSRowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSSOURCECODE_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSSOURCECODERowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSDUMMY1_CATALOG_NUM-NUM_CORE]=new TabInfoImpl(new SYSDUMMY1RowFactory(luuidFactory,exFactory,dvf));
+        noncoreInfo[SYSSNAPSHOT_NUM-NUM_CORE]=new TabInfoImpl(new SYSSNAPSHOTSRowFactory(luuidFactory,exFactory,dvf));
+
+        initSystemIndexVariables(noncoreInfo[SYSCONSTRAINTS_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSKEYS_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSPRIMARYKEYS_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSDEPENDS_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSVIEWS_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSCHECKS_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSFOREIGNKEYS_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSSTATEMENTS_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSFILES_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSALIASES_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSTRIGGERS_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSSCHEMAPERMS_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSTABLEPERMS_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSCOLPERMS_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSROUTINEPERMS_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSROLES_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSSEQUENCES_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSPERMS_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSUSERS_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSBACKUP_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSBACKUPFILESET_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSBACKUPITEMS_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSBACKUPJOBS_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSCOLUMNSTATS_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSPHYSICALSTATS_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSTABLESTATS_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSSOURCECODE_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSDUMMY1_CATALOG_NUM-NUM_CORE]);
+            initSystemIndexVariables(noncoreInfo[SYSSNAPSHOT_NUM-NUM_CORE]);
+
+}
 
     /**
      * Get the TransactionController to use, when not
@@ -10304,4 +10369,15 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             ti.updateRow(keyRow,row,SYSSOURCECODERowFactory.SYSSOURCECODE_INDEX1_ID,bArray,colsToUpdate,tc);
         }
     }
+
+    @Override
+    public TabInfoImpl[] getNoncoreInfo() {
+        return noncoreInfo;
+    }
+
+    @Override
+    public TabInfoImpl[] getCoreInfo() {
+        return coreInfo;
+    }
+
 }
