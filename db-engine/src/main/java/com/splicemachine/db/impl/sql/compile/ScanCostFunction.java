@@ -471,7 +471,7 @@ public class ScanCostFunction{
                     RangeSelectivity rq = (RangeSelectivity) sh;
                     if(rq.stop==null){
                         rq.stop = value;
-                        rq.includeStop = true;
+                        rq.includeStop = false;
                         break OP_SWITCH;
                     }
                 }
