@@ -2512,4 +2512,9 @@ public class OptimizerImpl implements Optimizer{
             memoryAlreadyConsumed += outermostCostEstimate.getAccumulatedMemory();
         return memoryAlreadyConsumed;
     }
+
+    public RowOrdering getCurrentRowOrdering() {
+        return currentRowOrdering;
+    }
+
 }

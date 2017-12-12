@@ -392,4 +392,6 @@ public interface Optimizer{
      * joins, return the accumulated memory usage by these broadcast joins
      */
     double getAccumulatedMemory();
+
+    RowOrdering getCurrentRowOrdering();
 }
