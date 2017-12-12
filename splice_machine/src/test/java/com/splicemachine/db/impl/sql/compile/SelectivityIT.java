@@ -144,6 +144,23 @@ public class SelectivityIT extends SpliceUnitTest {
                         row(null, null),
                         row(null, null))).create();
 
+        new TableCreator(conn)
+                .withCreate("create table t_range_test (a1 int, b1 int, c1 int, d1 char(4), primary key (a1,b1))")
+                .withIndex("create index ix_t_range_test on t_range_test (d1, a1)")
+                .withInsert("insert into t_range_test values (?,?,?,?)")
+                .withRows(rows(
+                        row(1,1,1, "aaaa"),
+                        row(1,2,1,"bbbb"),
+                        row(1,3,1,"cccc"),
+                        row(1,4,1,"dddd"),
+                        row(1,5,1,"eeee"),
+                        row(1,6,1,"ffff"),
+                        row(1,7,1,"gggg"),
+                        row(1,8,1,"hhhh"),
+                        row(1,9,1,"iiii"),
+                        row(1,10,1,"jjjj")))
+                .create();
+
         conn.createStatement().executeQuery(format(
                 "call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s',false)",
                 schemaName));
@@ -527,5 +544,15 @@ public class SelectivityIT extends SpliceUnitTest {
         Assert.assertEquals(1000, rowCount, 100);
         rangeRowCount = parseOutputRows(getExplainMessage(3, "explain select * from t1s where c1>30 and c1<=31", methodWatcher));
         Assert.assertTrue(rangeRowCount >= rowCount);
+    }
+
+    @Test
+    public void testRangeSelectivityWithDifferentPredicateOrder() throws Exception {
+        double rowCount = parseOutputRows(getExplainMessage(4,
+                "explain select * from t_range_test --splice-properties index=ix_t_range_test\n where a1=1 and d1 < 'cccc' and d1 >='bbbb'", methodWatcher));
+        Assert.assertEquals(1, rowCount, 0);
+        double rowCount1 = parseOutputRows(getExplainMessage(4,
+                "explain select * from t_range_test --splice-properties index=ix_t_range_test\n where a1=1 and d1 >='bbbb' and d1 < 'cccc'", methodWatcher));
+        Assert.assertTrue(rowCount == rowCount);
     }
 }
