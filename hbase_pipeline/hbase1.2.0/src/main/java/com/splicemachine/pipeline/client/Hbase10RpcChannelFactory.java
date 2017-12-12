@@ -17,8 +17,8 @@ package com.splicemachine.pipeline.client;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.ClusterConnection;
 import org.apache.hadoop.hbase.client.Connection;
-import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
 import org.apache.hadoop.hbase.ipc.RegionCoprocessorRpcChannel;
 
@@ -34,7 +34,7 @@ public class Hbase10RpcChannelFactory implements RpcChannelFactory{
     @Override
     public CoprocessorRpcChannel newChannel(TableName tableName,byte[] regionKey) throws IOException{
         Connection conn=HBaseConnectionFactory.getInstance(config).getNoRetryConnection();
-        return new RegionCoprocessorRpcChannel((HConnection)conn,tableName,regionKey);
+        return new RegionCoprocessorRpcChannel((ClusterConnection)conn,tableName,regionKey);
     }
 
     @Override
