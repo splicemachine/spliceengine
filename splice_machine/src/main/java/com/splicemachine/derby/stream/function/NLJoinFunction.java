@@ -59,8 +59,9 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
     protected boolean isAntiJoin;
     protected boolean isOneRowInnerJoin;
     protected boolean hasMatch;
+    protected List<Future<Pair<OperationContext, Iterator<ExecRow>>>> futures;
 
-    protected ExecutorCompletionService<Pair<OperationContext, Iterator<ExecRow>>> completionService;
+    protected ExecutorService executorService;
 
     public NLJoinFunction () {}
 
@@ -75,7 +76,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
         batchSize = configuration.getNestedLoopJoinBatchSize();
         nLeftRows = 0;
         leftSideIterator = from;
-        completionService = new ExecutorCompletionService<>(EngineDriver.driver().getExecutorService());
+        executorService = EngineDriver.driver().getExecutorService();
 
         initOperationContexts();
         loadBatch();
@@ -96,6 +97,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
     private void loadBatch() throws StandardException {
 
         try {
+            futures = new ArrayList<Future<Pair<OperationContext, Iterator<ExecRow>>>>();
             while (nLeftRows < batchSize) {
                 if (!leftSideIterator.hasNext())
                     break;
@@ -103,10 +105,10 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                 ExecRow execRow = leftSideIterator.next();
                 GetNLJoinIterator getNLJoinIterator =  GetNLJoinIterator.makeGetNLJoinIterator(joinType,
                         operationContextList.remove(0), execRow);
-                completionService.submit(getNLJoinIterator);
+               futures.add(executorService.submit(getNLJoinIterator));
             }
             if (nLeftRows > 0) {
-                Future<Pair<OperationContext, Iterator<ExecRow>>> future = completionService.take();
+                Future<Pair<OperationContext, Iterator<ExecRow>>> future = futures.remove(0);
                 Pair<OperationContext, Iterator<ExecRow>> result = future.get();
                 currentOperationContext = result.getFirst();
                 rightSideNLJIterator = result.getSecond();
@@ -140,13 +142,13 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                         ExecRow execRow = leftSideIterator.next();
                         GetNLJoinIterator getNLJoinIterator = GetNLJoinIterator.makeGetNLJoinIterator(joinType,
                                 operationContextList.remove(0), execRow);
-                        completionService.submit(getNLJoinIterator);
+                        futures.add(executorService.submit(getNLJoinIterator));
                         nLeftRows++;
                     }
                     
                     if (nLeftRows > 0) {
                         // If there are pending tasks, wait to get an iterator to righ side
-                        Future<Pair<OperationContext, Iterator<ExecRow>>> future = completionService.take();
+                        Future<Pair<OperationContext, Iterator<ExecRow>>> future = futures.remove(0);
                         Pair<OperationContext, Iterator<ExecRow>> result = future.get();
                         nLeftRows--;
                         currentOperationContext = result.getFirst();
