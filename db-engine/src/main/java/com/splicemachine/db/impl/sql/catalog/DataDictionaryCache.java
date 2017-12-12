@@ -43,6 +43,7 @@ import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
+import com.splicemachine.db.impl.db.BasicDatabase;
 import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.utils.Pair;
@@ -266,8 +267,8 @@ public class DataDictionaryCache {
 
 
     public Conglomerate conglomerateCacheFind(TransactionController xactMgr,Long conglomId) throws StandardException {
-        if (!dd.canUseCache(xactMgr) && conglomId>=DataDictionary.FIRST_USER_TABLE_NUMBER)
-            // Use cache even if dd says we can't as long as it's a system table (conglomID is < FIRST_USER_TABLE_NUMBER)
+        if (!dd.canUseCache(xactMgr) && !BasicDatabase.isSystemConglomerate(conglomId))
+            // Use cache even if dd says we can't as long as it's a system table
             return null;
         if (LOG.isDebugEnabled())
             LOG.debug("conglomerateCacheFind " + conglomId);

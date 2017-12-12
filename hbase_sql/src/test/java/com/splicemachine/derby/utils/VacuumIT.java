@@ -15,6 +15,7 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.impl.db.BasicDatabase;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
@@ -34,6 +35,7 @@ import org.junit.rules.TestRule;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -83,9 +85,11 @@ public class VacuumIT extends SpliceUnitTest{
             Assert.assertTrue(beforeTables.contains(conglomerateString));
             Assert.assertFalse(afterTables.contains(conglomerateString));
             Set<String> deletedTables=getDeletedTables(beforeTables,afterTables);
+            Set<String> systemConglomerates = getSystemConglomerateSet();
+
             for(String t : deletedTables){
                 long conglom=new Long(t);
-                Assert.assertTrue(conglom>=DataDictionary.FIRST_USER_TABLE_NUMBER);
+                Assert.assertTrue(!systemConglomerates.contains(conglom));
             }
         }
     }
@@ -107,5 +111,20 @@ public class VacuumIT extends SpliceUnitTest{
             beforeTables.remove(t);
         }
         return beforeTables;
+    }
+
+    private Set<String> getSystemConglomerateSet() throws Exception{
+        Set<String> conglomerates = new HashSet<>();
+        String sql = "select CONGLOMERATENUMBER from sys.sysconglomerates c, sys.sysschemas s " +
+                "where c.SCHEMAID=s.schemaid and s.schemaname='SYS'";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        while (rs.next()) {
+            Long conglomId = rs.getLong(1);
+            conglomerates.add(conglomId.toString());
+        }
+
+        conglomerates.add("16");
+        return conglomerates;
     }
 }
