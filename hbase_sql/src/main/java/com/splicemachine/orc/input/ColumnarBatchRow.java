@@ -16,6 +16,7 @@ package com.splicemachine.orc.input;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.util.ArrayData;
+import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.Decimal;
 import org.apache.spark.sql.types.DecimalType;
 import org.apache.spark.sql.types.StructType;
@@ -136,15 +137,16 @@ public class ColumnarBatchRow implements Row {
         if (isNullAt(i)) {
             return null;
         }
-        int precision = ((DecimalType) structType.fields()[i].dataType()).precision();
-        int scale = ((DecimalType) structType.fields()[i].dataType()).scale();
-        if (precision <= Decimal.MAX_LONG_DIGITS()) {
-            return Decimal.apply(getLong(i), precision, scale).toJavaBigDecimal();
-        } else {
+        DataType dt = structType.fields()[i].dataType();
+        int precision = ((DecimalType) dt).precision();
+        int scale = ((DecimalType) dt).scale();
+        if (DecimalType.isByteArrayDecimalType(dt)) {
             byte[] bytes = row.getBinary(i);
             BigInteger bigInteger = new BigInteger(bytes);
             BigDecimal javaDecimal = new BigDecimal(bigInteger, scale);
             return Decimal.apply(javaDecimal, precision, scale).toJavaBigDecimal();
+        } else {
+            return Decimal.apply(DecimalType.is32BitDecimalType(dt) ? getInt(i) : getLong(i), precision, scale).toJavaBigDecimal();
         }
     }
 
