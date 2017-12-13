@@ -1474,7 +1474,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                     while (rs.next()) {
                         ExecRow row = new ValueRow(5);
 
-                        if (rs.getString(5).equalsIgnoreCase("call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS_LOCAL()")) {
+                        if ("call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS_LOCAL()".equalsIgnoreCase(rs.getString(5))) {
                             // Filter out the nested calls to SYSCS_GET_RUNNING_OPERATIONS_LOCAL triggered by this stored procedure
                             continue;
                         }
@@ -1517,7 +1517,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
             row.setColumn(2, new SQLVarchar(activation.getLanguageConnectionContext().getCurrentUserId(activation)));
             row.setColumn(3, new SQLVarchar(hostname + ":" + port));
             row.setColumn(4, new SQLInteger(activation.getLanguageConnectionContext().getInstanceNumber()));
-            row.setColumn(5, new SQLVarchar(activation.getPreparedStatement().getSource()));
+            ExecPreparedStatement ps = activation.getPreparedStatement();
+            row.setColumn(5, new SQLVarchar(ps == null ? null : ps.getSource()));
             rows.add(row);
         }
 
