@@ -171,4 +171,38 @@ public class SQLTimestampTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals("ExecRow Mismatch",execRow,execRow2);
         }
 
+        @Test
+        public void testSelectivityWithParameter() throws Exception {
+                /* let only the first 3 rows take different values, all remaining rows use a default value  */
+                SQLTimestamp value1 = new SQLTimestamp();
+                ItemStatistics stats = new ColumnStatisticsImpl(value1);
+                SQLTimestamp sqlTimestamp;
+
+                for (int i = 10; i < 30; i++) {
+                        sqlTimestamp = new SQLTimestamp();
+                        if (i<20 || i >= 25) {
+                                stats.update(new SQLTimestamp(Timestamp.valueOf("1962-09-" + i +" 03:23:34.234")));
+                        } else {
+                                stats.update(sqlTimestamp);
+                        }
+                }
+
+                sqlTimestamp = new SQLTimestamp(Timestamp.valueOf("2017-12-01 03:23:34.234"));
+                stats.update(sqlTimestamp);
+                sqlTimestamp = new SQLTimestamp(Timestamp.valueOf("2017-12-02 03:23:34.234"));
+                stats.update(sqlTimestamp);
+                sqlTimestamp = new SQLTimestamp(Timestamp.valueOf("2017-12-03 03:23:34.234"));
+                stats.update(sqlTimestamp);
+                for (int i = 3; i < 81920; i++) {
+                        sqlTimestamp = new SQLTimestamp(Timestamp.valueOf("1970-01-01 00:00:00.000"));
+                        stats.update(sqlTimestamp);
+                }
+                stats = serde(stats);
+
+                /* selectivityExcludingValueIfSkewed() is the function used to compute the electivity of equality
+                   predicate with parameterized value
+                 */
+                double range = stats.selectivityExcludingValueIfSkewed(sqlTimestamp);
+                Assert.assertTrue(range + " did not match expected value of 1.0d", (range == 1.0d));
+        }
 }

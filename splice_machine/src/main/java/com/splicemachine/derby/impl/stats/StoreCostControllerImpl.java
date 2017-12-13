@@ -375,4 +375,8 @@ public class StoreCostControllerImpl implements StoreCostController {
             throw StandardException.plainWrapException(ioe);
         }
     }
+
+    public double getSelectivityExcludingValueIfSkewed(int columnNumber, DataValueDescriptor value) {
+        return tableStatistics.selectivityExcludingValueIfSkewed(value, columnNumber-1);
+    }
 }

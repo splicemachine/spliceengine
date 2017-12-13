@@ -250,7 +250,7 @@ public class TableStatisticsImpl implements TableStatistics {
      */
     @Override
     public <T extends Comparator<T>> double selectivity(T element, int positionNumber) {
-        return getEffectivePartitionStatistics().selectivity(element,positionNumber)/getEffectivePartitionStatistics().rowCount();
+        return (double)(getEffectivePartitionStatistics().selectivity(element,positionNumber))/getEffectivePartitionStatistics().rowCount();
     }
 
     /**
@@ -286,5 +286,9 @@ public class TableStatisticsImpl implements TableStatistics {
             return partitionStatistics.size();
     }
 
+    @Override
+    public <T extends Comparator<T>> double selectivityExcludingValueIfSkewed(T element, int positionNumber) {
+        return (double)(getEffectivePartitionStatistics().selectivityExcludingValueIfSkewed(element,positionNumber))/getEffectivePartitionStatistics().rowCount();
+    }
 
 }

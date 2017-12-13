@@ -135,4 +135,11 @@ public interface ItemStatistics<T extends Comparator<T>> extends Serializable, E
      */
     ItemStatistics<T> getClone();
 
+    /**
+     * get the row count excluding the specified value
+     * @param value
+     * @return
+     */
+    long selectivityExcludingValueIfSkewed(T value);
+
 }
