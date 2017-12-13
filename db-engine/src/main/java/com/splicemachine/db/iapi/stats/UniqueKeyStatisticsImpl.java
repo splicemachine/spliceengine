@@ -139,4 +139,9 @@ public class UniqueKeyStatisticsImpl implements ItemStatistics<ExecRow> {
         return Type.UNIQUEKEY;
     }
 
+    @Override
+    public long selectivityExcludingValueIfSkewed(ExecRow value) {
+        throw new UnsupportedOperationException("selectivityExcludingValueIfSkewed");
+    }
+
 }

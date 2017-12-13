@@ -32,9 +32,11 @@
 package com.splicemachine.db.impl.sql;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 import com.splicemachine.db.iapi.sql.PreparedStatement;
@@ -420,6 +422,13 @@ public class GenericStatement implements Statement{
                     (spsSchema!=null) && (spsSchema.isSystemSchema()) && (spsSchema.equals(compilationSchema))){
                 cc.setReliability(CompilerContext.INTERNAL_SQL_LEGAL);
             }
+
+            /* get the selectivity estimation property so that we know what strategy to use to estimate selectivity */
+            String selectivityEstimationString = PropertyUtil.getServiceProperty(lcc.getTransactionCompile(),
+                    Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED_DEFAULT);
+            Boolean selectivityEstimationIncludingSkewedDefault = Boolean.valueOf(selectivityEstimationString);
+
+            cc.setSelectivityEstimationIncludingSkewedDefault(selectivityEstimationIncludingSkewedDefault);
 
             fourPhasePrepare(lcc,paramDefaults,timestamps,beginTimestamp,foundInCache,cc);
         }catch(StandardException se){

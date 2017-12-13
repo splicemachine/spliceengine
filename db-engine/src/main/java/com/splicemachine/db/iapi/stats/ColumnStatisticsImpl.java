@@ -435,4 +435,30 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
         return thetaSketch;
     }
 
+    @Override
+    public long selectivityExcludingValueIfSkewed(DataValueDescriptor value) {
+        long skewCount = 0;
+        long skewNum = 0;
+        com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] items = frequenciesSketch.getFrequentItems(ErrorType.NO_FALSE_POSITIVES);
+        for (com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor> row: items) {
+            DataValueDescriptor skewedValue = row.getItem();
+            try {
+                if (skewedValue != null && skewedValue.compare(ORDER_OP_EQUALS, value, false, false)) {
+                    skewCount = row.getEstimate();
+                    skewNum++;
+                    break;
+                }
+            } catch (StandardException e) {
+                // this should not happen, but if it happens, cost estimation error does not need to fail the query
+                LOG.warn("Failure is not expected but we don't want to fail the query because of estimation error", e);
+            }
+        }
+        long nonSkewedNum = (long)(thetaSketch.getEstimate() - skewNum);
+        if (nonSkewedNum <= 0)
+            nonSkewedNum = 1;
+        long nonSkewCount = quantilesSketch.getN() - skewCount;
+        if (nonSkewCount < 0)
+            nonSkewCount = 0;
+        return (long) (((double)nonSkewCount)/nonSkewedNum);
+    }
 }
