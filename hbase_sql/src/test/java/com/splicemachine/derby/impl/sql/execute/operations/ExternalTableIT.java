@@ -754,18 +754,18 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     @Test
     public void testWriteReadFromSimpleORCExternalTable() throws Exception {
-        methodWatcher.executeUpdate(String.format("create external table simple_orc (col1 int, col2 varchar(24))" +
+        methodWatcher.executeUpdate(String.format("create external table simple_orc (col1 int, col2 varchar(24), col3 NUMERIC)" +
                 " STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"simple_orc"));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into simple_orc values (1,'XXXX')," +
-                "(2,'YYYY')," +
-                "(3,'ZZZZ')"));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into simple_orc values (1,'XXXX',13691)," +
+                "(2,'YYYY',2345)," +
+                "(3,'ZZZZ',12345)"));
         Assert.assertEquals("insertCount is wrong",3,insertCount);
         ResultSet rs = methodWatcher.executeQuery("select * from simple_orc");
-        Assert.assertEquals("COL1 |COL2 |\n" +
-                "------------\n" +
-                "  1  |XXXX |\n" +
-                "  2  |YYYY |\n" +
-                "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        Assert.assertEquals("COL1 |COL2 |COL3  |\n" +
+                "-------------------\n" +
+                "  1  |XXXX |13691 |\n" +
+                "  2  |YYYY |2345  |\n" +
+                "  3  |ZZZZ |12345 |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
     @Test
