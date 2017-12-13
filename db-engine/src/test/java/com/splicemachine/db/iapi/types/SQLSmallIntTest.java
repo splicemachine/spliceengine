@@ -162,4 +162,29 @@ public class SQLSmallIntTest extends SQLDataValueDescriptorTest {
                 execRow2.getColumn(1).setSparkObject(row.get(0));
                 Assert.assertEquals("ExecRow Mismatch",execRow,execRow2);
         }
+
+        @Test
+        public void testSelectivityWithParameter() throws Exception {
+                /* let only the first 3 rows take different values, all remaining rows use a default value */
+                SQLSmallint value1 = new SQLSmallint();
+                ItemStatistics stats = new ColumnStatisticsImpl(value1);
+                SQLSmallint sqlSmallint;
+                sqlSmallint = new SQLSmallint(1);
+                stats.update(sqlSmallint);
+                sqlSmallint = new SQLSmallint(2);
+                stats.update(sqlSmallint);
+                sqlSmallint = new SQLSmallint(3);
+                stats.update(sqlSmallint);
+                for (int i = 3; i < 81920; i++) {
+                        sqlSmallint = new SQLSmallint(-1);
+                        stats.update(sqlSmallint);
+                }
+                stats = serde(stats);
+
+                /* selectivityExcludingValueIfSkewed() is the function used to compute the electivity of equality
+                   predicate with parameterized value
+                 */
+                double range = stats.selectivityExcludingValueIfSkewed(sqlSmallint);
+                Assert.assertTrue(range + " did not match expected value of 1.0d", (range == 1.0d));
+        }
 }

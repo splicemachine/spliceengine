@@ -139,4 +139,8 @@ public class PrimaryKeyStatisticsImpl implements ItemStatistics<ExecRow> {
         return Type.PRIMARYKEY;
     }
 
+    @Override
+    public long selectivityExcludingValueIfSkewed(ExecRow value) {
+        throw new UnsupportedOperationException("selectivityExcludingValueIfSkewed");
+    }
 }

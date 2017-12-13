@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.catalog.types.DefaultInfoImpl;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
@@ -42,6 +43,8 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.util.JBitSet;
 import java.util.Collections;
 import java.util.List;
@@ -1392,11 +1395,31 @@ public class ColumnReference extends ValueNode {
 	 * @throws StandardException
 	 */
 	public double columnReferenceEqualityPredicateSelectivity() throws StandardException {
+		if (!getCompilerContext().getSelectivityEstimationIncludingSkewedDefault() &&
+				source != null && source.getTableColumnDescriptor() != null) {
+			// get default value from the column if any
+			ColumnDescriptor columnDesc = source.getTableColumnDescriptor();
+			DataValueDescriptor defaultValue = null;
+			if (columnDesc.getDefaultInfo() != null)
+				defaultValue = ((DefaultInfoImpl)(columnDesc.getDefaultInfo())).getDefaultValue();
+			if (defaultValue != null) {
+				// For Char type, the default value may not match the column type exactly.
+				// For example, column char(4) could have a default value 'a'. For such cases, what's
+				// stored in the table is really 'a   ', so we need a conversion here
+				if (defaultValue instanceof SQLChar) {
+					DataValueDescriptor newDefault = defaultValue.cloneValue(false);
+					newDefault.normalize(columnDesc.getType(), defaultValue);
+					defaultValue = newDefault;
+				}
+				return getStoreCostController().getSelectivityExcludingValueIfSkewed(source.getColumnPosition(), defaultValue);
+			}
+		}
+
 		long cardinality = cardinality();
-		if (cardinality==0)
+		if (cardinality == 0)
 			return -1.0d;
 		else
-			return (1.0d/(double)cardinality);
+			return (1.0d / (double) cardinality);
 	}
 
 	/**

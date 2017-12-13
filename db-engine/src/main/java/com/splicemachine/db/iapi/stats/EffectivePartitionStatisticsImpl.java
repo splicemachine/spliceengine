@@ -261,4 +261,11 @@ public class EffectivePartitionStatisticsImpl implements PartitionStatistics {
     public <T extends Comparator<T>> long rangeSelectivity(T start, T stop, boolean includeStart, boolean includeStop, int positionNumber) {
         throw new UnsupportedOperationException("Use Range Selectivity on the table vs. agains the effective partition.");
     }
+
+
+    @Override
+    public <T extends Comparator<T>> long selectivityExcludingValueIfSkewed(T element, int positionNumber) {
+        ItemStatistics stats = positionNumber >= itemStatistics.length?null:itemStatistics[positionNumber];
+        return stats==null?(long) (( (double) rowCount()) * extraQualifierMultiplier ):stats.selectivityExcludingValueIfSkewed((T) element);
+    }
 }

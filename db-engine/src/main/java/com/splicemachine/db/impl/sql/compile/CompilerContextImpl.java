@@ -137,6 +137,7 @@ public class CompilerContextImpl extends ContextImpl
         referencedSequences = null;
         dataSetProcessorType = DataSetProcessorType.DEFAULT_CONTROL;
         skipStatsTableList.clear();
+        selectivityEstimationIncludingSkewedDefault = false;
 	}
 
 	//
@@ -197,6 +198,13 @@ public class CompilerContextImpl extends ContextImpl
 		maximalPossibleTableCount = num;
 	}
 
+	public boolean getSelectivityEstimationIncludingSkewedDefault() {
+		return selectivityEstimationIncludingSkewedDefault;
+	}
+
+	public void setSelectivityEstimationIncludingSkewedDefault(boolean onOff) {
+		selectivityEstimationIncludingSkewedDefault = onOff;
+	}
 	/**
 	 * Get the current next subquery number from this CompilerContext.
 	 *
@@ -1033,6 +1041,7 @@ public class CompilerContextImpl extends ContextImpl
 	private SchemaDescriptor	compilationSchema;
 	/* this is the number of tables taking into consideration the where Subqueries */
 	private int                 maximalPossibleTableCount;
+	private boolean             selectivityEstimationIncludingSkewedDefault = false;
 
 	/**
 	 * Saved execution time default schema, if we need to change it

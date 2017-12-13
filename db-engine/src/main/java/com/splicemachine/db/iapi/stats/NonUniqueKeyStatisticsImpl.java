@@ -147,5 +147,10 @@ public class NonUniqueKeyStatisticsImpl implements ItemStatistics<ExecRow> {
         return Type.NONUNIQUEKEY;
     }
 
+    @Override
+    public long selectivityExcludingValueIfSkewed(ExecRow value) {
+        throw new UnsupportedOperationException("selectivityExcludingValueIfSkewed");
+    }
+
 
 }

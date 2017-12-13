@@ -263,4 +263,6 @@ public interface StoreCostController extends RowCountable{
     DataValueDescriptor minValue(int columnNumber);
 
     DataValueDescriptor maxValue(int columnNumber) ;
+
+    double getSelectivityExcludingValueIfSkewed(int columnNumber, DataValueDescriptor value);
 }
