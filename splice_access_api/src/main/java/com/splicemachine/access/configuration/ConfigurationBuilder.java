@@ -138,6 +138,7 @@ public class ConfigurationBuilder {
     public long threadKeepaliveTime;
     public String sparkIoCompressionCodec;
     public int sparkResultStreamingBatchSize;
+    public int sparkResultStreamingTimeout;
     public int sparkResultStreamingBatches;
     public int compactionReservedSlots;
     public int reservedSlotsTimeout;

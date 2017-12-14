@@ -104,6 +104,11 @@ public class StreamListenerServer<T> extends ChannelInboundHandlerAdapter {
         }
     }
 
+    public void stop() {
+        this.bossGroup.shutdownGracefully();
+        this.workerGroup.shutdownGracefully();
+    }
+
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) { // (4)
         LOG.error("Exception caught", cause);

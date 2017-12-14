@@ -41,7 +41,7 @@ import java.util.concurrent.*;
 /**
  * Created by dgomezferro on 5/25/16.
  */
-public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements Function2<Integer, Iterator<T>, Iterator<String>>, Serializable, Externalizable {
+public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements Function2<Integer, Iterator<T>, Iterator<StreamerResult>>, Serializable, Externalizable {
     private static final Logger LOG = Logger.getLogger(ResultStreamer.class);
 
     private OperationContext<?> context;
@@ -59,13 +59,15 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
     private NioEventLoopGroup workerGroup;
     private transient CountDownLatch active;
     private int batches;
+    private int timeout;
     private volatile TaskContext taskContext;
 
     // Serialization
     public ResultStreamer() {
     }
 
-    public ResultStreamer(OperationContext<?> context, UUID uuid, String host, int port, int numPartitions, int batches, int batchSize) {
+    public ResultStreamer(OperationContext<?> context, UUID uuid, String host, int port, int numPartitions,
+                          int batches, int batchSize, int timeout) {
         this.context = context;
         this.uuid = uuid;
         this.host = host;
@@ -73,14 +75,17 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
         this.numPartitions = numPartitions;
         this.batches = batches;
         this.batchSize = batchSize;
-        this.permits = new Semaphore(batches - 1); // we start with one permit taken
+        this.timeout = timeout;
+        this.permits = new Semaphore(0);
     }
 
     @Override
     public void channelActive(final ChannelHandlerContext ctx) throws Exception {
         LOG.trace("Starting result streamer " + this);
         // Write init data right away
-        ctx.writeAndFlush(new StreamProtocol.Init(uuid, numPartitions, partition));
+        StreamProtocol.Init init = new StreamProtocol.Init(uuid, numPartitions, partition);
+        LOG.trace("Sending " + init);
+        ctx.writeAndFlush(init);
         // Subsequent writes are from a separate thread, so we don't block this one
         this.future = this.workerGroup.submit(new Callable<Long>() {
             private long consumed;
@@ -98,25 +103,42 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
                     prepared = true;
                 }
                 try {
-                    while (locatedRowIterator.hasNext()) {
-                        T lr = locatedRowIterator.next();
-                        consumed++;
 
+                    // first we trigger the computation of the partition
+                    T lr = null;
+                    if (locatedRowIterator.hasNext())
+                        lr = locatedRowIterator.next();
+
+                    // then we get a permit (unless we don't have any data to send)
+                    // if we block for too long we fail
+                    if (lr != null && !getPermit()) {
+                        return -1L;
+                    }
+                    LOG.trace("Acquired first permit");
+
+                    while (lr != null) {
+                        consumed++;
 
                         ctx.write(lr, ctx.voidPromise());
                         currentBatch++;
                         sent++;
 
-                        flushAndGetPermit();
+                        if (!flushAndGetPermit()) {
+                            // we didn't get the permit on time, bail out
+                            return -1L;
+                        }
 
                         if (checkLimit()) {
                             return consumed;
                         }
 
                         consumeOffset();
+                        
+                        lr = locatedRowIterator.hasNext() ? locatedRowIterator.next() : null;
                     }
                     // Data has been written, request close
                     ctx.writeAndFlush(new StreamProtocol.RequestClose());
+                    LOG.trace("Flushed and request close");
 
                     return consumed;
                 } finally {
@@ -125,16 +147,30 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
                 }
             }
 
+            private boolean getPermit() throws InterruptedException {
+                if (!permits.tryAcquire(timeout, TimeUnit.SECONDS)) {
+                    LOG.info("Stuck on acquiring permit for partition " + partition);
+                    return false;
+                }
+                return true;
+            }
+
             /**
              * If the current batch exceeds the batch size, flush the connection and take a new permit, blocking if the client
              * hasn't had time yet to process previous messages
              */
-            private void flushAndGetPermit() throws InterruptedException {
+            private boolean flushAndGetPermit() throws InterruptedException {
                 if (currentBatch >= batchSize) {
                     ctx.flush();
+                    if (LOG.isTraceEnabled())
+                        LOG.trace("Wrote " + currentBatch + " entries, acquiring permit");
                     currentBatch = 0;
-                    permits.acquire();
+                    if (!getPermit())
+                        return false;
+                    if (LOG.isTraceEnabled())
+                        LOG.trace("Flushed and acquired permit");
                 }
+                return true;
             }
 
             /**
@@ -150,6 +186,8 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
                         consumed++;
                     }
                     ctx.writeAndFlush(new StreamProtocol.Skipped(count));
+                    if (LOG.isTraceEnabled())
+                        LOG.trace("Sent skipped " + count + " to channel " + ctx.channel());
                 }
             }
 
@@ -193,7 +231,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
     }
 
     @Override
-    public Iterator<String> call(Integer partition, Iterator<T> locatedRowIterator) throws Exception {
+    public Iterator<StreamerResult> call(Integer partition, Iterator<T> locatedRowIterator) throws Exception {
         InetSocketAddress socketAddr=new InetSocketAddress(host,port);
         this.partition = partition;
         this.locatedRowIterator = locatedRowIterator;
@@ -216,15 +254,20 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
 
             active.await();
             long consumed = future.get();
-            futureConnect.channel().closeFuture().sync();
+            ChannelFuture closeFuture = futureConnect.channel().closeFuture();
 
-            String result;
-            if (consumed >= limit) {
+            // Only sync on close when we are not stuck, otherwise there's a deadlock
+            StreamerResult result;
+            if (consumed < 0) {
+                result = new StreamerResult(State.STUCK, partition);
+            } else if(consumed >= limit) {
                 // We reached the limit, stop processing partitions
-                result = "STOP";
+                result = new StreamerResult(State.STOP, partition);
+                closeFuture.sync();
             } else {
                 // We didn't reach the limit, continue executing more partitions
-                result = "CONTINUE";
+                result = new StreamerResult(State.CONTINUE, partition);
+                closeFuture.sync();
             }
             return Arrays.asList(result).iterator();
         } finally {
@@ -258,7 +301,8 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
         out.writeInt(numPartitions);
         out.writeInt(batches);
         out.writeInt(batchSize);
-        out.writeObject(permits); // WTF is this?
+        out.writeObject(permits);
+        out.writeInt(timeout);
     }
 
     @Override
@@ -271,5 +315,6 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
         batches = in.readInt();
         batchSize = in.readInt();
         permits = (Semaphore) in.readObject();
+        timeout = in.readInt();
     }
 }

@@ -138,6 +138,8 @@ public interface SConfiguration {
     int getSparkResultStreamingBatches();
 
     int getSparkResultStreamingBatchSize();
+    
+    int getSparkResultStreamingTimeout();
 
     double getBulkImportSampleFraction();
 

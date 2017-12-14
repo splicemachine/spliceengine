@@ -175,6 +175,5 @@ public class StreamProtocol implements Serializable {
         public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         }
     }
-
 }
 

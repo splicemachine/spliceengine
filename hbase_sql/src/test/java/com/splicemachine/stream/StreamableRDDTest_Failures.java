@@ -27,6 +27,7 @@ import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.PairFunction;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import scala.Tuple2;
 
@@ -68,7 +69,17 @@ public class StreamableRDDTest_Failures extends BaseStreamTest implements Serial
         server.register(sl);
         JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContextUnsafe().parallelizePairs(tenRows, 2).mapToPair(new FailsFunction(3));
         StreamableRDD srdd = new StreamableRDD(rdd.values(), sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort());
-        srdd.submit();
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    srdd.submit();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+
+            }
+        }.start();
         Iterator<ExecRow> it = sl.getIterator();
         int count = 0;
         while (it.hasNext()) {
@@ -88,7 +99,17 @@ public class StreamableRDDTest_Failures extends BaseStreamTest implements Serial
         server.register(sl);
         JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContextUnsafe().parallelizePairs(tenRows, 20).mapToPair(new FailsFunction(4));
         StreamableRDD srdd = new StreamableRDD(rdd.values(), sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort());
-        srdd.submit();
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    srdd.submit();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+
+            }
+        }.start();
         Iterator<ExecRow> it = sl.getIterator();
         int count = 0;
         while (it.hasNext()) {
@@ -106,6 +127,7 @@ public class StreamableRDDTest_Failures extends BaseStreamTest implements Serial
         int size = 20000;
         int batches = 2;
         int batchSize = 512;
+        int timeout = 5;
         StreamListener<ExecRow> sl = new StreamListener<>(-1, 0, batches, batchSize);
         HostAndPort hostAndPort = server.getHostAndPort();
         server.register(sl);
@@ -116,7 +138,7 @@ public class StreamableRDDTest_Failures extends BaseStreamTest implements Serial
         }
 
         JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContextUnsafe().parallelizePairs(manyRows, 2).sortByKey().mapToPair(new FailsFunction(5000));
-        final StreamableRDD srdd = new StreamableRDD(rdd.values(), null, sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort(), batches, batchSize);
+        final StreamableRDD srdd = new StreamableRDD(rdd.values(), null, sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort(), batches, batchSize, timeout);
         new Thread() {
             @Override
             public void run() {
@@ -133,6 +155,7 @@ public class StreamableRDDTest_Failures extends BaseStreamTest implements Serial
         while (it.hasNext()) {
             ExecRow execRow = it.next();
             assertNotNull(execRow);
+            assertEquals(count, execRow.getInt(0));
             count++;
         }
         assertEquals(size, count);
@@ -143,6 +166,7 @@ public class StreamableRDDTest_Failures extends BaseStreamTest implements Serial
         int size = 100000;
         int batches = 2;
         int batchSize = 512;
+        int timeout = 5;
         StreamListener<ExecRow> sl = new StreamListener<>(-1, 0, batches, batchSize);
         HostAndPort hostAndPort = server.getHostAndPort();
         server.register(sl);
@@ -153,7 +177,7 @@ public class StreamableRDDTest_Failures extends BaseStreamTest implements Serial
         }
 
         JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContextUnsafe().parallelizePairs(manyRows, 12).sortByKey().mapToPair(new FailsFunction(10000));
-        final StreamableRDD srdd = new StreamableRDD(rdd.values(), null, sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort(), batches, batchSize);
+        final StreamableRDD srdd = new StreamableRDD(rdd.values(), null, sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort(), batches, batchSize, timeout);
         new Thread() {
             @Override
             public void run() {
@@ -170,6 +194,7 @@ public class StreamableRDDTest_Failures extends BaseStreamTest implements Serial
         while (it.hasNext()) {
             ExecRow execRow = it.next();
             assertNotNull(execRow);
+            assertEquals(count, execRow.getInt(0));
             count++;
         }
         assertEquals(size, count);
@@ -284,6 +309,44 @@ public class StreamableRDDTest_Failures extends BaseStreamTest implements Serial
         assertEquals(40000, count);
     }
 
+
+    @Test
+    public void testMultipleFailuresManyPartitions() throws StandardException {
+        StreamListener<ExecRow> sl = new StreamListener<>(-1, 0);
+        HostAndPort hostAndPort = server.getHostAndPort();
+        server.register(sl);
+
+        List<Tuple2<ExecRow, ExecRow>> manyRows = new ArrayList<>();
+        for (int i = 0; i < 1000000; ++i) {
+            manyRows.add(new Tuple2<ExecRow, ExecRow>(getExecRow(i, 1), getExecRow(i, 2)));
+        }
+
+        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContextUnsafe().parallelizePairs(manyRows, 20)
+                .mapToPair(new FailsTwiceFunction(60000, 120000));
+        final StreamableRDD srdd = new StreamableRDD(rdd.values(), sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort());
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    srdd.submit();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+
+            }
+        }.start();
+        Iterator<ExecRow> it = sl.getIterator();
+        int count = 0;
+        int first = 0;
+        while (it.hasNext()) {
+            ExecRow execRow = it.next();
+            assertNotNull(execRow);
+            assertEquals(count + first, execRow.getColumn(1).getInt());
+            count++;
+        }
+        assertEquals(1000000, count);
+    }
+
     @Test
     public void testFailureAfterLimit() throws StandardException {
         StreamListener<ExecRow> sl = new StreamListener<>(40000, 300);
@@ -321,12 +384,12 @@ public class StreamableRDDTest_Failures extends BaseStreamTest implements Serial
     }
 
 
-
     @Test
     public void testFailureDuringRecoveryWarmup() throws StandardException, FileNotFoundException, UnsupportedEncodingException {
         int size = 100000;
         int batches = 2;
         int batchSize = 512;
+        int timeout = 5;
         StreamListener<ExecRow> sl = new StreamListener<>(-1, 0, batches, batchSize);
         HostAndPort hostAndPort = server.getHostAndPort();
         server.register(sl);
@@ -337,7 +400,7 @@ public class StreamableRDDTest_Failures extends BaseStreamTest implements Serial
         }
 
         JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContextUnsafe().parallelizePairs(manyRows, 2).sortByKey().mapToPair(new FailsTwiceFunction(10000, 100));
-        final StreamableRDD srdd = new StreamableRDD(rdd.values(), null, sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort(), batches, batchSize);
+        final StreamableRDD srdd = new StreamableRDD(rdd.values(), null, sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort(), batches, batchSize, timeout);
         new Thread() {
             @Override
             public void run() {
@@ -354,6 +417,7 @@ public class StreamableRDDTest_Failures extends BaseStreamTest implements Serial
         while (it.hasNext()) {
             ExecRow execRow = it.next();
             assertNotNull(execRow);
+            assertEquals(count, execRow.getInt(0));
             count++;
         }
         assertEquals(size, count);
@@ -364,6 +428,7 @@ public class StreamableRDDTest_Failures extends BaseStreamTest implements Serial
         int size = 100000;
         int batches = 2;
         int batchSize = 512;
+        int timeout = 5;
         StreamListener<ExecRow> sl = new StreamListener<>(-1, 0, batches, batchSize);
         HostAndPort hostAndPort = server.getHostAndPort();
         server.register(sl);
@@ -374,7 +439,7 @@ public class StreamableRDDTest_Failures extends BaseStreamTest implements Serial
         }
 
         JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContextUnsafe().parallelizePairs(manyRows, 2).sortByKey().mapToPair(new FailsTwiceFunction(10000, 2000));
-        final StreamableRDD srdd = new StreamableRDD(rdd.values(), null, sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort(), batches, batchSize);
+        final StreamableRDD srdd = new StreamableRDD(rdd.values(), null, sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort(), batches, batchSize, timeout);
         new Thread() {
             @Override
             public void run() {
@@ -391,6 +456,7 @@ public class StreamableRDDTest_Failures extends BaseStreamTest implements Serial
         while (it.hasNext()) {
             ExecRow execRow = it.next();
             assertNotNull(execRow);
+            assertEquals(count, execRow.getInt(0));
             count++;
         }
         assertEquals(size, count);
@@ -402,6 +468,7 @@ public class StreamableRDDTest_Failures extends BaseStreamTest implements Serial
         int size = 100000;
         int batches = 2;
         int batchSize = 512;
+        int timeout = 5;
         StreamListener<ExecRow> sl = new StreamListener<>(-1, 10, batches, batchSize);
         HostAndPort hostAndPort = server.getHostAndPort();
         server.register(sl);
@@ -412,7 +479,7 @@ public class StreamableRDDTest_Failures extends BaseStreamTest implements Serial
         }
 
         JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContextUnsafe().parallelizePairs(manyRows, 2).sortByKey().mapToPair(new FailsForeverFunction(0));
-        final StreamableRDD srdd = new StreamableRDD(rdd.distinct().values(), null, sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort(), batches, batchSize);
+        final StreamableRDD srdd = new StreamableRDD(rdd.distinct().values(), null, sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort(), batches, batchSize, timeout);
         new Thread() {
             @Override
             public void run() {
@@ -433,6 +500,48 @@ public class StreamableRDDTest_Failures extends BaseStreamTest implements Serial
             fail("Should have raised exception");
         } catch (Exception e) {
             //expected exception
+        }
+    }
+
+    @Test
+    public void testPersistentFailureManyPartitions() throws StandardException, FileNotFoundException, UnsupportedEncodingException {
+        StreamListener<ExecRow> sl = new StreamListener<>(-1, 0);
+        HostAndPort hostAndPort = server.getHostAndPort();
+        server.register(sl);
+
+        List<Tuple2<ExecRow, ExecRow>> manyRows = new ArrayList<>();
+        for (int i = 0; i < 1000000; ++i) {
+            manyRows.add(new Tuple2<ExecRow, ExecRow>(getExecRow(i, 1), getExecRow(i, 2)));
+        }
+
+        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContextUnsafe().parallelizePairs(manyRows, 20)
+                .mapToPair(new FailsTwiceFunction(60000, 120000))
+                .mapToPair(new FailsForeverFunction(10*1000000/19));;
+        final StreamableRDD srdd = new StreamableRDD(rdd.values(), sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort());
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    srdd.submit();
+                } catch (Exception e) {
+                    sl.failed(e);
+                }
+
+            }
+        }.start();
+        Iterator<ExecRow> it = sl.getIterator();
+        int count = 0;
+        int first = 0;
+        try {
+            while (it.hasNext()) {
+                ExecRow execRow = it.next();
+                assertNotNull(execRow);
+                assertEquals(count + first, execRow.getColumn(1).getInt());
+                count++;
+            }
+            fail("Should have raised exception");
+        } catch (Exception e) {
+            // ignore, expected
         }
     }
 
