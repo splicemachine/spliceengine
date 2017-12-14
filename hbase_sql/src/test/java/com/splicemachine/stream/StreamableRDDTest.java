@@ -34,6 +34,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -417,6 +418,64 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
             count++;
         }
         assertEquals(100000-60000, count);
+    }
+
+
+
+    @Test
+    public void testLargeOffset() throws StandardException {
+        StreamListener<ExecRow> sl = new StreamListener<>(-1, 60000);
+        HostAndPort hostAndPort = server.getHostAndPort();
+        server.register(sl);
+
+        List<Tuple2<ExecRow,ExecRow>> manyRows = new ArrayList<>();
+        for(int i = 0; i < 50000; ++i) {
+            manyRows.add(new Tuple2<ExecRow, ExecRow>(getExecRow(i, 1), getExecRow(i, 2)));
+        }
+
+        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContextUnsafe().parallelizePairs(manyRows, 13);
+        final StreamableRDD srdd = new StreamableRDD(rdd.values(), sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort());
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    srdd.submit();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+
+            }
+        }.start();
+        Iterator<ExecRow> it = sl.getIterator();
+        assertFalse(it.hasNext());
+    }
+
+    @Test
+    public void testLargeOffsetOverDistinct() throws StandardException {
+        StreamListener<ExecRow> sl = new StreamListener<>(-1, 60000);
+        HostAndPort hostAndPort = server.getHostAndPort();
+        server.register(sl);
+
+        List<Tuple2<ExecRow,ExecRow>> manyRows = new ArrayList<>();
+        for(int i = 0; i < 50000; ++i) {
+            manyRows.add(new Tuple2<ExecRow, ExecRow>(getExecRow(i, 1), getExecRow(i, 2)));
+        }
+
+        JavaPairRDD<ExecRow, ExecRow> rdd = SpliceSpark.getContextUnsafe().parallelizePairs(manyRows, 13);
+        final StreamableRDD srdd = new StreamableRDD(rdd.values().distinct(), sl.getUuid(), hostAndPort.getHostText(), hostAndPort.getPort());
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    srdd.submit();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+
+            }
+        }.start();
+        Iterator<ExecRow> it = sl.getIterator();
+        assertFalse(it.hasNext());
     }
 
 

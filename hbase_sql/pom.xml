@@ -1191,6 +1191,8 @@
                                 <!--                                <argument>-Dsplice.spark.broadcast.factory=org.apache.spark.broadcast.HttpBroadcastFactory</argument> -->
                                 <argument>-Dsplice.spark.driver.host=localhost</argument>
                                 <argument>-Dsplice.spark.driver.cores=1</argument>
+ 				<!-- Needed for cases with very few concurrent tasks such as standalone, see SPLICE-1891 for more details -->
+				<argument>-Dsplice.spark.shuffle.reduceLocality.enabled=false</argument>
                                 <argument>
                                     -Dsplice.spark.driver.extraClassPath=${project.build.directory}/classes:${project.build.directory}/dependency/*
                                 </argument>

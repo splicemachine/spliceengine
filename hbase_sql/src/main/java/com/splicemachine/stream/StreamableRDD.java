@@ -105,7 +105,7 @@ public class StreamableRDD<T> {
             LOG.trace("Job submitted");
             SparkContext sc = SpliceSpark.getContextUnsafe().sc();
             sc.setLocalProperties(properties);
-            sc.runJob(streamed.rdd(), new FunctionAdapter(), objects, new ResultHandler(sc, completedRound), tag);
+            sc.runJob(streamed.rdd(), new FunctionAdapter(), new ResultHandler(sc, completedRound), tag);
 
             completed.await();
         } finally {

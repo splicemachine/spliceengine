@@ -109,8 +109,9 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
                     if (locatedRowIterator.hasNext())
                         lr = locatedRowIterator.next();
 
-                    // the we get a permit, if we block for too long we fail
-                    if (!getPermit()) {
+                    // then we get a permit (unless we don't have any data to send)
+                    // if we block for too long we fail
+                    if (lr != null && !getPermit()) {
                         return -1L;
                     }
                     LOG.trace("Acquired first permit");

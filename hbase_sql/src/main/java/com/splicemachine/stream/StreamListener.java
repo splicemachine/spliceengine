@@ -497,7 +497,7 @@ class PartitionState {
     PartitionState(int partition, int queueSize) {
         this.partition = partition;
         this.queueSize = queueSize;
-        this.messages = new ArrayBlockingQueue<>(3);  // INIT, RETRY, FAILURE
+        this.messages = new ArrayBlockingQueue<>(4);  // INIT, RETRY, FAILURE, ADVANCE (from requestClose)
     }
 
 
