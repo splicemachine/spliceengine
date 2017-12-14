@@ -91,6 +91,10 @@
                                     <exclude>com.splicemachine:db-shared</exclude>
                                     <exclude>com.splicemachine:db-drda</exclude>
                                     <exclude>${extraExclude}</exclude>
+                                    <exclude>io.dropwizard.metrics:*</exclude>
+                                    <exclude>com.yammer.metrics:*</exclude>
+                                    <exclude>org.apache.spark:spark-mesos_2.11</exclude>
+                                    <exclude>org.apache.spark:spark-core_2.11</exclude>
                                 </excludes>
                             </artifactSet>
                             <relocations>
