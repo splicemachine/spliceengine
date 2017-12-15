@@ -713,9 +713,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(majorComactionOnTable);
 
-        			/*
-        			 * Procedure to perform major flush on a table in a schema
-        			 */
+                    /*
+                     * Procedure to perform major flush on a table in a schema
+                     */
                     Procedure flushTable = Procedure.newBuilder().name("SYSCS_FLUSH_TABLE")
                             .varchar("schemaName", 128)
                             .varchar("tableName", 128)
@@ -724,6 +724,18 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(flushTable);
+
+                    /*
+                     * Procedure to delete rows from data dictionary
+                     */
+                    Procedure dictionaryDelete = Procedure.newBuilder().name("SYSCS_DICTIONARY_DELETE")
+                            .integer("conglomerateId")
+                            .varchar("rowId", 1024)
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(dictionaryDelete);
 
         			/*
         			 * Procedure to get all the information related to the execution plans of the stored prepared statements (metadata queries).
