@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_dao.TableDAO;
@@ -35,6 +36,10 @@ import org.junit.runner.Description;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.SlowTest;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 /**
  * @author Jeff Cunningham
  *         Date: 12/11/13
@@ -43,11 +48,12 @@ public class SpliceAdminIT extends SpliceUnitTest{
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = SpliceAdminIT.class.getSimpleName().toUpperCase();
     protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("TEST1",CLASS_NAME,"(a int)");
+    protected static SpliceTableWatcher dictionaryDeletes = new SpliceTableWatcher("dict",CLASS_NAME,"(a int)");
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher).
-            around(spliceSchemaWatcher).around(spliceTableWatcher);
+            around(spliceSchemaWatcher).around(spliceTableWatcher).around(dictionaryDeletes);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -112,7 +118,7 @@ public class SpliceAdminIT extends SpliceUnitTest{
         try {
             PreparedStatement ps = methodWatcher.getOrCreateConnection().prepareStatement(sql);
         } catch (Exception e) {
-            Assert.assertTrue(e.getMessage().contains("Lexical error at line 1, column 127"));
+            assertTrue(e.getMessage().contains("Lexical error at line 1, column 127"));
             return;
         }
         Assert.fail("Expected exception");
@@ -131,7 +137,7 @@ public class SpliceAdminIT extends SpliceUnitTest{
         List<Long> actualConglomIDs = new ArrayList<Long>();
         TestConnection conn=methodWatcher.getOrCreateConnection();
         long[] conglomids = conn.getConglomNumbers(CLASS_NAME,TABLE_NAME);
-        Assert.assertTrue(conglomids.length > 0);
+        assertTrue(conglomids.length > 0);
         for (long conglomID : conglomids) {
             actualConglomIDs.add(conglomID);
         }
@@ -141,7 +147,7 @@ public class SpliceAdminIT extends SpliceUnitTest{
                 expectedConglomIDs.add((Long) m.get("CONGLOMERATENUMBER"));
             }
         }
-        Assert.assertTrue("Expected: " + expectedConglomIDs + " got: " + actualConglomIDs,
+        assertTrue("Expected: " + expectedConglomIDs + " got: " + actualConglomIDs,
                           expectedConglomIDs.containsAll(actualConglomIDs));
     }
 
@@ -158,7 +164,7 @@ public class SpliceAdminIT extends SpliceUnitTest{
 
         List<Long> actualConglomIDs = new ArrayList<Long>();
         long[] conglomids = methodWatcher.getOrCreateConnection().getConglomNumbers(CLASS_NAME, null);
-        Assert.assertTrue(conglomids.length > 0);
+        assertTrue(conglomids.length > 0);
         for (long conglomID : conglomids) {
             actualConglomIDs.add(conglomID);
         }
@@ -166,7 +172,7 @@ public class SpliceAdminIT extends SpliceUnitTest{
         for( Map m : tableCluster){
             expectedConglomIDs.add((Long) m.get("CONGLOMERATENUMBER"));
         }
-        Assert.assertTrue("Expected: " + expectedConglomIDs + " got: " + actualConglomIDs,
+        assertTrue("Expected: " + expectedConglomIDs + " got: " + actualConglomIDs,
                           expectedConglomIDs.containsAll(actualConglomIDs));
     }
 
@@ -222,7 +228,7 @@ public class SpliceAdminIT extends SpliceUnitTest{
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_ACTIVE_SERVERS()", rs);
         System.out.println(fr.toString());
-        Assert.assertTrue(fr.size() >= 1);
+        assertTrue(fr.size() >= 1);
         DbUtils.closeQuietly(rs);
     }
 
@@ -233,7 +239,7 @@ public class SpliceAdminIT extends SpliceUnitTest{
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_WRITE_INTAKE_INFO()", rs);
         System.out.println(fr.toString());
-        Assert.assertTrue(fr.size()>=1);
+        assertTrue(fr.size()>=1);
         DbUtils.closeQuietly(rs);
     }
 
@@ -243,7 +249,7 @@ public class SpliceAdminIT extends SpliceUnitTest{
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_EXEC_SERVICE_INFO()", rs);
         System.out.println(fr.toString());
-        Assert.assertTrue(fr.size()>=1);
+        assertTrue(fr.size()>=1);
         DbUtils.closeQuietly(rs);
     }
 
@@ -254,8 +260,8 @@ public class SpliceAdminIT extends SpliceUnitTest{
         while(rs.next()){
             double hitRate = rs.getDouble("HitRate");
             double missRate = rs.getDouble("MissRate");
-            Assert.assertTrue((hitRate >= 0.0) && (hitRate <= 1.0));
-            Assert.assertTrue(missRate <= 1-hitRate + .0001 && missRate >= 1-hitRate - .0001);
+            assertTrue((hitRate >= 0.0) && (hitRate <= 1.0));
+            assertTrue(missRate <= 1-hitRate + .0001 && missRate >= 1-hitRate - .0001);
         }
         DbUtils.closeQuietly(rs);
     }
@@ -267,8 +273,8 @@ public class SpliceAdminIT extends SpliceUnitTest{
         rs.next();
         double hitRate = rs.getDouble("HitRate");
         double missRate = rs.getDouble("MissRate");
-        Assert.assertTrue((hitRate >= 0.0) && (hitRate <= 1.0));
-        Assert.assertTrue(missRate <= 1-hitRate + .0001 && missRate >= 1-hitRate - .0001);
+        assertTrue((hitRate >= 0.0) && (hitRate <= 1.0));
+        assertTrue(missRate <= 1-hitRate + .0001 && missRate >= 1-hitRate - .0001);
         DbUtils.closeQuietly(rs);
     }
 
@@ -299,7 +305,7 @@ public class SpliceAdminIT extends SpliceUnitTest{
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_REQUESTS()", rs);
         System.out.println(fr.toString());
-        Assert.assertTrue(fr.size()>=1);
+        assertTrue(fr.size()>=1);
         DbUtils.closeQuietly(rs);
     }
 
@@ -309,7 +315,7 @@ public class SpliceAdminIT extends SpliceUnitTest{
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_REGION_SERVER_STATS_INFO()", rs);
         System.out.println(fr.toString());
-        Assert.assertTrue(fr.size()>=1);
+        assertTrue(fr.size()>=1);
         DbUtils.closeQuietly(rs);
     }
 
@@ -319,7 +325,7 @@ public class SpliceAdminIT extends SpliceUnitTest{
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_LOGGERS()", rs);
         System.out.println(fr.toString());
-        Assert.assertTrue(fr.size() >= 80);
+        assertTrue(fr.size() >= 80);
         DbUtils.closeQuietly(rs);
     }
 
@@ -368,7 +374,7 @@ public class SpliceAdminIT extends SpliceUnitTest{
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_VERSION_INFO()", rs);
         System.out.println(fr.toString());
-        Assert.assertTrue(fr.size()>=1);
+        assertTrue(fr.size()>=1);
         DbUtils.closeQuietly(rs);
     }
 
@@ -400,7 +406,7 @@ public class SpliceAdminIT extends SpliceUnitTest{
             cs2.execute();
             rs = methodWatcher.executeQuery(
                 String.format("SELECT AUTHORIZATIONID FROM SYS.SYSSCHEMAS WHERE SCHEMANAME='%s'", schemaName));
-            Assert.assertTrue(rs.next());
+            assertTrue(rs.next());
             Assert.assertEquals(userName, rs.getString(1));
         } finally {
             DbUtils.closeQuietly(rs);
@@ -420,6 +426,53 @@ public class SpliceAdminIT extends SpliceUnitTest{
             cs.executeUpdate();
         } catch (SQLException e) {
             Assert.assertEquals("Message Mismatch","Table 'SPLICEADMINIT.IAMNOTHERE' does not exist.  ",e.getMessage());
+        }
+    }
+
+    @Test
+    public void testDictionaryDeletesNull() throws Exception {
+        try {
+            CallableStatement cs = methodWatcher.prepareCall("call syscs_util.SYSCS_DICTIONARY_DELETE(5, null)");
+            cs.executeUpdate();
+        } catch (SQLException e) {
+            Assert.assertEquals("Code Mismatch", SQLState.PARAMETER_CANNOT_BE_NULL, e.getSQLState());
+        }
+    }
+    @Test
+    public void testDictionaryDeletesNonHex() throws Exception {
+        try {
+            CallableStatement cs = methodWatcher.prepareCall("call syscs_util.SYSCS_DICTIONARY_DELETE(5, 'lalala')");
+            cs.executeUpdate();
+        } catch (SQLException e) {
+            Assert.assertEquals("Code Mismatch", SQLState.PARAMETER_IS_NOT_HEXADECIMAL, e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testDictionaryDeletes() throws Exception {
+        TestConnection conn = methodWatcher.createConnection();
+        conn.setAutoCommit(false);
+        try {
+            String query = format("select t.rowid, tableid from sys.systables t --splice-properties index=null \n" +
+                    ", sys.sysschemas s where t.schemaid = s.schemaid and " +
+                    "s.schemaname = '%s' and t.tablename = '%s'", spliceSchemaWatcher.schemaName.toUpperCase(), dictionaryDeletes.tableName.toUpperCase());
+            ResultSet rs = methodWatcher.executeQuery(query);
+            assertTrue(rs.next());
+            String rowId  = rs.getString(1);
+            String tableId = rs.getString(2);
+            assertFalse(rs.next());
+
+            rs = methodWatcher.executeQuery("select c.conglomeratenumber from sys.systables t, sys.sysconglomerates c where t.tableid = c.tableid and " +
+                    "c.isindex = false and t.tablename = 'SYSTABLES'");
+            assertTrue(rs.next());
+            long conglomId = rs.getLong(1);
+
+            methodWatcher.executeUpdate(format("call syscs_util.SYSCS_DICTIONARY_DELETE(%d, '%s')", conglomId, rowId));
+
+            rs = methodWatcher.executeQuery(query);
+            assertFalse(rs.next());
+        } finally {
+            conn.rollback();
         }
     }
 }

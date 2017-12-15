@@ -76,13 +76,17 @@ import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.DataMutation;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionLoad;
 import com.splicemachine.storage.PartitionServer;
 import com.splicemachine.storage.PartitionServerLoad;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
@@ -584,6 +588,37 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
     }
 
+    /**
+     * Delete a row from the data dictionary
+     *
+     * @param conglomerateId the conglomerateId to delete the row from
+     * @param rowId  the row id to delete
+     * @throws SQLException
+     */
+    public static void SYSCS_DICTIONARY_DELETE(int conglomerateId, String rowId) throws SQLException{
+        if (rowId == null)
+            throw new SQLException(StandardException.newException(SQLState.PARAMETER_CANNOT_BE_NULL, "rowId"));
+
+        PartitionFactory tableFactory=SIDriver.driver().getTableFactory();
+        LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
+        TransactionController tc=lcc.getTransactionExecute();
+        TxnOperationFactory opFactory = SIDriver.driver().getOperationFactory();
+
+        try {
+            tc.elevate("dictionary");
+            DataMutation dataMutation = opFactory.newDataDelete(((SpliceTransactionManager) tc).getActiveStateTxn(), Hex.decodeHex(rowId.toCharArray()));
+            try(Partition partition=tableFactory.getTable(Long.toString(conglomerateId))) {
+                partition.mutate(dataMutation);
+            }
+        } catch (DecoderException e) {
+            throw new SQLException(StandardException.newException(SQLState.PARAMETER_IS_NOT_HEXADECIMAL, rowId));
+        } catch(IOException e){
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        } catch (StandardException e) {
+            throw PublicAPI.wrapStandardException(e);
+        }
+    }
+    
     public static void VACUUM() throws SQLException{
         Vacuum vacuum=new Vacuum(getDefaultConn());
         try{
