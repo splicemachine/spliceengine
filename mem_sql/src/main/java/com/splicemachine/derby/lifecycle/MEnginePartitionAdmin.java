@@ -125,4 +125,16 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
     {
         admin.enableTable(tableName);
     }
+
+    @Override
+    public void closeRegion(Partition partition) throws IOException, InterruptedException
+    {
+        admin.closeRegion(partition);
+    }
+
+    @Override
+    public void assign(Partition partition) throws IOException, InterruptedException
+    {
+        admin.assign(partition);
+    }
 }
