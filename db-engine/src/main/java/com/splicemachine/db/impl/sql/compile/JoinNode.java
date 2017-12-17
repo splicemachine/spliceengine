@@ -279,6 +279,25 @@ public class JoinNode extends TableOperatorNode{
                 costEstimate
         );
         costEstimate.setOuterJoin(false);
+
+        // propagate the sortorder from the outer table if any
+        // only do this if the current node is the first resultset in the join sequence as
+        // we don't want to propagate sort order from right table of a join.
+        RowOrdering joinResultRowOrdering = costEstimate.getRowOrdering();
+        if ((outerCost.isUninitialized() || (outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0)) &&
+                joinResultRowOrdering != null) {
+            joinResultRowOrdering.mergeTo(optimizer.getCurrentRowOrdering());
+        } else {
+            // add the left table to the unordered list
+            OptimizableList leftList = leftOptimizer.getOptimizableList();
+            for (int i=0; i< leftList.size(); i++)
+                optimizer.getCurrentRowOrdering().addUnorderedOptimizable(leftList.getOptimizable(i));
+        }
+        // add the right table always to the unordered list, as we don't propogate sort order from the right table
+        OptimizableList rightList = rightOptimizer.getOptimizableList();
+        for (int i=0; i< rightList.size(); i++)
+            optimizer.getCurrentRowOrdering().addUnorderedOptimizable(rightList.getOptimizable(i));
+
         optimizer.considerCost(this,predList,costEstimate,outerCost);
 
 		/* Optimize subqueries only once, no matter how many times we're called */
@@ -1970,5 +1989,10 @@ public class JoinNode extends TableOperatorNode{
         memoryAccumulated += leftOptimizer.getAccumulatedMemory();
 
         return memoryAccumulated;
+    }
+
+    @Override
+    protected boolean canBeOrdered(){
+        return true;
     }
 }
