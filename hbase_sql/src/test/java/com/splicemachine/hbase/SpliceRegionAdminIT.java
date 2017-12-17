@@ -22,6 +22,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test_tools.TableCreator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -38,6 +39,9 @@ import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
 
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
+
 /**
  * Created by jyuan on 8/15/17.
  */
@@ -47,6 +51,10 @@ public class SpliceRegionAdminIT {
     private static final String ORDERS = "ORDERS";
     private static final String SHIPDATE_IDX = "L_SHIPDATE_IDX";
     private static final String CUST_IDX = "O_CUST_IDX";
+    private static final String A = "A";
+    private static final String AI = "AI";
+    private static final String B = "B";
+    private static final String BI = "BI";
     private static List<String> spliceTableSplitKeys = Lists.newArrayList();
     private static List<String> hbaseTableSplitKeys = Lists.newArrayList();
     private static List<String> spliceIndexSplitKeys = Lists.newArrayList();
@@ -97,6 +105,33 @@ public class SpliceRegionAdminIT {
 
         hbaseIndexSplitKeys.add(0, "");
         hbaseIndexSplitKeys.add(1, "\\xE1(Q\\x00\\xE4<\\x8F\\x84");
+
+        Connection conn = spliceClassWatcher.getOrCreateConnection();
+        new TableCreator(conn)
+                .withCreate("create table A (a int, b int, c int, primary key(a,b))")
+                .withInsert("insert into A values(?,?,?)")
+                .withIndex("create index AI on A(a)")
+                .withRows(rows(
+                        row(1, 1, 1),
+                        row(2, 2, 2),
+                        row(4, 4, 4),
+                        row(5, 5, 5)))
+                .create();
+        spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('SPLICEREGIONADMINIT', 'A', null,'\\x83')");
+        spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('SPLICEREGIONADMINIT', 'A', 'AI','\\x83')");
+
+        new TableCreator(conn)
+                .withCreate("create table B (a int, b int, c int, primary key(a,b))")
+                .withInsert("insert into B values(?,?,?)")
+                .withIndex("create index BI on B(a)")
+                .withRows(rows(
+                        row(1, 1, 1),
+                        row(2, 2, 2),
+                        row(4, 4, 4),
+                        row(5, 5, 5)))
+                .create();
+        spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('SPLICEREGIONADMINIT', 'B', null,'\\x83')");
+        spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('SPLICEREGIONADMINIT', 'B', 'BI','\\x83')");
     }
 
     @Test
@@ -195,6 +230,102 @@ public class SpliceRegionAdminIT {
             i++;
         }
 
+    }
+
+    @Test(timeout = 120000)
+    public void testDeleteAndMergeRegion() throws Exception {
+        Connection connection = methodWatcher.getOrCreateConnection();
+        SConfiguration config = HConfiguration.getConfiguration();
+        HBaseTestingUtility testingUtility = new HBaseTestingUtility((Configuration) config.getConfigSource().unwrapDelegate());
+        HBaseAdmin admin = testingUtility.getHBaseAdmin();
+
+        long conglomerateId = TableSplit.getConglomerateId(connection, SCHEMA_NAME, A, null);
+        TableName tableName = TableName.valueOf(config.getNamespace(),Long.toString(conglomerateId));
+        List<HRegionInfo> partitions = admin.getTableRegions(tableName.getName());
+        for (HRegionInfo partition : partitions) {
+            byte[] startKey = partition.getStartKey();
+            if (startKey.length == 0) {
+                String encodedRegionName = partition.getEncodedName();
+                methodWatcher.execute(String.format("call syscs_util.delete_region('%s', '%s', null, '%s', true)",
+                                SCHEMA_NAME, A, encodedRegionName));
+                break;
+            }
+        }
+        while (partitions.size() != 1) {
+            Thread.sleep(1000);
+            partitions = admin.getTableRegions(tableName.getName());
+        }
+
+        conglomerateId = TableSplit.getConglomerateId(connection, SCHEMA_NAME, A, AI);
+        TableName indexName = TableName.valueOf(config.getNamespace(),Long.toString(conglomerateId));
+        partitions = admin.getTableRegions(indexName.getName());
+        for (HRegionInfo partition : partitions) {
+            byte[] startKey = partition.getStartKey();
+            if (startKey.length == 0) {
+                String encodedRegionName = partition.getEncodedName();
+                methodWatcher.execute(String.format("call syscs_util.delete_region('%s', '%s', '%s', '%s', true)",
+                                SCHEMA_NAME, A, AI, encodedRegionName));
+                break;
+            }
+        }
+
+        while (partitions.size() != 1) {
+            Thread.sleep(1000);
+            partitions = admin.getTableRegions(indexName.getName());
+        }
+        int expected = 2;
+        String sql = "select count(*) from %s --SPLICE-PROPERTIES index=%s";
+        ResultSet rs = methodWatcher.executeQuery(String.format(sql, A, "null"));
+        rs.next();
+        Assert.assertEquals(expected, rs.getInt(1));
+
+        rs = methodWatcher.executeQuery(String.format(sql, A, AI));
+        rs.next();
+        Assert.assertEquals(expected, rs.getInt(1));
+    }
+
+    @Test
+    public void testDeleteRegion() throws Exception {
+        Connection connection = methodWatcher.getOrCreateConnection();
+        SConfiguration config = HConfiguration.getConfiguration();
+        HBaseTestingUtility testingUtility = new HBaseTestingUtility((Configuration) config.getConfigSource().unwrapDelegate());
+        HBaseAdmin admin = testingUtility.getHBaseAdmin();
+
+        long conglomerateId = TableSplit.getConglomerateId(connection, SCHEMA_NAME, B, null);
+        TableName tableName = TableName.valueOf(config.getNamespace(),Long.toString(conglomerateId));
+        List<HRegionInfo> partitions = admin.getTableRegions(tableName.getName());
+        for (HRegionInfo partition : partitions) {
+            byte[] startKey = partition.getStartKey();
+            if (startKey.length == 0) {
+                String encodedRegionName = partition.getEncodedName();
+                methodWatcher.execute(String.format("call syscs_util.delete_region('%s', '%s', null, '%s', false)",
+                        SCHEMA_NAME, B, encodedRegionName));
+                break;
+            }
+        }
+
+        conglomerateId = TableSplit.getConglomerateId(connection, SCHEMA_NAME, B, BI);
+        TableName indexName = TableName.valueOf(config.getNamespace(),Long.toString(conglomerateId));
+        partitions = admin.getTableRegions(indexName.getName());
+        for (HRegionInfo partition : partitions) {
+            byte[] startKey = partition.getStartKey();
+            if (startKey.length == 0) {
+                String encodedRegionName = partition.getEncodedName();
+                methodWatcher.execute(String.format("call syscs_util.delete_region('%s', '%s', '%s', '%s', false)",
+                        SCHEMA_NAME, B, BI, encodedRegionName));
+                break;
+            }
+        }
+
+        int expected = 2;
+        String sql = "select count(*) from %s --SPLICE-PROPERTIES index=%s";
+        ResultSet rs = methodWatcher.executeQuery(String.format(sql, B, "null"));
+        rs.next();
+        Assert.assertEquals(expected, rs.getInt(1));
+
+        rs = methodWatcher.executeQuery(String.format(sql, B, BI));
+        rs.next();
+        Assert.assertEquals(expected, rs.getInt(1));
     }
 
     @Test
@@ -387,6 +518,19 @@ public class SpliceRegionAdminIT {
             String sqlcode = e.getSQLState();
             Assert.assertEquals(sqlcode, SQLState.PARAMETER_CANNOT_BE_NULL, sqlcode);
         }
+
+        sql = "CALL SYSCS_UTIL.DELETE_REGION(?,?,null,null, true)";
+        ps = methodWatcher.prepareStatement(sql);
+        try {
+            ps.setString(1, SCHEMA_NAME);
+            ps.setString(2, LINEITEM);
+            ps.execute();
+        }
+        catch (SQLException e) {
+            String sqlcode = e.getSQLState();
+            Assert.assertEquals(sqlcode, SQLState.PARAMETER_CANNOT_BE_NULL, sqlcode);
+        }
+
     }
 
     private static String getResource(String name) {
