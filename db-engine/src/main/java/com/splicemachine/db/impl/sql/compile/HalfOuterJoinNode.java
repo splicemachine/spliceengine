@@ -837,4 +837,5 @@ public class HalfOuterJoinNode extends JoinNode{
                 "transformed: " + transformed + "<br/>" +
                 super.toHTMLString();
     }
+
 }

@@ -18,12 +18,10 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.test.SerialTest;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -81,7 +79,7 @@ public class NestedLoopJoinOperationIT extends SpliceUnitTest {
     }
 
     @Test
-    public void nestedLoopJoinIsNotSorted() throws Exception {
+    public void nestedLoopJoinIsSorted() throws Exception {
         methodWatcher.executeUpdate("create table DB5773(i int primary key)");
         methodWatcher.executeUpdate("create table b_nlj(i int)");
         methodWatcher.executeUpdate("create table c_mj(i int primary key)");
@@ -90,14 +88,12 @@ public class NestedLoopJoinOperationIT extends SpliceUnitTest {
                     "DB5773, b_nlj --splice-properties joinStrategy=nestedloop\n" +
                     ", c_mj --splice-properties joinStrategy=merge\n" +
                     "where DB5773.i = c_mj.i");
-            fail("Should have raised exception");
         } catch (SQLException e) {
-            // Error expected due to invalid MERGE join:
-            // ERROR 42Y69: No valid execution plan was found for this statement.
-            assertEquals("42Y69", e.getSQLState());
+            // Error no longer expected with DB-6453
+            fail("Query should not error out");
         }
 
-        // We shouldn't preserve ordering from either side
+        // We shouldn't preserve ordering from the right table of a nested loop join
         try {
             methodWatcher.executeQuery("select * from --splice-properties joinOrder=fixed\n" +
                     "DB5773, DB5773 b_nlj --splice-properties joinStrategy=nestedloop\n" +

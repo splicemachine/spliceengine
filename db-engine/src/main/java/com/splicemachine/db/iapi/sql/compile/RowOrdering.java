@@ -177,4 +177,6 @@ public interface RowOrdering{
     RowOrdering getClone();
 
     public ColumnOrdering getOrderedColumn(int pos);
+
+    void mergeTo(RowOrdering target);
 }
