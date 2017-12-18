@@ -1426,7 +1426,7 @@ public class BinaryRelationalOperatorNode
         switch(operatorType){
             case RelationalOperator.EQUALS_RELOP:
                 double selectivity = getReferenceSelectivity(optTable);
-                if (selectivity ==-1.0d) // No Stats, lets just guess 10%
+                if (selectivity < 0.0d) // No Stats, lets just guess 10%
                     return 0.1;
                 return selectivity;
             case RelationalOperator.NOT_EQUALS_RELOP:

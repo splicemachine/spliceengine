@@ -241,7 +241,7 @@ public class HBaseSITestEnv implements SITestEnv{
             testUtility.startMiniCluster(1);
         } else {
             testUtility.startMiniZKCluster();
-            testUtility.startMiniHBaseCluster(1, 1, null, null, false);
+            testUtility.startMiniHBaseCluster(1, 1);
         }
         ZkUtils.getZkManager().initialize(HConfiguration.getConfiguration());
         ZkUtils.initializeZookeeper();

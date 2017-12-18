@@ -453,17 +453,25 @@ public class OlapClientTest {
 
     }
 
+    private static Object LOCK = new Object();
+
     private static void setupServer() throws IOException {
         Clock clock=new SystemClock();
         olapServer = new OlapServer(0,clock); // any port
         olapServer.startServer(HConfiguration.getConfiguration());
-        JobExecutor nl = new AsyncOlapNIOLayer(() -> HostAndPort.fromParts(olapServer.getBoundHost(),olapServer.getBoundPort()), 10);
+        JobExecutor nl = new AsyncOlapNIOLayer(() -> {
+            synchronized (LOCK) {
+                return HostAndPort.fromParts(olapServer.getBoundHost(), olapServer.getBoundPort());
+            }
+        }, 10);
         olapClient = new TimedOlapClient(nl,10000);
     }
 
     private static void failAndCreateServer() throws IOException {
-        failServer();
-        recreateServer();
+        synchronized (LOCK) {
+            failServer();
+            recreateServer();
+        }
     }
 
     private static void failServer() throws IOException {

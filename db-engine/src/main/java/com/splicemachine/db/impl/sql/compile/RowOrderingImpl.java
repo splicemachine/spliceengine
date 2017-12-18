@@ -326,4 +326,24 @@ public class RowOrderingImpl implements RowOrdering{
 
         return ordering.get(pos);
     }
+
+    @Override
+    public void mergeTo(RowOrdering target) {
+        assert target instanceof RowOrderingImpl : "mergeTo should be a RowOrderingImpl, is a "+ target.getClass();
+
+        RowOrderingImpl dest=(RowOrderingImpl)target;
+        if (dest.unorderedOptimizables.size()>0)
+            return;
+
+        for(int i=0;i<ordering.size();i++){
+            ColumnOrdering co=ordering.get(i);
+
+            dest.ordering.add(co.cloneMe());
+
+            if(co==currentColumnOrdering)
+                dest.rememberCurrentColumnOrdering(i);
+        }
+        dest.unorderedOptimizables.addAll(unorderedOptimizables);
+        return;
+    }
 }

@@ -175,7 +175,7 @@ public class OrderByEliminationIT extends SpliceUnitTest {
         rs.close();
         rowContainsQuery(4, "explain "+sqlText, "OrderBy", methodWatcher);
 
-        /* NQ3: outer join */
+        /* NQ3: outer join -- no longer a negative test case with DB-6453 */
         sqlText = "select a1,b1 from t1 left join t2 --splice-properties index=null, joinStrategy=merge\n on a1=a2 order by a1, b1 {limit 10}";
         expected = "A1 |B1 |\n" +
                 "--------\n" +
@@ -193,7 +193,7 @@ public class OrderByEliminationIT extends SpliceUnitTest {
         rs = methodWatcher.executeQuery(sqlText);
         Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
-        rowContainsQuery(4, "explain "+sqlText, "OrderBy", methodWatcher);
+        queryDoesNotContainString("explain "+sqlText, "OrderBy", methodWatcher);
 
         /* NQ3: derived table */
         sqlText = "select * from (select a1, a2 from t1, t2 where a1=a2) dt order by a1 {limit 10}";

@@ -183,5 +183,11 @@ public class MPartitionFactory implements PartitionFactory<Object>{
 
         @Override
         public void enableTable(String tableName) throws IOException {}
+
+        @Override
+        public void closeRegion(Partition partition) throws IOException, InterruptedException {}
+
+        @Override
+        public void assign(Partition partition) throws IOException, InterruptedException {}
     }
 }

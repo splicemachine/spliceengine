@@ -31,13 +31,12 @@ import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.exceptions.ConnectionClosingException;
+import org.apache.hadoop.hbase.util.HBaseFsckRepair;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Function;
 import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.client.Admin;
-import org.apache.hadoop.hbase.client.Connection;
-import org.apache.hadoop.hbase.client.Table;
 import org.spark_project.guava.collect.Collections2;
 
 import com.splicemachine.access.api.PartitionAdmin;
@@ -280,5 +279,24 @@ public class H10PartitionAdmin implements PartitionAdmin{
     public void enableTable(String tableName) throws IOException
     {
         admin.enableTable(TableName.valueOf(tableName));
+    }
+
+    @Override
+    public void closeRegion(Partition partition) throws IOException, InterruptedException
+    {
+        String regionName = partition.getName();
+        HRegionInfo regionInfo = ((RangedClientPartition) partition).getRegionInfo();
+        ClusterConnection connection = (ClusterConnection) admin.getConnection();
+        HRegionLocation regionLocation = MetaTableAccessor.getRegionLocation(connection, Bytes.toBytesBinary(regionName));
+        HBaseFsckRepair.closeRegionSilentlyAndWait(connection, regionLocation.getServerName(), regionInfo);
+
+    }
+
+    @Override
+    public void assign(Partition partition) throws IOException, InterruptedException
+    {
+        String regionName = partition.getName();
+        admin.assign(regionName.getBytes());
+        HBaseFsckRepair.waitUntilAssigned(admin, ((RangedClientPartition)partition).getRegionInfo());
     }
 }

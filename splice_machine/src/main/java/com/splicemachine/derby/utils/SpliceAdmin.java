@@ -25,12 +25,17 @@ import com.splicemachine.db.impl.sql.catalog.ManagedCacheMBean;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.hbase.JMXThreadPool;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.storage.DataMutation;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
 import org.joda.time.DateTime;
 import org.spark_project.guava.collect.Lists;
 import com.splicemachine.EngineDriver;
@@ -557,6 +562,37 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
     }
 
+    /**
+     * Delete a row from the data dictionary
+     *
+     * @param conglomerateId the conglomerateId to delete the row from
+     * @param rowId  the row id to delete
+     * @throws SQLException
+     */
+    public static void SYSCS_DICTIONARY_DELETE(int conglomerateId, String rowId) throws SQLException{
+        if (rowId == null)
+            throw new SQLException(StandardException.newException(SQLState.PARAMETER_CANNOT_BE_NULL, "rowId"));
+
+        PartitionFactory tableFactory=SIDriver.driver().getTableFactory();
+        LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
+        TransactionController tc=lcc.getTransactionExecute();
+        TxnOperationFactory opFactory = SIDriver.driver().getOperationFactory();
+
+        try {
+            tc.elevate("dictionary");
+            DataMutation dataMutation = opFactory.newDataDelete(((SpliceTransactionManager) tc).getActiveStateTxn(), Hex.decodeHex(rowId.toCharArray()));
+            try(Partition partition=tableFactory.getTable(Long.toString(conglomerateId))) {
+                partition.mutate(dataMutation);
+            }
+        } catch (DecoderException e) {
+            throw new SQLException(StandardException.newException(SQLState.PARAMETER_IS_NOT_HEXADECIMAL, rowId));
+        } catch(IOException e){
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        } catch (StandardException e) {
+            throw PublicAPI.wrapStandardException(e);
+        }
+    }
+    
     public static void VACUUM() throws SQLException{
         Vacuum vacuum=new Vacuum(getDefaultConn());
         try{
@@ -1474,7 +1510,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                     while (rs.next()) {
                         ExecRow row = new ValueRow(5);
 
-                        if (rs.getString(5).equalsIgnoreCase("call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS_LOCAL()")) {
+                        if ("call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS_LOCAL()".equalsIgnoreCase(rs.getString(5))) {
                             // Filter out the nested calls to SYSCS_GET_RUNNING_OPERATIONS_LOCAL triggered by this stored procedure
                             continue;
                         }
@@ -1517,7 +1553,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
             row.setColumn(2, new SQLVarchar(activation.getLanguageConnectionContext().getCurrentUserId(activation)));
             row.setColumn(3, new SQLVarchar(hostname + ":" + port));
             row.setColumn(4, new SQLInteger(activation.getLanguageConnectionContext().getInstanceNumber()));
-            row.setColumn(5, new SQLVarchar(activation.getPreparedStatement().getSource()));
+            ExecPreparedStatement ps = activation.getPreparedStatement();
+            row.setColumn(5, new SQLVarchar(ps == null ? null : ps.getSource()));
             rows.add(row);
         }
 

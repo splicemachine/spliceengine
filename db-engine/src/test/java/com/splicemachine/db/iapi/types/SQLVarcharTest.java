@@ -177,4 +177,28 @@ public class SQLVarcharTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals("ExecRow Mismatch",execRow,execRow2);
         }
 
+        @Test
+        public void testSelectivityWithParameter() throws Exception {
+                /* let only the first 3 rows take different values, all remaining rows use the default value 'ZZZZ' */
+                SQLVarchar value1 = new SQLVarchar();
+                ItemStatistics stats = new ColumnStatisticsImpl(value1);
+                SQLVarchar sqlVarchar;
+                sqlVarchar = new SQLVarchar("aaaa");
+                stats.update(sqlVarchar);
+                sqlVarchar = new SQLVarchar("bbbb");
+                stats.update(sqlVarchar);
+                sqlVarchar = new SQLVarchar("cccc");
+                stats.update(sqlVarchar);
+                for (int i = 3; i < 81920; i++) {
+                        sqlVarchar = new SQLVarchar("ZZZZ");
+                        stats.update(sqlVarchar);
+                }
+                stats = serde(stats);
+
+                /* selectivityExcludingValueIfSkewed() is the function used to compute the electivity of equality
+                   predicate with parameterized value
+                 */
+                double range = stats.selectivityExcludingValueIfSkewed(sqlVarchar);
+                Assert.assertTrue(range + " did not match expected value of 1.0d", (range == 1.0d));
+        }
 }
