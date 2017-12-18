@@ -701,6 +701,18 @@
     </build>
     <profiles>
         <profile>
+            <!-- When jacoco is disabled,the jacocoAgent property still needs to exist -->
+            <id>noJacoco</id>
+            <activation>
+                <property>
+                  <name>!jacoco</name>
+                </property>
+            </activation>
+            <properties>
+                <jacocoAgent>-server</jacocoAgent>
+            </properties>
+        </profile>
+        <profile>
             <id>jacoco</id>
             <modules>
                 <module>coverage</module>
