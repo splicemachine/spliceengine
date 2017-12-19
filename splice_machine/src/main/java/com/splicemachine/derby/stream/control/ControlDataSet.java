@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.stream.control;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -45,6 +46,7 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.IteratorUtils;
+import org.apache.commons.collections.iterators.IteratorChain;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.base.Predicate;
 import org.spark_project.guava.collect.Iterators;
@@ -225,34 +227,27 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public DataSet<V> union(DataSet< V> dataSet) {
-        ThreadPoolExecutor tpe = null;
         try {
-
-        ThreadFactory factory=new ThreadFactoryBuilder()
-                .setNameFormat("union-begin-query-%d")
-                .setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler(){
-                    @Override
-                    public void uncaughtException(Thread t,Throwable e){
-                        e.printStackTrace();
-                    }
-                })
-                .build();
-        tpe=new ThreadPoolExecutor(2,2,
-                60, TimeUnit.SECONDS,new SynchronousQueue<Runnable>(),factory,
-                new ThreadPoolExecutor.CallerRunsPolicy());
-        tpe.allowCoreThreadTimeOut(false);
-        tpe.prestartAllCoreThreads();
-        Future<Iterator<V>> leftSideFuture = tpe.submit(new NonLazy(iterator));
-        Future<Iterator<V>> rightSideFuture = tpe.submit(new NonLazy(((ControlDataSet<V>) dataSet).iterator));
-
-        return new ControlDataSet<>(Iterators.concat(leftSideFuture.get(), rightSideFuture.get()));
+            ExecutorService es = EngineDriver.driver().getExecutorService();
+            Future<Iterator<V>> leftSideFuture = es.submit(new NonLazy(iterator));
+            Future<Iterator<V>> rightSideFuture = es.submit(new NonLazy(((ControlDataSet<V>) dataSet).iterator));
+            FutureIterator<V> futureIterator = new FutureIterator<>();
+            futureIterator.appendFutureIterator(leftSideFuture);
+            futureIterator.appendFutureIterator(rightSideFuture);
+            return new ControlDataSet<>(futureIterator);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        finally {
-        if (tpe!=null)
-            tpe.shutdown();
+    }
+
+    @Override
+    public DataSet<V> parallelProbe(List<DataSet<V>> dataSets) {
+        ExecutorService es = EngineDriver.driver().getExecutorService();
+        FutureIterator<V> futureIterator = new FutureIterator<>();
+        for (DataSet<V> dataSet: dataSets) {
+            futureIterator.appendFutureIterator(es.submit(new NonLazy(((ControlDataSet<V>) dataSet).iterator)));
         }
+        return new ControlDataSet<>(futureIterator);
     }
 
     @Override

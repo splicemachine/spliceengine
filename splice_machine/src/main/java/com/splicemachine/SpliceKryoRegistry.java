@@ -37,6 +37,8 @@ import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
+import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.derby.stream.control.ControlOperationContext;
 import com.splicemachine.derby.stream.function.ExternalizableFlatMapFunction;
 import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
 import com.splicemachine.derby.stream.function.StatisticsFlatMapFunction;
@@ -854,5 +856,9 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ColumnStatisticsMerge.class,EXTERNALIZABLE_SERIALIZER,278);
         instance.register(RowToLocatedRowFunction.class,EXTERNALIZABLE_SERIALIZER,279);
         instance.register(SpliceBaseOperation.class,EXTERNALIZABLE_SERIALIZER,281);
+        instance.register(ControlOperationContext.class,EXTERNALIZABLE_SERIALIZER,282);
+        instance.register(ActivationHolder.class,EXTERNALIZABLE_SERIALIZER,283);
+        instance.register(SetOpOperation.class,EXTERNALIZABLE_SERIALIZER,284);
+
     }
 }

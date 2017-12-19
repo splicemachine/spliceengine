@@ -193,6 +193,8 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
 
     DataSet<V> union(DataSet<V> dataSet);
 
+    DataSet<V> parallelProbe(List<DataSet<V>> dataSets);
+
     DataSet<V> union(DataSet<V> dataSet, String name, boolean pushScope, String scopeDetail);
 
     <Op extends SpliceOperation> DataSet<V> filter(SplicePredicateFunction<Op,V> f);
