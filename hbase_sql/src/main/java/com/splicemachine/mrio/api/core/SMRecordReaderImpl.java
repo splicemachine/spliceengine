@@ -184,7 +184,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 				}
 			}
 			if (activationHolder != null) {
-				//activationHolder.close();
+				activationHolder.close();
 			}
 
 			for (AutoCloseable c : closeables) {
