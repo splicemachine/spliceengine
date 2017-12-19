@@ -182,12 +182,15 @@ public class HBaseRowLocation extends DataType implements RowLocation {
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeObject(slice);
+        out.writeBoolean(slice!=null);
+        if (slice!=null)
+            out.writeObject(slice);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        slice = (ByteSlice) in.readObject();
+        if (in.readBoolean())
+            slice = (ByteSlice) in.readObject();
     }
 
     @Override
