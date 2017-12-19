@@ -14,8 +14,13 @@
 
 package com.splicemachine.derby.stream.control;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.KryoObjectOutput;
+import com.esotericsoftware.kryo.io.Output;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ZeroCopyLiteralByteString;
+import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -88,7 +93,7 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
             if(activationHolder==null)
                 activationHolder = new ActivationHolder(activation, op);
             out.writeObject(activationHolder);
-            out.writeObject(op);
+            out.writeInt(op.resultSetNumber());
             out.writeObject(badRecordsRecorder);
             SIDriver.driver().getOperationFactory().writeTxn(txn, out);
        }
@@ -96,7 +101,8 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
         @Override
         public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
             activationHolder = (ActivationHolder)in.readObject();
-            op = (Op) in.readObject();
+            int rsn = in.readInt();
+            op = (Op)activationHolder.getOperationsMap().get(rsn);
             badRecordsRecorder = (BadRecordsRecorder) in.readObject();
             txn = SIDriver.driver().getOperationFactory().readTxn(in);
             boolean prepared = false;
@@ -347,17 +353,20 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
 
     @Override
     public OperationContext getClone() throws IOException, ClassNotFoundException {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(baos);
-            oos.writeObject(this);
-            oos.flush();
-            oos.close();
-            ByteString bs = ZeroCopyLiteralByteString.wrap(baos.toByteArray());
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        Kryo kryo = SpliceKryoRegistry.getInstance().newInstance();
 
-            // Deserialize activation to clone it
-            InputStream is = bs.newInput();
-            ObjectInputStream ois = new ObjectInputStream(is);
-        return (OperationContext) ois.readObject();
-
+        try {
+            Output output = new Output(baos);
+            kryo.writeClassAndObject(output, this);
+            output.flush();
+            byte[] kryoOutput = baos.toByteArray();
+            InputStream inputStream = new ByteArrayInputStream(kryoOutput);
+            Input input = new Input(inputStream);
+            return (OperationContext) kryo.readClassAndObject(input);
+        } finally {
+            baos.close();
+            SpliceKryoRegistry.getInstance().returnInstance(kryo);
+        }
     }
 }
