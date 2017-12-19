@@ -46,6 +46,8 @@ public class SMOutputFormatTest extends BaseStreamTest {
         final Configuration conf=new Configuration(HConfiguration.unwrapDelegate());
         TableWriterUtils.serializeInsertTableWriterBuilder(conf, new FakeTableWriterBuilder(false));
         conf.setClass(JobContext.OUTPUT_FORMAT_CLASS_ATTR,FakeOutputFormat.class,FakeOutputFormat.class);
+        // workaround for SPARK-21549 on spark-2.2.0
+        conf.set("mapreduce.output.fileoutputformat.outputdir","/tmp");
         File file = File.createTempFile(SMOutputFormatTest.class.getName(), "exception");
         file.delete();
         file.mkdir();
@@ -68,6 +70,8 @@ public class SMOutputFormatTest extends BaseStreamTest {
         final Configuration conf=new Configuration(HConfiguration.unwrapDelegate());
         TableWriterUtils.serializeInsertTableWriterBuilder(conf, new FakeTableWriterBuilder(true));
         conf.setClass(JobContext.OUTPUT_FORMAT_CLASS_ATTR, FakeOutputFormat.class, FakeOutputFormat.class);
+        // workaround for SPARK-21549 on spark-2.2.0
+        conf.set("mapreduce.output.fileoutputformat.outputdir","/tmp");
         File file = File.createTempFile(SMOutputFormatTest.class.getName(), "exception");
         file.delete();
         file.mkdir();
@@ -90,6 +94,8 @@ public class SMOutputFormatTest extends BaseStreamTest {
         final Configuration conf=new Configuration(HConfiguration.unwrapDelegate());
         TableWriterUtils.serializeInsertTableWriterBuilder(conf, new FakeTableWriterBuilder(false));
         conf.setClass(JobContext.OUTPUT_FORMAT_CLASS_ATTR,FakeOutputFormat.class,FakeOutputFormat.class);
+        // workaround for SPARK-21549 on spark-2.2.0
+        conf.set("mapreduce.output.fileoutputformat.outputdir","/tmp");
         File file = File.createTempFile(SMOutputFormatTest.class.getName(), "noException");
         file.delete();
         file.mkdir();
