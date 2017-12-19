@@ -257,7 +257,8 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             List<DataSet<ExecRow>> datasets = new ArrayList<>(scans.size());
             for (DataScan scan : scans) {
                 deSiify(scan);
-                MultiProbeTableScanOperation clone = (MultiProbeTableScanOperation) operationContext.getClone().getOperation();
+                OperationContext opClone = operationContext.getClone();
+                MultiProbeTableScanOperation clone = (MultiProbeTableScanOperation) opClone.getOperation();
                 DataSet<ExecRow> ds = dsp.<MultiProbeTableScanOperation, ExecRow>newScanSet(clone, tableName)
                         .tableDisplayName(tableDisplayName)
                         .activation(clone.getActivation())
@@ -276,11 +277,15 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                         .baseColumnMap(baseColumnMap)
                         .optionalProbeValue(probeValues[i])
                         .defaultRow(defaultRow, scanInformation.getDefaultValueMap())
-                        .buildDataSet(this);
+                        .buildDataSet(clone);
+                if (!dsp.getType().equals(DataSetProcessor.Type.LOCAL)) {
+                    dataSet = dataSet.union(ds);
+                }
                 datasets.add(ds);
                 i++;
             }
-            return dataSet.parallelProbe(datasets).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
+            return !dsp.getType().equals(DataSetProcessor.Type.LOCAL)?dataSet:
+                    dataSet.parallelProbe(datasets).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
         }
         catch (Exception e) {
                 throw StandardException.plainWrapException(e);

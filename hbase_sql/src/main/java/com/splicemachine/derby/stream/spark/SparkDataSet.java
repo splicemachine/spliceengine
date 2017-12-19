@@ -293,8 +293,12 @@ public class SparkDataSet<V> implements DataSet<V> {
     @Override
     public DataSet<V> parallelProbe(List<DataSet<V>> dataSets) {
         DataSet<V> toReturn = null;
+        int i = 0;
         for (DataSet<V> dataSet: dataSets) {
-            toReturn = union(dataSet);
+            if (i == 0)
+                toReturn = dataSet;
+            else
+                toReturn = toReturn.union(dataSet);
         }
         return toReturn;
     }
