@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.stream.spark;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLLongint;
@@ -25,6 +26,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.export.ExportExecRowW
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
+import com.splicemachine.derby.stream.control.FutureIterator;
 import com.splicemachine.derby.stream.function.AbstractSpliceFunction;
 import com.splicemachine.derby.stream.function.CountWriteFunction;
 import com.splicemachine.derby.stream.function.ExportFunction;
@@ -70,6 +72,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.zip.GZIPOutputStream;
 import static org.apache.spark.sql.functions.*;
@@ -284,6 +287,16 @@ public class SparkDataSet<V> implements DataSet<V> {
     @Override
     public DataSet<V> union(DataSet< V> dataSet) {
         return union(dataSet, RDDName.UNION.displayName(), false, null);
+    }
+
+
+    @Override
+    public DataSet<V> parallelProbe(List<DataSet<V>> dataSets) {
+        DataSet<V> toReturn = null;
+        for (DataSet<V> dataSet: dataSets) {
+            toReturn = union(dataSet);
+        }
+        return toReturn;
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
