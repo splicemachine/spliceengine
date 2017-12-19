@@ -46,6 +46,7 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.IteratorUtils;
+import org.apache.commons.collections.iterators.IteratorChain;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.base.Predicate;
 import org.spark_project.guava.collect.Iterators;
@@ -231,10 +232,23 @@ public class ControlDataSet<V> implements DataSet<V> {
             ExecutorService es = EngineDriver.driver().getExecutorService();
             Future<Iterator<V>> leftSideFuture = es.submit(new NonLazy(iterator));
             Future<Iterator<V>> rightSideFuture = es.submit(new NonLazy(((ControlDataSet<V>) dataSet).iterator));
-            return new ControlDataSet<>(Iterators.concat(leftSideFuture.get(), rightSideFuture.get()));
+            FutureIterator<V> futureIterator = new FutureIterator<>();
+            futureIterator.appendFutureIterator(leftSideFuture);
+            futureIterator.appendFutureIterator(rightSideFuture);
+            return new ControlDataSet<>(futureIterator);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public DataSet<V> parallelProbe(List<DataSet<V>> dataSets) {
+        ExecutorService es = EngineDriver.driver().getExecutorService();
+        FutureIterator<V> futureIterator = new FutureIterator<>();
+        for (DataSet<V> dataSet: dataSets) {
+            futureIterator.appendFutureIterator(es.submit(new NonLazy(((ControlDataSet<V>) dataSet).iterator)));
+        }
+        return new ControlDataSet<>(futureIterator);
     }
 
     @Override
