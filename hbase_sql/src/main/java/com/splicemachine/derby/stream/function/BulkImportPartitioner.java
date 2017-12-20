@@ -55,7 +55,7 @@ public class BulkImportPartitioner extends Partitioner implements
         Tuple2<Long, byte[]> key =  (Tuple2<Long, byte[]>) o;
         Long conglomerateId = key._1;
         byte[] startKey = key._2;
-        BulkImportPartition partitionKey = new BulkImportPartition(conglomerateId, startKey, startKey, null);
+        BulkImportPartition partitionKey = new BulkImportPartition(conglomerateId, null, startKey, startKey, null);
         int num = Collections.binarySearch(partitionList, partitionKey, BulkImportUtils.getSearchComparator());
         return tasksPerRegion > 1 ? num*tasksPerRegion+random.nextInt(tasksPerRegion) : num;
     }
