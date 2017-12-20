@@ -95,6 +95,7 @@
                                     <exclude>com.splicemachine:db-tools-ij</exclude>
                                     <exclude>com.splicemachine:db-shared</exclude>
                                     <exclude>com.splicemachine:db-drda</exclude>
+                                    <exclude>org.apache.kafka:*</exclude>
                                     <exclude>${dropwizardmetrics}</exclude>
                                     <exclude>${yammermetrics}</exclude>
                                     <exclude>${extraExclude}</exclude>
