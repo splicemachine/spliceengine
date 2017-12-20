@@ -21,8 +21,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
-import com.splicemachine.db.iapi.types.HBaseRowLocation;
-import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.spark.SparkOperationContext;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.mrio.MRConstants;
@@ -65,7 +63,6 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 	private List<AutoCloseable> closeables = new ArrayList<>();
     private boolean statisticsRun = false;
 	private Txn localTxn;
-	private ActivationHolder activationHolder;
 	private volatile boolean closed = false;
 	private String closeExceptionString;
 	private InputSplit split;
@@ -119,12 +116,6 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 			// TODO (wjk): this seems weird (added with DB-4483)
 			this.statisticsRun = AbstractSMInputFormat.oneSplitPerRegion(config);
 			restart(scan.getStartKey());
-
-			if (operationContext != null) {
-				activationHolder = operationContext.getActivationHolder();
-				if (activationHolder != null)
-					activationHolder.reinitialize(null);
-			}
 		} catch (IOException ioe) {
 			LOG.error(String.format("Received exception with scan %s, original start key %s, original stop key %s, split %s",
 					scan, Bytes.toStringBinary(scanStartKey), Bytes.toStringBinary(scanStopKey), split), ioe);
@@ -182,9 +173,6 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 					}
 					lastThrown = ioe;
 				}
-			}
-			if (activationHolder != null) {
-				activationHolder.close();
 			}
 
 			for (AutoCloseable c : closeables) {
