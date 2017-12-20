@@ -17,13 +17,19 @@ package com.splicemachine.derby.stream.function;
 import com.clearspring.analytics.util.Lists;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.configuration.HBaseConfiguration;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.fs.HFileSystem;
 import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.io.encoding.DataBlockEncoding;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
@@ -42,6 +48,7 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -135,17 +142,18 @@ public abstract class HFileGenerationFunction implements MapPartitionsFunction<R
     private void init(Long conglomerateId, byte[] key) throws IOException{
         conf = HConfiguration.unwrapDelegate();
         int index = Collections.binarySearch(partitionList,
-                new BulkImportPartition(conglomerateId, key, key, null),
+                new BulkImportPartition(conglomerateId, null, key, key, null),
                 BulkImportUtils.getSearchComparator());
         BulkImportPartition partition = partitionList.get(index);
         fs = FileSystem.get(URI.create(partition.getFilePath()), conf);
-        writer = getNewWriter(conf, new Path(partition.getFilePath()));
+        writer = getNewWriter(conf, partition);
         hFiles.add(writer.getPath().toString());
     }
 
 
-    private StoreFile.Writer getNewWriter(Configuration conf, Path familyPath)
+    private StoreFile.Writer getNewWriter(Configuration conf, BulkImportPartition partition)
             throws IOException {
+
         Compression.Algorithm compression = Compression.getCompressionAlgorithmByName(compressionAlgorithm);
         BloomType bloomType = BloomType.ROW;
         Integer blockSize = HConstants.DEFAULT_BLOCKSIZE;
@@ -165,10 +173,23 @@ public abstract class HFileGenerationFunction implements MapPartitionsFunction<R
         contextBuilder.withDataBlockEncoding(encoding);
         HFileContext hFileContext = contextBuilder.build();
         try {
-            return new StoreFile.WriterBuilder(conf, new CacheConfig(tempConf), fs)
-                    .withOutputDir(familyPath).withBloomType(bloomType)
-                    .withComparator(KeyValue.COMPARATOR)
-                    .withFileContext(hFileContext).build();
+            Path familyPath = new Path(partition.getFilePath());
+            // Get favored nodes as late as possible. This is the best we can do. If the region gets moved after this
+            // point, locality is not guaranteed.
+            InetSocketAddress favoredNode = getFavoredNode(partition);
+            StoreFile.WriterBuilder builder =
+                    new StoreFile.WriterBuilder(conf, new CacheConfig(tempConf), new HFileSystem(fs))
+                            .withOutputDir(familyPath).withBloomType(bloomType)
+                            .withComparator(KeyValue.COMPARATOR)
+                            .withFileContext(hFileContext);
+
+            if (favoredNode != null) {
+                InetSocketAddress[] favoredNodes = new InetSocketAddress[1];
+                favoredNodes[0] = favoredNode;
+                builder.withFavoredNodes(favoredNodes);
+            }
+
+            return builder.build();
         } catch (Exception e) {
             throw new IOException(e);
         }
@@ -219,5 +240,32 @@ public abstract class HFileGenerationFunction implements MapPartitionsFunction<R
             BulkImportPartition partition = (BulkImportPartition) in.readObject();
             partitionList.add(partition);
         }
+    }
+
+    private static InetSocketAddress getFavoredNode(BulkImportPartition partition) throws IOException {
+        InetSocketAddress favoredNode = null;
+        SConfiguration configuration = HConfiguration.getConfiguration();
+        Connection connection = HBaseConnectionFactory.getInstance(configuration).getConnection();
+
+        String regionName = partition.getRegionName();
+        HRegionLocation regionLocation = MetaTableAccessor.getRegionLocation(connection,
+                com.splicemachine.primitives.Bytes.toBytesBinary(regionName));
+
+        if (regionLocation != null) {
+            String hostname = regionLocation.getHostname();
+            int port = regionLocation.getPort();
+
+            InetSocketAddress address = new InetSocketAddress(hostname, port);
+            if (!address.isUnresolved()) {
+                favoredNode = address;
+            } else {
+                SpliceLogUtils.info(LOG, "Cannot resolve host %s to achieve better data locality.", hostname);
+            }
+
+        }
+        else {
+            SpliceLogUtils.info(LOG, "Cannot to get region location %s to achieve better data locality.", regionName);
+        }
+        return favoredNode;
     }
 }
