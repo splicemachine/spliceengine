@@ -306,7 +306,11 @@
         </profile>
         <profile>
             <id>cdh5.8.5</id>
-            <properties><extraExclude>org.apache.spark:*</extraExclude></properties>
+            <properties>
+                <dropwizardmetrics>io.dropwizard.metrics:*</dropwizardmetrics>
+                <yammermetrics>com.yammer.metrics:*</yammermetrics>
+                <extraExclude>org.apache.spark:*</extraExclude>
+            </properties>
         </profile>
         <profile>
             <id>cdh5.9.0</id>
