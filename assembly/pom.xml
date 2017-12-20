@@ -94,9 +94,9 @@
                                     <exclude>com.splicemachine:db-tools-ij</exclude>
                                     <exclude>com.splicemachine:db-shared</exclude>
                                     <exclude>com.splicemachine:db-drda</exclude>
-                                    <exclude>io.dropwizard.metrics:*</exclude>
-                                    <exclude>com.yammer.metrics:*</exclude>
                                     <exclude>org.apache.kafka:*</exclude>
+                                    <exclude>${dropwizardmetrics}</exclude>
+                                    <exclude>${yammermetrics}</exclude>
                                     <exclude>${extraExclude}</exclude>
                                 </excludes>
                             </artifactSet>
@@ -253,47 +253,91 @@
     <profiles>
         <profile>
             <id>cdh5.6.0</id>
-            <properties><extraExclude>org.apache.spark:*</extraExclude></properties>
+            <properties>
+                <dropwizardmetrics>io.dropwizard.metrics:*</dropwizardmetrics>
+                <yammermetrics>com.yammer.metrics:*</yammermetrics>
+                <extraExclude>org.apache.spark:*</extraExclude>
+            </properties>
         </profile>
         <profile>
             <id>cdh5.6.1</id>
-            <properties><extraExclude>org.apache.spark:*</extraExclude></properties>
+            <properties>
+                <dropwizardmetrics>io.dropwizard.metrics:*</dropwizardmetrics>
+                <yammermetrics>com.yammer.metrics:*</yammermetrics>
+                <extraExclude>org.apache.spark:*</extraExclude>
+            </properties>
         </profile>
         <profile>
             <id>cdh5.7.2</id>
-            <properties><extraExclude>org.apache.spark:*</extraExclude></properties>
+            <properties>
+                <dropwizardmetrics>io.dropwizard.metrics:*</dropwizardmetrics>
+                <yammermetrics>com.yammer.metrics:*</yammermetrics>
+                <extraExclude>org.apache.spark:*</extraExclude>
+            </properties>
         </profile>
         <profile>
             <id>cdh5.7.3</id>
-            <properties><extraExclude>org.apache.spark:*</extraExclude></properties>
+            <properties>
+                <dropwizardmetrics>io.dropwizard.metrics:*</dropwizardmetrics>
+                <yammermetrics>com.yammer.metrics:*</yammermetrics>
+                <extraExclude>org.apache.spark:*</extraExclude>
+            </properties>
         </profile>
         <profile>
             <id>cdh5.7.4</id>
-            <properties><extraExclude>org.apache.spark:*</extraExclude></properties>
+            <properties>
+                <dropwizardmetrics>io.dropwizard.metrics:*</dropwizardmetrics>
+                <yammermetrics>com.yammer.metrics:*</yammermetrics>
+                <extraExclude>org.apache.spark:*</extraExclude>
+            </properties>
         </profile>
         <profile>
             <id>cdh5.7.5</id>
-            <properties><extraExclude>org.apache.spark:*</extraExclude></properties>
+            <properties>
+                <dropwizardmetrics>io.dropwizard.metrics:*</dropwizardmetrics>
+                <yammermetrics>com.yammer.metrics:*</yammermetrics>
+                <extraExclude>org.apache.spark:*</extraExclude>
+            </properties>
         </profile>
         <profile>
             <id>cdh5.8.0</id>
-            <properties><extraExclude>org.apache.spark:*</extraExclude></properties>
+            <properties>
+                <dropwizardmetrics>io.dropwizard.metrics:*</dropwizardmetrics>
+                <yammermetrics>com.yammer.metrics:*</yammermetrics>
+                <extraExclude>org.apache.spark:*</extraExclude>
+            </properties>
         </profile>
         <profile>
             <id>cdh5.8.2</id>
-            <properties><extraExclude>org.apache.spark:*</extraExclude></properties>
+            <properties>
+                <dropwizardmetrics>io.dropwizard.metrics:*</dropwizardmetrics>
+                <yammermetrics>com.yammer.metrics:*</yammermetrics>
+                <extraExclude>org.apache.spark:*</extraExclude>
+            </properties>
         </profile>
         <profile>
             <id>cdh5.8.3</id>
-            <properties><extraExclude>org.apache.spark:*</extraExclude></properties>
+            <properties>
+                <dropwizardmetrics>io.dropwizard.metrics:*</dropwizardmetrics>
+                <yammermetrics>com.yammer.metrics:*</yammermetrics>
+                <extraExclude>org.apache.spark:*</extraExclude>
+            </properties>
         </profile>
         <profile>
             <id>cdh5.9.0</id>
-            <properties><extraExclude>org.apache.spark:*</extraExclude></properties>
+            <properties>
+                <dropwizardmetrics>io.dropwizard.metrics:*</dropwizardmetrics>
+                <yammermetrics>com.yammer.metrics:*</yammermetrics>
+                <extraExclude>org.apache.spark:*</extraExclude>
+            </properties>
         </profile>
         <profile>
             <id>cdh5.12.0</id>
-            <properties><extraExclude>org.apache.spark:*</extraExclude></properties>
+            <properties>
+                <dropwizardmetrics>io.dropwizard.metrics:*</dropwizardmetrics>
+                <yammermetrics>com.yammer.metrics:*</yammermetrics>
+                <extraExclude>org.apache.spark:*</extraExclude>
+            </properties>
         </profile>
 
         <profile>
