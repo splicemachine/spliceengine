@@ -169,6 +169,7 @@ public class ActivationHolder implements Externalizable {
         } finally {
             if (prepared) {
                 impl.close();
+                prepared = false;
             }
         }
     }
@@ -200,6 +201,8 @@ public class ActivationHolder implements Externalizable {
         TxnView txnView = otherTxn!=null ? otherTxn : this.txn;
         initialized = true;
         try {
+            close();
+
             impl = new SpliceTransactionResourceImpl();
             prepared =  impl.marshallTransaction(txnView);
             activation = soi.getActivation(this, impl.getLcc());
