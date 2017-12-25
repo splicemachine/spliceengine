@@ -24,6 +24,8 @@ import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
+import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.derby.stream.control.ControlOperationContext;
 import com.splicemachine.derby.stream.function.ExternalizableFlatMapFunction;
 import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
 import com.splicemachine.derby.stream.function.StatisticsFlatMapFunction;
@@ -818,6 +820,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(StatisticsFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER,277);
         instance.register(ColumnStatisticsMerge.class,EXTERNALIZABLE_SERIALIZER,278);
         instance.register(RowToLocatedRowFunction.class,EXTERNALIZABLE_SERIALIZER,279);
+
         instance.register(SQLArray.class,EXTERNALIZABLE_SERIALIZER,280);
         instance.register(ExternalizableFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER,281);
         instance.register(SpliceBaseOperation.class,EXTERNALIZABLE_SERIALIZER,283);
@@ -833,6 +836,10 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ColumnStatisticsMerge.class,EXTERNALIZABLE_SERIALIZER,292);
         instance.register(SpliceUDAVariance.class,EXTERNALIZABLE_SERIALIZER,293);
 
+        instance.register(SpliceBaseOperation.class,EXTERNALIZABLE_SERIALIZER,294);
+        instance.register(ControlOperationContext.class,EXTERNALIZABLE_SERIALIZER,295);
+        instance.register(ActivationHolder.class,EXTERNALIZABLE_SERIALIZER,296);
+        instance.register(SetOpOperation.class,EXTERNALIZABLE_SERIALIZER,297);
 
     }
 }
