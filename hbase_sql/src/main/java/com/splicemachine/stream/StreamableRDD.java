@@ -18,12 +18,17 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.log4j.Logger;
+import org.apache.spark.SimpleFutureAction;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.rdd.RDD;
+import scala.Function0;
 import scala.collection.JavaConversions;
 import scala.collection.Seq;
+import scala.concurrent.Await;
+import scala.concurrent.duration.Duration;
 import scala.reflect.ClassTag;
+import scala.runtime.AbstractFunction0;
 import scala.runtime.AbstractFunction2;
 import scala.runtime.BoxedUnit;
 
@@ -33,6 +38,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -93,7 +100,7 @@ public class StreamableRDD<T> {
 
             CountDownLatch completedRound = new CountDownLatch(numPartitions);
 
-            // schedule resubmission task asynchronously, since runJob is synchronous
+            // schedule resubmission task asynchronously
             executor.submit(new ResubmissionTask(completedRound, properties, streamed.rdd()));
 
             // submit all partitions at first, then we'll throttle if necessary
@@ -105,7 +112,15 @@ public class StreamableRDD<T> {
             LOG.trace("Job submitted");
             SparkContext sc = SpliceSpark.getContextUnsafe().sc();
             sc.setLocalProperties(properties);
-            sc.runJob(streamed.rdd(), new FunctionAdapter(), new ResultHandler(sc, completedRound), tag);
+            ResultHandler rh = new ResultHandler(sc, completedRound, JavaConversions.seqAsJavaList(objects));
+            SimpleFutureAction job = sc.submitJob(streamed.rdd(), new FunctionAdapter(), objects, rh, new AbstractFunction0<Void>() {
+                @Override
+                public Void apply() {
+                    return null;
+                }
+            });
+            rh.setJob(job);
+            Await.result(job, Duration.Inf());
 
             completed.await();
         } finally {
@@ -168,15 +183,22 @@ public class StreamableRDD<T> {
                 }
             }
 
-            // Make the blocking call outside the synchronized block
             if (partitions != null) {
                 // resubmit new task for the next batch
                 CountDownLatch nextRound = new CountDownLatch(partitions.size());
-                executor.submit(new ResubmissionTask(nextRound, properties, rdd));
                 SparkContext sc = SpliceSpark.getContextUnsafe().sc();
                 sc.setLocalProperties(properties);
                 try {
-                    sc.runJob(rdd, new FunctionAdapter(), partitions, new ResultHandler(sc, nextRound), tag);
+                    ResultHandler rh = new ResultHandler(sc, nextRound, JavaConversions.seqAsJavaList(partitions));
+                    SimpleFutureAction job = sc.submitJob(rdd, new FunctionAdapter(), partitions, rh, new AbstractFunction0<Void>() {
+                        @Override
+                        public Void apply() {
+                            return null;
+                        }
+                    });
+                    rh.setJob(job);
+                    executor.submit(new ResubmissionTask(nextRound, properties, rdd));
+                    Await.result(job, Duration.Inf());
                 } catch (Exception e) {
                     LOG.error("Spark job failed", e);
                     // Spark job failed, notify other threads
@@ -205,25 +227,34 @@ public class StreamableRDD<T> {
 
         private final SparkContext sc;
         private final CountDownLatch completedRound;
+        private final SortedSet<Integer> pendingTasks;
+        private final Set<Integer> stuckTasks;
+        private volatile SimpleFutureAction job;
 
-        public ResultHandler(SparkContext sc, CountDownLatch completedRound) {
+        public ResultHandler(SparkContext sc, CountDownLatch completedRound, List<Integer> partitionsInRound) {
             this.sc = sc;
             this.completedRound = completedRound;
+            pendingTasks = new TreeSet<>();
+            pendingTasks.addAll(partitionsInRound);
+            stuckTasks = new HashSet<>();
         }
 
         @Override
-        public BoxedUnit apply(Object o, StreamerResult r) {
+        public synchronized BoxedUnit apply(Object o, StreamerResult r) {
             Integer partition = r.getPartition();
 
             completedRound.countDown();
             switch (r.getResult()) {
                 case CONTINUE:
+                    pendingTasks.remove(partition);
                     completedPartitionsInRound.incrementAndGet();
                     completedPartitions++;
                     if (completedPartitions >= numPartitions)
                         completed.countDown();
                     break;
                 case STUCK:
+                    pendingTasks.remove(partition);
+                    stuckTasks.add(partition);
                     LOG.debug("Received STUCK from partition " + partition);
                     scheduleForNextBatch(partition);
                     break;
@@ -232,14 +263,40 @@ public class StreamableRDD<T> {
                     stop = true;
                     completed.countDown();
             }
+            checkStuckTasks();
             return null;
+        }
+
+        private void checkStuckTasks() {
+            if (pendingTasks.isEmpty())
+                return;
+            Integer firstPending = pendingTasks.first();
+            for(Integer stuck : stuckTasks) {
+                if (stuck < firstPending) {
+                    LOG.debug("First pending task is stuck, abort job and resubmit");
+                    synchronized (nextBatch) {
+                        for (Integer pending : pendingTasks) {
+                            completedRound.countDown();
+                            nextBatch.add(pending);
+                        }
+                    }
+                    if (job != null)
+                        job.cancel();
+
+                }
+            }
+        }
+        
+        private void scheduleForNextBatch(Integer partition) {
+            synchronized (nextBatch) {
+                nextBatch.add(partition);
+            }
+        }
+
+        public void setJob(SimpleFutureAction job) {
+            this.job = job;
         }
     }
 
-    private void scheduleForNextBatch(Integer partition) {
-        synchronized (nextBatch) {
-            nextBatch.add(partition);
-        }
-    }
 
 }

@@ -405,8 +405,8 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
             ps.channel = channel;
             ps.messages.add(INIT);
         }
-        if (stopped) {
-            // we are already stopped, ask this stream to close
+        if (stopped || partition < currentQueue) {
+            // we are already stopped or it's an old retried task, ask this stream to close
             channel.writeAndFlush(new StreamProtocol.RequestClose());
         }
 

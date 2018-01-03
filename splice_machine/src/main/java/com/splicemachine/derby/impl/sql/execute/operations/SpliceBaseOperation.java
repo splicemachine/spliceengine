@@ -60,7 +60,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     private static final long serialVersionUID=4l;
     private static Logger LOG=Logger.getLogger(SpliceBaseOperation.class);
     private static Logger LOG_CLOSE=Logger.getLogger(SpliceBaseOperation.class.getName()+".close");
-    protected Iterator<ExecRow> execRowIterator;
+    protected volatile Iterator<ExecRow> execRowIterator;
     protected Activation activation;
     protected String explainPlan="";
     protected double optimizerEstimatedRowCount;

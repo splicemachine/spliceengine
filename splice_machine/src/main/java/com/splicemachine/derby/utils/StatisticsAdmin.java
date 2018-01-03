@@ -63,7 +63,10 @@ import java.io.ByteArrayInputStream;
 import java.io.ObjectInputStream;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 
 /**
@@ -184,10 +187,14 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             DataSet<ExecRow> dataSet = null;
 
             HashMap<Long,Pair<String,String>> display = new HashMap<>();
-            List<StatisticsOperation> futures = new ArrayList(tds.size());
+            List<Future<StatisticsOperation>> futures = new ArrayList(tds.size());
             for (TableDescriptor td : tds) {
                 display.put(td.getHeapConglomerateId(),Pair.newPair(schema,td.getName()));
-                futures.add(collectTableStatistics(td, false, 0, true, txn, conn));
+                StatisticsOperation so = collectTableStatistics(td, false, 0, true, txn, conn);
+                futures.add(EngineDriver.driver().getExecutorService().submit(() -> {
+                    so.initializeIterator();
+                    return so;
+                }));
             }
             IteratorNoPutResultSet resultsToWrap = wrapResults(conn,
             displayTableStatistics(futures,true,dd,transactionExecute,display));
@@ -352,7 +359,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             IteratorNoPutResultSet resultsToWrap = wrapResults(
                     conn,
                     displayTableStatistics(Lists.newArrayList(
-                            collectTableStatistics(tableDesc, useSample, samplePercent/100, mergeStats, txn, conn)
+                            CompletableFuture.completedFuture(collectTableStatistics(tableDesc, useSample, samplePercent/100, mergeStats, txn, conn))
                             ),
                             mergeStats,
                             dd, tc, display));
@@ -717,12 +724,12 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     }
 
 
-    public static Iterable displayTableStatistics(List<StatisticsOperation> futures, boolean mergeStats, final DataDictionary dataDictionary, final TransactionController tc, final HashMap<Long,Pair<String,String>> displayPair) {
+    public static Iterable displayTableStatistics(List<Future<StatisticsOperation>> futures, boolean mergeStats, final DataDictionary dataDictionary, final TransactionController tc, final HashMap<Long,Pair<String,String>> displayPair) {
         if (mergeStats) {
-            return FluentIterable.from(futures).transformAndConcat(new Function<StatisticsOperation, Iterable<ExecRow>>() {
+            return FluentIterable.from(futures).transformAndConcat(new Function<Future<StatisticsOperation>, Iterable<ExecRow>>() {
                 @Nullable
                 @Override
-                public Iterable<ExecRow> apply(@Nullable StatisticsOperation input) {
+                public Iterable<ExecRow> apply(@Nullable Future<StatisticsOperation> input) {
 
                     try {
                         // We have to create a new savepoint because we already returned from the opening of the result set
@@ -731,6 +738,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                         // statistics, since those deletes would mask these new inserts.
                         tc.setSavePoint("statistics", null);
                         tc.elevate("statistics");
+                        StatisticsOperation statisticsOperation = input.get();
                         final Iterator iterator = new Iterator<ExecRow>() {
                             private ExecRow nextRow;
                             private boolean fetched = false;
@@ -747,7 +755,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                             public boolean hasNext() {
                                 try {
                                     if (!fetched) {
-                                        nextRow = input.getNextRowCore();
+                                        nextRow = statisticsOperation.getNextRowCore();
                                         while (nextRow != null) {
                                             fetched = true;
                                             if (nextRow.nColumns() == 2) {
@@ -769,7 +777,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                                 statsType = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.STATSTYPE).getInt();
                                                 sampleFraction = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.SAMPLEFRACTION).getDouble();
                                             }
-                                            nextRow = input.getNextRowCore();
+                                            nextRow = statisticsOperation.getNextRowCore();
                                         }
                                     }
                                     if (!fetched)
@@ -812,11 +820,12 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 }
             });
         } else {
-            return FluentIterable.from(futures).transformAndConcat(new Function<StatisticsOperation, Iterable<ExecRow>>() {
+            return FluentIterable.from(futures).transformAndConcat(new Function<Future<StatisticsOperation>, Iterable<ExecRow>>() {
                 @Nullable
                 @Override
-                public Iterable<ExecRow> apply(@Nullable StatisticsOperation input) {
+                public Iterable<ExecRow> apply(@Nullable Future<StatisticsOperation> input) {
                     try {
+                        StatisticsOperation statisticsOperation = input.get();
                         final Iterator iterator = new Iterator<ExecRow>() {
                             private ExecRow nextRow;
                             private boolean fetched = false;
@@ -824,10 +833,10 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                             public boolean hasNext() {
                                 try {
                                     if (!fetched) {
-                                        nextRow = input.getNextRowCore();
+                                        nextRow = statisticsOperation.getNextRowCore();
                                         while (nextRow != null && nextRow.nColumns() == SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_COLUMN_COUNT) {
                                             dataDictionary.addColumnStatistics(nextRow, tc);
-                                            nextRow = input.getNextRowCore();
+                                            nextRow = statisticsOperation.getNextRowCore();
                                         }
                                         fetched = true;
                                     }

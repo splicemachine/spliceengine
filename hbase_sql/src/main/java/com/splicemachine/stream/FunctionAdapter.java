@@ -25,12 +25,10 @@ import java.io.Serializable;
 /**
  * Created by dgomezferro on 6/1/16.
  */
-public class FunctionAdapter extends AbstractFunction2<TaskContext, Iterator<StreamerResult>, StreamerResult> implements Serializable {
-
-    private final static ClassTag<String> tag = scala.reflect.ClassTag$.MODULE$.apply(StreamerResult.class);
+public class FunctionAdapter extends AbstractFunction1<Iterator<StreamerResult>, StreamerResult> implements Serializable {
 
     @Override
-    public StreamerResult apply(TaskContext tc, scala.collection.Iterator<StreamerResult> it) {
+    public StreamerResult apply(scala.collection.Iterator<StreamerResult> it) {
         StreamerResult result = it.next();
         // This iterator is what's returned on ResultStreamer.call(), which is a list of one element
         assert !it.hasNext();

@@ -162,12 +162,16 @@ public class StatisticsOperation extends SpliceBaseOperation {
         }
     }
 
+    public void initializeIterator() {
+        execRowIterator = remoteQueryClient.getIterator(); // Blocking Implementation
+    }
+
 
     @Override
     public ExecRow getNextRowCore() throws StandardException{
         try{
             if (execRowIterator == null)
-                execRowIterator = remoteQueryClient.getIterator(); // Blocking Implementation
+                initializeIterator();
             if(execRowIterator.hasNext()){
                 locatedRow= execRowIterator.next();
                 if(LOG.isTraceEnabled())
