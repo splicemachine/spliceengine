@@ -18,10 +18,19 @@ import org.apache.spark.sql.execution.datasources.jdbc.{JdbcUtils, SpliceRelatio
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
+import org.apache.spark.sql.execution.streaming.Sink
+import org.apache.spark.sql.streaming.OutputMode
+import com.splicemachine.spark.splicemachine.streaming.SpliceSink
 
 class DefaultSource extends RelationProvider with CreatableRelationProvider
-  with SchemaRelationProvider {
+  with SchemaRelationProvider with StreamSinkProvider {
 
+  def createSink(sqlContext: SQLContext,
+    parameters: Map[String, String],
+    partitionColumns: Seq[String],
+    outputMode: OutputMode): Sink = {
+    new SpliceSink(sqlContext, parameters, partitionColumns, outputMode)
+  }
 
   override def createRelation(sqlContext: SQLContext,
                               parameters: Map[String, String]):
