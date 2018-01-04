@@ -379,7 +379,10 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
 
         Channel previousChannel = ps.channel;
 
-        if (previousChannel != null) {
+        if (stopped || partition < currentQueue) {
+            // we are already stopped or it's an old retried task, ask this stream to close
+            channel.writeAndFlush(new StreamProtocol.RequestClose());
+        } else if (previousChannel != null) {
             LOG.info("Received connection from retried task, current state " + ps);
             // make sure we don't reassing the messages buffer in this case
             synchronized (ps) {
@@ -404,10 +407,6 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
             partitionMap.put(channel, ps);
             ps.channel = channel;
             ps.messages.add(INIT);
-        }
-        if (stopped || partition < currentQueue) {
-            // we are already stopped or it's an old retried task, ask this stream to close
-            channel.writeAndFlush(new StreamProtocol.RequestClose());
         }
 
         ctx.pipeline().addLast(this);
