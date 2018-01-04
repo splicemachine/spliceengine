@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.stream.spark;
 
-import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLLongint;
@@ -26,18 +25,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.export.ExportExecRowW
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
-import com.splicemachine.derby.stream.control.FutureIterator;
-import com.splicemachine.derby.stream.function.AbstractSpliceFunction;
-import com.splicemachine.derby.stream.function.CountWriteFunction;
-import com.splicemachine.derby.stream.function.ExportFunction;
-import com.splicemachine.derby.stream.function.LocatedRowToRowFunction;
-import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
-import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
-import com.splicemachine.derby.stream.function.SpliceFunction;
-import com.splicemachine.derby.stream.function.SpliceFunction2;
-import com.splicemachine.derby.stream.function.SplicePairFunction;
-import com.splicemachine.derby.stream.function.SplicePredicateFunction;
-import com.splicemachine.derby.stream.function.TakeFunction;
+import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
@@ -51,31 +39,28 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.hadoop.mapred.InvalidJobConfException;
-import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.security.TokenCache;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
+import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.Column;
-import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.SaveMode;
+import org.apache.spark.sql.types.DataType;
 import org.apache.spark.storage.StorageLevel;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
+import java.util.*;
 import java.util.concurrent.Future;
 import java.util.zip.GZIPOutputStream;
-import static org.apache.spark.sql.functions.*;
+
+import static org.apache.spark.sql.functions.broadcast;
 
 /**
  *
@@ -293,12 +278,27 @@ public class SparkDataSet<V> implements DataSet<V> {
     @Override
     public DataSet<V> parallelProbe(List<DataSet<V>> dataSets) {
         DataSet<V> toReturn = null;
+        DataSet<V> branch = null;
         int i = 0;
         for (DataSet<V> dataSet: dataSets) {
-            if (i == 0)
-                toReturn = dataSet;
+            if (i % 100 == 0) {
+                if (branch != null) {
+                    if (toReturn == null)
+                        toReturn = branch;
+                    else
+                        toReturn = toReturn.union(branch);
+                }
+                branch = dataSet;
+            }
             else
-                toReturn = toReturn.union(dataSet);
+                branch = branch.union(dataSet);
+            i++;
+        }
+        if (branch != null) {
+            if (toReturn == null)
+                toReturn = branch;
+            else
+                toReturn = toReturn.union(branch);
         }
         return toReturn;
     }
