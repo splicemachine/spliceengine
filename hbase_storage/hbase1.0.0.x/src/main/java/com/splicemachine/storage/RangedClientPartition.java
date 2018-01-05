@@ -149,4 +149,10 @@ public class RangedClientPartition extends ClientPartition implements Comparable
                 ", owningServer=" + owningServer +
                 '}';
     }
+
+    @Override
+    public String getEncodedName() {
+        return regionInfo.getEncodedName();
+    }
+
 }

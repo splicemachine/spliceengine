@@ -15,28 +15,27 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
-import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.compile.RowOrdering;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataScan;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 /**
  * Result set that fetches rows from a scan by "probing" the underlying
@@ -258,10 +257,12 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             DataSet<ExecRow> dataSet = dsp.getEmpty();
             OperationContext<MultiProbeTableScanOperation> operationContext = dsp.<MultiProbeTableScanOperation>createOperationContext(this);
             int i = 0;
+            List<DataSet<ExecRow>> datasets = new ArrayList<>(scans.size());
             for (DataScan scan : scans) {
                 deSiify(scan);
-                MultiProbeTableScanOperation clone = (MultiProbeTableScanOperation) operationContext.getClone().getOperation();
-                DataSet<ExecRow> ds = dsp.<MultiProbeTableScanOperation, ExecRow>newScanSet(this, tableName)
+                OperationContext opClone = operationContext.getClone();
+                MultiProbeTableScanOperation clone = (MultiProbeTableScanOperation) opClone.getOperation();
+                DataSet<ExecRow> ds = dsp.<MultiProbeTableScanOperation, ExecRow>newScanSet(clone, tableName)
                         .tableDisplayName(tableDisplayName)
                         .activation(clone.getActivation())
                         .transaction(txn)
@@ -279,11 +280,15 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                         .baseColumnMap(baseColumnMap)
                         .optionalProbeValue(probeValues[i])
                         .defaultRow(defaultRow, scanInformation.getDefaultValueMap())
-                        .buildDataSet(this);
-                dataSet = dataSet.union(ds);
+                        .buildDataSet(clone);
+                if (!dsp.getType().equals(DataSetProcessor.Type.CONTROL)) {
+                    dataSet = dataSet.union(ds);
+                }
+                datasets.add(ds);
                 i++;
             }
-            return dataSet;
+            return !dsp.getType().equals(DataSetProcessor.Type.CONTROL)?dataSet:
+                    dataSet.parallelProbe(datasets).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
         }
         catch (Exception e) {
                 throw StandardException.plainWrapException(e);
