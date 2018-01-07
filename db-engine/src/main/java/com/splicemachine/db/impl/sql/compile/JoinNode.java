@@ -252,6 +252,7 @@ public class JoinNode extends TableOperatorNode{
 		** We add the costs for the inner and outer table, but the number
 		** of rows is that for the inner table only.
 		*/
+
         costEstimate.setCost(rightResultSet.getCostEstimate());
         costEstimate.setBase(null);
 		/*
