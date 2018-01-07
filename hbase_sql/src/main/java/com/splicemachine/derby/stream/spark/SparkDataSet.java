@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.stream.spark;
 
-import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLLongint;
@@ -26,7 +25,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.export.ExportExecRowW
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
-import com.splicemachine.derby.stream.control.FutureIterator;
 import com.splicemachine.derby.stream.function.AbstractSpliceFunction;
 import com.splicemachine.derby.stream.function.CountWriteFunction;
 import com.splicemachine.derby.stream.function.ExportFunction;
@@ -72,20 +70,12 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.types.DataType;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.storage.StorageLevel;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
+import java.util.*;
 import java.util.concurrent.Future;
 import java.util.zip.GZIPOutputStream;
 
@@ -307,12 +297,27 @@ public class SparkDataSet<V> implements DataSet<V> {
     @Override
     public DataSet<V> parallelProbe(List<DataSet<V>> dataSets) {
         DataSet<V> toReturn = null;
+        DataSet<V> branch = null;
         int i = 0;
         for (DataSet<V> dataSet: dataSets) {
-            if (i == 0)
-                toReturn = dataSet;
+            if (i % 100 == 0) {
+                if (branch != null) {
+                    if (toReturn == null)
+                        toReturn = branch;
+                    else
+                        toReturn = toReturn.union(branch);
+                }
+                branch = dataSet;
+            }
             else
-                toReturn = toReturn.union(dataSet);
+                branch = branch.union(dataSet);
+            i++;
+        }
+        if (branch != null) {
+            if (toReturn == null)
+                toReturn = branch;
+            else
+                toReturn = toReturn.union(branch);
         }
         return toReturn;
     }
