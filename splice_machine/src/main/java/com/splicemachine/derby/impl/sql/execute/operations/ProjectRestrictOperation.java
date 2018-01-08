@@ -22,6 +22,8 @@ import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
+import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -36,6 +38,7 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.EngineUtils;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Strings;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -174,6 +177,15 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 			if (reuseResult && projRow != null)
 				return projRow;
             source.setCurrentRow(sourceRow);
+			RowLocation rl = new HBaseRowLocation(sourceRow.getKey());
+			source.setCurrentRowLocation(rl);
+			/* If source is index look-up, we need to set the current row location for the underneath TableScan operation.
+			   this is because index look-up is a batch operation, so the rowlocation from teh TableScan may be out-of-sync
+			   with the current row being processed.
+			 */
+			if (source instanceof IndexRowToBaseRowOperation)
+				source.getLeftOperation().setCurrentRowLocation(rl);
+
             ExecRow result;
 				if (projection != null) {
 						result = projection.invoke();
