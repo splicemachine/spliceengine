@@ -216,6 +216,9 @@ public class RowLocationColumnVisitor extends AbstractSpliceVisitor {
                 pathToLeaf.add(currentNode);
                 currentNode = getLeftChildNode(currentNode);
             } else if (children.size() == 1) {
+                // treat IndexToBaseRowNode as if it is a leaf node, as it will always be on top of a FromBaseTableNode
+                if (currentNode instanceof IndexToBaseRowNode)
+                    break;
                 pathToLeaf.add(currentNode);
                 currentNode = children.get(0);
             } else {

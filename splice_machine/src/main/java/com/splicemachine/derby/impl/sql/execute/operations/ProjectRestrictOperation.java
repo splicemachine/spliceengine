@@ -22,6 +22,8 @@ import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
+import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -171,6 +173,15 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
 		public ExecRow doProjection(ExecRow sourceRow) throws StandardException {
             source.setCurrentRow(sourceRow);
+			RowLocation rl = new HBaseRowLocation(sourceRow.getKey());
+			source.setCurrentRowLocation(rl);
+			/* If source is index look-up, we need to set the current row location for the underneath TableScan operation.
+			   this is because index look-up is a batch operation, so the rowlocation from teh TableScan may be out-of-sync
+			   with the current row being processed.
+			 */
+			if (source instanceof IndexRowToBaseRowOperation)
+				source.getLeftOperation().setCurrentRowLocation(rl);
+
             ExecRow result;
 				if (projection != null) {
 						result = projection.invoke();
