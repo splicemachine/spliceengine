@@ -787,7 +787,6 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
                 }
                 if (seconds != timeout_) {
                     timeout_ = seconds;
-                    connection_.setQueryTimeout(timeout_);
                     doWriteTimeout = true;
                 }
             }

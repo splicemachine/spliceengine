@@ -14,6 +14,9 @@
 
 package com.splicemachine.derby.stream.function.broadcast;
 
+import com.splicemachine.derby.stream.function.IteratorUtils;
+import org.apache.spark.InterruptibleIterator;
+import org.apache.spark.TaskContext;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.collect.FluentIterable;
 import org.spark_project.guava.collect.Iterables;
@@ -21,6 +24,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.JoinTable;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import scala.Tuple2;
+import scala.collection.JavaConverters;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;
@@ -53,7 +57,7 @@ public class BroadcastJoinFlatMapFunction extends AbstractBroadcastJoinFlatMapFu
                             @Override
                             public Iterator<ExecRow> iterator(){
                                 try{
-                                    return joinTable.fetchInner(left);
+                                    return IteratorUtils.asInterruptibleIterator(joinTable.fetchInner(left));
                                 }catch(Exception e){
                                     throw new RuntimeException(e);
                                 }

@@ -69,21 +69,25 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     public ControlOperationContext() {
         }
 
-        protected ControlOperationContext(Op spliceOperation) {
-            this.op = spliceOperation;
-            if (op !=null) {
-                this.activation = op.getActivation();
-                try {
-                    this.txn = spliceOperation.getCurrentTransaction();
-                } catch (StandardException se) {
-                    throw new RuntimeException(se);
-                }
+    protected ControlOperationContext(Op spliceOperation) {
+        this.op = spliceOperation;
+        if (op !=null) {
+            this.activation = op.getActivation();
+            try {
+                this.txn = spliceOperation.getCurrentTransaction();
+            } catch (StandardException se) {
+                throw new RuntimeException(se);
             }
-            rowsRead = 0;
-            rowsFiltered=0;
-            rowsWritten = 0;
-            badRecords =new ArrayList<>();
         }
+        rowsRead = 0;
+        rowsFiltered=0;
+        rowsWritten = 0;
+        badRecords =new ArrayList<>();
+    }
+    protected ControlOperationContext(Activation activation) {
+        this((Op) null);
+        this.activation = activation;
+    }
 
         public void readExternalInContext(ObjectInput in) throws IOException, ClassNotFoundException
         {}
@@ -140,7 +144,7 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
 
     @Override
     public Activation getActivation() {
-        return op.getActivation();
+        return activation;
     }
 
 
