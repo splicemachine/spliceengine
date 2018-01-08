@@ -171,7 +171,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
 
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Activation activation){
-        return new ControlOperationContext<>(null);
+        return new ControlOperationContext<>(activation);
     }
 
     @Override

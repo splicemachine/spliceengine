@@ -15,6 +15,7 @@
 package com.splicemachine.derby.vti;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.derby.stream.function.IteratorUtils;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.Closeable;
@@ -59,7 +60,7 @@ public class ResultSetIterator implements Iterable<ExecRow>, Iterator<ExecRow>, 
 
     @Override
     public Iterator<ExecRow> iterator() {
-        return this;
+        return IteratorUtils.asInterruptibleIterator(this);
     }
 
     @Override
