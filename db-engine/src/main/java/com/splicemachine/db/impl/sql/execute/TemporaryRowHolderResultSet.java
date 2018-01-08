@@ -888,6 +888,11 @@ class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cl
         return false;
     }
 
+    @Override
+    public boolean isTimedout() {
+        return false;
+    }
+
     /**
      * Tells the system that there will be no more access
      * to any database information via this result set;

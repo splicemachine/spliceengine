@@ -49,6 +49,7 @@ import com.splicemachine.db.iapi.sql.conn.SQLSessionContext;
 import com.splicemachine.db.iapi.sql.depend.Dependency;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 
+import com.splicemachine.db.iapi.sql.execute.Expirable;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 
 import com.splicemachine.db.iapi.sql.Activation;
@@ -59,8 +60,9 @@ import com.splicemachine.db.iapi.services.context.ContextImpl;
 
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.reference.SQLState;
+import org.apache.log4j.Logger;
+
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -73,6 +75,8 @@ import java.util.TimerTask;
 final class GenericStatementContext 
 	extends ContextImpl implements StatementContext
 {
+	private static final Logger LOG = Logger.getLogger(GenericStatementContext.class);
+	
 	private boolean		setSavePoint;
 	private String		internalSavePointName;
 	private ResultSet	topResultSet;
@@ -93,7 +97,7 @@ final class GenericStatementContext
 
     // Reference to the TimerTask that will time out this statement.
     // Needed for stopping the task when execution completes before timeout.
-    private CancelQueryTask cancelTask = null;
+    private volatile CancelQueryTask cancelTask = null;
         
     private	boolean		parentInTrigger;	// whetherparent started with a trigger on stack
     private	boolean		isForReadOnly = false;	
@@ -158,8 +162,10 @@ final class GenericStatementContext
          * which might time out.
          */
         private StatementContext statementContext;
+		private Expirable expirable;
+		private Thread thread;
 
-        /**
+		/**
          * Initializes a new task for timing out a statement's execution.
          * This does not schedule it for execution, the caller is
          * responsible for calling Timer.schedule() with this object
@@ -183,8 +189,18 @@ final class GenericStatementContext
                 if (statementContext != null) {
                     statementContext.cancel();
                 }
+                if (expirable != null) {
+					try {
+						expirable.timeout();
+					} catch (StandardException e) {
+						// ignore
+						LOG.error("Ignoring exception raised during cancellation due to a timeout", e);
+					}
+					thread.interrupt();
+				}
             }
-        }
+
+		}
 
         /**
          * Stops this task and prevents it from cancelling a statement.
@@ -196,10 +212,21 @@ final class GenericStatementContext
         public void forgetContext() {
             synchronized (this) {
                 statementContext = null;
+                expirable = null;
+                thread = null;
             }
             cancel();
         }
-    }
+
+		public void registerExpirable(Expirable expirable, Thread thread) {
+        	synchronized (this) {
+        		if (this.expirable == null) {
+					this.expirable = expirable;
+					this.thread = thread;
+				}
+			}
+		}
+	}
 
 	// StatementContext Interface
 
@@ -813,7 +840,14 @@ final class GenericStatementContext
         return hasXPlainTableOrProcedure;
     }
 
-    @Override
+	@Override
+	public void registerExpirable(Expirable expirable, Thread thread) {
+		if (cancelTask != null) {
+			cancelTask.registerExpirable(expirable, thread);
+		}
+	}
+
+	@Override
     public void setXPlainTableOrProcedure(boolean val) {
         this.hasXPlainTableOrProcedure = val;
     }

@@ -23,6 +23,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.stream.function.IteratorUtils;
 import com.splicemachine.derby.stream.utils.StreamLogUtils;
 import com.splicemachine.derby.utils.Scans;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -61,7 +62,7 @@ public class TableScannerIterator implements Iterable<ExecRow>, Iterator<ExecRow
 
     @Override
     public Iterator<ExecRow> iterator() {
-        return this;
+        return IteratorUtils.asInterruptibleIterator(this);
     }
 
     @Override
