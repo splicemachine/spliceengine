@@ -281,14 +281,11 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                         .optionalProbeValue(probeValues[i])
                         .defaultRow(defaultRow, scanInformation.getDefaultValueMap())
                         .buildDataSet(clone);
-                if (!dsp.getType().equals(DataSetProcessor.Type.CONTROL)) {
-                    dataSet = dataSet.union(ds);
-                }
+
                 datasets.add(ds);
                 i++;
             }
-            return !dsp.getType().equals(DataSetProcessor.Type.CONTROL)?dataSet:
-                    dataSet.parallelProbe(datasets).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
+            return dataSet.parallelProbe(datasets).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
         }
         catch (Exception e) {
                 throw StandardException.plainWrapException(e);
