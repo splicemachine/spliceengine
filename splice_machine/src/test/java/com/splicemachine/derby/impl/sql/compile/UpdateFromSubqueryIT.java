@@ -115,9 +115,7 @@ public class UpdateFromSubqueryIT extends SpliceUnitTest {
 
     @After
     public void tearDownTest() throws Exception{
-        try {
-            conn.rollback();
-        } catch (Exception e) {} // Swallow for HFile Bit Running in Control
+        conn.rollback();
     }
 
     @Test
