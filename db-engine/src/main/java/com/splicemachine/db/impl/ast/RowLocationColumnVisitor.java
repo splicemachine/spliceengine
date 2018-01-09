@@ -76,7 +76,7 @@ public class RowLocationColumnVisitor extends AbstractSpliceVisitor {
 
     private Visitable doVisit(DMLStatementNode dmlNode) throws StandardException {
 
-        // Only continue if the operation is over a sink (e.g. update over merge join)
+        // Only continue if the operation is over a sink (e.g. update over merge join, or any join with index lookup)
         if (!RSUtils.hasSinkingChildren(dmlNode.getResultSetNode())) {
             return dmlNode;
         }

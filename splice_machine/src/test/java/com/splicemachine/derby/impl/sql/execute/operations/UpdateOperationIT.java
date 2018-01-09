@@ -550,23 +550,7 @@ public class UpdateOperationIT {
             assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
             rs.close();
 
-            /* update Q2 -- update with from subquery */
-            sql = "update t1 --splice-properties index=t1_ix_c1, useSpark=false\n" +
-                    "set (b1) = (select b2 from t2 --splice-properties joinStrategy=sortmerge \n" +
-                    "where a1=a2)";
-            n = s.executeUpdate(sql);
-            Assert.assertEquals("Incorrect number of rows updated", 2, n);
-
-            expected = "A1 | B1  |C1 |D1  |E1  |\n" +
-                    "------------------------\n" +
-                    "10 |1000 |10 |III |III |\n" +
-                    " 3 |  3  | 3 |AAA |AAA |\n" +
-                    " 8 |1000 | 8 |GGG |GGG |";
-            rs = methodWatcher.executeQuery("select * from t1");
-            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-            rs.close();
-
-            /* update Q3 -- update with SSQ */
+            /* update Q2 -- update with SSQ */
             sql = "update t1 --splice-properties index=t1_ix_c1, useSpark=false\n" +
                     "set b1 = (select b2*10 from t2 where a1=a2)" +
                     "where c1>5";
@@ -620,23 +604,7 @@ public class UpdateOperationIT {
             assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
             rs.close();
 
-            /* update Q2 -- update with from subquery */
-            sql = "update t1 --splice-properties index=t1_ix_c1, useSpark=true\n" +
-                    "set (b1) = (select b2 from t2 --splice-properties joinStrategy=sortmerge \n" +
-                    "where a1=a2)";
-            n = s.executeUpdate(sql);
-            Assert.assertEquals("Incorrect number of rows updated", 2, n);
-
-            expected = "A1 | B1  |C1 |D1  |E1  |\n" +
-                    "------------------------\n" +
-                    "10 |1000 |10 |III |III |\n" +
-                    " 3 |  3  | 3 |AAA |AAA |\n" +
-                    " 8 |1000 | 8 |GGG |GGG |";
-            rs = methodWatcher.executeQuery("select * from t1");
-            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-            rs.close();
-
-            /* update Q3 -- update with SSQ */
+            /* update Q2 -- update with SSQ */
             sql = "update t1 --splice-properties index=t1_ix_c1, useSpark=true\n" +
                     "set b1 = (select b2*10 from t2 where a1=a2)" +
                     "where c1>5";
