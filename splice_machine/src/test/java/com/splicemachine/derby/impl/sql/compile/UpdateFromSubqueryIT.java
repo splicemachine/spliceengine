@@ -89,6 +89,20 @@ public class UpdateFromSubqueryIT extends SpliceUnitTest {
                         row(3, 30, 30, 30),
                         row(4, 40, 40, 40))).create();
 
+        new TableCreator(connection)
+                .withCreate("create table t3 (a3 int, b3 int default 5, c3 int, d3 varchar(20) default 'NNN', e3 varchar(20))")
+                .withIndex("create index T3_IX_C3 on t3 (c3)")
+                .withInsert("INSERT INTO T3 VALUES(?,?,?,?,?)")
+                .withRows(rows(row(8, 8, 8, "GGG", "GGG"), row(10, 10, 10, "III", "III"), row(3,3,3,"AAA", "AAA")))
+                .create();
+
+        new TableCreator(connection)
+                .withCreate("create table t4 (a4 int, b4 int, c4 char(3))")
+                .withIndex("create index T4_IX on t4 (a4, b4)")
+                .withInsert("INSERT INTO T4 VALUES(?,?,?)")
+                .withRows(rows(row(8, 1000, "GGG"), row(10, 1000, "III")))
+                .create();
+
     }
 
     private Connection conn;
@@ -151,6 +165,47 @@ public class UpdateFromSubqueryIT extends SpliceUnitTest {
                 Assert.assertEquals("Upexpected failure: "+ e.getMessage(), e.getSQLState(), SQLState.LANG_NO_BEST_PLAN_FOUND);
             else
                 Assert.fail("Unexpected failure for join strategy: " + this.joinStrategy);
+        }
+    }
+
+    @Test
+    public void testUpdateFromIndexLookupAccessPath() throws Exception {
+        if (this.joinStrategy != "MERGE") {
+            /* update with from subquery */
+            String sql = format("update t3 --splice-properties index=t3_ix_c3, useSpark=%s\n" +
+                    "set (b3) = (select b4 from t4 --splice-properties joinStrategy=%s \n" +
+                    "where a3=a4)", this.useSparkString, this.joinStrategy);
+            int n = spliceClassWatcher.executeUpdate(sql);
+            Assert.assertEquals("Incorrect number of rows updated", 2, n);
+
+            sql = "select * from t3";
+
+            String expected = "A3 | B3  |C3 |D3  |E3  |\n" +
+                    "------------------------\n" +
+                    "10 |1000 |10 |III |III |\n" +
+                    " 3 |  3  | 3 |AAA |AAA |\n" +
+                    " 8 |1000 | 8 |GGG |GGG |";
+            ResultSet rs = spliceClassWatcher.executeQuery(sql);
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs.close();
+        } else {
+            /* update with a different query to test */
+            String sql = format("update t3 --splice-properties index=t3_ix_c3, useSpark=%s\n" +
+                    "set (b3) = (select b4 from t4 --splice-properties joinStrategy=%s \n" +
+                    "where c3=a4)", this.useSparkString, this.joinStrategy);
+            int n = spliceClassWatcher.executeUpdate(sql);
+            Assert.assertEquals("Incorrect number of rows updated", 2, n);
+
+            sql = "select * from t3";
+
+            String expected = "A3 | B3  |C3 |D3  |E3  |\n" +
+                    "------------------------\n" +
+                    "10 |1000 |10 |III |III |\n" +
+                    " 3 |  3  | 3 |AAA |AAA |\n" +
+                    " 8 |1000 | 8 |GGG |GGG |";
+            ResultSet rs = spliceClassWatcher.executeQuery(sql);
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs.close();
         }
     }
 }
