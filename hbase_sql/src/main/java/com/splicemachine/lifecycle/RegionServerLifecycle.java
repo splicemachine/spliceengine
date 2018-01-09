@@ -19,9 +19,12 @@ import java.io.InterruptedIOException;
 import java.net.SocketTimeoutException;
 import java.util.concurrent.TimeUnit;
 
+import com.google.protobuf.ServiceException;
+import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.pipeline.InitializationCompleted;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.PleaseHoldException;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.TableNotEnabledException;
@@ -29,8 +32,10 @@ import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.RegionOfflineException;
 import org.apache.hadoop.hbase.client.RetriesExhaustedException;
+import org.apache.hadoop.hbase.ipc.RpcControllerFactory;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.ipc.RemoteException;
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
 import com.splicemachine.access.configuration.SQLConfiguration;
@@ -46,6 +51,8 @@ import com.splicemachine.hbase.ZkUtils;
  *         Date: 1/6/16
  */
 public class RegionServerLifecycle implements DistributedDerbyStartup{
+    private static final Logger LOG = Logger.getLogger(RegionServerLifecycle.class);
+    
     private final Clock clock;
     private final HBaseConnectionFactory connectionFactory;
 
@@ -62,13 +69,18 @@ public class RegionServerLifecycle implements DistributedDerbyStartup{
             do{
                 onHold=false;
                 try{
-                    HTableDescriptor desc=new HTableDescriptor(TableName.valueOf(SpliceMasterObserver.INIT_TABLE));
-                    desc.addFamily(new HColumnDescriptor(Bytes.toBytes("FOO")));
-                    // Create the special "SPLICE_INIT" table which triggers the creation of the SpliceMasterObserver and ultimately
-                    // triggers the creation of the "SPLICE_*" HBase tables.  This is an asynchronous call and so we "loop" via a
-                    // "please hold" exception and a recursive call to bootDatabase() along with a sleep.
-                    admin.createTable(desc);
-                }catch(InitializationCompleted ic){
+                    try {
+                        SpliceMessage.SpliceInitRequest request = SpliceMessage.SpliceInitRequest.newBuilder().build();
+                        SpliceMessage.SpliceInitResponse response = SpliceMessage.SpliceInitResponse.newBuilder().buildPartial();
+                        admin.coprocessorService()
+                                .callBlockingMethod(
+                                        SpliceMessage.SpliceMasterCoprocessorService.getDescriptor().findMethodByName("spliceInit"),
+                                        RpcControllerFactory.instantiate(conn.getConfiguration()).newController(), request, response);
+                    } catch (ServiceException se) {
+                        throw se.getCause();
+                    }
+                    throw new ServiceException("Shouldn't have received a response");
+                }catch(InitializationCompleted ic) {
                     /*
                      * The exception signaling the start of a successfully running Splice Engine will be a SpliceDoNotRetryIOException.
                      * When this is returned, it means that a connection to HBase and the creation (or previous existence) of the
@@ -84,16 +96,22 @@ public class RegionServerLifecycle implements DistributedDerbyStartup{
                     SQLConfiguration.upgradeForced = false;
 
                     // Ensure ZK paths exist.
-                    try{
+                    try {
                         ZkUtils.safeInitializeZooKeeper();
-                    }catch(InterruptedException e){
+                    } catch (InterruptedException e) {
                         throw new InterruptedIOException();
-                    }catch(KeeperException e){
+                    } catch (KeeperException e) {
                         throw new IOException(e);
                     }
-                } catch(Exception ex){
-                    if (!causeIsPleaseHold(ex))
-                        throw ex;
+                } catch(Throwable t){
+                    if (!causeIsPleaseHold(t)) {
+                        if (t instanceof IOException)
+                            throw (IOException) t;
+                        else {
+                            LOG.error("Unexpected throwable", t);
+                            throw new IOException(t);
+                        }
+                    }
                     onHold = true;
                     try {
                         clock.sleep(1, TimeUnit.SECONDS);
@@ -114,6 +132,8 @@ public class RegionServerLifecycle implements DistributedDerbyStartup{
         if (e instanceof TableNotEnabledException)
             return true;
         if (e instanceof RegionOfflineException)
+            return true;
+        if (e instanceof MasterNotRunningException)
             return true;
         if (e instanceof RetriesExhaustedException || e instanceof SocketTimeoutException) {
             if (e.getCause() instanceof RemoteException) {
