@@ -16,6 +16,17 @@ package com.splicemachine.hbase;
 
 import java.io.IOException;
 
+import com.google.protobuf.RpcCallback;
+import com.google.protobuf.RpcController;
+import com.google.protobuf.Service;
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.concurrent.SystemClock;
+import com.splicemachine.coprocessor.SpliceMessage;
+import com.splicemachine.derby.lifecycle.EngineLifecycleService;
+import com.splicemachine.lifecycle.DatabaseLifecycleManager;
+import com.splicemachine.lifecycle.MasterLifecycle;
+import com.splicemachine.olap.OlapServer;
 import com.splicemachine.pipeline.InitializationCompleted;
 import com.splicemachine.si.data.hbase.ZkUpgradeK2;
 import com.splicemachine.si.data.hbase.coprocessor.CoprocessorUtils;
@@ -34,12 +45,14 @@ import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.curator.utils.ZookeeperFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.PleaseHoldException;
 import org.apache.hadoop.hbase.coprocessor.BaseMasterObserver;
+import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.MasterCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -67,14 +80,12 @@ import com.splicemachine.utils.SpliceLogUtils;
 /**
  * Responsible for actions (create system tables, restore tables) that should only happen on one node.
  */
-public class SpliceMasterObserver extends BaseMasterObserver {
+public class SpliceMasterObserver extends BaseMasterObserver implements CoprocessorService,Coprocessor {
 
     private static final Logger LOG = Logger.getLogger(SpliceMasterObserver.class);
 
-    public static final byte[] INIT_TABLE = Bytes.toBytes("SPLICE_INIT");
-
     private TimestampServer timestampServer;
-    private DatabaseLifecycleManager manager;
+    private volatile DatabaseLifecycleManager manager;
     private OlapServer olapServer;
 
     @Override
@@ -125,7 +136,6 @@ public class SpliceMasterObserver extends BaseMasterObserver {
              * issue during testing
              */
             this.manager = new DatabaseLifecycleManager();
-            super.start(ctx);
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
@@ -137,40 +147,6 @@ public class SpliceMasterObserver extends BaseMasterObserver {
             LOG.warn("Stopping SpliceMasterObserver");
             manager.shutdown();
             this.timestampServer.stopServer();
-        } catch (Throwable t) {
-            throw CoprocessorUtils.getIOException(t);
-        }
-    }
-
-    @Override
-    public void preCreateTable(ObserverContext<MasterCoprocessorEnvironment> ctx, HTableDescriptor desc, HRegionInfo[] regions) throws IOException {
-        try {
-            SpliceLogUtils.info(LOG, "preCreateTable %s", Bytes.toString(desc.getTableName().getName()));
-            if (Bytes.equals(desc.getTableName().getName(), INIT_TABLE)) {
-                switch(manager.getState()){
-                    case NOT_STARTED:
-                        boot();
-                    case BOOTING_ENGINE:
-                    case BOOTING_GENERAL_SERVICES:
-                    case BOOTING_SERVER:
-                        throw new PleaseHoldException("Please Hold - Starting");
-                    case RUNNING:
-                        throw new InitializationCompleted("Success");
-                    case STARTUP_FAILED:
-                    case SHUTTING_DOWN:
-                    case SHUTDOWN:
-                        throw new IllegalStateException("Startup failed");
-                }
-            }
-        } catch (Throwable t) {
-            throw CoprocessorUtils.getIOException(t);
-        }
-    }
-
-    @Override
-    public void postStartMaster(ObserverContext<MasterCoprocessorEnvironment> ctx) throws IOException {
-        try {
-            boot();
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
@@ -224,4 +200,39 @@ public class SpliceMasterObserver extends BaseMasterObserver {
         }
     }
 
+    @Override
+    public Service getService() {
+        return new MasterService();
+    }
+
+    class MasterService extends SpliceMessage.SpliceMasterCoprocessorService {
+        @Override
+        public void spliceInit(RpcController controller, SpliceMessage.SpliceInitRequest request, RpcCallback<SpliceMessage.SpliceInitResponse> callback) {
+            try {
+                if (manager == null) {
+                    throw new PleaseHoldException("Please Hold - pre-starting");
+                }
+                SpliceLogUtils.info(LOG, "spliceInit");
+                switch(manager.getState()){
+                    case NOT_STARTED:
+                        boot();
+                    case BOOTING_ENGINE:
+                    case BOOTING_GENERAL_SERVICES:
+                    case BOOTING_SERVER:
+                        throw new PleaseHoldException("Please Hold - Starting");
+                    case RUNNING:
+                        throw new InitializationCompleted("Success");
+                    case STARTUP_FAILED:
+                    case SHUTTING_DOWN:
+                    case SHUTDOWN:
+                        throw new IllegalStateException("Startup failed");
+                }
+            } catch (Throwable t) {
+                org.apache.hadoop.hbase.protobuf.ResponseConverter.setControllerException(controller, CoprocessorUtils.getIOException(t));
+            }
+            SpliceMessage.SpliceInitResponse.Builder writeResponse = SpliceMessage.SpliceInitResponse.newBuilder();
+            callback.run(writeResponse.build());
+        }
+
+    }
 }

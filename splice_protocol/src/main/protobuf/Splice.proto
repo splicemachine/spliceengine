@@ -139,6 +139,11 @@ service SpliceDerbyCoprocessorService {
 		returns (SpliceRegionSizeResponse);
 }
 
+service SpliceMasterCoprocessorService {
+    rpc spliceInit(SpliceInitRequest)
+    returns (SpliceInitResponse);
+}
+
 message SpliceSplitServiceRequest {
     optional bytes beginKey = 1;
     optional bytes endKey = 2;
@@ -147,6 +152,12 @@ message SpliceSplitServiceRequest {
 message SpliceSplitServiceResponse {
     repeated bytes cutPoint = 1;
     required string hostName = 2;
+}
+
+message SpliceInitRequest {
+}
+
+message SpliceInitResponse {
 }
 
 
