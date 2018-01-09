@@ -68,9 +68,11 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.build.timestamp.format>yyyy-MM-dd HH:mm Z</maven.build.timestamp.format>
+        <argLine>${jacocoAgent}</argLine>
         <excluded.categories>com.splicemachine.test.SlowTest, com.splicemachine.test.BackupTest
         </excluded.categories>
         <failTasksRandomly>true</failTasksRandomly>
+        <jacoco_out/>
         <!-- run chaos monkey -->
         <log4j.config.uri>file:${basedir}/src/main/resources/info-log4j.properties</log4j.config.uri>
         <skip.integration.tests>true</skip.integration.tests>
@@ -699,6 +701,66 @@
     </build>
     <profiles>
         <profile>
+            <!-- When jacoco is disabled,the jacocoAgent property still needs to exist -->
+            <id>noJacoco</id>
+            <activation>
+                <property>
+                  <name>!jacoco</name>
+                </property>
+            </activation>
+            <properties>
+                <jacocoAgent>-server</jacocoAgent>
+            </properties>
+        </profile>
+        <profile>
+            <id>jacoco</id>
+            <modules>
+                <module>coverage</module>
+            </modules>
+            <properties>
+                <jacoco_out>,jacoco</jacoco_out>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>jacoco-maven-plugin</artifactId>
+                        <version>0.7.8</version>
+                        <executions>
+                            <execution>
+                                <id>pre-unit-test</id>
+                                <phase>initialize</phase>
+                                <goals>
+                                    <goal>prepare-agent</goal>
+                                </goals>
+                                <configuration>
+                                    <propertyName>jacocoAgent</propertyName>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>pre-integration-test</id>
+                                <phase>pre-integration-test</phase>
+                                <goals>
+                                    <goal>prepare-agent</goal>
+                                </goals>
+                                <configuration>
+                                    <destFile>${project.build.directory}/jacoco.exec</destFile>
+                                    <propertyName>jacocoAgent</propertyName>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>post-integration-test</id>
+                                <phase>post-integration-test</phase>
+                                <goals>
+                                    <goal>report-aggregate</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
             <id>core</id>
             <activation>
                 <property>
@@ -772,6 +834,7 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>coverage</module>
             </modules>
         </profile>
         <profile>

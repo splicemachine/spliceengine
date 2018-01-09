@@ -173,7 +173,7 @@ if [ ${COUNT} -eq 0 ]; then
     echo "ZooKeeper did not start up properly, aborting startup. Please check ${RUN_DIR}/zoo.log for more information"
     exit 5
 fi
-  
+
 YARN_LOG="${RUN_DIR}/yarn.log"
 echo "Starting YARN. Log file is ${YARN_LOG}"
 (${MVN} exec:java -P${PROFILE},spliceYarn > ${YARN_LOG} 2>&1) &  ## YARN
