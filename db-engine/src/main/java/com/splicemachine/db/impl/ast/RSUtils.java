@@ -101,9 +101,11 @@ public class RSUtils {
         @Override
         public boolean apply(ResultSetNode rsn) {
             return sinkers.contains(rsn.getClass()) &&
-                    (!(rsn instanceof JoinNode) || RSUtils.isSinkingJoin(RSUtils.ap((JoinNode) rsn)));
+                    (!(rsn instanceof JoinNode) || RSUtils.isSinkingJoin(RSUtils.ap((JoinNode) rsn)) ||
+                    RSUtils.leftHasIndexLookup(rsn));
         }
     };
+
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
@@ -294,4 +296,22 @@ public class RSUtils {
         return (sinks != null && !sinks.isEmpty());
     }
 
+    public static boolean leftHasIndexLookup(ResultSetNode node) {
+        ResultSetNode currentNode = node;
+        while (currentNode != null) {
+            if (currentNode instanceof IndexToBaseRowNode)
+                return true;
+
+            else if (currentNode instanceof TableOperatorNode) {
+                currentNode = ((TableOperatorNode) currentNode).getLeftResultSet();
+            } else if (currentNode instanceof ProjectRestrictNode) {
+                currentNode = ((ProjectRestrictNode) currentNode).getChildResult();
+            } else {
+                // FromBaseTable or other cases
+                return false;
+            }
+        }
+
+        return false;
+    }
 }
