@@ -1210,6 +1210,7 @@ public class ExternalTableIT extends SpliceUnitTest{
         methodWatcher.executeUpdate(String.format("create external table t_partition_by_date (a1 date, b1 int, c1 varchar(10))" +
                 "partitioned by (a1)" +
                 "STORED AS ORC LOCATION '%s'",tablePath));
+
         methodWatcher.executeUpdate("insert into t_partition_by_date values('2017-7-27', 1, 'AAA'), ('1970-01-01', 2, 'BBB'), ('2017-7-27', 3, 'CCC')");
         ResultSet rs = methodWatcher.executeQuery("select a1, count(*) from t_partition_by_date group by a1 order by 1");
 
@@ -1242,6 +1243,97 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "2017-07-27 | 3 |CCC |";
 
         resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(expected, resultString);
+        rs.close();
+
+        //test query with null date
+
+        methodWatcher.executeUpdate("insert into t_partition_by_date values(NULL, 1, 'DDD')");
+        rs = methodWatcher.executeQuery("select a1, count(*) from t_partition_by_date group by a1 order by 1");
+
+        expected = "A1     | 2 |\n" +
+                "----------------\n" +
+                "1970-01-01 | 1 |\n" +
+                "2017-07-27 | 2 |\n" +
+                "   NULL    | 1 |";
+
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(expected, resultString);
+        rs.close();
+    }
+
+    @Test
+    public void testPartitionByCharOrcTable() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"/PartitionByCharOrc";
+        methodWatcher.executeUpdate(String.format("create external table t_partition_by_char (a1 CHAR(10), b1 int, c1 varchar(10))" +
+                "partitioned by (a1)" +
+                "STORED AS ORC LOCATION '%s'",tablePath));
+
+        methodWatcher.executeUpdate("insert into t_partition_by_char values(NULL, 1, 'DDD')");
+        ResultSet rs = methodWatcher.executeQuery("select a1, count(*) from t_partition_by_char group by a1 order by 1");
+
+        String expected = "A1  | 2 |\n" +
+                "----------\n" +
+                "NULL | 1 |";
+
+        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(expected, resultString);
+        rs.close();
+    }
+
+    @Test
+    public void testPartitionByNumericOrcTable() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"/PartitionByNumericOrc";
+        methodWatcher.executeUpdate(String.format("create external table t_partition_by_numeric (a1 NUMERIC, b1 int, c1 varchar(10))" +
+                "partitioned by (a1)" +
+                "STORED AS ORC LOCATION '%s'",tablePath));
+
+        methodWatcher.executeUpdate("insert into t_partition_by_numeric values(NULL, 1, 'DDD')");
+        ResultSet rs = methodWatcher.executeQuery("select a1, count(*) from t_partition_by_numeric group by a1 order by 1");
+
+        String expected = "A1  | 2 |\n" +
+                "----------\n" +
+                "NULL | 1 |";
+
+        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(expected, resultString);
+        rs.close();
+    }
+
+    @Test
+    public void testPartitionByBoolOrcTable() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"/PartitionByBoolOrc";
+        methodWatcher.executeUpdate(String.format("create external table t_partition_by_bool (a1 Boolean, b1 int, c1 varchar(10))" +
+                "partitioned by (a1)" +
+                "STORED AS ORC LOCATION '%s'",tablePath));
+
+        methodWatcher.executeUpdate("insert into t_partition_by_bool values(NULL, 1, 'DDD')");
+        ResultSet rs = methodWatcher.executeQuery("select a1, count(*) from t_partition_by_bool group by a1 order by 1");
+
+        String expected = "A1  | 2 |\n" +
+                "----------\n" +
+                "NULL | 1 |";
+
+        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(expected, resultString);
+        rs.close();
+    }
+
+    @Test
+    public void testPartitionByDoubleOrcTable() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"/PartitionByDoubleOrc";
+        methodWatcher.executeUpdate(String.format("create external table t_partition_by_double (a1 double, b1 int, c1 varchar(10))" +
+                "partitioned by (a1)" +
+                "STORED AS ORC LOCATION '%s'",tablePath));
+
+        methodWatcher.executeUpdate("insert into t_partition_by_double values(NULL, 1, 'DDD')");
+        ResultSet rs = methodWatcher.executeQuery("select a1, count(*) from t_partition_by_double group by a1 order by 1");
+
+        String expected = "A1  | 2 |\n" +
+                "----------\n" +
+                "NULL | 1 |";
+
+        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
         assertEquals(expected, resultString);
         rs.close();
     }
@@ -1924,6 +2016,19 @@ public class ExternalTableIT extends SpliceUnitTest{
         expected = "A1 |B1 |C1  |\n" +
                 "-------------\n" +
                 " 2 | 2 |BBB |";
+
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(expected, resultString);
+        rs.close();
+
+        methodWatcher.executeUpdate("insert into t_partition_by_smallint values(NULL, 1, 'DDD')");
+        rs = methodWatcher.executeQuery("select a1, count(*) from t_partition_by_smallint group by a1 order by 1");
+
+        expected = "A1  | 2 |\n" +
+                "----------\n" +
+                "  1  | 2 |\n" +
+                "  2  | 1 |\n" +
+                "NULL | 1 |";
 
         resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
         assertEquals(expected, resultString);
