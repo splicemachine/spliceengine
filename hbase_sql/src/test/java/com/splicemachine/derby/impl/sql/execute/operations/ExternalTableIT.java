@@ -2024,9 +2024,11 @@ public class ExternalTableIT extends SpliceUnitTest{
         methodWatcher.executeUpdate("insert into t_partition_by_smallint values(NULL, 1, 'DDD')");
         rs = methodWatcher.executeQuery("select a1, count(*) from t_partition_by_smallint group by a1 order by 1");
 
-        expected = "A1 |B1 |C1  |\n" +
-                "----------------\n" +
-                "   NULL    | 1 |";
+        expected = "A1  | 2 |\n" +
+                "----------\n" +
+                "  1  | 2 |\n" +
+                "  2  | 1 |\n" +
+                "NULL | 1 |";
 
         resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
         assertEquals(expected, resultString);
