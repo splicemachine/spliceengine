@@ -50,10 +50,9 @@ public class IgnoreTxnSupplier {
     public boolean shouldIgnore(Long txnId) throws IOException{
 
         boolean ignore = false;
-        if (!initialized) {
-            init();
-            initialized = true;
-        }
+
+        init();
+        
         if (!cache.isEmpty()) {
             for (Pair<Long, Long> range : cache) {
                 if (txnId > range.getFirst() && txnId < range.getSecond()) {
@@ -68,27 +67,31 @@ public class IgnoreTxnSupplier {
 
 
     private void populateIgnoreTxnCache() throws IOException {
-        
-        if (entryDecoder == null)
-            entryDecoder = new EntryDecoder();
-        DataResultScanner scanner = null;
-        try {
-            scanner = openScanner();
-            DataResult r = null;
-            while ((r = scanner.next()) != null) {
-                DataCell cell = r.userData();
-                byte[] buffer = cell.valueArray();
-                int offset = cell.valueOffset();
-                int length = cell.valueLength();
-                entryDecoder.set(buffer, offset, length);
-                MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
-                long startTxnId = decoder.decodeNextLong();
-                long endTxnId = decoder.decodeNextLong();
-                cache.add(new Pair<Long, Long>(startTxnId, endTxnId));
+
+        PartitionAdmin admin = partitionFactory.getAdmin();
+        ignoreTxnTableExists = admin.tableExists(HBaseConfiguration.IGNORE_TXN_TABLE_NAME);
+        if (ignoreTxnTableExists) {
+            if (entryDecoder == null)
+                entryDecoder = new EntryDecoder();
+            DataResultScanner scanner = null;
+            try {
+                scanner = openScanner();
+                DataResult r = null;
+                while ((r = scanner.next()) != null) {
+                    DataCell cell = r.userData();
+                    byte[] buffer = cell.valueArray();
+                    int offset = cell.valueOffset();
+                    int length = cell.valueLength();
+                    entryDecoder.set(buffer, offset, length);
+                    MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
+                    long startTxnId = decoder.decodeNextLong();
+                    long endTxnId = decoder.decodeNextLong();
+                    cache.add(new Pair<Long, Long>(startTxnId, endTxnId));
+                }
+            } finally {
+                if (scanner != null)
+                    scanner.close();
             }
-        } finally {
-            if (scanner != null)
-                scanner.close();
         }
     }
 
@@ -99,12 +102,11 @@ public class IgnoreTxnSupplier {
     }
 
     private void init() throws IOException {
-        PartitionAdmin admin = partitionFactory.getAdmin();
-        ignoreTxnTableExists = admin.tableExists(HBaseConfiguration.IGNORE_TXN_TABLE_NAME);
-        if (ignoreTxnTableExists && cache.isEmpty()) {
+        if (!initialized) {
             synchronized (this) {
-                if (cache.isEmpty()) {
+                if (!initialized) {
                     populateIgnoreTxnCache();
+                    initialized = true;
                 }
             }
         }
