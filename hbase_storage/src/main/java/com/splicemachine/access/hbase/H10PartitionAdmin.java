@@ -114,7 +114,7 @@ public class H10PartitionAdmin implements PartitionAdmin{
             }
         }
         catch (Exception e) {
-            throw new IOException(e.getCause());
+            throw new IOException(e);
         }
     }
 
@@ -152,6 +152,8 @@ public class H10PartitionAdmin implements PartitionAdmin{
                     lastActivation.addWarning(warning);
                     return;
                 }
+                else
+                    throw e;
             }
         }
 
@@ -298,5 +300,12 @@ public class H10PartitionAdmin implements PartitionAdmin{
         String regionName = partition.getName();
         admin.assign(regionName.getBytes());
         HBaseFsckRepair.waitUntilAssigned(admin, ((RangedClientPartition)partition).getRegionInfo());
+
+    }
+
+    @Override
+    public boolean tableExists(String tableName) throws IOException
+    {
+        return admin.tableExists(tableInfoFactory.getTableInfo(tableName));
     }
 }

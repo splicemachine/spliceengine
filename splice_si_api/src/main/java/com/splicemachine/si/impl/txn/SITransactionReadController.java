@@ -23,6 +23,7 @@ import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.SimpleTxnFilter;
 import com.splicemachine.si.impl.filter.HRowAccumulator;
 import com.splicemachine.si.impl.filter.PackedTxnFilter;
+import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
 import com.splicemachine.storage.DataGet;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.storage.EntryDecoder;

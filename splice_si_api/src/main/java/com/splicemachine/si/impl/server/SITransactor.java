@@ -34,6 +34,7 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.ConflictResults;
 import com.splicemachine.si.impl.SimpleTxnFilter;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
+import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.Pair;
@@ -61,7 +62,6 @@ public class SITransactor implements Transactor{
 
     private final TxnOperationFactory txnOperationFactory;
     private final TxnSupplier txnSupplier;
-
     public SITransactor(TxnSupplier txnSupplier,
                         TxnOperationFactory txnOperationFactory,
                         OperationFactory opFactory,
