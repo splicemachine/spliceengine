@@ -71,39 +71,7 @@ public class OlapServerMaster implements Watcher {
     }
 
     private void run() throws Exception {
-        String principal = System.getProperty("splice.spark.yarn.principal");
-        String keytab = System.getProperty("splice.spark.yarn.keytab");
 
-        UserGroupInformation ugi = null;
-
-        if (principal != null) {
-            if (!keytab.isEmpty()) {
-                try {
-                    ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab);
-                } catch (IOException e) {
-                    LOG.error("Error while authenticating user " + principal + " with keytab " + keytab, e);
-                    throw new RuntimeException(e);
-                }
-            } else {
-                ugi = UserGroupInformation.createRemoteUser(principal);
-            }
-        }
-
-
-        if (ugi != null) {
-            UserGroupInformation.setLoginUser(ugi);
-            ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
-                submitSparkApplication();
-                return null;
-            });
-        } else {
-            submitSparkApplication();
-        }
-
-        System.exit(0);
-    }
-
-    private void submitSparkApplication() throws IOException, InterruptedException, KeeperException, org.apache.hadoop.yarn.exceptions.YarnException {
         // Initialize clients to ResourceManager and NodeManagers
         Configuration conf = HConfiguration.unwrapDelegate();
 
@@ -144,14 +112,62 @@ public class OlapServerMaster implements Watcher {
         // Register with ResourceManager
         rmClient.registerApplicationMaster(Utils.localHostName(), 0, "");
 
+        LOG.info("Registered with Resource Manager");
+
+        String principal = System.getProperty("splice.spark.yarn.principal");
+        String keytab = System.getProperty("splice.spark.yarn.keytab");
+
+        UserGroupInformation ugi = null;
+
+        if (principal != null) {
+            if (!keytab.isEmpty()) {
+                try {
+                    LOG.info("Login with principal and keytab");
+                    ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab);
+                } catch (IOException e) {
+                    LOG.error("Error while authenticating user " + principal + " with keytab " + keytab, e);
+                    throw new RuntimeException(e);
+                }
+            } else {
+                LOG.info("Login with principal ");
+                ugi = UserGroupInformation.createRemoteUser(principal);
+            }
+        }
+
+        if (ugi != null) {
+            UserGroupInformation.setLoginUser(ugi);
+            ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
+                try {
+                    submitSparkApplication(conf);
+                } catch (Exception e) {
+                    LOG.error("Unexpected exception when submitting Spark application with authentication", e);
+                    throw e;
+                }
+                return null;
+            });
+        } else {
+            submitSparkApplication(conf);
+        }
+
+        rmClient.unregisterApplicationMaster(
+                FinalApplicationStatus.SUCCEEDED, "", "");
+        rmClient.stop();
+        
+        System.exit(0);
+    }
+
+    private void submitSparkApplication(Configuration conf) throws IOException, InterruptedException, KeeperException, org.apache.hadoop.yarn.exceptions.YarnException {
         rzk = ZKUtil.connect(conf, null);
 
         HBaseSIEnvironment env=HBaseSIEnvironment.loadEnvironment(new SystemClock(),rzk);
 
         SpliceSpark.setupSpliceStaticComponents();
 
+        LOG.info("Spark static components loaded");
+
         OlapServer server = new OlapServer(0, env.systemClock());
         server.startServer(env.configuration());
+        LOG.info("OlapServer started");
 
         int port = server.getBoundPort();
         String hostname = NetworkUtils.getHostname(HConfiguration.getConfiguration());
@@ -162,9 +178,6 @@ public class OlapServerMaster implements Watcher {
             Thread.sleep(1000);
         }
 
-        rmClient.unregisterApplicationMaster(
-                FinalApplicationStatus.SUCCEEDED, "", "");
-        rmClient.stop();
     }
 
     private void publishServer(RecoverableZooKeeper rzk, ServerName serverName, String hostname, int port) throws InterruptedException, KeeperException {

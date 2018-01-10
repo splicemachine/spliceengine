@@ -105,7 +105,8 @@ public class OlapServerSubmitter implements Runnable {
 
                 // Submit application
                 ApplicationId appId = appContext.getApplicationId();
-                System.out.println("Submitting application " + appId);
+                LOG.info("Submitting YARN application " + appId);
+
                 yarnClient.submitApplication(appContext);
                 Object hookReference = ShutdownHookManager.addShutdownHook(0, new AbstractFunction0<BoxedUnit>() {
                     @Override
