@@ -64,4 +64,6 @@ public interface PartitionAdmin extends AutoCloseable{
     void closeRegion(Partition partition) throws IOException, InterruptedException;
 
     void assign(Partition partition) throws IOException, InterruptedException;
+
+    boolean tableExists(String tableName) throws IOException;
 }
