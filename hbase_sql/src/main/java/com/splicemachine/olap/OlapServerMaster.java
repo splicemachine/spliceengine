@@ -91,6 +91,7 @@ public class OlapServerMaster implements Watcher {
 
 
         if (ugi != null) {
+            UserGroupInformation.setLoginUser(ugi);
             ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
                 submitSparkApplication();
                 return null;
