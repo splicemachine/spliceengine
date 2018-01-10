@@ -25,6 +25,7 @@ import com.splicemachine.access.util.ByteComparisons;
 import com.splicemachine.hbase.ZkServiceDiscovery;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.si.api.server.ClusterHealth;
+import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
 import com.splicemachine.storage.HClusterHealthFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -74,6 +75,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
     private final PartitionFactory<TableName> partitionFactory;
     private final TxnStore txnStore;
     private final TxnSupplier txnSupplier;
+    private final IgnoreTxnSupplier ignoreTxnSupplier;
     private final TxnOperationFactory txnOpFactory;
     private final PartitionInfoCache partitionCache;
     private final KeepAliveScheduler keepAlive;
@@ -117,6 +119,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
         this.txnStore.setCache(txnSupplier);
         this.opFactory =HOperationFactory.INSTANCE;
         this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory(),opFactory);
+        this.ignoreTxnSupplier = new IgnoreTxnSupplier(partitionFactory, txnOpFactory);
         this.clock = clock;
         this.snowflakeFactory = new HSnowflakeFactory();
         this.fileSystem =new HNIOFileSystem(FileSystem.get((Configuration) config.getConfigSource().unwrapDelegate()), exceptionFactory());
@@ -148,7 +151,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
         this.fileSystem =new HNIOFileSystem(FileSystem.get((Configuration) config.getConfigSource().unwrapDelegate()), exceptionFactory());
         this.snowflakeFactory = new HSnowflakeFactory();
         this.clusterHealthFactory = new HClusterHealthFactory(rzk);
-
+        this.ignoreTxnSupplier = new IgnoreTxnSupplier(partitionFactory, txnOpFactory);
 
         this.keepAlive = new QueuedKeepAliveScheduler(config.getTransactionKeepAliveInterval(),
                 config.getTransactionTimeout(),
@@ -178,6 +181,11 @@ public class HBaseSIEnvironment implements SIEnvironment{
     @Override
     public TxnSupplier txnSupplier(){
         return txnSupplier;
+    }
+
+    @Override
+    public IgnoreTxnSupplier ignoreTxnSupplier(){
+        return ignoreTxnSupplier;
     }
 
     @Override
