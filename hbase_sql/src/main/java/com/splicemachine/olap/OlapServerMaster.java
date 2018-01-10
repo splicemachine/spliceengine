@@ -27,6 +27,7 @@ import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
@@ -41,6 +42,8 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 
+import java.io.IOException;
+import java.security.PrivilegedExceptionAction;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -68,8 +71,38 @@ public class OlapServerMaster implements Watcher {
     }
 
     private void run() throws Exception {
-        final AtomicBoolean end = new AtomicBoolean(false);
+        String principal = System.getProperty("splice.spark.yarn.principal");
+        String keytab = System.getProperty("splice.spark.yarn.keytab");
 
+        UserGroupInformation ugi = null;
+
+        if (principal != null) {
+            if (!keytab.isEmpty()) {
+                try {
+                    ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab);
+                } catch (IOException e) {
+                    LOG.error("Error while authenticating user " + principal + " with keytab " + keytab, e);
+                    throw new RuntimeException(e);
+                }
+            } else {
+                ugi = UserGroupInformation.createRemoteUser(principal);
+            }
+        }
+
+
+        if (ugi != null) {
+            ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
+                submitSparkApplication();
+                return null;
+            });
+        } else {
+            submitSparkApplication();
+        }
+
+        System.exit(0);
+    }
+
+    private void submitSparkApplication() throws IOException, InterruptedException, KeeperException, org.apache.hadoop.yarn.exceptions.YarnException {
         // Initialize clients to ResourceManager and NodeManagers
         Configuration conf = HConfiguration.unwrapDelegate();
 
@@ -131,8 +164,6 @@ public class OlapServerMaster implements Watcher {
         rmClient.unregisterApplicationMaster(
                 FinalApplicationStatus.SUCCEEDED, "", "");
         rmClient.stop();
-
-        System.exit(0);
     }
 
     private void publishServer(RecoverableZooKeeper rzk, ServerName serverName, String hostname, int port) throws InterruptedException, KeeperException {
