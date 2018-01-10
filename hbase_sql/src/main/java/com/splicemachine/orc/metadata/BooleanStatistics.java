@@ -28,15 +28,18 @@ public class BooleanStatistics {
     }
 
     public static ColumnStatistics getPartitionColumnStatistics(String value) throws IOException {
-        try {
-            SQLBoolean sqlBoolean = new SQLBoolean();
-            sqlBoolean.setValue(value);
-            BooleanStatistics booleanStatistics = new BooleanStatistics(sqlBoolean.getBoolean()? SpliceOrcNewInputFormat.DEFAULT_PARTITION_SIZE:0l);
-            return new ColumnStatistics(SpliceOrcNewInputFormat.DEFAULT_PARTITION_SIZE,booleanStatistics,null,null,null,null,null,null);
-        } catch (StandardException se) {
-            throw new IOException(se);
-        }
+        BooleanStatistics booleanStatistics = null;
+        if(value != null) {
+            try {
+                SQLBoolean sqlBoolean = new SQLBoolean();
+                sqlBoolean.setValue(value);
+                booleanStatistics = new BooleanStatistics(sqlBoolean.getBoolean()? SpliceOrcNewInputFormat.DEFAULT_PARTITION_SIZE:0l);
+            } catch (StandardException se) {
+                throw new IOException(se);
+            }
 
+        }
+        return new ColumnStatistics(SpliceOrcNewInputFormat.DEFAULT_PARTITION_SIZE,booleanStatistics,null,null,null,null,null,null);
     }
 
     public long getTrueValueCount()

@@ -54,9 +54,12 @@ public class DecimalStatistics
     }
 
     public static ColumnStatistics getPartitionColumnStatistics(String value) throws IOException {
-        BigDecimal bigDecimal = BigDecimal.valueOf(Double.parseDouble(value));
-        DecimalStatistics decimalStatistics = new DecimalStatistics(bigDecimal,
-                bigDecimal);
+        DecimalStatistics decimalStatistics = null;
+        if(value != null) {
+            BigDecimal bigDecimal = BigDecimal.valueOf(Double.parseDouble(value));
+            decimalStatistics = new DecimalStatistics(bigDecimal,
+                    bigDecimal);
+        }
         return new ColumnStatistics(SpliceOrcNewInputFormat.DEFAULT_PARTITION_SIZE,
                 null,null,null,null,null,decimalStatistics,null);
     }
