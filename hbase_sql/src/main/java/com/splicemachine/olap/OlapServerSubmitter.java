@@ -18,7 +18,6 @@ package com.splicemachine.olap;
 import com.splicemachine.access.HConfiguration;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.util.StringUtils;
@@ -34,13 +33,11 @@ import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.log4j.Logger;
-import org.apache.spark.deploy.yarn.YarnSparkHadoopUtil;
 import org.apache.spark.util.ShutdownHookManager;
 import scala.runtime.AbstractFunction0;
 import scala.runtime.BoxedUnit;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -297,7 +294,7 @@ public class OlapServerSubmitter implements Runnable {
     }
 
     private String expandEnvironment(ApplicationConstants.Environment pwd) {
-        return YarnSparkHadoopUtil.expandEnvironment(pwd);
+        return pwd.$$();
     }
 
     private void addPathToEnvironment(Map<String, String> env, String key, String value) {
