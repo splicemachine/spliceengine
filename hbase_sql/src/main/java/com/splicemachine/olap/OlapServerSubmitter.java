@@ -251,6 +251,18 @@ public class OlapServerSubmitter implements Runnable {
 
     private void setupAppMasterEnv(Map<String, String> appMasterEnv, Configuration conf) {
 
+        String sparkJars = System.getProperty("splice.spark.yarn.jars");
+        if (sparkJars != null) {
+            addPathToEnvironment(appMasterEnv,
+                    ApplicationConstants.Environment.CLASSPATH.name(), sparkJars);
+        }
+
+        String classpath = System.getProperty("splice.olapServer.classpath");
+        if (classpath != null) {
+            addPathToEnvironment(appMasterEnv,
+                    ApplicationConstants.Environment.CLASSPATH.name(), classpath);
+        }
+
         addPathToEnvironment(appMasterEnv,
                 ApplicationConstants.Environment.CLASSPATH.name(),
                 ApplicationConstants.Environment.PWD.$() + File.separator + "*");
@@ -269,14 +281,8 @@ public class OlapServerSubmitter implements Runnable {
                     ApplicationConstants.Environment.CLASSPATH.name(), path.trim());
         }
 
-        LOG.warn("CLASSPATH: + " + appMasterEnv.get(ApplicationConstants.Environment.CLASSPATH.name()));
-        
-        String classpath = System.getProperty("splice.olapServer.classpath");
-        if (classpath != null) {
-            addPathToEnvironment(appMasterEnv,
-                    ApplicationConstants.Environment.CLASSPATH.name(), classpath);
-        }
-        LOG.warn("CLASSPATH: + " + appMasterEnv.get(ApplicationConstants.Environment.CLASSPATH.name()));
+        LOG.debug("CLASSPATH: + " + appMasterEnv.get(ApplicationConstants.Environment.CLASSPATH.name()));
+
     }
     
     public String[] getYarnAppClasspath(Configuration conf ) {
