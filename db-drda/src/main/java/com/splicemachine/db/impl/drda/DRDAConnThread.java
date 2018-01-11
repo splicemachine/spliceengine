@@ -996,6 +996,12 @@ class DRDAConnThread extends Thread {
 						writeENDUOWRM(COMMIT);
 						writeSQLCARDs(e, 0);
 						errorInChain(e);
+						try {
+							// since we couldn't commit, try to rollback, but ignore any failures
+							database.rollback();
+						} catch (Exception e1) {
+							// ignore
+						}
 					}
 					break;
 				case CodePoint.RDBRLLBCK:
