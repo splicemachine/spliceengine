@@ -287,8 +287,8 @@ public class SpliceSpark {
                 conf.set("spark.yarn.keytab", HConfiguration.unwrapDelegate().get("hbase.regionserver.keytab.file"));
             }
         }
-        String user = System.getProperty("splice.spark.user");
-        String keytab = conf.get("spark.yarn.keytab", "");
+        String user = System.getProperty("splice.spark.yarn.principal");
+        String keytab = System.getProperty("splice.spark.yarn.keytab");
 
         // set all spark props that start with "splice.".  overrides are set below.
         for (Object sysPropertyKey : System.getProperties().keySet()) {
@@ -357,7 +357,7 @@ public class SpliceSpark {
 
         UserGroupInformation ugi = null;
         if (user != null) {
-            if (!keytab.isEmpty()) {
+            if (keytab != null) {
                 try {
                     ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(user, keytab);
                 } catch (IOException e) {

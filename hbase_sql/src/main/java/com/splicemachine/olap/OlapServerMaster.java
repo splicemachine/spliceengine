@@ -120,7 +120,7 @@ public class OlapServerMaster implements Watcher {
         UserGroupInformation ugi = null;
 
         if (principal != null) {
-            if (!keytab.isEmpty()) {
+            if (keytab != null) {
                 try {
                     LOG.info("Login with principal and keytab");
                     ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab);
