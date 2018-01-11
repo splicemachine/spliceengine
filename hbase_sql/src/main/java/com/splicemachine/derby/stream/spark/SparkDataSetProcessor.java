@@ -120,7 +120,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public <V> DataSet<V> singleRowDataSet(V value, Object caller) {
         String scope = StreamUtils.getScopeString(caller);
-        SpliceSpark.pushScope(scope);
+            SpliceSpark.pushScope(scope);
         try {
             JavaRDD rdd1 = SpliceSpark.getContext().parallelize(Collections.singletonList(value), 1);
             rdd1.setName(RDDName.SINGLE_ROW_DATA_SET.displayName());
