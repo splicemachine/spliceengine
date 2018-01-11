@@ -558,6 +558,26 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(disableStatsForColumn);
 
+                    Procedure enableStatsForAllColumns = Procedure.newBuilder().name("ENABLE_ALL_COLUMN_STATISTICS")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .modifiesSql()
+                            .varchar("schema",1024)
+                            .varchar("table",1024)
+                            .ownerClass(StatisticsAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(enableStatsForAllColumns);
+
+                    Procedure disableStatsForAllColumns = Procedure.newBuilder().name("DISABLE_ALL_COLUMN_STATISTICS")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .modifiesSql()
+                            .varchar("schema",1024)
+                            .varchar("table",1024)
+                            .ownerClass(StatisticsAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(disableStatsForAllColumns);
+
         			/*
         			 * Procedure to get the session details
         			 */
