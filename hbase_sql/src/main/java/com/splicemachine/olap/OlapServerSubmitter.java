@@ -16,8 +16,12 @@
 package com.splicemachine.olap;
 
 import com.splicemachine.access.HConfiguration;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.mapreduce.MRJobConfig;
+import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
@@ -27,13 +31,16 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.log4j.Logger;
+import org.apache.spark.deploy.yarn.YarnSparkHadoopUtil;
 import org.apache.spark.util.ShutdownHookManager;
 import scala.runtime.AbstractFunction0;
 import scala.runtime.BoxedUnit;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -74,7 +81,7 @@ public class OlapServerSubmitter implements Runnable {
                 amContainer.setCommands(
                         Collections.singletonList(prepareCommands(
                                 "$JAVA_HOME/bin/java",
-                                        " -Xmx1024M " +
+                                        " -Xmx1024M " + outOfMemoryErrorArgument() + " " +
                                         OlapServerMaster.class.getCanonicalName() +
                                         " " + serverName.toString() +
                                         " 1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stdout" +
@@ -84,7 +91,7 @@ public class OlapServerSubmitter implements Runnable {
 
                 // Setup CLASSPATH for ApplicationMaster
                 Map<String, String> appMasterEnv = new HashMap<String, String>();
-                setupAppMasterEnv(appMasterEnv);
+                setupAppMasterEnv(appMasterEnv, conf);
                 amContainer.setEnvironment(appMasterEnv);
 
 
@@ -151,6 +158,78 @@ public class OlapServerSubmitter implements Runnable {
 
     }
 
+    /**
+     * Kill if OOM is raised - leverage yarn's failure handling to cause rescheduling.
+     * Not killing the task leaves various aspects of the executor and (to some extent) the jvm in
+     * an inconsistent state.
+     * TODO: If the OOM is not recoverable by rescheduling it on different node, then do
+     * 'something' to fail job ... akin to blacklisting trackers in mapred ?
+     *
+     * The handler if an OOM Exception is thrown by the JVM must be configured on Windows
+     * differently: the 'taskkill' command should be used, whereas Unix-based systems use 'kill'.
+     *
+     * As the JVM interprets both %p and %%p as the same, we can use either of them. However,
+     * some tests on Windows computers suggest, that the JVM only accepts '%%p'.
+     *
+     * Furthermore, the behavior of the character '%' on the Windows command line differs from
+     * the behavior of '%' in a .cmd file: it gets interpreted as an incomplete environment
+     * variable. Windows .cmd files escape a '%' by '%%'. Thus, the correct way of writing
+     * '%%p' in an escaped way is '%%%%p'.
+     */
+    private String outOfMemoryErrorArgument() {
+        if (SystemUtils.IS_OS_WINDOWS) {
+            return quoteForBatchScript("-XX:OnOutOfMemoryError=taskkill /F /PID %%%%p");
+        } else {
+            return "-XX:OnOutOfMemoryError='kill %p'";
+        }
+    }
+
+    /**
+     * Quote a command argument for a command to be run by a Windows batch script, if the argument
+     * needs quoting. Arguments only seem to need quotes in batch scripts if they have certain
+     * special characters, some of which need extra (and different) escaping.
+     *
+     *  For example:
+     *    original single argument: ab="cde fgh"
+     *    quoted: "ab^=""cde fgh"""
+     *
+     * Copied from Spark's CommandBuilderUtils
+     */
+    static String quoteForBatchScript(String arg) {
+
+        boolean needsQuotes = false;
+        for (int i = 0; i < arg.length(); i++) {
+            int c = arg.codePointAt(i);
+            if (Character.isWhitespace(c) || c == '"' || c == '=' || c == ',' || c == ';') {
+                needsQuotes = true;
+                break;
+            }
+        }
+        if (!needsQuotes) {
+            return arg;
+        }
+        StringBuilder quoted = new StringBuilder();
+        quoted.append("\"");
+        for (int i = 0; i < arg.length(); i++) {
+            int cp = arg.codePointAt(i);
+            switch (cp) {
+                case '"':
+                    quoted.append('"');
+                    break;
+
+                default:
+                    break;
+            }
+            quoted.appendCodePoint(cp);
+        }
+        if (arg.codePointAt(arg.length() - 1) == '\\') {
+            quoted.append("\\");
+        }
+        quoted.append("\"");
+        return quoted.toString();
+    }
+
+
     private String prepareCommands(String exec, String parameters) {
         StringBuilder result = new StringBuilder();
         result.append(exec);
@@ -173,17 +252,52 @@ public class OlapServerSubmitter implements Runnable {
         return result.toString();
     }
 
-    private void setupAppMasterEnv(Map<String, String> appMasterEnv) {
+    private void setupAppMasterEnv(Map<String, String> appMasterEnv, Configuration conf) {
+
+        addPathToEnvironment(appMasterEnv,
+                ApplicationConstants.Environment.CLASSPATH.name(),
+                ApplicationConstants.Environment.PWD.$() + File.separator + "*");
+        addPathToEnvironment(appMasterEnv,
+                ApplicationConstants.Environment.CLASSPATH.name(), System.getProperty("splice.spark.executor.extraClassPath"));
+
+        addPathToEnvironment(appMasterEnv,
+                ApplicationConstants.Environment.CLASSPATH.name(), expandEnvironment(ApplicationConstants.Environment.PWD));
+
+        for (String path : getYarnAppClasspath(conf)) {
+            addPathToEnvironment(appMasterEnv,
+                    ApplicationConstants.Environment.CLASSPATH.name(), path.trim());
+        }
+        for (String path : getMRAppClasspath(conf)) {
+            addPathToEnvironment(appMasterEnv,
+                    ApplicationConstants.Environment.CLASSPATH.name(), path.trim());
+        }
+
+        LOG.warn("CLASSPATH: + " + appMasterEnv.get(ApplicationConstants.Environment.CLASSPATH.name()));
+        
         String classpath = System.getProperty("splice.olapServer.classpath");
-            addPathToEnvironment(appMasterEnv,
-                    ApplicationConstants.Environment.CLASSPATH.name(),
-                    ApplicationConstants.Environment.PWD.$() + File.separator + "*");
-            addPathToEnvironment(appMasterEnv,
-                    ApplicationConstants.Environment.CLASSPATH.name(), System.getProperty("splice.spark.executor.extraClassPath"));
         if (classpath != null) {
             addPathToEnvironment(appMasterEnv,
                     ApplicationConstants.Environment.CLASSPATH.name(), classpath);
         }
+        LOG.warn("CLASSPATH: + " + appMasterEnv.get(ApplicationConstants.Environment.CLASSPATH.name()));
+    }
+    
+    public String[] getYarnAppClasspath(Configuration conf ) {
+        String[] strings = conf.getStrings(YarnConfiguration.YARN_APPLICATION_CLASSPATH);
+        if (strings != null)
+            return strings;
+        return YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH;
+    }
+
+    public String[] getMRAppClasspath(Configuration conf ) {
+        String[] strings = conf.getStrings("mapreduce.application.classpath");
+        if (strings != null)
+            return strings;
+        return StringUtils.getStrings(MRJobConfig.DEFAULT_MAPREDUCE_APPLICATION_CLASSPATH);
+    }
+
+    private String expandEnvironment(ApplicationConstants.Environment pwd) {
+        return YarnSparkHadoopUtil.expandEnvironment(pwd);
     }
 
     private void addPathToEnvironment(Map<String, String> env, String key, String value) {
