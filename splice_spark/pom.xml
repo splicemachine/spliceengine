@@ -145,6 +145,10 @@
         <artifactId>hadoop-common</artifactId>
         <version>${hadoop.version}</version>
         <exclusions>
+                <exclusion>
+                    <groupId>javax.servlet</groupId>
+                    <artifactId>servlet-api</artifactId>
+                </exclusion>
             <exclusion>
                 <groupId>asm</groupId>
                 <artifactId>asm</artifactId>
