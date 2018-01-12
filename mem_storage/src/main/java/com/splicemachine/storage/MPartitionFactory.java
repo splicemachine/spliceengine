@@ -189,5 +189,10 @@ public class MPartitionFactory implements PartitionFactory<Object>{
 
         @Override
         public void assign(Partition partition) throws IOException, InterruptedException {}
+
+        @Override
+        public boolean tableExists(String tableName) throws IOException {
+            return partitionMap.containsKey(tableName);
+        }
     }
 }

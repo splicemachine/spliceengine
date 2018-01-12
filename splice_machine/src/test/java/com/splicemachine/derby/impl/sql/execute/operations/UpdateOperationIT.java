@@ -91,6 +91,19 @@ public class UpdateOperationIT {
                 .withRows(rows(row(null, 0), row(true, 1), row(false, 2)))
                 .create();
 
+        new TableCreator(connection)
+                .withCreate("create table t1 (a1 int, b1 int default 5, c1 int, d1 varchar(20) default 'NNN', e1 varchar(20))")
+                .withIndex("create index T1_IX_C1 on t1 (c1)")
+                .withInsert("INSERT INTO T1 VALUES(?,?,?,?,?)")
+                .withRows(rows(row(8, 8, 8, "GGG", "GGG"), row(10, 10, 10, "III", "III"), row(3,3,3,"AAA", "AAA")))
+                .create();
+
+        new TableCreator(connection)
+                .withCreate("create table t2 (a2 int, b2 int, c2 char(3))")
+                .withInsert("INSERT INTO T2 VALUES(?,?,?)")
+                .withRows(rows(row(8, 1000, "GGG"), row(10, 1000, "III")))
+                .create();
+
         try(CallableStatement cs = connection.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,false)")){
             cs.setString(1,SCHEMA);
             cs.execute();
@@ -504,6 +517,114 @@ public class UpdateOperationIT {
                 "set c=false where c=true";
         int n = methodWatcher.executeUpdate(sql);
         Assert.assertEquals("Incorrect number of rows updated", 1, n);
+    }
+
+    @Test
+    public void testUpdateUsindIndexLookupViaControl() throws Exception {
+        TestConnection conn = methodWatcher.getOrCreateConnection();
+        conn.setAutoCommit(false);
+
+        try {
+            try (Statement s = conn.createStatement()) {
+            /* check original table content */
+                String expected = "A1 |B1 |C1 |D1  |E1  |\n" +
+                        "----------------------\n" +
+                        "10 |10 |10 |III |III |\n" +
+                        " 3 | 3 | 3 |AAA |AAA |\n" +
+                        " 8 | 8 | 8 |GGG |GGG |";
+                ResultSet rs = methodWatcher.executeQuery("select * from t1");
+                assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+                rs.close();
+
+            /* update Q1 -- simple update*/
+                String sql = "update t1 --SPLICE-PROPERTIES index=t1_ix_c1, useSpark=false\n" +
+                        "set b1=100 where c1>5";
+                int n = s.executeUpdate(sql);
+                Assert.assertEquals("Incorrect number of rows updated", 2, n);
+
+                expected = "A1 |B1  |C1 |D1  |E1  |\n" +
+                        "-----------------------\n" +
+                        "10 |100 |10 |III |III |\n" +
+                        " 3 | 3  | 3 |AAA |AAA |\n" +
+                        " 8 |100 | 8 |GGG |GGG |";
+                rs = methodWatcher.executeQuery("select * from t1");
+                assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+                rs.close();
+
+            /* update Q2 -- update with SSQ */
+                sql = "update t1 --splice-properties index=t1_ix_c1, useSpark=false\n" +
+                        "set b1 = (select b2*10 from t2 where a1=a2)" +
+                        "where c1>5";
+                n = s.executeUpdate(sql);
+                Assert.assertEquals("Incorrect number of rows updated", 2, n);
+
+                expected = "A1 | B1   |C1 |D1  |E1  |\n" +
+                        "-------------------------\n" +
+                        "10 |10000 |10 |III |III |\n" +
+                        " 3 |  3   | 3 |AAA |AAA |\n" +
+                        " 8 |10000 | 8 |GGG |GGG |";
+                rs = methodWatcher.executeQuery("select * from t1");
+                assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+                rs.close();
+            }
+        } finally {
+            // roll back the update
+            conn.rollback();
+        }
+    }
+
+    @Test
+    public void testUpdateUsindIndexLookupViaSpark() throws Exception {
+        TestConnection conn = methodWatcher.getOrCreateConnection();
+        conn.setAutoCommit(false);
+
+        try {
+            try (Statement s = conn.createStatement()) {
+            /* check original table content */
+                String expected = "A1 |B1 |C1 |D1  |E1  |\n" +
+                        "----------------------\n" +
+                        "10 |10 |10 |III |III |\n" +
+                        " 3 | 3 | 3 |AAA |AAA |\n" +
+                        " 8 | 8 | 8 |GGG |GGG |";
+                ResultSet rs = methodWatcher.executeQuery("select * from t1");
+                assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+                rs.close();
+
+            /* update Q1 -- simple update*/
+                String sql = "update t1 --SPLICE-PROPERTIES index=t1_ix_c1, useSpark=true\n" +
+                        "set b1=100 where c1>5";
+                int n = s.executeUpdate(sql);
+                Assert.assertEquals("Incorrect number of rows updated", 2, n);
+
+                expected = "A1 |B1  |C1 |D1  |E1  |\n" +
+                        "-----------------------\n" +
+                        "10 |100 |10 |III |III |\n" +
+                        " 3 | 3  | 3 |AAA |AAA |\n" +
+                        " 8 |100 | 8 |GGG |GGG |";
+                rs = methodWatcher.executeQuery("select * from t1");
+                assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+                rs.close();
+
+            /* update Q2 -- update with SSQ */
+                sql = "update t1 --splice-properties index=t1_ix_c1, useSpark=true\n" +
+                        "set b1 = (select b2*10 from t2 where a1=a2)" +
+                        "where c1>5";
+                n = s.executeUpdate(sql);
+                Assert.assertEquals("Incorrect number of rows updated", 2, n);
+
+                expected = "A1 | B1   |C1 |D1  |E1  |\n" +
+                        "-------------------------\n" +
+                        "10 |10000 |10 |III |III |\n" +
+                        " 3 |  3   | 3 |AAA |AAA |\n" +
+                        " 8 |10000 | 8 |GGG |GGG |";
+                rs = methodWatcher.executeQuery("select * from t1");
+                assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+                rs.close();
+            }
+        } finally {
+            // roll back the update
+            conn.rollback();
+        }
     }
 
     // Used by previous tests (testUpdateMultiColumnOneSub*)

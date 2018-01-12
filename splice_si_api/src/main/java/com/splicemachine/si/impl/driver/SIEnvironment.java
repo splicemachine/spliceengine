@@ -26,6 +26,7 @@ import com.splicemachine.si.api.server.ClusterHealth;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
+import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
 import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
@@ -51,6 +52,8 @@ public interface SIEnvironment{
     TimestampSource timestampSource();
 
     TxnSupplier txnSupplier();
+
+    IgnoreTxnSupplier ignoreTxnSupplier();
 
     RollForward rollForward();
 

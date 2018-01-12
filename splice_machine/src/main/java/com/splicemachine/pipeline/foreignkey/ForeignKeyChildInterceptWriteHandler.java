@@ -114,11 +114,25 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
             SimpleTxnFilter readUncommittedFilter;
             SimpleTxnFilter readCommittedFilter;
             if (ctx.getTxn() instanceof ActiveWriteTxn) {
-                readUncommittedFilter = new SimpleTxnFilter(Long.toString(referencedConglomerateNumber), ((ActiveWriteTxn) ctx.getTxn()).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
-                readCommittedFilter = new SimpleTxnFilter(Long.toString(referencedConglomerateNumber), ((ActiveWriteTxn) ctx.getTxn()).getReadCommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
+                readUncommittedFilter = new SimpleTxnFilter(Long.toString(referencedConglomerateNumber),
+                        ((ActiveWriteTxn) ctx.getTxn()).getReadUncommittedActiveTxn(),
+                        NoOpReadResolver.INSTANCE,
+                        SIDriver.driver().getTxnStore());
+
+                readCommittedFilter = new SimpleTxnFilter(Long.toString(referencedConglomerateNumber),
+                        ((ActiveWriteTxn) ctx.getTxn()).getReadCommittedActiveTxn(),
+                        NoOpReadResolver.INSTANCE,
+                        SIDriver.driver().getTxnStore());
             }else if (ctx.getTxn() instanceof WritableTxn) {
-                readUncommittedFilter = new SimpleTxnFilter(Long.toString(referencedConglomerateNumber), ((WritableTxn) ctx.getTxn()).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
-                readCommittedFilter = new SimpleTxnFilter(Long.toString(referencedConglomerateNumber), ((WritableTxn) ctx.getTxn()).getReadCommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
+                readUncommittedFilter = new SimpleTxnFilter(Long.toString(referencedConglomerateNumber),
+                        ((WritableTxn) ctx.getTxn()).getReadUncommittedActiveTxn(),
+                        NoOpReadResolver.INSTANCE,
+                        SIDriver.driver().getTxnStore());
+
+                readCommittedFilter = new SimpleTxnFilter(Long.toString(referencedConglomerateNumber),
+                        ((WritableTxn) ctx.getTxn()).getReadCommittedActiveTxn(),
+                        NoOpReadResolver.INSTANCE,
+                        SIDriver.driver().getTxnStore());
             }else
                 throw new IOException("invalidTxn");
 

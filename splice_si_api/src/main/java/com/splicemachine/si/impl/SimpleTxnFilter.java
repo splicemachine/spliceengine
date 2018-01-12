@@ -20,7 +20,9 @@ import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.readresolve.ReadResolver;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
+import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
 import com.splicemachine.si.impl.txn.CommittedTxn;
 import com.splicemachine.storage.CellType;
 import com.splicemachine.storage.DataCell;
@@ -46,7 +48,6 @@ public class SimpleTxnFilter implements TxnFilter{
     private Long antiTombstonedTxnRow = null;
     private final ByteSlice rowKey=new ByteSlice();
     private final String tableName;
-
     /*
      * The most common case for databases is insert-only--that is, that there
      * are few updates and deletes relative to the number of inserts. As a result,
@@ -189,6 +190,13 @@ public class SimpleTxnFilter implements TxnFilter{
 		 * it matches, then we can see it.
 		 */
         long timestamp=data.version();//dataStore.getOpFactory().getTimestamp(data);
+        SIDriver driver = SIDriver.driver();
+        IgnoreTxnSupplier ignoreTxnSupplier = null;
+        if (driver != null) {
+            ignoreTxnSupplier = driver.getIgnoreTxnSupplier();
+        }
+        if (ignoreTxnSupplier != null && ignoreTxnSupplier.shouldIgnore(timestamp))
+            return DataFilter.ReturnCode.SKIP;
         if(tombstonedTxnRow != null && timestamp<= tombstonedTxnRow)
             return DataFilter.ReturnCode.NEXT_ROW;
 
