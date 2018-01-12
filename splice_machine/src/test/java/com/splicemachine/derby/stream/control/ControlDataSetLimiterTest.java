@@ -232,7 +232,7 @@ public class ControlDataSetLimiterTest {
         ControlExecutionLimiter limiter = new ControlExecutionLimiterImpl(99);
         OperationContext context = Mockito.mock(OperationContext.class, Mockito.RETURNS_DEEP_STUBS);
         Mockito.when(context.getActivation().getLanguageConnectionContext().getControlExecutionLimiter()).thenReturn(limiter);
-        Iterator<ExecRow> it = set1.values().union(set2.values()).distinct(context).toLocalIterator();
+        Iterator<ExecRow> it = set1.values().union(set2.values(), context).distinct(context).toLocalIterator();
         it.next();
     }
 
@@ -243,7 +243,7 @@ public class ControlDataSetLimiterTest {
         ControlExecutionLimiter limiter = new ControlExecutionLimiterImpl(101);
         OperationContext context = Mockito.mock(OperationContext.class, Mockito.RETURNS_DEEP_STUBS);
         Mockito.when(context.getActivation().getLanguageConnectionContext().getControlExecutionLimiter()).thenReturn(limiter);
-        Iterator<ExecRow> it = set1.values().union(set2.values()).distinct(context).toLocalIterator();
+        Iterator<ExecRow> it = set1.values().union(set2.values(), context).distinct(context).toLocalIterator();
         it.next();
     }
 
