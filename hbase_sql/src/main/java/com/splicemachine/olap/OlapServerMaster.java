@@ -169,11 +169,14 @@ public class OlapServerMaster implements Watcher {
         server.startServer(env.configuration());
         LOG.info("OlapServer started");
 
+
         int port = server.getBoundPort();
         String hostname = NetworkUtils.getHostname(HConfiguration.getConfiguration());
 
         publishServer(rzk, serverName, hostname, port);
 
+        SpliceSpark.getContextUnsafe(); // kickstart Spark
+        
         while(!end.get()) {
             Thread.sleep(1000);
         }
