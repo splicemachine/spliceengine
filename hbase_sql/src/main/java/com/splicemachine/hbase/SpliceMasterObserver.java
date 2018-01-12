@@ -201,6 +201,15 @@ public class SpliceMasterObserver extends BaseMasterObserver implements Coproces
     }
 
     @Override
+    public void postStartMaster(ObserverContext<MasterCoprocessorEnvironment> ctx) throws IOException {
+        try {
+            boot();
+        } catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
+        }
+    }
+
+    @Override
     public Service getService() {
         return new MasterService();
     }

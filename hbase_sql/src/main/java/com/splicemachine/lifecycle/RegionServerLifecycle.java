@@ -16,6 +16,7 @@ package com.splicemachine.lifecycle;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
+import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.util.concurrent.TimeUnit;
 
@@ -134,6 +135,8 @@ public class RegionServerLifecycle implements DistributedDerbyStartup{
         if (e instanceof RegionOfflineException)
             return true;
         if (e instanceof MasterNotRunningException)
+            return true;
+        if (e instanceof ConnectException)
             return true;
         if (e instanceof RetriesExhaustedException || e instanceof SocketTimeoutException) {
             if (e.getCause() instanceof RemoteException) {
