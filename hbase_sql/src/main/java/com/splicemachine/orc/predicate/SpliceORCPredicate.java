@@ -41,6 +41,7 @@ import java.util.Map;
  *
  */
 public class SpliceORCPredicate implements OrcPredicate, Externalizable {
+    private static final String HIVE_DEFAULT_PARTITION = "__HIVE_DEFAULT_PARTITION__";
     private Qualifier[][] qualifiers;
     int[] baseColumnMap;
     StructType structType;
@@ -264,23 +265,23 @@ public class SpliceORCPredicate implements OrcPredicate, Externalizable {
 
                 DataType dataType = rowStruct.fields()[j].dataType();
                 if (dataType instanceof BooleanType) {
-                    partitionStatistics.put(storagePos, BooleanStatistics.getPartitionColumnStatistics(values[i]));
+                    partitionStatistics.put(storagePos, BooleanStatistics.getPartitionColumnStatistics(!isDefaultPartition(values[i]) ? values[i] : null));
                 } else if (dataType instanceof DecimalType) {
-                    partitionStatistics.put(storagePos, DecimalStatistics.getPartitionColumnStatistics(values[i]));
+                    partitionStatistics.put(storagePos, DecimalStatistics.getPartitionColumnStatistics(!isDefaultPartition(values[i]) ? values[i] : null));
                 } else if (dataType instanceof StringType) {
-                    partitionStatistics.put(storagePos, StringStatistics.getPartitionColumnStatistics(values[i]));
+                    partitionStatistics.put(storagePos, StringStatistics.getPartitionColumnStatistics(!isDefaultPartition(values[i]) ? values[i] : null));
                 } else if (dataType instanceof DateType) {
-                    partitionStatistics.put(storagePos, DateStatistics.getPartitionColumnStatistics(values[i]));
+                    partitionStatistics.put(storagePos, DateStatistics.getPartitionColumnStatistics(!isDefaultPartition(values[i]) ? values[i] : null));
                 } else if (dataType instanceof IntegerType) {
-                    partitionStatistics.put(storagePos, IntegerStatistics.getPartitionColumnStatistics(values[i]));
+                    partitionStatistics.put(storagePos, IntegerStatistics.getPartitionColumnStatistics(!isDefaultPartition(values[i]) ? values[i] : null));
                 } else if (dataType instanceof LongType) {
-                    partitionStatistics.put(storagePos, IntegerStatistics.getPartitionColumnStatistics(values[i]));
+                    partitionStatistics.put(storagePos, IntegerStatistics.getPartitionColumnStatistics(!isDefaultPartition(values[i]) ? values[i] : null));
                 } else if (dataType instanceof ShortType) {
-                    partitionStatistics.put(storagePos, IntegerStatistics.getPartitionColumnStatistics(values[i]));
+                    partitionStatistics.put(storagePos, IntegerStatistics.getPartitionColumnStatistics(!isDefaultPartition(values[i]) ? values[i] : null));
                 } else if (dataType instanceof DoubleType) {
-                    partitionStatistics.put(storagePos, DoubleStatistics.getPartitionColumnStatistics(values[i]));
+                    partitionStatistics.put(storagePos, DoubleStatistics.getPartitionColumnStatistics(!isDefaultPartition(values[i]) ? values[i] : null));
                 } else if (dataType instanceof FloatType) {
-                    partitionStatistics.put(storagePos, DoubleStatistics.getPartitionColumnStatistics(values[i]));
+                    partitionStatistics.put(storagePos, DoubleStatistics.getPartitionColumnStatistics(!isDefaultPartition(values[i]) ? values[i] : null));
                 } else {
                 }
             }
@@ -290,6 +291,9 @@ public class SpliceORCPredicate implements OrcPredicate, Externalizable {
         }
     }
 
+    public static boolean isDefaultPartition(String value) {
+        return value.equals(HIVE_DEFAULT_PARTITION);
+    }
 
     public StatsEval statsEval(long numberOfRows, ColumnStatistics columnStatistics, DataType dataType) throws StandardException {
         StatsEval statsEval = new StatsEval();

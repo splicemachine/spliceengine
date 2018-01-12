@@ -53,10 +53,13 @@ public class DateStatistics
     }
 
     public static ColumnStatistics getPartitionColumnStatistics(String value) throws IOException {
+        DateStatistics dateStatistics = null;
+        if(value != null) {
             Integer dateInDays = DateWritable.dateToDays(java.sql.Date.valueOf(value));
-            DateStatistics dateStatistics = new DateStatistics(dateInDays, dateInDays);
-            return new ColumnStatistics(SpliceOrcNewInputFormat.DEFAULT_PARTITION_SIZE,
-                    null,null,null,null,dateStatistics,null,null);
+            dateStatistics = new DateStatistics(dateInDays, dateInDays);
+        }
+        return new ColumnStatistics(SpliceOrcNewInputFormat.DEFAULT_PARTITION_SIZE,
+                null,null,null,null,dateStatistics,null,null);
     }
 
 }

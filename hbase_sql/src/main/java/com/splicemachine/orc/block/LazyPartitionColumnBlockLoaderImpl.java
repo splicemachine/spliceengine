@@ -21,6 +21,7 @@ import static java.util.Objects.requireNonNull;
  *
  */
 public class LazyPartitionColumnBlockLoaderImpl implements LazyColumnBlockLoader {
+    private static final String HIVE_DEFAULT_PARTITION = "__HIVE_DEFAULT_PARTITION__";
     private int size;
     private DataType type;
     private String partitionValue;
@@ -40,7 +41,10 @@ public class LazyPartitionColumnBlockLoaderImpl implements LazyColumnBlockLoader
         }
         try {
             columnBlock = BlockFactory.getColumnBlock(null,type);
-            columnBlock.setPartitionValue(partitionValue,size);
+            if(!partitionValue.equals(HIVE_DEFAULT_PARTITION))
+                columnBlock.setPartitionValue(partitionValue,size);
+            else
+                columnBlock.setPartitionNull(size);
             loaded = true;
             return columnBlock;
         }

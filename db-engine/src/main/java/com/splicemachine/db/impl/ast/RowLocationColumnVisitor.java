@@ -76,7 +76,7 @@ public class RowLocationColumnVisitor extends AbstractSpliceVisitor {
 
     private Visitable doVisit(DMLStatementNode dmlNode) throws StandardException {
 
-        // Only continue if the operation is over a sink (e.g. update over merge join)
+        // Only continue if the operation is over a sink (e.g. update over merge join, or any join with index lookup)
         if (!RSUtils.hasSinkingChildren(dmlNode.getResultSetNode())) {
             return dmlNode;
         }
@@ -216,6 +216,9 @@ public class RowLocationColumnVisitor extends AbstractSpliceVisitor {
                 pathToLeaf.add(currentNode);
                 currentNode = getLeftChildNode(currentNode);
             } else if (children.size() == 1) {
+                // treat IndexToBaseRowNode as if it is a leaf node, as it will always be on top of a FromBaseTableNode
+                if (currentNode instanceof IndexToBaseRowNode)
+                    break;
                 pathToLeaf.add(currentNode);
                 currentNode = children.get(0);
             } else {

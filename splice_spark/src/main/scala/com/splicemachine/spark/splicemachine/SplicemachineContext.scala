@@ -22,6 +22,7 @@ import com.splicemachine.db.impl.jdbc.EmbedConnection
 import com.splicemachine.derby.impl.SpliceSpark
 import com.splicemachine.derby.stream.spark.SparkUtils
 import com.splicemachine.derby.vti.SpliceDatasetVTI
+import com.splicemachine.derby.vti.SpliceRDDVTI
 import com.splicemachine.tools.EmbedConnectionMaker
 import org.apache.spark.rdd.RDD
 import org.apache.spark.deploy.SparkHadoopUtil
@@ -44,6 +45,7 @@ import org.apache.spark.broadcast.Broadcast
 import org.apache.hadoop.security.token.Token
 import org.apache.hadoop.hbase.security.token.TokenUtil
 import org.apache.log4j.Logger
+import org.apache.spark.api.java.JavaRDD
 
 object Holder extends Serializable {
   @transient lazy val log = Logger.getLogger(getClass.getName)
@@ -216,6 +218,16 @@ class SplicemachineContext(url: String) extends Serializable {
     internalConnection.createStatement().executeUpdate(sqlText)
   }
 
+  def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = {
+    SpliceRDDVTI.datasetThreadLocal.set(rdd)
+    val columnList = SpliceJDBCUtil.listColumns(schema.fieldNames)
+    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(schema, url)
+    val sqlText = "insert into " + schemaTableName + " (" + columnList + ") select " + columnList + " from " +
+      "new com.splicemachine.derby.vti.SpliceRDDVTI() " +
+      "as SpliceRDDVTI (" + schemaString + ")"
+    internalConnection.createStatement().executeUpdate(sqlText)
+  }
+
   def delete(dataFrame: DataFrame, schemaTableName: String): Unit = {
     val jdbcOptions = new JDBCOptions(Map(
       JDBCOptions.JDBC_URL -> url,
@@ -227,6 +239,24 @@ class SplicemachineContext(url: String) extends Serializable {
     val sqlText = s"delete from $schemaTableName where exists (select 1 from " +
       "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
       s"as SDVTI ($schemaString) where "
+    val dialect = JdbcDialects.get(url)
+    val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
+      " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
+    val combinedText = sqlText + whereClause + ")"
+    internalConnection.createStatement().executeUpdate(combinedText)
+  }
+
+  def delete(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = {
+    val jdbcOptions = new JDBCOptions(Map(
+      JDBCOptions.JDBC_URL -> url,
+      JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
+    SpliceRDDVTI.datasetThreadLocal.set(rdd)
+    val keys = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
+    val columnList = SpliceJDBCUtil.listColumns(schema.fieldNames)
+    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(schema, url)
+    val sqlText = "delete from " + schemaTableName + " where exists (select 1 from " +
+      "new com.splicemachine.derby.vti.SpliceRDDVTI() " +
+      "as SDVTI (" + schemaString + ") where "
     val dialect = JdbcDialects.get(url)
     val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
       " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
@@ -255,6 +285,26 @@ class SplicemachineContext(url: String) extends Serializable {
     internalConnection.createStatement().executeUpdate(combinedText)
   }
 
+  def update(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = {
+    val jdbcOptions = new JDBCOptions(Map(
+      JDBCOptions.JDBC_URL -> url,
+      JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
+    SpliceRDDVTI.datasetThreadLocal.set(rdd)
+    val keys = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
+    val prunedFields = schema.fieldNames.filter((p: String) => keys.indexOf(p) == -1)
+    val columnList = SpliceJDBCUtil.listColumns(prunedFields)
+    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(schema, url)
+    val sqlText = "update " + schemaTableName + " " +
+      "set (" + columnList + ") = (" +
+      "select " + columnList + " from " +
+      "new com.splicemachine.derby.vti.SpliceRDDVTI() " +
+      "as SDVTI (" + schemaString + ") where "
+    val dialect = JdbcDialects.get(url)
+    val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
+      " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
+    val combinedText = sqlText + whereClause + ")"
+    internalConnection.createStatement().executeUpdate(combinedText)
+  }
 
   def bulkImportHFile(dataFrame: DataFrame, schemaTableName: String,
                       options: scala.collection.mutable.Map[String, String]): Unit = {
@@ -274,6 +324,27 @@ class SplicemachineContext(url: String) extends Serializable {
       s"select $columnList from " +
       "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
       s"as SpliceDatasetVTI ($schemaString)"
+    internalConnection.createStatement().executeUpdate(sqlText)
+  }
+
+  def bulkImportHFile(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String,
+                      options: scala.collection.mutable.Map[String, String]): Unit = {
+
+    val bulkImportDirectory = options.get("bulkImportDirectory")
+    if (bulkImportDirectory == null) {
+      throw new IllegalArgumentException("bulkImportDirectory cannot be null")
+    }
+    SpliceRDDVTI.datasetThreadLocal.set(rdd)
+    val columnList = SpliceJDBCUtil.listColumns(schema.fieldNames)
+    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(schema, url)
+    var properties = "--SPLICE-PROPERTIES "
+    options foreach (option => properties += option._1 + "=" + option._2 + ",")
+    properties = properties.substring(0, properties.length - 1)
+
+    val sqlText = "insert into " + schemaTableName + " (" + columnList + ") " + properties + "\n" +
+      "select " + columnList + " from " +
+      "new com.splicemachine.derby.vti.SpliceRDDVTI() " +
+      "as SpliceRDDVTI (" + schemaString + ")"
     internalConnection.createStatement().executeUpdate(sqlText)
   }
 
