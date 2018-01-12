@@ -17,6 +17,8 @@ package com.splicemachine.derby.stream.control;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
 
 import static java.util.Arrays.asList;
@@ -27,19 +29,20 @@ import static java.util.Arrays.asList;
  *
  *
  */
-public class FutureIterator<T> implements Iterator<T> {
+public class FutureIterator<T> implements Iterator<T>, AutoCloseable {
 
-    private List<Future<Iterator<T>>> futureIterators;
-    private Iterator<T> current;
+    private BlockingQueue<Future<Iterator<T>>> futureIterators;
+    private volatile Iterator<T> current;
 
 
-    public FutureIterator() {
-        this.futureIterators = new LinkedList<>();
+    public FutureIterator(int size) {
+        this.futureIterators = new ArrayBlockingQueue<>(size);
     }
 
     @SafeVarargs
     public FutureIterator(Future<Iterator<T>>... futureIterators) {
-        this.futureIterators = new LinkedList<>(asList(futureIterators));
+        this.futureIterators = new ArrayBlockingQueue<>(futureIterators.length);
+        this.futureIterators.addAll(asList(futureIterators));
     }
 
     public void appendFutureIterator(Future<Iterator<T>> iteratorFuture) {
@@ -51,10 +54,11 @@ public class FutureIterator<T> implements Iterator<T> {
         try {
             while (true) {
                 if (current == null) {
-                    if (futureIterators.isEmpty())
+                    Future<Iterator<T>> future = futureIterators.poll();
+                    if (future == null)
                         return false;
                     else
-                        current = futureIterators.remove(0).get();
+                        current = future.get();
                 } else {
                     if (current.hasNext())
                         return true;
@@ -83,6 +87,17 @@ public class FutureIterator<T> implements Iterator<T> {
         return new FutureIterator<>(futureIterators);
     }
 
+    @Override
+    public void close() throws Exception {
+        Future<Iterator<T>> future;
+        while ((future = futureIterators.poll()) != null) {
+            future.get(); // make sure we consume all remaining futures
+        }
+        Iterator it = current;
+        if (it != null) {
+            it.hasNext(); // make sure the current iterator also had a chance to return
+        }
+    }
 }
 
 
