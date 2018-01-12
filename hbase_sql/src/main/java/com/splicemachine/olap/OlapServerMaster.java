@@ -226,9 +226,15 @@ public class OlapServerMaster implements Watcher {
                 } catch (Exception e) {
                     if (tries < 5) {
                         LOG.warn("Unexpected exception when setting watcher, retrying", e);
+                        try {
+                            Thread.sleep(2000);
+                        } catch (InterruptedException e1) {
+                            LOG.error("Interrupted, aborting", e);
+                            end.set(true);
+                        }
                         tries++;
                     } else {
-                        LOG.error("Unexpected exception when setting watcher, retrying", e);
+                        LOG.error("Unexpected exception when setting watcher, aborting", e);
                         end.set(true);
                     }
                 }
