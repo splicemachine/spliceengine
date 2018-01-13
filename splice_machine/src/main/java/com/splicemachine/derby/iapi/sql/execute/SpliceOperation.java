@@ -15,8 +15,10 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
-import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.Expirable;
+import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
@@ -27,7 +29,6 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.api.txn.TxnView;
@@ -35,7 +36,7 @@ import com.splicemachine.si.api.txn.TxnView;
 /**
  * Interface for Parallel Operations in the Splice Machine.
  */
-public interface SpliceOperation extends StandardCloseable, NoPutResultSet, ConvertedResultSet, CursorResultSet {
+public interface SpliceOperation extends StandardCloseable, NoPutResultSet, ConvertedResultSet, CursorResultSet, Expirable {
     /**
      *
      * Retrieve the current Row Location (Cursor Concept) on the operation.
@@ -373,19 +374,19 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
     ExecIndexRow getStartPosition() throws StandardException;
 
     /**
+     * Forcefully close operation and mark it as killed
+     * @throws StandardException
+     * @throws IOException
+     */
+    void kill() throws StandardException;
+    
+    /**
      *
      * Return the VTI file name for this operation.
      *
      * @return
      */
     String getVTIFileName();
-
-    /**
-     * Forcefully close operation and mark it as killed
-     * @throws StandardException
-     * @throws IOException
-     */
-    void kill() throws StandardException;
 
     boolean accessExternalTable();
 }

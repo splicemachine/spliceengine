@@ -29,7 +29,8 @@ import java.util.concurrent.Future;
 /**
  * Stream of data acting on an iterable set of values.
  */
-public interface DataSet<V> extends Iterable<V>, Serializable {
+public interface DataSet<V> extends //Iterable<V>,
+        Serializable {
 
     int partitions();
 
