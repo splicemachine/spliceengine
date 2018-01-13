@@ -63,7 +63,7 @@ public class Exceptions {
 
             ErrorState state = ErrorState.stateFor(e);
 
-            return state.newException(rootCause);
+            return state.newException(e);
         } catch (Throwable t) {
             LOG.error("Unexpected error while parsing exception, root:", e);
             return StandardException.newException(SQLState.ERROR_PARSING_EXCEPTION, e, t.getMessage());
