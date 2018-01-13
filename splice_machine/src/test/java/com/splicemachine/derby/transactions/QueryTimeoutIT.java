@@ -266,7 +266,7 @@ public class QueryTimeoutIT extends SpliceUnitTest {
 
             if (expectTimeout) {
                 // We timed out and caught an exception. Make sure we get the correct exception
-                Assert.assertEquals("Expected a query timeout.", "08006", e.getSQLState());
+                Assert.assertEquals("Expected a query timeout.", "XCL52", e.getSQLState());
 
                 // Make sure the update txn got rolled back
                 rs = classWatcher.executeQuery(sqlText);

@@ -29,6 +29,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -40,8 +41,11 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -106,7 +110,7 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
             });
 
     @Rule
-    public SpliceWatcher methodWatcher = new SpliceWatcher();
+    public SpliceWatcher methodWatcher = new SpliceWatcher(spliceSchemaWatcher.schemaName);
 
 
     @BeforeClass
@@ -167,6 +171,16 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
         testKillOpenCursor(true);
     }
 
+    @Test
+    public void testLongRunningControl() throws Exception {
+        testKillLongRunningQuery(false);
+    }
+
+    @Test
+    public void testLongRunningSpark() throws Exception {
+        testKillLongRunningQuery(true);
+    }
+
     public void testKillOpenCursor(boolean useSpark) throws Exception {
         String sql= "select * from "+bigTableWatcher + " --splice-properties useSpark="+useSpark;
 
@@ -205,6 +219,60 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
         }
     }
 
+
+    public void testKillLongRunningQuery(boolean useSpark) throws Exception {
+        String sql= "select count(*) from TEST_BIG --splice-properties useSpark="+useSpark + "\n" +
+                "natural join TEST_BIG b natural join TEST_BIG c natural join TEST_BIG c natural join TEST_BIG d";
+
+        AtomicReference<Exception> result = new AtomicReference<>();
+
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                PreparedStatement ps = null;
+                try (TestConnection connection = methodWatcher.createConnection()) {
+                    ps = connection.prepareStatement(sql);
+                    ResultSet rs = ps.executeQuery();
+                    assertTrue(rs.next());
+                    while(rs.next()) {
+                    }
+                } catch (Exception e) {
+                    result.set(e);
+                }
+            }
+        });
+        thread.start();
+        
+        // wait for the query to be submitted
+        Thread.sleep(1000);
+
+        String opsCall= "call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS()";
+
+        try (TestConnection connection = methodWatcher.createConnection()) {
+            ResultSet opsRs = connection.query(opsCall);
+
+            int count = 0;
+            String uuid = null;
+            while (opsRs.next()) {
+                count++;
+                if (opsRs.getString(5).equals(sql)) {
+                    uuid = opsRs.getString(1);
+                }
+            }
+            assertEquals(2, count); // 2 running operations, cursor + the procedure call itself
+
+            // kill the cursor
+            String killCall = "call SYSCS_UTIL.SYSCS_KILL_OPERATION('" + uuid + "')";
+            connection.execute(killCall);
+
+            // wait for Thread termination
+            thread.join();
+            assertNotNull(result.get());
+            Exception e = result.get();
+            assertTrue(e instanceof SQLException);
+            assertEquals("SE008", ((SQLException) e).getSQLState());
+        }
+    }
 
     @Test
     public void testOtherUsersCantKillOperation() throws Exception {
@@ -316,14 +384,6 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
         String killCall = "call SYSCS_UTIL.SYSCS_KILL_OPERATION('"+uuid+"')";
         connection2.execute(killCall);
 
-        // try to kill the cursor again (it should fail)
-        try {
-            connection1.execute(killCall);
-            fail("Should have raised exception");
-        } catch (SQLException se) {
-            assertEquals("4251P", se.getSQLState());
-        }
-
         // iterate over the cursor, should raise exception
         int rows = 0;
         try {
@@ -335,6 +395,15 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
             LOG.debug("Raised exception after " + rows + " rows.");
             assertEquals("SE008", se.getSQLState());
         }
+
+        // try to kill the cursor again (it should fail)
+        try {
+            connection1.execute(killCall);
+            fail("Should have raised exception");
+        } catch (SQLException se) {
+            assertEquals("4251P", se.getSQLState());
+        }
+
     }
 
     @Test

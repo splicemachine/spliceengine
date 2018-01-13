@@ -625,11 +625,6 @@ public class SparkDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public Iterator<V> iterator() {
-        return toLocalIterator();
-    }
-
-    @Override
     public void setAttribute(String name, String value) {
         if (attributes == null)
             attributes = new HashMap<>();
