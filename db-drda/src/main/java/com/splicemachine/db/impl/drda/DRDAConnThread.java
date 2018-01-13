@@ -48,6 +48,7 @@ import java.util.Date;
 import java.util.Properties;
 import java.util.TimeZone;
 import java.util.Vector;
+import java.text.SimpleDateFormat;
 
 import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -205,6 +206,10 @@ class DRDAConnThread extends Thread {
     private static final byte[] nullSQLState = { ' ', ' ', ' ', ' ', ' ' };
     private static final byte[] errD4_D6 = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }; // 12x0 
     private static final byte[] warn0_warnA = { ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ' };  // 11x ' '
+
+
+	// SPLICE-1998 Make splice log time stamp be compliant with Hadoop ISO8601
+	private String timeStampFormat = "yyyy-MM-dd HH:mm:ss,SSS";
 
     private final static String AUTHENTICATION_PROVIDER_BUILTIN_CLASS =
     "com.splicemachine.db.impl.jdbc.authentication.BasicAuthenticationServiceImpl";
@@ -8436,7 +8441,7 @@ class DRDAConnThread extends Thread {
      * @throws DRDAProtocolException
      */
     private void invalidClient(String prdid) throws DRDAProtocolException {
-        Monitor.logMessage(new Date()
+        Monitor.logMessage(new SimpleDateFormat(timeStampFormat).format(new Date())
                 + " : "
                 + server.localizeMessage("DRDA_InvalidClient.S",
                         new String[] { prdid }));
