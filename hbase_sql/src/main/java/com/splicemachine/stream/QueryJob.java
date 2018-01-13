@@ -19,6 +19,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
+import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.function.CloneFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -59,6 +60,7 @@ public class QueryJob implements Callable<Void>{
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
         DataSet<ExecRow> dataset;
         OperationContext<SpliceOperation> context;
+        String jobName = null;
         try {
             ah.reinitialize(null);
             Activation activation = ah.getActivation();
@@ -66,11 +68,11 @@ public class QueryJob implements Callable<Void>{
             if (!(activation.isMaterialized()))
                 activation.materialize();
             long txnId = root.getCurrentTransaction().getTxnId();
-
             String sql = queryRequest.sql;
             String session = queryRequest.session;
             String userId = queryRequest.userId;
-            String jobName = userId + " <" + session + "," + txnId + ">";
+            jobName = userId + " <" + session + "," + txnId + ">";
+
             dsp.setJobGroup(jobName, sql);
             dsp.clearBroadcastedOperation();
             dataset = root.getDataSet(dsp);
@@ -83,9 +85,14 @@ public class QueryJob implements Callable<Void>{
 
             StreamableRDD streamableRDD = new StreamableRDD<>(sparkDataSet.rdd, context, uuid, clientHost, clientPort,
                     queryRequest.streamingBatches, queryRequest.streamingBatchSize);
+            streamableRDD.setJobStatus(status);
             streamableRDD.submit();
 
             status.markCompleted(new QueryResult(numPartitions));
+        } catch (CancellationException e) {
+            if (jobName != null)
+                SpliceSpark.getContext().sc().cancelJobGroup(jobName);
+            throw e;
         } finally {
             ah.close();
         }

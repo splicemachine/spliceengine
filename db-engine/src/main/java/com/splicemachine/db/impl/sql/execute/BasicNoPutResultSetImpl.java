@@ -606,6 +606,11 @@ implements NoPutResultSet
 		return false;
 	}
 
+	@Override
+	public boolean isTimedout() {
+		return false;
+	}
+
 	public void	finish() throws StandardException
 	{
 		finishAndRTS();

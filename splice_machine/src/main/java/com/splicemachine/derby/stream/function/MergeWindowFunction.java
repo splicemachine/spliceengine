@@ -21,7 +21,10 @@ import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.window.BaseFrameBuffer;
 import com.splicemachine.derby.stream.window.WindowFrameBuffer;
+import org.apache.spark.InterruptibleIterator;
+import org.apache.spark.TaskContext;
 import scala.Tuple2;
+import scala.collection.JavaConverters;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -65,7 +68,9 @@ public class MergeWindowFunction<Op extends WindowOperation> extends SpliceFlatM
                 operationContext.getOperation().getExecRowDefinition().getClone());
 
         return new ExecRowToLocatedRowIterable(new Iterable<ExecRow>() {
-            @Override public Iterator<ExecRow> iterator() { return frameBuffer; }
+            @Override public Iterator<ExecRow> iterator() {
+                return IteratorUtils.asInterruptibleIterator(frameBuffer);
+            }
         });
     }
 

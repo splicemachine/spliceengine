@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.services.context.Context;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
+import com.splicemachine.db.iapi.sql.execute.Expirable;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 
 import com.splicemachine.db.iapi.sql.Activation;
@@ -296,4 +297,6 @@ public interface StatementContext extends Context {
     void setXPlainTableOrProcedure(boolean val);
 
     boolean hasXPlainTableOrProcedure();
+
+    void registerExpirable(Expirable expirable, Thread thread);
 }

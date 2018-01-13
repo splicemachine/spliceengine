@@ -85,6 +85,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     protected boolean returnedRows = false;
     private volatile UUID uuid = null;
     private volatile boolean isKilled = false;
+    private volatile boolean isTimedout = false;
 
     public SpliceBaseOperation(){
         super();
@@ -200,7 +201,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             if(LOG_CLOSE.isTraceEnabled())
                 LOG_CLOSE.trace(String.format("closing operation %s",this));
             if (remoteQueryClient != null) {
-                if (!isKilled) {
+                if (!isKilled && !isTimedout) {
                     // wait for completion, it should be quick
                     try {
                         remoteQueryClient.waitForCompletion(1, TimeUnit.MINUTES);
@@ -442,6 +443,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             LOG.warn("Exception ignored because operation was explicitly killed", e);
             throw StandardException.newException(SQLState.LANG_CANCELLATION_EXCEPTION);
         }
+        if (isTimedout) {
+            LOG.warn("Exception ignored because operation was timed out", e);
+            throw StandardException.newException(SQLState.LANG_STATEMENT_CANCELLED_OR_TIMED_OUT);
+        }
         // otherwise deal with it normally
     }
 
@@ -459,6 +464,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     @Override
     public void openCore() throws StandardException{
         DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation, this);
+
+        activation.getLanguageConnectionContext().getStatementContext().registerExpirable(this, Thread.currentThread());
         if (dsp.getType() == DataSetProcessor.Type.SPARK && !isOlapServer() && !SpliceClient.isClient) {
             remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
             remoteQueryClient.submit();
@@ -620,6 +627,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             SpliceLogUtils.trace(LOG,"getNextRow");
         if(isKilled)
             throw StandardException.newException(SQLState.LANG_CANCELLATION_EXCEPTION);
+        if(isTimedout)
+            throw StandardException.newException(SQLState.LANG_STATEMENT_CANCELLED_OR_TIMED_OUT);
         if(!isOpen)
             throw StandardException.newException(SQLState.LANG_RESULT_SET_NOT_OPEN,NEXT);
         attachStatementContext();
@@ -664,6 +673,11 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     @Override
     public boolean isKilled() {
         return isKilled;
+    }
+
+    @Override
+    public boolean isTimedout() {
+        return isTimedout;
     }
 
     @Override
@@ -897,8 +911,29 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     @Override
     public void kill() throws StandardException {
         this.isKilled = true;
-        close();
+        // The cancel flag is checked during Control execution
+        getActivation().getLanguageConnectionContext().getStatementContext().cancel();
+        if (remoteQueryClient != null) {
+            try {
+                remoteQueryClient.close();
+            } catch (Exception e) {
+                throw Exceptions.parseException(e);
+            }
+        }
     }
+
+    @Override
+    public void timeout() throws StandardException {
+        this.isTimedout = true;
+        if (remoteQueryClient != null) {
+            try {
+                remoteQueryClient.close();
+            } catch (Exception e) {
+                throw Exceptions.parseException(e);
+            }
+        }
+    }
+
 
     @Override
     public boolean accessExternalTable() {
