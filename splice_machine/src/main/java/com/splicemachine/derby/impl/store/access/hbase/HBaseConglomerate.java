@@ -92,6 +92,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
                 containerId,
                 this,
                 ((SpliceTransaction)rawtran).getTxn(),
+                properties.getProperty(SIConstants.SCHEMA_DISPLAY_NAME_ATTR),
                 properties.getProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR),
                 properties.getProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR),
                 pSize);
