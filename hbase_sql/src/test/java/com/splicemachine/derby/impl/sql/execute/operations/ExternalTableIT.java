@@ -578,6 +578,17 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
     @Test
+    public void testReadFromEmptyParquetExternalTable() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"empty_parquet";
+        methodWatcher.executeUpdate(String.format("create external table empty_parquet (col1 int, col2 varchar(24)) PARTITIONED BY (col2)" +
+                " STORED AS PARQUET LOCATION '%s'",tablePath));
+
+        ResultSet rs = methodWatcher.executeQuery("select * from empty_parquet");
+        Assert.assertEquals("", TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+    }
+
+    @Test
     public void testReadFromPartitionedEmptyAvroExternalTable() throws Exception {
         String tablePath = getExternalResourceDirectory()+"empty_avro";
         methodWatcher.executeUpdate(String.format("create external table empty_avro (col1 int, col2 varchar(24)) PARTITIONED BY (col1)" +
