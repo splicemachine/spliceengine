@@ -203,7 +203,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     public DataSet<String> readTextFile(String path) throws StandardException {
         return readTextFile(path, null);
     }
-    
+
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public DataSet<String> readTextFile(String path, SpliceOperation op) throws StandardException {
@@ -381,22 +381,28 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
     @Override
-    public StructType getExternalFileSchema(String storedAs, String location){
+    public StructType getExternalFileSchema(String storedAs, String location) throws StandardException {
         StructType schema = null;
-        if (storedAs!=null) {
-            if (storedAs.toLowerCase().equals("p")) {
-                schema =  SpliceSpark.getSession().read().parquet(location).schema();
+        try {
+            try {
+                if (storedAs != null) {
+                    if (storedAs.toLowerCase().equals("p")) {
+                        schema = SpliceSpark.getSession().read().parquet(location).schema();
+                    } else if (storedAs.toLowerCase().equals("a")) {
+                        schema = SpliceSpark.getSession().read().format("com.databricks.spark.avro").load(location).schema();
+                    } else if (storedAs.toLowerCase().equals("o")) {
+                        schema = SpliceSpark.getSession().read().orc(location).schema();
+                    }
+                    if (storedAs.toLowerCase().equals("t")) {
+                        // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
+                        schema = SpliceSpark.getSession().read().option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").csv(location).schema();
+                    }
+                }
+            } catch (Exception e) {
+                handleExceptionInCaseOfEmptySet(e, location);
             }
-            else if (storedAs.toLowerCase().equals("a")) {
-                schema =  SpliceSpark.getSession().read().format("com.databricks.spark.avro").load(location).schema();
-            }
-            else if (storedAs.toLowerCase().equals("o")) {
-                schema =  SpliceSpark.getSession().read().orc(location).schema();
-            }
-            if (storedAs.toLowerCase().equals("t")) {
-                // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
-                schema =  SpliceSpark.getSession().read().option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").csv(location).schema();
-            }
+        }catch (Exception e) {
+            throw StandardException.newException(SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
         }
 
         return schema;
