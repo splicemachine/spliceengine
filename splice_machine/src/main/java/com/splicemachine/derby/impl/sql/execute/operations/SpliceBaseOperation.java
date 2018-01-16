@@ -854,7 +854,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         return execRowIterator;
     }
 
-    public void registerCloseable(AutoCloseable closeable) throws StandardException{
+    public synchronized void registerCloseable(AutoCloseable closeable) throws StandardException{
         if(closeables==null)
             closeables=new ArrayList<>(1);
         closeables.add(closeable);

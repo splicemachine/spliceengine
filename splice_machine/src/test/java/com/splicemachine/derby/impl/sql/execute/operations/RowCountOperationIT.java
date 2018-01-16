@@ -69,11 +69,15 @@ public class RowCountOperationIT {
     private TestConnection conn;
     private String connectionString;
 
+    private static final String CONTROL = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=false";
+    private static final String SPARK = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true";
+
+
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
-        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin"});
-        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true"});
+        params.add(new Object[]{CONTROL});
+        params.add(new Object[]{SPARK});
         return params;
     }
 
@@ -645,6 +649,13 @@ public class RowCountOperationIT {
         validateUnOrdered(2, "select * from " + multiPartitions +" {limit 2}", true);
     }
 
+    @Test(timeout = 10000)
+    public void manySmallLimitMultiPartitionsUnordered() throws Exception {
+        int retries = connectionString == CONTROL ? 1000 : 10;
+        for (int i = 0; i < retries; ++i) {
+            validateUnOrdered(2, "select * from " + multiPartitions + " {limit 2}", true);
+        }
+    }
 
     @Test
     public void largeLimitMultiPartitionsUnordered() throws Exception {
