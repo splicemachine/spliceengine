@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiter;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.control.output.ControlExportDataSetWriter;
 import com.splicemachine.derby.stream.function.KeyerFunction;
@@ -221,12 +222,13 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public DataSet<V> union(DataSet< V> dataSet) {
+    public DataSet<V> union(DataSet<V> dataSet, OperationContext operationContext) {
         try {
             ExecutorService es = EngineDriver.driver().getExecutorService();
+            FutureIterator<V> futureIterator = new FutureIterator<>(2);
+            operationContext.getOperation().registerCloseable(futureIterator);
             Future<Iterator<V>> leftSideFuture = es.submit(new NonLazy(iterator));
             Future<Iterator<V>> rightSideFuture = es.submit(new NonLazy(((ControlDataSet<V>) dataSet).iterator));
-            FutureIterator<V> futureIterator = new FutureIterator<>();
             futureIterator.appendFutureIterator(leftSideFuture);
             futureIterator.appendFutureIterator(rightSideFuture);
             return new ControlDataSet<>(futureIterator);
@@ -236,9 +238,9 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public DataSet<V> parallelProbe(List<DataSet<V>> dataSets) {
+    public DataSet<V> parallelProbe(List<DataSet<V>> dataSets, OperationContext<MultiProbeTableScanOperation> operationContext) {
         ExecutorService es = EngineDriver.driver().getExecutorService();
-        FutureIterator<V> futureIterator = new FutureIterator<>();
+        FutureIterator<V> futureIterator = new FutureIterator<>(dataSets.size());
         for (DataSet<V> dataSet: dataSets) {
             futureIterator.appendFutureIterator(es.submit(new NonLazy(((ControlDataSet<V>) dataSet).iterator)));
         }
@@ -246,8 +248,8 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public DataSet< V> union(DataSet< V> dataSet, String name, boolean pushScope, String scopeDetail) {
-        return union(dataSet);
+    public DataSet< V> union(DataSet<V> dataSet, OperationContext operationContext, String name, boolean pushScope, String scopeDetail) {
+        return union(dataSet, operationContext);
     }
 
     @Override

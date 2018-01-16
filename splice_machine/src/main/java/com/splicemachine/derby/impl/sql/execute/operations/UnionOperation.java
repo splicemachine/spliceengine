@@ -156,7 +156,7 @@ public class UnionOperation extends SpliceBaseOperation {
 		DataSet<ExecRow> right = rightResultSet.getDataSet(dsp);
 		operationContext.pushScope();
 		DataSet<ExecRow> result = left
-		    .union(right)
+		    .union(right, operationContext)
 		    .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext), true);
 		operationContext.popScope();
 		return result;
