@@ -3377,7 +3377,7 @@ public class FromBaseTable extends FromTable {
         return dataSetProcessorType;
     }
 
-    private void determineSpark() {
+    public void determineSpark() {
         // Set Spark Baby...
         if (dataSetProcessorType.equals(CompilerContext.DataSetProcessorType.DEFAULT_CONTROL) &&
             // we need to check not only the number of row scanned, but also the number of output rows for the
