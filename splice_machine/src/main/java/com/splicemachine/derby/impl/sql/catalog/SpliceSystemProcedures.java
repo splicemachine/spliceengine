@@ -562,8 +562,8 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .numOutputParams(0)
                             .numResultSets(0)
                             .modifiesSql()
-                            .varchar("schema",1024)
-                            .varchar("table",1024)
+                            .catalog("schema")
+                            .catalog("table")
                             .ownerClass(StatisticsAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(enableStatsForAllColumns);
@@ -572,8 +572,8 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .numOutputParams(0)
                             .numResultSets(0)
                             .modifiesSql()
-                            .varchar("schema",1024)
-                            .varchar("table",1024)
+                            .catalog("schema")
+                            .catalog("table")
                             .ownerClass(StatisticsAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(disableStatsForAllColumns);
