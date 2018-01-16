@@ -284,7 +284,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 datasets.add(ds);
                 i++;
             }
-            return dataSet.parallelProbe(datasets).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
+            return dataSet.parallelProbe(datasets, operationContext).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
         }
         catch (Exception e) {
                 throw StandardException.plainWrapException(e);
