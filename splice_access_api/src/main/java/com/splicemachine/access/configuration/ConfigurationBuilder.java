@@ -112,6 +112,7 @@ public class ConfigurationBuilder {
     public int olapServerTickLimit;
     public int olapServerSubmitAttempts;
     public int olapServerMemory;
+    public int olapServerMemoryOverhead;
     public int partitionserverJmxPort;
     public int partitionserverPort;
     public long broadcastRegionMbThreshold;

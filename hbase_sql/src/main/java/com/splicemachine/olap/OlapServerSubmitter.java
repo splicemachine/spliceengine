@@ -16,6 +16,7 @@
 package com.splicemachine.olap;
 
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.SConfiguration;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.ServerName;
@@ -41,6 +42,7 @@ import java.io.File;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * Created by dgomezferro on 29/08/2017.
@@ -49,6 +51,7 @@ public class OlapServerSubmitter implements Runnable {
     private static final Logger LOG = Logger.getLogger(OlapServerSubmitter.class);
     private final ServerName serverName;
     private volatile boolean stop = false;
+    private CountDownLatch stopLatch = new CountDownLatch(1);
 
     private Configuration conf;
 
@@ -65,8 +68,11 @@ public class OlapServerSubmitter implements Runnable {
             yarnClient.init(conf);
             yarnClient.start();
 
-            int maxAttempts = HConfiguration.getConfiguration().getOlapServerSubmitAttempts();
-            int memory = HConfiguration.getConfiguration().getOlapServerMemory();
+            SConfiguration sconf = HConfiguration.getConfiguration();
+
+            int maxAttempts = sconf.getOlapServerSubmitAttempts();
+            int memory = sconf.getOlapServerMemory();
+            int memoryOverhead = sconf.getOlapServerMemoryOverhead();
 
             for (int i = 0; i<maxAttempts; ++i) {
                 // Create application via yarnClient
@@ -78,7 +84,7 @@ public class OlapServerSubmitter implements Runnable {
                 amContainer.setCommands(
                         Collections.singletonList(prepareCommands(
                                 "$JAVA_HOME/bin/java",
-                                        " -Xmx1024M " + outOfMemoryErrorArgument() + " " +
+                                        " -Xmx" + memory + "M " + outOfMemoryErrorArgument() + " " +
                                         OlapServerMaster.class.getCanonicalName() +
                                         " " + serverName.toString() +
                                         " 1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stdout" +
@@ -94,7 +100,7 @@ public class OlapServerSubmitter implements Runnable {
 
                 // Set up resource type requirements for ApplicationMaster
                 Resource capability = Records.newRecord(Resource.class);
-                capability.setMemory(memory);
+                capability.setMemory(memory + memoryOverhead);
                 capability.setVirtualCores(1);
 
                 // Finally, set-up ApplicationSubmissionContext for the application
@@ -116,6 +122,7 @@ public class OlapServerSubmitter implements Runnable {
                     @Override
                     public BoxedUnit apply() {
                         try {
+                            stop();
                             yarnClient.killApplication(appId);
                         } catch (Exception e) {
                             LOG.error("Exception while running shutdown hook", e);
@@ -151,6 +158,8 @@ public class OlapServerSubmitter implements Runnable {
             LOG.error("Maximum number of attempts reached, stopping OlapServer startup");
         } catch (Exception e) {
             LOG.error("unexpected exception", e);
+        } finally {
+            stopLatch.countDown();
         }
 
     }
@@ -312,7 +321,13 @@ public class OlapServerSubmitter implements Runnable {
     }
 
     public void stop() {
+        LOG.warn("Stopping OlapServerSubmitter");
         stop = true;
+        try {
+            stopLatch.await();
+        } catch (InterruptedException e) {
+            LOG.error("Interrupted while waiting for OlapServerSubmitter to finish", e);
+        }
     }
 
 }

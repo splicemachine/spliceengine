@@ -168,6 +168,8 @@ public interface SConfiguration {
 
     int getOlapServerMemory();
 
+    int getOlapServerMemoryOverhead();
+
     int getOlapClientRetries();
 
     int getTimestampClientWaitTime();

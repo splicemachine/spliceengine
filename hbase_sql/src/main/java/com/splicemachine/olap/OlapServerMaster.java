@@ -17,7 +17,9 @@ package com.splicemachine.olap;
 
 import com.google.common.net.HostAndPort;
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.HBaseConfiguration;
+import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.access.util.NetworkUtils;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.derby.impl.SpliceSpark;
@@ -45,6 +47,8 @@ import org.apache.zookeeper.ZooDefs;
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.zookeeper.KeeperException.Code.NODEEXISTS;
@@ -156,10 +160,32 @@ public class OlapServerMaster implements Watcher {
         System.exit(0);
     }
 
-    private void submitSparkApplication(Configuration conf) throws IOException, InterruptedException, KeeperException, org.apache.hadoop.yarn.exceptions.YarnException {
+    private void submitSparkApplication(Configuration conf) throws IOException, InterruptedException, KeeperException {
         rzk = ZKUtil.connect(conf, null);
 
         HBaseSIEnvironment env=HBaseSIEnvironment.loadEnvironment(new SystemClock(),rzk);
+
+        HBaseConnectionFactory hbcf = HBaseConnectionFactory.getInstance(HConfiguration.getConfiguration());
+        Timer timer = new Timer("HMaster-checker", true);
+        timer.schedule(new TimerTask() {
+            int failures = 0;
+            
+            @Override
+            public void run() {
+                try {
+                    if (!serverName.equals(hbcf.getMasterServer()))
+                        end.set(true);
+                    failures = 0;
+                } catch (Throwable t) {
+                    LOG.warn("Got exception while checking HMaster status, failures = " + failures, t);
+                    if (failures++ > 3) {
+                        LOG.error("Got " + failures + " consecutive failures while checking HMaster status, aborting OlapServerMaster", t);
+                        end.set(true);
+                    }
+                }
+
+            }
+        }, 10000, 10000);
 
         SpliceSpark.setupSpliceStaticComponents();
 
@@ -181,6 +207,7 @@ public class OlapServerMaster implements Watcher {
             Thread.sleep(1000);
         }
 
+        LOG.info("OlapServerMaster shutting down");
     }
 
     private void publishServer(RecoverableZooKeeper rzk, ServerName serverName, String hostname, int port) throws InterruptedException, KeeperException {
