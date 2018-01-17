@@ -252,6 +252,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         // in the HTableDescriptor for convenient fetching where DataDictionary not available.
         if(properties==null)
             properties = new Properties();
+        properties.setProperty(SIConstants.SCHEMA_DISPLAY_NAME_ATTR, this.schemaName);
         properties.setProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR, this.tableName);
 
         /* create the conglomerate to hold the table's rows

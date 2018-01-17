@@ -98,6 +98,7 @@ public class SIConstants {
     // Generic but ultimately used in hbase where we want these to be available
     // in HTableDescriptor.
 
+    public static final String SCHEMA_DISPLAY_NAME_ATTR = "schemaDisplayName";
     public static final String TABLE_DISPLAY_NAME_ATTR = "tableDisplayName";
     public static final String INDEX_DISPLAY_NAME_ATTR = "indexDisplayName";
 }
