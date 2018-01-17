@@ -142,6 +142,8 @@ public class ConfigurationBuilder {
     public int compactionReservedSlots;
     public int reservedSlotsTimeout;
     public int olapCompactionMaximumWait;
+    public double olapCompactionResolutionShare;
+    public int olapCompactionResolutionBufferSize;
     public int olapClientRetries;
     public double bulkImportSampleFraction;
     public int bulkImportTasksPerRegion;

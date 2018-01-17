@@ -27,6 +27,7 @@ import com.splicemachine.derby.stream.function.InnerJoinNullFilterFunction;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.Streams;
 import org.spark_project.guava.base.Function;
@@ -92,7 +93,7 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
         if (init)
             return;
         init = true;
-        joinTable = EngineDriver.driver().getExecutorService().submit(() -> {
+        joinTable = SIDriver.driver().getExecutorService().submit(() -> {
             operation = getOperation();
             ControlExecutionLimiter limiter = operation.getActivation().getLanguageConnectionContext().getControlExecutionLimiter();
             Callable<Stream<ExecRow>> rhsLoader = () -> {
