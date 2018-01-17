@@ -104,6 +104,54 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         }
     }
 
+    @SuppressWarnings("UnusedDeclaration")
+    public static void DISABLE_ALL_COLUMN_STATISTICS(String schema,
+                                                 String table) throws SQLException {
+        schema = EngineUtils.validateSchema(schema);
+        table = EngineUtils.validateTable(table);
+        EmbedConnection conn = (EmbedConnection) SpliceAdmin.getDefaultConn();
+        try {
+            TableDescriptor td = verifyTableExists(conn, schema, table);
+            ColumnDescriptorList columnDescriptorList = td.getColumnDescriptorList();
+            //get the list of index columns whose stats are mandatory
+            boolean[] indexColumns = new boolean[columnDescriptorList.size()];
+
+            IndexLister indexLister = td.getIndexLister();
+            if (indexLister != null) {
+                IndexRowGenerator[] indexRowGenerators = indexLister.getIndexRowGenerators();
+                for (IndexRowGenerator irg : indexRowGenerators) {
+                    int[] keyColumns = irg.getIndexDescriptor().baseColumnPositions();
+                    for (int keyColumn : keyColumns) {
+                        indexColumns[keyColumn - 1] = true;
+                    }
+                }
+            }
+
+            // get the list of columns in PK whose stats are also mandatory
+            ReferencedKeyConstraintDescriptor keyDescriptor = td.getPrimaryKey();
+            if (keyDescriptor != null) {
+                int[] pkColumns = keyDescriptor.getReferencedColumns();
+                for (int keyColumn : pkColumns) {
+                    indexColumns[keyColumn - 1] = true;
+                }
+            }
+
+            //go through all columns
+            for (ColumnDescriptor descriptor : columnDescriptorList) {
+                String columnName = descriptor.getColumnName();
+                //need to make sure it's not a pk or indexed column
+                if (!indexColumns[descriptor.getPosition() - 1]) {
+                    descriptor.setCollectStatistics(false);
+                    LanguageConnectionContext languageConnection = conn.getLanguageConnection();
+                    TransactionController transactionCompile = languageConnection.getTransactionCompile();
+                    transactionCompile.elevate("dictionary");
+                    languageConnection.getDataDictionary().setCollectStats(transactionCompile, td.getUUID(), columnName, false);
+                }
+            }
+        } catch (StandardException e) {
+            throw PublicAPI.wrapStandardException(e);
+        }
+    }
 
     @SuppressWarnings("UnusedDeclaration")
     public static void ENABLE_COLUMN_STATISTICS(String schema,
@@ -137,6 +185,32 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             }
             throw ErrorState.LANG_COLUMN_NOT_FOUND_IN_TABLE.newException(columnName, schema + "." + table);
 
+        } catch (StandardException e) {
+            throw PublicAPI.wrapStandardException(e);
+        }
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    public static void ENABLE_ALL_COLUMN_STATISTICS(String schema,
+                                                String table) throws SQLException {
+        schema = EngineUtils.validateSchema(schema);
+        table = EngineUtils.validateTable(table);
+        EmbedConnection conn = (EmbedConnection) SpliceAdmin.getDefaultConn();
+        try {
+            TableDescriptor td = verifyTableExists(conn, schema, table);
+            //verify that that column exists
+            ColumnDescriptorList columnDescriptorList = td.getColumnDescriptorList();
+            for (ColumnDescriptor descriptor : columnDescriptorList) {
+                String columnName = descriptor.getColumnName();
+                DataTypeDescriptor type = descriptor.getType();
+                if (!descriptor.collectStatistics() && ColumnDescriptor.allowsStatistics(type)) {
+                    descriptor.setCollectStatistics(true);
+                    LanguageConnectionContext languageConnection = conn.getLanguageConnection();
+                    TransactionController transactionCompile = languageConnection.getTransactionCompile();
+                    transactionCompile.elevate("dictionary");
+                    languageConnection.getDataDictionary().setCollectStats(transactionCompile, td.getUUID(), columnName, true);
+                }
+            }
         } catch (StandardException e) {
             throw PublicAPI.wrapStandardException(e);
         }
