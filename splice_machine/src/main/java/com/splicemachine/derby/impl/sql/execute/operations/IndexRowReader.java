@@ -14,10 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.EngineDriver;
 import com.splicemachine.derby.stream.function.IteratorUtils;
-import org.apache.spark.InterruptibleIterator;
-import org.apache.spark.TaskContext;
 import org.spark_project.guava.collect.Lists;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -33,17 +30,13 @@ import com.splicemachine.storage.*;
 import com.splicemachine.storage.util.MapAttributes;
 import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
-import scala.collection.JavaConverters;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 /**
  * Utility for executing "look-ahead" index lookups, where the index lookup is backgrounded,
@@ -56,7 +49,6 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
     protected static Logger LOG=Logger.getLogger(IndexRowReader.class);
     private final ExecutorService lookupService;
     private final int batchSize;
-    private final int numBlocks;
     private final ExecRow outputTemplate;
     private final long mainTableConglomId;
     private final byte[] predicateFilterBytes;
@@ -66,10 +58,10 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
     private final TxnView txn;
     private final TxnOperationFactory operationFactory;
     private final PartitionFactory tableFactory;
+    private boolean hasMore = true;
 
     private List<Pair<ExecRow, DataResult>> currentResults;
-    private List<Future<List<Pair<ExecRow, DataResult>>>> resultFutures;
-    private boolean populated=false;
+    private BlockingQueue<Future<List<Pair<ExecRow, DataResult>>>> resultFutures;
     private EntryDecoder entryDecoder;
     protected Iterator<ExecRow> sourceIterator;
 
@@ -94,15 +86,16 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
         this.outputTemplate=outputTemplate;
         this.txn=txn;
         batchSize=lookupBatchSize;
-        this.numBlocks=numConcurrentLookups;
         this.mainTableConglomId=mainTableConglomId;
         this.predicateFilterBytes=predicateFilterBytes;
         this.tableFactory=tableFactory;
         this.keyDecoder=new KeyDecoder(keyDecoder,0);
         this.rowDecoder=rowDecoder;
         this.indexCols=indexCols;
-        this.resultFutures=Lists.newArrayListWithCapacity(numConcurrentLookups);
+        this.resultFutures=new ArrayBlockingQueue(numConcurrentLookups);
         this.operationFactory = operationFactory;
+        Reader reader = new Reader();
+        lookupService.submit(reader);
     }
 
     public void close() throws IOException{
@@ -130,11 +123,15 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
     @Override
     public boolean hasNext(){
         try{
+            if (!hasMore)
+                return hasMore;
+
             if(currentResults==null || currentResults.size()<=0)
                 getMoreData();
 
             if(currentResults==null || currentResults.size()<=0){
-                return false; // No More Data
+                hasMore = false;
+                return hasMore; // No More Data
             }
 
             Pair<ExecRow, DataResult> next=currentResults.remove(0);
@@ -162,38 +159,13 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
     /**********************************************************************************************************************************/
         /*private helper methods*/
     private void getMoreData() throws StandardException, IOException{
-        //read up to batchSize rows from the source, then submit them to the background thread for processing
-        List<Pair<byte[],ExecRow>> sourceRows=Lists.newArrayListWithCapacity(batchSize);
-        for(int i=0;i<batchSize;i++){
-            if(!sourceIterator.hasNext())
-                break;
-            ExecRow next=sourceIterator.next();
-            for(int index=0;index<indexCols.length;index++){
-                if(indexCols[index]!=-1){
-                    outputTemplate.setColumn(index+1,next.getColumn(indexCols[index]+1));
-                }
-            }
-            HBaseRowLocation rl=(HBaseRowLocation)next.getColumn(next.nColumns());
-            sourceRows.add(new Pair(rl.getBytes(), outputTemplate.getClone()));
-        }
-        if(sourceRows.size()>0){
-            //submit to the background thread
-            Lookup task=new Lookup(sourceRows);
-            resultFutures.add(lookupService.submit(task));
-        }
-
-        //if there is only one submitted future, call this again to set off an additional background process
-        if(resultFutures.size()<numBlocks && sourceRows.size()==batchSize)
-            getMoreData();
-        else if(resultFutures.size()>0){
-            waitForBlockCompletion();
-        }
+        waitForBlockCompletion();
     }
 
     private void waitForBlockCompletion() throws StandardException, IOException{
         //wait for the first future to return correctly or error-out
         try{
-            Future<List<Pair<ExecRow, DataResult>>> future=resultFutures.remove(0);
+            Future<List<Pair<ExecRow, DataResult>>> future=resultFutures.take();
             currentResults=future.get();
         }catch(InterruptedException e){
             throw new InterruptedIOException(e.getMessage());
@@ -201,6 +173,39 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
             Throwable t=e.getCause();
             if(t instanceof IOException) throw (IOException)t;
             else throw Exceptions.parseException(t);
+        }
+    }
+
+    public class Reader implements Callable<Void> {
+        @Override
+        public Void call() throws Exception {
+
+            while (sourceIterator.hasNext()) {
+                List<Pair<byte[],ExecRow>> sourceRows=Lists.newArrayListWithCapacity(batchSize);
+                for (int i = 0; i < batchSize; i++) {
+                    if (!sourceIterator.hasNext())
+                        break;
+                    ExecRow next = sourceIterator.next();
+                    for (int index = 0; index < indexCols.length; index++) {
+                        if (indexCols[index] != -1) {
+                            outputTemplate.setColumn(index + 1, next.getColumn(indexCols[index] + 1));
+                        }
+                    }
+                    HBaseRowLocation rl = (HBaseRowLocation) next.getColumn(next.nColumns());
+                    sourceRows.add(new Pair(rl.getBytes(), outputTemplate.getClone()));
+                }
+                if (sourceRows.size() > 0) {
+                    //submit to the background thread
+                    Lookup task = new Lookup(sourceRows);
+                    resultFutures.put(lookupService.submit(task));
+                }
+            }
+
+            // Add an empty batch to mark the end
+            List<Pair<byte[],ExecRow>> sourceRows=Lists.newArrayListWithCapacity(batchSize);
+            Lookup task = new Lookup(sourceRows);
+            resultFutures.put(lookupService.submit(task));
+            return null;
         }
     }
 
@@ -213,6 +218,10 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
 
         @Override
         public List<Pair<ExecRow, DataResult>> call() throws Exception{
+            List<Pair<ExecRow, DataResult>> locations=Lists.newArrayListWithCapacity(sourceRows.size());
+            if(sourceRows.size() == 0)
+                return locations;
+
             List<byte[]> rowKeys = new ArrayList<>(sourceRows.size());
             for(Pair<byte[],ExecRow> sourceRow : sourceRows){
                 rowKeys.add(sourceRow.getFirst());
@@ -223,7 +232,7 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
 
             try(Partition table = tableFactory.getTable(Long.toString(mainTableConglomId))){
                 Iterator<DataResult> results=table.batchGet(attributable,rowKeys);
-                List<Pair<ExecRow, DataResult>> locations=Lists.newArrayListWithCapacity(sourceRows.size());
+
                 for(Pair<byte[],ExecRow> sourceRow : sourceRows){
                     if(!results.hasNext())
                         throw new IllegalStateException("Programmer error: incompatible iterator sizes!");

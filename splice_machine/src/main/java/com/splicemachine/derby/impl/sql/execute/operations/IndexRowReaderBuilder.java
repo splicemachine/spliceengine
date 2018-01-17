@@ -163,10 +163,7 @@ public class IndexRowReaderBuilder implements Externalizable{
         assert source!=null:"No source specified";
         assert indexCols!=null:"No index columns specified!";
         ExecutorService lookupService;
-        if(numConcurrentLookups<0)
-            lookupService=SameThreadExecutorService.instance();
-        else{
-            ThreadFactory factory=new ThreadFactoryBuilder()
+        ThreadFactory factory=new ThreadFactoryBuilder()
                     .setNameFormat("index-lookup-%d")
                     .setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler(){
                         @Override
@@ -175,13 +172,13 @@ public class IndexRowReaderBuilder implements Externalizable{
                         }
                     })
                     .build();
-            ThreadPoolExecutor tpe=new ThreadPoolExecutor(1,numConcurrentLookups,
-                    60,TimeUnit.SECONDS,new SynchronousQueue<Runnable>(),factory,
-                    new ThreadPoolExecutor.CallerRunsPolicy());
-            tpe.allowCoreThreadTimeOut(false);
-            tpe.prestartAllCoreThreads();
-            lookupService=tpe;
-        }
+        ThreadPoolExecutor tpe=new ThreadPoolExecutor(2,numConcurrentLookups+1,
+                60,TimeUnit.SECONDS,new SynchronousQueue<Runnable>(),factory,
+                new ThreadPoolExecutor.CallerRunsPolicy());
+        tpe.allowCoreThreadTimeOut(false);
+        tpe.prestartAllCoreThreads();
+        lookupService=tpe;
+
 
         BitSet rowFieldsToReturn=new BitSet(mainTableAccessedRowColumns.getNumBitsSet());
         for(int i=mainTableAccessedRowColumns.anySetBit();i>=0;i=mainTableAccessedRowColumns.anySetBit(i)){
@@ -214,7 +211,7 @@ public class IndexRowReaderBuilder implements Externalizable{
                 outputTemplate,
                 txn,
                 lookupBatchSize,
-                Math.max(numConcurrentLookups,0),
+                numConcurrentLookups,
                 mainTableConglomId,
                 epfBytes,
                 keyDecoder,
