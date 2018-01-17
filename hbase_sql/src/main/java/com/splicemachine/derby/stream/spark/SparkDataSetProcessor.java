@@ -52,7 +52,6 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
@@ -328,11 +327,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
      */
     private <V> DataSet<V> handleExceptionInCaseOfEmptySet(Exception e, String location) throws Exception {
         // Cannot Infer Schema, Argh
-        if ((e instanceof AnalysisException || e instanceof FileNotFoundException) && e.getMessage() != null &&
-                (e.getMessage().startsWith("Unable to infer schema") || e.getMessage().startsWith("No Avro files found"))) {
+        if (e instanceof AnalysisException && e.getMessage() != null && e.getMessage().startsWith("Unable to infer schema")) {
             // Lets check if there are existing files...
-            String[] files = ImportUtils.getFileSystem(location).getExistingFiles(location, "*");
-            if (files.length == 1 && files[0].equals("_SUCCESS")) // Handle Empty Directory
+            FileInfo fileInfo = ImportUtils.getImportFileInfo(location);
+            if (fileInfo.fileCount() == 0) // Handle Empty Directory
                 return getEmpty();
         }
         throw e;
