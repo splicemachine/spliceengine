@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.stream.function.broadcast;
 
+import com.splicemachine.derby.stream.function.IteratorUtils;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.collect.FluentIterable;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -51,7 +52,7 @@ public class CogroupBroadcastJoinFunction extends AbstractBroadcastJoinFlatMapFu
                             @Override
                             public Iterator<ExecRow> iterator(){
                                 try{
-                                    return joinTable.fetchInner(left);
+                                    return IteratorUtils.asInterruptibleIterator(joinTable.fetchInner(left));
                                 }catch(Exception e){
                                     throw new RuntimeException(e);
                                 }

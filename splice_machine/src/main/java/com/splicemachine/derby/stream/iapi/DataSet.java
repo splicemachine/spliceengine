@@ -17,6 +17,7 @@ package com.splicemachine.derby.stream.iapi;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.output.*;
@@ -29,7 +30,8 @@ import java.util.concurrent.Future;
 /**
  * Stream of data acting on an iterable set of values.
  */
-public interface DataSet<V> extends Iterable<V>, Serializable {
+public interface DataSet<V> extends //Iterable<V>,
+        Serializable {
 
     int partitions();
 
@@ -191,11 +193,11 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
      */
     long count();
 
-    DataSet<V> union(DataSet<V> dataSet);
+    DataSet<V> union(DataSet<V> dataSet, OperationContext operationContext);
 
-    DataSet<V> parallelProbe(List<DataSet<V>> dataSets);
+    DataSet<V> parallelProbe(List<DataSet<V>> dataSets, OperationContext<MultiProbeTableScanOperation> operationContext);
 
-    DataSet<V> union(DataSet<V> dataSet, String name, boolean pushScope, String scopeDetail);
+    DataSet<V> union(DataSet<V> dataSet, OperationContext operationContext, String name, boolean pushScope, String scopeDetail);
 
     <Op extends SpliceOperation> DataSet<V> filter(SplicePredicateFunction<Op,V> f);
 

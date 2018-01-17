@@ -6681,6 +6681,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         // which will make it to the relevant descriptor if necessary.
         // These attr names need to match SpliceConstants.TABLE_DISPLAY_NAME_ATTR
         // and SpliceConstants.INDEX_DISPLAY_NAME_ATTR, respectively.
+        indexProperties.setProperty("schemaDisplayName", sd.getSchemaName());
         indexProperties.setProperty("tableDisplayName", ti.getTableName());
         indexProperties.setProperty("indexDisplayName", ti.getIndexName(indexNumber));
         

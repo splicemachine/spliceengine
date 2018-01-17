@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.services.stream;
 
 import java.util.Date;
+import java.text.SimpleDateFormat;
 import com.splicemachine.db.iapi.services.stream.PrintWriterGetHeader;
 
 /**
@@ -48,6 +49,9 @@ class BasicGetLogHeader implements PrintWriterGetHeader
 	private boolean doThreadId;
 	private boolean doTimeStamp;
 	private String tag;
+
+	// SPLICE-1998 Make splice log time stamp be compliant with Hadoop ISO8601
+	private String timeStampFormat = "yyyy-MM-dd HH:mm:ss,SSS";
 
 	/* 
 	 * STUB: This should take a header template. Check if
@@ -84,7 +88,7 @@ class BasicGetLogHeader implements PrintWriterGetHeader
 		}
 
 		if (doTimeStamp) {
-			header.append(new Date());
+			header.append(new SimpleDateFormat(timeStampFormat).format(new Date()));
 			header.append(' ');
 		}
 

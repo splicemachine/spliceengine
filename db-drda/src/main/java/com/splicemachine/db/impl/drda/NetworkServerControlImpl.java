@@ -68,6 +68,7 @@ import java.util.Hashtable;
 import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.Vector;
+import java.text.SimpleDateFormat;
 
 import com.splicemachine.db.drda.NetworkServerControl;
 import com.splicemachine.db.security.SystemPermission;
@@ -354,6 +355,9 @@ public final class NetworkServerControlImpl {
      */
     private static boolean SUPPORTS_EUSRIDPWD = false;
 
+	// SPLICE-1998 Make splice log time stamp be compliant with Hadoop ISO8601
+	private String timeStampFormat = "yyyy-MM-dd HH:mm:ss,SSS";
+
     /*
      * DRDA Specification for the EUSRIDPWD security mechanism
      * requires DH algorithm support with a 32-byte prime to be
@@ -618,7 +622,7 @@ public final class NetworkServerControlImpl {
 		{
 			synchronized(lw) {
                 if (printTimeStamp) {
-                    lw.println(new Date() + " : " + msg);
+                    lw.println(new SimpleDateFormat(timeStampFormat).format(new Date()) + " : " + msg);
                 } else {
                     lw.println(msg);                    
                 }
@@ -630,7 +634,7 @@ public final class NetworkServerControlImpl {
 			synchronized(lw)
 			{
 				if (printTimeStamp) {
-                    Monitor.logMessage(new Date() + " : " + msg);
+                    Monitor.logMessage(new SimpleDateFormat(timeStampFormat).format(new Date()) + " : " + msg);
                 } else {
                     Monitor.logMessage(msg);
                 }

@@ -192,11 +192,21 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
 
     private String getJobDescription(CompactionRequest request) {
         int size = request.getFiles().size();
-        return String.format("%s Compaction: %s, %d %s",
-            getMajorMinorLabel(request),
-            getTableInfoLabel(", "),
-            size,
-            (size > 1 ? "Files" : "File"));
+        String jobDescription = String.format("%s Compaction: %s, %d %s",
+                getMajorMinorLabel(request),
+                getTableInfoLabel(", "),
+                size,
+                (size > 1 ? "Files" : "File"));
+
+        if (size == 1 && !request.isMajor()) {
+            Collection<StoreFile> files = request.getFiles();
+            for (StoreFile file : files) {
+                if(file.isReference()) {
+                    return String.join(", ",jobDescription, "StoreFile is a Reference");
+                }
+            }
+        }
+        return jobDescription;
     }
 
     private String getMajorMinorLabel(CompactionRequest request) {

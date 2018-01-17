@@ -21,6 +21,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportExecRowWriter;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregator;
@@ -270,13 +271,13 @@ public class SparkDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public DataSet<V> union(DataSet< V> dataSet) {
-        return union(dataSet, RDDName.UNION.displayName(), false, null);
+    public DataSet<V> union(DataSet<V> dataSet, OperationContext operationContext) {
+        return union(dataSet, operationContext, RDDName.UNION.displayName(), false, null);
     }
 
 
     @Override
-    public DataSet<V> parallelProbe(List<DataSet<V>> dataSets) {
+    public DataSet<V> parallelProbe(List<DataSet<V>> dataSets, OperationContext<MultiProbeTableScanOperation> operationContext) {
         DataSet<V> toReturn = null;
         DataSet<V> branch = null;
         int i = 0;
@@ -286,26 +287,26 @@ public class SparkDataSet<V> implements DataSet<V> {
                     if (toReturn == null)
                         toReturn = branch;
                     else
-                        toReturn = toReturn.union(branch);
+                        toReturn = toReturn.union(branch, operationContext);
                 }
                 branch = dataSet;
             }
             else
-                branch = branch.union(dataSet);
+                branch = branch.union(dataSet, operationContext);
             i++;
         }
         if (branch != null) {
             if (toReturn == null)
                 toReturn = branch;
             else
-                toReturn = toReturn.union(branch);
+                toReturn = toReturn.union(branch, operationContext);
         }
         return toReturn;
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
-    public DataSet< V> union(DataSet< V> dataSet, String name, boolean pushScope, String scopeDetail) {
+    public DataSet< V> union(DataSet<V> dataSet, OperationContext operationContext, String name, boolean pushScope, String scopeDetail) {
         pushScopeIfNeeded((SpliceFunction)null, pushScope, scopeDetail);
         try {
             JavaRDD rdd1 = rdd.union(((SparkDataSet) dataSet).rdd);
@@ -603,11 +604,6 @@ public class SparkDataSet<V> implements DataSet<V> {
     @Override
     public void persist() {
         rdd.persist(StorageLevel.MEMORY_AND_DISK_SER_2());
-    }
-
-    @Override
-    public Iterator<V> iterator() {
-        return toLocalIterator();
     }
 
     @Override

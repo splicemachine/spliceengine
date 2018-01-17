@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.transactions;
 
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test.Transactions;
@@ -34,9 +35,14 @@ import java.sql.Statement;
 @Category({Transactions.class})
 public class TransactionAdminIT {
 
-    public static final SpliceWatcher classWatcher = new SpliceWatcher();
+    public static final String SCHEMA = TransactionAdminIT.class.getSimpleName().toUpperCase();
+
     @ClassRule
-    public static TestRule chain = RuleChain.outerRule(classWatcher);
+    public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+    
+    @ClassRule
+    public static final SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);
+
 
     private static TestConnection conn1;
     private static TestConnection conn2;
@@ -78,6 +84,22 @@ public class TransactionAdminIT {
         conn1.createStatement().execute("call SYSCS_UTIL.SYSCS_KILL_TRANSACTION("+conn2Txn+")");
         //vacuum must wait for conn2 to complete, unless it's been killed
         conn1.createStatement().execute("call SYSCS_UTIL.VACUUM()");
+    }
+
+    @Test
+    public void testKilledTransactionRaisesException() throws Exception {
+        conn1.createStatement().execute("create table a (i int)");
+        long id = conn1.getCurrentTransactionId();
+        conn1.createStatement().execute("call SYSCS_UTIL.SYSCS_KILL_TRANSACTION(" + id + ")");
+        try {
+            conn1.commit();
+            Assert.fail("Should have raised exception");
+        }catch (SQLException se) {
+            Assert.assertEquals("SE015", se.getSQLState());
+        }
+        // connection shouldn't have closed
+        conn1.createStatement().execute("create table a (i int)");
+        conn1.rollback();
     }
 
     @Test

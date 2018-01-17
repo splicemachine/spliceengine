@@ -95,6 +95,8 @@ import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.NoSuchElementException;
 
+import java.text.SimpleDateFormat;
+
 import java.lang.reflect.InvocationTargetException;
 
 import java.net.URL;
@@ -147,6 +149,10 @@ abstract class BaseMonitor
 	private InstanceGetter[]	rc2;
 //	private InstanceGetter[]	rc4;
 
+	// SPLICE-1998 Make splice log time stamp be compliant with Hadoop ISO8601
+	private String timeStampFormat = "yyyy-MM-dd HH:mm:ss,SSS";
+
+
 	/* Constructor  */
 	BaseMonitor() {
 		super();
@@ -175,7 +181,7 @@ abstract class BaseMonitor
 		Monitor.getStream().println(
                 MessageService.getTextMessage(
                     MessageId.CONN_SHUT_DOWN_ENGINE,
-                    new Date().toString()));
+                    new SimpleDateFormat(timeStampFormat).format(new Date()).toString()));
 
 		if (SanityManager.DEBUG && reportOn) {
 			report("Shutdown request");

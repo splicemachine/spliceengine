@@ -14,6 +14,7 @@
 
 package com.splicemachine.stream;
 
+import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.log4j.Logger;
@@ -46,6 +47,7 @@ public class StreamableRDD<T> {
     private final int clientBatches;
     private final UUID uuid;
     private final OperationContext<?> context;
+    private OlapStatus jobStatus;
 
 
     StreamableRDD(JavaRDD<T> rdd, UUID uuid, String clientHost, int clientPort) {
@@ -88,9 +90,16 @@ public class StreamableRDD<T> {
             int received = 0;
             int submitted = 2;
             while (received < partitionBatches && error == null) {
+                if (jobStatus != null && !jobStatus.isRunning()) {
+                    throw new CancellationException("The olap job is no longer running, cancelling Spark job");
+                }
                 Future<Object> resultFuture = null;
                 try {
-                    resultFuture = completionService.take();
+                    resultFuture = completionService.poll(10, TimeUnit.SECONDS);
+                    if (resultFuture == null) {
+                        // retry loop checking job status
+                        continue;
+                    }
                     Object result = resultFuture.get();
                     received++;
                     if ("STOP".equals(result)) {
@@ -140,4 +149,7 @@ public class StreamableRDD<T> {
         });
     }
 
+    public void setJobStatus(OlapStatus jobStatus) {
+        this.jobStatus = jobStatus;
+    }
 }
