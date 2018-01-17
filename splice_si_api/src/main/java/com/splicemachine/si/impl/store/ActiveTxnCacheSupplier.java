@@ -63,20 +63,24 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
 
 		@Override
 		public boolean transactionCached(long txnId) {
-        return cache.get(txnId) !=null;
+        	return cache.get(txnId) !=null ? true : delegate.transactionCached(txnId);
 		}
 
 		@Override
-    public void cache(TxnView toCache) {
-        cache.put(toCache.getTxnId(),toCache);
-    }
+   		public void cache(TxnView toCache) {
+		    if (toCache.getState() == Txn.State.ACTIVE)
+                cache.put(toCache.getTxnId(),toCache);
+		    else
+		        delegate.cache(toCache);
+        }
 
-    @Override
-    public TxnView getTransactionFromCache(long txnId) {
-        return cache.get(txnId);
-    }
+		@Override
+		public TxnView getTransactionFromCache(long txnId) {
+			TxnView tentative = cache.get(txnId);
+			return tentative != null ? tentative : delegate.getTransactionFromCache(txnId);
+		}
 
-    public int getSize(){
+		public int getSize(){
         return cache.size();
     }
 }

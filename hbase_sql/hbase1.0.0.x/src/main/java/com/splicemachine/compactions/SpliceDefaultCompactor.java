@@ -27,8 +27,10 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.hbase.coprocessor.TableType;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.server.CompactionContext;
 import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.storage.Partition;
+import com.splicemachine.stream.SparkCompactionContext;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -222,7 +224,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         return "compaction";
     }
 
-    public List<Path> sparkCompact(CompactionRequest request) throws IOException {
+    public List<Path> sparkCompact(CompactionRequest request, CompactionContext context) throws IOException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "sparkCompact(): CompactionRequest=%s", request);
 
@@ -263,12 +265,15 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 }
                 if (needsSI(store.getTableName())) {
                     SIDriver driver=SIDriver.driver();
+                    double resolutionShare = HConfiguration.getConfiguration().getOlapCompactionResolutionShare();
+                    int bufferSize = HConfiguration.getConfiguration().getOlapCompactionResolutionBufferSize();
                     SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
-                            driver.getRollForward(),
-                            driver.getConfiguration().getActiveTransactionCacheSize());
+                            driver.getConfiguration().getActiveTransactionCacheSize(), context, driver.getRejectingExecutorService());
                     boolean purgeDeletedRows = request.isMajor() ? SpliceCompactionUtils.shouldPurge(store) : false;
 
-                    scanner = new SICompactionScanner(state,scanner,purgeDeletedRows);
+                    SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeDeletedRows, resolutionShare, bufferSize, context);
+                    siScanner.start();
+                    scanner = siScanner;
                 }
                 if (scanner == null) {
                     // NULL scanner returned from coprocessor hooks means skip normal processing.

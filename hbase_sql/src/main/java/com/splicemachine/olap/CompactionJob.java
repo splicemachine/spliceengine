@@ -25,6 +25,7 @@ import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.spark.SparkFlatMapFunction;
 import com.splicemachine.mrio.MRConstants;
+import com.splicemachine.stream.SparkCompactionContext;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
@@ -93,6 +94,7 @@ public class CompactionJob implements Callable<Void>{
         rdd1.setName("Distribute Compaction Load");
         SpliceSpark.popScope();
 
+        compactionRequest.compactionFunction.setContext(new SparkCompactionContext());
         SpliceSpark.pushScope(compactionRequest.scope + ": Compact files");
         JavaRDD<String> rdd2=rdd1.mapPartitions(new SparkFlatMapFunction<>(compactionRequest.compactionFunction));
         rdd2.setName(compactionRequest.jobDetails);

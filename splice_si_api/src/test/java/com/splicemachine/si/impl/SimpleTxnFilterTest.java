@@ -26,6 +26,7 @@ import com.splicemachine.si.api.txn.*;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
+import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
 import com.splicemachine.si.impl.store.TestingTimestampSource;
 import com.splicemachine.si.impl.store.TestingTxnStore;
 import com.splicemachine.si.impl.txn.*;
@@ -76,7 +77,7 @@ public class SimpleTxnFilterTest{
         OperationFactory operationFactory = testEnv.getBaseOperationFactory();
         TimestampSource tss = new TestingTimestampSource();
         this.txnStore=new TestingTxnStore(new IncrementingClock(),tss,exceptionFactory,Long.MAX_VALUE);
-        this.txnSupplier = new ActiveTxnCacheSupplier(txnStore,1024);
+        this.txnSupplier = new ActiveTxnCacheSupplier(new CompletedTxnCacheSupplier(txnStore, 1024, 4),1024);
         this.txnLifecycleManager= new ClientTxnLifecycleManager(tss,exceptionFactory);
         this.txnLifecycleManager.setTxnStore(txnStore);
         this.txnLifecycleManager.setKeepAliveScheduler(new ManualKeepAliveScheduler(txnStore));
