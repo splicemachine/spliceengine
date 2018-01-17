@@ -605,6 +605,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
 
             // Put displayable table/index names into properties, which will ultimately be persisted
             // in the HTableDescriptor for convenient fetching where DataDictionary not available.
+            indexProperties.setProperty(SIConstants.SCHEMA_DISPLAY_NAME_ATTR, this.schemaName);
             indexProperties.setProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR, this.tableName);
             indexProperties.setProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR, this.indexName);
 
