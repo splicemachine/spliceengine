@@ -274,6 +274,10 @@ public interface SConfiguration {
 
     int getOlapCompactionMaximumWait();
 
+    double getOlapCompactionResolutionShare();
+    
+    int getOlapCompactionResolutionBufferSize();
+
     int getReservedSlotsTimeout();
 
     int getOlapServerTickLimit();

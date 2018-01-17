@@ -39,8 +39,10 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.hbase.coprocessor.TableType;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.server.CompactionContext;
 import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.storage.Partition;
+import com.splicemachine.stream.SparkCompactionContext;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -48,7 +50,11 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.*;
-import org.apache.hadoop.hbase.regionserver.compactions.*;
+import org.apache.hadoop.hbase.regionserver.compactions.CompactionProgress;
+import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
+import org.apache.hadoop.hbase.regionserver.compactions.CompactionThroughputController;
+import org.apache.hadoop.hbase.regionserver.compactions.DefaultCompactor;
+import org.apache.hadoop.hbase.regionserver.compactions.NoLimitCompactionThroughputController;
 import org.apache.hadoop.hbase.security.User;
 import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
 import org.apache.log4j.Logger;
@@ -250,7 +256,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         return "compaction";
     }
 
-    public List<Path> sparkCompact(CompactionRequest request) throws IOException {
+    public List<Path> sparkCompact(CompactionRequest request, CompactionContext context) throws IOException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "sparkCompact(): CompactionRequest=%s", request);
 
@@ -294,12 +300,15 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 }
                 if (needsSI(store.getTableName())) {
                     SIDriver driver=SIDriver.driver();
+                    double resolutionShare = HConfiguration.getConfiguration().getOlapCompactionResolutionShare();
+                    int bufferSize = HConfiguration.getConfiguration().getOlapCompactionResolutionBufferSize();
                     SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
-                            driver.getRollForward(),
-                            driver.getConfiguration().getActiveTransactionCacheSize());
+                            driver.getConfiguration().getActiveTransactionCacheSize(), context, driver.getRejectingExecutorService());
                     boolean purgeDeletedRows = request.isMajor() ? SpliceCompactionUtils.shouldPurge(store) : false;
 
-                    scanner = new SICompactionScanner(state,scanner,purgeDeletedRows);
+                    SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeDeletedRows, resolutionShare, bufferSize, context);
+                    siScanner.start();
+                    scanner = siScanner;
                 }
                 if (scanner == null) {
                     // NULL scanner returned from coprocessor hooks means skip normal processing.
