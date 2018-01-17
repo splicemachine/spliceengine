@@ -564,6 +564,16 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
     @Test
+    public void testReadFromPartitionedEmptyAvroExternalTable() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"empty_avro";
+        methodWatcher.executeUpdate(String.format("create external table empty_avro (col1 int, col2 varchar(24)) PARTITIONED BY (col1)" +
+                " STORED AS AVRO LOCATION '%s'",tablePath));
+
+        ResultSet rs = methodWatcher.executeQuery("select * from empty_avro");
+        Assert.assertEquals("", TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+    @Test
     public void testWriteReadFromSimpleAvroExternalTable() throws Exception {
         String tablePath = getExternalResourceDirectory()+"simple_avro";
         methodWatcher.executeUpdate(String.format("create external table simple_avro (col1 int, col2 varchar(24))" +
