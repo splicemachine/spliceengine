@@ -1260,7 +1260,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
      *
      * @return the lcc for this connection
      */
-    protected final LanguageConnectionContext getLanguageConnectionContext(){
+    public final LanguageConnectionContext getLanguageConnectionContext(){
         if(lcc==null){
             lcc=(LanguageConnectionContext)getContextManager().getContext(LanguageConnectionContext.CONTEXT_ID);
         }
