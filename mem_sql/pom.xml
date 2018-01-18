@@ -269,7 +269,7 @@
                             <target name="StartMemDatabase">
                                 <property name="classpath" refid="maven.compile.classpath"/>
                                 <property name="classpath.test" refid="maven.test.classpath"/>
-                                <java classname="com.splicemachine.derby.lifecycle.MemDatabase" classpath="${classpath}" dir="${basedir}/target" fork="true" spawn="true" maxmemory="8g">
+                                <java classname="com.splicemachine.derby.lifecycle.MemDatabase" classpath="${classpath}" dir="${basedir}/target" fork="true" spawn="true" maxmemory="2g">
                                     <jvmarg value="-XX:+UseConcMarkSweepGC"/>
                                     <jvmarg value="-XX:+UseParNewGC"/>
                                     <jvmarg value="-XX:+CMSPermGenSweepingEnabled"/>
