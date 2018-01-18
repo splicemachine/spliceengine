@@ -164,6 +164,7 @@ public class StatisticsAdminIT{
 
         new TableCreator(conn4)
                 .withCreate("create table t3 (a3 int, b3 int, c3 int, d3 int, e3 int, f3 int, primary key (b3,c3))")
+                .withIndex("create index ind_t3_1 on t3(a3, e3)")
                 .withInsert("insert into t3 values (?,?,?,?,?,?)")
                 .withRows(rows(
                         row(1,1,1,1,1,1),
@@ -867,8 +868,7 @@ public class StatisticsAdminIT{
 
     @Test
     public void testCollectIndexStatsOnlyProperty() throws Exception{
-        /* 1. create an index */
-        methodWatcher4.executeUpdate(String.format("create index ind_t3_1 on %s.t3(a3, e3)", SCHEMA4));
+        /* 1. t3 has an index ind_t3_1 on (a3, e3) */
 
         /* 2. set the database property splice.database.collectIndexStatsOnly to true */
         methodWatcher4.executeUpdate("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.collectIndexStatsOnly', 'true')");
@@ -928,6 +928,55 @@ public class StatisticsAdminIT{
                 "    F3     |";
         resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
         assertEquals("List of columns where stats are collected does not match.", expected, resultString);
+        rs.close();
+    }
+
+    @Test
+    public void testEanbleDisableAllColumnStatistics() throws Exception {
+        /* 1 check the collectstats property of all columns */
+        String expected1 = "COLUMNNAME |COLLECTSTATS |\n" +
+                "--------------------------\n" +
+                "    A3     |    true     |\n" +
+                "    B3     |    true     |\n" +
+                "    C3     |    true     |\n" +
+                "    D3     |    true     |\n" +
+                "    E3     |    true     |\n" +
+                "    F3     |    true     |";
+        ResultSet rs = methodWatcher4.executeQuery(format("select columnname, collectstats\n" +
+                "from sys.systables as T, sys.syscolumns as C, sys.sysschemas as S\n" +
+                "where S.schemaId = T.schemaId and T.tableId=C.referenceId and S.schemaName='%s' and t.tablename='T3'", SCHEMA4));
+        String resultString = TestUtils.FormattedResult.ResultFactory.toString(rs);
+        assertEquals("CollectStats properties of columns do not match expected result.", expected1, resultString);
+        rs.close();
+
+        /* 2 test disable all column stats */
+        methodWatcher4.executeUpdate(format("call syscs_util.disable_all_column_statistics('%s', 'T3')", SCHEMA4));
+
+        /* check the collectstats property of all columns */
+        String expected2 = "COLUMNNAME |COLLECTSTATS |\n" +
+                "--------------------------\n" +
+                "    A3     |    true     |\n" +
+                "    B3     |    true     |\n" +
+                "    C3     |    true     |\n" +
+                "    D3     |    false    |\n" +
+                "    E3     |    true     |\n" +
+                "    F3     |    false    |";
+        rs = methodWatcher4.executeQuery(format("select columnname, collectstats\n" +
+                "from sys.systables as T, sys.syscolumns as C, sys.sysschemas as S\n" +
+                "where S.schemaId = T.schemaId and T.tableId=C.referenceId and S.schemaName='%s' and t.tablename='T3'", SCHEMA4));
+        resultString = TestUtils.FormattedResult.ResultFactory.toString(rs);
+        assertEquals("CollectStats properties of columns do not match expected result.", expected2, resultString);
+        rs.close();
+
+        /* test eanble all column stats */
+        methodWatcher4.executeUpdate(format("call syscs_util.enable_all_column_statistics('%s', 'T3')", SCHEMA4));
+
+        /* check collectstats property again */
+        rs = methodWatcher4.executeQuery(format("select columnname, collectstats\n" +
+                "from sys.systables as T, sys.syscolumns as C, sys.sysschemas as S\n" +
+                "where S.schemaId = T.schemaId and T.tableId=C.referenceId and S.schemaName='%s' and t.tablename='T3'", SCHEMA4));
+        resultString = TestUtils.FormattedResult.ResultFactory.toString(rs);
+        assertEquals("CollectStats properties of columns do not match expected result.", expected1, resultString);
         rs.close();
     }
 
