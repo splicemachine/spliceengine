@@ -14,12 +14,9 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.db.impl.sql.compile.FromBaseTable;
-import org.spark_project.guava.base.Function;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import org.spark_project.guava.collect.Iterators;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLVarchar;
@@ -31,6 +28,9 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import org.spark_project.guava.base.Function;
+import org.spark_project.guava.collect.Iterators;
+
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -145,20 +145,6 @@ public class ExplainOperation extends SpliceBaseOperation {
         return currentTemplate;
     }
 
-    private static CompilerContext.DataSetProcessorType  queryHintedForcedType(Collection<QueryTreeNode> opPlanMap) {
-        for (QueryTreeNode node : opPlanMap) {
-            if (node instanceof FromBaseTable) {
-                CompilerContext.DataSetProcessorType hintType = ((FromBaseTable) node).getDataSetProcessorType();
-                if (hintType  == CompilerContext.DataSetProcessorType.FORCED_SPARK)
-                    return CompilerContext.DataSetProcessorType.FORCED_SPARK;
-                else if (hintType == CompilerContext.DataSetProcessorType.FORCED_CONTROL)
-                    return CompilerContext.DataSetProcessorType.FORCED_CONTROL;
-            }
-        }
-        return null;
-    }
-
-
     @SuppressWarnings("unchecked")
     private void getPlanInformation() throws StandardException {
         Map<String, Collection<QueryTreeNode>> m = PlanPrinter.planMap.get();
@@ -175,7 +161,7 @@ public class ExplainOperation extends SpliceBaseOperation {
                 useSpark = false;
             else {
                 // query may have provided hint on useSpark=true/false
-                CompilerContext.DataSetProcessorType  queryForcedType = queryHintedForcedType(opPlanMap);
+                CompilerContext.DataSetProcessorType  queryForcedType =PlanPrinter.queryHintedForcedType(opPlanMap);
                 if (queryForcedType != null) {
                     if (queryForcedType == CompilerContext.DataSetProcessorType.FORCED_SPARK)
                         useSpark = true;
@@ -183,7 +169,7 @@ public class ExplainOperation extends SpliceBaseOperation {
                         useSpark = false;
                 }
                 else if (!useSpark)
-                    useSpark = PlanPrinter.shouldUseSpark(opPlanMap);
+                    useSpark = PlanPrinter.shouldUseSpark(opPlanMap, false);
             }
 
             explainStringIter = PlanPrinter.planToIterator(opPlanMap, useSpark);

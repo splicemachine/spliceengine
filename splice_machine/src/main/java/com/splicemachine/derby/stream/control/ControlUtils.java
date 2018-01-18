@@ -15,6 +15,8 @@
 package com.splicemachine.derby.stream.control;
 
 import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiter;
+import com.splicemachine.db.iapi.sql.conn.StatementContext;
+import com.splicemachine.derby.stream.function.AbstractSpliceFunction;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.collect.*;
@@ -23,6 +25,7 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
 
 
 /**
@@ -80,4 +83,24 @@ public class ControlUtils {
             return delegate.next();
         }
     }
+
+    public static <E> Iterator<E> checkCancellation(Iterator<E> iterator, AbstractSpliceFunction f) {
+        return checkCancellation(iterator, f.operationContext);
+    }
+
+    public static <E> Iterator<E> checkCancellation(Iterator<E> iterator, OperationContext<?> opContext) {
+        if (opContext == null)
+            return iterator;
+        StatementContext context = opContext.getActivation().getLanguageConnectionContext().getStatementContext();
+        return Iterators.transform(iterator, new Function<E, E>() {
+            @Nullable
+            @Override
+            public E apply(@Nullable E v) {
+                if (context.isCancelled())
+                    throw new CancellationException("Operation was cancelled");
+                return v;
+            }
+        });
+    }
+
 }

@@ -255,6 +255,8 @@ public class StatisticsAdminIT{
                 Assert.assertEquals("Not enough rows returned!",0,countDown);
             }
         }
+        conn.rollback();
+        conn.reset();
     }
 
     @Test
@@ -565,6 +567,8 @@ public class StatisticsAdminIT{
             conn.rollback();
         }
 
+        conn.rollback();
+        conn.reset();
     }
 
     @Test

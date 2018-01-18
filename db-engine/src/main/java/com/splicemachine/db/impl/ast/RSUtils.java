@@ -255,6 +255,10 @@ public class RSUtils {
                 (ap.getJoinStrategy().getJoinStrategyType().equals(JoinStrategy.JoinStrategyType.HALF_MERGE_SORT))));
     }
 
+    public static boolean isMJ(AccessPath ap) {
+        return (ap != null && (ap.getJoinStrategy().getJoinStrategyType().equals(JoinStrategy.JoinStrategyType.MERGE)));
+    }
+
     public static boolean isNLJ(AccessPath ap) {
         return (ap != null && ap.getJoinStrategy().getJoinStrategyType().equals(JoinStrategy.JoinStrategyType.NESTED_LOOP));
     }
@@ -266,7 +270,7 @@ public class RSUtils {
     }
 
     public static boolean isSinkingJoin(AccessPath ap) {
-        return isMSJ(ap);
+        return isMSJ(ap) || isMJ(ap);
     }
 
     public static org.spark_project.guava.base.Predicate<ResultColumn> pointsTo(ResultSetNode rsn) throws StandardException {

@@ -605,6 +605,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
 
             // Put displayable table/index names into properties, which will ultimately be persisted
             // in the HTableDescriptor for convenient fetching where DataDictionary not available.
+            indexProperties.setProperty(SIConstants.SCHEMA_DISPLAY_NAME_ATTR, this.schemaName);
             indexProperties.setProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR, this.tableName);
             indexProperties.setProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR, this.indexName);
 
@@ -823,7 +824,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                 td.getHeapConglomerateId(), indexConglomId, td, indexDescriptor, defaultValue);
         if (preSplit && !sampling) {
             splitIndex(indexDescriptor, splitKeyPath, columnDelimiter, characterDelimiter,
-                    timestampFormat, dateFormat, timeFormat, ddlChange.getTentativeIndex(), td);
+                    timestampFormat, dateFormat, timeFormat, ddlChange.getTentativeIndex(), td, activation);
         }
         String changeId = DDLUtils.notifyMetadataChange(ddlChange);
         tc.prepareDataDictionaryChange(changeId);
@@ -836,7 +837,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
 
     private void splitIndex(IndexDescriptor indexDescriptor, String splitKeyPath, String columnDelimiter,
                             String characterDelimiter, String timestampFormat, String dateTimeFormat, String timeFormat,
-                            DDLMessage.TentativeIndex tentativeIndex, TableDescriptor td) throws IOException, StandardException {
+                            DDLMessage.TentativeIndex tentativeIndex, TableDescriptor td, Activation activation) throws IOException, StandardException {
 
         List<Integer> indexCols = tentativeIndex.getIndex().getIndexColsToMainColMapList();
         List<Integer> allFormatIds = tentativeIndex.getTable().getFormatIdsList();
@@ -846,7 +847,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         }
         DataSetProcessor dsp = EngineDriver.driver().processorFactory().localProcessor(null,null);
         DataSet<String> text = dsp.readTextFile(splitKeyPath);
-        OperationContext operationContext = dsp.createOperationContext((Activation)null);
+        OperationContext operationContext = dsp.createOperationContext(activation);
         ExecRow execRow = WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds);
         DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
                 null, timeFormat, dateTimeFormat, timestampFormat, operationContext), true);

@@ -148,6 +148,11 @@ public class SingleRowCursorResultSet implements CursorResultSet {
     }
 
     @Override
+    public boolean isTimedout() {
+        return false;
+    }
+
+    @Override
     public void finish() throws StandardException {
 
     }

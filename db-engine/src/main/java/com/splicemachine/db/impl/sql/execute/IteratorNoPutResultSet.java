@@ -185,6 +185,11 @@ public class IteratorNoPutResultSet implements NoPutResultSet {
 		return false;
 	}
 
+	@Override
+	public boolean isTimedout() {
+		return false;
+	}
+
 	@Override public void finish() throws StandardException { close(); }
 
 		@Override public long getExecuteTime() { return 0; }

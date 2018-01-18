@@ -363,4 +363,11 @@ public interface ResultSet
 		this result set. The warnings are cleared once this call returns.
 	*/
 	SQLWarning getWarnings();
+
+	/**
+	 Find out if the ResultSet is timed out or not.
+
+	 @return true if the ResultSet has timed out.
+	 */
+    boolean isTimedout();
 }

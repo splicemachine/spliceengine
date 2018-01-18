@@ -15,6 +15,9 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.derby.stream.function.IteratorUtils;
+import org.apache.spark.InterruptibleIterator;
+import org.apache.spark.TaskContext;
 import org.spark_project.guava.collect.Lists;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -30,6 +33,8 @@ import com.splicemachine.storage.*;
 import com.splicemachine.storage.util.MapAttributes;
 import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
+import scala.collection.JavaConverters;
+
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.util.ArrayList;
@@ -226,7 +231,7 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
 
     @Override
     public Iterator<ExecRow> iterator(){
-        return this;
+        return IteratorUtils.asInterruptibleIterator(this);
     }
 
 }

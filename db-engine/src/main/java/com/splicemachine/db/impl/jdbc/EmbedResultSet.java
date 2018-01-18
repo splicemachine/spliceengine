@@ -4347,6 +4347,9 @@ public abstract class EmbedResultSet extends ConnectionChild
 			if (theResults.isKilled()) {
 				throw newSQLException(SQLState.LANG_CANCELLATION_EXCEPTION);
 			}
+			if (theResults.isTimedout()) {
+				throw newSQLException(SQLState.LANG_STATEMENT_CANCELLED_OR_TIMED_OUT);
+			}
 			throw newSQLException(SQLState.LANG_RESULT_SET_NOT_OPEN,operation);
 		}
 	}

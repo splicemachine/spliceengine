@@ -51,11 +51,11 @@ public class UpdateFromSubqueryIT extends SpliceUnitTest {
         params.add(new Object[]{"NESTEDLOOP","true"});
         params.add(new Object[]{"SORTMERGE","true"});
         params.add(new Object[]{"BROADCAST","true"});
-    //  params.add(new Object[]{"MERGE","true"});    //merge join path is disabled due to wrong result tracked in DB-6320
+        params.add(new Object[]{"MERGE","true"});
         params.add(new Object[]{"NESTEDLOOP","false"});
         params.add(new Object[]{"SORTMERGE","false"});
         params.add(new Object[]{"BROADCAST","false"});
-    //  params.add(new Object[]{"MERGE","false"});   //merge join path is disabled due to wrong result tracked in DB-6320
+        params.add(new Object[]{"MERGE","false"});
         return params;
     }
 

@@ -171,7 +171,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
 
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Activation activation){
-        return new ControlOperationContext<>(null);
+        return new ControlOperationContext<>(activation);
     }
 
     @Override
@@ -368,7 +368,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public StructType getExternalFileSchema(String storedAs, String location) {
+    public StructType getExternalFileSchema(String storedAs, String location) throws StandardException {
         DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
         return proc.getExternalFileSchema(storedAs,location);
     }

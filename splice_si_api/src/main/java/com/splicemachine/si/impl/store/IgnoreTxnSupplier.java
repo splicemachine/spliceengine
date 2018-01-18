@@ -21,13 +21,10 @@ import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.storage.*;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -39,7 +36,7 @@ public class IgnoreTxnSupplier {
     final private PartitionFactory partitionFactory;
     final private TxnOperationFactory txnOperationFactory;
     private boolean ignoreTxnTableExists;
-    private boolean initialized = false;
+    private volatile boolean initialized = false;
 
     public IgnoreTxnSupplier(PartitionFactory partitionFactory, TxnOperationFactory txnOperationFactory) {
         this.partitionFactory = partitionFactory;

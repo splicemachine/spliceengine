@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.stream.control;
 
-import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiter;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import org.spark_project.guava.base.Function;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -26,17 +25,9 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
-import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
-import com.splicemachine.derby.stream.output.UpdateDataSetWriterBuilder;
-import com.splicemachine.derby.stream.output.delete.DeletePipelineWriter;
-import com.splicemachine.derby.stream.output.delete.DeleteTableWriterBuilder;
 import com.splicemachine.derby.stream.output.direct.DirectDataSetWriter;
 import com.splicemachine.derby.stream.output.direct.DirectPipelineWriter;
 import com.splicemachine.derby.stream.output.direct.DirectTableWriterBuilder;
-import com.splicemachine.derby.stream.output.insert.InsertPipelineWriter;
-import com.splicemachine.derby.stream.output.insert.InsertTableWriterBuilder;
-import com.splicemachine.derby.stream.output.update.UpdatePipelineWriter;
-import com.splicemachine.derby.stream.output.update.UpdateTableWriterBuilder;
 import com.splicemachine.kvpair.KVPair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.spark_project.guava.base.Predicate;
@@ -46,10 +37,9 @@ import javax.annotation.Nullable;
 import java.util.*;
 import java.util.function.Consumer;
 
-import static com.splicemachine.derby.stream.control.ControlUtils.entryToTuple;
 import static com.splicemachine.derby.stream.control.ControlUtils.limit;
+import static com.splicemachine.derby.stream.control.ControlUtils.checkCancellation;
 import static com.splicemachine.derby.stream.control.ControlUtils.multimapFromIterator;
-import static org.spark_project.guava.collect.Maps.*;
 
 /**
  *
@@ -64,6 +54,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     public ControlPairDataSet(Iterator<Tuple2<K,V>> source) {
         this.source = source;
     }
+
 
     @Override
     public DataSet<V> values() {
@@ -99,7 +90,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public <Op extends SpliceOperation> PairDataSet<K, V> reduceByKey(final SpliceFunction2<Op,V, V, V> function2) {
-        final Iterator<Tuple2<K,V>> limitIterator = limit(source, function2.operationContext);
+        final Iterator<Tuple2<K,V>> limitIterator = limit(checkCancellation(source,function2), function2.operationContext);
         return new ControlPairDataSet(new Iterator<Tuple2<K,V>>(){
             private Iterator<Map.Entry<K,V>> set;
             @Override
@@ -148,7 +139,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(final SpliceFunction<Op,Tuple2<K, V>, U> function) {
-        return new ControlDataSet<U>(Iterators.transform(source,function));
+        return new ControlDataSet<U>(Iterators.transform(checkCancellation(source,function),function));
     }
 
     @Override
@@ -164,7 +155,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
             public int compare(Tuple2<K, V> o1, Tuple2<K, V> o2) {
                 return comparator.compare(o1._1(), o2._1());
             }
-        }).immutableSortedCopy(() -> limit(source, operationContext)).iterator());
+        }).immutableSortedCopy(() -> limit(ControlUtils.checkCancellation(source,operationContext), operationContext)).iterator());
     }
 
     @Override
@@ -181,7 +172,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public PairDataSet<K, Iterable<V>> groupByKey(OperationContext context) {
-        Multimap<K,V> newMap = multimapFromIterator(limit(source, context));
+        Multimap<K,V> newMap = multimapFromIterator(limit(ControlUtils.checkCancellation(source,context), context));
         return new ControlPairDataSet<>(FluentIterable.from(newMap.asMap().entrySet()).transform(new Function<Map.Entry<K, Collection<V>>, Tuple2<K, Iterable<V>>>() {
             @Nullable
             @Override
@@ -200,8 +191,8 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     @Override
     public <W> PairDataSet< K, Tuple2<V, W>> hashJoin(PairDataSet<K, W> rightDataSet, OperationContext operationContext) {
         // Materializes the right side
-        final Multimap<K,W> rightSide = multimapFromIterator(limit(((ControlPairDataSet<K,W>) rightDataSet).source, operationContext));
-        return new ControlPairDataSet(Iterators.concat(Iterators.transform(source,new Function<Tuple2<K, V>, Iterator<Tuple2<K, Tuple2<V, W>>>>() {
+        final Multimap<K,W> rightSide = multimapFromIterator(limit(ControlUtils.checkCancellation(((ControlPairDataSet<K,W>) rightDataSet).source,operationContext), operationContext));
+        return new ControlPairDataSet(Iterators.concat(Iterators.transform(ControlUtils.checkCancellation(source,operationContext),new Function<Tuple2<K, V>, Iterator<Tuple2<K, Tuple2<V, W>>>>() {
             @Nullable
             @Override
             public Iterator<Tuple2<K, Tuple2<V, W>>> apply(@Nullable Tuple2<K, V> t) {
@@ -226,8 +217,8 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     @Override
     public <W> PairDataSet< K, V> subtractByKey(PairDataSet<K, W> rightDataSet, OperationContext operationContext) {
         // Materializes the right side
-        final Multimap<K,W> rightSide = multimapFromIterator(limit(((ControlPairDataSet<K,W>) rightDataSet).source, operationContext));
-        return new ControlPairDataSet<>(Iterators.filter(source, new Predicate<Tuple2<K, V>>() {
+        final Multimap<K,W> rightSide = multimapFromIterator(limit(ControlUtils.checkCancellation(((ControlPairDataSet<K,W>) rightDataSet).source,operationContext), operationContext));
+        return new ControlPairDataSet<>(Iterators.filter(ControlUtils.checkCancellation(source,operationContext), new Predicate<Tuple2<K, V>>() {
             @Override
             public boolean apply(@Nullable Tuple2<K, V> t) {
                 assert t!=null: "T cannot be null";
@@ -253,7 +244,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op, Iterator<Tuple2<K, V>>, U> f) {
         try {
-            return new ControlDataSet<>(f.call(source));
+            return new ControlDataSet<>(f.call(checkCancellation(source,f)));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -262,6 +253,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> flatmap(SpliceFlatMapFunction<Op, Tuple2<K,V>, U> function) {
         try {
+            Iterator<Tuple2<K, V>> source = checkCancellation(this.source,function);
             Iterator<U> iterator = Iterators.emptyIterator();
             List<Iterator<U>> l = Lists.newArrayList();
 
@@ -286,8 +278,8 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     
     @Override
     public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet, OperationContext operationContext) {
-        Multimap<K, V> left = multimapFromIterator(limit(source, operationContext));
-        Multimap<K, W> right = multimapFromIterator(limit(((ControlPairDataSet<K, W>) rightDataSet).source, operationContext));
+        Multimap<K, V> left = multimapFromIterator(limit(ControlUtils.checkCancellation(source,operationContext), operationContext));
+        Multimap<K, W> right = multimapFromIterator(limit(ControlUtils.checkCancellation(((ControlPairDataSet<K, W>) rightDataSet).source, operationContext), operationContext));
 
         List<Tuple2<K, Tuple2<Iterable<V>, Iterable<W>>>> result = new ArrayList<>();
         for (K key: Sets.union(left.keySet(),right.keySet())){

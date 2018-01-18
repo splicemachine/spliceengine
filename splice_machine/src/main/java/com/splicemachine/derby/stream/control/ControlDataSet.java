@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiter;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.control.output.ControlExportDataSetWriter;
 import com.splicemachine.derby.stream.function.KeyerFunction;
@@ -46,11 +47,9 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.IteratorUtils;
-import org.apache.commons.collections.iterators.IteratorChain;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.base.Predicate;
 import org.spark_project.guava.collect.Iterators;
-import org.spark_project.guava.collect.Multimaps;
 import org.spark_project.guava.collect.Sets;
 import org.spark_project.guava.io.Closeables;
 import org.spark_project.guava.util.concurrent.Futures;
@@ -72,8 +71,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import static com.splicemachine.derby.stream.control.ControlUtils.entryToTuple;
-import static com.splicemachine.derby.stream.control.ControlUtils.limit;
+import static com.splicemachine.derby.stream.control.ControlUtils.checkCancellation;
 
 /**
  *
@@ -88,7 +86,7 @@ public class ControlDataSet<V> implements DataSet<V> {
     public ControlDataSet(Iterator<V> iterator) {
         this.iterator = iterator;
     }
-
+    
     @Override
     public int partitions() {
         return 1;
@@ -107,7 +105,7 @@ public class ControlDataSet<V> implements DataSet<V> {
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f) {
         try {
-            return new ControlDataSet<>(f.call(iterator));
+            return new ControlDataSet<>(f.call(checkCancellation(iterator, f)));
         } catch (Exception e) {
             throw Exceptions.getRuntimeException(e);
         }
@@ -142,7 +140,7 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public DataSet<V> distinct(OperationContext context) {
-        return new ControlDataSet<>(newHashSet(iterator, context).iterator());
+        return new ControlDataSet<>(newHashSet(ControlUtils.checkCancellation(iterator, context), context).iterator());
     }
 
     @Override
@@ -151,7 +149,7 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     public <Op extends SpliceOperation, K,U>PairDataSet<K, U> index(final SplicePairFunction<Op,V,K,U> function) {
-        return new ControlPairDataSet<>(Iterators.transform(iterator,new Function<V, Tuple2<K, U>>() {
+        return new ControlPairDataSet<>(Iterators.transform(checkCancellation(iterator, function),new Function<V, Tuple2<K, U>>() {
             @Nullable
             @Override
             public Tuple2<K, U> apply(@Nullable V v) {
@@ -176,7 +174,7 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function) {
-        return new ControlDataSet<U>(Iterators.transform(iterator, function));
+        return new ControlDataSet<U>(Iterators.transform(checkCancellation(iterator, function), function));
     }
 
     @Override
@@ -196,7 +194,7 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation, K> PairDataSet<K, V> keyBy(final SpliceFunction<Op, V, K> function) {
-            return new ControlPairDataSet<>(Iterators.<V,Tuple2<K, V>>transform(iterator, new Function<V, Tuple2<K, V>>() {
+            return new ControlPairDataSet<>(Iterators.<V,Tuple2<K, V>>transform(checkCancellation(iterator, function), new Function<V, Tuple2<K, V>>() {
                 @Nullable
                 @Override
                 public Tuple2<K, V> apply(@Nullable V v) {
@@ -227,12 +225,13 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public DataSet<V> union(DataSet< V> dataSet) {
+    public DataSet<V> union(DataSet<V> dataSet, OperationContext operationContext) {
         try {
             ExecutorService es = EngineDriver.driver().getExecutorService();
+            FutureIterator<V> futureIterator = new FutureIterator<>(2);
+            operationContext.getOperation().registerCloseable(futureIterator);
             Future<Iterator<V>> leftSideFuture = es.submit(new NonLazy(iterator));
             Future<Iterator<V>> rightSideFuture = es.submit(new NonLazy(((ControlDataSet<V>) dataSet).iterator));
-            FutureIterator<V> futureIterator = new FutureIterator<>();
             futureIterator.appendFutureIterator(leftSideFuture);
             futureIterator.appendFutureIterator(rightSideFuture);
             return new ControlDataSet<>(futureIterator);
@@ -242,9 +241,9 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public DataSet<V> parallelProbe(List<DataSet<V>> dataSets) {
+    public DataSet<V> parallelProbe(List<DataSet<V>> dataSets, OperationContext<MultiProbeTableScanOperation> operationContext) {
         ExecutorService es = EngineDriver.driver().getExecutorService();
-        FutureIterator<V> futureIterator = new FutureIterator<>();
+        FutureIterator<V> futureIterator = new FutureIterator<>(dataSets.size());
         for (DataSet<V> dataSet: dataSets) {
             futureIterator.appendFutureIterator(es.submit(new NonLazy(((ControlDataSet<V>) dataSet).iterator)));
         }
@@ -252,13 +251,13 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public DataSet< V> union(DataSet< V> dataSet, String name, boolean pushScope, String scopeDetail) {
-        return union(dataSet);
+    public DataSet< V> union(DataSet<V> dataSet, OperationContext operationContext, String name, boolean pushScope, String scopeDetail) {
+        return union(dataSet, operationContext);
     }
 
     @Override
     public <Op extends SpliceOperation> DataSet< V> filter(SplicePredicateFunction<Op, V> f) {
-        return new ControlDataSet<>(Iterators.filter(iterator,f));
+        return new ControlDataSet<>(Iterators.filter(checkCancellation(iterator, f),f));
     }
 
     @Override
@@ -274,8 +273,8 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public DataSet< V> intersect(DataSet<V> dataSet, OperationContext context) {
-        Set<V> left=newHashSet(iterator, context);
-        Set<V> right=newHashSet(((ControlDataSet<V>)dataSet).iterator, context);
+        Set<V> left=newHashSet(ControlUtils.checkCancellation(iterator, context), context);
+        Set<V> right=newHashSet(ControlUtils.checkCancellation(((ControlDataSet<V>)dataSet).iterator, context), context);
         Sets.SetView<V> intersection=Sets.intersection(left,right);
         return new ControlDataSet<>(intersection.iterator());
     }
@@ -289,8 +288,8 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public DataSet< V> subtract(DataSet<V> dataSet, OperationContext context) {
-        Set<V> left=newHashSet(iterator, context);
-        Set<V> right=newHashSet(((ControlDataSet<V>)dataSet).iterator, context);
+        Set<V> left=newHashSet(ControlUtils.checkCancellation(iterator, context), context);
+        Set<V> right=newHashSet(ControlUtils.checkCancellation(((ControlDataSet<V>)dataSet).iterator, context), context);
         return new ControlDataSet<>(Sets.difference(left,right).iterator());
     }
 
@@ -301,7 +300,7 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation,U> DataSet<U> flatMap(SpliceFlatMapFunction<Op, V, U> f) {
-        return new ControlDataSet(Iterators.concat(Iterators.transform(iterator,f)));
+        return new ControlDataSet(Iterators.concat(Iterators.transform(checkCancellation(iterator, f),f)));
     }
 
     @Override
@@ -322,7 +321,7 @@ public class ControlDataSet<V> implements DataSet<V> {
     @Override
     public <Op extends SpliceOperation> DataSet<V> take(TakeFunction<Op,V> f) {
         try {
-            return new ControlDataSet<>(f.call(iterator));
+            return new ControlDataSet<>(f.call(checkCancellation(iterator, f)));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -410,11 +409,6 @@ public class ControlDataSet<V> implements DataSet<V> {
     @Override
     public void persist() {
         // no op
-    }
-
-    @Override
-    public Iterator<V> iterator() {
-        return this.toLocalIterator();
     }
 
     @Override
