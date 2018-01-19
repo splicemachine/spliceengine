@@ -2599,7 +2599,13 @@ Guide.
 
             <msg>
                 <name>42Y52</name>
-                <text>Invalid Properties list in FROM list.  The hint skipStats needs (true/false) and does not support '{0}'.</text>
+                <text>The hint skipStats needs (true/false) and does not support '{0}'.</text>
+                <arg>tableName</arg>
+            </msg>
+
+            <msg>
+                <name>42Y54</name>
+                <text>The hint useDefaultSelectivityFactor should be a number in (0,1], and does not support '{0}'.</text>
                 <arg>tableName</arg>
             </msg>
             <msg>
@@ -2621,6 +2627,12 @@ Guide.
                 <arg>strategyValue</arg>
                 <arg>tableName</arg>
                 <arg>supportedStrategyNames</arg>
+            </msg>
+
+            <msg>
+                <name>42Y57</name>
+                <text>The hint useDefaultRowCount should be a positive integer, and does not support '{0}'.</text>
+                <arg>tableName</arg>
             </msg>
 
             <msg>
