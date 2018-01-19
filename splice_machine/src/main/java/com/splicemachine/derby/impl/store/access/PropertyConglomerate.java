@@ -105,7 +105,8 @@ public class PropertyConglomerate {
 			serviceProperties.put(Property.DATABASE_PROPERTIES_ONLY, "false");
 			serviceProperties.put(Property.DEFAULT_CONNECTION_MODE_PROPERTY, "fullAccess");
 			serviceProperties.put(Property.AUTHENTICATION_BUILTIN_ALGORITHM, Property.AUTHENTICATION_BUILTIN_ALGORITHM_DEFAULT);
-			for (Object key: serviceProperties.keySet()) {
+			serviceProperties.put(Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED, "false");
+            for (Object key: serviceProperties.keySet()) {
 				propertyManager.addProperty((String)key,serviceProperties.getProperty((String)key));
 			}
 		}

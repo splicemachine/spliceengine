@@ -76,27 +76,28 @@ import java.util.Enumeration;
 public class PropertyUtil {
 
 	// List of properties that are stored in the service.properties file
-	public static final String[] servicePropertyList = {
-		EngineType.PROPERTY,
-		Property.NO_AUTO_BOOT,
-		Property.STORAGE_TEMP_DIRECTORY,
-        Attribute.CRYPTO_PROVIDER,
-        Attribute.CRYPTO_ALGORITHM,
-		Attribute.RESTORE_FROM,
-		Attribute.LOG_DEVICE,
-		Property.LOG_ARCHIVE_MODE,
-		// Additional Derby properties that Splice considers as "service" properties.
-		Property.PROPERTIES_CONGLOM_ID,
-		Property.ROW_LOCKING,
-		"derby.language.logStatementText",
-		"derby.language.logQueryPlan",
-		Property.LOCKS_ESCALATION_THRESHOLD,
-		Property.DATABASE_PROPERTIES_ONLY,
-		Property.DEFAULT_CONNECTION_MODE_PROPERTY,
-		Property.AUTHENTICATION_BUILTIN_ALGORITHM
-	};
+    public static final String[] servicePropertyList = {
+            EngineType.PROPERTY,
+            Property.NO_AUTO_BOOT,
+            Property.STORAGE_TEMP_DIRECTORY,
+            Attribute.CRYPTO_PROVIDER,
+            Attribute.CRYPTO_ALGORITHM,
+            Attribute.RESTORE_FROM,
+            Attribute.LOG_DEVICE,
+            Property.LOG_ARCHIVE_MODE,
+            // Additional Derby properties that Splice considers as "service" properties.
+            Property.PROPERTIES_CONGLOM_ID,
+            Property.ROW_LOCKING,
+            "derby.language.logStatementText",
+            "derby.language.logQueryPlan",
+            Property.LOCKS_ESCALATION_THRESHOLD,
+            Property.DATABASE_PROPERTIES_ONLY,
+            Property.DEFAULT_CONNECTION_MODE_PROPERTY,
+            Property.AUTHENTICATION_BUILTIN_ALGORITHM,
+            Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED
+    };
 
-	/**
+    /**
 		Property is set in JVM set
 	*/
 	public static final int SET_IN_JVM = 0;	
