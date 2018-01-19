@@ -235,6 +235,7 @@ public class FakePartitionStatisticsImpl implements PartitionStatistics {
 
     @Override
     public <T extends Comparator<T>> long selectivityExcludingValueIfSkewed(T element, int positionNumber) {
-        return 0l;
+        // negative value tell callers that we don't actually have stats
+        return -1l;
     }
 }
