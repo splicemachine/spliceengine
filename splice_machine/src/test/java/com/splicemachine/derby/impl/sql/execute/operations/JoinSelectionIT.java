@@ -14,26 +14,19 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import org.spark_project.guava.base.Joiner;
 import com.splicemachine.derby.test.framework.*;
-
 import com.splicemachine.test.SlowTest;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.Ignore;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-import org.junit.rules.Timeout;
 import org.junit.runner.Description;
+import org.spark_project.guava.base.Joiner;
 
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
-import java.util.concurrent.locks.LockSupport;
 
 import static org.hamcrest.core.AnyOf.anyOf;
 import static org.hamcrest.core.IsEqual.equalTo;
@@ -103,6 +96,9 @@ public class JoinSelectionIT extends SpliceUnitTest  {
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher2, spliceTableWatcher2));
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher2, spliceTableWatcher2));
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher2, spliceTableWatcher2));
+
+                        spliceClassWatcher.executeUpdate(format("insert into %s values (1,1), (2,2)", spliceTableWatcher4));
+                        spliceClassWatcher.executeUpdate(format("insert into %s values (1,1), (2,2)", spliceTableWatcher5));
 
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) values 1,2,3,4,5,6,7,8,9,10",
                                 spliceTableWatcher3));

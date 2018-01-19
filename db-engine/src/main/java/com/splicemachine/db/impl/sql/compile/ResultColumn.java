@@ -1974,7 +1974,7 @@ public class ResultColumn extends ValueNode
             return 0;
         ConglomerateDescriptor cd = this.getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
         int leftPosition = getColumnPosition();
-        return getCompilerContext().getStoreCostController(this.getTableColumnDescriptor().getTableDescriptor(),cd, false).cardinality(leftPosition);
+        return getCompilerContext().getStoreCostController(this.getTableColumnDescriptor().getTableDescriptor(),cd, false, 0).cardinality(leftPosition);
     }
     /**
      *

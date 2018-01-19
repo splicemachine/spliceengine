@@ -82,7 +82,7 @@ public class StoreCostControllerImpl implements StoreCostController {
     private boolean isMergedStats;
 
 
-    public StoreCostControllerImpl(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, List<PartitionStatisticsDescriptor> partitionStatistics) throws StandardException {
+    public StoreCostControllerImpl(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, List<PartitionStatisticsDescriptor> partitionStatistics, long defaultRowCount) throws StandardException {
         SConfiguration config = EngineDriver.driver().getConfiguration();
         openLatency = config.getFallbackOpencloseLatency();
         closeLatency = config.getFallbackOpencloseLatency();
@@ -155,12 +155,18 @@ public class StoreCostControllerImpl implements StoreCostController {
             missingPartitions = 0;
             noStats = true;
             if (td.getTableType() != TableDescriptor.EXTERNAL_TYPE)
-                tableStatistics = RegionLoadStatistics.getTableStatistics(tableId, partitions,fallbackNullFraction,extraQualifierMultiplier);
+                tableStatistics = RegionLoadStatistics.getTableStatistics(tableId, partitions,fallbackNullFraction,extraQualifierMultiplier, defaultRowCount);
             else {
                 try {
                     FileInfo fileInfo = ImportUtils.getImportFileInfo(td.getLocation());
+                    long rowCount = fileInfo !=null?fileInfo.size()/100:(long) VTICosting.defaultEstimatedRowCount;
+                    long heapSize = fileInfo !=null?fileInfo.size():(long) VTICosting.defaultEstimatedRowCount*100;
+                    if (defaultRowCount > 0) {
+                        rowCount = defaultRowCount;
+                        heapSize = rowCount * 100;
+                    }
                     FakePartitionStatisticsImpl impl = new FakePartitionStatisticsImpl(
-                            tableId,tableId,fileInfo !=null?fileInfo.size()/100:(long) VTICosting.defaultEstimatedRowCount,fileInfo.size(),fallbackNullFraction,extraQualifierMultiplier);
+                            tableId,tableId,rowCount,heapSize,fallbackNullFraction,extraQualifierMultiplier);
                     partitionStats.add(impl);
                     tableStatistics = new TableStatisticsImpl(tableId,partitionStats,fallbackNullFraction,extraQualifierMultiplier);
                 } catch (Exception e) {
