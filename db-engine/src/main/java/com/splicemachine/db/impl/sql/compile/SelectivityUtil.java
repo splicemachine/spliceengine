@@ -278,7 +278,7 @@ public class SelectivityUtil {
         double innerShuffleCost = innerCost.localCostPerPartition()+innerCost.getRemoteCost()/innerCost.partitionCount()
                 +innerCost.getOpenCost()+innerCost.getCloseCost();
         double outerReadCost = outerCost.localCost()/outerCost.partitionCount();
-        double innerReadCost = innerCost.localCost()/outerCost.partitionCount();
+        double innerReadCost = innerCost.localCost()/innerCost.partitionCount();
 
         return outerShuffleCost+innerShuffleCost+outerReadCost+innerReadCost;
     }
