@@ -1205,6 +1205,6 @@ public interface Property {
 	 */
 	String COLLECT_INDEX_STATS_ONLY = "derby.database.collectIndexStatsOnly";
 
-	String SELECTIVITY_ESTIMATION_INCLUDING_SKEWED_DEFAULT =
+	String SELECTIVITY_ESTIMATION_INCLUDING_SKEWED =
 			"derby.database.selectivityEstimationIncludingSkewedDefault";
 }
