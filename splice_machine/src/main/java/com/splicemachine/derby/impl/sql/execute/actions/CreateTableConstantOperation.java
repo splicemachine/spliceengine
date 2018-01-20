@@ -459,7 +459,13 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                 // test constraint only if the external file exits
                 DistributedFileSystem fileSystem = SIDriver.driver().getFileSystem(location);
                 FileInfo fileInfo = fileSystem.getInfo(location);
-                if(fileInfo.exists() && fileInfo.isDirectory() && fileInfo.fileCount() > 0 && storedAs.compareToIgnoreCase("t") != 0) {
+                String[] files = fileSystem.getExistingFiles(location, "*");
+                if(!fileInfo.exists() || (files.length == 1 && files[0].equals("_SUCCESS"))) {
+                    // need the create the external file if the location provided is empty
+                    String pathToParent = location.substring(0, location.lastIndexOf("/"));
+                    ImportUtils.validateWritable(pathToParent.toString(), false);
+                    EngineDriver.driver().getOlapClient().execute(new DistributedCreateExternalTableJob(delimited, escaped, lines, storedAs, location, compression, partitionby, jobGroup, template));
+                } else if(fileInfo.exists() && fileInfo.isDirectory() && fileInfo.fileCount() > 0 && storedAs.compareToIgnoreCase("t") != 0) {
                     GetSchemaExternalResult result = EngineDriver.driver().getOlapClient().execute(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs));
 
                     StructType externalSchema = result.getSchema();
@@ -486,11 +492,6 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                             }
                         }
                     }
-                } else if(!fileInfo.exists()) {
-                    // need the create the external file if the location provided is empty
-                    String pathToParent = location.substring(0, location.lastIndexOf("/"));
-                    ImportUtils.validateWritable(pathToParent.toString(), false);
-                    EngineDriver.driver().getOlapClient().execute(new DistributedCreateExternalTableJob(delimited, escaped, lines, storedAs, location, compression, partitionby, jobGroup, template));
                 } else if(!fileInfo.isDirectory()) {
                     throw StandardException.newException(SQLState.DIRECTORY_REQUIRED, location);
                 }

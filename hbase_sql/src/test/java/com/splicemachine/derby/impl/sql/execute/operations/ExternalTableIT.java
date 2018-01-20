@@ -575,6 +575,20 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
     @Test
+    public void testCreateExternalTableWithEmptyORCDataFile() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"EXT_ORC";
+        methodWatcher.executeUpdate(String.format("create external table EXT_ORC (col1 int, col2 varchar(24))" +
+                " STORED AS ORC LOCATION '%s'",tablePath));
+
+        methodWatcher.execute("drop table EXT_ORC");
+
+        int isCreated = methodWatcher.executeUpdate(String.format("create external table EXT_ORC_2 (col1 int, col2 varchar(24))" +
+                " STORED AS ORC LOCATION '%s'",tablePath));
+
+        Assert.assertEquals(isCreated, 0);
+    }
+
+    @Test
     public void testReadFromPartitionedEmptyAvroExternalTable() throws Exception {
         String tablePath = getExternalResourceDirectory()+"empty_avro";
         methodWatcher.executeUpdate(String.format("create external table empty_avro (col1 int, col2 varchar(24)) PARTITIONED BY (col1)" +

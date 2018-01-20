@@ -180,7 +180,7 @@ public interface DataSetProcessor {
      * @param location
      * @return
      */
-    StructType getExternalFileSchema(String storedAs, String location);
+    StructType getExternalFileSchema(String storedAs, String location) throws StandardException;
     /**
      * This is used when someone modify the external table outside of Splice.
      * One need to refresh the schema table if the underlying file have been modify outside Splice because
