@@ -49,6 +49,7 @@ public class TableStatisticsImpl implements TableStatistics {
     private double fallbackNullFraction;
     private double extraQualifierMultiplier;
     private boolean isMergedStats;
+    private int totalPartition = 0;
 
     public TableStatisticsImpl() {
 
@@ -81,6 +82,20 @@ public class TableStatisticsImpl implements TableStatistics {
         }
     }
 
+    public TableStatisticsImpl(String tableId,
+                               List<? extends PartitionStatistics> partitionStatistics,
+                               double fallbackNullFraction,
+                               double extraQualifierMultiplier,
+                               int numPartition,
+                               boolean isMergedStats) {
+        this.tableId = tableId;
+        this.partitionStatistics = partitionStatistics;
+        assert partitionStatistics.size() > 0:"Partition statistics are 0";
+        this.fallbackNullFraction = fallbackNullFraction;
+        this.extraQualifierMultiplier = extraQualifierMultiplier;
+        this.totalPartition = numPartition;
+        this.isMergedStats = isMergedStats;
+    }
     /**
      * Table ID
      *
@@ -280,10 +295,13 @@ public class TableStatisticsImpl implements TableStatistics {
      */
     @Override
     public int numPartitions() {
+        if (totalPartition > 0)
+            return totalPartition;
         if (isMergedStats)
-            return (partitionStatistics.size()==0) ? 0:(int)(partitionStatistics.get(0).getPartitionStatistics().getNumberOfPartitions());
+            totalPartition = (partitionStatistics.size()==0) ? 0:(int)(partitionStatistics.get(0).getPartitionStatistics().getNumberOfPartitions());
         else
-            return partitionStatistics.size();
+            totalPartition = partitionStatistics.size();
+        return totalPartition;
     }
 
     @Override

@@ -2604,6 +2604,12 @@ Guide.
             </msg>
 
             <msg>
+                <name>42Y53</name>
+                <text>Invalid Properties list in FROM list.  The hint useDefaultRowCount should be a positive integer, and does not support '{0}'.</text>
+                <arg>tableName</arg>
+            </msg>
+
+            <msg>
                 <name>42Y55</name>
                 <text>'{0}' cannot be performed on '{1}' because it does not exist.</text>
                 <arg>value</arg>
