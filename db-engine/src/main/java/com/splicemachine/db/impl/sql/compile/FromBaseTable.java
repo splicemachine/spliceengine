@@ -112,6 +112,7 @@ public class FromBaseTable extends FromTable {
     int updateOrDelete;
     boolean skipStats;
     int splits;
+    long defaultRowCount;
 
     /*
     ** The number of rows to bulkFetch.
@@ -648,7 +649,16 @@ public class FromBaseTable extends FromTable {
                 try {
                     skipStats = Boolean.parseBoolean(StringUtil.SQLToUpperCase(value));
                 } catch (Exception skipStatsE) {
-                    throw StandardException.newException(SQLState.LANG_INVALIDE_FORCED_SKIPSTATS, value);
+                    throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SKIPSTATS,value);
+                }
+            } else if (key.equals("useDefaultRowCount")) {
+                try {
+                    skipStats = true;
+                    defaultRowCount = Long.parseLong(value);
+                    if (defaultRowCount <= 0)
+                        throw StandardException.newException(SQLState.LANG_INVALID_ROWCOUNT, value);
+                } catch (Exception parseLongE) {
+                    throw StandardException.newException(SQLState.LANG_INVALID_ROWCOUNT, value);
                 }
             } else if (key.equals("splits")) {
                 try {
@@ -661,7 +671,7 @@ public class FromBaseTable extends FromTable {
             } else{
                 // No other "legal" values at this time
                 throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key,
-                        "index, constraint, joinStrategy, useSpark, pin, skipStats, splits");
+                        "index, constraint, joinStrategy, useSpark, pin, skipStats, splits, useDefaultRowcount");
             }
 
 
@@ -3136,11 +3146,11 @@ public class FromBaseTable extends FromTable {
         if (skipStats) {
             if (!getCompilerContext().skipStats(this.getTableNumber()))
                 getCompilerContext().getSkipStatsTableList().add(this.getTableNumber());
-            return getCompilerContext().getStoreCostController(td, cd, true);
+            return getCompilerContext().getStoreCostController(td, cd, true, defaultRowCount);
         }
         else {
             return getCompilerContext().getStoreCostController(td, cd,
-                    getCompilerContext().skipStats(this.getTableNumber()));
+                    getCompilerContext().skipStats(this.getTableNumber()), 0);
         }
     }
 
