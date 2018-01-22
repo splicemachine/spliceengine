@@ -108,35 +108,6 @@
         <maven>3.3.0</maven>
     </prerequisites>
     <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   distributionManagement -
-
-  Where 'mvn deploy' uploads files to.
-   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-    <distributionManagement>
-        <!--
-          TODO: public nexus required for open src
-          everything is in place, but still a little opaque:
-          - we do a separate set of deployments for "core" to splicemachine-public in Jenkins
-          - we use Maven opts (-DaltReleaseDeploymentRepository/-DaltSnapshotDeploymentRepository)
-        -->
-        <repository>
-            <id>splicemachine</id>
-            <name>Splice Machine Releases</name>
-            <url>http://nexus.splicemachine.com/nexus/content/repositories/releases</url>
-            <uniqueVersion>false</uniqueVersion>
-        </repository>
-        <snapshotRepository>
-            <id>splicemachine</id>
-            <name>Splice Machine Snapshots</name>
-            <url>http://nexus.splicemachine.com/nexus/content/repositories/snapshots</url>
-            <uniqueVersion>false</uniqueVersion>
-        </snapshotRepository>
-        <site>
-            <id>SpliceMachine</id>
-            <url>file://${basedir}/target/site</url>
-        </site>
-    </distributionManagement>
-    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  dependencies - should be a very minimal set of dependencies here as it is difficult to
  predict what all inhering projects will want/need and they can't exclude things
  inherited from the parent pom.
@@ -700,6 +671,48 @@
         </plugins>
     </build>
     <profiles>
+        <profile>
+            <id>splicemachine-internal</id>
+            <distributionManagement>
+               <repository>
+                   <id>splicemachine</id>
+                   <name>Splice Machine Releases</name>
+                   <url>http://nexus.splicemachine.com/nexus/content/repositories/releases</url>
+                   <uniqueVersion>false</uniqueVersion>
+               </repository>
+               <snapshotRepository>
+                   <id>splicemachine</id>
+                   <name>Splice Machine Snapshots</name>
+                   <url>http://nexus.splicemachine.com/nexus/content/repositories/snapshots</url>
+                   <uniqueVersion>false</uniqueVersion>
+               </snapshotRepository>
+               <site>
+                   <id>SpliceMachine</id>
+                   <url>file://${basedir}/target/site</url>
+               </site>
+           </distributionManagement>
+        </profile>
+        <profile>
+            <id>splicemachine-external</id>
+            <distributionManagement>
+               <repository>
+                   <id>splicemachine</id>
+                   <name>Splice Machine Releases</name>
+                   <url>http://repository.splicemachine.com/nexus/content/repositories/releases</url>
+                   <uniqueVersion>false</uniqueVersion>
+               </repository>
+               <snapshotRepository>
+                   <id>splicemachine</id>
+                   <name>Splice Machine Snapshots</name>
+                   <url>http://repository.splicemachine.com/nexus/content/repositories/snapshots</url>
+                   <uniqueVersion>false</uniqueVersion>
+               </snapshotRepository>
+               <site>
+                   <id>SpliceMachine</id>
+                   <url>file://${basedir}/target/site</url>
+               </site>
+           </distributionManagement>
+        </profile>
         <profile>
             <!-- When jacoco is disabled,the jacocoAgent property still needs to exist -->
             <id>noJacoco</id>
