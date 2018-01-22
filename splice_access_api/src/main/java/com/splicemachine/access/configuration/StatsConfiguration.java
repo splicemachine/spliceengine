@@ -125,7 +125,7 @@ public class StatsConfiguration implements ConfigurationDefault {
     public static final int DEFAULT_FALLBACK_ROW_WIDTH=170;
 
     public static final String FALLBACK_COLUMN_SIZE="splice.statistics.fallbackColumnSize";
-    public static final int DEFAULT_FALLBACK_COLUMN_SIZE=4;
+    public static final int DEFAULT_FALLBACK_COLUMN_SIZE=1;
 
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
