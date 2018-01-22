@@ -14,7 +14,8 @@
 
 package com.splicemachine.test;
 
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.File;
+import java.io.IOException;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.server.DatadirCleanupManager;
 import org.apache.zookeeper.server.ServerCnxnFactory;
@@ -23,8 +24,7 @@ import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
 import org.apache.zookeeper.server.quorum.QuorumPeer;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig;
 
-import java.io.File;
-import java.io.IOException;
+import com.splicemachine.utils.SpliceLogUtils;
 
 public class SpliceZoo implements Runnable {
 	private static final Logger LOG = Logger.getLogger(SpliceZoo.class);
@@ -32,12 +32,9 @@ public class SpliceZoo implements Runnable {
 	protected QuorumPeer peer;
 	public SpliceZoo(QuorumPeerConfig config, int number) throws IOException {
 		this.config = config;
+		this.peer = new QuorumPeer();
 		ServerCnxnFactory cnxnFactory = ServerCnxnFactory.createFactory();
 		cnxnFactory.configure(config.getClientPortAddress(),config.getMaxClientCnxns());
-
-		peer = new QuorumPeer(config.getServers(), null, null, config.getElectionAlg(),
-				number, config.getTickTime(), config.getInitLimit(), config.getSyncLimit(), cnxnFactory);
-
 		peer.setClientPortAddress(config.getClientPortAddress());
 		peer.setTxnFactory(new FileTxnSnapLog(new File(config.getDataLogDir()),
                      new File(config.getDataDir())));
@@ -54,7 +51,6 @@ public class SpliceZoo implements Runnable {
 		peer.setZKDatabase(new ZKDatabase(peer.getTxnFactory()));
 		peer.setLearnerType(config.getPeerType());
 		peer.setMyid(number);
-
 	}
 
 	@Override
