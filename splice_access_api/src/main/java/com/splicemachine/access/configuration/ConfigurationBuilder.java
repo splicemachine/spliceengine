@@ -72,6 +72,7 @@ public class ConfigurationBuilder {
     public long fallbackRegionRowCount;
     public long fallbackRemoteLatencyRatio;
     public long partitionCacheExpiration;
+    public int fallbackColumnSize;
 
     // StorageConfiguration
     public int splitBlockSize;

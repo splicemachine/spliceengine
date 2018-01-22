@@ -14,13 +14,12 @@
 
 package com.splicemachine.access.configuration;
 
+import com.splicemachine.access.api.SConfiguration;
+import org.apache.log4j.Logger;
+
 import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.TreeMap;
-
-import org.apache.log4j.Logger;
-
-import com.splicemachine.access.api.SConfiguration;
 
 /**
  * The implementation of SConfiguration.
@@ -166,6 +165,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  long fallbackRegionRowCount;
     private final  long fallbackRemoteLatencyRatio;
     private final  long partitionCacheExpiration;
+    private final  int fallbackColumnSize;
 
     // StorageConfiguration
     private final  int splitBlockSize;
@@ -601,6 +601,10 @@ public final class SConfigurationImpl implements SConfiguration {
         return partitionCacheExpiration;
     }
     @Override
+    public int getFallbackColumnSize() {
+        return fallbackColumnSize;
+    }
+    @Override
     public String getStorageFactoryHome() { return storageFactoryHome;}
 
     // StorageConfiguration
@@ -670,6 +674,7 @@ public final class SConfigurationImpl implements SConfiguration {
         fallbackRegionRowCount = builder.fallbackRegionRowCount;
         fallbackRemoteLatencyRatio = builder.fallbackRemoteLatencyRatio;
         partitionCacheExpiration = builder.partitionCacheExpiration;
+        fallbackColumnSize = builder.fallbackColumnSize;
         splitBlockSize = builder.splitBlockSize;
         regionMaxFileSize = builder.regionMaxFileSize;
         tableSplitSleepInterval = builder.tableSplitSleepInterval;

@@ -124,6 +124,9 @@ public class StatsConfiguration implements ConfigurationDefault {
     public static final String FALLBACK_ROW_WIDTH="splice.statistics.fallbackMinimumRowWidth";
     public static final int DEFAULT_FALLBACK_ROW_WIDTH=170;
 
+    public static final String FALLBACK_COLUMN_SIZE="splice.statistics.fallbackColumnSize";
+    public static final int DEFAULT_FALLBACK_COLUMN_SIZE=4;
+
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         // FIXME: JC - some of these are not referenced anywhere outside. Do we need them?
@@ -146,5 +149,6 @@ public class StatsConfiguration implements ConfigurationDefault {
 //        builder.fallbackCardinalityFraction = configurationSource.getDouble(FALLBACK_CARDINALITY_FRACTION, DEFAULT_FALLBACK_CARDINALITY_FRACTION);
 //        builder.fallbackIndexSelectivityFraction = configurationSource.getDouble(FALLBACK_INDEX_SELECTIVITY_FRACTION, DEFAULT_FALLBACK_INDEX_SELECTIVITY_FRACTION);
         builder.optimizerExtraQualifierMultiplier = configurationSource.getDouble(OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER, DEFAULT_OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER);
+        builder.fallbackColumnSize = configurationSource.getInt(FALLBACK_COLUMN_SIZE, DEFAULT_FALLBACK_COLUMN_SIZE);
     }
 }

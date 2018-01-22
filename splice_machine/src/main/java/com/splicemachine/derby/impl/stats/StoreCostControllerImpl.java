@@ -80,6 +80,7 @@ public class StoreCostControllerImpl implements StoreCostController {
     private boolean isSampleStats;
     private double sampleFraction;
     private boolean isMergedStats;
+    private final int fallbackColumnSize;
 
 
     public StoreCostControllerImpl(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, List<PartitionStatisticsDescriptor> partitionStatistics, long defaultRowCount) throws StandardException {
@@ -90,6 +91,7 @@ public class StoreCostControllerImpl implements StoreCostController {
         extraQualifierMultiplier = config.getOptimizerExtraQualifierMultiplier();
         fallbackLocalLatency =config.getFallbackLocalLatency();
         fallbackRemoteLatencyRatio =config.getFallbackRemoteLatencyRatio();
+        fallbackColumnSize = config.getFallbackColumnSize();
         String tableId = Long.toString(td.getBaseConglomerateDescriptor().getConglomerateNumber());
         baseTableRow = td.getEmptyExecRow();
         if (conglomerateDescriptor.getIndexDescriptor() != null &&
@@ -154,9 +156,10 @@ public class StoreCostControllerImpl implements StoreCostController {
         if (partitionStats.size() == 0) {
             missingPartitions = 0;
             noStats = true;
-            if (td.getTableType() != TableDescriptor.EXTERNAL_TYPE)
-                tableStatistics = RegionLoadStatistics.getTableStatistics(tableId, partitions,fallbackNullFraction,extraQualifierMultiplier, defaultRowCount);
-            else {
+            if (td.getTableType() != TableDescriptor.EXTERNAL_TYPE) {
+                int defaultRowSize = td.getNumberOfColumns() * fallbackColumnSize;
+                tableStatistics = RegionLoadStatistics.getTableStatistics(tableId, partitions, fallbackNullFraction, extraQualifierMultiplier, defaultRowCount, defaultRowSize);
+            } else {
                 try {
                     FileInfo fileInfo = ImportUtils.getImportFileInfo(td.getLocation());
                     long rowCount = fileInfo !=null?fileInfo.size()/100:(long) VTICosting.defaultEstimatedRowCount;
@@ -291,7 +294,7 @@ public class StoreCostControllerImpl implements StoreCostController {
 
     @Override
     public long getBaseTableAvgRowWidth() {
-        return noStats || tableStatistics.avgRowWidth() ==0 ?baseTableRow.length():tableStatistics.avgRowWidth();
+        return noStats || tableStatistics.avgRowWidth() ==0 ?baseTableRow.length()*fallbackColumnSize:tableStatistics.avgRowWidth();
     }
 
     @Override

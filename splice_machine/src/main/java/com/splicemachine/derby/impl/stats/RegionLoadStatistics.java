@@ -31,7 +31,7 @@ import java.util.*;
  *         Date: 6/8/15
  */
 public class RegionLoadStatistics{
-    public static TableStatistics getTableStatistics(String table, List<Partition> partitions, double fallbackNullFraction, double extraQualifierMultiplier, long defaultRowCount) throws StandardException{
+    public static TableStatistics getTableStatistics(String table, List<Partition> partitions, double fallbackNullFraction, double extraQualifierMultiplier, long defaultRowCount, int defaultRowSize) throws StandardException{
         SConfiguration config =EngineDriver.driver().getConfiguration();
 
         // Splits can cause us to think we do not have region load information for plan parsing, big problemo
@@ -84,7 +84,7 @@ public class RegionLoadStatistics{
             else
                 totalNumRows = numPartitions;
 
-            totalHeapSize = totalNumRows * 100;
+            totalHeapSize = totalNumRows * defaultRowSize;
         }
         partitionStats.add(new FakePartitionStatisticsImpl(table,"-All-",
                 totalNumRows,
