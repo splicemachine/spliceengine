@@ -113,6 +113,7 @@ public class FromBaseTable extends FromTable {
     boolean skipStats;
     int splits;
     long defaultRowCount;
+    double defaultSelectivityFactor = -1d;
 
     /*
     ** The number of rows to bulkFetch.
@@ -660,6 +661,15 @@ public class FromBaseTable extends FromTable {
                 } catch (Exception parseLongE) {
                     throw StandardException.newException(SQLState.LANG_INVALID_ROWCOUNT, value);
                 }
+            } else if (key.equals("defaultSelectivityFactor")) {
+                try {
+                    skipStats = true;
+                    defaultSelectivityFactor = Double.parseDouble(value);
+                    if (defaultSelectivityFactor <= 0 || defaultSelectivityFactor > 1.0)
+                        throw StandardException.newException(SQLState.LANG_INVALID_SELECTIVITY, value);
+                } catch (Exception parseDoubleE) {
+                    throw StandardException.newException(SQLState.LANG_INVALID_SELECTIVITY, value);
+                }
             } else if (key.equals("splits")) {
                 try {
                     splits = Integer.parseInt(value);
@@ -671,7 +681,7 @@ public class FromBaseTable extends FromTable {
             } else{
                 // No other "legal" values at this time
                 throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key,
-                        "index, constraint, joinStrategy, useSpark, pin, skipStats, splits, useDefaultRowcount");
+                        "index, constraint, joinStrategy, useSpark, pin, skipStats, splits, useDefaultRowcount, defaultSelectivityFactor");
             }
 
 
@@ -830,7 +840,7 @@ public class FromBaseTable extends FromTable {
                 }
 
                 if(!p.isJoinPredicate() || currentJoinStrategy.allowsJoinPredicatePushdown()) //skip join predicates unless they support predicate pushdown
-                    scf.addPredicate(p);
+                    scf.addPredicate(p, defaultSelectivityFactor);
             }
             scf.generateCost();
             singleScanRowCount=costEstimate.singleScanRowCount();

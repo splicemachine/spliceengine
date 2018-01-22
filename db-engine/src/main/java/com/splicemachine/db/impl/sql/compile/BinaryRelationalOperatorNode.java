@@ -1421,25 +1421,30 @@ public class BinaryRelationalOperatorNode
      */
     public double selectivity(Optimizable optTable) throws StandardException{
         double retval=booleanSelectivity(optTable);
-        if(retval>=0.0d)
-            return retval;
-        switch(operatorType){
-            case RelationalOperator.EQUALS_RELOP:
-                double selectivity = getReferenceSelectivity(optTable);
-                if (selectivity < 0.0d) // No Stats, lets just guess 10%
-                    return 0.1;
-                return selectivity;
-            case RelationalOperator.NOT_EQUALS_RELOP:
-            case RelationalOperator.LESS_THAN_RELOP:
-            case RelationalOperator.LESS_EQUALS_RELOP:
-            case RelationalOperator.GREATER_EQUALS_RELOP:
-                if(getBetweenSelectivity())
-                    return 0.5d;
+        if(retval<0.0d) {
+            switch (operatorType) {
+                case RelationalOperator.EQUALS_RELOP:
+                    double selectivity = getReferenceSelectivity(optTable);
+                    if (selectivity < 0.0d) // No Stats, lets just guess 10%
+                        retval = 0.1;
+                    break;
+                case RelationalOperator.NOT_EQUALS_RELOP:
+                case RelationalOperator.LESS_THAN_RELOP:
+                case RelationalOperator.LESS_EQUALS_RELOP:
+                case RelationalOperator.GREATER_EQUALS_RELOP:
+                    if (getBetweenSelectivity()) {
+                        retval = 0.5d;
+                        break;
+                    }
 				/* fallthrough -- only */
-            case RelationalOperator.GREATER_THAN_RELOP:
-                return 0.33;
+                case RelationalOperator.GREATER_THAN_RELOP:
+                    retval = 0.33;
+                    break;
+                default:
+                    retval = 0.0;
+            }
         }
-        return 0.0;
+        return retval;
     }
 
     /**
