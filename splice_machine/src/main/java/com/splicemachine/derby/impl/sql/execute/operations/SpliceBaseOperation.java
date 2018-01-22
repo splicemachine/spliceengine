@@ -191,7 +191,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
 
     @Override
     public void close() throws StandardException {
-        if (!isClosed() && uuid != null) {
+        if (uuid != null) {
             EngineDriver.driver().getOperationManager().unregisterOperation(uuid);
             logExecutionEnd();
         }
