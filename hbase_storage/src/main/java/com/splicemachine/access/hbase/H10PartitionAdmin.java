@@ -82,14 +82,23 @@ public class H10PartitionAdmin implements PartitionAdmin{
 
     @Override
     public void deleteTable(String tableName) throws IOException{
+
+        TableName tn = tableInfoFactory.getTableInfo(tableName);
         try{
-            admin.disableTable(tableInfoFactory.getTableInfo(tableName));
-            admin.deleteTable(tableInfoFactory.getTableInfo(tableName));
+            if (admin.isTableEnabled(tn)) {
+                admin.disableTable(tn);
+            }
+            admin.deleteTable(tn);
         }catch(TableNotFoundException ignored){
             /*
              * If the table isn't there, then we probably have two concurrent Vacuums going on. In that
              * situation, we just ignore the error, since the delete already works.
              */
+        }catch (Exception e) {
+            if (!admin.isTableEnabled(tn)){
+                admin.enableTable(tn);
+            }
+            throw e;
         }
     }
 
