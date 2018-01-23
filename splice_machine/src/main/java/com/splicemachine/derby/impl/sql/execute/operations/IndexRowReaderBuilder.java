@@ -172,9 +172,9 @@ public class IndexRowReaderBuilder implements Externalizable{
                         }
                     })
                     .build();
-        ThreadPoolExecutor tpe=new ThreadPoolExecutor(2,numConcurrentLookups+1,
-                60,TimeUnit.SECONDS,new SynchronousQueue<Runnable>(),factory,
-                new ThreadPoolExecutor.CallerRunsPolicy());
+        ThreadPoolExecutor tpe=new ThreadPoolExecutor(numConcurrentLookups+1,numConcurrentLookups+1,
+                60,TimeUnit.SECONDS,new LinkedBlockingQueue(),factory);
+
         tpe.allowCoreThreadTimeOut(false);
         tpe.prestartAllCoreThreads();
         lookupService=tpe;

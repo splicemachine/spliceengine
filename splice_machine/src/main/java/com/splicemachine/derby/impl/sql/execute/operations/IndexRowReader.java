@@ -92,7 +92,7 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
         this.keyDecoder=new KeyDecoder(keyDecoder,0);
         this.rowDecoder=rowDecoder;
         this.indexCols=indexCols;
-        this.resultFutures=new ArrayBlockingQueue(numConcurrentLookups);
+        this.resultFutures=new LinkedTransferQueue<>();
         this.operationFactory = operationFactory;
         Reader reader = new Reader();
         lookupService.submit(reader);
