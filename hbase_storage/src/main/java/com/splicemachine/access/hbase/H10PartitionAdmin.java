@@ -94,8 +94,11 @@ public class H10PartitionAdmin implements PartitionAdmin{
              * If the table isn't there, then we probably have two concurrent Vacuums going on. In that
              * situation, we just ignore the error, since the delete already works.
              */
+            SpliceLogUtils.warn(LOG, "Table %s not found. It may be deleted by another running vacuum.", tableName);
         }catch (Exception e) {
+            SpliceLogUtils.warn(LOG, "Deleting table %s failed", tableName);
             if (!admin.isTableEnabled(tn)){
+                SpliceLogUtils.warn(LOG, "Re-enable table %s", tableName);
                 admin.enableTable(tn);
             }
             throw e;
