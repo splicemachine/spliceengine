@@ -425,7 +425,7 @@ public class GenericStatement implements Statement{
 
             /* get the selectivity estimation property so that we know what strategy to use to estimate selectivity */
             String selectivityEstimationString = PropertyUtil.getServiceProperty(lcc.getTransactionCompile(),
-                    Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED_DEFAULT);
+                    Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED);
             Boolean selectivityEstimationIncludingSkewedDefault = Boolean.valueOf(selectivityEstimationString);
 
             cc.setSelectivityEstimationIncludingSkewedDefault(selectivityEstimationIncludingSkewedDefault);
