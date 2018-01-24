@@ -75,7 +75,9 @@ public class DatabaseLifecycleManager{
     }
 
     public DatabaseLifecycleManager(){
-        this.lifecycleExecutor = Executors.newSingleThreadExecutor();
+        this.lifecycleExecutor = Executors.newSingleThreadExecutor(
+                (runnable) -> new Thread(runnable, "SpliceDatabaseLifecycleManager")
+        );
     }
 
     public void start(){
