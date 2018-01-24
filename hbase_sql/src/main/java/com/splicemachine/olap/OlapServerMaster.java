@@ -168,20 +168,14 @@ public class OlapServerMaster implements Watcher {
         HBaseConnectionFactory hbcf = HBaseConnectionFactory.getInstance(HConfiguration.getConfiguration());
         Timer timer = new Timer("HMaster-checker", true);
         timer.schedule(new TimerTask() {
-            int failures = 0;
-            
             @Override
             public void run() {
                 try {
                     if (!serverName.equals(hbcf.getMasterServer()))
                         end.set(true);
-                    failures = 0;
                 } catch (Throwable t) {
-                    LOG.warn("Got exception while checking HMaster status, failures = " + failures, t);
-                    if (failures++ > 3) {
-                        LOG.error("Got " + failures + " consecutive failures while checking HMaster status, aborting OlapServerMaster", t);
-                        end.set(true);
-                    }
+                    LOG.error("Got exception while checking HMaster status, aborting OlapServerMaster", t);
+                    end.set(true);
                 }
 
             }
