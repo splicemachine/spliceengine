@@ -311,16 +311,16 @@ public class ScanCostFunction{
         double baseCost = openLatency+closeLatency+(totalRowCount*baseTableSelectivity*localLatency*(1+congAverageWidth/100d));
         assert congAverageWidth >= 0 : "congAverageWidth cannot be negative -> " + congAverageWidth;
         assert baseCost >= 0 : "baseCost cannot be negative -> " + baseCost;
-        scanCost.setFromBaseTableRows(filterBaseTableSelectivity * totalRowCount);
+        scanCost.setFromBaseTableRows(Math.round(filterBaseTableSelectivity * totalRowCount));
         scanCost.setFromBaseTableCost(baseCost);
         // set how many base table rows to scan
-        scanCost.setScannedBaseTableRows(baseTableSelectivity * totalRowCount);
+        scanCost.setScannedBaseTableRows(Math.round(baseTableSelectivity * totalRowCount));
         double lookupCost;
         if (lookupColumns == null)
             lookupCost = 0.0d;
         else {
             lookupCost = totalRowCount*filterBaseTableSelectivity*(openLatency+closeLatency);
-            scanCost.setIndexLookupRows(filterBaseTableSelectivity*totalRowCount);
+            scanCost.setIndexLookupRows(Math.round(filterBaseTableSelectivity*totalRowCount));
             scanCost.setIndexLookupCost(lookupCost+baseCost);
         }
         assert lookupCost >= 0 : "lookupCost cannot be negative -> " + lookupCost;
@@ -330,7 +330,7 @@ public class ScanCostFunction{
             projectionCost = 0.0d;
         else {
             projectionCost = totalRowCount * filterBaseTableSelectivity * localLatency * colSizeFactor*1d/1000d;
-            scanCost.setProjectionRows(scanCost.getEstimatedRowCount());
+            scanCost.setProjectionRows(Math.round(scanCost.getEstimatedRowCount()));
             scanCost.setProjectionCost(lookupCost+baseCost+projectionCost);
         }
         assert projectionCost >= 0 : "projectionCost cannot be negative -> " + projectionCost;

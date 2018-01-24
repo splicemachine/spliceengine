@@ -264,7 +264,7 @@ public class SimpleCostEstimate implements CostEstimate{
     @Override
     public void setEstimatedRowCount(long count){
         this.numRows = count>1?count:1;
-        this.singleScanRowCount = count;
+        this.singleScanRowCount = this.numRows;
     }
 
     @Override

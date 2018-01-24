@@ -549,6 +549,13 @@ public class FromBaseTable extends FromTable {
         if (tableDescriptor.getStoredAs()!=null) {
             dataSetProcessorType = CompilerContext.DataSetProcessorType.FORCED_SPARK;
         }
+
+        /* check if we need to inherent some property from the connection */
+        skipStats = getLanguageConnectionContext().getSkipStats();
+        defaultSelectivityFactor = getLanguageConnectionContext().getDefaultSelectivityFactor();
+        if (defaultSelectivityFactor > 0)
+            skipStats = true;
+
         if(tableProperties==null){
             return;
         }
@@ -648,7 +655,11 @@ public class FromBaseTable extends FromTable {
             }
             else if (key.equals("skipStats")) {
                 try {
-                    skipStats = Boolean.parseBoolean(StringUtil.SQLToUpperCase(value));
+                    boolean bValue = Boolean.parseBoolean(StringUtil.SQLToUpperCase(value));
+                    // skipStats may have been set to true by the other hint useDefaultRowCount or defaultSelectivityFactor
+                    // in that case, useDefaultRowCount and defaultSelectivityFactor take precedence and we don't want to override that decision
+                    if (!skipStats)
+                        skipStats = bValue;
                 } catch (Exception skipStatsE) {
                     throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SKIPSTATS,value);
                 }
