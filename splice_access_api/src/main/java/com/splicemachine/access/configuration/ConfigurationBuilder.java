@@ -108,11 +108,13 @@ public class ConfigurationBuilder {
     public int olapClientWaitTime;
     public int olapClientTickTime;
     public int olapServerBindPort;
+    public boolean olapServerExternal;
     public int olapServerThreads;
     public int olapServerTickLimit;
     public int olapServerSubmitAttempts;
     public int olapServerMemory;
     public int olapServerMemoryOverhead;
+    public int olapServerVirtualCores;
     public int partitionserverJmxPort;
     public int partitionserverPort;
     public long broadcastRegionMbThreshold;

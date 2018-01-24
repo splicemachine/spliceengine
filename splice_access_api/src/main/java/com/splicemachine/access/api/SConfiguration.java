@@ -162,6 +162,8 @@ public interface SConfiguration {
 
     int getOlapServerBindPort();
 
+    boolean getOlapServerExternal();
+
     int getOlapServerThreads();
 
     int getOlapServerSubmitAttempts();
@@ -169,6 +171,8 @@ public interface SConfiguration {
     int getOlapServerMemory();
 
     int getOlapServerMemoryOverhead();
+
+    int getOlapVirtualCores();
 
     int getOlapClientRetries();
 

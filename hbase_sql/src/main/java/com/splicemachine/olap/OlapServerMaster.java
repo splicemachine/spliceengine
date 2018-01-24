@@ -62,16 +62,19 @@ public class OlapServerMaster implements Watcher {
     private static final Logger LOG = Logger.getLogger(OlapServerMaster.class);
     private final ServerName serverName;
     private final AtomicBoolean end = new AtomicBoolean(false);
+    private final int port;
     private RecoverableZooKeeper rzk;
     private String masterPath;
 
-    public OlapServerMaster(ServerName serverName) {
+    public OlapServerMaster(ServerName serverName, int port) {
         this.serverName = serverName;
+        this.port = port;
     }
 
     public static void main(String[] args) throws Exception {
         final ServerName serverName = ServerName.parseServerName(args[0]);
-        new OlapServerMaster(serverName).run();
+        final int port = Integer.parseInt(args[1]);
+        new OlapServerMaster(serverName, port).run();
     }
 
     private void run() throws Exception {
@@ -185,7 +188,7 @@ public class OlapServerMaster implements Watcher {
 
         LOG.info("Spark static components loaded");
 
-        OlapServer server = new OlapServer(0, env.systemClock());
+        OlapServer server = new OlapServer(port, env.systemClock());
         server.startServer(env.configuration());
         LOG.info("OlapServer started");
 

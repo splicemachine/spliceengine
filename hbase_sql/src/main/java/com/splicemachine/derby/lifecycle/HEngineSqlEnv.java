@@ -123,10 +123,14 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         HBaseConnectionFactory hbcf = HBaseConnectionFactory.getInstance(config);
         JobExecutor onl = new AsyncOlapNIOLayer(() -> {
             try {
-                String serverName = hbcf.getMasterServer().getServerName();
-                byte[] bytes = ZkUtils.getData(HConfiguration.getConfiguration().getSpliceRootPath() + HBaseConfiguration.OLAP_SERVER_PATH + "/" + serverName);
-                String hostAndPort = Bytes.toString(bytes);
-                return HostAndPort.fromString(hostAndPort);
+                if (config.getOlapServerExternal()) {
+                    String serverName = hbcf.getMasterServer().getServerName();
+                    byte[] bytes = ZkUtils.getData(HConfiguration.getConfiguration().getSpliceRootPath() + HBaseConfiguration.OLAP_SERVER_PATH + "/" + serverName);
+                    String hostAndPort = Bytes.toString(bytes);
+                    return HostAndPort.fromString(hostAndPort);
+                } else {
+                    return HostAndPort.fromParts(hbcf.getMasterServer().getHostname(), config.getOlapServerBindPort());
+                }
             } catch (SQLException e) {
                 Throwable cause = e.getCause();
                 if (cause instanceof IOException)

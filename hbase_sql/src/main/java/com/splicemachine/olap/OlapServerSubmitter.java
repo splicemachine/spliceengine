@@ -73,6 +73,8 @@ public class OlapServerSubmitter implements Runnable {
             int maxAttempts = sconf.getOlapServerSubmitAttempts();
             int memory = sconf.getOlapServerMemory();
             int memoryOverhead = sconf.getOlapServerMemoryOverhead();
+            int cpuCores = sconf.getOlapVirtualCores();
+            int olapPort = sconf.getOlapServerBindPort();
 
             for (int i = 0; i<maxAttempts; ++i) {
                 // Create application via yarnClient
@@ -86,7 +88,7 @@ public class OlapServerSubmitter implements Runnable {
                                 "$JAVA_HOME/bin/java",
                                         " -Xmx" + memory + "M " + outOfMemoryErrorArgument() + " " +
                                         OlapServerMaster.class.getCanonicalName() +
-                                        " " + serverName.toString() +
+                                        " " + serverName.toString() + " " + olapPort +
                                         " 1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stdout" +
                                         " 2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stderr"
                         ))
@@ -101,13 +103,12 @@ public class OlapServerSubmitter implements Runnable {
                 // Set up resource type requirements for ApplicationMaster
                 Resource capability = Records.newRecord(Resource.class);
                 capability.setMemory(memory + memoryOverhead);
-                capability.setVirtualCores(1);
+                capability.setVirtualCores(cpuCores);
 
                 // Finally, set-up ApplicationSubmissionContext for the application
                 ApplicationSubmissionContext appContext =
                         app.getApplicationSubmissionContext();
                 appContext.setApplicationName("OlapServer"); // application name
-                appContext.setAMContainerSpec(amContainer);
                 appContext.setResource(capability);
                 appContext.setQueue("default"); // queue
                 appContext.setMaxAppAttempts(1);

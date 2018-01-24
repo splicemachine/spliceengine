@@ -137,6 +137,13 @@ public class SIConfigurations implements ConfigurationDefault {
     private static final int DEFAULT_OLAP_SERVER_BIND_PORT = 60014;
 
     /**
+     * Run OlapServer externally on YARN
+     * Defaults to true
+     */
+    public static final String OLAP_SERVER_EXTERNAL = "splice.olap_server.external";
+    private static final boolean DEFAULT_OLAP_SERVER_EXTERNAL = false;
+
+    /**
      * Number of threads used by the Olap server, determines the maximum number of concurrent
      * Olap jobs
      *
@@ -157,6 +164,9 @@ public class SIConfigurations implements ConfigurationDefault {
     public static final String OLAP_SERVER_MEMORY_OVERHEAD = "splice.olap_server.memoryOverhead";
     private static final int DEFAULT_OLAP_SERVER_MEMORY_OVERHEAD = 512;
 
+    public static final String OLAP_SERVER_VIRTUAL_CORES = "splice.olap_server.virtualCores";
+    private static final int DEFAULT_OLAP_SERVER_VIRTUAL_CORES = 1;
+
     public static final String OLAP_CLIENT_RETRIES = "splice.olap_client.retries";
     private static final int DEFAULT_OLAP_CLIENT_RETRIES = 10;
 
@@ -175,6 +185,7 @@ public class SIConfigurations implements ConfigurationDefault {
         builder.timestampServerBindPort  = configurationSource.getInt(TIMESTAMP_SERVER_BIND_PORT, DEFAULT_TIMESTAMP_SERVER_BIND_PORT);
         builder.activeTransactionCacheSize  = configurationSource.getInt(ACTIVE_TRANSACTION_CACHE_SIZE, DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE);
         builder.olapServerBindPort  = configurationSource.getInt(OLAP_SERVER_BIND_PORT, DEFAULT_OLAP_SERVER_BIND_PORT);
+        builder.olapServerExternal  = configurationSource.getBoolean(OLAP_SERVER_EXTERNAL, DEFAULT_OLAP_SERVER_EXTERNAL);
         builder.olapClientWaitTime  = configurationSource.getInt(OLAP_CLIENT_WAIT_TIME, DEFAULT_OLAP_CLIENT_WAIT_TIME);
         builder.olapClientTickTime  = configurationSource.getInt(OLAP_CLIENT_TICK_TIME, DEFAULT_OLAP_CLIENT_TICK_TIME);
         builder.olapServerThreads = configurationSource.getInt(OLAP_SERVER_THREADS, DEFAULT_OLAP_SERVER_THREADS);
@@ -183,6 +194,7 @@ public class SIConfigurations implements ConfigurationDefault {
         builder.olapServerSubmitAttempts = configurationSource.getInt(OLAP_SERVER_SUBMIT_ATTEMPTS, DEFAULT_OLAP_SERVER_SUBMIT_ATTEMPTS);
         builder.olapServerMemory = configurationSource.getInt(OLAP_SERVER_MEMORY, DEFAULT_OLAP_SERVER_MEMORY);
         builder.olapServerMemoryOverhead = configurationSource.getInt(OLAP_SERVER_MEMORY_OVERHEAD, DEFAULT_OLAP_SERVER_MEMORY_OVERHEAD);
+        builder.olapServerVirtualCores = configurationSource.getInt(OLAP_SERVER_VIRTUAL_CORES, DEFAULT_OLAP_SERVER_VIRTUAL_CORES);
 
         builder.transactionTimeout = configurationSource.getLong(TRANSACTION_TIMEOUT, DEFAULT_TRANSACTION_TIMEOUT);
         builder.transactionKeepAliveInterval = configurationSource.getLong(TRANSACTION_KEEP_ALIVE_INTERVAL, DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL);

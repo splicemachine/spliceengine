@@ -21,6 +21,7 @@ import com.splicemachine.derby.lifecycle.EngineLifecycleService;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.lifecycle.DatabaseLifecycleService;
 import com.splicemachine.lifecycle.MasterLifecycle;
+import com.splicemachine.olap.OlapServer;
 import com.splicemachine.olap.OlapServerSubmitter;
 import com.splicemachine.pipeline.InitializationCompleted;
 import com.splicemachine.si.data.hbase.ZkUpgradeK2;
@@ -60,6 +61,7 @@ public class SpliceMasterObserver extends BaseMasterObserver {
 
     private TimestampServer timestampServer;
     private DatabaseLifecycleManager manager;
+    private OlapServer olapServer;
 
     @Override
     public void start(CoprocessorEnvironment ctx) throws IOException {
@@ -94,6 +96,13 @@ public class SpliceMasterObserver extends BaseMasterObserver {
                 LOG.info("Upgrade complete");
             }
             env.txnStore().setOldTransactions(upgradeK2.getOldTransactions());
+
+
+            if (!configuration.getOlapServerExternal()) {
+                int olapPort = configuration.getOlapServerBindPort();
+                this.olapServer = new OlapServer(olapPort, env.systemClock());
+                this.olapServer.startServer(configuration);
+            }
 
             /*
              * We create a new instance here rather than referring to the singleton because we have
@@ -161,29 +170,32 @@ public class SpliceMasterObserver extends BaseMasterObserver {
         if (! manager.getState().equals(DatabaseLifecycleManager.State.NOT_STARTED))
             return; // Race Condition, only load one...
 
-        try {
-            manager.registerNetworkService(new DatabaseLifecycleService() {
-                OlapServerSubmitter serverSubmitter;
+        if (HConfiguration.getConfiguration().getOlapServerExternal()) {
+            try {
+                manager.registerNetworkService(new DatabaseLifecycleService() {
+                    OlapServerSubmitter serverSubmitter;
 
-                @Override
-                public void start() throws Exception {
-                    serverSubmitter = new OlapServerSubmitter(serverName);
-                    new Thread(serverSubmitter).start();
-                }
+                    @Override
+                    public void start() throws Exception {
+                        serverSubmitter = new OlapServerSubmitter(serverName);
+                        Thread thread = new Thread(serverSubmitter, "OlapServerSubmitter");
+                        thread.setDaemon(true);
+                        thread.start();
+                    }
 
-                @Override
-                public void registerJMX(MBeanServer mbs) throws Exception {
+                    @Override
+                    public void registerJMX(MBeanServer mbs) throws Exception {
+                    }
 
-                }
-
-                @Override
-                public void shutdown() throws Exception {
-                    serverSubmitter.stop();
-                }
-            });
-        } catch (Exception e) {
-            LOG.error("Unexpected exception registering Olap Server service", e);
-            throw new DoNotRetryIOException(e);
+                    @Override
+                    public void shutdown() throws Exception {
+                        serverSubmitter.stop();
+                    }
+                });
+            } catch(Exception e){
+                LOG.error("Unexpected exception registering Olap Server service", e);
+                throw new DoNotRetryIOException(e);
+            }
         }
 
         //make sure only one master boots at a time
