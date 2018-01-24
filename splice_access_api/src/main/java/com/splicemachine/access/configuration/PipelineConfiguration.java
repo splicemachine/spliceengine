@@ -53,6 +53,10 @@ public class PipelineConfiguration implements ConfigurationDefault {
     public static final String SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE = "spark.compaction.resolution.bufferSize";
     public static final int DEFAULT_SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE = 1024*100;
 
+    // Whether we block asynchronous transaction resolution when the executor is full
+    public static final String SPARK_COMPACTION_BLOCKING = "spark.compaction.blocking";
+    public static final boolean DEFAULT_SPARK_COMPACTION_BLOCKING = true;
+
     // Timeout in seconds
     public static final String SPARK_RESERVED_SLOTS_TIMEOUT = "spark.reserved.slots.timeout";
     public static final int DEFAULT_SPARK_RESERVED_SLOTS_TIMEOUT = 60;
@@ -202,7 +206,8 @@ public class PipelineConfiguration implements ConfigurationDefault {
         if (builder.olapCompactionResolutionShare > 1)
             builder.olapCompactionResolutionShare = 1;
 
-        builder.olapCompactionResolutionBufferSize = configurationSource.getInt(SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE, DEFAULT_SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE);;
+        builder.olapCompactionResolutionBufferSize = configurationSource.getInt(SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE, DEFAULT_SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE);
+        builder.olapCompactionBlocking = configurationSource.getBoolean(SPARK_COMPACTION_BLOCKING, DEFAULT_SPARK_COMPACTION_BLOCKING);
         builder.reservedSlotsTimeout = configurationSource.getInt(SPARK_RESERVED_SLOTS_TIMEOUT, DEFAULT_SPARK_RESERVED_SLOTS_TIMEOUT);
         builder.bulkImportSampleFraction = configurationSource.getDouble(BULK_IMPORT_SAMPLE_FRACTION, DEFAULT_BULK_IMPORT_SAMPLE_FRACTION);
         builder.bulkImportTasksPerRegion = configurationSource.getInt(BULK_IMPORT_TASKS_PER_REGION, DEFAULT_BULK_IMPORT_TASKS_PER_REGION);

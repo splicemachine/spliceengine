@@ -144,6 +144,7 @@ public class ConfigurationBuilder {
     public int olapCompactionMaximumWait;
     public double olapCompactionResolutionShare;
     public int olapCompactionResolutionBufferSize;
+    public boolean olapCompactionBlocking;
     public int olapClientRetries;
     public double bulkImportSampleFraction;
     public int bulkImportTasksPerRegion;
