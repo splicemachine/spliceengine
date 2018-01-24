@@ -278,8 +278,9 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                     SIDriver driver=SIDriver.driver();
                     double resolutionShare = HConfiguration.getConfiguration().getOlapCompactionResolutionShare();
                     int bufferSize = HConfiguration.getConfiguration().getOlapCompactionResolutionBufferSize();
+                    boolean blocking = HConfiguration.getConfiguration().getOlapCompactionBlocking();
                     SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
-                            driver.getConfiguration().getActiveTransactionCacheSize(), context, driver.getRejectingExecutorService());
+                            driver.getConfiguration().getActiveTransactionCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
                     boolean purgeDeletedRows = request.isMajor() ? SpliceCompactionUtils.shouldPurge(store) : false;
 
                     SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeDeletedRows, resolutionShare, bufferSize, context);

@@ -102,6 +102,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final int olapCompactionMaximumWait;
     private final double olapCompactionResolutionShare;
     private final int olapCompactionResolutionBufferSize;
+    private final boolean olapCompactionBlocking;
     private final int reservedSlotsTimeout;
     private final double bulkImportSampleFraction;
     private final int bulkImportTasksPerRegion;
@@ -735,6 +736,7 @@ public final class SConfigurationImpl implements SConfiguration {
         olapCompactionMaximumWait = builder.olapCompactionMaximumWait;
         olapCompactionResolutionShare = builder.olapCompactionResolutionShare;
         olapCompactionResolutionBufferSize = builder.olapCompactionResolutionBufferSize;
+        olapCompactionBlocking = builder.olapCompactionBlocking;
         reservedSlotsTimeout = builder.reservedSlotsTimeout;
         storageFactoryHome = builder.storageFactoryHome;
         nestedLoopJoinBatchSize = builder.nestedLoopJoinBatchSize;
@@ -791,6 +793,11 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getOlapCompactionResolutionBufferSize() {
         return olapCompactionResolutionBufferSize;
+    }
+
+    @Override
+    public boolean getOlapCompactionBlocking() {
+        return olapCompactionBlocking;
     }
 
     @Override
