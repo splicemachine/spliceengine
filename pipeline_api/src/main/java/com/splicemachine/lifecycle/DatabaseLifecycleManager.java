@@ -59,7 +59,7 @@ public class DatabaseLifecycleManager{
     private final CopyOnWriteArrayList<DatabaseLifecycleService> generalServices= new CopyOnWriteArrayList<>();
     private final CopyOnWriteArrayList<DatabaseLifecycleService> networkServices= new CopyOnWriteArrayList<>();
 
-    private final Executor lifecycleExecutor;
+    private final ExecutorService lifecycleExecutor;
     private volatile MBeanServer jmxServer;
 
     public static DatabaseLifecycleManager manager(){
@@ -75,11 +75,9 @@ public class DatabaseLifecycleManager{
     }
 
     public DatabaseLifecycleManager(){
-       this(Executors.newSingleThreadExecutor());
-    }
-
-    public DatabaseLifecycleManager(Executor lifecycleExecutor){
-        this.lifecycleExecutor = lifecycleExecutor;
+        this.lifecycleExecutor = Executors.newSingleThreadExecutor(
+                (runnable) -> new Thread(runnable, "SpliceDatabaseLifecycleManager")
+        );
     }
 
     public void start(){
@@ -259,6 +257,10 @@ public class DatabaseLifecycleManager{
 
         @Override
         public void run(){
+
+            // don't accept more tasks, exit once all currently submitted tasks have been executed
+            lifecycleExecutor.shutdown();
+
             //shut down network services first
             List<DatabaseLifecycleService> toShutdown = new ArrayList<>(networkServices);
             Collections.reverse(toShutdown); //reverse the shutdown order from the startup order
