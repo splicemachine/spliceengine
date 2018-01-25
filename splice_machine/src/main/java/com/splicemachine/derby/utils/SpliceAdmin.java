@@ -1478,6 +1478,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
             new GenericColumnDescriptor("HOSTNAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
             new GenericColumnDescriptor("SESSION", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
             new GenericColumnDescriptor("SQL", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
+            new GenericColumnDescriptor("SUBMITTED", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,40)),
+            new GenericColumnDescriptor("ENGINE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,40)),
+            new GenericColumnDescriptor("JOBTYPE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,40)),
     };
 
     public static void SYSCS_GET_RUNNING_OPERATIONS(final ResultSet[] resultSet) throws SQLException {
@@ -1508,7 +1511,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             try (Connection connection = RemoteUser.getConnection(server.toString())) {
                 try (ResultSet rs = connection.createStatement().executeQuery("call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS_LOCAL()")) {
                     while (rs.next()) {
-                        ExecRow row = new ValueRow(5);
+                        ExecRow row = new ValueRow(8);
 
                         if ("call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS_LOCAL()".equalsIgnoreCase(rs.getString(5))) {
                             // Filter out the nested calls to SYSCS_GET_RUNNING_OPERATIONS_LOCAL triggered by this stored procedure
@@ -1520,7 +1523,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         row.setColumn(3, new SQLVarchar(rs.getString(3)));
                         row.setColumn(4, new SQLInteger(rs.getInt(4)));
                         row.setColumn(5, new SQLVarchar(rs.getString(5)));
-
+                        row.setColumn(6, new SQLVarchar(rs.getString(6)));
+                        row.setColumn(7, new SQLVarchar(rs.getString(7)));
+                        row.setColumn(8, new SQLVarchar(rs.getString(8)));
                         rows.add(row);
                     }
                 }
@@ -1546,7 +1551,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
         List<ExecRow> rows = new ArrayList<>(operations.size());
         for (Pair<UUID, SpliceOperation> pair : operations) {
-            ExecRow row = new ValueRow(5);
+            ExecRow row = new ValueRow(8);
             Activation activation = pair.getSecond().getActivation();
             row.setColumn(1, new SQLVarchar(pair.getFirst().toString()));
             row.setColumn(2, new SQLVarchar(activation.getLanguageConnectionContext().getCurrentUserId(activation)));
@@ -1554,6 +1559,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
             row.setColumn(4, new SQLInteger(activation.getLanguageConnectionContext().getInstanceNumber()));
             ExecPreparedStatement ps = activation.getPreparedStatement();
             row.setColumn(5, new SQLVarchar(ps == null ? null : ps.getSource()));
+            row.setColumn(6, new SQLVarchar(pair.getSecond().getSubmittedTime()));
+            row.setColumn(7, new SQLVarchar(pair.getSecond().getEngineName()));
+            row.setColumn(8, new SQLVarchar(pair.getSecond().getScopeName()));
             rows.add(row);
         }
 
