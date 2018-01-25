@@ -42,6 +42,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.NavigableSet;
 
 /**
@@ -312,6 +313,11 @@ public abstract class BackupBaseRegionObserver extends SpliceMessage.BackupCopro
         return hasLoaded;
     }
 
+    public boolean postBulkLoadHFile(ObserverContext<RegionCoprocessorEnvironment> ctx, List<Pair<byte[], String>> familyPaths, Map<byte[],List<Path>> other, boolean hasLoaded) throws IOException {
+        return hasLoaded;
+    }
+
+
     public StoreFile.Reader preStoreFileReaderOpen(ObserverContext<RegionCoprocessorEnvironment> ctx, FileSystem fs, Path p, FSDataInputStreamWrapper in, long size, CacheConfig cacheConf, Reference r, StoreFile.Reader reader) throws IOException {
         return reader;
     }
@@ -329,6 +335,15 @@ public abstract class BackupBaseRegionObserver extends SpliceMessage.BackupCopro
 
     public void postCloseRegionOperation(ObserverContext<RegionCoprocessorEnvironment> ctx, HRegion.Operation op) throws IOException {
     }
+
+    public void preCommitStoreFile(ObserverContext<RegionCoprocessorEnvironment> observerContext, byte[] bytes, List<Pair<Path, Path>> list) throws IOException {
+
+    }
+
+    public void postCommitStoreFile(ObserverContext<RegionCoprocessorEnvironment> observerContext, byte[] bytes, Path path, Path path1) throws IOException {
+
+    }
+
 
     public DeleteTracker postInstantiateDeleteTracker(ObserverContext<RegionCoprocessorEnvironment> ctx, DeleteTracker delTracker) throws IOException {
         return delTracker;
