@@ -19,6 +19,9 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.util.StringUtils;
@@ -48,10 +51,19 @@ import java.util.concurrent.CountDownLatch;
  * Created by dgomezferro on 29/08/2017.
  */
 public class OlapServerSubmitter implements Runnable {
+
+    // Staging directory for any temporary jars or files
+    private static final String SPLICE_STAGING = ".spliceStaging";
+
+
+    // Staging directory is private! -> rwx--------
+    private static final FsPermission STAGING_DIR_PERMISSION = FsPermission.createImmutable(Short.parseShort("700", 8));
+
     private static final Logger LOG = Logger.getLogger(OlapServerSubmitter.class);
     private final ServerName serverName;
     private volatile boolean stop = false;
     private CountDownLatch stopLatch = new CountDownLatch(1);
+    private Path appStagingBaseDir;
 
     private Configuration conf;
 
@@ -64,6 +76,8 @@ public class OlapServerSubmitter implements Runnable {
         try {
             // Create yarnClient
             conf = HConfiguration.unwrapDelegate();
+            this.appStagingBaseDir = FileSystem.get(conf).getHomeDirectory();
+
             YarnClient yarnClient = YarnClient.createYarnClient();
             yarnClient.init(conf);
             yarnClient.start();
@@ -117,6 +131,8 @@ public class OlapServerSubmitter implements Runnable {
                 // Submit application
                 ApplicationId appId = appContext.getApplicationId();
                 LOG.info("Submitting YARN application " + appId);
+
+                Path appStagingDirPath = new Path(appStagingBaseDir, getAppStagingDir(appId));
 
                 yarnClient.submitApplication(appContext);
                 Object hookReference = ShutdownHookManager.addShutdownHook(0, new AbstractFunction0<BoxedUnit>() {
@@ -330,5 +346,14 @@ public class OlapServerSubmitter implements Runnable {
             LOG.error("Interrupted while waiting for OlapServerSubmitter to finish", e);
         }
     }
+    /**
+     * Return the path to the given application's staging directory.
+     */
+    private String getAppStagingDir(ApplicationId appId) {
+        return buildPath(SPLICE_STAGING, appId.toString());
+    }
 
+    private String buildPath(String... components) {
+        return String.join(Path.SEPARATOR, components);
+    }
 }
