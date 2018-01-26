@@ -136,7 +136,7 @@ public class OlapServerSubmitter implements Runnable {
                     LocalResource amJarRsrc = Records.newRecord(LocalResource.class);
                     amJarRsrc.setType(LocalResourceType.FILE);
                     amJarRsrc.setVisibility(LocalResourceVisibility.PRIVATE);
-                    amJarRsrc.setResource(ConverterUtils.getYarnUrlFromPath(appStagingDirPath));
+                    amJarRsrc.setResource(ConverterUtils.getYarnUrlFromPath(new Path(appStagingDirPath, name)));
                     amJarRsrc.setTimestamp(destStatus.getModificationTime());
                     amJarRsrc.setSize(destStatus.getLen());
                     
