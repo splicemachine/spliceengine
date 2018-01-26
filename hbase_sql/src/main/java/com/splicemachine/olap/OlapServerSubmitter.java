@@ -126,7 +126,12 @@ public class OlapServerSubmitter implements Runnable {
                     String trimmedPath = keytab.trim();
                     URI localURI = resolveURI(trimmedPath);
                     Path srcPath = getQualifiedLocalPath(localURI, conf);
-                    
+
+                    String name = srcPath.getName();
+                    FileSystem srcFs = srcPath.getFileSystem(conf);
+                    FileUtil.copy(srcFs, srcPath, fs, appStagingDirPath, false, conf);
+                    amKeytabFileName = name;
+
                     FileStatus destStatus = fs.getFileStatus(appStagingDirPath);
                     LocalResource amJarRsrc = Records.newRecord(LocalResource.class);
                     amJarRsrc.setType(LocalResourceType.FILE);
@@ -134,11 +139,6 @@ public class OlapServerSubmitter implements Runnable {
                     amJarRsrc.setResource(ConverterUtils.getYarnUrlFromPath(appStagingDirPath));
                     amJarRsrc.setTimestamp(destStatus.getModificationTime());
                     amJarRsrc.setSize(destStatus.getLen());
-
-                    String name = srcPath.getName();
-                    FileSystem srcFs = srcPath.getFileSystem(conf);
-                    FileUtil.copy(srcFs, srcPath, fs, appStagingDirPath, false, conf);
-                    amKeytabFileName = name;
                     
                     localResources.put(name, amJarRsrc);
                 }
