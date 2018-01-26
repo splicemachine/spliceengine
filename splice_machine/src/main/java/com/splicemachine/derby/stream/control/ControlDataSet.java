@@ -224,7 +224,7 @@ public class ControlDataSet<V> implements DataSet<V> {
     @Override
     public DataSet<V> union(DataSet<V> dataSet, OperationContext operationContext) {
         try {
-            ExecutorService es = EngineDriver.driver().getExecutorService();
+            ExecutorService es = SIDriver.driver().getExecutorService();
             FutureIterator<V> futureIterator = new FutureIterator<>(2);
             operationContext.getOperation().registerCloseable(futureIterator);
             Future<Iterator<V>> leftSideFuture = es.submit(new NonLazy(iterator));
@@ -239,7 +239,7 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public DataSet<V> parallelProbe(List<DataSet<V>> dataSets, OperationContext<MultiProbeTableScanOperation> operationContext) {
-        ExecutorService es = EngineDriver.driver().getExecutorService();
+        ExecutorService es = SIDriver.driver().getExecutorService();
         FutureIterator<V> futureIterator = new FutureIterator<>(dataSets.size());
         for (DataSet<V> dataSet: dataSets) {
             futureIterator.appendFutureIterator(es.submit(new NonLazy(((ControlDataSet<V>) dataSet).iterator)));

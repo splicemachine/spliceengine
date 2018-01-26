@@ -132,7 +132,7 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
             ObjectName on=new ObjectName("com.splicemachine.utils.logging:type=LogManager");
             ObjectName execServ = new ObjectName("com.splicemachine.derby.lifecycle:type=ExecutorService");
             mbs.registerMBean(logging,on);
-            mbs.registerMBean(EngineDriver.driver().getExecutorService(),execServ);
+            mbs.registerMBean(SIDriver.driver().getRejectingExecutorService(),execServ);
             db.getDataDictionary().getDataDictionaryCache().registerJMX(mbs);
 
 
@@ -160,7 +160,7 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
         try{
             SIDriver driver = SIDriver.driver();
             if(driver!=null)
-                driver.getTimestampSource().shutdown();
+                driver.shutdownDriver();
         }catch(Exception e){
             LOG.error("Unexpected error during shutdown",e);
         }

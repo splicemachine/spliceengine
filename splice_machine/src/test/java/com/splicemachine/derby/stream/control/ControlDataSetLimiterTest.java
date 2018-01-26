@@ -28,6 +28,8 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.utils.test.TestingDataType;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.driver.SIEnvironment;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -64,10 +66,10 @@ public class ControlDataSetLimiterTest {
     }
 
     @BeforeClass
-    public static void setup() throws IOException {
-        SqlEnvironment ese = Mockito.mock(SqlEnvironment.class, Mockito.RETURNS_DEEP_STUBS);
-        Mockito.when(ese.getConfiguration().getThreadPoolMaxSize()).thenReturn(30);
-        EngineDriver.loadDriver(ese);
+    public static void setup() {
+        SIEnvironment ese = Mockito.mock(SIEnvironment.class, Mockito.RETURNS_DEEP_STUBS);
+        Mockito.when(ese.configuration().getThreadPoolMaxSize()).thenReturn(30);
+        SIDriver.loadDriver(ese);
     }
 
     public static ExecRow getExecRow(int value) {
