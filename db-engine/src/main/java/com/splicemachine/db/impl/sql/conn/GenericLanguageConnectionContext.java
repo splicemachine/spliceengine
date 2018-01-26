@@ -131,6 +131,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     private StringBuffer sb;
     private CompilerContext.DataSetProcessorType type;
+    private boolean skipStats;
+    private double defaultSelectivityFactor;
 
     private Database db;
 
@@ -316,7 +318,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             int instanceNumber,
             String drdaID,
             String dbname,
-            CompilerContext.DataSetProcessorType type) throws StandardException{
+            CompilerContext.DataSetProcessorType type,
+            boolean skipStats,
+            double defaultSelectivityFactor
+            ) throws StandardException{
         super(cm,ContextId.LANG_CONNECTION);
         acts=new ArrayList<>();
         tran=tranCtrl;
@@ -331,6 +336,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         this.instanceNumber=instanceNumber;
         this.drdaID=drdaID;
         this.dbname=dbname;
+        this.skipStats = skipStats;
+        this.defaultSelectivityFactor = defaultSelectivityFactor;
 
         /* Find out whether or not to log info on executing statements to error log
          */
@@ -3523,5 +3530,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public void setControlExecutionLimiter(ControlExecutionLimiter executionLimiter) {
         limiter = executionLimiter;
+    }
+
+    @Override
+    public boolean getSkipStats() {
+        return skipStats;
+    }
+
+    @Override
+    public double getDefaultSelectivityFactor() {
+        return defaultSelectivityFactor;
     }
 }

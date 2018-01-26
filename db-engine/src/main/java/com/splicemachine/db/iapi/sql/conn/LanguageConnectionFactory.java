@@ -114,7 +114,9 @@ public interface LanguageConnectionFactory {
 								String userName,
 								String drdaID,
 								String dbname,
-                                CompilerContext.DataSetProcessorType type)
+                                CompilerContext.DataSetProcessorType type,
+								boolean skipStats,
+								double defaultSelectivityFactor)
 
 		throws StandardException;
 
