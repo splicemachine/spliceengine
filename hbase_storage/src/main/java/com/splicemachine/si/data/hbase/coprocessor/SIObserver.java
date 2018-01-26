@@ -21,8 +21,12 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
 
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.si.data.hbase.ExtendedOperationStatus;
+import com.splicemachine.si.impl.server.CompactionContext;
+import com.splicemachine.si.impl.server.SimpleCompactionContext;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HConstants;
@@ -191,10 +195,14 @@ public class SIObserver extends BaseRegionObserver{
         try {
             if(tableEnvMatch){
                 SIDriver driver=SIDriver.driver();
+                SimpleCompactionContext context = new SimpleCompactionContext();
+                boolean blocking = HConfiguration.getConfiguration().getOlapCompactionBlocking();
                 SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
-                        driver.getRollForward(),
-                        driver.getConfiguration().getActiveTransactionCacheSize());
-                return new SICompactionScanner(state,scanner,false);
+                        driver.getConfiguration().getActiveTransactionCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
+                SConfiguration conf = driver.getConfiguration();
+                SICompactionScanner siScanner = new SICompactionScanner(state,scanner, false, conf.getOlapCompactionResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
+                siScanner.start();
+                return siScanner;
             }else{
                 return super.preCompact(e,store,scanner,scanType,compactionRequest);
             }
