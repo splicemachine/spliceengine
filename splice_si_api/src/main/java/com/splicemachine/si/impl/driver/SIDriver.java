@@ -14,6 +14,7 @@
 
 package com.splicemachine.si.impl.driver;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
@@ -36,6 +37,8 @@ import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.impl.ClientTxnLifecycleManager;
 import com.splicemachine.si.impl.TxnRegion;
+import com.splicemachine.si.impl.execution.ManagedThreadPool;
+import com.splicemachine.si.impl.execution.NonRejectingExecutor;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.si.impl.rollforward.RollForwardStatus;
@@ -51,6 +54,11 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class SIDriver {
     private static final Logger LOG = Logger.getLogger("splice.uncaught");
@@ -95,6 +103,8 @@ public class SIDriver {
     private final SnowflakeFactory snowflakeFactory;
     private final SIEnvironment env;
     private final ClusterHealth clusterHealth;
+    private final ManagedThreadPool rejectingThreadPool;
+    private final NonRejectingExecutor threadPool;
 
     public SIDriver(SIEnvironment env){
         this.tableFactory = env.tableFactory();
@@ -127,6 +137,17 @@ public class SIDriver {
         this.baseOpFactory = env.baseOperationFactory();
         this.env = env;
         this.clusterHealth = env.clusterHealthFactory();
+
+        /* Create a general purpose thread pool */
+        ThreadPoolExecutor tpe = new ThreadPoolExecutor(20, config.getThreadPoolMaxSize(),
+                60L, TimeUnit.SECONDS,
+                new SynchronousQueue<>(),
+                new ThreadFactoryBuilder().setNameFormat("SpliceThreadPool-%d").setDaemon(true).build(),
+                new ThreadPoolExecutor.AbortPolicy());
+        tpe.allowCoreThreadTimeOut(false);
+        tpe.prestartAllCoreThreads();
+        this.rejectingThreadPool = new ManagedThreadPool(tpe);
+        this.threadPool = new NonRejectingExecutor(rejectingThreadPool);
     }
 
 
@@ -238,6 +259,13 @@ public class SIDriver {
         return baseOpFactory;
     }
 
+    public ExecutorService getExecutorService() {
+        return threadPool;
+    }
+
+    public ExecutorService getRejectingExecutorService() {
+        return rejectingThreadPool;
+    }
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
@@ -252,5 +280,10 @@ public class SIDriver {
                 GreenLight.INSTANCE,keyedResolver);
         asyncReadResolver.start();
         return asyncReadResolver;
+    }
+
+    public void shutdownDriver() {
+        threadPool.shutdownNow();
+        getTimestampSource().shutdown();
     }
 }
