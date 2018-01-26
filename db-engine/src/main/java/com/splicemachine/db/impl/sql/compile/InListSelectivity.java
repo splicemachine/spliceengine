@@ -43,11 +43,13 @@ import com.splicemachine.db.iapi.store.access.StoreCostController;
 public class InListSelectivity extends AbstractSelectivityHolder {
     private Predicate p;
     private StoreCostController storeCost;
+    private double selectivityFactor;
 
-    public InListSelectivity(StoreCostController storeCost, Predicate p,QualifierPhase phase){
+    public InListSelectivity(StoreCostController storeCost, Predicate p,QualifierPhase phase, double selectivityFactor){
         super( ( (ColumnReference) p.getSourceInList().getLeftOperand()).getColumnNumber(),phase);
         this.p = p;
         this.storeCost = storeCost;
+        this.selectivityFactor = selectivityFactor;
     }
 
     public double getSelectivity() throws StandardException {
@@ -61,7 +63,12 @@ public class InListSelectivity extends AbstractSelectivityHolder {
                 else
                     selectivity+=storeCost.getSelectivity(colNum,cn.getValue(),true,cn.getValue(),true);
             }
+            if (selectivityFactor > 0)
+                selectivity *= selectivityFactor;
+
+            if (selectivity > 1.0d)
+                selectivity = 0.9d;
         }
-        return selectivity>1.0d?0.9d:selectivity;
+        return selectivity;
     }
 }

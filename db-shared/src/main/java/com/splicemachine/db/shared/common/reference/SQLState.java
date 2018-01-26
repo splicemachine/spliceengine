@@ -1017,10 +1017,12 @@ public interface SQLState {
 	String LANG_DUPLICATE_PROPERTY                                     = "42Y49";
 	String LANG_BOTH_FORCE_INDEX_AND_CONSTRAINT_SPECIFIED              = "42Y50";
 //	String LANG_INVALID_FORCED_INDEX4                                  = "42Y51";
-	String LANG_INVALIDE_FORCED_SKIPSTATS                              = "42Y52";
+	String LANG_INVALID_FORCED_SKIPSTATS                              = "42Y52";
 	String LANG_INVALID_SPLITS                                         = "42Y53";
+	String LANG_INVALID_SELECTIVITY                                    = "42Y54";
 	String LANG_OBJECT_DOES_NOT_EXIST                                  = "42Y55";
 	String LANG_INVALID_JOIN_STRATEGY                                  = "42Y56";
+	String LANG_INVALID_ROWCOUNT                                       = "42Y57";
 	String LANG_INVALID_NUMBER_FORMAT_FOR_OVERRIDE                     = "42Y58";
 	String LANG_INVALID_HASH_INITIAL_CAPACITY                          = "42Y59";
 	String LANG_INVALID_HASH_LOAD_FACTOR                               = "42Y60";
