@@ -1135,6 +1135,7 @@
                                 <argument>-Xms1g</argument>
                                 <!-- Spark Sys props -->
                                 <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
+				<argument>-Dsplice.spark.yarn.keytab=/tmp/keytab</argument>
 				<argument>-Dsplice.spark.eventLog.enabled=true</argument>
 				<argument>-Dsplice.spark.eventLog.dir=${project.build.directory}/SpliceTestYarnPlatform/</argument>
                                 <argument>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse</argument>

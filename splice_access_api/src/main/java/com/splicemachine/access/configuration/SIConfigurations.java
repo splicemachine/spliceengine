@@ -137,11 +137,18 @@ public class SIConfigurations implements ConfigurationDefault {
     private static final int DEFAULT_OLAP_SERVER_BIND_PORT = 60014;
 
     /**
+     * The directory to use for staging files sent to the Olap Server
+     * Defaults to NULL
+     */
+    public static final String OLAP_SERVER_STAGING_DIR = "splice.olap_server.stagingDirectory";
+    private static final String DEFAULT_OLAP_SERVER_STAGING_DIR = null;
+
+    /**
      * Run OlapServer externally on YARN
      * Defaults to true
      */
     public static final String OLAP_SERVER_EXTERNAL = "splice.olap_server.external";
-    private static final boolean DEFAULT_OLAP_SERVER_EXTERNAL = false;
+    private static final boolean DEFAULT_OLAP_SERVER_EXTERNAL = true;
 
     /**
      * Number of threads used by the Olap server, determines the maximum number of concurrent
@@ -185,6 +192,7 @@ public class SIConfigurations implements ConfigurationDefault {
         builder.timestampServerBindPort  = configurationSource.getInt(TIMESTAMP_SERVER_BIND_PORT, DEFAULT_TIMESTAMP_SERVER_BIND_PORT);
         builder.activeTransactionCacheSize  = configurationSource.getInt(ACTIVE_TRANSACTION_CACHE_SIZE, DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE);
         builder.olapServerBindPort  = configurationSource.getInt(OLAP_SERVER_BIND_PORT, DEFAULT_OLAP_SERVER_BIND_PORT);
+        builder.olapServerStagingDir = configurationSource.getString(OLAP_SERVER_STAGING_DIR, DEFAULT_OLAP_SERVER_STAGING_DIR);
         builder.olapServerExternal  = configurationSource.getBoolean(OLAP_SERVER_EXTERNAL, DEFAULT_OLAP_SERVER_EXTERNAL);
         builder.olapClientWaitTime  = configurationSource.getInt(OLAP_CLIENT_WAIT_TIME, DEFAULT_OLAP_CLIENT_WAIT_TIME);
         builder.olapClientTickTime  = configurationSource.getInt(OLAP_CLIENT_TICK_TIME, DEFAULT_OLAP_CLIENT_TICK_TIME);

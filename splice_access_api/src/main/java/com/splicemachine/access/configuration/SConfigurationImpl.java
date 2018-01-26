@@ -109,6 +109,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final int olapClientWaitTime;
     private final int olapClientTickTime;
     private final int olapServerBindPort;
+    private final String olapServerStagingDir;
     private final boolean olapServerExternal;
     private final int olapServerThreads;
     private final int olapServerTickLimit;
@@ -430,6 +431,10 @@ public final class SConfigurationImpl implements SConfiguration {
         return olapServerBindPort;
     }
     @Override
+    public String getOlapServerStagingDirectory() {
+        return olapServerStagingDir;
+    }
+    @Override
     public boolean getOlapServerExternal() {
         return olapServerExternal;
     }
@@ -749,6 +754,7 @@ public final class SConfigurationImpl implements SConfiguration {
         olapClientWaitTime = builder.olapClientWaitTime;
         olapClientTickTime = builder.olapClientTickTime;
         olapServerBindPort = builder.olapServerBindPort;
+        olapServerStagingDir = builder.olapServerStagingDir;
         olapServerExternal = builder.olapServerExternal;
         olapServerThreads = builder.olapServerThreads;
         olapServerTickLimit = builder.olapServerTickLimit;

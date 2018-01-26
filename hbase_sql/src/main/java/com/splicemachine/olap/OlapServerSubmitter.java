@@ -19,22 +19,29 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
+import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.LocalResourceType;
+import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.log4j.Logger;
 import org.apache.spark.util.ShutdownHookManager;
@@ -55,6 +62,7 @@ public class OlapServerSubmitter implements Runnable {
     // Staging directory for any temporary jars or files
     private static final String SPLICE_STAGING = ".spliceStaging";
 
+    private static final String KEYTAB_KEY = "splice.spark.yarn.keytab";
 
     // Staging directory is private! -> rwx--------
     private static final FsPermission STAGING_DIR_PERMISSION = FsPermission.createImmutable(Short.parseShort("700", 8));
@@ -64,6 +72,7 @@ public class OlapServerSubmitter implements Runnable {
     private volatile boolean stop = false;
     private CountDownLatch stopLatch = new CountDownLatch(1);
     private Path appStagingBaseDir;
+    private String amKeytabFileName = null;
 
     private Configuration conf;
 
@@ -76,7 +85,6 @@ public class OlapServerSubmitter implements Runnable {
         try {
             // Create yarnClient
             conf = HConfiguration.unwrapDelegate();
-            this.appStagingBaseDir = FileSystem.get(conf).getHomeDirectory();
 
             YarnClient yarnClient = YarnClient.createYarnClient();
             yarnClient.init(conf);
@@ -89,10 +97,46 @@ public class OlapServerSubmitter implements Runnable {
             int memoryOverhead = sconf.getOlapServerMemoryOverhead();
             int cpuCores = sconf.getOlapVirtualCores();
             int olapPort = sconf.getOlapServerBindPort();
+            String stagingDir = sconf.getOlapServerStagingDirectory();
+            if (stagingDir != null) {
+                this.appStagingBaseDir = new Path(stagingDir);
+            } else {
+                this.appStagingBaseDir = FileSystem.get(conf).getHomeDirectory();
+            }
 
             for (int i = 0; i<maxAttempts; ++i) {
                 // Create application via yarnClient
                 YarnClientApplication app = yarnClient.createApplication();
+
+                GetNewApplicationResponse newAppResponse = app.getNewApplicationResponse();
+                ApplicationId appId = newAppResponse.getApplicationId();
+
+                Path appStagingDirPath = new Path(appStagingBaseDir, getAppStagingDir(appId));
+                // Create staging dir
+                FileSystem fs = appStagingDirPath.getFileSystem(conf);
+                FileSystem.mkdirs(fs, appStagingDirPath, new FsPermission(STAGING_DIR_PERMISSION));
+
+                String keytab = System.getProperty(KEYTAB_KEY);
+                Map<String, LocalResource> localResources = new HashMap<>();
+                if (keytab != null) {
+                    LOG.info(KEYTAB_KEY + " is set, adding it to local resources");
+                    
+                    FileStatus destStatus = fs.getFileStatus(appStagingDirPath);
+                    LocalResource amJarRsrc = Records.newRecord(LocalResource.class);
+                    amJarRsrc.setType(LocalResourceType.FILE);
+                    amJarRsrc.setVisibility(LocalResourceVisibility.PRIVATE);
+                    amJarRsrc.setResource(ConverterUtils.getYarnUrlFromPath(appStagingDirPath));
+                    amJarRsrc.setTimestamp(destStatus.getModificationTime());
+                    amJarRsrc.setSize(destStatus.getLen());
+
+                    Path srcPath = new Path(keytab);
+                    String name = srcPath.getName();
+                    FileSystem srcFs = srcPath.getFileSystem(conf);
+                    FileUtil.copy(srcFs, srcPath, fs, appStagingDirPath, false, conf);
+                    amKeytabFileName = name;
+                    
+                    localResources.put(name, amJarRsrc);
+                }
 
                 // Set up the container launch context for the application master
                 ContainerLaunchContext amContainer =
@@ -100,7 +144,7 @@ public class OlapServerSubmitter implements Runnable {
                 amContainer.setCommands(
                         Collections.singletonList(prepareCommands(
                                 "$JAVA_HOME/bin/java",
-                                        " -Xmx" + memory + "M " + outOfMemoryErrorArgument() + " " +
+                                " -Xmx" + memory + "M " + outOfMemoryErrorArgument() + " " +
                                         OlapServerMaster.class.getCanonicalName() +
                                         " " + serverName.toString() + " " + olapPort +
                                         " 1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stdout" +
@@ -112,6 +156,7 @@ public class OlapServerSubmitter implements Runnable {
                 Map<String, String> appMasterEnv = new HashMap<String, String>();
                 setupAppMasterEnv(appMasterEnv, conf);
                 amContainer.setEnvironment(appMasterEnv);
+                amContainer.setLocalResources(localResources);
 
 
                 // Set up resource type requirements for ApplicationMaster
@@ -123,16 +168,14 @@ public class OlapServerSubmitter implements Runnable {
                 ApplicationSubmissionContext appContext =
                         app.getApplicationSubmissionContext();
                 appContext.setApplicationName("OlapServer"); // application name
+                appContext.setAMContainerSpec(amContainer);
                 appContext.setResource(capability);
                 appContext.setQueue("default"); // queue
                 appContext.setMaxAppAttempts(1);
                 appContext.setAttemptFailuresValidityInterval(10000);
 
                 // Submit application
-                ApplicationId appId = appContext.getApplicationId();
                 LOG.info("Submitting YARN application " + appId);
-
-                Path appStagingDirPath = new Path(appStagingBaseDir, getAppStagingDir(appId));
 
                 yarnClient.submitApplication(appContext);
                 Object hookReference = ShutdownHookManager.addShutdownHook(0, new AbstractFunction0<BoxedUnit>() {
@@ -259,6 +302,11 @@ public class OlapServerSubmitter implements Runnable {
         for (Object sysPropertyKey : System.getProperties().keySet()) {
             String spsPropertyName = (String) sysPropertyKey;
             if (spsPropertyName.startsWith("splice.spark") || spsPropertyName.startsWith("spark")) {
+                if (spsPropertyName.equals(KEYTAB_KEY)) {
+                    LOG.info(KEYTAB_KEY + " is set, substituting it for " + amKeytabFileName);
+                    result.append(' ').append("-D"+spsPropertyName+"="+amKeytabFileName);
+                    continue;
+                }
                 String sysPropertyValue = System.getProperty(spsPropertyName).replace('\n', ' ');
                 if (sysPropertyValue != null) {
                     result.append(' ').append("-D"+spsPropertyName+"=\\\""+sysPropertyValue+"\\\"");

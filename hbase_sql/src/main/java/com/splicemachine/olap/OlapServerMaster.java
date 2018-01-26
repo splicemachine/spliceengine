@@ -129,7 +129,7 @@ public class OlapServerMaster implements Watcher {
         if (principal != null) {
             if (keytab != null) {
                 try {
-                    LOG.info("Login with principal and keytab");
+                    LOG.info("Login with principal (" + principal +") and keytab (" + keytab +")");
                     ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab);
                 } catch (IOException e) {
                     LOG.error("Error while authenticating user " + principal + " with keytab " + keytab, e);
@@ -191,7 +191,6 @@ public class OlapServerMaster implements Watcher {
         OlapServer server = new OlapServer(port, env.systemClock());
         server.startServer(env.configuration());
         LOG.info("OlapServer started");
-
 
         int port = server.getBoundPort();
         String hostname = NetworkUtils.getHostname(HConfiguration.getConfiguration());

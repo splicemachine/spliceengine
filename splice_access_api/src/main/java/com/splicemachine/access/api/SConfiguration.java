@@ -162,6 +162,8 @@ public interface SConfiguration {
 
     int getOlapServerBindPort();
 
+    String getOlapServerStagingDirectory();
+
     boolean getOlapServerExternal();
 
     int getOlapServerThreads();

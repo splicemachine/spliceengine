@@ -108,6 +108,7 @@ public class ConfigurationBuilder {
     public int olapClientWaitTime;
     public int olapClientTickTime;
     public int olapServerBindPort;
+    public String olapServerStagingDir;
     public boolean olapServerExternal;
     public int olapServerThreads;
     public int olapServerTickLimit;
