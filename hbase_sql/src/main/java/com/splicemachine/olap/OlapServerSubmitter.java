@@ -49,6 +49,9 @@ import scala.runtime.AbstractFunction0;
 import scala.runtime.BoxedUnit;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -120,6 +123,9 @@ public class OlapServerSubmitter implements Runnable {
                 Map<String, LocalResource> localResources = new HashMap<>();
                 if (keytab != null) {
                     LOG.info(KEYTAB_KEY + " is set, adding it to local resources");
+                    String trimmedPath = keytab.trim();
+                    URI localURI = resolveURI(trimmedPath);
+                    Path srcPath = getQualifiedLocalPath(localURI, conf);
                     
                     FileStatus destStatus = fs.getFileStatus(appStagingDirPath);
                     LocalResource amJarRsrc = Records.newRecord(LocalResource.class);
@@ -129,7 +135,6 @@ public class OlapServerSubmitter implements Runnable {
                     amJarRsrc.setTimestamp(destStatus.getModificationTime());
                     amJarRsrc.setSize(destStatus.getLen());
 
-                    Path srcPath = new Path(keytab);
                     String name = srcPath.getName();
                     FileSystem srcFs = srcPath.getFileSystem(conf);
                     FileUtil.copy(srcFs, srcPath, fs, appStagingDirPath, false, conf);
@@ -403,5 +408,29 @@ public class OlapServerSubmitter implements Runnable {
 
     private String buildPath(String... components) {
         return String.join(Path.SEPARATOR, components);
+    }
+
+    private URI resolveURI(String path) {
+        try {
+            URI uri = new URI(path);
+            if (uri.getScheme() != null) {
+                return uri;
+            }
+        } catch (URISyntaxException e) {
+            // ignore
+        }
+        return new File(path).getAbsoluteFile().toURI();
+    }
+
+    private Path getQualifiedLocalPath(URI localURI, Configuration hadoopConf) throws IOException, URISyntaxException {
+        URI qualifiedURI;
+        if (localURI.getScheme() == null) {
+            // If not specified, assume this is in the local filesystem to keep the behavior
+            // consistent with that of Hadoop
+            qualifiedURI = new URI(FileSystem.getLocal(hadoopConf).makeQualified(new Path(localURI)).toString());
+        } else {
+            qualifiedURI = localURI;
+        }
+        return new Path(qualifiedURI);
     }
 }
