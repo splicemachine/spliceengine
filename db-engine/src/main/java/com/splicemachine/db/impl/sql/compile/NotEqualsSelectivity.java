@@ -43,15 +43,22 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 public class NotEqualsSelectivity extends AbstractSelectivityHolder {
     private DataValueDescriptor value;
     private StoreCostController storeCost;
-    public NotEqualsSelectivity(StoreCostController storeCost, int colNum, QualifierPhase phase, DataValueDescriptor value){
+    private double selectivityFactor;
+
+    public NotEqualsSelectivity(StoreCostController storeCost, int colNum, QualifierPhase phase, DataValueDescriptor value, double selectivityFactor){
         super(colNum,phase);
         this.value = value;
         this.storeCost = storeCost;
+        this.selectivityFactor = selectivityFactor;
     }
 
     public double getSelectivity() throws StandardException {
-        if (selectivity == -1.0d)
-            selectivity = 1-storeCost.getSelectivity(colNum,value,true,value,true);
+        if (selectivity == -1.0d) {
+            double tmpSelectivity = storeCost.getSelectivity(colNum, value, true, value, true);
+            if (selectivityFactor > 0)
+                tmpSelectivity *= selectivityFactor;
+            selectivity = 1 - tmpSelectivity;
+        }
         return selectivity;
     }
 }

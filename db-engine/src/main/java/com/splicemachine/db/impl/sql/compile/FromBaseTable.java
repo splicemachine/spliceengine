@@ -111,6 +111,8 @@ public class FromBaseTable extends FromTable {
     private boolean pin;
     int updateOrDelete;
     boolean skipStats;
+    long defaultRowCount;
+    double defaultSelectivityFactor = -1d;
 
     /*
     ** The number of rows to bulkFetch.
@@ -546,6 +548,13 @@ public class FromBaseTable extends FromTable {
         if (tableDescriptor.getStoredAs()!=null) {
             dataSetProcessorType = CompilerContext.DataSetProcessorType.FORCED_SPARK;
         }
+
+        /* check if we need to inherent some property from the connection */
+        skipStats = getLanguageConnectionContext().getSkipStats();
+        defaultSelectivityFactor = getLanguageConnectionContext().getDefaultSelectivityFactor();
+        if (defaultSelectivityFactor > 0)
+            skipStats = true;
+
         if(tableProperties==null){
             return;
         }
@@ -645,14 +654,36 @@ public class FromBaseTable extends FromTable {
             }
             else if (key.equals("skipStats")) {
                 try {
-                    skipStats = Boolean.parseBoolean(StringUtil.SQLToUpperCase(value));
+                    boolean bValue = Boolean.parseBoolean(StringUtil.SQLToUpperCase(value));
+                    // skipStats may have been set to true by the other hint useDefaultRowCount or defaultSelectivityFactor
+                    // in that case, useDefaultRowCount and defaultSelectivityFactor take precedence and we don't want to override that decision
+                    if (!skipStats)
+                        skipStats = bValue;
                 } catch (Exception skipStatsE) {
-                    throw StandardException.newException(SQLState.LANG_INVALIDE_FORCED_SKIPSTATS,value);
+                    throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SKIPSTATS, value);
                 }
-            } else{
+           } else if (key.equals("useDefaultRowCount")) {
+                try {
+                    skipStats = true;
+                    defaultRowCount = Long.parseLong(value);
+                    if (defaultRowCount <= 0)
+                        throw StandardException.newException(SQLState.LANG_INVALID_ROWCOUNT, value);
+                } catch (Exception parseLongE) {
+                    throw StandardException.newException(SQLState.LANG_INVALID_ROWCOUNT, value);
+                }
+            } else if (key.equals("defaultSelectivityFactor")) {
+                try {
+                    skipStats = true;
+                    defaultSelectivityFactor = Double.parseDouble(value);
+                    if (defaultSelectivityFactor <= 0 || defaultSelectivityFactor > 1.0)
+                        throw StandardException.newException(SQLState.LANG_INVALID_SELECTIVITY, value);
+                } catch (Exception parseDoubleE) {
+                    throw StandardException.newException(SQLState.LANG_INVALID_SELECTIVITY, value);
+                }
+            }else {
                 // No other "legal" values at this time
                 throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key,
-                        "index, constraint, joinStrategy, useSpark, pin, skipStats");
+                        "index, constraint, joinStrategy, useSpark, pin, skipStats, useDefaultRowcount, defaultSelectivityFactor");
             }
 
 
@@ -811,7 +842,7 @@ public class FromBaseTable extends FromTable {
                 }
 
                 if(!p.isJoinPredicate() || currentJoinStrategy.allowsJoinPredicatePushdown()) //skip join predicates unless they support predicate pushdown
-                    scf.addPredicate(p);
+                    scf.addPredicate(p, defaultSelectivityFactor);
             }
             scf.generateCost();
             singleScanRowCount=costEstimate.singleScanRowCount();
@@ -3125,11 +3156,11 @@ public class FromBaseTable extends FromTable {
         if (skipStats) {
             if (!getCompilerContext().skipStats(this.getTableNumber()))
                 getCompilerContext().getSkipStatsTableList().add(this.getTableNumber());
-            return getCompilerContext().getStoreCostController(td, cd, true);
+            return getCompilerContext().getStoreCostController(td, cd, true, defaultRowCount);
         }
         else {
             return getCompilerContext().getStoreCostController(td, cd,
-                    getCompilerContext().skipStats(this.getTableNumber()));
+                    getCompilerContext().skipStats(this.getTableNumber()), 0);
         }
     }
 
