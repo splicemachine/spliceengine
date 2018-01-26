@@ -277,7 +277,7 @@ public class TPCHIT extends SpliceUnitTest {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-    private static String getResource(String name) {
+    public static String getResource(String name) {
         return SpliceUnitTest.getResourceDirectory() + "tcph/data/" + name;
     }
 
