@@ -85,7 +85,13 @@ public class WriteResult implements Externalizable {
         return code.shouldCancel();
     }
     public boolean canRetry() {
-        return code.canRetry();
+
+        return code.canRetry() ||
+                ((errorMessage!= null) &&
+                        (errorMessage.contains("NoRouteToHostException") ||
+                                errorMessage.contains(("FailedServerException")) ||
+                                errorMessage.contains("ServerNotRunningYetException") ||
+                                errorMessage.contains("ConnectTimeoutException")));
     }
 
     public boolean isPartial() {
