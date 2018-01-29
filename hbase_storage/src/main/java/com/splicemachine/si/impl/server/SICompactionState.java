@@ -14,6 +14,7 @@
 
 package com.splicemachine.si.impl.server;
 
+import com.google.common.util.concurrent.Futures;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.readresolve.RollForward;
@@ -32,9 +33,15 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 
 /**
  * Captures the SI logic to perform when a data table is compacted (without explicit HBase dependencies). Provides the
@@ -45,14 +52,17 @@ import java.util.TreeSet;
 public class SICompactionState {
     private static final Logger LOG = Logger.getLogger(SICompactionState.class);
     private final TxnSupplier transactionStore;
+    private final CompactionContext context;
+    private final ExecutorService executorService;
+    private ConcurrentHashMap<Long, Future<TxnView>> futuresCache;
     private SortedSet<Cell> dataToReturn;
-    private final RollForward rollForward;
-    private ByteSlice rowSlice = new ByteSlice();
 
-    public SICompactionState(TxnSupplier transactionStore,RollForward rollForward,int activeTransactionCacheSize) {
-        this.rollForward = rollForward;
+    public SICompactionState(TxnSupplier transactionStore, int activeTransactionCacheSize, CompactionContext context, ExecutorService executorService) {
         this.transactionStore = new ActiveTxnCacheSupplier(transactionStore,activeTransactionCacheSize);
         this.dataToReturn  =new TreeSet<>(KeyValue.COMPARATOR);
+        this.context = context;
+        this.futuresCache = new ConcurrentHashMap<>(1<<19, 0.75f, 64);
+        this.executorService = executorService;
     }
 
     /**
@@ -61,11 +71,13 @@ public class SICompactionState {
      * @param rawList - the input of key values to process
      * @param results - the output key values
      */
-    public void mutate(List<Cell> rawList, List<Cell> results, boolean purgeDeletedRows) throws IOException {
+    public void mutate(List<Cell> rawList, List<TxnView> txns, List<Cell> results, boolean purgeDeletedRows) throws IOException {
         dataToReturn.clear();
         long maxTombstone = 0;
+        Iterator<TxnView> it = txns.iterator();
         for (Cell aRawList : rawList) {
-            long t = mutate(aRawList);
+            TxnView txn = it.next();
+            long t = mutate(aRawList, txn);
             if (t > maxTombstone) {
                 maxTombstone = t;
             }
@@ -88,24 +100,15 @@ public class SICompactionState {
     /**
      * Apply SI mutation logic to an individual key-value. Return the "new" key-value.
      */
-    private long mutate(Cell element) throws IOException {
+    private long mutate(Cell element, TxnView txn) throws IOException {
         final CellType cellType= getKeyValueType(element);
         long timestamp = element.getTimestamp();
         switch (cellType) {
             case COMMIT_TIMESTAMP:
-                /*
-                 * Older versions of SI code would put an "SI Fail" element in the commit timestamp
-                 * field when a row has been rolled back. While newer versions will just outright delete the entry,
-                 * we still need to deal with entries which are in the old form. As time goes on, this should
-                 * be less and less frequent, but you still have to check
-                 */
-                ensureTransactionCached(timestamp,element);
                 dataToReturn.add(element);
                 return 0;
-            case TOMBSTONE:
-            case ANTI_TOMBSTONE:
-            case USER_DATA:
-                if(mutateCommitTimestamp(timestamp,element))
+            default:
+                if(mutateCommitTimestamp(element,txn))
                     dataToReturn.add(element);
                 if (cellType == CellType.TOMBSTONE) {
                     return timestamp;
@@ -113,15 +116,6 @@ public class SICompactionState {
                 else {
                     return 0;
                 }
-            default:
-                if(LOG.isDebugEnabled()){
-                    String famString = Bytes.toString(element.getFamilyArray(),element.getFamilyOffset(),element.getFamilyLength());
-                    String qualString = Bytes.toString(element.getQualifierArray(),element.getQualifierOffset(),element.getQualifierLength());
-                       SpliceLogUtils.debug(LOG,"KeyValue with family %s and column %s are not SI-managed, ignoring",
-                               famString,qualString);
-                }
-                dataToReturn.add(element);
-                return 0;
         }
     }
 
@@ -131,6 +125,9 @@ public class SICompactionState {
                 transactionStore.cache(new RolledBackTxn(timestamp));
             }else if (element.getValueLength()>0){ //shouldn't happen, but you never know
                 long commitTs = Bytes.toLong(element.getValueArray(),element.getValueOffset(),element.getValueLength());
+
+                if (LOG.isDebugEnabled())
+                    LOG.debug("Caching " + timestamp + " with commitTs " + commitTs);
                 transactionStore.cache(new CommittedTxn(timestamp,commitTs));
             }
         }
@@ -139,41 +136,23 @@ public class SICompactionState {
     /**
      * Replace unknown commit timestamps with actual commit times.
      */
-    private boolean mutateCommitTimestamp(long timestamp,Cell element) throws IOException {
-        TxnView transaction = transactionStore.getTransaction(timestamp);
-        if (transaction == null) {
-            // If the database is restored from a backup, it may contain data that were written by a transaction which
-            // is not present in SPLICE_TXN table, because SPLICE_TXN table is copied before the transaction begins.
-            // However, the table written by the txn was copied 
+    private boolean mutateCommitTimestamp(Cell element, TxnView txn) throws IOException {
+        if (txn == null) {
+            // we don't have transactional information, just return the data as is
+            return true;
+        } else if (txn.getState() == Txn.State.ROLLEDBACK) {
+            // rolled back data, remove it from the compacted data
             return false;
-        }
-        if(transaction.getEffectiveState()== Txn.State.ROLLEDBACK){
-            /*
-             * This transaction has been rolled back, so just remove the data
-             * from physical storage
-             */
-            recordResolved(element,transaction);
-            return false;
-        }
-        TxnView t = transaction;
-        while(t.getState()== Txn.State.COMMITTED){
-            t = t.getParentTxnView();
-        }
-        if(t==Txn.ROOT_TRANSACTION){
+        } else if (txn.getState() == Txn.State.COMMITTED && txn.getParentTxnView() == Txn.ROOT_TRANSACTION) {
             /*
              * This element has been committed all the way to the user level, so a
              * commit timestamp can be placed on it.
              */
-            long globalCommitTimestamp = transaction.getEffectiveCommitTimestamp();
+            long globalCommitTimestamp = txn.getEffectiveCommitTimestamp();
             dataToReturn.add(newTransactionTimeStampKeyValue(element, Bytes.toBytes(globalCommitTimestamp)));
-            recordResolved(element, transaction);
         }
+        // Committed or active, return the original data too
         return true;
-    }
-
-    private void recordResolved(Cell element, TxnView transaction) {
-        rowSlice.set(element.getRowArray(),element.getRowOffset(),element.getRowLength());
-        rollForward.recordResolved(rowSlice,transaction.getTxnId());
     }
 
     public Cell newTransactionTimeStampKeyValue(Cell element, byte[] value) {
@@ -208,4 +187,73 @@ public class SICompactionState {
         return CellType.OTHER;
     }
 
+
+    public List<Future<TxnView>> resolve(List<Cell> list) throws IOException {
+        context.rowRead();
+        List<Future<TxnView>> result = new ArrayList<>(list.size());
+        for (Cell element : list) {
+            final CellType cellType= getKeyValueType(element);
+            long timestamp = element.getTimestamp();
+            switch (cellType) {
+                case COMMIT_TIMESTAMP:
+                    /*
+                     * Older versions of SI code would put an "SI Fail" element in the commit timestamp
+                     * field when a row has been rolled back. While newer versions will just outright delete the entry,
+                     * we still need to deal with entries which are in the old form. As time goes on, this should
+                     * be less and less frequent, but you still have to check
+                     */
+                    ensureTransactionCached(timestamp,element);
+                    result.add(null); // no transaction needed for this entry
+                    context.readCommit();
+                    break;
+                case TOMBSTONE:
+                case ANTI_TOMBSTONE:
+                case USER_DATA:
+                default:
+                    context.readData();
+                    TxnView tentative = transactionStore.getTransactionFromCache(timestamp);
+                    if (tentative != null) {
+                        if (LOG.isDebugEnabled())
+                            LOG.debug("Cached " + tentative);
+                        result.add(Futures.immediateFuture(tentative));
+                        context.recordResolutionCached();
+                    } else {
+                        Future<TxnView> future;
+                        try {
+                            future = futuresCache.computeIfAbsent(timestamp, txnId -> {
+                                context.recordRPC();
+                                return executorService.submit(() -> {
+                                    if (LOG.isDebugEnabled())
+                                        LOG.debug("Resolving " + txnId);
+                                    TxnView txn = transactionStore.getTransaction(txnId);
+
+                                    if (LOG.isTraceEnabled())
+                                        LOG.trace("Txn " + txn);
+                                    while (txn.getState() == Txn.State.COMMITTED && txn.getParentTxnView() != Txn.ROOT_TRANSACTION) {
+                                        txn = txn.getParentTxnView();
+                                        
+                                        if (LOG.isTraceEnabled())
+                                            LOG.trace("Parent " + txn);
+                                    }
+                                    if (LOG.isDebugEnabled())
+                                        LOG.debug("Returning, parent " + txn.getParentTxnView());
+                                    return txn;
+                                });
+                            });
+                            context.recordResolutionScheduled();
+                        } catch (RejectedExecutionException ex) {
+                            context.recordResolutionRejected();
+                            future = Futures.immediateFuture(null);
+                        }
+                        result.add(future);
+                    }
+            }
+        }
+        return result;
+    }
+
+    /** Remove entry from futures cache after it is already available in the transactional cache*/
+    public void remove(long txnId) {
+        futuresCache.remove(txnId);
+    }
 }

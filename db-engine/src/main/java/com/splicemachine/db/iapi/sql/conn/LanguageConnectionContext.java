@@ -1353,4 +1353,7 @@ public interface LanguageConnectionContext extends Context {
 	 */
 	void setControlExecutionLimiter(ControlExecutionLimiter executionLimiter);
 
+	boolean getSkipStats();
+
+	double getDefaultSelectivityFactor();
 }

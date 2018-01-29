@@ -27,6 +27,7 @@ import com.splicemachine.derby.stream.iapi.IterableJoinFunction;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iterator.GetNLJoinIterator;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.Pair;
 
 import java.util.ArrayList;
@@ -76,7 +77,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
         batchSize = configuration.getNestedLoopJoinBatchSize();
         nLeftRows = 0;
         leftSideIterator = from;
-        executorService = EngineDriver.driver().getExecutorService();
+        executorService = SIDriver.driver().getExecutorService();
 
         initOperationContexts();
         loadBatch();

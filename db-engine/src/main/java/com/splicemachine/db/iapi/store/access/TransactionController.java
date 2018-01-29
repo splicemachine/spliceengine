@@ -1231,12 +1231,16 @@ public interface TransactionController
      * @return The open StoreCostController.
      *
      * @param conglomerateDescriptor The identifier of the conglomerate to open.
+	 *
+	 * @param skipDictionaryStats Whether we should fetch real stats from dictionary or just fake it
+	 *
+	 * @param defaultRowcount only takes effect when skipDictionaryStats is true, fix the rowcount to be the specified value
      *
      * @exception  StandardException  Standard exception policy.
      *
      * @see StoreCostController
      **/
-    StoreCostController openStoreCost(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, boolean skipDictionaryStats) throws StandardException;
+    StoreCostController openStoreCost(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, boolean skipDictionaryStats, long defaultRowcount) throws StandardException;
 
     /**
      * Return a string with debug information about opened congloms/scans/sorts.

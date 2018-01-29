@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.hbase;
 
+import org.apache.hadoop.hbase.ipc.ServerNotRunningYetException;
+import org.apache.hadoop.net.ConnectTimeoutException;
 import org.spark_project.guava.base.Throwables;
 import com.splicemachine.access.api.CallTimeoutException;
 import com.splicemachine.access.api.NotServingPartitionException;
@@ -37,6 +39,7 @@ import org.apache.hadoop.ipc.RemoteException;
 
 import java.io.IOException;
 import java.net.ConnectException;
+import java.net.NoRouteToHostException;
 import java.net.SocketTimeoutException;
 
 /**
@@ -93,7 +96,6 @@ public class HPipelineExceptionFactory extends HExceptionFactory implements Pipe
         t=processPipelineException(t);
         if(t instanceof CannotCommitException) return true;
         else if(t instanceof CallTimeoutException) return true;
-        else if(t instanceof SocketTimeoutException) return true;
         else if(t instanceof DisconnectException) return true;
         else if(t instanceof FailedServerException) return true;
         else return false;
@@ -116,6 +118,11 @@ public class HPipelineExceptionFactory extends HExceptionFactory implements Pipe
                 || t instanceof WrongPartitionException
                 || t instanceof PipelineTooBusy
                 || t instanceof RegionBusyException
+                || t instanceof NoRouteToHostException
+                || t instanceof org.apache.hadoop.hbase.ipc.FailedServerException
+                || t instanceof FailedServerException
+                || t instanceof ServerNotRunningYetException
+                || t instanceof ConnectTimeoutException
                 || t instanceof IndexNotSetUpException) return true;
         return false;
     }
