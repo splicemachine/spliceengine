@@ -24,9 +24,9 @@ import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.catalog.ManagedCacheMBean;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.iapi.sql.execute.RunningOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.hbase.JMXThreadPool;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.protobuf.ProtoUtil;
@@ -85,6 +85,7 @@ import javax.management.MalformedObjectNameException;
 import javax.management.remote.JMXConnector;
 import java.io.IOException;
 import java.sql.*;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -1543,16 +1544,19 @@ public class SpliceAdmin extends BaseAdminProcedures{
             userId = null;
         }
 
-        List<Pair<UUID, SpliceOperation>> operations = EngineDriver.driver().getOperationManager().runningOperations(userId);
+        List<Pair<UUID, RunningOperation>> operations = EngineDriver.driver().getOperationManager().runningOperations(userId);
 
         SConfiguration config=EngineDriver.driver().getConfiguration();
         String hostname = NetworkUtils.getHostname(config);
         int port = config.getNetworkBindPort();
+        String engineName ;
+        String timeStampFormat = "yyyy-MM-dd HH:mm:ss";
+        String submittedTime ;
 
         List<ExecRow> rows = new ArrayList<>(operations.size());
-        for (Pair<UUID, SpliceOperation> pair : operations) {
+        for (Pair<UUID, RunningOperation> pair : operations) {
             ExecRow row = new ValueRow(8);
-            Activation activation = pair.getSecond().getActivation();
+            Activation activation = pair.getSecond().getOperation().getActivation();
             assert activation.getPreparedStatement() != null:"Prepared Statement is null";
             row.setColumn(1, new SQLVarchar(pair.getFirst().toString()));
             row.setColumn(2, new SQLVarchar(activation.getLanguageConnectionContext().getCurrentUserId(activation)));
@@ -1560,9 +1564,11 @@ public class SpliceAdmin extends BaseAdminProcedures{
             row.setColumn(4, new SQLInteger(activation.getLanguageConnectionContext().getInstanceNumber()));
             ExecPreparedStatement ps = activation.getPreparedStatement();
             row.setColumn(5, new SQLVarchar(ps == null ? null : ps.getSource()));
-            row.setColumn(6, new SQLVarchar(pair.getSecond().getSubmittedTime()));
-            row.setColumn(7, new SQLVarchar(pair.getSecond().getEngineName()));
-            row.setColumn(8, new SQLVarchar(pair.getSecond().getScopeName()));
+            submittedTime = new SimpleDateFormat(timeStampFormat).format(pair.getSecond().getSubmittedTime());
+            row.setColumn(6, new SQLVarchar(submittedTime));
+            engineName = (pair.getSecond().getEngine() == DataSetProcessor.Type.SPARK) ? "SPARK" : "CONTROL";
+            row.setColumn(7, new SQLVarchar(engineName));
+            row.setColumn(8, new SQLVarchar(pair.getSecond().getOperation().getScopeName()));
             rows.add(row);
         }
 
