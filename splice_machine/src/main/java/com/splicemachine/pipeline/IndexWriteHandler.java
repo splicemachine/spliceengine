@@ -88,21 +88,22 @@ public class IndexWriteHandler extends RoutingWriteHandler{
         }
         if (!ensureBufferReader(mutation, ctx))
             return false;
-
+        KVPair delete = null;
         switch(mutation.getType()) {
             case INSERT:
                 return createIndexRecord(mutation, ctx,null);
             case UPDATE:
                 if (transformer.areIndexKeysModified(mutation, indexedColumns)) { // Do I need to update?
-                    deleteIndexRecord(mutation, ctx);
-                    return createIndexRecord(mutation, ctx,indexBuffer.lastElement());
+                    delete = deleteIndexRecord(mutation, ctx, false);
+                    return createIndexRecord(mutation, ctx, delete);
                 }
                 return true; // No index columns modifies ignore...
             case UPSERT:
-                deleteIndexRecord(mutation, ctx);
-                return createIndexRecord(mutation, ctx,indexBuffer.lastElement());
+                delete = deleteIndexRecord(mutation, ctx, false);
+                return createIndexRecord(mutation, ctx,delete);
             case DELETE:
-                return deleteIndexRecord(mutation, ctx);
+                delete = deleteIndexRecord(mutation, ctx, true);
+                return  delete != null;
             case CANCEL:
                 if (transformer.isUniqueIndex())
                     return true;
@@ -138,14 +139,17 @@ public class IndexWriteHandler extends RoutingWriteHandler{
                  */
                 deleteMutation.setValue(newIndex.getValue());
                 deleteMutation.setType(KVPair.Type.UPDATE);
-                newIndex = deleteMutation;
                 add=false;
             }
             if(keepState) {
                 this.routedToBaseMutationMap.put(newIndex, mutation);
             }
-            if(add)
+            if (deleteMutation != null) {
+                indexBuffer.add(deleteMutation);
+            }
+            if(add) {
                 indexBuffer.add(newIndex);
+            }
         } catch (Exception e) {
             fail(mutation,ctx,e);
             return false;
@@ -154,7 +158,7 @@ public class IndexWriteHandler extends RoutingWriteHandler{
     }
 
 
-    private boolean deleteIndexRecord(KVPair mutation, WriteContext ctx) {
+    private KVPair deleteIndexRecord(KVPair mutation, WriteContext ctx, boolean add) {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "index delete with %s", mutation);
 
@@ -171,19 +175,21 @@ public class IndexWriteHandler extends RoutingWriteHandler{
                 // we can't find the old row, it may have been deleted already, but we'll have to update the
                 // index anyway in the calling method
 //                ctx.success(mutation);
-                return false;
+                return null;
             }
             if(keepState)
                 this.routedToBaseMutationMap.put(indexDelete,mutation);
-            if (LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG, "performing index delete on row %s", Bytes.toHex(indexDelete.getRowKey()));
-            ensureBufferReader(indexDelete, ctx);
-            indexBuffer.add(indexDelete);
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG, "performing index delete on row %s", Bytes.toHex(indexDelete.getRowKey()));
+            if (add) {
+                ensureBufferReader(indexDelete, ctx);
+                indexBuffer.add(indexDelete);
+            }
+            return indexDelete;
         } catch (Exception e) {
             fail(mutation,ctx,e);
-            return false;
+            return null;
         }
-        return true;
     }
 
     private boolean ensureBufferReader(KVPair mutation, WriteContext ctx) {

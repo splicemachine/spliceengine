@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.derby.stream.function.IteratorUtils;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.spark.InterruptibleIterator;
 import org.apache.spark.TaskContext;
 import org.spark_project.guava.collect.Lists;
@@ -174,7 +175,7 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
         if(!sourceRows.isEmpty()){
             //submit to the background thread
             Lookup task=new Lookup(sourceRows);
-            resultFutures.add(EngineDriver.driver().getExecutorService().submit(task));
+            resultFutures.add(SIDriver.driver().getExecutorService().submit(task));
         }
 
         //if there is only one submitted future, call this again to set off an additional background process

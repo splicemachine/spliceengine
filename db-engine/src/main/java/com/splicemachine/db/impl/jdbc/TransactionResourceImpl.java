@@ -31,26 +31,23 @@
 
 package com.splicemachine.db.impl.jdbc;
 
+import com.splicemachine.db.iapi.db.Database;
+import com.splicemachine.db.iapi.error.ExceptionSeverity;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Attribute;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.util.IdUtil;
+import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.jdbc.InternalDriver;
 
-import com.splicemachine.db.iapi.services.context.ContextService;
-import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
-import com.splicemachine.db.iapi.db.Database;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.error.ExceptionSeverity;
-
-import com.splicemachine.db.iapi.reference.Attribute;
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.util.IdUtil;
-import com.splicemachine.db.iapi.util.InterruptStatus;
-
-import java.util.Properties;
 import java.sql.SQLException;
+import java.util.Properties;
 
 /** 
  *	An instance of a TransactionResourceImpl is a bundle of things that
@@ -133,6 +130,8 @@ public final class TransactionResourceImpl
 	private String url;
 	private String drdaID;
     private CompilerContext.DataSetProcessorType useSpark;
+    private boolean skipStats;
+    private double defaultSelectivityFactor;
 
 	// set these up after constructor, called by EmbedConnection
 	protected Database database;
@@ -167,6 +166,30 @@ public final class TransactionResourceImpl
             }
         } else
             useSpark = CompilerContext.DataSetProcessorType.DEFAULT_CONTROL;
+
+        String skipStatsString = info.getProperty("skipStats", null);
+        if (skipStatsString != null) {
+			try {
+				skipStats = Boolean.parseBoolean(StringUtil.SQLToUpperCase(skipStatsString));
+			} catch (Exception skipStatsE) {
+				throw new SQLException(StandardException.newException(SQLState.LANG_INVALID_FORCED_SKIPSTATS, skipStatsString).getMessage(), SQLState.LANG_INVALID_FORCED_SKIPSTATS);
+			}
+		} else
+			skipStats = false;
+
+        String selectivityFactorString = info.getProperty("defaultSelectivityFactor", null);
+        if (selectivityFactorString != null) {
+			try {
+				skipStats = true;
+				defaultSelectivityFactor = Double.parseDouble(selectivityFactorString);
+			} catch (Exception parseDoubleE) {
+				throw new SQLException(StandardException.newException(SQLState.LANG_INVALID_SELECTIVITY, selectivityFactorString).getMessage(), SQLState.LANG_INVALID_SELECTIVITY);
+			}
+			if (defaultSelectivityFactor <= 0 || defaultSelectivityFactor > 1.0)
+				throw new SQLException(StandardException.newException(SQLState.LANG_INVALID_SELECTIVITY, selectivityFactorString).getMessage(),
+						SQLState.LANG_INVALID_SELECTIVITY);
+		} else
+			defaultSelectivityFactor = -1d;
 
 		// make a new context manager for this TransactionResource
 
@@ -204,7 +227,7 @@ public final class TransactionResourceImpl
 	void startTransaction() throws StandardException, SQLException
 	{
 		// setting up local connection
-		lcc = database.setupConnection(cm, username, drdaID, dbname,useSpark);
+		lcc = database.setupConnection(cm, username, drdaID, dbname,useSpark, skipStats, defaultSelectivityFactor);
 	}
 
 	/**
