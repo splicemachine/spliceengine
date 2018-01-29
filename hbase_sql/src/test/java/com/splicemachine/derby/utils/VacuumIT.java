@@ -45,6 +45,7 @@ import java.util.Set;
 public class VacuumIT extends SpliceUnitTest{
     public static final String CLASS_NAME = VacuumIT.class.getSimpleName().toUpperCase();
     protected static String TABLE = "T";
+    protected static String TABLEA = "A";
 
 	private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	@ClassRule
@@ -59,11 +60,13 @@ public class VacuumIT extends SpliceUnitTest{
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE, spliceSchemaWatcher
             .schemaName, "(name varchar(40), title varchar(40), age int)");
-
+    protected static SpliceTableWatcher spliceTableAWatcher = new SpliceTableWatcher(TABLEA, spliceSchemaWatcher
+            .schemaName, "(name varchar(40), title varchar(40), age int)");
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
-            .around(spliceTableWatcher);
+            .around(spliceTableWatcher)
+            .around(spliceTableAWatcher);
 
 	@Test
 	public void testVacuumDoesNotBreakStuff() throws Exception {
@@ -75,6 +78,33 @@ public class VacuumIT extends SpliceUnitTest{
         }
 
         try(HBaseAdmin admin=new HBaseAdmin(new Configuration())){
+            Set<String> beforeTables=getConglomerateSet(admin.listTables());
+            try(CallableStatement callableStatement=methodRule.prepareCall("call SYSCS_UTIL.VACUUM()")){
+                callableStatement.execute();
+            }
+            Set<String> afterTables=getConglomerateSet(admin.listTables());
+            Assert.assertTrue(beforeTables.contains(conglomerateString));
+            Assert.assertFalse(afterTables.contains(conglomerateString));
+            Set<String> deletedTables=getDeletedTables(beforeTables,afterTables);
+            for(String t : deletedTables){
+                long conglom=new Long(t);
+                Assert.assertTrue(conglom>=DataDictionary.FIRST_USER_TABLE_NUMBER);
+            }
+        }
+    }
+
+    @Test
+    public void testVacuumDisabledTable() throws Exception {
+        Connection connection = spliceClassWatcher.getOrCreateConnection();
+        long[] conglomerateNumber = SpliceAdmin.getConglomNumbers(connection, CLASS_NAME, TABLEA);
+        String conglomerateString = Long.toString(conglomerateNumber[0]);
+
+        try(PreparedStatement ps = methodWatcher.prepareStatement(String.format("drop table %s.%s", CLASS_NAME, TABLEA))){
+            ps.execute();
+        }
+
+        try(HBaseAdmin admin=new HBaseAdmin(new Configuration())){
+            admin.disableTable("splice:"+conglomerateString);
             Set<String> beforeTables=getConglomerateSet(admin.listTables());
             try(CallableStatement callableStatement=methodRule.prepareCall("call SYSCS_UTIL.VACUUM()")){
                 callableStatement.execute();

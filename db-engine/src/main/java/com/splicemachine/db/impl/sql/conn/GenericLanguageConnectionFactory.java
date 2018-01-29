@@ -31,47 +31,40 @@
 
 package com.splicemachine.db.impl.sql.conn;
 
-import com.splicemachine.db.iapi.reference.ClassName;
-import com.splicemachine.db.iapi.reference.Module;
-import com.splicemachine.db.iapi.reference.Property;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionFactory;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import com.splicemachine.db.iapi.sql.LanguageFactory;
-import com.splicemachine.db.impl.sql.GenericStatement;
-import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
-import com.splicemachine.db.iapi.services.compiler.JavaFactory;
-import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.db.Database;
-import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.sql.compile.TypeCompilerFactory;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.NodeFactory;
-import com.splicemachine.db.iapi.sql.compile.Parser;
-import com.splicemachine.db.iapi.services.property.PropertyFactory;
-import com.splicemachine.db.iapi.sql.Statement;
-import com.splicemachine.db.iapi.sql.compile.OptimizerFactory;
-import com.splicemachine.db.iapi.types.DataValueFactory;
-import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.reference.*;
+import com.splicemachine.db.iapi.services.cache.CacheManager;
+import com.splicemachine.db.iapi.services.cache.Cacheable;
+import com.splicemachine.db.iapi.services.cache.CacheableFactory;
+import com.splicemachine.db.iapi.services.compiler.JavaFactory;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.daemon.Serviceable;
+import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.monitor.ModuleControl;
 import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
-import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.cache.CacheManager;
-import com.splicemachine.db.iapi.services.cache.CacheableFactory;
-import com.splicemachine.db.iapi.services.cache.Cacheable;
-import com.splicemachine.db.iapi.services.property.PropertyUtil;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.services.property.PropertyFactory;
 import com.splicemachine.db.iapi.services.property.PropertySetCallback;
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.reference.EngineType;
-import java.util.Properties;
-import java.util.Dictionary;
-import java.io.Serializable;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
+import com.splicemachine.db.iapi.sql.LanguageFactory;
+import com.splicemachine.db.iapi.sql.Statement;
+import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionFactory;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.util.IdUtil;
-import com.splicemachine.db.iapi.services.daemon.Serviceable;
 import com.splicemachine.db.iapi.util.StringUtil;
+import com.splicemachine.db.impl.sql.GenericStatement;
+
+import java.io.Serializable;
+import java.util.Dictionary;
+import java.util.Properties;
 
 /**
  * LanguageConnectionFactory generates all of the items
@@ -150,7 +143,9 @@ public class GenericLanguageConnectionFactory
 		String userName,
 		String drdaID,
 		String dbname,
-        CompilerContext.DataSetProcessorType type) throws StandardException {
+        CompilerContext.DataSetProcessorType type,
+		boolean skipStats,
+		double defaultSelectvityFactor) throws StandardException {
 		
 		return new GenericLanguageConnectionContext(cm,
 													tc,
@@ -161,7 +156,10 @@ public class GenericLanguageConnectionFactory
 													getNextLCCInstanceNumber(),
 													drdaID,
 													dbname,
-                                                    type);
+                                                    type,
+				                                    skipStats,
+				                                    defaultSelectvityFactor
+				);
 	}
 
 	public Cacheable newCacheable(CacheManager cm) {

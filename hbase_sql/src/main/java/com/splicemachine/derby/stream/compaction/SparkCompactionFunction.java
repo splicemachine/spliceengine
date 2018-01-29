@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import com.splicemachine.stream.SparkCompactionContext;
 import org.apache.commons.collections.iterators.EmptyListIterator;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.hadoop.conf.Configuration;
@@ -59,6 +60,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
     private byte[] storeColumn;
     private HRegionInfo hri;
     private boolean isMajor;
+    private SparkCompactionContext context;
 
     public SparkCompactionFunction() {
 
@@ -88,6 +90,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         out.writeInt(storeColumn.length);
         out.write(storeColumn);
         out.writeBoolean(isMajor);
+        out.writeObject(context);
     }
 
     @Override
@@ -108,6 +111,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         storeColumn = new byte[in.readInt()];
         in.readFully(storeColumn);
         isMajor = in.readBoolean();
+        context = (SparkCompactionContext) in.readObject();
         SpliceSpark.setupSpliceStaticComponents();
     }
 
@@ -153,7 +157,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         SpliceDefaultCompactor sdc = new SpliceDefaultCompactor(conf, store, smallestReadPoint);
         CompactionRequest compactionRequest = new CompactionRequest(readersToClose);
         compactionRequest.setIsMajor(isMajor, isMajor);
-        List<Path> paths = sdc.sparkCompact(compactionRequest);
+        List<Path> paths = sdc.sparkCompact(compactionRequest, context);
 
         if (LOG.isTraceEnabled()) {
             StringBuilder sb = new StringBuilder(100);
@@ -168,4 +172,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
             new SingletonIterator(paths.get(0).toString());
     }
 
+    public void setContext(SparkCompactionContext context) {
+        this.context = context;
+    }
 }

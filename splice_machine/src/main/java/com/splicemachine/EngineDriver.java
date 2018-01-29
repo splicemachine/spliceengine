@@ -15,6 +15,7 @@
 package com.splicemachine;
 
 import java.sql.Connection;
+import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -56,7 +57,6 @@ public class EngineDriver{
     private final OlapClient olapClient;
     private final OperationManager operationManager;
     private final SqlEnvironment environment;
-    private final ExecutorService threadPool;
     private final ServiceDiscovery serviceDiscovery;
 
     public static void loadDriver(SqlEnvironment environment){
@@ -64,8 +64,6 @@ public class EngineDriver{
     }
 
     public static void shutdownDriver() {
-        if (INSTANCE != null)
-            INSTANCE.threadPool.shutdownNow();
         INSTANCE = null;
     }
 
@@ -98,22 +96,6 @@ public class EngineDriver{
                         entity.close();
                     }
                 }).build();
-
-        /* Create a general purpose thread pool */
-        final AtomicLong count = new AtomicLong(0);
-        ThreadPoolExecutor tpe = new ThreadPoolExecutor(20, config.getThreadPoolMaxSize(),
-                60L, TimeUnit.SECONDS,
-                new SynchronousQueue<>(),
-                (runnable) -> {
-                    Thread t = new Thread(runnable, "SpliceThreadPool-" + count.getAndIncrement());
-                    t.setDaemon(true);
-                    return t;
-                },
-                new ThreadPoolExecutor.CallerRunsPolicy());
-
-        tpe.allowCoreThreadTimeOut(false);
-        tpe.prestartAllCoreThreads();
-        this.threadPool = new ManagedThreadPool(tpe);
         this.serviceDiscovery = environment.serviceDiscovery();
     }
 
@@ -167,10 +149,6 @@ public class EngineDriver{
 
     public OlapClient getOlapClient() {
         return olapClient;
-    }
-
-    public ExecutorService getExecutorService() {
-        return threadPool;
     }
 
     public OperationManager getOperationManager() { return operationManager; }

@@ -14,8 +14,10 @@
 
 package com.splicemachine.derby.impl.load;
 
+import com.splicemachine.derby.test.TPCHIT;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -38,8 +40,9 @@ import static org.junit.Assert.assertNotNull;
  *         Date: 10/20/14
  */
 public class UpportIT extends SpliceUnitTest {
+    public static final String CLASS_NAME = UpportIT.class.getSimpleName().toUpperCase();
     private static final SpliceSchemaWatcher schema =
-            new SpliceSchemaWatcher(UpportIT.class.getSimpleName().toUpperCase());
+            new SpliceSchemaWatcher(CLASS_NAME);
     private static final SpliceTableWatcher nullableBTable =
             new SpliceTableWatcher("empty_table",schema.schemaName,"(a int, b int, primary key(a))");
     private static final SpliceTableWatcher occupiedTable =
@@ -56,10 +59,14 @@ public class UpportIT extends SpliceUnitTest {
     private static TestConnection conn;
     private static File BADDIR;
 
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(UpportIT.class.getSimpleName().toUpperCase());
 
     @ClassRule public static TestRule chain = RuleChain.outerRule(schema)
+            .around(spliceSchemaWatcher)
             .around(nullableBTable)
             .around(occupiedTable)
             .around(no_pk)
@@ -71,6 +78,7 @@ public class UpportIT extends SpliceUnitTest {
     private static SpliceUnitTest.TestFileGenerator partialTestFile;
     private static List<int[]> correctPartialData;
     private static SpliceUnitTest.TestFileGenerator fullTestFileWithDuplicates;
+
 
     @BeforeClass
     public static void setUpClass() throws Exception {
@@ -89,6 +97,45 @@ public class UpportIT extends SpliceUnitTest {
 
         correctPartialData = Lists.newArrayListWithExpectedSize(size);
         partialTestFile = generatePartialRow(IMPORTDIR, "partial", size, correctPartialData);
+        Connection conn = spliceClassWatcher.getOrCreateConnection();
+        new TableCreator(conn)
+                .withCreate("CREATE TABLE LINEITEM (\n" +
+                        "  L_ORDERKEY      INTEGER NOT NULL,\n" +
+                        "  L_PARTKEY       INTEGER NOT NULL,\n" +
+                        "  L_SUPPKEY       INTEGER NOT NULL,\n" +
+                        "  L_LINENUMBER    INTEGER NOT NULL,\n" +
+                        "  L_QUANTITY      DECIMAL(15, 2),\n" +
+                        "  L_EXTENDEDPRICE DECIMAL(15, 2),\n" +
+                        "  L_DISCOUNT      DECIMAL(15, 2),\n" +
+                        "  L_TAX           DECIMAL(15, 2),\n" +
+                        "  L_RETURNFLAG    CHAR(1),\n" +
+                        "  L_LINESTATUS    CHAR(1),\n" +
+                        "  L_SHIPDATE      DATE,\n" +
+                        "  L_COMMITDATE    DATE,\n" +
+                        "  L_RECEIPTDATE   DATE,\n" +
+                        "  L_SHIPINSTRUCT  CHAR(25),\n" +
+                        "  L_SHIPMODE      CHAR(10),\n" +
+                        "  L_COMMENT       VARCHAR(44),\n" +
+                        " PRIMARY KEY (L_ORDERKEY, L_LINENUMBER)\n" +
+                        ")")
+                .withIndex("create index L_SHIPDATE_IDX on LINEITEM(\n" +
+                        " L_SHIPDATE,\n" +
+                        " L_PARTKEY,\n" +
+                        " L_EXTENDEDPRICE,\n" +
+                        " L_DISCOUNT\n" +
+                        " )")
+                .withIndex("create index L_PART_IDX on LINEITEM(\n" +
+                        " L_PARTKEY,\n" +
+                        " L_ORDERKEY,\n" +
+                        " L_SUPPKEY,\n" +
+                        " L_SHIPDATE,\n" +
+                        " L_EXTENDEDPRICE,\n" +
+                        " L_DISCOUNT,\n" +
+                        " L_QUANTITY,\n" +
+                        " L_SHIPMODE,\n" +
+                        " L_SHIPINSTRUCT\n" +
+                        " )")
+                .create();
     }
 
     @Before
@@ -695,6 +742,16 @@ public class UpportIT extends SpliceUnitTest {
         Collections.sort(newCorrect, intArrayComparator);
         Collections.sort(actualData, intArrayComparator);
         assertCorrectResult(newCorrect, actualData);
+    }
+
+    @Test
+    public void testUpsertIndexCorrectness() throws Exception {
+        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null)", CLASS_NAME, "LINEITEM", TPCHIT.getResource("lineitem.tbl"))).execute();
+        assertEquals(9958L, (long)spliceClassWatcher.query("select count(*) from lineitem"));
+        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.UPSERT_DATA_FROM_FILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null)", CLASS_NAME, "LINEITEM", TPCHIT.getResource("lineitem.tbl"))).execute();
+        assertEquals(9958L, (long)spliceClassWatcher.query("select count(*) from lineitem"));
+        assertEquals(9958L, (long)spliceClassWatcher.query("select count(*) from lineitem --splice-properties index=L_SHIPDATE_IDX"));
+        assertEquals(9958L, (long)spliceClassWatcher.query("select count(*) from lineitem --splice-properties index=L_PART_IDX"));
     }
     /*******************************************************************************************************************/
     /*helper methods*/

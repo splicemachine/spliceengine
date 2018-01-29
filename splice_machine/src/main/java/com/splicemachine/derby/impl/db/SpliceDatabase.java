@@ -14,68 +14,59 @@
 
 package com.splicemachine.derby.impl.db;
 
-import javax.security.auth.login.Configuration;
-import java.io.InputStream;
-import java.io.Serializable;
-import java.sql.SQLException;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import com.splicemachine.EngineDriver;
-import com.splicemachine.db.iapi.jdbc.AuthenticationService;
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.daemon.Serviceable;
-import com.splicemachine.db.iapi.services.property.PropertySetCallback;
-import com.splicemachine.db.iapi.services.property.PropertyUtil;
-import com.splicemachine.db.iapi.sql.dictionary.FileInfoDescriptor;
-import com.splicemachine.db.iapi.util.IdUtil;
-import com.splicemachine.db.impl.ast.*;
-import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
-import com.splicemachine.db.impl.sql.execute.JarUtil;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.protobuf.ProtoUtil;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.AuthenticationConfiguration;
 import com.splicemachine.db.iapi.ast.ISpliceVisitor;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.jdbc.AuthenticationService;
 import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.daemon.Serviceable;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyFactory;
+import com.splicemachine.db.iapi.services.property.PropertySetCallback;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.FileInfoDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.util.IdUtil;
+import com.splicemachine.db.impl.ast.*;
 import com.splicemachine.db.impl.db.BasicDatabase;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
+import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
+import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.ddl.DDLMessage.DDLChange;
-import com.splicemachine.derby.ddl.AddForeignKeyToPipeline;
-import com.splicemachine.derby.ddl.AddIndexToPipeline;
-import com.splicemachine.derby.ddl.AddUniqueConstraintToPipeline;
-import com.splicemachine.derby.ddl.DDLAction;
-import com.splicemachine.derby.ddl.DDLDriver;
-import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.ddl.DDLWatcher;
-import com.splicemachine.derby.ddl.DropForeignKeyFromPipeline;
-import com.splicemachine.derby.ddl.DropIndexFromPipeline;
+import com.splicemachine.derby.ddl.*;
 import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceVisitor;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+
+import javax.security.auth.login.Configuration;
+import java.io.InputStream;
+import java.io.Serializable;
+import java.sql.SQLException;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SpliceDatabase extends BasicDatabase{
 
@@ -116,10 +107,13 @@ public class SpliceDatabase extends BasicDatabase{
     }
 
     @Override
-    public LanguageConnectionContext setupConnection(ContextManager cm,String user,String drdaID,String dbname,CompilerContext.DataSetProcessorType dspt)
+    public LanguageConnectionContext setupConnection(ContextManager cm,String user,String drdaID,String dbname,
+                                                     CompilerContext.DataSetProcessorType dspt,
+                                                     boolean skipStats,
+                                                     double defaultSelectivityFactor)
             throws StandardException{
 
-        final LanguageConnectionContext lctx=super.setupConnection(cm, user, drdaID, dbname, dspt);
+        final LanguageConnectionContext lctx=super.setupConnection(cm, user, drdaID, dbname, dspt, skipStats, defaultSelectivityFactor);
 
         // If you add a visitor, be careful of ordering.
 
@@ -155,7 +149,7 @@ public class SpliceDatabase extends BasicDatabase{
         TransactionController tc=((SpliceAccessManager)af).marshallTransaction(cm,txn);
         cm.setLocaleFinder(this);
         pushDbContext(cm);
-        LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,drdaID,dbname,CompilerContext.DataSetProcessorType.DEFAULT_CONTROL);
+        LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,drdaID,dbname,CompilerContext.DataSetProcessorType.DEFAULT_CONTROL, false, -1);
         pushClassFactoryContext(cm,lcf.getClassFactory());
         ExecutionFactory ef=lcf.getExecutionFactory();
         ef.newExecutionContext(cm);
@@ -168,11 +162,14 @@ public class SpliceDatabase extends BasicDatabase{
      * <p/>
      * This method should only be used by start() methods in coprocessors.  Do not use for sinks or observers.
      */
-    public LanguageConnectionContext generateLanguageConnectionContext(TxnView txn,ContextManager cm,String user,String drdaID,String dbname, CompilerContext.DataSetProcessorType type) throws StandardException{
+    public LanguageConnectionContext generateLanguageConnectionContext(TxnView txn,ContextManager cm,String user,String drdaID,String dbname,
+                                                                       CompilerContext.DataSetProcessorType type,
+                                                                       boolean skipStats,
+                                                                       double defaultSelectivityFactor) throws StandardException{
         TransactionController tc=((SpliceAccessManager)af).marshallTransaction(cm,txn);
         cm.setLocaleFinder(this);
         pushDbContext(cm);
-        LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,drdaID,dbname,type);
+        LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,drdaID,dbname,type,skipStats, defaultSelectivityFactor);
 
         pushClassFactoryContext(cm,lcf.getClassFactory());
         ExecutionFactory ef=lcf.getExecutionFactory();
