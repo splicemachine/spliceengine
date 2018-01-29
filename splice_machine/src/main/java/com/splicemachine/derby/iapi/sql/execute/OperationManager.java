@@ -16,8 +16,10 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.utils.Pair;
 
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,7 +33,7 @@ public interface OperationManager {
      * @param executingThread Thread that's responsible for the operation execution (oen DRDAConnThread)
      * @return UUID given to the operation that can be used for unregistering or killing it at a later time
      */
-    UUID registerOperation(SpliceOperation operation, Thread executingThread);
+    UUID registerOperation(SpliceOperation operation, Thread executingThread, Date submittedTime, DataSetProcessor.Type engine);
 
 
     /**
@@ -45,7 +47,7 @@ public interface OperationManager {
      * @param userId user for which we want the operations, or null for all operations
      * @return list of running operations for the given user
      */
-    List<Pair<UUID, SpliceOperation>> runningOperations(String userId);
+    List<Pair<UUID, RunningOperation>> runningOperations(String userId);
 
     /**
      * Kill a running operation. Only the user that started the operation might kill it. The database owner can kill any

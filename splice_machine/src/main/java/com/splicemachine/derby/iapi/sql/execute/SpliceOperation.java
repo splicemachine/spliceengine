@@ -390,12 +390,4 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
 
     boolean accessExternalTable();
 
-    /**
-     * DB-6478
-     * Return the Query's Submit Time and Engine information
-     * for procedure SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS and
-     *    SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS_LOCAL
-     */
-    String getSubmittedTime();
-    String getEngineName();
 }

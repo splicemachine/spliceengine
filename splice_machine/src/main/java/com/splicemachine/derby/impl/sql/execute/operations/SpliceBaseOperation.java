@@ -69,7 +69,6 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.text.SimpleDateFormat;
 
 public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed, Externalizable{
     private static final long serialVersionUID=4l;
@@ -101,11 +100,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     private volatile UUID uuid = null;
     private volatile boolean isKilled = false;
     private volatile boolean isTimedout = false;
-
-    //DB-6478
-    protected String engineName;
-    protected String submittedTime;
-    private String timeStampFormat = "yyyy-MM-dd HH:mm:ss";
 
     public SpliceBaseOperation(){
         super();
@@ -404,7 +398,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
 
     public void openCore(DataSetProcessor dsp) throws StandardException{
         try {
-            submittedTime = new SimpleDateFormat(timeStampFormat).format(new Date());
 
             if (LOG.isTraceEnabled())
                 LOG.trace(String.format("openCore %s", this));
@@ -418,7 +411,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
 
             activation.getLanguageConnectionContext().setControlExecutionLimiter(EngineDriver.driver().processorFactory().getControlExecutionLimiter(activation));
             returnedRows = false;
-            engineName = (dsp.getType() == DataSetProcessor.Type.SPARK) ? "SPARK" : "CONTROL";
             if (dsp.getType() == DataSetProcessor.Type.SPARK) { // Only do this for spark jobs
                 this.jobName = userId + " <" + txnId + ">";
                 dsp.setJobGroup(jobName, sql);
@@ -469,12 +461,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     @Override
     public void openCore() throws StandardException{
         try {
-            submittedTime = new SimpleDateFormat(timeStampFormat).format(new Date());
-
-            uuid = EngineDriver.driver().getOperationManager().registerOperation(this, Thread.currentThread());
             DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation, this);
+            uuid = EngineDriver.driver().getOperationManager().registerOperation(this, Thread.currentThread(), new Date(), dsp.getType());
             activation.getLanguageConnectionContext().getStatementContext().registerExpirable(this, Thread.currentThread());
-            engineName = (dsp.getType() == DataSetProcessor.Type.SPARK) ? "SPARK" : "CONTROL";
             if (dsp.getType() == DataSetProcessor.Type.SPARK && !isOlapServer() && !SpliceClient.isClient) {
                 remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
                 remoteQueryClient.submit();
@@ -953,8 +942,4 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         return uuid;
     }
 
-    @Override
-    public String getEngineName() { return engineName;}
-    @Override
-    public String getSubmittedTime() {return submittedTime;}
 }
