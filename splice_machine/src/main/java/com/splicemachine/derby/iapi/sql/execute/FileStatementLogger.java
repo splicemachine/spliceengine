@@ -29,7 +29,7 @@ import javax.annotation.Nonnull;
  */
 public class FileStatementLogger implements StatementLogger {
     @Override
-    public void logExecutionStart(@Nonnull String xactId, int sessionId, String dbName, String drdaId, String uuid, DataSetProcessor.Type processorType, ExecPreparedStatement ps, ParameterValueSet pvs) {
+    public void logExecutionStart(@Nonnull String xactId, int sessionId, String dbName, String drdaId, String userId, String uuid, DataSetProcessor.Type processorType, ExecPreparedStatement ps, ParameterValueSet pvs) {
         HeaderPrintWriter istream = Monitor.getStream();
         String pvsString = "";
         if (pvs != null && pvs.getParameterCount() > 0) {
@@ -48,6 +48,9 @@ public class FileStatementLogger implements StatementLogger {
                 LanguageConnectionContext.drdaStr +
                 drdaId +
                 "), " +
+                LanguageConnectionContext.useridStr +
+                userId +
+                "), " +
                 LanguageConnectionContext.uuidStr +
                 uuid +
                 "), " +
@@ -60,7 +63,7 @@ public class FileStatementLogger implements StatementLogger {
     }
 
     @Override
-    public void logExecutionEnd(@Nonnull String xactId, int sessionId, String dbName, String drdaId, String uuid) {
+    public void logExecutionEnd(@Nonnull String xactId, int sessionId, String dbName, String drdaId, String userId, String uuid) {
         HeaderPrintWriter istream = Monitor.getStream();
         istream.printStatement(LanguageConnectionContext.xidStr +
                 xactId +
@@ -73,6 +76,9 @@ public class FileStatementLogger implements StatementLogger {
                 "), " +
                 LanguageConnectionContext.drdaStr +
                 drdaId +
+                "), " +
+                LanguageConnectionContext.useridStr +
+                userId +
                 "), " +
                 LanguageConnectionContext.uuidStr +
                 uuid +

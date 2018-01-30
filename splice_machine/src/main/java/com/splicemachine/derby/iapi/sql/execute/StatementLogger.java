@@ -23,6 +23,6 @@ import javax.annotation.Nonnull;
 
 public interface StatementLogger {
 
-    void logExecutionStart(@Nonnull String xactId, int sessionId, String dbName, String drdaId, String uuid, DataSetProcessor.Type processorType, ExecPreparedStatement ps, ParameterValueSet pvs);
-    void logExecutionEnd(@Nonnull String xactId, int sessionId, String dbName, String drdaId, String uuid);
+    void logExecutionStart(@Nonnull String xactId, int sessionId, String dbName, String drdaId, String userId, String uuid, DataSetProcessor.Type processorType, ExecPreparedStatement ps, ParameterValueSet pvs);
+    void logExecutionEnd(@Nonnull String xactId, int sessionId, String dbName, String drdaId, String userId, String uuid);
 }
