@@ -676,7 +676,8 @@ public class GenericStatement implements Statement{
         istream.printStatement(LanguageConnectionContext.xidStr+ xactId+ "), "+
                 LanguageConnectionContext.lccStr+ lcc.getInstanceNumber()+ "), "+
                 LanguageConnectionContext.dbnameStr+ lcc.getDbname()+ "), "+
-                LanguageConnectionContext.drdaStr+ lcc.getDrdaID()+
+                LanguageConnectionContext.drdaStr+ lcc.getDrdaID()+ "), "+
+                LanguageConnectionContext.useridStr+ lcc.getSessionUserId()+
                 "), "+endStatement+ getSource()+ " :End prepared statement");
     }
 

@@ -477,7 +477,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         LanguageConnectionContext lccToUse = activation.getLanguageConnectionContext();
         if (lccToUse.getLogStatementText()) {
             String xactId = lccToUse.getTransactionExecute().getActiveStateTxIdString();
-            EngineDriver.driver().getStatementLogger().logExecutionStart(xactId, lccToUse.getInstanceNumber(), lccToUse.getDbname(), lccToUse.getDrdaID(), uuid.toString(), dsp.getType(), activation.getPreparedStatement(), activation.getParameterValueSet());
+            EngineDriver.driver().getStatementLogger().logExecutionStart(xactId, lccToUse.getInstanceNumber(), lccToUse.getDbname(), lccToUse.getDrdaID(), lccToUse.getCurrentUserId(activation), uuid.toString(), dsp.getType(), activation.getPreparedStatement(), activation.getParameterValueSet());
         }
 
     }
@@ -486,7 +486,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         LanguageConnectionContext lccToUse = activation.getLanguageConnectionContext();
         if (lccToUse.getLogStatementText()) {
             String xactId = lccToUse.getTransactionExecute().getActiveStateTxIdString();
-            EngineDriver.driver().getStatementLogger().logExecutionEnd(xactId, lccToUse.getInstanceNumber(), lccToUse.getDbname(), lccToUse.getDrdaID(), uuid.toString());
+            EngineDriver.driver().getStatementLogger().logExecutionEnd(xactId, lccToUse.getInstanceNumber(), lccToUse.getDbname(), lccToUse.getDrdaID(), lccToUse.getCurrentUserId(activation), uuid.toString());
         }
 
     }
