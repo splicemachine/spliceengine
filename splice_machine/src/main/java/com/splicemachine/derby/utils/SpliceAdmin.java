@@ -1549,7 +1549,6 @@ public class SpliceAdmin extends BaseAdminProcedures{
         SConfiguration config=EngineDriver.driver().getConfiguration();
         String hostname = NetworkUtils.getHostname(config);
         int port = config.getNetworkBindPort();
-        String engineName ;
         String timeStampFormat = "yyyy-MM-dd HH:mm:ss";
         String submittedTime ;
 
@@ -1566,8 +1565,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             row.setColumn(5, new SQLVarchar(ps == null ? null : ps.getSource()));
             submittedTime = new SimpleDateFormat(timeStampFormat).format(pair.getSecond().getSubmittedTime());
             row.setColumn(6, new SQLVarchar(submittedTime));
-            engineName = (pair.getSecond().getEngine() == DataSetProcessor.Type.SPARK) ? "SPARK" : "CONTROL";
-            row.setColumn(7, new SQLVarchar(engineName));
+            row.setColumn(7, new SQLVarchar(String.valueOf(pair.getSecond().getEngine())));
             row.setColumn(8, new SQLVarchar(pair.getSecond().getOperation().getScopeName()));
             rows.add(row);
         }
