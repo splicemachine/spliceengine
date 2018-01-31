@@ -42,8 +42,6 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
 import org.apache.log4j.Logger;
-import org.apache.parquet.Closeables;
-
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Iterator;
@@ -222,8 +220,13 @@ public abstract class SpliceController implements ConglomerateController{
         }catch(Exception e){
             throw Exceptions.parseException(e);
         } finally {
-            if (rowDecoder !=null)
-                Closeables.closeAndSwallowIOExceptions(rowDecoder);
+            if (rowDecoder !=null) {
+                try {
+                    rowDecoder.close();
+                } catch (Exception e) {
+                    // Swallow
+                }
+            }
         }
 
     }
