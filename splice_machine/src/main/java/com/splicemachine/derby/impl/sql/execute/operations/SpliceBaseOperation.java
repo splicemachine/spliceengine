@@ -162,14 +162,14 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         /*
         The fields modifiedRowCount and badRecords are updated in DMLWriteOperation.openCore()
          */
+        getActivation().getLanguageConnectionContext().setRecordsImported(modifiedRowCount);
+        getActivation().getLanguageConnectionContext().setFailedRecords(badRecords);
         if (modifiedRowCount > Integer.MAX_VALUE || modifiedRowCount < Integer.MIN_VALUE) {
             // DB-5369: int overflow when modified rowcount is larger than max int
             // Add modified row count as a long value in warning
             activation.addWarning(StandardException.newWarning(SQLState.LANG_MODIFIED_ROW_COUNT_TOO_LARGE, modifiedRowCount));
             return -1;
         }
-        getActivation().getLanguageConnectionContext().setRecordsImported(modifiedRowCount);
-        getActivation().getLanguageConnectionContext().setFailedRecords(badRecords);
         return (int) modifiedRowCount;
     }
 
