@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
+import com.splicemachine.db.shared.common.reference.SQLState;
 import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.collect.Sets;
 import com.splicemachine.derby.test.framework.*;
@@ -31,6 +32,7 @@ import java.util.List;
 import static com.splicemachine.homeless.TestUtils.o;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 /**
@@ -293,6 +295,28 @@ public class MergeJoinIT extends SpliceUnitTest {
                         row(1, 1, 2, 200),
                         row(1, 2, 1, 300),
                         row(1, 2, 2, 400)))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table t3 (a3 int, b3 int, c3 int, d3 int, primary key(a3))")
+                .withInsert("insert into t3 values(?,?,?,?)")
+                .withIndex("create index ix_t3 on t3(b3, c3, d3)")
+                .withRows(rows(
+                        row(1, 1, 1, 1),
+                        row(2, 2, 2, 2),
+                        row(3, 3, 3, 3),
+                        row(4, 4, 4, 4),
+                        row(5, 5, 5, 5)))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table t4 (a4 int, b4 int, c4 int, d4 int, primary key(a4))")
+                .withInsert("insert into t4 values(?,?,?,?)")
+                .withIndex("create index ix_t4 on t4(b4, c4, d4)")
+                .withRows(rows(
+                        row(3, 3, 3, 3),
+                        row(5, 5, 5, 5),
+                        row(6, 6, 6, 6)))
                 .create();
 
         new TableCreator(conn)
@@ -577,6 +601,52 @@ public class MergeJoinIT extends SpliceUnitTest {
         methodWatcher.executeQuery(
                 format("SELECT YEAR (s2.statehood) AS yr, s1.name, s2.name FROM %s.states AS s1, %s.states AS s2 WHERE YEAR " +
          "(s1.statehood) = YEAR(s2.statehood) AND s1.name != s2.name ORDER BY yr, s1.name, s2.name",CLASS_NAME,CLASS_NAME));
+     }
+
+     @Test
+     public void testMergeFeasiblityWithNonEqualityJoinConditionsOnKeys() throws Exception {
+        // Negative case 1 inner join + inequality condition on PK
+         String sql = "explain select * from t3, t4 --splice-properties joinStrategy=MERGE\n where a3<>a4 and b3=b4";
+         try {
+             methodWatcher.executeQuery(sql);
+             Assert.fail("The query should error out for merge join");
+         } catch (SQLException e) {
+             Assert.assertEquals("Unexpected failure: "+ e.getMessage(), e.getSQLState(), SQLState.LANG_NO_BEST_PLAN_FOUND);
+         }
+
+         // Negative case 2 outer join + inequality condition on PK
+         sql = "explain select * from t3 left join t4 --splice-properties joinStrategy=MERGE\n on a3<>a4 and b3=b4";
+         try {
+             methodWatcher.executeQuery(sql);
+             Assert.fail("The query should error out for merge join");
+         } catch (SQLException e) {
+             Assert.assertEquals("Unexpected failure: "+ e.getMessage(), e.getSQLState(), SQLState.LANG_NO_BEST_PLAN_FOUND);
+         }
+
+         // Negative case 3 inner join + inequality condition on leading index column
+         sql = "explain select b3,c3,d3,b4,c4,d4 from t3, t4 --splice-properties joinStrategy=MERGE\n where b3<>b4 and c3=c4";
+         try {
+             methodWatcher.executeQuery(sql);
+             Assert.fail("The query should error out for merge join");
+         } catch (SQLException e) {
+             Assert.assertEquals("Unexpected failure: "+ e.getMessage(), e.getSQLState(), SQLState.LANG_NO_BEST_PLAN_FOUND);
+         }
+
+         // Negative case 4 inner join + constant condition + inequality condition on leading index column
+         sql = "explain select b3,c3,d3,b4,c4,d4 from t3, t4 --splice-properties joinStrategy=MERGE\n where b3=1 and b4=1 and c3<>c4 and d3=d4";
+         try {
+             methodWatcher.executeQuery(sql);
+             Assert.fail("The query should error out for merge join");
+         } catch (SQLException e) {
+             Assert.assertEquals("Unexpected failure: "+ e.getMessage(), e.getSQLState(), SQLState.LANG_NO_BEST_PLAN_FOUND);
+         }
+
+         // Positive case 4 inner join + constant condition + inequality condition on least significant index column
+         sql = "select b3,c3,d3,b4,c4,d4 from t3, t4 --splice-properties joinStrategy=MERGE\n where b3=1 and b4=1 and c3=c4 and d3<>d4";
+         String expected = "";
+         ResultSet rs = methodWatcher.executeQuery(sql);
+         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+         rs.close();
      }
 
     //@Test
