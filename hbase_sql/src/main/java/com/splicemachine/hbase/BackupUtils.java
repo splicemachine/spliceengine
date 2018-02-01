@@ -34,6 +34,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.data.Stat;
 
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -44,6 +45,12 @@ import java.sql.Timestamp;
 public class BackupUtils {
     private static final Logger LOG=Logger.getLogger(BackupUtils.class);
 
+    public static boolean backupInProgress() throws Exception {
+        String path = HConfiguration.getConfiguration().getBackupPath();
+        RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
+        Stat stat = zooKeeper.exists(path, false);
+        return (stat != null);
+    }
     /**
      *
      * @param fs HBase file system
@@ -171,36 +178,20 @@ public class BackupUtils {
         try {
             RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
             String spliceBackupPath = HConfiguration.getConfiguration().getBackupPath();
-            if (zooKeeper.exists(spliceBackupPath, false) != null) {
-                byte[] data = ZkUtils.getData(spliceBackupPath);
-                BackupJobStatus backupJobStatus = BackupJobStatus.parseFrom(data);
-                if (!backupJobStatus.isIncremental()) {
-                    if (!preparing && zooKeeper.exists(path, false) != null) {
-                        byte[] status = ZkUtils.getData(path);
-                        if (Bytes.compareTo(status, HConfiguration.BACKUP_DONE) == 0) {
-                            if (LOG.isDebugEnabled()) {
-                                SpliceLogUtils.debug(LOG, "%s is in full backup", path);
-                                SpliceLogUtils.debug(LOG, "Region %s:%s has just finished full backup", tableName,
-                                        region.getRegionInfo().getEncodedName());
-                            }
-                            shouldRegister = true;
-                        }
-                    }
-                }
-                else {
-                    if (LOG.isDebugEnabled()) {
-                        SpliceLogUtils.debug(LOG, "%s is in incremental backup", path);
-                    }
-                    shouldRegister = true;
-                }
-
-            }
-            else if (BackupUtils.existsDatabaseBackup(fs, rootDir)) {
+            if (BackupUtils.existsDatabaseBackup(fs, rootDir)) {
                 if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.debug(LOG, "There exists a full or incremental backup");
+                    SpliceLogUtils.debug(LOG, "There exists a successful full or incremental backup in the system");
                 }
                 shouldRegister = true;
             }
+            else if (zooKeeper.exists(spliceBackupPath, false) != null) {
+
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "A backup is running");
+                }
+                shouldRegister = true;
+            }
+
             if (shouldRegister) {
                 registerHFile(conf, fs, backupDir, region, fileName);
             }
