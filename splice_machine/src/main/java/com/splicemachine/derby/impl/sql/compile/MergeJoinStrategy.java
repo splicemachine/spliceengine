@@ -227,30 +227,30 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
                 assert relop instanceof BinaryRelationalOperatorNode:
                         "Programmer error: RelationalOperator of type "+ relop.getClass()+" detected";
                 BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode)relop;
-                ColumnReference innerColumn=relop.getColumnOperand(innerTable);
-                ColumnReference outerColumn=getOuterColumn(bron,innerColumn);
-                if (innerColumn == null || outerColumn == null) continue;
-                int innerColumnNumber = innerColumn.getColumnNumber();
-                if(innerColumnNumber==innerColumnPosition){
-                    innerColumns.set(i);
-                    int outerTableNum=outerColumn.getTableNumber();
-                    int outerColNum=outerColumn.getColumnNumber();
-                    if(ascending){
-                        int outerPos = outerRowOrdering.orderedPositionForColumn(RowOrdering.ASCENDING,outerTableNum,outerColNum);
-                        if(outerPos>=0){
-                            outerColumns.set(outerPos);
-                            innerToOuterJoinColumnMap[i] = outerPos;
+                if (bron.getOperator() == RelationalOperator.EQUALS_RELOP) {
+                    ColumnReference innerColumn = relop.getColumnOperand(innerTable);
+                    ColumnReference outerColumn = getOuterColumn(bron, innerColumn);
+                    if (innerColumn == null || outerColumn == null) continue;
+                    int innerColumnNumber = innerColumn.getColumnNumber();
+                    if (innerColumnNumber == innerColumnPosition) {
+                        innerColumns.set(i);
+                        int outerTableNum = outerColumn.getTableNumber();
+                        int outerColNum = outerColumn.getColumnNumber();
+                        if (ascending) {
+                            int outerPos = outerRowOrdering.orderedPositionForColumn(RowOrdering.ASCENDING, outerTableNum, outerColNum);
+                            if (outerPos >= 0) {
+                                outerColumns.set(outerPos);
+                                innerToOuterJoinColumnMap[i] = outerPos;
+                            } else
+                                return false;
+                        } else {
+                            int outerPos = outerRowOrdering.orderedPositionForColumn(RowOrdering.DESCENDING, outerTableNum, outerColNum);
+                            if (outerPos >= 0) {
+                                outerColumns.set(outerPos);
+                                innerToOuterJoinColumnMap[i] = outerPos;
+                            } else
+                                return false;
                         }
-                        else
-                            return false;
-                    }else {
-                        int outerPos = outerRowOrdering.orderedPositionForColumn(RowOrdering.DESCENDING,outerTableNum,outerColNum);
-                        if(outerPos>=0){
-                            outerColumns.set(outerPos);
-                            innerToOuterJoinColumnMap[i] = outerPos;
-                        }
-                        else
-                            return false;
                     }
                 }
             }
