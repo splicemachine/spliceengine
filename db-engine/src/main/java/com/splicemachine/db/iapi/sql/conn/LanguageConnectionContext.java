@@ -89,6 +89,7 @@ public interface LanguageConnectionContext extends Context {
 	String drdaStr = "(DRDAID = ";
 	String uuidStr = "(UUID = ";
 	String execStr = "(ENGINE = ";
+	String useridStr = "(USERID = ";
 
 	// Lock Management
 
