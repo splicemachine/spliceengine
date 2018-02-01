@@ -60,6 +60,7 @@ public class ControlExportDataSetWriter<V> implements DataSetWriter{
     public DataSet<ExecRow> write() throws StandardException{
         Integer count;
         String extension = ".csv";
+        long start = System.currentTimeMillis();
         SpliceOperation operation=exportFunction.getOperation();
         boolean isCompressed = path.endsWith(".gz");
         if(!isCompressed && operation instanceof ExportOperation){
@@ -84,10 +85,11 @@ public class ControlExportDataSetWriter<V> implements DataSetWriter{
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+        long end = System.currentTimeMillis();
 
         ValueRow valueRow = new ValueRow(2);
         valueRow.setColumn(1,new SQLLongint(count));
-        valueRow.setColumn(2,new SQLInteger(0));
+        valueRow.setColumn(2,new SQLLongint(end-start));
         return new ControlDataSet<>(new SingletonIterator(valueRow));
     }
 

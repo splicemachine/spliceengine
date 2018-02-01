@@ -20,6 +20,7 @@ import java.io.ObjectOutput;
 import java.io.OutputStream;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLLongint;
@@ -28,6 +29,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -39,6 +41,8 @@ import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.ByteDataOutput;
+import org.apache.spark.scheduler.SparkListener;
+import org.apache.spark.scheduler.SparkListenerTaskEnd;
 
 /**
  * @author Scott Fines
@@ -75,6 +79,7 @@ public class SparkExportDataSetWriter<V> implements DataSetWriter{
 
     @Override
     public DataSet<ExecRow> write() throws StandardException{
+        long start = System.currentTimeMillis();
         Configuration conf=new Configuration(HConfiguration.unwrapDelegate());
         ByteDataOutput bdo=new ByteDataOutput();
         Job job;
@@ -93,16 +98,23 @@ public class SparkExportDataSetWriter<V> implements DataSetWriter{
         job.setOutputFormatClass(SparkDataSet.EOutputFormat.class);
         job.getConfiguration().set("mapred.output.dir",directory);
 
-        JavaRDD<V> cached=rdd.cache();
-        long writtenRows=cached.count();
+        SparkContext context = rdd.context();
+        AtomicLong writtenRows = new AtomicLong(0);
+        context.addSparkListener(new SparkListener() {
+            @Override
+            public void onTaskEnd(SparkListenerTaskEnd taskEnd) {
+                writtenRows.getAndAdd(taskEnd.taskMetrics().outputMetrics().recordsWritten());
+            }
+        });
+
         rdd.keyBy(new NullFunction<V>())
             .setName(String.format("Export Directory: %s", directory))
             .saveAsNewAPIHadoopDataset(job.getConfiguration());
-        cached.unpersist();
 
+        long end = System.currentTimeMillis();
         ValueRow valueRow=new ValueRow(2);
-        valueRow.setColumn(1,new SQLLongint(writtenRows));
-        valueRow.setColumn(2,new SQLInteger(0));
+        valueRow.setColumn(1,new SQLLongint(writtenRows.get()));
+        valueRow.setColumn(2,new SQLLongint(end-start));
         return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
     }
 
