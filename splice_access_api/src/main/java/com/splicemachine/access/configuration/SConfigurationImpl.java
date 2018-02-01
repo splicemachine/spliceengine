@@ -101,8 +101,10 @@ public final class SConfigurationImpl implements SConfiguration {
     private final int compactionReservedSlots;
     private final int olapCompactionMaximumWait;
     private final double olapCompactionResolutionShare;
+    private final double flushResolutionShare;
     private final int olapCompactionResolutionBufferSize;
     private final boolean olapCompactionBlocking;
+    private final boolean resolutionOnFlushes;
     private final int reservedSlotsTimeout;
     private final double bulkImportSampleFraction;
     private final int bulkImportTasksPerRegion;
@@ -771,8 +773,10 @@ public final class SConfigurationImpl implements SConfiguration {
         compactionReservedSlots = builder.compactionReservedSlots;
         olapCompactionMaximumWait = builder.olapCompactionMaximumWait;
         olapCompactionResolutionShare = builder.olapCompactionResolutionShare;
+        flushResolutionShare = builder.flushResolutionShare;
         olapCompactionResolutionBufferSize = builder.olapCompactionResolutionBufferSize;
         olapCompactionBlocking = builder.olapCompactionBlocking;
+        resolutionOnFlushes = builder.resolutionOnFlushes;
         reservedSlotsTimeout = builder.reservedSlotsTimeout;
         storageFactoryHome = builder.storageFactoryHome;
         nestedLoopJoinBatchSize = builder.nestedLoopJoinBatchSize;
@@ -827,6 +831,11 @@ public final class SConfigurationImpl implements SConfiguration {
     }
 
     @Override
+    public double getFlushResolutionShare() {
+        return flushResolutionShare;
+    }
+
+    @Override
     public int getOlapCompactionResolutionBufferSize() {
         return olapCompactionResolutionBufferSize;
     }
@@ -834,6 +843,11 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public boolean getOlapCompactionBlocking() {
         return olapCompactionBlocking;
+    }
+
+    @Override
+    public boolean getResolutionOnFlushes() {
+        return resolutionOnFlushes;
     }
 
     @Override
