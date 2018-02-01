@@ -156,16 +156,6 @@ public interface SConfiguration {
 
     int getReadResolverThreads();
 
-    int getOlapClientWaitTime();
-
-    int getOlapClientTickTime();
-
-    int getOlapServerBindPort();
-
-    int getOlapServerThreads();
-
-    int getOlapClientRetries();
-
     int getTimestampClientWaitTime();
 
     int getTimestampServerBindPort();
@@ -179,6 +169,30 @@ public interface SConfiguration {
     long getTransactionTimeout();
 
     boolean getIgnoreMissingTxns();
+
+    // Olap configurations
+
+    int getOlapClientWaitTime();
+
+    int getOlapClientTickTime();
+
+    int getOlapServerBindPort();
+
+    String getOlapServerStagingDirectory();
+
+    boolean getOlapServerExternal();
+
+    int getOlapServerThreads();
+
+    int getOlapServerSubmitAttempts();
+
+    int getOlapServerMemory();
+
+    int getOlapServerMemoryOverhead();
+
+    int getOlapVirtualCores();
+
+    int getOlapClientRetries();
 
     // SQLConfiguration
     boolean debugDumpBindTree();
