@@ -58,7 +58,7 @@ public class OlapServerIT extends SpliceUnitTest {
         String cmd[] = {
                 "/bin/sh",
                 "-c",
-                "kill `jps | grep OlapServerMaster | cut -d \" \" -f 1`"
+                "kill `ps aux | grep OlapServerMaster | grep -v grep | grep -v bash | awk '{print $2}'`"
         };
         String env[] = { "PATH=/bin:/usr/bin"};
         Process proc = Runtime.getRuntime().exec(cmd, env);
