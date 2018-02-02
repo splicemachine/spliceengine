@@ -22,6 +22,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test.SerialTest;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -47,6 +48,7 @@ public class OlapServerIT extends SpliceUnitTest {
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
     @Test
+    @Ignore
     public void testKillOlapServer() throws Exception {
 
         String sql = "select * from sys.systables --splice-properties useSpark=true";
