@@ -48,7 +48,6 @@ public class OlapServerIT extends SpliceUnitTest {
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
     @Test
-    @Ignore
     public void testKillOlapServer() throws Exception {
 
         String sql = "select * from sys.systables --splice-properties useSpark=true";
@@ -60,7 +59,7 @@ public class OlapServerIT extends SpliceUnitTest {
         String cmd[] = {
                 "/bin/sh",
                 "-c",
-                "kill `jps | grep OlapServerMaster | cut -d \" \" -f 1`"
+                "kill `ps aux | grep OlapServerMaster | grep -v grep | grep -v bash | awk '{print $2}'`"
         };
         String env[] = { "PATH=/bin:/usr/bin"};
         Process proc = Runtime.getRuntime().exec(cmd, env);
