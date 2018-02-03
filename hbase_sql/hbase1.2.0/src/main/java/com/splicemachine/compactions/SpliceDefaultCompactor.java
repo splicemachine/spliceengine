@@ -198,11 +198,12 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
 
     private String getJobDescription(CompactionRequest request) {
         int size = request.getFiles().size();
-        String jobDescription = String.format("%s Compaction: %s, %d %s",
+        String jobDescription = String.format("%s Compaction: %s, %d %s, Total File Size=%s",
                 getMajorMinorLabel(request),
                 getTableInfoLabel(", "),
                 size,
-                (size > 1 ? "Files" : "File"));
+                (size > 1 ? "Files" : "File"),
+                FileUtils.byteCountToDisplaySize(request.getSize()));
 
         if (size == 1 && !request.isMajor()) {
             Collection<StoreFile> files = request.getFiles();
@@ -230,7 +231,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         }
         sb.append(String.format("Conglomerate=%s", conglomId));
         sb.append(delim);
-        sb.append(String.format("RegionName=%s, RegionId=%d",this.store.getRegionInfo().getRegionNameAsString(), this.store.getRegionInfo().getRegionId()));
+        sb.append(String.format("Region Encoded Name=%s, RegionId=%d",this.store.getRegionInfo().getEncodedName(), this.store.getRegionInfo().getRegionId()));
         return sb.toString();
     }
 
@@ -243,8 +244,6 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         if (jobDetails == null) {
             String delim=",\n";
             jobDetails =getTableInfoLabel(delim) +delim
-                    +String.format("Region Name=%s",this.store.getRegionInfo().getRegionNameAsString()) +delim
-                    +String.format("Region Id=%d",this.store.getRegionInfo().getRegionId()) +delim
                     +String.format("File Count=%d",request.getFiles().size()) +delim
                     +String.format("Total File Size=%s",FileUtils.byteCountToDisplaySize(request.getSize())) +delim
                     +String.format("Type=%s",getMajorMinorLabel(request));
