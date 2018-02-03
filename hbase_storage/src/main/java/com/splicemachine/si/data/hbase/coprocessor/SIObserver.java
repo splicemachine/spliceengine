@@ -186,10 +186,28 @@ public class SIObserver extends BaseRegionObserver{
     }
 
     @Override
+    public InternalScanner preFlush(ObserverContext<RegionCoprocessorEnvironment> e, Store store, InternalScanner scanner) throws IOException {
+        SIDriver driver=SIDriver.driver();
+        // We must make sure the engine is started, otherwise we might try to resolve transactions against SPLICE_TXN which
+        // hasn't been loaded yet, causing a deadlock
+        if(tableEnvMatch && scanner != null && driver != null && driver.isEngineStarted() && driver.getConfiguration().getResolutionOnFlushes()){
+            SimpleCompactionContext context = new SimpleCompactionContext();
+            SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
+                    driver.getConfiguration().getActiveTransactionCacheSize(), context, driver.getRejectingExecutorService());
+            SConfiguration conf = driver.getConfiguration();
+            SICompactionScanner siScanner = new SICompactionScanner(state,scanner, false, conf.getFlushResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
+            siScanner.start();
+            return siScanner;
+        }else {
+            return super.preFlush(e, store, scanner);
+        }
+    }
+
+    @Override
     public InternalScanner preCompact(ObserverContext<RegionCoprocessorEnvironment> e,Store store,
                                       InternalScanner scanner,ScanType scanType,CompactionRequest compactionRequest) throws IOException{
         try {
-            if(tableEnvMatch){
+            if(tableEnvMatch && scanner != null){
                 SIDriver driver=SIDriver.driver();
                 SimpleCompactionContext context = new SimpleCompactionContext();
                 boolean blocking = HConfiguration.getConfiguration().getOlapCompactionBlocking();

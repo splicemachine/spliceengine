@@ -82,8 +82,10 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
             final boolean more = entry.more;
             List<TxnView> txns = waitFor(entry.txns);
             compactionState.mutate(entry.cells, txns, list, purgeDeletedRows);
-            if (!more)
+            if (!more) {
                 timer.cancel();
+                context.close();
+            }
             return more;
         } catch (Exception e) {
             timer.cancel();
@@ -113,6 +115,7 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
             if (duration < 0)
                 duration = 0;
             remainingTime.addAndGet(-duration);
+            context.timeBlocked(duration);
             if (result == null) {
                 context.recordUnresolvedTransaction();
             }
