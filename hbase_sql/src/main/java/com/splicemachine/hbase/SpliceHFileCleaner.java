@@ -45,10 +45,10 @@ public class SpliceHFileCleaner extends BaseHFileCleanerDelegate {
             Path rootDir = FSUtils.getRootDir(conf);
             FileSystem fs = FSUtils.getCurrentFileSystem(conf);
             /**An archived HFile is reserved for an incremental backup if
-             * 1) There exists a successful full/incremental backup for the database
+             * 1) There exists a successful full/incremental backup for the database or a backup is running
              * 2) An empty file with the same name exists in backup directory.
             */
-            if (BackupUtils.existsDatabaseBackup(fs, rootDir)) {
+            if (BackupUtils.backupInProgress() || BackupUtils.existsDatabaseBackup(fs, rootDir)) {
                 String p = BackupUtils.getBackupFilePath(fStat.getPath().toString());
                 if (fs.exists(new Path(p))) {
                     if (LOG.isDebugEnabled()) {
