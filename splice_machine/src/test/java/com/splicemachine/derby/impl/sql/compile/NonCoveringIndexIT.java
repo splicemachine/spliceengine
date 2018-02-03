@@ -83,8 +83,7 @@ public class NonCoveringIndexIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testJoinWithNonCoveringIndexInDT() throws Exception {
-        /* Q1 inner join */
+    public void testJoinWithNonCoveringIndexInDTAndInnerJoin() throws Exception {
         String sql = format("select * from --splice-properties joinOrder=fixed\n" +
                 "t1,\n" +
                 "(select * from\n" +
@@ -98,56 +97,63 @@ public class NonCoveringIndexIT extends SpliceUnitTest {
         ResultSet rs = spliceClassWatcher.executeQuery(sql);
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
+    }
 
-        /* Q2 left join */
-        sql = format("select * from --splice-properties joinOrder=fixed\n" +
-                "t1 left join \n" +
-                "(select * from\n" +
-                "  t2  --splice-properties index=ix_t2\n" +
-                " where b2=4) dt --splice-properties joinStrategy=%s\n" +
-                "on a1=a2", this.joinStrategy);
-
-         expected = "A1 |B1 |C1 | A2  | B2  | C2  |\n" +
-                 "------------------------------\n" +
-                 " 1 | 1 | 1 |NULL |NULL |NULL |\n" +
-                 " 2 | 2 | 2 |NULL |NULL |NULL |\n" +
-                 " 3 | 3 | 3 |NULL |NULL |NULL |\n" +
-                 " 4 | 4 | 4 |  4  |  4  |  4  |";
-        rs = spliceClassWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
-
-        /* Q3  another variation with extra predicate on non-index column */
-        sql = format("select * from --splice-properties joinOrder=fixed\n" +
+    @Test
+    public void testJoinWithNonCoveringIndexInDTAndNonIndexPredicate() throws Exception {
+        String sql = format("select * from --splice-properties joinOrder=fixed\n" +
                 "t1,\n" +
                 "(select * from\n" +
                 "  t2  --splice-properties index=ix_t2\n" +
                 " where b2>1 and a2>3) dt --splice-properties joinStrategy=%s\n" +
                 "where a1=a2", this.joinStrategy);
 
-        expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+        String expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
                 "------------------------\n" +
                 " 4 | 4 | 4 | 4 | 4 | 4 |\n" +
                 " 4 | 4 | 4 | 4 | 5 | 5 |";
-        rs = spliceClassWatcher.executeQuery(sql);
+        ResultSet rs = spliceClassWatcher.executeQuery(sql);
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
+    }
 
-        /* Q4  another variation with extra predicate on non-index column */
-        sql = format("select * from --splice-properties joinOrder=fixed\n" +
+    @Test
+    public void testJoinWithNonCoveringIndexInDTAndInListPredicate() throws Exception {
+        String sql = format("select * from --splice-properties joinOrder=fixed\n" +
                 "t1,\n" +
                 "(select * from\n" +
                 "  t2  --splice-properties index=ix_t2\n" +
                 " where b2 in (1,2,3) and c2 in (2,3,4)) dt --splice-properties joinStrategy=%s\n" +
                 "where a1=a2", this.joinStrategy);
 
-        expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
+        String expected = "A1 |B1 |C1 |A2 |B2 |C2 |\n" +
                 "------------------------\n" +
                 " 3 | 3 | 3 | 3 | 3 | 3 |";
-        rs = spliceClassWatcher.executeQuery(sql);
+        ResultSet rs = spliceClassWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+    }
+    @Test
+    public void testJoinWithNonCoveringIndexInDTAndOuterJoin() throws Exception {
+        String sql = format("select * from --splice-properties joinOrder=fixed\n" +
+                "t1 left join \n" +
+                "(select * from\n" +
+                "  t2  --splice-properties index=ix_t2\n" +
+                " where b2=4) dt --splice-properties joinStrategy=%s\n" +
+                "on a1=a2", this.joinStrategy);
+
+        String expected = "A1 |B1 |C1 | A2  | B2  | C2  |\n" +
+                "------------------------------\n" +
+                " 1 | 1 | 1 |NULL |NULL |NULL |\n" +
+                " 2 | 2 | 2 |NULL |NULL |NULL |\n" +
+                " 3 | 3 | 3 |NULL |NULL |NULL |\n" +
+                " 4 | 4 | 4 |  4  |  4  |  4  |";
+        ResultSet rs = spliceClassWatcher.executeQuery(sql);
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
     }
+
 
     @Test
     public void testJoinWithNonCoveringIndex() throws Exception {
