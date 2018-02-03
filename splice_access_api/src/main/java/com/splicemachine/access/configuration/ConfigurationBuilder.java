@@ -143,8 +143,10 @@ public class ConfigurationBuilder {
     public int reservedSlotsTimeout;
     public int olapCompactionMaximumWait;
     public double olapCompactionResolutionShare;
+    public double flushResolutionShare;
     public int olapCompactionResolutionBufferSize;
     public boolean olapCompactionBlocking;
+    public boolean resolutionOnFlushes;
     public int olapClientRetries;
     public double bulkImportSampleFraction;
     public int bulkImportTasksPerRegion;

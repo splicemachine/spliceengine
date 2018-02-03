@@ -105,6 +105,7 @@ public class SIDriver {
     private final ClusterHealth clusterHealth;
     private final ManagedThreadPool rejectingThreadPool;
     private final NonRejectingExecutor threadPool;
+    private boolean engineStarted = false;
 
     public SIDriver(SIEnvironment env){
         this.tableFactory = env.tableFactory();
@@ -285,5 +286,13 @@ public class SIDriver {
     public void shutdownDriver() {
         threadPool.shutdownNow();
         getTimestampSource().shutdown();
+    }
+
+    public boolean isEngineStarted() {
+        return engineStarted;
+    }
+
+    public void engineStarted() {
+        engineStarted = true;
     }
 }
