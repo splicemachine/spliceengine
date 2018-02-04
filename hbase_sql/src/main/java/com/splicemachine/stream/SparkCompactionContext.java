@@ -31,7 +31,6 @@ public class SparkCompactionContext implements CompactionContext, Serializable {
     private final LongAccumulator unresolved;
     private final LongAccumulator resolutionRejected;
     private final LongAccumulator rpc;
-    private final LongAccumulator timeBlocked;
 
     public SparkCompactionContext() {
         this.rowsRead= SpliceSpark.getContext().sc().longAccumulator("rows read");
@@ -47,7 +46,6 @@ public class SparkCompactionContext implements CompactionContext, Serializable {
         this.resolutionRejected = SpliceSpark.getContext().sc().longAccumulator("resolutions rejected");
 
         this.rpc = SpliceSpark.getContext().sc().longAccumulator("rpcs");
-        this.timeBlocked = SpliceSpark.getContext().sc().longAccumulator("time blocked");
     }
 
     @Override
@@ -83,16 +81,6 @@ public class SparkCompactionContext implements CompactionContext, Serializable {
     @Override
     public void recordRPC() {
         rpc.add(1l);
-    }
-
-    @Override
-    public void close() {
-        // do nothing
-    }
-
-    @Override
-    public void timeBlocked(long duration) {
-        timeBlocked.add(duration);
     }
 
     @Override
