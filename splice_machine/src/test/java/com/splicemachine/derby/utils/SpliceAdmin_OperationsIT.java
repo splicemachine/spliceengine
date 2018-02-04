@@ -15,23 +15,11 @@
 
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceTestDataSource;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test.SerialTest;
 import org.apache.log4j.Logger;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -43,14 +31,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 
 @Category(SerialTest.class)
 public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
@@ -197,12 +180,12 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
             ResultSet opsRs = connection.query(opsCall);
             while (opsRs.next()) {
                 if (opsRs.getString(5).equals(sql)) {
-                    assertEquals("SPARK",opsRs.getString(7)); // check engine "SPARK"
-                    assertEquals("Produce Result Set", opsRs.getString(8)); // check job type
+                    assertEquals("SPARK",opsRs.getString(8)); // check engine "SPARK"
+                    assertEquals("Produce Result Set", opsRs.getString(9)); // check job type
                 } else if (opsRs.getString(5).equals(opsCall)) {
                     assertEquals(submitted, opsRs.getString(6)); // check submitted time
-                    assertEquals("CONTROL", opsRs.getString(7)); // check engine "CONTROL"
-                    assertEquals("Call Procedure", opsRs.getString(8)); // check job type
+                    assertEquals("CONTROL", opsRs.getString(8)); // check engine "CONTROL"
+                    assertEquals("Call Procedure", opsRs.getString(9)); // check job type
                 }
             }
             // wait for Thread termination
