@@ -398,7 +398,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
 
     public void openCore(DataSetProcessor dsp) throws StandardException{
         try {
-
             if (LOG.isTraceEnabled())
                 LOG.trace(String.format("openCore %s", this));
             isOpen = true;
@@ -417,7 +416,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             }
             dsp.clearBroadcastedOperation();
             this.execRowIterator =getDataSet(dsp).toLocalIterator();
-
         } catch (ResubmitDistributedException e) {
             resubmitDistributed(e);
         }catch(Exception e){ // This catches all the iterator errors for things that are not lazy
@@ -461,8 +459,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     @Override
     public void openCore() throws StandardException{
         try {
+            uuid = EngineDriver.driver().getOperationManager().registerOperation(this, Thread.currentThread());
             DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation, this);
-            uuid = EngineDriver.driver().getOperationManager().registerOperation(this, Thread.currentThread(), new Date(), dsp.getType());
             activation.getLanguageConnectionContext().getStatementContext().registerExpirable(this, Thread.currentThread());
             if (dsp.getType() == DataSetProcessor.Type.SPARK && !isOlapServer() && !SpliceClient.isClient) {
                 remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
@@ -471,8 +469,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             } else {
                 openCore(dsp);
             }
-
-
         } catch (Exception e) {
             EngineDriver.driver().getOperationManager().unregisterOperation(uuid);
             checkInterruptedException(e);
@@ -941,5 +937,4 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     public UUID getUuid() {
         return uuid;
     }
-
 }
