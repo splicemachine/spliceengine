@@ -276,13 +276,9 @@ public interface SConfiguration {
 
     double getOlapCompactionResolutionShare();
 
-    double getFlushResolutionShare();
-
     int getOlapCompactionResolutionBufferSize();
 
     boolean getOlapCompactionBlocking();
-
-    boolean getResolutionOnFlushes();
 
     int getReservedSlotsTimeout();
 

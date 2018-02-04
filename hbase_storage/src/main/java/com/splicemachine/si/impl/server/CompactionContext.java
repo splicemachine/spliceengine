@@ -33,8 +33,4 @@ public interface CompactionContext {
     void recordResolutionRejected();
 
     void recordRPC();
-
-    void close();
-
-    void timeBlocked(long duration);
 }
