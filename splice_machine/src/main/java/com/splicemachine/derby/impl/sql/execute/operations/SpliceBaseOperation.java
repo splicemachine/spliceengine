@@ -55,7 +55,6 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.text.SimpleDateFormat;
 
 public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed, Externalizable{
     private static final long serialVersionUID=4l;
@@ -126,7 +125,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
+    public void writeExternal(ObjectOutput out) throws IOException{
         SpliceLogUtils.trace(LOG,"writeExternal");
         out.writeDouble(optimizerEstimatedCost);
         out.writeDouble(optimizerEstimatedRowCount);
@@ -270,8 +269,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         if(LOG.isTraceEnabled())
             LOG.trace(String.format("open operation %s",this));
         try {
+            uuid = EngineDriver.driver().getOperationManager().registerOperation(this, Thread.currentThread());
             DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation, this);
-            uuid = EngineDriver.driver().getOperationManager().registerOperation(this, Thread.currentThread(),new Date(), dsp.getType());
             logExecutionStart(dsp);
             openCore();
         } catch (Exception e) {
@@ -463,6 +462,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     @Override
     public void openCore() throws StandardException{
         DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation, this);
+
         activation.getLanguageConnectionContext().getStatementContext().registerExpirable(this, Thread.currentThread());
         if (dsp.getType() == DataSetProcessor.Type.SPARK && !isOlapServer() && !SpliceClient.isClient) {
             remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
@@ -952,5 +952,4 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     public UUID getUuid() {
         return uuid;
     }
-
 }
