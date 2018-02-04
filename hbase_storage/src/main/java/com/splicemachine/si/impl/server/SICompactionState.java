@@ -229,15 +229,11 @@ public class SICompactionState {
 
                                     if (LOG.isTraceEnabled())
                                         LOG.trace("Txn " + txn);
-                                    while (txn != null && txn.getState() == Txn.State.COMMITTED && txn.getParentTxnView() != Txn.ROOT_TRANSACTION) {
+                                    while (txn.getState() == Txn.State.COMMITTED && txn.getParentTxnView() != Txn.ROOT_TRANSACTION) {
                                         txn = txn.getParentTxnView();
                                         
                                         if (LOG.isTraceEnabled())
                                             LOG.trace("Parent " + txn);
-                                    }
-                                    if (txn == null) {
-                                        LOG.warn("We couldn't resolve transaction " + timestamp +". This is only acceptable during a Restore operation");
-                                        return null;
                                     }
                                     if (LOG.isDebugEnabled())
                                         LOG.debug("Returning, parent " + txn.getParentTxnView());
