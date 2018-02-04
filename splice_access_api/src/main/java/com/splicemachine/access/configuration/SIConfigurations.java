@@ -157,30 +157,6 @@ public class SIConfigurations implements ConfigurationDefault {
     public static final String ACTIVE_TRANSACTION_CACHE_SIZE="splice.txn.activeCacheSize";
     private static final int DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE = 1<<12;
 
-    // Timeout in milliseconds
-    public static final String SPARK_COMPACTION_MAXIMUM_WAIT = "spark.compaction.maximum.wait";
-    public static final int DEFAULT_SPARK_COMPACTION_MAXIMUM_WAIT = 60000;
-
-    // Share of time spent on transaction resolution during compactions, between 0 and 1 (no time vs infinite time)
-    public static final String COMPACTION_RESOLUTION_SHARE = "splice.txn.resolution.compaction.share";
-    public static final double DEFAULT_COMPACTION_RESOLUTION_SHARE = 1f;
-
-    // Share of time spent on transaction resolution during flushes, between 0 and 1 (no time vs infinite time)
-    public static final String FLUSH_RESOLUTION_SHARE = "splice.txn.resolution.flush.share";
-    public static final double DEFAULT_FLUSH_RESOLUTION_SHARE = 0.5f;
-
-    // Size of buffer for asynchronous transaction resolution
-    public static final String COMPACTION_RESOLUTION_BUFFER_SIZE = "splice.txn.resolution.bufferSize";
-    public static final int DEFAULT_COMPACTION_RESOLUTION_BUFFER_SIZE = 1024*100;
-
-    // Whether we block asynchronous transaction resolution when the executor is full
-    public static final String COMPACTION_BLOCKING = "splice.txn.resolution.compaction.blocking";
-    public static final boolean DEFAULT_COMPACTION_BLOCKING = true;
-
-    // Whether we resolve transactions on flushes
-    public static final String RESOLUTION_ON_FLUSHES = "splice.txn.resolution.flushes";
-    public static final boolean DEFAULT_RESOLUTION_ON_FLUSHES = true;
-
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         builder.completedTxnConcurrency  = configurationSource.getInt(completedTxnConcurrency, DEFAULT_COMPLETED_TRANSACTION_CONCURRENCY);
@@ -204,22 +180,5 @@ public class SIConfigurations implements ConfigurationDefault {
         builder.transactionKeepAliveInterval = configurationSource.getLong(TRANSACTION_KEEP_ALIVE_INTERVAL, DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL);
 
         builder.ignoreMissingTxns = configurationSource.getBoolean(IGNORE_MISSING_TXN, DEFAULT_IGNORE_MISSING_TXN);
-
-        builder.olapCompactionMaximumWait = configurationSource.getInt(SPARK_COMPACTION_MAXIMUM_WAIT, DEFAULT_SPARK_COMPACTION_MAXIMUM_WAIT);
-        builder.olapCompactionResolutionShare = configurationSource.getDouble(COMPACTION_RESOLUTION_SHARE, DEFAULT_COMPACTION_RESOLUTION_SHARE);
-        if (builder.olapCompactionResolutionShare < 0)
-            builder.olapCompactionResolutionShare = 0;
-        if (builder.olapCompactionResolutionShare > 1)
-            builder.olapCompactionResolutionShare = 1;
-
-        builder.flushResolutionShare = configurationSource.getDouble(FLUSH_RESOLUTION_SHARE, DEFAULT_FLUSH_RESOLUTION_SHARE);
-        if (builder.flushResolutionShare < 0)
-            builder.flushResolutionShare = 0;
-        if (builder.flushResolutionShare > 1)
-            builder.flushResolutionShare = 1;
-
-        builder.olapCompactionResolutionBufferSize = configurationSource.getInt(COMPACTION_RESOLUTION_BUFFER_SIZE, DEFAULT_COMPACTION_RESOLUTION_BUFFER_SIZE);
-        builder.olapCompactionBlocking = configurationSource.getBoolean(COMPACTION_BLOCKING, DEFAULT_COMPACTION_BLOCKING);
-        builder.resolutionOnFlushes = configurationSource.getBoolean(RESOLUTION_ON_FLUSHES, DEFAULT_RESOLUTION_ON_FLUSHES);
     }
 }
