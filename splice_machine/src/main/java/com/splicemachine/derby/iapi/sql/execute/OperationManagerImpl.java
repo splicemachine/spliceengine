@@ -18,7 +18,6 @@ package com.splicemachine.derby.iapi.sql.execute;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.utils.Pair;
 
 import java.util.ArrayList;
@@ -27,16 +26,16 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.Date;
+
 /**
  * Created by dgomezferro on 12/07/2017.
  */
 public class OperationManagerImpl implements OperationManager {
-    private ConcurrentMap<UUID, RunningOperation> operations = new ConcurrentHashMap();
+    private ConcurrentMap<UUID, Pair<SpliceOperation, Thread>> operations = new ConcurrentHashMap();
 
-    public UUID registerOperation(SpliceOperation operation, Thread executingThread, Date submittedTime, DataSetProcessor.Type engine) {
+    public UUID registerOperation(SpliceOperation operation, Thread executingThread) {
         UUID uuid = UUID.randomUUID();
-        operations.put(uuid, new RunningOperation(operation, executingThread, submittedTime, engine));
+        operations.put(uuid, new Pair<>(operation, executingThread));
         return uuid;
     }
 
@@ -44,31 +43,30 @@ public class OperationManagerImpl implements OperationManager {
         operations.remove(uuid);
     }
 
-    public List<Pair<UUID, RunningOperation>> runningOperations(String userId) {
-        List<Pair<UUID, RunningOperation>> result = new ArrayList<>(operations.size());
-        for (Map.Entry<UUID, RunningOperation> entry : operations.entrySet()) {
-            Activation activation = entry.getValue().getOperation().getActivation();
+    public List<Pair<UUID, SpliceOperation>> runningOperations(String userId) {
+        List<Pair<UUID, SpliceOperation>> result = new ArrayList<>(operations.size());
+        for (Map.Entry<UUID, Pair<SpliceOperation, Thread>> entry : operations.entrySet()) {
+            Activation activation = entry.getValue().getFirst().getActivation();
             String runningUserId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
             if (userId == null || userId.equals(runningUserId))
-                result.add(new Pair<>(entry.getKey(), entry.getValue()));
+                result.add(new Pair<>(entry.getKey(), entry.getValue().getFirst()));
         }
         return result;
     }
 
     public boolean killOperation(UUID uuid, String userId) throws StandardException {
-        RunningOperation op = operations.get(uuid);
-        if (op == null)
+        Pair<SpliceOperation, Thread> pair = operations.get(uuid);
+        if (pair == null)
             return false;
-        Activation activation = op.getOperation().getActivation();
+        Activation activation = pair.getFirst().getActivation();
         String databaseOwner = activation.getLanguageConnectionContext().getDataDictionary().getAuthorizationDatabaseOwner();
         String runningUserId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
 
         if (!userId.equals(databaseOwner) && !userId.equals(runningUserId))
             throw StandardException.newException(SQLState.AUTH_NO_PERMISSION_FOR_KILLING_OPERATION, userId, uuid.toString());
 
-        unregisterOperation(uuid);
-        op.getOperation().kill();
-        op.getThread().interrupt();
+        pair.getFirst().kill();
+        pair.getSecond().interrupt();
         return true;
     }
 }
