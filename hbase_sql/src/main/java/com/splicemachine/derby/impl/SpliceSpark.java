@@ -375,6 +375,7 @@ public class SpliceSpark {
 
         if (ugi != null) {
             return ugi.doAs((PrivilegedAction<SparkSession>) () -> {
+                System.setProperty("SPARK_YARN_MODE", "true");
                 Credentials creds;
                 try {
                     creds = setupRenewer(conf);
