@@ -165,6 +165,7 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
     }
 
     @Test
+    @Category(HBaseTest.class)  //No Spark in MEM mode
     public void testRunningOperation_DB6478() throws Exception {
         String sql= "select count(*) from TEST_BIG --splice-properties useSpark=true" + "\n" +
                      "natural join TEST_BIG b";
@@ -197,12 +198,12 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
             ResultSet opsRs = connection.query(opsCall);
             while (opsRs.next()) {
                 if (opsRs.getString(5).equals(sql)) {
-                    assertEquals("SPARK",opsRs.getString(7)); // check engine "SPARK"
-                    assertEquals("Produce Result Set", opsRs.getString(8)); // check job type
+                    assertEquals("SPARK",opsRs.getString(8)); // check engine "SPARK"
+                    assertEquals("Produce Result Set", opsRs.getString(9)); // check job type
                 } else if (opsRs.getString(5).equals(opsCall)) {
                     assertEquals(submitted, opsRs.getString(6)); // check submitted time
-                    assertEquals("CONTROL", opsRs.getString(7)); // check engine "CONTROL"
-                    assertEquals("Call Procedure", opsRs.getString(8)); // check job type
+                    assertEquals("CONTROL", opsRs.getString(8)); // check engine "CONTROL"
+                    assertEquals("Call Procedure", opsRs.getString(9)); // check job type
                 }
             }
             // wait for Thread termination
