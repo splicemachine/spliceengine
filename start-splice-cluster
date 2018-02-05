@@ -35,7 +35,7 @@ _kill_em_all () {
 export -f _kill_em_all
 
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-DEFAULT_PROFILE="cdh5.8.0"  # default hbase platform profile
+DEFAULT_PROFILE="cdh5.8.3"  # default hbase platform profile
 PROFILE=$DEFAULT_PROFILE
 IN_MEM_PROFILE="mem"
 RUN_DIR="${BASE_DIR}/hbase_sql"

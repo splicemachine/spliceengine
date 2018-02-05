@@ -142,6 +142,7 @@ public class ConfigurationBuilder {
     public int compactionReservedSlots;
     public int reservedSlotsTimeout;
     public int olapCompactionMaximumWait;
+    public int olapCompactionMaximumConcurrent;
     public double olapCompactionResolutionShare;
     public int olapCompactionResolutionBufferSize;
     public boolean olapCompactionBlocking;

@@ -100,6 +100,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final int sparkResultStreamingBatchSize;
     private final int compactionReservedSlots;
     private final int olapCompactionMaximumWait;
+    private final int olapCompactionMaximumConcurrent;
     private final double olapCompactionResolutionShare;
     private final int olapCompactionResolutionBufferSize;
     private final boolean olapCompactionBlocking;
@@ -734,6 +735,7 @@ public final class SConfigurationImpl implements SConfiguration {
         sparkResultStreamingBatchSize = builder.sparkResultStreamingBatchSize;
         compactionReservedSlots = builder.compactionReservedSlots;
         olapCompactionMaximumWait = builder.olapCompactionMaximumWait;
+        olapCompactionMaximumConcurrent = builder.olapCompactionMaximumConcurrent;
         olapCompactionResolutionShare = builder.olapCompactionResolutionShare;
         olapCompactionResolutionBufferSize = builder.olapCompactionResolutionBufferSize;
         olapCompactionBlocking = builder.olapCompactionBlocking;
@@ -783,6 +785,11 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getOlapCompactionMaximumWait() {
         return olapCompactionMaximumWait;
+    }
+
+    @Override
+    public int getOlapCompactionMaximumConcurrent() {
+        return olapCompactionMaximumConcurrent;
     }
 
     @Override
