@@ -255,11 +255,13 @@ public class SpliceSpark {
         try {
             String principal = null;
             String p = null;
-            String hostname = HConfiguration.unwrapDelegate().get("splice.olapServer.hostname");
+            String configKey = HConfiguration.getConfiguration().getOlapServerExternal() ?
+                    "splice.olapServer.hostname" : "hbase.master.hostname";
+            String hostname = HConfiguration.unwrapDelegate().get(configKey);
             if (hostname == null) {
                 hostname = InetAddress.getLocalHost().getHostName();
                 SpliceLogUtils.warn(LOG, "Trying to get local hostname. This could be problem for host with multiple interfaces.");
-                SpliceLogUtils.warn(LOG, "For machine with multiple interfaces, please set splice.olapServer.hostname.");
+                SpliceLogUtils.warn(LOG, "For machine with multiple interfaces, please set " + configKey);
             }
             if ((HConfiguration.unwrapDelegate().get("hbase.master.kerberos.principal") != null) ||
                     (HConfiguration.unwrapDelegate().get("hbase.regionserver.kerberos.principal") != null)) {
