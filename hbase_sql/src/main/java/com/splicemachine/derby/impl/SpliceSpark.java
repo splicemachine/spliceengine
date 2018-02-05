@@ -27,6 +27,7 @@ import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.si.data.hbase.ZkUpgradeK2;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -36,6 +37,8 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.broadcast.Broadcast;
+import org.apache.spark.deploy.yarn.security.AMCredentialRenewer;
+import org.apache.spark.deploy.yarn.security.ConfigurableCredentialManager;
 import org.apache.spark.rdd.RDDOperationScope;
 import org.apache.spark.sql.SparkSession;
 import scala.Tuple2;
@@ -59,6 +62,7 @@ import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
 
 public class SpliceSpark {
     private static Logger LOG = Logger.getLogger(SpliceSpark.class);
+    private static AMCredentialRenewer renewer;
 
     private SpliceSpark() {} // private constructor forbids creating instances
 
@@ -370,17 +374,49 @@ public class SpliceSpark {
         }
 
         if (ugi != null) {
-            return ugi.doAs((PrivilegedAction<SparkSession>) () ->
-                    SparkSession.builder()
-                            .appName("Splice Spark Session")
-                            .config(conf)
-                            .getOrCreate());
+            return ugi.doAs((PrivilegedAction<SparkSession>) () -> {
+                Credentials creds;
+                try {
+                    creds = setupRenewer(conf);
+                } catch (IOException e) {
+                    LOG.error("Unexpected exception when setting up the credentials renewer", e);
+                    return null;
+                }
+
+                SparkSession session = SparkSession.builder()
+                        .appName("Splice Spark Session")
+                        .config(conf)
+                        .getOrCreate();
+
+                credentials = new JavaSparkContext(session.sparkContext()).broadcast(new SerializableWritable(creds));
+                return session;
+            });
         } else {
             return SparkSession.builder()
                     .appName("Splice Spark Session")
                     .config(conf)
                     .getOrCreate();
         }
+    }
+
+    public static Credentials setupRenewer(SparkConf conf) throws IOException {
+        Configuration hadoopConf = HConfiguration.unwrapDelegate();
+        ConfigurableCredentialManager ccm = new ConfigurableCredentialManager(conf, hadoopConf);
+        if (renewer != null)
+            renewer.stop();
+        Credentials credentials;
+        // Defensive copy of the credentials
+        credentials = new Credentials(UserGroupInformation.getCurrentUser().getCredentials());
+        long nextRenewal = ccm.obtainCredentials(hadoopConf, credentials);
+        long currTime = System.currentTimeMillis();
+        long renewalTime = (long) ((nextRenewal - currTime) * 0.75 + currTime);
+        long updateTime = (long) ((nextRenewal - currTime) * 0.8 + currTime);
+
+        conf.set("spark.yarn.credentials.renewalTime", Long.toString(renewalTime));
+        conf.set("spark.yarn.credentials.updateTime", Long.toString(updateTime));
+        renewer = ccm.credentialRenewer();
+        renewer.scheduleLoginFromKeytab();
+        return credentials;
     }
 
     private static void printConfigProps(SparkConf conf) {
