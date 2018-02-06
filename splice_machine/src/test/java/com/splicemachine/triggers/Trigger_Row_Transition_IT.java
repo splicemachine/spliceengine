@@ -60,7 +60,7 @@ public class Trigger_Row_Transition_IT {
         Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
         params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;user=splice;password=admin"});
 
-        // TODO enable for spark @Ignore("DB-5474")
+        // TODO enable for spark ("DB-5474")
          params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;user=splice;password=admin;useSpark=true"});
         return params;
     }

@@ -61,7 +61,6 @@ import static org.mockito.Mockito.when;
  * @author Scott Fines
  *         Date: 4/9/14
  */
-@Ignore
 @Category(ArchitectureSpecific.class)
 public class FixedSITableScannerTest{
 

@@ -2448,12 +2448,12 @@ public class WindowFunctionIT extends SpliceUnitTest {
                         "----------------------------------------------------------------------------------------\n" +
                         "Recursos Humanos |   Luciano   |23500.00 |      14166.3333       |       0.0000        |\n" +
                         "Recursos Humanos |  Zavaschi   |13999.00 |      14166.3333       |       0.0000        |\n" +
-                        "       IT        |   Nogare    |11999.00 |       5499.6667       |       0.0000        |\n" +
+                        "       IT        |   Nogare    |11999.00 |       5499.6666       |       0.0000        |\n" +
                         "     Vendas      |    Diego    | 9000.00 |       4500.0000       |       0.0000        |\n" +
                         "Recursos Humanos |   Laerte    | 5000.00 |      14166.3333       |       0.0000        |\n" +
-                        "       IT        |  Ferreira   | 2500.00 |       5499.6667       |       0.0000        |\n" +
+                        "       IT        |  Ferreira   | 2500.00 |       5499.6666       |       0.0000        |\n" +
                         "     Vendas      |   Amorim    | 2500.00 |       4500.0000       |       0.0000        |\n" +
-                        "       IT        |   Felipe    | 2000.00 |       5499.6667       |       0.0000        |\n" +
+                        "       IT        |   Felipe    | 2000.00 |       5499.6666       |       0.0000        |\n" +
                         "     Vendas      |   Fabiano   | 2000.00 |       4500.0000       |       0.0000        |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
@@ -2461,7 +2461,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
 
     // TODO : difference of precision, need to be // FIXME: 10/12/16
-    @Test @Ignore
+    @Test
     public void testConstMinusAvg1ReversedJoinOrder() throws Exception {
         /*
          * Because the WindowFunction performs a computation, we still have unordered results coming out
@@ -2493,7 +2493,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     // TODO : difference of precision, need to be // FIXME: 10/12/16
-    @Test @Ignore
+    @Test
     public void testConstMinusAvg1() throws Exception {
         // DB-2124
         /*
@@ -2562,7 +2562,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     // TODO : difference of precision, need to be // FIXME: 10/12/16
-    @Test @Ignore
+    @Test @Ignore("DB-2086")
     public void testSumTimesConstDivSum() throws Exception {
         // DB-2086 - identical agg gets removed from aggregates array
         String sqlText = String.format("SELECT %1$s.Nome_Dep, SUM(%2$s.Salario) * 100 / " +
@@ -2943,7 +2943,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         rs.close();
     }
 
-    @Test @Ignore("DB-3927: found possible frame processing problem while implementing first_value()")
+    @Test //DB-3927: found possible frame processing problem while implementing first_value()
     public void testFirstValueWithAggregateArgument() throws Exception {
         // DB-3927
 
@@ -3333,7 +3333,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     //TODO : next version of Spark will support it
-    @Test @Ignore
+    @Test @Ignore("next version of Spark will support it")
     public void testNullsMultiFunctionSameOverClause() throws Exception {
         String sqlText =
                 String.format("SELECT empnum, dept, salary, " +
@@ -3609,7 +3609,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     // TODO : Spark will support that next version
-    @Test @Ignore
+    @Test
     public void testNullsMultiFunctionInQueryDiffAndSameOverClause() throws Exception {
         String sqlText =
                 String.format("SELECT salary, dept, " +

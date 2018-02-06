@@ -25,7 +25,6 @@ import java.util.jar.Manifest;
 import static org.junit.Assert.assertEquals;
 
 @Category(ArchitectureIndependent.class)
-@Ignore("-sf- ignore until classpath issues can be resolved")
 public class ManifestFinderTest {
 
     @Test
