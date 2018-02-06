@@ -20,6 +20,7 @@ import java.net.UnknownHostException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Iterator;
 import java.security.PrivilegedAction;
+import java.util.UUID;
 
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
@@ -28,6 +29,9 @@ import com.splicemachine.client.SpliceClient;
 import com.splicemachine.si.data.hbase.ZkUpgradeK2;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -400,8 +404,29 @@ public class SpliceSpark {
         }
     }
 
+    // Staging directory is private! -> rwx--------
+    private static final FsPermission STAGING_DIR_PERMISSION = FsPermission.createImmutable(Short.parseShort("700", 8));
+    
     public static Credentials setupRenewer(SparkConf conf) throws IOException {
+        SConfiguration sconf = HConfiguration.getConfiguration();
+        String stagingDir = sconf.getOlapServerStagingDirectory();
         Configuration hadoopConf = HConfiguration.unwrapDelegate();
+        Path appStagingBaseDir;
+        if (stagingDir != null) {
+            appStagingBaseDir = new Path(stagingDir);
+        } else {
+            appStagingBaseDir = FileSystem.get(hadoopConf).getHomeDirectory();
+        }
+
+        Path appStagingDirPath = new Path(appStagingBaseDir, UUID.randomUUID().toString());
+        // Create staging dir
+        FileSystem fs = appStagingDirPath.getFileSystem(hadoopConf);
+        FileSystem.mkdirs(fs, appStagingDirPath, new FsPermission(STAGING_DIR_PERMISSION));
+
+        String credentialsFile = "credentials-" + UUID.randomUUID().toString();
+        conf.set("spark.yarn.credentials.file", new Path(appStagingDirPath, credentialsFile).toString());
+        LOG.info("Credentials file set to: " + credentialsFile);
+
         ConfigurableCredentialManager ccm = new ConfigurableCredentialManager(conf, hadoopConf);
         if (renewer != null)
             renewer.stop();
