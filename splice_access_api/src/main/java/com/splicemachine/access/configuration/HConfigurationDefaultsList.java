@@ -29,6 +29,7 @@ public class HConfigurationDefaultsList implements ConfigurationDefaultsList {
     public HConfigurationDefaultsList() {
         defaultsList.add(new SIConfigurations());
         defaultsList.add(new HBaseConfiguration());
+        defaultsList.add(new OlapConfigurations());
         defaultsList.add(new PipelineConfiguration());
         defaultsList.add(new SQLConfiguration());
         defaultsList.add(new StatsConfiguration());
