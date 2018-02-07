@@ -33,6 +33,8 @@ import java.sql.ResultSet;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.junit.Assert.assertEquals;
+
 /**
  * This tests basic table scans with and without projection/restriction
  */
@@ -45,12 +47,14 @@ public class ProjectRestrictOperationIT extends SpliceUnitTest{
     protected static SpliceSchemaWatcher spliceSchemaWatcher=new SpliceSchemaWatcher(CLASS_NAME);
     protected static SpliceTableWatcher spliceTableWatcher=new SpliceTableWatcher(TABLE_NAME,CLASS_NAME,"(si varchar(40),sa varchar(40),sc int)");
     protected static SpliceTableWatcher spliceTableWatcher2=new SpliceTableWatcher("B",CLASS_NAME,"(sc int,sd int,se decimal(7,2))");
+    protected static SpliceTableWatcher spliceTableWatcher3=new SpliceTableWatcher("d6363",CLASS_NAME,"(a int, b char)");
 
     @ClassRule
     public static TestRule chain=RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
             .around(spliceTableWatcher)
             .around(spliceTableWatcher2)
+            .around(spliceTableWatcher3)
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher,"test_data/employee.sql",CLASS_NAME))
             .around(new SpliceDataWatcher(){
                 @Override
@@ -71,6 +75,8 @@ public class ProjectRestrictOperationIT extends SpliceUnitTest{
                             ps.setBigDecimal(3,new BigDecimal(i*3));
                             ps.executeUpdate();
                         }
+                        spliceClassWatcher.execute(String.format("insert into %s values (1, 'a'), (2, 'b'), (3, 'a'), " +
+                                " (4, 'b'), (5, 'a'), (6, 'b')",spliceTableWatcher3.toString()));
                     }catch(Exception e){
                         throw new RuntimeException(e);
                     }finally{
@@ -316,4 +322,44 @@ public class ProjectRestrictOperationIT extends SpliceUnitTest{
 
         Assert.assertArrayEquals(expected,results.toArray());
     }
+
+    /**
+     * Some BOOLEAN expressions used to be transformed to non-equivalent
+     * IN lists. Verify that they now return the correct results.
+     * Regression test case for DERBY-6363.
+     */
+    @Test
+    public void test_6363() throws Exception {
+
+        assertEquals("A |  2   |  3   |  4   |  5   |  6   |\n" +
+                        "---------------------------------------\n" +
+                        " 1 |true  |true  |true  |true  |true  |\n" +
+                        " 2 |true  |true  |true  |true  |true  |\n" +
+                        " 3 |true  |true  |true  |true  |true  |\n" +
+                        " 4 |false |false |false |false |false |\n" +
+                        " 5 |false |false |false |false |false |\n" +
+                        " 6 |false |false |false |false |false |",
+                TestUtils.FormattedResult.ResultFactory.toString(methodWatcher.executeQuery( "select a, ((b = 'a' or b = 'b') and a < 4), "
+                        + "((b = 'a' or b = 'c' or b = 'b') and a < 4), "
+                        + "((b = 'a' or (b = 'c' or b = 'b')) and a < 4), "
+                        + "((b = 'a' or b in ('c', 'b')) and a < 4), "
+                        + "(a < 4 and (b = 'a' or b = 'b')) "
+                        + "from d6363 order by a")));
+        assertEquals("A | B | 3 | 4 |\n" +
+                        "----------------\n" +
+                        " 1 | a | x | y |\n" +
+                        " 2 | b | x | y |\n" +
+                        " 3 | a | x | y |\n" +
+                        " 4 | b | - | - |\n" +
+                        " 5 | a | - | - |\n" +
+                        " 6 | b | - | - |",
+                TestUtils.FormattedResult.ResultFactory.toString(methodWatcher.executeQuery( "select a, b, "
+                        + "case when ((b = 'a' or b = 'b') and a < 4) "
+                        + "then 'x' else '-' end, "
+                        + "case when (a < 4 and (b = 'a' or b = 'b')) "
+                        + "then 'y' else '-' end "
+                        + "from d6363 order by a")));
+    }
+
+
 }

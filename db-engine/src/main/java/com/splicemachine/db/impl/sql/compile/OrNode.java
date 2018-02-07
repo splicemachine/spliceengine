@@ -120,6 +120,25 @@ public class OrNode extends BinaryLogicalOperatorNode {
 		 *	or:
 		 *		x = ColumnReference
 		 * where all ColumnReferences are from the same table.
+         *
+         * We only convert the OR chain to an IN list if it has been
+         * normalized to conjunctive normal form (CNF) first. That is, the
+         * shape of the chain must be something like this:
+         *
+         *               OR
+         *              /  \
+         *             =    OR
+         *                 /  \
+         *                =   OR
+         *                    / \
+         *                   =   FALSE
+         *
+         * Predicates in WHERE, HAVING and ON clauses will have been
+         * normalized by the time we get here. Boolean expressions other
+         * places in the query are not necessarily normalized, but they
+         * won't benefit from IN list conversion anyway, since they cannot
+         * be used as qualifiers in a multi-probe scan, so simply skip the
+         * conversion in those cases.
 		 */
 		if (firstOr)
 		{
@@ -127,8 +146,11 @@ public class OrNode extends BinaryLogicalOperatorNode {
 			ColumnReference	cr = null;
 			int				columnNumber = -1;
 			int				tableNumber = -1;
+            ValueNode       vn;
 
-			for (ValueNode vn = this; vn instanceof OrNode; vn = ((OrNode) vn).getRightOperand())
+            for (vn = this;
+                    vn instanceof OrNode;
+                    vn = ((OrNode) vn).getRightOperand())
 			{
 				OrNode on = (OrNode) vn;
 				ValueNode left = on.getLeftOperand();
@@ -215,6 +237,12 @@ public class OrNode extends BinaryLogicalOperatorNode {
 				}
 			}
 
+            // DERBY-6363: An OR chain on conjunctive normal form should be
+            // terminated by a false BooleanConstantNode. If it is terminated
+            // by some other kind of node, it is not on CNF, and it should
+            // not be converted to an IN list.
+            convert = convert && vn.isBooleanFalse();
+
 			/* So, can we convert the OR chain? */
 			if (convert)
 			{
@@ -222,7 +250,9 @@ public class OrNode extends BinaryLogicalOperatorNode {
 													C_NodeTypes.VALUE_NODE_LIST,
 													getContextManager());
 				// Build the IN list 
-				for (ValueNode vn = this; vn instanceof OrNode; vn = ((OrNode) vn).getRightOperand())
+                for (vn = this;
+                        vn instanceof OrNode;
+                        vn = ((OrNode) vn).getRightOperand())
 				{
 					OrNode on = (OrNode) vn;
 					BinaryRelationalOperatorNode bron =
@@ -457,7 +487,7 @@ public class OrNode extends BinaryLogicalOperatorNode {
             if (rightOperand instanceof OrNode) {
                 isValid = rightOperand.verifyChangeToCNF();
             }
-            isValid = !(leftOperand instanceof OrNode) && leftOperand.verifyChangeToCNF();
+            isValid = isValid && !(leftOperand instanceof OrNode) && leftOperand.verifyChangeToCNF();
         }
 
 		return isValid;
