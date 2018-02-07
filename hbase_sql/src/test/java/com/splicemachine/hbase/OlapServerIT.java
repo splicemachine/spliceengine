@@ -15,31 +15,29 @@
 
 package com.splicemachine.hbase;
 
-import com.google.common.io.ByteStreams;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test.SerialTest;
+import org.apache.log4j.Logger;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import static junit.framework.TestCase.fail;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 @Category({SerialTest.class})
-@Ignore("SPLICE-2032")
 public class OlapServerIT extends SpliceUnitTest {
+    private static final Logger LOG = Logger.getLogger(OlapServerIT.class);
 
     private static final String SCHEMA = OlapServerIT.class.getSimpleName().toUpperCase();
     @ClassRule
@@ -48,7 +46,7 @@ public class OlapServerIT extends SpliceUnitTest {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
-    @Test
+    @Test(timeout = 120000)
     public void testKillOlapServer() throws Exception {
 
         String sql = "select * from sys.systables --splice-properties useSpark=true";
@@ -56,39 +54,79 @@ public class OlapServerIT extends SpliceUnitTest {
         assertTrue(rs.next());
         rs.close();
 
-        // kill olap server master
-        String cmd[] = {
+        // get olap server master pid
+        String getPid[] = {
                 "/bin/sh",
                 "-c",
-                "kill `ps aux | grep OlapServerMaster | grep -v grep | grep -v bash | awk '{print $2}'`"
+                "ps aux | grep OlapServerMaster | grep -v grep | grep -v bash | awk '{print $2}'"
         };
         String env[] = { "PATH=/bin:/usr/bin"};
-        Process proc = Runtime.getRuntime().exec(cmd, env);
+        Process proc = Runtime.getRuntime().exec(getPid, env);
         proc.waitFor();
-        InputStream stdout = new BufferedInputStream(proc.getInputStream());
-        ByteStreams.copy(stdout, System.out);
+        BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+        int pid = Integer.parseInt(reader.readLine());
 
+        LOG.info("Current pid " + pid);
 
-        InputStream stderr = new BufferedInputStream(proc.getErrorStream());
-        ByteStreams.copy(stderr, System.err);
+        // kill olap server master pid
+        String kill[] = {
+                "/bin/sh",
+                "-c",
+                "kill " + pid
+        };
 
-        Thread.sleep(5000);
+        proc = Runtime.getRuntime().exec(kill, env);
+        proc.waitFor();
 
+        // Wait until killed
+        while (true) {
+            proc = Runtime.getRuntime().exec(getPid, env);
+            proc.waitFor();
+            reader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+            String line = reader.readLine();
+            if (line == null) {
+                LOG.info("Killed");
+                // killed
+                break;
+            }
+            int newPid = Integer.parseInt(line);
+            if (newPid != pid) {
+                LOG.info("Killed and restarted with pid " + newPid);
+                // killed & restarted
+                break;
+            }
+            Thread.sleep(1000);
+        }
+
+        int newPid;
+        // Wait until restarted
+        while (true) {
+            proc = Runtime.getRuntime().exec(getPid, env);
+            proc.waitFor();
+            reader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+            String line = reader.readLine();
+            if (line != null) {
+                newPid = Integer.parseInt(line);
+                LOG.info("Restarted with pid " + newPid);
+                break;
+            }
+            Thread.sleep(1000);
+        }
+        assertNotEquals(pid, newPid);
+
+        Thread.sleep(2000);
+
+        // this could generate an exception or not
         try {
             rs = methodWatcher.executeQuery(sql);
             rs.next();
-            fail("Expected excetion");
         } catch (SQLException e) {
             assertEquals("OS001", e.getSQLState());
         }
-
-        Thread.sleep(5000);
+        
+        Thread.sleep(2000);
 
         rs = methodWatcher.executeQuery(sql);
         assertTrue(rs.next());
-    }
-
-    public static void main(String[] args) throws IOException {
-        Runtime.getRuntime().exec("sh -c \"kill `jps | grep OlapServerMaster | cut -d \\\" \\\" -f 1`\"");
     }
 }
