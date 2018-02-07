@@ -62,6 +62,7 @@ import static org.mockito.Mockito.when;
  *         Date: 4/9/14
  */
 @Category(ArchitectureSpecific.class)
+@Ignore
 public class FixedSITableScannerTest{
 
     private OperationFactory opFactory;
