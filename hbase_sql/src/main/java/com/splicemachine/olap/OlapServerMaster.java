@@ -210,25 +210,8 @@ public class OlapServerMaster implements Watcher {
         String root = HConfiguration.getConfiguration().getSpliceRootPath();
 
         try {
-            try {
-                rzk.create(root + HBaseConfiguration.OLAP_SERVER_PATH, new byte[] {}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-            } catch (KeeperException e) {
-                if (e.code().equals(NODEEXISTS)) {
-                    // ignore
-                }
-                else throw e;
-            }
-
             HostAndPort hostAndPort = HostAndPort.fromParts(hostname, port);
             masterPath = root + HBaseConfiguration.OLAP_SERVER_PATH + "/" + serverName;
-            try {
-                rzk.delete(masterPath, -1);
-            } catch (KeeperException e) {
-                if (e.code().equals(NONODE)) {
-                    // ignore
-                }
-                else throw e;
-            }
             rzk.create(masterPath, Bytes.toBytes(hostAndPort.toString()), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
             rzk.getData(masterPath, this, null);
         } catch (Exception e) {
