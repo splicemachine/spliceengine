@@ -218,7 +218,7 @@ public class SchemaPrivilegeIT {
 
     }
 
-    @Test @Ignore
+    @Test
     public void testReferencesPrivileges() throws Exception {
         //GRANT
         PreparedStatement ps = adminConn.prepareStatement( format("GRANT REFERENCES ON SCHEMA %s TO %s", SCHEMA1,USER1  ) );

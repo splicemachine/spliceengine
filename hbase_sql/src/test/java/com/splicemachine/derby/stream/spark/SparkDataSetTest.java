@@ -44,7 +44,7 @@ import java.util.List;
  * Test for quic
  *
  */
-@Ignore
+@Ignore("Test in absolute directory /Users/jleach/Documents/workspace/spliceengine")
 public class SparkDataSetTest extends AbstractDataSetTest{
 
     public SparkDataSetTest() {

@@ -14,7 +14,7 @@
 package com.splicemachine.orc;
 
 import org.junit.Ignore;
-@Ignore
+@Ignore("SPLICE-1517 all tests passed, takes long time to fully run")
 public class TestFullOrcReader
         extends AbstractTestOrcReader {
     public TestFullOrcReader()

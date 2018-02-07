@@ -401,7 +401,7 @@ public class ExternalTableIT extends SpliceUnitTest{
                 " STORED AS AVRO LOCATION '%s'",tablePath));
     }
 
-    @Test @Ignore // DB-6044
+    @Test @Ignore("DB-6044")
     public void testLocationCannotBeAFileAvro() throws  Exception{
         File temp = File.createTempFile("temp-file-avro", ".tmp");
         try {
@@ -656,7 +656,7 @@ public class ExternalTableIT extends SpliceUnitTest{
 
 
     @Test
-    @Ignore // SPLICE-1809
+    @Ignore("SPLICE-1809")
     public void testWriteReadWithPartitionedByFloatTable() throws Exception {
         String tablePath = getExternalResourceDirectory()+"simple_parquet_with_partition";
         methodWatcher.executeUpdate(String.format("create external table simple_parquet_with_partition (col1 int, col2 varchar(24), col3 float(10) )" +
@@ -674,7 +674,7 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
     @Test
-    @Ignore // SPLICE-1809
+    @Ignore("SPLICE-1809")
     public void testWriteReadWithPartitionedByFloatTableAvro() throws Exception {
         String tablePath = getExternalResourceDirectory()+"simple_avro_with_partition";
         methodWatcher.executeUpdate(String.format("create external table simple_avro_with_partition (col1 int, col2 varchar(24), col3 float(10) )" +
@@ -1485,7 +1485,7 @@ public class ExternalTableIT extends SpliceUnitTest{
 
 
     @Test
-    @Ignore
+    @Ignore("Exception expected")
     public void testWriteToWrongPartitionedParquetExternalTable() throws Exception {
         try {
             methodWatcher.executeUpdate(String.format("create external table w_partitioned_parquet (col1 int, col2 varchar(24))" +
@@ -1505,7 +1505,7 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
     @Test
-    @Ignore
+    @Ignore("Exception expected")
     public void testWriteToWrongPartitionedAvroExternalTable() throws Exception {
         try {
             methodWatcher.executeUpdate(String.format("create external table w_partitioned_avro (col1 int, col2 varchar(24))" +

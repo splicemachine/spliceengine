@@ -2946,6 +2946,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     @Test //DB-3927: found possible frame processing problem while implementing first_value()
+    @Ignore("SPLICE-347")
     public void testFirstValueWithAggregateArgument() throws Exception {
         // DB-3927
 
