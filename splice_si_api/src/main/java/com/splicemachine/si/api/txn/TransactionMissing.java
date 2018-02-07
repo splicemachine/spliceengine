@@ -13,28 +13,19 @@
  *
  */
 
-package com.splicemachine.si.impl.server;
+package com.splicemachine.si.api.txn;
 
-public interface CompactionContext {
-    void readData();
+import java.io.IOException;
 
-    void recordResolutionCached();
+public class TransactionMissing extends IOException {
+    private long transactionId;
 
-    void readCommit();
+    public TransactionMissing(long transactionId) {
+        super("Couldn't resolve transaction with id " + transactionId);
+        this.transactionId = transactionId;
+    }
 
-    void recordResolutionScheduled();
-
-    void rowRead();
-
-    void recordTimeout();
-
-    void recordUnresolvedTransaction();
-
-    void recordResolutionRejected();
-
-    void recordRPC();
-
-    void close();
-
-    void timeBlocked(long duration);
+    public long getTransactionId() {
+        return transactionId;
+    }
 }
