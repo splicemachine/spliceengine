@@ -15,8 +15,12 @@
 
 package com.splicemachine.olap;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.configuration.HBaseConfiguration;
+import com.splicemachine.hbase.ZkUtils;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -25,6 +29,7 @@ import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -45,6 +50,9 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.log4j.Logger;
 import org.apache.spark.util.ShutdownHookManager;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.ZooDefs;
 import scala.runtime.AbstractFunction0;
 import scala.runtime.BoxedUnit;
 
@@ -56,6 +64,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+
+import static org.apache.zookeeper.KeeperException.Code.NODEEXISTS;
+import static org.apache.zookeeper.KeeperException.Code.NONODE;
 
 /**
  * Created by dgomezferro on 29/08/2017.
@@ -108,6 +119,9 @@ public class OlapServerSubmitter implements Runnable {
             }
 
             for (int i = 0; i<maxAttempts; ++i) {
+                // Clear ZooKeeper path
+                clearZookeeper(ZkUtils.getRecoverableZooKeeper(), serverName);
+
                 // Create application via yarnClient
                 YarnClientApplication app = yarnClient.createApplication();
 
@@ -229,6 +243,38 @@ public class OlapServerSubmitter implements Runnable {
         }
 
     }
+
+    private void clearZookeeper(RecoverableZooKeeper rzk, ServerName serverName) throws InterruptedException, KeeperException {
+        String root = HConfiguration.getConfiguration().getSpliceRootPath();
+
+        try {
+            try {
+                rzk.create(root + HBaseConfiguration.OLAP_SERVER_PATH, new byte[] {}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+
+                // if we could create it, it's empty, no need to clear it
+                return;
+            } catch (KeeperException e) {
+                if (e.code().equals(NODEEXISTS)) {
+                    // ignore
+                }
+                else throw e;
+            }
+
+            String masterPath = root + HBaseConfiguration.OLAP_SERVER_PATH + "/" + serverName;
+            try {
+                rzk.delete(masterPath, -1);
+            } catch (KeeperException e) {
+                if (e.code().equals(NONODE)) {
+                    // ignore, it didn't exist
+                }
+                else throw e;
+            }
+        } catch (Exception e) {
+            LOG.error("Couldn't clear OlapServer zookeeper node due to unexpected exception", e);
+            throw e;
+        }
+    }
+
 
     /**
      * Kill if OOM is raised - leverage yarn's failure handling to cause rescheduling.
