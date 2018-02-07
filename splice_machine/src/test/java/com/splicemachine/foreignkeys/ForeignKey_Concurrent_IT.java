@@ -148,7 +148,7 @@ public class ForeignKey_Concurrent_IT {
      * Verifies that either (1) parent is deleted and all children fail; or (2) parent cannot be deleted and all children
      * succeed, but never anything in between.
      */
-    @Ignore
+    @Ignore("for manual testing")
     @Test(timeout = 10000)
     public void largerNumberOfConcurrentThreads() throws Exception {
         final int THREADS = 4;

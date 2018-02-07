@@ -2429,7 +2429,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
 
     // TODO : difference of precision, need to be // FIXME: 10/12/16
-    @Test @Ignore
+    @Test @Ignore("Tracked by SPLICE-2038")
     public void testMediaForDept() throws Exception {
         // DB-1650, DB-2020
         String sqlText = String.format("SELECT %1$s.Nome_Dep, %2$s.Nome AS Funcionario, %2$s.Salario, " +
@@ -2462,7 +2462,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
     // TODO : difference of precision, need to be // FIXME: 10/12/16
     @Test
-    @Ignore
+    @Ignore("Tracked by SPLICE-2038")
     public void testConstMinusAvg1ReversedJoinOrder() throws Exception {
         /*
          * Because the WindowFunction performs a computation, we still have unordered results coming out
@@ -2495,7 +2495,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
     // TODO : difference of precision, need to be // FIXME: 10/12/16
     @Test
-    @Ignore
+    @Ignore("Tracked by SPLICE-2038")
     public void testConstMinusAvg1() throws Exception {
         // DB-2124
         /*
@@ -2531,7 +2531,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     // TODO : difference of precision, need to be // FIXME: 10/12/16
-    @Test @Ignore
+    @Test @Ignore("Tracked by SPLICE-2038")
     public void testConstMinusAvg2() throws Exception {
         // DB-2124
         String sqlText = String.format("SELECT %1$s.Nome_Dep, " +
@@ -3336,7 +3336,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     //TODO : next version of Spark will support it
-    @Test @Ignore("next version of Spark will support it")
+    @Test @Ignore("next version of Spark will support it, tracked by SPLICE-2037")
     public void testNullsMultiFunctionSameOverClause() throws Exception {
         String sqlText =
                 String.format("SELECT empnum, dept, salary, " +
