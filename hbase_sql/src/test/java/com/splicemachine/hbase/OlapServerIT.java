@@ -22,6 +22,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test.SerialTest;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -37,6 +38,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 @Category({SerialTest.class})
+@Ignore("SPLICE-2032")
 public class OlapServerIT extends SpliceUnitTest {
 
     private static final String SCHEMA = OlapServerIT.class.getSimpleName().toUpperCase();
