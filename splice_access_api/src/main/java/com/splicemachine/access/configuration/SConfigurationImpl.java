@@ -180,6 +180,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final String storageFactoryHome;
     private final int nestedLoopJoinBatchSize;
     private final long controlExecutionRowLimit;
+    private final int maxCheckTableErrors;
 
     // StatsConfiguration
     private final  double fallbackNullFraction;
@@ -868,6 +869,7 @@ public final class SConfigurationImpl implements SConfiguration {
         bulkImportTasksPerRegion = builder.bulkImportTasksPerRegion;
         regionToLoadPerTask = builder.regionToLoadPerTask;
         ignoreMissingTxns = builder.ignoreMissingTxns;
+        maxCheckTableErrors = builder.maxCheckTableErrors;
     }
 
     private static final Logger LOG = Logger.getLogger("splice.config");
@@ -961,4 +963,8 @@ public final class SConfigurationImpl implements SConfiguration {
         return controlExecutionRowLimit;
     }
 
+    @Override
+    public int getMaxCheckTableErrors() {
+        return maxCheckTableErrors;
+    }
 }

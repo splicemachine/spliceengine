@@ -327,4 +327,6 @@ public interface SConfiguration {
     long getControlExecutionRowLimit();
 
     String getOlapLog4jConfig();
+
+    int getMaxCheckTableErrors();
 }
