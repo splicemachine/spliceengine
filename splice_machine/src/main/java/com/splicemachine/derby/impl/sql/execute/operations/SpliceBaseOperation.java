@@ -465,9 +465,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
 
         activation.getLanguageConnectionContext().getStatementContext().registerExpirable(this, Thread.currentThread());
         if (dsp.getType() == DataSetProcessor.Type.SPARK && !isOlapServer() && !SpliceClient.isClient) {
-            remoteQueryClient = EngineDriver.driver().processorFactory().getRemoteQueryClient(this);
-            remoteQueryClient.submit();
-            execRowIterator = remoteQueryClient.getIterator();
+            openDistributed();
         } else {
             openCore(dsp);
         }

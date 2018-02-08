@@ -20,7 +20,6 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Arrays;
@@ -227,6 +226,27 @@ public class PreparedStatementIT {
         Assert.assertEquals(5, SpliceUnitTest.resultSetSize(rs));
 
         PreparedStatement psc = conn.prepareStatement(String.format("select lastname, count(*) from %s.%s where lastname=? group by lastname",
+                tableSchema.schemaName, CUST_TABLE_NAME));
+        psc.setString(1, "Smith");
+        rs = psc.executeQuery();
+        rs.next();
+        Assert.assertEquals(rs.getInt(2), 4);
+        rs.close();
+
+        psc.setString(1, "Doe");
+        rs = psc.executeQuery();
+        rs.next();
+        Assert.assertEquals(rs.getInt(2), 1);
+        rs.close();
+    }
+
+    @Test
+    public void testPrepStatementGroupedAggregateViaSpark() throws Exception {
+        // should see all 5 rows
+        ResultSet rs = conn.query(SELECT_STAR_QUERY);
+        Assert.assertEquals(5, SpliceUnitTest.resultSetSize(rs));
+
+        PreparedStatement psc = conn.prepareStatement(String.format("select lastname, count(*) from %s.%s --splice-properties useSpark=true\n where lastname=? group by lastname",
                 tableSchema.schemaName, CUST_TABLE_NAME));
         psc.setString(1, "Smith");
         rs = psc.executeQuery();
