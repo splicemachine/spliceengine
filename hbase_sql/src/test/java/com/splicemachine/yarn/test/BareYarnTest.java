@@ -56,6 +56,7 @@ import com.splicemachine.test.SpliceTestYarnPlatform;
  * know where to connect to the server.
  *
  */
+@Ignore
 public class BareYarnTest {
     private static SpliceTestYarnPlatform yarnPlatform = null;
     private static YarnClient yarnClient = null;

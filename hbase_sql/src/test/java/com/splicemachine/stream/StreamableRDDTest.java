@@ -25,6 +25,7 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import scala.Tuple2;
 
@@ -39,6 +40,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * Created by dgomezferro on 6/1/16.
  */
+@Ignore
 public class StreamableRDDTest extends BaseStreamTest implements Serializable {
     private static final Logger LOG = Logger.getLogger(StreamableRDDTest.class);
 
