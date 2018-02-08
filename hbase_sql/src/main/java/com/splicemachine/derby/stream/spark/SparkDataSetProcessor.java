@@ -37,6 +37,7 @@ import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.utils.StreamUtils;
+import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.mrio.api.core.SMTextInputFormat;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -603,5 +604,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public void refreshTable(String location) {
         SpliceSpark.getSession().catalog().refreshByPath(location);
+    }
+
+    @Override
+    public TableChecker getTableChecker(String schemaName, String tableName, PairDataSet table, KeyHashDecoder tableKeyDecoder, ExecRow tableKey) {
+        return new SparkTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey);
     }
 }

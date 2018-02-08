@@ -219,6 +219,9 @@ public class SQLConfiguration implements ConfigurationDefault {
     public static final String CONTROL_EXECUTION_ROWS_LIMIT = "splice.controlExecution.rowsLimit";
     private static final int DEFAULT_CONTROL_EXECUTION_ROWS_LIMIT = 1000000;
 
+    public static final String MAX_CHECK_TABLE_ERRORS="splice.max.checktable.error";
+    private static final int DEFAULT_MAX_CHECK_TABLE_ERRORS = 1000;
+
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         // FIXME: JC - some of these are not referenced anywhere outside. Do we need them?
@@ -260,5 +263,6 @@ public class SQLConfiguration implements ConfigurationDefault {
 //        builder.controlSideRowcountThreshold = configurationSource.getDouble(CONTROL_SIDE_ROWCOUNT_THRESHOLD, DEFAULT_CONTROL_SIDE_ROWCOUNT_THRESHOLD);
 
         builder.networkBindAddress = configurationSource.getString(NETWORK_BIND_ADDRESS, DEFAULT_NETWORK_BIND_ADDRESS);
+        builder.maxCheckTableErrors = configurationSource.getInt(MAX_CHECK_TABLE_ERRORS, DEFAULT_MAX_CHECK_TABLE_ERRORS);
     }
 }
