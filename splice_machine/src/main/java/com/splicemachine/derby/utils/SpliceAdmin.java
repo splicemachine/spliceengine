@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.sql.dictionary.SourceCodeDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.StatementTablePermission;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TokenDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -87,10 +88,8 @@ import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.pipeline.SimpleActivation;
-import com.splicemachine.primitives.Bytes;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.DataMutation;
 import com.splicemachine.storage.Partition;
@@ -110,7 +109,6 @@ import org.spark_project.guava.net.HostAndPort;
 import javax.management.MalformedObjectNameException;
 import javax.management.remote.JMXConnector;
 import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.sql.Blob;
 import java.sql.Connection;
@@ -1931,6 +1929,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
     public static void INVALIDATE_GLOBAL_DICTIONARY_CACHE() throws Exception {
         List<HostAndPort> servers;
+
         try {
             servers = EngineDriver.driver().getServiceDiscovery().listServers();
         } catch (IOException e) {

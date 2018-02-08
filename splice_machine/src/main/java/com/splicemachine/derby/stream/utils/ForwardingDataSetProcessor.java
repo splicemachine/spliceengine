@@ -22,6 +22,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.stream.iapi.*;
+import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 
 import java.io.InputStream;
 import java.util.Iterator;
@@ -184,6 +185,12 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     @Override
     public Boolean isCached(long conglomerateId) throws StandardException {
         return delegate.isCached(conglomerateId);
+    }
+
+    @Override
+    public TableChecker getTableChecker(String schemaName, String tableName, DataSet tableDataSet,
+                                        KeyHashDecoder decoder, ExecRow key) {
+        return delegate.getTableChecker(schemaName, tableName, tableDataSet, decoder, key);
     }
 
 }
