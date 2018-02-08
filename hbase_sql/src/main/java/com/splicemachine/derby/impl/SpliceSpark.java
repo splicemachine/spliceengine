@@ -66,7 +66,8 @@ import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
 
 public class SpliceSpark {
     private static Logger LOG = Logger.getLogger(SpliceSpark.class);
-    private static AMCredentialRenewer renewer;
+    private static AMCredentialRenewer sparkRenewer;
+    private static SpliceRenewer spliceRenewer;
 
     private SpliceSpark() {} // private constructor forbids creating instances
 
@@ -74,7 +75,7 @@ public class SpliceSpark {
     static SparkSession session;
     static boolean initialized = false;
     static boolean spliceStaticComponentsSetup = false;
-    static Broadcast<SerializableWritable<Credentials>> credentials;
+    static  Broadcast<SerializableWritable<Credentials>> credentials;
     private static final String SCOPE_KEY = "spark.rdd.scope";
     private static final String SCOPE_OVERRIDE = "spark.rdd.scope.noOverride";
     private static final String OLD_SCOPE_KEY = "spark.rdd.scope.old";
@@ -384,7 +385,7 @@ public class SpliceSpark {
                 try {
                     creds = setupRenewer(conf);
                 } catch (IOException e) {
-                    LOG.error("Unexpected exception when setting up the credentials renewer", e);
+                    LOG.error("Unexpected exception when setting up the credentials sparkRenewer", e);
                     return null;
                 }
 
@@ -393,7 +394,7 @@ public class SpliceSpark {
                         .config(conf)
                         .getOrCreate();
 
-                credentials = new JavaSparkContext(session.sparkContext()).broadcast(new SerializableWritable(creds));
+                setCredentials(new JavaSparkContext(session.sparkContext()).broadcast(new SerializableWritable(creds)));
                 return session;
             });
         } else {
@@ -428,8 +429,11 @@ public class SpliceSpark {
         LOG.info("Credentials file set to: " + credentialsFile);
 
         ConfigurableCredentialManager ccm = new ConfigurableCredentialManager(conf, hadoopConf);
-        if (renewer != null)
-            renewer.stop();
+        if (sparkRenewer != null)
+            sparkRenewer.stop();
+        if (spliceRenewer != null)
+            spliceRenewer.stop();
+        
         Credentials credentials;
         // Defensive copy of the credentials
         credentials = new Credentials(UserGroupInformation.getCurrentUser().getCredentials());
@@ -440,8 +444,11 @@ public class SpliceSpark {
 
         conf.set("spark.yarn.credentials.renewalTime", Long.toString(renewalTime));
         conf.set("spark.yarn.credentials.updateTime", Long.toString(updateTime));
-        renewer = ccm.credentialRenewer();
-        renewer.scheduleLoginFromKeytab();
+        sparkRenewer = ccm.credentialRenewer();
+        sparkRenewer.scheduleLoginFromKeytab();
+        spliceRenewer = new SpliceRenewer();
+        spliceRenewer.start();
+
         return credentials;
     }
 
