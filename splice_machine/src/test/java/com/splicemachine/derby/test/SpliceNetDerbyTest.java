@@ -27,7 +27,7 @@ import org.apache.log4j.Logger;
 import org.junit.Ignore;
 
 
-@Ignore
+@Ignore("not use")
 public class SpliceNetDerbyTest {
 	private static final Logger LOG = Logger.getLogger(SpliceNetDerbyTest.class);
     protected static String framework = "client";

@@ -45,7 +45,6 @@ public class WindowsTestingFramework {
 	}
 /*	
 	@Test
-	@Ignore
 	public void testCreate() throws StandardException {
 		List<ExecRow> rows = new ArrayList<ExecRow>(1000);
 		RankFunction rank = new RankFunction();

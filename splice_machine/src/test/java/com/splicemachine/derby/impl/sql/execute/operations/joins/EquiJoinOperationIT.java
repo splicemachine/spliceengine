@@ -37,7 +37,7 @@ import java.util.*;
  * Date: 6/10/13
  */
 @RunWith(Parameterized.class)
-@Ignore
+@Ignore //Tracked by SPLICE-2039
 public class EquiJoinOperationIT {
 
     private static Logger LOG = Logger.getLogger(EquiJoinOperationIT.class);
@@ -143,7 +143,7 @@ public class EquiJoinOperationIT {
     }
 
     @Test
-    @Ignore("Hinting not working for semijoin")
+    @Ignore("Hinting not working for semijoin, tracked by SPLICE-2039")
     public void testInWithCorrelatedSubQueryOrSemijoin() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("select empnum from staff --SPLICE-PROPERTIES joinStrategy="+joinStrategy+" \n" +
                 "where empnum in " +
@@ -153,7 +153,7 @@ public class EquiJoinOperationIT {
     }
 
     @Test
-    @Ignore("Hinting not working for antijoin")
+    @Ignore("Hinting not working for antijoin, tracked by SPLICE-2039")
     public void testNotInWithCorrelatedSubQueryOrAntijoin() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("select empnum from staff --SPLICE-PROPERTIES joinStrategy="+joinStrategy+" \n" +
                 "where empnum not in " +
