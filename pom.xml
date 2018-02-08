@@ -992,7 +992,7 @@
             </activation>
             <properties>
                 <envClassifier>mapr5.1.0</envClassifier>
-                <envHbase>hbase1.1.0</envHbase>
+                <envHbase>hbase1.1.1</envHbase>
                 <hadoop.version>2.7.0-mapr-1602</hadoop.version>
                 <hadoop.tools.version>1.0.3-mapr-5.1.0</hadoop.tools.version>
                 <hbase.version>1.1.1-mapr-1602</hbase.version>
@@ -1021,7 +1021,7 @@
             </activation>
             <properties>
                 <envClassifier>mapr5.2.0</envClassifier>
-                <envHbase>hbase1.1.0</envHbase>
+                <envHbase>hbase1.1.1</envHbase>
                 <hadoop.version>2.7.0-mapr-1607</hadoop.version>
                 <hadoop.tools.version>1.0.3-mapr-5.2.0</hadoop.tools.version>
                 <hbase.version>1.1.1-mapr-1602-5.2.0</hbase.version>
