@@ -29,6 +29,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import org.apache.log4j.Logger;
 import org.apache.spark.TaskContext;
+import org.apache.spark.TaskKilledException;
 import org.apache.spark.api.java.function.Function2;
 
 import java.io.*;
@@ -134,6 +135,8 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
                     ctx.flush();
                     currentBatch = 0;
                     permits.acquire();
+                    if (taskContext.isInterrupted())
+                        throw new TaskKilledException();
                 }
             }
 
@@ -215,7 +218,18 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
             ChannelFuture futureConnect = bootstrap.connect(socketAddr).sync();
 
             active.await();
-            long consumed = future.get();
+            long consumed;
+            while (true) {
+                try {
+                    consumed = future.get(10, TimeUnit.SECONDS);
+                    break;
+                } catch (TimeoutException e) {
+                    if (taskContext.isInterrupted()) {
+                        permits.release();
+                        throw new TaskKilledException();
+                    }
+                }
+            }
             futureConnect.channel().closeFuture().sync();
 
             String result;
