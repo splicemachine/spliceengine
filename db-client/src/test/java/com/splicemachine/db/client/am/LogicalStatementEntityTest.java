@@ -36,7 +36,7 @@ import java.sql.SQLException;
 /**
  * Tests for the handling of logical statements.
  */
-@Ignore
+@Ignore //Failed to load JDBC driver 'com.splicemachine.db.jdbc.EmbeddedDriver'
 public class LogicalStatementEntityTest
         extends BaseJDBCTestCase {
 

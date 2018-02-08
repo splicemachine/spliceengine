@@ -164,7 +164,7 @@ public class WithStatementIT extends SpliceUnitTest {
     }
 
     @Test
-//    @Ignore("SPLICE-966")
+    // SPLICE-966
     public void testWithContainingOrderBy() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("with abc as (select i, i+20 as i_2 from t10 where i<3 order by i) select * from abc");
         String expectedResult = "I | I_2 |\n" +
@@ -175,7 +175,7 @@ public class WithStatementIT extends SpliceUnitTest {
     }
 
     @Test
-    //    @Ignore("SPLICE-979")
+    // SPLICE-979
     public void testWithContainingTop() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("with abc as (select TOP i from t10 where i<3 order by i) select * from abc");
         String expectedResult = "I |\n" +
@@ -185,7 +185,7 @@ public class WithStatementIT extends SpliceUnitTest {
     }
 
     @Test
-    //    @Ignore("SPLICE-980")
+    // SPLICE-980
     public void testWithContainingLimit() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("with abc as (select i from t10 where i<4 order by i OFFSET 2 rows fetch first row only ) select * from abc");
         String expectedResult = "I |\n" +
@@ -195,7 +195,7 @@ public class WithStatementIT extends SpliceUnitTest {
     }
 
     @Test
-    //    @Ignore("SPLICE-1026")
+    // SPLICE-1026
     public void testInsertContainingWith() throws Exception {
         methodWatcher.executeUpdate("insert into t11 with abc as (select * from t10 order by i) select * from abc");
         ResultSet rs = methodWatcher.executeQuery("select * from t11");

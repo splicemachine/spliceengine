@@ -467,7 +467,7 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("Ignored until DB-1315 is resolved")
+    @Ignore("Ignored until DB-1315 is resolved, migrate to SPLICE-631")
     public void testUpdateBitDataReturnsCorrectRowCount() throws Exception {
         /*
          * Regression test for DB-1315. This adds a bunch of indices,

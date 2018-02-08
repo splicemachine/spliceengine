@@ -141,7 +141,7 @@ public class DDLCoordinationTest{
 
 
     @Test
-    @Ignore("-sf- Ignore until after the merge")
+    @Ignore("-sf- Ignore until after the merge, tracked by SPLICE-2044")
     public void changeRefreshBeforeWait() throws Exception{
         /*
          * Test the sequence:
