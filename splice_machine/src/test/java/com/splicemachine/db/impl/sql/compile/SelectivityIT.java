@@ -313,7 +313,7 @@ public class SelectivityIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("reason unknown - DB-3629 is the supposed cause but that has been resolved")
+    @Ignore("reason unknown - DB-3629 is the supposed cause but that has been resolved,tracked by SPLICE-2045")
     public void testInSelectivity() throws Exception {
         // with stats
         secondRowContainsQuery("explain select * from ts_nulls where c1 in (1,2,3)", "outputRows=3", methodWatcher);
@@ -444,7 +444,7 @@ public class SelectivityIT extends SpliceUnitTest {
 
 
     @Test
-    @Ignore("reason unknown")
+    @Ignore("reason unknown, tracked by SPLICE-2045")
     public void testOutOfBoundsPredicates() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("explain select * from ts_nulls where date(c3)='0000-01-01'");
         rs.next();
@@ -453,7 +453,7 @@ public class SelectivityIT extends SpliceUnitTest {
 
 
     @Test
-    @Ignore("10% Selectivity")
+    @Ignore("10% Selectivity, tracked by SPLICE-2045")
     public void testProjectionSelectivity() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("explain select * from ts_nulls where c2 like '%1%'");
         rs.next();
@@ -461,7 +461,7 @@ public class SelectivityIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("reason unknown")
+    @Ignore("reason unknown, tracked by SPLICE-2045")
     public void testExtractOperatorNodeSelectivity() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("explain select * from ts_low_cardinality where month(c3) = 1");
         rs.next();
