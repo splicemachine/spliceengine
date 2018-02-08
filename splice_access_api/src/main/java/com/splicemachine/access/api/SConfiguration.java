@@ -290,6 +290,8 @@ public interface SConfiguration {
 
     int getOlapCompactionMaximumWait();
 
+    int getOlapCompactionMaximumConcurrent();
+
     double getOlapCompactionResolutionShare();
 
     int getOlapCompactionResolutionBufferSize();

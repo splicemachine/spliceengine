@@ -45,6 +45,10 @@ public class PipelineConfiguration implements ConfigurationDefault {
     public static final String SPARK_COMPACTION_MAXIMUM_WAIT = "spark.compaction.maximum.wait";
     public static final int DEFAULT_SPARK_COMPACTION_MAXIMUM_WAIT = 60000;
 
+    // Maximum concurrent compactions
+    public static final String SPARK_COMPACTION_MAXIMUM_CONCURRENT = "spark.compaction.maximum.concurrent";
+    public static final int DEFAULT_SPARK_COMPACTION_MAXIMUM_CONCURRENT = Integer.MAX_VALUE;
+
     // Share of time spent on transaction resolution, between 0 and 1 (no time vs infinite time)
     public static final String SPARK_COMPACTION_RESOLUTION_SHARE = "spark.compaction.resolution.share";
     public static final double DEFAULT_SPARK_COMPACTION_RESOLUTION_SHARE = 1f;
@@ -200,6 +204,7 @@ public class PipelineConfiguration implements ConfigurationDefault {
         builder.sparkResultStreamingBatchSize = configurationSource.getInt(SPARK_RESULT_STREAMING_BATCH_SIZE, DEFAULT_SPARK_RESULT_STREAMING_BATCH_SIZE);
         builder.compactionReservedSlots = configurationSource.getInt(SPARK_COMPACTION_RESERVED_SLOTS, DEFAULT_SPARK_COMPACTION_RESERVED_SLOTS);
         builder.olapCompactionMaximumWait = configurationSource.getInt(SPARK_COMPACTION_MAXIMUM_WAIT, DEFAULT_SPARK_COMPACTION_MAXIMUM_WAIT);
+        builder.olapCompactionMaximumConcurrent = configurationSource.getInt(SPARK_COMPACTION_MAXIMUM_CONCURRENT, DEFAULT_SPARK_COMPACTION_MAXIMUM_CONCURRENT);
         builder.olapCompactionResolutionShare = configurationSource.getDouble(SPARK_COMPACTION_RESOLUTION_SHARE, DEFAULT_SPARK_COMPACTION_RESOLUTION_SHARE);
         if (builder.olapCompactionResolutionShare < 0)
             builder.olapCompactionResolutionShare = 0;
