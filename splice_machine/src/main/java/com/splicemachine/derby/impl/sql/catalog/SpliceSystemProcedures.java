@@ -1144,6 +1144,17 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(invalidateGlobalCache);
 
+                    Procedure checkTable = Procedure.newBuilder().name("CHECK_TABLE")
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .catalog("indexName")
+                            .integer("level")
+                            .varchar("outputFile", 32672)
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(SpliceTableAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(checkTable);
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)
