@@ -40,9 +40,11 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Scott Fines
@@ -57,6 +59,7 @@ public class CompactionJob implements Callable<Void>{
 
     private final Clock clock;
     private final long tickTime;
+    private static AtomicInteger concurrentCompactions = new AtomicInteger();
 
     public CompactionJob(DistributedCompaction compactionRequest,
                          OlapStatus jobStatus,
@@ -74,75 +77,87 @@ public class CompactionJob implements Callable<Void>{
             //the client has already cancelled us or has died before we could get started, so stop now
             return null;
         }
-        initializeJob();
-        Configuration conf = new Configuration(HConfiguration.unwrapDelegate());
-        if (LOG.isTraceEnabled()) {
-            LOG.trace("regionLocation = " + compactionRequest.regionLocation);
-        }
-        conf.set(MRConstants.REGION_LOCATION, compactionRequest.regionLocation);
-        conf.set(MRConstants.COMPACTION_FILES,getCompactionFilesBase64String());
-
-        SpliceSpark.pushScope(compactionRequest.scope+": Parallelize");
-        //JavaRDD rdd1 = SpliceSpark.getContext().parallelize(files, 1);
-        //ParallelCollectionRDD rdd1 = getCompactionRDD();
-
-        JavaSparkContext context=SpliceSpark.getContext();
-        JavaPairRDD<Integer, Iterator> rdd1=context.newAPIHadoopRDD(conf,
-                CompactionInputFormat.class,
-                Integer.class,
-                Iterator.class);
-        rdd1.setName("Distribute Compaction Load");
-        SpliceSpark.popScope();
-
-        compactionRequest.compactionFunction.setContext(new SparkCompactionContext());
-        SpliceSpark.pushScope(compactionRequest.scope + ": Compact files");
-        JavaRDD<String> rdd2=rdd1.mapPartitions(new SparkFlatMapFunction<>(compactionRequest.compactionFunction));
-        rdd2.setName(compactionRequest.jobDetails);
-        SpliceSpark.popScope();
-
-        SpliceSpark.pushScope("Compaction");
-        if(!status.isRunning()){
-            //the client timed out during our setup, so it's time to stop
-            return null;
-        }
-        long startTime = clock.currentTimeMillis();
-        JavaFutureAction<List<String>> collectFuture=rdd2.collectAsync();
-        while(!collectFuture.isDone()){
-            try{
-                collectFuture.get(tickTime,TimeUnit.MILLISECONDS);
-            }catch(TimeoutException te){
-                /*
-                 * A TimeoutException just means that tickTime expired. That's okay, we just stick our
-                 * head up and make sure that the client is still operating
-                 */
-            }
-            if(!status.isRunning()){
-                /*
-                 * The client timed out, so cancel the compaction and terminate
-                 */
-                collectFuture.cancel(true);
-                context.cancelJobGroup(compactionRequest.jobGroup);
+        int order = concurrentCompactions.incrementAndGet();
+        try {
+            int maxConcurrentCompactions = HConfiguration.getConfiguration().getOlapCompactionMaximumConcurrent();
+            if (order > maxConcurrentCompactions) {
+                status.markCompleted(new FailedOlapResult(
+                        new CancellationException("Maximum number of concurrent compactions already running")));
                 return null;
             }
-            if (clock.currentTimeMillis() - startTime > compactionRequest.maxWait) {
-                // Make sure compaction is scheduled in Spark and running, otherwise cancel it and fallback to in-HBase compaction
-                if (!compactionRunning(collectFuture.jobIds())) {
+            
+            initializeJob();
+            Configuration conf = new Configuration(HConfiguration.unwrapDelegate());
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("regionLocation = " + compactionRequest.regionLocation);
+            }
+            conf.set(MRConstants.REGION_LOCATION, compactionRequest.regionLocation);
+            conf.set(MRConstants.COMPACTION_FILES, getCompactionFilesBase64String());
+
+            SpliceSpark.pushScope(compactionRequest.scope + ": Parallelize");
+            //JavaRDD rdd1 = SpliceSpark.getContext().parallelize(files, 1);
+            //ParallelCollectionRDD rdd1 = getCompactionRDD();
+
+            JavaSparkContext context = SpliceSpark.getContext();
+            JavaPairRDD<Integer, Iterator> rdd1 = context.newAPIHadoopRDD(conf,
+                    CompactionInputFormat.class,
+                    Integer.class,
+                    Iterator.class);
+            rdd1.setName("Distribute Compaction Load");
+            SpliceSpark.popScope();
+
+            compactionRequest.compactionFunction.setContext(new SparkCompactionContext());
+            SpliceSpark.pushScope(compactionRequest.scope + ": Compact files");
+            JavaRDD<String> rdd2 = rdd1.mapPartitions(new SparkFlatMapFunction<>(compactionRequest.compactionFunction));
+            rdd2.setName(compactionRequest.jobDetails);
+            SpliceSpark.popScope();
+
+            SpliceSpark.pushScope("Compaction");
+            if (!status.isRunning()) {
+                //the client timed out during our setup, so it's time to stop
+                return null;
+            }
+            long startTime = clock.currentTimeMillis();
+            JavaFutureAction<List<String>> collectFuture = rdd2.collectAsync();
+            while (!collectFuture.isDone()) {
+                try {
+                    collectFuture.get(tickTime, TimeUnit.MILLISECONDS);
+                } catch (TimeoutException te) {
+                    /*
+                     * A TimeoutException just means that tickTime expired. That's okay, we just stick our
+                     * head up and make sure that the client is still operating
+                     */
+                }
+                if (!status.isRunning()) {
+                    /*
+                     * The client timed out, so cancel the compaction and terminate
+                     */
                     collectFuture.cancel(true);
                     context.cancelJobGroup(compactionRequest.jobGroup);
-                    status.markCompleted(new FailedOlapResult(
-                            new RejectedExecutionException("No resources available for running compaction in Spark")));
                     return null;
                 }
+                if (clock.currentTimeMillis() - startTime > compactionRequest.maxWait) {
+                    // Make sure compaction is scheduled in Spark and running, otherwise cancel it and fallback to in-HBase compaction
+                    if (!compactionRunning(collectFuture.jobIds())) {
+                        collectFuture.cancel(true);
+                        context.cancelJobGroup(compactionRequest.jobGroup);
+                        status.markCompleted(new FailedOlapResult(
+                                new RejectedExecutionException("No resources available for running compaction in Spark")));
+                        return null;
+                    }
+                }
             }
-        }
-        //the compaction completed
-        List<String> sPaths = collectFuture.get();
-        status.markCompleted(new CompactionResult(sPaths));
-        SpliceSpark.popScope();
+            //the compaction completed
+            List<String> sPaths = collectFuture.get();
+            status.markCompleted(new CompactionResult(sPaths));
+            SpliceSpark.popScope();
 
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"Paths Returned: %s",sPaths);
-        return null;
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG, "Paths Returned: %s", sPaths);
+            return null;
+        } finally {
+            concurrentCompactions.decrementAndGet();
+        }
     }
 
     private boolean compactionRunning(List<Integer> jobIds) {
