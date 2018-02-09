@@ -61,8 +61,9 @@ public class QueryJob implements Callable<Void>{
         DataSet<ExecRow> dataset;
         OperationContext<SpliceOperation> context;
         String jobName = null;
+        boolean prepared = false;
         try {
-            ah.reinitialize(null);
+            prepared = ah.reinitialize(null);
             Activation activation = ah.getActivation();
             root.setActivation(activation);
             if (!(activation.isMaterialized()))
@@ -94,7 +95,8 @@ public class QueryJob implements Callable<Void>{
                 SpliceSpark.getContext().sc().cancelJobGroup(jobName);
             throw e;
         } finally {
-            ah.close();
+            if (prepared)
+                ah.close();
         }
 
         return null;

@@ -31,8 +31,12 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.log4j.Logger;
 import org.apache.spark.Accumulable;
 import org.apache.spark.SerializableWritable;
+import org.apache.spark.TaskContext;
 import org.apache.spark.broadcast.Broadcast;
 import org.apache.spark.util.LongAccumulator;
+import org.apache.spark.util.TaskCompletionListener;
+import org.apache.spark.util.TaskFailureListener;
+
 import java.io.*;
 import java.sql.SQLException;
 import java.util.List;
@@ -188,6 +192,14 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
             broadcastedActivation = (BroadcastedActivation)in.readObject();
             op=(Op)broadcastedActivation.getActivationHolder().getOperationsMap().get(in.readInt());
             activation=broadcastedActivation.getActivationHolder().getActivation();
+            TaskContext taskContext = TaskContext.get();
+            if (taskContext != null) {
+                // we are running in Spark, set the context managers correctly
+                if (broadcastedActivation.getActivationHolder().reinitialize(null)) {
+                    Listener listener = new Listener(broadcastedActivation.getActivationHolder());
+                    TaskContext.get().addTaskCompletionListener(listener);
+                }
+            }
         }
         rowsRead=(LongAccumulator)in.readObject();
         rowsFiltered=(LongAccumulator)in.readObject();
@@ -499,5 +511,19 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         operationContext.op = broadcastedActivation.getActivationHolder().getOperationsMap().get(op.resultSetNumber());
         operationContext.activation = operationContext.broadcastedActivation.getActivationHolder().getActivation();
         return operationContext;
+    }
+}
+
+class Listener implements TaskCompletionListener {
+
+    private ActivationHolder ah;
+
+    public Listener(ActivationHolder ah) {
+        this.ah = ah;
+    }
+
+    @Override
+    public void onTaskCompletion(TaskContext context) {
+        ah.close();
     }
 }

@@ -94,8 +94,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
                 ActivationHolder ah = null;
                 if (context != null) {
                     ah = ((SparkOperationContext) context).getActivationHolder();
-                    ah.reinitialize(null, false);
-                    prepared = true;
+                    prepared = ah.reinitialize(null, false);
                 }
                 try {
                     while (locatedRowIterator.hasNext()) {

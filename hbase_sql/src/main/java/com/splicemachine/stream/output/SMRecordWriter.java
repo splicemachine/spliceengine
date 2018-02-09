@@ -39,17 +39,19 @@ public class SMRecordWriter extends RecordWriter<RowLocation,Either<Exception, E
     private TableWriter tableWriter;
     private OutputCommitter outputCommitter;
     private boolean failure = false;
-    private ActivationHolder activationHolder;
+    private ActivationHolder ah = null;
 
     public SMRecordWriter(TableWriter tableWriter, OutputCommitter outputCommitter) throws StandardException{
         try {
             SpliceLogUtils.trace(LOG, "init");
             this.tableWriter = tableWriter;
             this.outputCommitter = outputCommitter;
-            SparkOperationContext context = (SparkOperationContext)tableWriter.getOperationContext();
+
+            SparkOperationContext context = (SparkOperationContext) tableWriter.getOperationContext();
             if (context != null) {
-                activationHolder = context.getActivationHolder();
-                activationHolder.reinitialize(tableWriter.getTxn());
+                ah = context.getActivationHolder();
+                ah.close();
+                ah.reinitialize(tableWriter.getTxn());
             }
         }
         catch (Exception e) {
@@ -92,9 +94,8 @@ public class SMRecordWriter extends RecordWriter<RowLocation,Either<Exception, E
             failure = true;
             throw new IOException(e);
         } finally {
-            if (activationHolder != null) {
-                activationHolder.close();
-            }
+            if (ah != null)
+                ah.close();
             if (failure)
                 outputCommitter.abortTask(taskAttemptContext);
         }

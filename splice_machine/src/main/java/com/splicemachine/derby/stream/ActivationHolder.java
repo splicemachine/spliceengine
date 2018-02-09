@@ -60,8 +60,7 @@ public class ActivationHolder implements Externalizable {
     private SpliceObserverInstructions soi;
     private TxnView txn;
     private boolean initialized=false;
-    private SpliceTransactionResourceImpl impl;
-    private boolean prepared = false;
+    private ThreadLocal<SpliceTransactionResourceImpl> impl = new ThreadLocal<>();;
 
     public ActivationHolder() {
 
@@ -155,6 +154,8 @@ public class ActivationHolder implements Externalizable {
         if(initialized)
             return;
         initialized = true;
+        SpliceTransactionResourceImpl impl = null;
+        boolean prepared = false;
         try {
             impl = new SpliceTransactionResourceImpl();
             prepared =  impl.marshallTransaction(txn);
@@ -169,7 +170,6 @@ public class ActivationHolder implements Externalizable {
         } finally {
             if (prepared) {
                 impl.close();
-                prepared = false;
             }
         }
     }
@@ -183,6 +183,7 @@ public class ActivationHolder implements Externalizable {
         }
         soi = (SpliceObserverInstructions) in.readObject();
         txn = SIDriver.driver().getOperationFactory().readTxn(in);
+        impl = new ThreadLocal<>();
     }
 
     public void setActivation(Activation activation) {
@@ -193,18 +194,19 @@ public class ActivationHolder implements Externalizable {
         return txn;
     }
 
-    public void reinitialize(TxnView otherTxn) {
-        reinitialize(otherTxn, true);
+    public boolean reinitialize(TxnView otherTxn) {
+        return reinitialize(otherTxn, true);
     }
 
-    public void reinitialize(TxnView otherTxn, boolean reinit) {
+    public boolean reinitialize(TxnView otherTxn, boolean reinit) {
+        if (impl.get() != null)
+            return false;
         TxnView txnView = otherTxn!=null ? otherTxn : this.txn;
         initialized = true;
         try {
-            close();
-
-            impl = new SpliceTransactionResourceImpl();
-            prepared =  impl.marshallTransaction(txnView);
+            SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl();
+            boolean prepared = impl.marshallTransaction(txnView);
+            this.impl.set(impl);
             activation = soi.getActivation(this, impl.getLcc());
 
             // Push internal connection to the current context manager
@@ -217,15 +219,16 @@ public class ActivationHolder implements Externalizable {
                     so.init(context);
                 }
             }
+            return prepared;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
     public void close() {
-        if (prepared) {
-            impl.close();
-            prepared = false;
+        if (impl.get() != null) {
+            impl.get().close();
+            impl.set(null);
         }
     }
 }
