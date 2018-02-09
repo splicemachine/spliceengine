@@ -124,10 +124,9 @@ public class OlapServerMaster implements Watcher {
         String principal = System.getProperty("splice.spark.yarn.principal");
         String keytab = System.getProperty("splice.spark.yarn.keytab");
 
-        UserGroupInformation ugi = null;
+        UserGroupInformation ugi;
 
-        if (principal != null) {
-            if (keytab != null) {
+        if (principal != null && keytab != null) {
                 try {
                     LOG.info("Login with principal (" + principal +") and keytab (" + keytab +")");
                     ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab);
@@ -135,26 +134,22 @@ public class OlapServerMaster implements Watcher {
                     LOG.error("Error while authenticating user " + principal + " with keytab " + keytab, e);
                     throw new RuntimeException(e);
                 }
-            } else {
-                LOG.info("Login with principal ");
-                ugi = UserGroupInformation.createRemoteUser(principal);
-            }
+        } else {
+            String user = System.getProperty("splice.spark.yarn.user", "hbase");
+            LOG.info("Login with user");
+            ugi = UserGroupInformation.createRemoteUser(user);
         }
 
-        if (ugi != null) {
-            UserGroupInformation.setLoginUser(ugi);
-            ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
-                try {
-                    submitSparkApplication(conf);
-                } catch (Exception e) {
-                    LOG.error("Unexpected exception when submitting Spark application with authentication", e);
-                    throw e;
-                }
-                return null;
-            });
-        } else {
-            submitSparkApplication(conf);
-        }
+        UserGroupInformation.setLoginUser(ugi);
+        ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
+            try {
+                submitSparkApplication(conf);
+            } catch (Exception e) {
+                LOG.error("Unexpected exception when submitting Spark application with authentication", e);
+                throw e;
+            }
+            return null;
+        });
 
         rmClient.unregisterApplicationMaster(
                 FinalApplicationStatus.SUCCEEDED, "", "");
