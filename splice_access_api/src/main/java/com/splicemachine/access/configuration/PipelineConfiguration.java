@@ -183,7 +183,7 @@ public class PipelineConfiguration implements ConfigurationDefault {
         builder.sparkResultStreamingBatches = configurationSource.getInt(SPARK_RESULT_STREAMING_BATCHES, DEFAULT_SPARK_RESULT_STREAMING_BATCHES);
         builder.sparkResultStreamingBatchSize = configurationSource.getInt(SPARK_RESULT_STREAMING_BATCH_SIZE, DEFAULT_SPARK_RESULT_STREAMING_BATCH_SIZE);
         builder.compactionReservedSlots = configurationSource.getInt(SPARK_COMPACTION_RESERVED_SLOTS, DEFAULT_SPARK_COMPACTION_RESERVED_SLOTS);
-
+        
         builder.reservedSlotsTimeout = configurationSource.getInt(SPARK_RESERVED_SLOTS_TIMEOUT, DEFAULT_SPARK_RESERVED_SLOTS_TIMEOUT);
         builder.bulkImportSampleFraction = configurationSource.getDouble(BULK_IMPORT_SAMPLE_FRACTION, DEFAULT_BULK_IMPORT_SAMPLE_FRACTION);
         builder.bulkImportTasksPerRegion = configurationSource.getInt(BULK_IMPORT_TASKS_PER_REGION, DEFAULT_BULK_IMPORT_TASKS_PER_REGION);

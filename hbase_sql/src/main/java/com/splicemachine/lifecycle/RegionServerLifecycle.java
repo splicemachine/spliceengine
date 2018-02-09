@@ -20,9 +20,11 @@ import java.net.SocketTimeoutException;
 import java.util.concurrent.TimeUnit;
 
 import com.splicemachine.pipeline.InitializationCompleted;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.PleaseHoldException;
+import org.apache.hadoop.hbase.TableExistsException;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.TableNotEnabledException;
 import org.apache.hadoop.hbase.client.Admin;
@@ -31,6 +33,7 @@ import org.apache.hadoop.hbase.client.RegionOfflineException;
 import org.apache.hadoop.hbase.client.RetriesExhaustedException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.ipc.RemoteException;
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
 import com.splicemachine.access.configuration.SQLConfiguration;
@@ -46,6 +49,8 @@ import com.splicemachine.hbase.ZkUtils;
  *         Date: 1/6/16
  */
 public class RegionServerLifecycle implements DistributedDerbyStartup{
+    private static final Logger LOG = Logger.getLogger(RegionServerLifecycle.class);
+
     private final Clock clock;
     private final HBaseConnectionFactory connectionFactory;
 
@@ -61,14 +66,23 @@ public class RegionServerLifecycle implements DistributedDerbyStartup{
         try(Admin admin=conn.getAdmin()){
             do{
                 onHold=false;
+                TableName spliceInit = TableName.valueOf(SpliceMasterObserver.INIT_TABLE);
                 try{
-                    HTableDescriptor desc=new HTableDescriptor(TableName.valueOf(SpliceMasterObserver.INIT_TABLE));
+                    HTableDescriptor desc=new HTableDescriptor(spliceInit);
                     desc.addFamily(new HColumnDescriptor(Bytes.toBytes("FOO")));
                     // Create the special "SPLICE_INIT" table which triggers the creation of the SpliceMasterObserver and ultimately
                     // triggers the creation of the "SPLICE_*" HBase tables.  This is an asynchronous call and so we "loop" via a
                     // "please hold" exception and a recursive call to bootDatabase() along with a sleep.
                     admin.createTable(desc);
-                }catch(InitializationCompleted ic){
+                    LOG.error("We could create SPLICE_INIT table, this means the SpliceMasterObserver hasn't loaded properly");
+                    try {
+                        admin.disableTable(spliceInit);
+                        admin.deleteTable(spliceInit);
+                    } catch (IOException e) {
+                        LOG.warn("Received exception while cleaning up SPLICE_INIT", e);
+                    }
+                    throw new DoNotRetryIOException("We could create SPLICE_INIT table, SpliceMasterObser not loaded");
+                }catch(InitializationCompleted ic) {
                     /*
                      * The exception signaling the start of a successfully running Splice Engine will be a SpliceDoNotRetryIOException.
                      * When this is returned, it means that a connection to HBase and the creation (or previous existence) of the
@@ -84,13 +98,22 @@ public class RegionServerLifecycle implements DistributedDerbyStartup{
                     SQLConfiguration.upgradeForced = false;
 
                     // Ensure ZK paths exist.
-                    try{
+                    try {
                         ZkUtils.safeInitializeZooKeeper();
-                    }catch(InterruptedException e){
+                    } catch (InterruptedException e) {
                         throw new InterruptedIOException();
-                    }catch(KeeperException e){
+                    } catch (KeeperException e) {
                         throw new IOException(e);
                     }
+                } catch (TableExistsException e) {
+                    LOG.error("SPLICE_INIT already exists, this shouldn't happen. Remove it and retry");
+                    try {
+                        admin.disableTable(spliceInit);
+                        admin.deleteTable(spliceInit);
+                    } catch (IOException ioe) {
+                        LOG.warn("Received exception while cleaning up SPLICE_INIT", e);
+                    }
+                    onHold = true;
                 } catch(Exception ex){
                     if (!causeIsPleaseHold(ex))
                         throw ex;

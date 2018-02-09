@@ -739,7 +739,7 @@
                             <threadCount>1</threadCount>
                             <!-- -sf- single-threaded for now -->
                             <perCoreThreadCount>false</perCoreThreadCount>
-                            <argLine>-Xmx4g</argLine>
+                            <argLine>-Xmx5g</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
@@ -1131,7 +1131,7 @@
                                 <argument>-Dsplice.authentication=NATIVE</argument>
                                 <argument>-Dcom.splicemachine.enableLegacyAsserts=true</argument>
 				<argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
-                                <argument>-Xmx6g</argument>
+                                <argument>-Xmx4g</argument>
                                 <argument>-Xms1g</argument>
                                 <!-- Spark Sys props -->
                                 <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
@@ -1184,6 +1184,15 @@
                                     -Dlog4j.configuration=${log4j.config.uri}
                                     -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020
                                     -enableassertions
+                                </argument>
+				<argument>-Dsplice.olapServer.classpath=${project.build.directory}/dependency/javax.servlet-api-3.1.0.jar:${project.build.directory}/classes</argument>
+                                <argument>-Dsplice.olapServer.extraJavaOptions=
+					-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
+                                    -Dhbase.rootdir=${project.build.directory}/hbase
+                                    -Dlog4j.configuration=${log4j.config.uri}
+                                    -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4025
+                                    -enableassertions
+                                    -Djava.net.preferIPv4Stack=true
                                 </argument>
                                 <argument>-Dsplice.spark.shuffle.file.buffer=128k</argument>
                                 <argument>-Dsplice.spark.shuffle.memoryFraction=0.7</argument>

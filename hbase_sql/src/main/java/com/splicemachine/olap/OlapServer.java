@@ -48,7 +48,7 @@ public class OlapServer {
         ScheduledExecutorService executor = Executors.newScheduledThreadPool(15, new ThreadFactoryBuilder().setNameFormat("OlapServer-%d").setDaemon(true).build());
         this.factory = new NioServerSocketChannelFactory(executor, 2, executor, 10);
 
-        SpliceLogUtils.info(LOG, "Olap Server starting (binding to port %s)...", port);
+        SpliceLogUtils.warn(LOG, "Olap Server starting (binding to port %s)...", port);
 
         ServerBootstrap bootstrap = new ServerBootstrap(factory);
 
@@ -68,9 +68,9 @@ public class OlapServer {
         bootstrap.setOption("child.reuseAddress", true);
 
         this.channel = bootstrap.bind(new InetSocketAddress(getPortNumber()));
-        ((InetSocketAddress)channel.getLocalAddress()).getPort();
+        port = ((InetSocketAddress)channel.getLocalAddress()).getPort();
 
-        SpliceLogUtils.info(LOG, "Olap Server started.");
+        SpliceLogUtils.warn(LOG, "Olap Server started at port " + port);
 
     }
 

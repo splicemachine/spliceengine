@@ -100,6 +100,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final int sparkResultStreamingBatchSize;
     private final int compactionReservedSlots;
     private final int olapCompactionMaximumWait;
+    private final int olapCompactionMaximumConcurrent;
     private final double olapCompactionResolutionShare;
     private final double flushResolutionShare;
     private final int olapCompactionResolutionBufferSize;
@@ -114,9 +115,15 @@ public final class SConfigurationImpl implements SConfiguration {
     private final int olapClientWaitTime;
     private final int olapClientTickTime;
     private final int olapServerBindPort;
+    private final String olapServerStagingDir;
+    private final boolean olapServerExternal;
     private final int olapServerThreads;
     private final int olapServerTickLimit;
     private final int olapClientRetries;
+    private final int olapServerSubmitAttempts;
+    private final int olapServerMemory;
+    private final int olapServerMemoryOverhead;
+    private final int olapServerVirtualCores;
 
     // SIConfigurations
     private final  int activeTransactionCacheSize;
@@ -430,6 +437,30 @@ public final class SConfigurationImpl implements SConfiguration {
         return olapServerBindPort;
     }
     @Override
+    public String getOlapServerStagingDirectory() {
+        return olapServerStagingDir;
+    }
+    @Override
+    public boolean getOlapServerExternal() {
+        return olapServerExternal;
+    }
+    @Override
+    public int getOlapServerSubmitAttempts() {
+        return olapServerSubmitAttempts;
+    }
+    @Override
+    public int getOlapServerMemory() {
+        return olapServerMemory;
+    }
+    @Override
+    public int getOlapServerMemoryOverhead() {
+        return olapServerMemoryOverhead;
+    }
+    @Override
+    public int getOlapVirtualCores() {
+        return olapServerVirtualCores;
+    }
+    @Override
     public int getOlapServerThreads() {
         return olapServerThreads;
     }
@@ -729,13 +760,20 @@ public final class SConfigurationImpl implements SConfiguration {
         olapClientWaitTime = builder.olapClientWaitTime;
         olapClientTickTime = builder.olapClientTickTime;
         olapServerBindPort = builder.olapServerBindPort;
+        olapServerStagingDir = builder.olapServerStagingDir;
+        olapServerExternal = builder.olapServerExternal;
         olapServerThreads = builder.olapServerThreads;
         olapServerTickLimit = builder.olapServerTickLimit;
+        olapServerSubmitAttempts = builder.olapServerSubmitAttempts;
+        olapServerMemory = builder.olapServerMemory;
+        olapServerMemoryOverhead = builder.olapServerMemoryOverhead;
+        olapServerVirtualCores = builder.olapServerVirtualCores;
         olapClientRetries = builder.olapClientRetries;
         sparkResultStreamingBatches = builder.sparkResultStreamingBatches;
         sparkResultStreamingBatchSize = builder.sparkResultStreamingBatchSize;
         compactionReservedSlots = builder.compactionReservedSlots;
         olapCompactionMaximumWait = builder.olapCompactionMaximumWait;
+        olapCompactionMaximumConcurrent = builder.olapCompactionMaximumConcurrent;
         olapCompactionResolutionShare = builder.olapCompactionResolutionShare;
         flushResolutionShare = builder.flushResolutionShare;
         olapCompactionResolutionBufferSize = builder.olapCompactionResolutionBufferSize;
@@ -787,6 +825,11 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getOlapCompactionMaximumWait() {
         return olapCompactionMaximumWait;
+    }
+
+    @Override
+    public int getOlapCompactionMaximumConcurrent() {
+        return olapCompactionMaximumConcurrent;
     }
 
     @Override

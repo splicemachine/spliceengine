@@ -229,6 +229,9 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
             ChannelBuffer buffer = ChannelBuffers.buffer(2);
             buffer.writeShort(clientCallId);
             SpliceLogUtils.trace(LOG, "Writing request message to server for client: %s", callback);
+            if(channel == null) {
+                throw new TimestampIOException("Unable to connect to TimestampServer");
+            }
             ChannelFuture futureWrite = channel.write(buffer);
             futureWrite.addListener(new ChannelFutureListener() {
                 @Override
