@@ -28,6 +28,7 @@ import com.splicemachine.si.api.server.FailedServerException;
 import com.splicemachine.si.api.txn.WriteConflict;
 import com.splicemachine.si.api.txn.lifecycle.CannotCommitException;
 import com.splicemachine.si.impl.SavePointNotFoundException;
+import com.splicemachine.timestamp.api.TimestampIOException;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -1987,7 +1988,13 @@ public enum ErrorState{
     LANG_DISABLE_STATS_FOR_KEYED_COLUMN("SE021"),
     LANG_INVALID_DAY("SE022"),
     INCORRECT_COLUMN_COUNT_IN_IMPORT("XIE0A"),
-    CANNOT_WRITE_AT_LOCATION("EXT22");
+    CANNOT_WRITE_AT_LOCATION("EXT22"),
+    TIMESTAMP_SERVER_CONNECTION("TSS01") {
+        @Override
+        public boolean accepts(Throwable t) {
+            return super.accepts(t) || t instanceof TimestampIOException;
+        }
+    };
 
     private final String sqlState;
 

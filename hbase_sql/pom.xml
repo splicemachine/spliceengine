@@ -19,7 +19,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>2.7.0.1805-SNAPSHOT</version>
+        <version>2.7.0.1806-SNAPSHOT</version>
     </parent>
     <properties>
         <!--Skip server startup-->
@@ -59,7 +59,7 @@
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>splice_aws</artifactId>
-            <version>2.7.0.1805-SNAPSHOT</version>
+            <version>2.7.0.1806-SNAPSHOT</version>
             <classifier>shade</classifier>
             <exclusions>
                 <exclusion>
@@ -698,12 +698,12 @@
                     <dependency>
                         <groupId>org.splicetest.txn</groupId>
                         <artifactId>txn-it-procs</artifactId>
-                        <version>2.7.0.1805-SNAPSHOT</version>
+                        <version>2.7.0.1806-SNAPSHOT</version>
                     </dependency>
                     <dependency>
                         <groupId>org.splicetest.sqlj</groupId>
                         <artifactId>sqlj-it-procs</artifactId>
-                        <version>2.7.0.1805-SNAPSHOT</version>
+                        <version>2.7.0.1806-SNAPSHOT</version>
                     </dependency>
                 </dependencies>
                 <executions>
@@ -729,7 +729,7 @@
                                 <artifactItem>
                                     <groupId>org.splicetest.txn</groupId>
                                     <artifactId>txn-it-procs</artifactId>
-                                    <version>2.7.0.1805-SNAPSHOT</version>
+                                    <version>2.7.0.1806-SNAPSHOT</version>
                                     <type>jar</type>
                                     <overWrite>true</overWrite>
                                     <outputDirectory>${project.build.directory}/txn-it</outputDirectory>
@@ -738,7 +738,7 @@
                                 <artifactItem>
                                     <groupId>org.splicetest.sqlj</groupId>
                                     <artifactId>sqlj-it-procs</artifactId>
-                                    <version>2.7.0.1805-SNAPSHOT</version>
+                                    <version>2.7.0.1806-SNAPSHOT</version>
                                     <type>jar</type>
                                     <overWrite>true</overWrite>
                                     <outputDirectory>${project.build.directory}/sql-it</outputDirectory>
@@ -789,7 +789,7 @@
                             <threadCount>1</threadCount>
                             <!-- -sf- single-threaded for now -->
                             <perCoreThreadCount>false</perCoreThreadCount>
-                            <argLine>-Xmx4g</argLine>
+                            <argLine>-Xmx5g</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
@@ -1183,7 +1183,7 @@
                                 <argument>-Dsplice.authentication=NATIVE</argument>
                                 <argument>-Dcom.splicemachine.enableLegacyAsserts=true</argument>
                                 <argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
-                                <argument>-Xmx6g</argument>
+                                <argument>-Xmx4g</argument>
                                 <argument>-Xms1g</argument>
                                 <!-- Spark Sys props -->
                                 <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
@@ -1233,6 +1233,15 @@
                                     -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020
                                     -enableassertions
                                     ${jacocoAgent}
+                                </argument>
+				<argument>-Dsplice.olapServer.classpath=${project.build.directory}/dependency/javax.servlet-api-3.1.0.jar:${project.build.directory}/classes</argument>
+                                <argument>-Dsplice.olapServer.extraJavaOptions=
+					-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
+                                    -Dhbase.rootdir=${project.build.directory}/hbase
+                                    -Dlog4j.configuration=${log4j.config.uri}
+                                    -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4025
+                                    -enableassertions
+                                    -Djava.net.preferIPv4Stack=true
                                 </argument>
                                 <argument>-Dsplice.spark.shuffle.file.buffer=128k</argument>
                                 <argument>-Dsplice.spark.shuffle.memoryFraction=0.7</argument>

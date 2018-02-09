@@ -19,6 +19,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Iterator;
+import java.security.PrivilegedAction;
 
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
@@ -235,7 +236,7 @@ public class SpliceSpark {
         SparkConf conf = new SparkConf();
         // Set default warehouse directory, currently spark can get confused.
         // User Supplied splice.spark.sql.warehouse.dir will overwrite it.
-        conf.set("spark.sql.warehouse.dir","/user/splice/spark-warehouse");
+        conf.set("spark.sql.warehouse.dir", "/user/splice/spark-warehouse");
 
         String schedulerAllocationFile = System.getProperty("splice.spark.scheduler.allocation.file");
         if (schedulerAllocationFile != null) {
@@ -248,11 +249,13 @@ public class SpliceSpark {
         try {
             String principal = null;
             String p = null;
-            String hostname = HConfiguration.unwrapDelegate().get("hbase.master.hostname");
+            String configKey = HConfiguration.getConfiguration().getOlapServerExternal() ?
+                    "splice.olapServer.hostname" : "hbase.master.hostname";
+            String hostname = HConfiguration.unwrapDelegate().get(configKey);
             if (hostname == null) {
                 hostname = InetAddress.getLocalHost().getHostName();
                 SpliceLogUtils.warn(LOG, "Trying to get local hostname. This could be problem for host with multiple interfaces.");
-                SpliceLogUtils.warn(LOG, "For machine with multiple interfaces, please set hbase.master.hostname.");
+                SpliceLogUtils.warn(LOG, "For machine with multiple interfaces, please set " + configKey);
             }
             if ((HConfiguration.unwrapDelegate().get("hbase.master.kerberos.principal") != null) ||
                     (HConfiguration.unwrapDelegate().get("hbase.regionserver.kerberos.principal") != null)) {
@@ -266,19 +269,22 @@ public class SpliceSpark {
                 SpliceLogUtils.info(LOG, "principal = %s", principal);
             }
         } catch (UnknownHostException e) {
-            SpliceLogUtils.warn(LOG,"Could not resolve local host name : %s", e.getMessage());
+            SpliceLogUtils.warn(LOG, "Could not resolve local host name : %s", e.getMessage());
         } catch (IOException e) {
             SpliceLogUtils.warn(LOG, "Could not replace _HOST: %s", e.getMessage());
         }
 
-        if((HConfiguration.unwrapDelegate().get("hbase.master.keytab.file") != null) ||
-           (HConfiguration.unwrapDelegate().get("hbase.regionserver.keytab.file") != null)){
-            if(HConfiguration.unwrapDelegate().get("hbase.master.keytab.file") != null){
+
+        if ((HConfiguration.unwrapDelegate().get("hbase.master.keytab.file") != null) ||
+                (HConfiguration.unwrapDelegate().get("hbase.regionserver.keytab.file") != null)) {
+            if (HConfiguration.unwrapDelegate().get("hbase.master.keytab.file") != null) {
                 conf.set("spark.yarn.keytab", HConfiguration.unwrapDelegate().get("hbase.master.keytab.file"));
-            } else if(HConfiguration.unwrapDelegate().get("hbase.regionserver.keytab.file") != null){
+            } else if (HConfiguration.unwrapDelegate().get("hbase.regionserver.keytab.file") != null) {
                 conf.set("spark.yarn.keytab", HConfiguration.unwrapDelegate().get("hbase.regionserver.keytab.file"));
             }
         }
+        String user = System.getProperty("splice.spark.yarn.principal");
+        String keytab = System.getProperty("splice.spark.yarn.keytab");
 
         // set all spark props that start with "splice.".  overrides are set below.
         for (Object sysPropertyKey : System.getProperties().keySet()) {
@@ -347,10 +353,32 @@ public class SpliceSpark {
             printConfigProps(conf);
         }
 
-        return SparkSession.builder()
-                .appName("Splice Spark Session")
-                .config(conf)
-                .getOrCreate();
+        UserGroupInformation ugi = null;
+        if (user != null) {
+            if (keytab != null) {
+                try {
+                    ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(user, keytab);
+                } catch (IOException e) {
+                    LOG.error("Error while authenticating user " + user + " with keytab " + keytab, e);
+                    throw new RuntimeException(e);
+                }
+            } else {
+                ugi = UserGroupInformation.createRemoteUser(user);
+            }
+        }
+
+        if (ugi != null) {
+            return ugi.doAs((PrivilegedAction<SparkSession>) () ->
+                    SparkSession.builder()
+                            .appName("Splice Spark Session")
+                            .config(conf)
+                            .getOrCreate());
+        } else {
+            return SparkSession.builder()
+                    .appName("Splice Spark Session")
+                    .config(conf)
+                    .getOrCreate();
+        }
     }
 
     private static void printConfigProps(SparkConf conf) {
