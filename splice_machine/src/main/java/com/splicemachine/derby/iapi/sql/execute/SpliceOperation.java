@@ -389,4 +389,5 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
     String getVTIFileName();
 
     boolean accessExternalTable();
+
 }

@@ -68,9 +68,10 @@ import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.RunningOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.hbase.JMXThreadPool;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.pipeline.ErrorState;
@@ -105,6 +106,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -113,6 +115,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.text.SimpleDateFormat;
 
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INVALID_FUNCTION_ARGUMENT;
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_NO_SUCH_RUNNING_OPERATION;
@@ -1479,6 +1482,10 @@ public class SpliceAdmin extends BaseAdminProcedures{
             new GenericColumnDescriptor("HOSTNAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
             new GenericColumnDescriptor("SESSION", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
             new GenericColumnDescriptor("SQL", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
+            new GenericColumnDescriptor("SUBMITTED", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,40)),
+            new GenericColumnDescriptor("ELAPSED", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,40)),
+            new GenericColumnDescriptor("ENGINE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,40)),
+            new GenericColumnDescriptor("JOBTYPE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,40)),
     };
 
     public static void SYSCS_GET_RUNNING_OPERATIONS(final ResultSet[] resultSet) throws SQLException {
@@ -1509,7 +1516,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             try (Connection connection = RemoteUser.getConnection(server.toString())) {
                 try (ResultSet rs = connection.createStatement().executeQuery("call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS_LOCAL()")) {
                     while (rs.next()) {
-                        ExecRow row = new ValueRow(5);
+                        ExecRow row = new ValueRow(9);
 
                         if ("call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS_LOCAL()".equalsIgnoreCase(rs.getString(5))) {
                             // Filter out the nested calls to SYSCS_GET_RUNNING_OPERATIONS_LOCAL triggered by this stored procedure
@@ -1521,7 +1528,10 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         row.setColumn(3, new SQLVarchar(rs.getString(3)));
                         row.setColumn(4, new SQLInteger(rs.getInt(4)));
                         row.setColumn(5, new SQLVarchar(rs.getString(5)));
-
+                        row.setColumn(6, new SQLVarchar(rs.getString(6)));
+                        row.setColumn(7, new SQLVarchar(rs.getString(7)));
+                        row.setColumn(8, new SQLVarchar(rs.getString(8)));
+                        row.setColumn(9, new SQLVarchar(rs.getString(9)));
                         rows.add(row);
                     }
                 }
@@ -1539,22 +1549,33 @@ public class SpliceAdmin extends BaseAdminProcedures{
             userId = null;
         }
 
-        List<Pair<UUID, SpliceOperation>> operations = EngineDriver.driver().getOperationManager().runningOperations(userId);
+        List<Pair<UUID, RunningOperation>> operations = EngineDriver.driver().getOperationManager().runningOperations(userId);
 
         SConfiguration config=EngineDriver.driver().getConfiguration();
         String hostname = NetworkUtils.getHostname(config);
         int port = config.getNetworkBindPort();
+        String engineName ;
+        String timeStampFormat = "yyyy-MM-dd HH:mm:ss";
+        String submittedTime ;
+        Date current;
 
         List<ExecRow> rows = new ArrayList<>(operations.size());
-        for (Pair<UUID, SpliceOperation> pair : operations) {
-            ExecRow row = new ValueRow(5);
-            Activation activation = pair.getSecond().getActivation();
+        for (Pair<UUID, RunningOperation> pair : operations) {
+            ExecRow row = new ValueRow(9);
+            Activation activation = pair.getSecond().getOperation().getActivation();
             row.setColumn(1, new SQLVarchar(pair.getFirst().toString()));
             row.setColumn(2, new SQLVarchar(activation.getLanguageConnectionContext().getCurrentUserId(activation)));
             row.setColumn(3, new SQLVarchar(hostname + ":" + port));
             row.setColumn(4, new SQLInteger(activation.getLanguageConnectionContext().getInstanceNumber()));
             ExecPreparedStatement ps = activation.getPreparedStatement();
             row.setColumn(5, new SQLVarchar(ps == null ? null : ps.getSource()));
+            submittedTime = new SimpleDateFormat(timeStampFormat).format(pair.getSecond().getSubmittedTime());
+            row.setColumn(6, new SQLVarchar(submittedTime));
+            engineName = (pair.getSecond().getEngine() == DataSetProcessor.Type.SPARK) ? "SPARK" : "CONTROL";
+            current = new Date();
+            row.setColumn(7, new SQLVarchar(getElapsedTimeStr(pair.getSecond().getSubmittedTime(),current)));
+            row.setColumn(8, new SQLVarchar(engineName));
+            row.setColumn(9, new SQLVarchar(pair.getSecond().getOperation().getScopeName()));
             rows.add(row);
         }
 
@@ -1566,6 +1587,26 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
         resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
     }
+    private static String getElapsedTimeStr(Date begin, Date end)
+    {
+        long between  = (end.getTime() - begin.getTime()) / 1000;
+        long day = between / (24 * 3600);
+        long hour = between % (24 * 3600) / 3600;
+        long minute = between % 3600 / 60;
+        long second = between % 60;
+        StringBuilder elapsedStr = new StringBuilder();
+        if (day > 0) {
+            elapsedStr.append(day + " day(s) ").append(hour + " hour(s) ").append(minute + " min(s) ").append(second + " sec(s)");
+        } else if (hour > 0) {
+            elapsedStr.append(hour + " hour(s) ").append(minute + " min(s) ").append(second + " sec(s)");
+        } else if (minute > 0) {
+            elapsedStr.append(minute + " min(s) ").append(second + " sec(s)");
+        } else {
+            elapsedStr.append(second + " sec(s)");
+        }
+        return elapsedStr.toString();
+    }
+
     public static void SYSCS_KILL_OPERATION(final String uuidString) throws SQLException {
         ExecRow needle = null;
         for (ExecRow row : getRunningOperations()) {
