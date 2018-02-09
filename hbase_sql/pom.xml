@@ -788,7 +788,7 @@
                             <threadCount>1</threadCount>
                             <!-- -sf- single-threaded for now -->
                             <perCoreThreadCount>false</perCoreThreadCount>
-                            <argLine>-Xmx4g</argLine>
+                            <argLine>-Xmx5g</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
@@ -1181,7 +1181,7 @@
                                 <argument>-Dsplice.authentication=NATIVE</argument>
                                 <argument>-Dcom.splicemachine.enableLegacyAsserts=true</argument>
                                 <argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
-                                <argument>-Xmx3g</argument>
+                                <argument>-Xmx4g</argument>
                                 <argument>-Xms1g</argument>
                                 <!-- Spark Sys props -->
                                 <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
