@@ -41,6 +41,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -48,6 +50,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assert.assertNull;
 
 @Category(SerialTest.class)
 public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
@@ -159,6 +162,54 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
         assertTrue(rs.next());
         assertEquals("SPLICE", rs.getString(2)); // check user
         assertEquals(sql, rs.getString(5)); // check sql
+    }
+
+    @Test
+    @Category(HBaseTest.class) // No Spark in MEM mode
+    public void testRunningOperation_DB6478() throws Exception {
+        String sql= "select count(*) from TEST_BIG --splice-properties useSpark=true" + "\n" +
+                     "natural join TEST_BIG b";
+
+        AtomicReference<Exception> result = new AtomicReference<>();
+
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                PreparedStatement ps = null;
+                try (TestConnection connection = methodWatcher.createConnection()) {
+                    ps = connection.prepareStatement(sql);
+                    ResultSet rs = ps.executeQuery();
+                    assertTrue(rs.next());
+                    while(rs.next()) {
+                    }
+                } catch (Exception e) {
+                    result.set(e);
+                }
+            }
+        });
+        thread.start();
+        // wait for the query to be submitted
+        Thread.sleep(1000);
+
+        String opsCall= "call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS()";
+
+        try (TestConnection connection = methodWatcher.createConnection()) {
+            String submitted = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+            ResultSet opsRs = connection.query(opsCall);
+            while (opsRs.next()) {
+                if (opsRs.getString(5).equals(sql)) {
+                    assertEquals("SPARK",opsRs.getString(8)); // check engine "SPARK"
+                    assertEquals("Produce Result Set", opsRs.getString(9)); // check job type
+                } else if (opsRs.getString(5).equals(opsCall)) {
+                    assertEquals(submitted, opsRs.getString(6)); // check submitted time
+                    assertEquals("CONTROL", opsRs.getString(8)); // check engine "CONTROL"
+                    assertEquals("Call Procedure", opsRs.getString(9)); // check job type
+                }
+            }
+            // wait for Thread termination
+            thread.join();
+            assertNull(result.get());
+        }
     }
 
     @Test
