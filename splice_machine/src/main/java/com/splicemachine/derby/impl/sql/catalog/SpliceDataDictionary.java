@@ -15,33 +15,28 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
-import com.splicemachine.client.SpliceClient;
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.dictionary.*;
-import com.splicemachine.db.iapi.types.*;
-import com.splicemachine.db.impl.sql.catalog.*;
-import com.splicemachine.derby.lifecycle.EngineLifecycleService;
-import com.splicemachine.management.Manager;
-import org.apache.log4j.Logger;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
-import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
+import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.impl.sql.catalog.*;
 import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.derby.impl.sql.catalog.upgrade.SpliceCatalogUpgradeScripts;
@@ -49,12 +44,16 @@ import com.splicemachine.derby.impl.sql.depend.SpliceDependencyManager;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.store.access.*;
+import com.splicemachine.derby.lifecycle.EngineLifecycleService;
+import com.splicemachine.management.Manager;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.tools.version.ManifestReader;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
+
 import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
@@ -951,5 +950,37 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         return manager.isEnabled()?manager.getColPermsManager().getColumnPermissions(this,tableUUID,privType,forGrant,authorizationId):null;
     } // end of getColumnPermissions
 
+    public void upgradeSysSchemaPermsForModifySchemaPrivilege(TransactionController tc) throws StandardException {
+        SchemaDescriptor sd = getSystemSchemaDescriptor();
+        TableDescriptor td = getTableDescriptor(SYSSCHEMAPERMSRowFactory.SCHEMANAME_STRING, sd, tc);
+        ColumnDescriptor cd = td.getColumnDescriptor("MODIFYPRIV");
+        if (cd == null) {
+            tc.elevate("dictionary");
+            dropTableDescriptor(td, sd, tc);
+            td.setColumnSequence(td.getColumnSequence()+1);
+            // add the table descriptor with new name
+            addDescriptor(td,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc);
 
+            ColumnDescriptor columnDescriptor;
+            UUID uuid = getUUIDFactory().createUUID();
+
+            /**
+             *  Add the column MODIFYPRIV
+             */
+            DataValueDescriptor storableDV = getDataValueFactory().getNullChar(null);
+            int colNumber = td.getNumberOfColumns() + 1;
+            DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1);
+            tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
+
+            columnDescriptor = new ColumnDescriptor(SYSSCHEMAPERMSRowFactory.MODIFYPRIV_COL_NAME,colNumber,
+                    colNumber,dtd,null,null,td,uuid,0,0,td.getColumnSequence());
+
+            addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+            // now add the column to the tables column descriptor list.
+            td.getColumnDescriptorList().add(columnDescriptor);
+            updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
+
+            SpliceLogUtils.info(LOG, "SYS.SYSSCHEMAPERMS upgraded: added columns: MODIFYPRIV.");
+        }
+    }
 }

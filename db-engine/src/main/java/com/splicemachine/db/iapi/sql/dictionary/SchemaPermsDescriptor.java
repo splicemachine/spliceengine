@@ -53,6 +53,7 @@ public class SchemaPermsDescriptor  extends PermissionsDescriptor {
     private String updatePriv;
     private String referencesPriv;
     private String triggerPriv;
+    private String modifyPriv;
 
     public SchemaPermsDescriptor( DataDictionary dd,
                                  String grantee,
@@ -63,7 +64,8 @@ public class SchemaPermsDescriptor  extends PermissionsDescriptor {
                                  String insertPriv,
                                  String updatePriv,
                                  String referencesPriv,
-                                 String triggerPriv) throws StandardException {
+                                 String triggerPriv,
+                                 String modifyPriv) throws StandardException {
         super(dd, grantee, grantor);
         this.schemaUUID = schemaUUID;
         this.selectPriv = selectPriv;
@@ -72,6 +74,7 @@ public class SchemaPermsDescriptor  extends PermissionsDescriptor {
         this.updatePriv = updatePriv;
         this.referencesPriv = referencesPriv;
         this.triggerPriv = triggerPriv;
+        this.modifyPriv = modifyPriv;
         //schemaUUID can be null only if the constructor with tablePermsUUID
         //has been invoked.
         if (schemaUUID != null)
@@ -92,7 +95,7 @@ public class SchemaPermsDescriptor  extends PermissionsDescriptor {
                                  UUID schemaUUID) throws StandardException
     {
         this( dd, grantee, grantor, schemaUUID,
-                (String) null, (String) null, (String) null, (String) null, (String) null, (String) null);
+                (String) null, (String) null, (String) null, (String) null, (String) null, (String) null, (String) null);
     }
 
 
@@ -110,6 +113,7 @@ public class SchemaPermsDescriptor  extends PermissionsDescriptor {
     public String getUpdatePriv() { return updatePriv;}
     public String getReferencesPriv() { return referencesPriv;}
     public String getTriggerPriv() { return triggerPriv;}
+    public String getModifyPriv() { return modifyPriv;}
 
     public String toString()
     {
@@ -122,7 +126,8 @@ public class SchemaPermsDescriptor  extends PermissionsDescriptor {
                 ",insertPriv=" + getInsertPriv() +
                 ",updatePriv=" + getUpdatePriv() +
                 ",referencesPriv=" + getReferencesPriv() +
-                ",triggerPriv=" + getTriggerPriv();
+                ",triggerPriv=" + getTriggerPriv() +
+                ",modifyPriv=" + getModifyPriv();
     }
 
     /**

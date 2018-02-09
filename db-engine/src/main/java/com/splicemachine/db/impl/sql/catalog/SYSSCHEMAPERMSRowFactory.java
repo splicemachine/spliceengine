@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.sql.catalog;
 
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.client.am.Types;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
@@ -50,7 +51,7 @@ import com.splicemachine.db.iapi.types.SQLChar;
 
 public class SYSSCHEMAPERMSRowFactory extends PermissionsCatalogRowFactory
 {
-	static final String SCHEMANAME_STRING = "SYSSCHEMAPERMS";
+	public static final String SCHEMANAME_STRING = "SYSSCHEMAPERMS";
 
     // Column numbers for the SYSTABLEPERMS table. 1 based
 	private static final int SCHEMAPERMSID_COL_NUM = 1;
@@ -63,7 +64,10 @@ public class SYSSCHEMAPERMSRowFactory extends PermissionsCatalogRowFactory
     private static final int UPDATEPRIV_COL_NUM = 8;
     private static final int REFERENCESPRIV_COL_NUM = 9;
     private static final int TRIGGERPRIV_COL_NUM = 10;
-    private static final int COLUMN_COUNT = 10;
+    private static final int MODIFYPRIV_COL_NUM = 11;
+    private static final int COLUMN_COUNT = 11;
+
+    public static final String  MODIFYPRIV_COL_NAME = "MODIFYPRIV";
 
     public static final int GRANTEE_SCHEMA_GRANTOR_INDEX_NUM = 0;
     public static final int SCHEMAPERMSID_INDEX_NUM = 1;
@@ -107,6 +111,7 @@ public class SYSSCHEMAPERMSRowFactory extends PermissionsCatalogRowFactory
         String updatePriv = null;
         String referencesPriv = null;
         String triggerPriv = null;
+        String modifyPriv = null;
 
         if( pd == null)
         {
@@ -133,6 +138,7 @@ public class SYSSCHEMAPERMSRowFactory extends PermissionsCatalogRowFactory
             updatePriv = spd.getUpdatePriv();
             referencesPriv = spd.getReferencesPriv();
             triggerPriv = spd.getTriggerPriv();
+            modifyPriv = spd.getModifyPriv();
         }
         ExecRow row = getExecutionFactory().getValueRow( COLUMN_COUNT);
         row.setColumn( SCHEMAPERMSID_COL_NUM, new SQLChar(schemaPermID));
@@ -145,6 +151,7 @@ public class SYSSCHEMAPERMSRowFactory extends PermissionsCatalogRowFactory
         row.setColumn( UPDATEPRIV_COL_NUM, new SQLChar(updatePriv));
         row.setColumn( REFERENCESPRIV_COL_NUM, new SQLChar( referencesPriv));
         row.setColumn( TRIGGERPRIV_COL_NUM, new SQLChar(triggerPriv));
+        row.setColumn( MODIFYPRIV_COL_NUM, new SQLChar(modifyPriv));
 
         return row;
     } // end of makeRow
@@ -169,6 +176,11 @@ public class SYSSCHEMAPERMSRowFactory extends PermissionsCatalogRowFactory
         String updatePriv  = row.getColumn( UPDATEPRIV_COL_NUM).getString();
         String referencesPriv  = row.getColumn( REFERENCESPRIV_COL_NUM).getString();
         String triggerPriv  = row.getColumn( TRIGGERPRIV_COL_NUM).getString();
+        String modifyPriv = row.getColumn( MODIFYPRIV_COL_NUM).getString();
+        // need to consider entries upgraded from versions without the modifyPriv field
+        if (modifyPriv == null)
+            modifyPriv = "N";
+
         if( SanityManager.DEBUG)
         {
             SanityManager.ASSERT( "y".equals(selectPriv) || "Y".equals(selectPriv) || "N".equals(selectPriv),
@@ -183,6 +195,8 @@ public class SYSSCHEMAPERMSRowFactory extends PermissionsCatalogRowFactory
                                   "Invalid SYSSCHEMAPERMS.referencesPriv column value: " + referencesPriv);
             SanityManager.ASSERT( "y".equals(triggerPriv) || "Y".equals(triggerPriv) || "N".equals(triggerPriv),
                                   "Invalid SYSSCHEMAPERMS.triggerPriv column value: " + triggerPriv);
+            SanityManager.ASSERT( "y".equals(modifyPriv) || "Y".equals(modifyPriv) || "N".equals(modifyPriv),
+                                  "Invalid SYSSCHEMAPERMS.modifyPriv column value: " + modifyPriv);
         }
 
 		SchemaPermsDescriptor schemaPermsDesc =
@@ -191,7 +205,7 @@ public class SYSSCHEMAPERMSRowFactory extends PermissionsCatalogRowFactory
                                          getAuthorizationID( row, GRANTOR_COL_NUM),
                                          schemaUUID,
                                          selectPriv, deletePriv, insertPriv,
-                                         updatePriv, referencesPriv, triggerPriv);
+                                         updatePriv, referencesPriv, triggerPriv, modifyPriv);
 		schemaPermsDesc.setUUID(schemaPermsUUID);
 		return schemaPermsDesc;
     } // end of buildDescriptor
@@ -211,6 +225,7 @@ public class SYSSCHEMAPERMSRowFactory extends PermissionsCatalogRowFactory
             SystemColumnImpl.getIndicatorColumn("UPDATEPRIV"),
             SystemColumnImpl.getIndicatorColumn("REFERENCESPRIV"),
             SystemColumnImpl.getIndicatorColumn("TRIGGERPRIV"),
+            SystemColumnImpl.getColumn("MODIFYPRIV", Types.CHAR, true, 1)
         };
     }
 
@@ -273,6 +288,7 @@ public class SYSSCHEMAPERMSRowFactory extends PermissionsCatalogRowFactory
         changeCount += orOnePermission( row, colsChanged, UPDATEPRIV_COL_NUM, schemaPerms.getUpdatePriv());
         changeCount += orOnePermission( row, colsChanged, REFERENCESPRIV_COL_NUM, schemaPerms.getReferencesPriv());
         changeCount += orOnePermission( row, colsChanged, TRIGGERPRIV_COL_NUM, schemaPerms.getTriggerPriv());
+        changeCount += orOnePermission( row, colsChanged, MODIFYPRIV_COL_NUM, schemaPerms.getModifyPriv());
 
         return changeCount;
     } // end of orPermissions
@@ -287,7 +303,12 @@ public class SYSSCHEMAPERMSRowFactory extends PermissionsCatalogRowFactory
             SanityManager.ASSERT( permission.charAt(0) == 'Y' || permission.charAt(0) == 'y',
                                   "Invalid permission passed to SYSTABLEPERMSRowFactory.orOnePermission");
         DataValueDescriptor existingPermDVD = row.getColumn( column);
-        char existingPerm = existingPermDVD.getString().charAt(0);
+        char existingPerm;
+
+        if (column == MODIFYPRIV_COL_NUM && (existingPermDVD == null || existingPermDVD.isNull()))
+            existingPerm = 'N';
+        else
+            existingPerm = existingPermDVD.getString().charAt(0);
         if( existingPerm == 'Y' || existingPerm == permission.charAt(0))
             return 0;
         existingPermDVD.setValue( permission);
@@ -318,7 +339,8 @@ public class SYSSCHEMAPERMSRowFactory extends PermissionsCatalogRowFactory
             removeOnePermission( row, colsChanged, INSERTPRIV_COL_NUM, schemaPerms.getInsertPriv()) |
             removeOnePermission( row, colsChanged, UPDATEPRIV_COL_NUM, schemaPerms.getUpdatePriv()) |
             removeOnePermission( row, colsChanged, REFERENCESPRIV_COL_NUM, schemaPerms.getReferencesPriv()) |
-            removeOnePermission( row, colsChanged, TRIGGERPRIV_COL_NUM, schemaPerms.getTriggerPriv()));
+            removeOnePermission( row, colsChanged, TRIGGERPRIV_COL_NUM, schemaPerms.getTriggerPriv()) |
+            removeOnePermission( row, colsChanged, MODIFYPRIV_COL_NUM, schemaPerms.getModifyPriv()));
         if( ! permissionsLeft)
             return -1;
         for( int i = 0; i < colsChanged.length; i++)
@@ -333,7 +355,11 @@ public class SYSSCHEMAPERMSRowFactory extends PermissionsCatalogRowFactory
         throws StandardException
     {
         DataValueDescriptor existingPermDVD = row.getColumn( column);
-        char existingPerm = existingPermDVD.getString().charAt(0);
+        char existingPerm;
+        if (column == MODIFYPRIV_COL_NUM && (existingPermDVD == null || existingPermDVD.isNull()))
+            existingPerm = 'N';
+        else
+            existingPerm = existingPermDVD.getString().charAt(0);
 
         if( permission.charAt(0) == 'N') // Don't remove this one
             return existingPerm != 'N'; // The grantee still has some permissions on this table
