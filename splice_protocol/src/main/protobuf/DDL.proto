@@ -110,6 +110,7 @@ message RevokeSchemaPrivilege {
         required string grantor = 8;
         required string grantee = 9;
         required UUID permObjectId = 10;
+        optional string modifyPerm=11;
 }
 
 message RevokeTablePrivilege {

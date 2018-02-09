@@ -39,9 +39,7 @@ import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 
-
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 public class SchemaPrivilegeInfo extends BasicPrivilegeInfo
@@ -85,6 +83,7 @@ public class SchemaPrivilegeInfo extends BasicPrivilegeInfo
 						getPermString( UPDATE_ACTION, false),
 						getPermString( REFERENCES_ACTION, false),
 						getPermString( TRIGGER_ACTION, false),
+						getPermString( MODIFY_ACTION, false),
 						currentUser);
 
 
@@ -116,7 +115,8 @@ public class SchemaPrivilegeInfo extends BasicPrivilegeInfo
                                     schemaPermsDesc.getGrantor(), schemaPermsDesc.getSchemaUUID(),
                                     schemaPermsDesc.getSelectPriv(), schemaPermsDesc.getDeletePriv(),
                                     schemaPermsDesc.getInsertPriv(), schemaPermsDesc.getUpdatePriv(),
-                                    schemaPermsDesc.getReferencesPriv(), schemaPermsDesc.getTriggerPriv());
+                                    schemaPermsDesc.getReferencesPriv(), schemaPermsDesc.getTriggerPriv(),
+									schemaPermsDesc.getModifyPriv());
                     schemaPermsDescriptor.setUUID(schemaPermsDesc.getUUID());
                     result.add(schemaPermsDescriptor);
                 }

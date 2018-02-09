@@ -19,15 +19,15 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
-import org.junit.*;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 /**
  *
@@ -69,7 +69,7 @@ public class PinTableIT extends SpliceUnitTest{
             methodWatcher.executeUpdate("pin table foo");
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","X0X05",e.getSQLState());
+            Assert.assertEquals("Wrong Exception","42Y55",e.getSQLState());
         }
     }
 

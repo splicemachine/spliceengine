@@ -16,6 +16,7 @@ package com.splicemachine.derby.security;
 
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.SlowTest;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -25,12 +26,10 @@ import org.junit.rules.TestRule;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
-import static com.splicemachine.derby.test.framework.SpliceUnitTest.resultSetSize;
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.assertFailed;
+import static com.splicemachine.derby.test.framework.SpliceUnitTest.resultSetSize;
 import static java.lang.String.format;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * Created by jfilali on 8/22/16.
@@ -42,10 +41,15 @@ public class SchemaPrivilegeIT {
     private static final String SECOND_SCHEMA = "SECOND_SCH";
 
     private static final String TABLE = "Y";
+    private static final String TABLE2 = "Z";
+    private static final String IX_TABLE2 = "IX_Z";
+
+
 
     protected static final String USER1 = "JOHN";
     protected static final String PASSWORD1 = "jleach";
     protected static final String ROLE1 = "ROLE1";
+    protected static final String ROLE2 = "ROLE2";
 
     protected static final String USER2 = "JIM";
     protected static final String PASSWORD2 = "bo";
@@ -60,7 +64,10 @@ public class SchemaPrivilegeIT {
     private static SpliceUserWatcher    spliceUserWatcher2 = new SpliceUserWatcher(USER2, PASSWORD2);
     private static SpliceUserWatcher    spliceUserWatcher3 = new SpliceUserWatcher(USER3, PASSWORD3);
     private static SpliceRoleWatcher    spliceRoleWatcher1 = new SpliceRoleWatcher(ROLE1);
+    private static SpliceRoleWatcher    spliceRoleWatcher2 = new SpliceRoleWatcher(ROLE2);
     private static SpliceTableWatcher   tableWatcher = new SpliceTableWatcher(TABLE, SCHEMA1,"(a int PRIMARY KEY, b int, c int)" );
+    private static SpliceTableWatcher   table2Watcher = new SpliceTableWatcher(TABLE2, SCHEMA1,"(a int PRIMARY KEY, b int, c int)" );
+    private static SpliceIndexWatcher   index2Watcher = new SpliceIndexWatcher(TABLE2, SCHEMA1, IX_TABLE2, SCHEMA1, "(b, c)");
     private static SpliceTableWatcher   tableWatcherUser3 = new SpliceTableWatcher(TABLE, SECOND_SCHEMA,"(a int PRIMARY KEY, b int, c int)" );
 
     @Rule
@@ -70,9 +77,12 @@ public class SchemaPrivilegeIT {
             .around(spliceUserWatcher2)
             .around(spliceUserWatcher3)
             .around(spliceRoleWatcher1)
+            .around(spliceRoleWatcher2)
             .around(spliceSchemaWatcher1)
             .around(spliceSchemaWatcherUser3)
             .around(tableWatcher)
+            .around(table2Watcher)
+            .around(index2Watcher)
             .around(tableWatcherUser3);
 
     protected static TestConnection adminConn;
@@ -89,6 +99,18 @@ public class SchemaPrivilegeIT {
     private String deleteQuery      = format("delete from %s.%s ", SCHEMA1, TABLE);
     private String triggerQuery     = format("create trigger test_trigger after insert on %s.%s for each row values 1", SCHEMA1, TABLE);
     private String foreignKeyQuery  = format("CREATE TABLE D( d1 int, d2 int REFERENCES %s.%s(a))", SCHEMA1,TABLE);
+    private String createTableQuery = format("create table %s.FOO(col1 int, col2 int, col3 int)", SCHEMA1);
+    private String dropTableQuery   = format("drop table %s.%s", SCHEMA1, TABLE2);
+    private String modifyTableQuery = format("alter table %s.%s add column col4 int", SCHEMA1, TABLE2);
+    private String truncateTableQuery = format("truncate table %s.%s", SCHEMA1, TABLE2);
+    private String pinTableQuery    = format("pin table %s.%s", SCHEMA1, TABLE);
+    private String unpinTableQuery    = format("unpin table %s.%s", SCHEMA1, TABLE);
+    private String renameColumnQuery = format("rename column %s.%s.c to c_new", SCHEMA1, TABLE2);
+    private String renameTableQuery = format("rename table %s.%s to %s_NEW", SCHEMA1, TABLE2, TABLE2);
+    // according to doc, rename index can only be performed under the current schema
+    private String renameIndexQuery = format("rename index %s to %s_new", IX_TABLE2, IX_TABLE2);
+
+
 
     @Before
     public  void setUpClass() throws Exception {
@@ -97,8 +119,8 @@ public class SchemaPrivilegeIT {
         user2Conn = spliceClassWatcherAdmin.createConnection(USER2, PASSWORD2);
         user3Conn = spliceClassWatcherAdmin.createConnection(USER3, PASSWORD3);
         adminConn.execute( format("insert into %s.%s values ( 1, 2, 3)", SCHEMA1, TABLE ) );
+        adminConn.execute( format("insert into %s.%s values ( 1, 2, 3)", SCHEMA1, TABLE2 ) );
         user3Conn.execute( format("insert into %s.%s values ( 1, 2, 3)", SECOND_SCHEMA, TABLE ) );
-
     }
 
     @Test
@@ -110,12 +132,24 @@ public class SchemaPrivilegeIT {
         assertEquals("Expected to be have all privileges", 1, resultSetSize(rs));
         assertFailed(user2Conn, query, SQLState.AUTH_NO_COLUMN_PERMISSION);
 
+        //create/drop table privilege would work with grant all privileges
+        assertFailed(user2Conn, createTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        PreparedStatement createTable = user1Conn.prepareStatement(createTableQuery);
+        createTable.execute();
+
+        query = format("drop table %s.FOO", SCHEMA1);
+        assertFailed(user2Conn, query, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        PreparedStatement dropTable = user1Conn.prepareStatement(query);
+        dropTable.execute();
     }
 
     @Test
     public void testCreateSelectPrivileges() throws Exception {
+        //REVOKE ALL to start
+        PreparedStatement ps = adminConn.prepareStatement( format("REVOKE ALL PRIVILEGES ON SCHEMA %s FROM %s", SCHEMA1,USER1  ) );
+        ps.execute();
         //GRANT
-        PreparedStatement ps = adminConn.prepareStatement( format("GRANT SELECT ON SCHEMA %s TO %s", SCHEMA1,USER1  ) );
+        ps = adminConn.prepareStatement( format("GRANT SELECT ON SCHEMA %s TO %s", SCHEMA1,USER1  ) );
         ps.execute();
         //SELECT
         ResultSet rs = user1Conn.query(selectQuery );
@@ -135,14 +169,44 @@ public class SchemaPrivilegeIT {
         //FOREIGN KEYS
         assertFailed(user2Conn, foreignKeyQuery, SQLState.AUTH_NO_COLUMN_PERMISSION);
         assertFailed(user1Conn, foreignKeyQuery, SQLState.AUTH_NO_COLUMN_PERMISSION);
-
-
+        //create table
+        assertFailed(user1Conn, createTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, createTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //drop table
+        assertFailed(user1Conn, dropTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, dropTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //modify table
+        assertFailed(user1Conn, modifyTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, modifyTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //truncate table
+        assertFailed(user1Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //pin table
+        assertFailed(user1Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //unpin table
+        assertFailed(user1Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //rename column
+        assertFailed(user1Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //rename table
+        assertFailed(user1Conn, renameTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, renameTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //rename index
+        user1Conn.execute(format("set schema %s", SCHEMA1));
+        assertFailed(user1Conn, renameIndexQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        user2Conn.execute(format("set schema %s", SCHEMA1));
+        assertFailed(user2Conn, renameIndexQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
     }
 
     @Test
     public void testCreateDeletePrivileges() throws Exception {
+        //REVOKE ALL to start
+        PreparedStatement ps = adminConn.prepareStatement( format("REVOKE ALL PRIVILEGES ON SCHEMA %s FROM %s", SCHEMA1,USER1  ) );
+        ps.execute();
         //GRANT
-        PreparedStatement ps = adminConn.prepareStatement( format("GRANT DELETE ON SCHEMA %s TO %s", SCHEMA1,USER1  ) );
+        ps = adminConn.prepareStatement( format("GRANT DELETE ON SCHEMA %s TO %s", SCHEMA1,USER1  ) );
         ps.execute();
         //SELECT
         assertFailed(user2Conn, selectQuery, SQLState.AUTH_NO_COLUMN_PERMISSION);
@@ -163,12 +227,45 @@ public class SchemaPrivilegeIT {
         //FOREIGN KEYS
         assertFailed(user2Conn, foreignKeyQuery, SQLState.AUTH_NO_COLUMN_PERMISSION);
         assertFailed(user1Conn, foreignKeyQuery, SQLState.AUTH_NO_COLUMN_PERMISSION);
+        //create table
+        assertFailed(user1Conn, createTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, createTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //drop table
+        assertFailed(user1Conn, dropTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, dropTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //modify table
+        assertFailed(user1Conn, modifyTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, modifyTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //truncate table
+        assertFailed(user1Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //pin table
+        assertFailed(user1Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //unpin table
+        assertFailed(user1Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //rename column
+        assertFailed(user1Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //rename table
+        assertFailed(user1Conn, renameTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, renameTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //rename index
+        user1Conn.execute(format("set schema %s", SCHEMA1));
+        assertFailed(user1Conn, renameIndexQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        user2Conn.execute(format("set schema %s", SCHEMA1));
+        assertFailed(user2Conn, renameIndexQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+
     }
 
     @Test
     public void testCreateUpdatePrivileges() throws Exception {
+        //REVOKE ALL to start
+        PreparedStatement ps = adminConn.prepareStatement( format("REVOKE ALL PRIVILEGES ON SCHEMA %s FROM %s", SCHEMA1,USER1  ) );
+        ps.execute();
         //GRANT
-        PreparedStatement ps = adminConn.prepareStatement( format("GRANT UPDATE ON SCHEMA %s TO %s", SCHEMA1,USER1  ) );
+        ps = adminConn.prepareStatement( format("GRANT UPDATE ON SCHEMA %s TO %s", SCHEMA1,USER1  ) );
         ps.execute();
         //SELECT
         assertFailed(user2Conn, selectQuery, SQLState.AUTH_NO_COLUMN_PERMISSION);
@@ -189,12 +286,45 @@ public class SchemaPrivilegeIT {
         //FOREIGN KEYS
         assertFailed(user2Conn, foreignKeyQuery, SQLState.AUTH_NO_COLUMN_PERMISSION);
         assertFailed(user1Conn, foreignKeyQuery, SQLState.AUTH_NO_COLUMN_PERMISSION);
+        //create table
+        assertFailed(user1Conn, createTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, createTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //drop table
+        assertFailed(user1Conn, dropTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, dropTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //modify table
+        assertFailed(user1Conn, modifyTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, modifyTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //truncate table
+        assertFailed(user1Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //pin table
+        assertFailed(user1Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //unpin table
+        assertFailed(user1Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //rename column
+        assertFailed(user1Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //rename table
+        assertFailed(user1Conn, renameTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, renameTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //rename index
+        user1Conn.execute(format("set schema %s", SCHEMA1));
+        assertFailed(user1Conn, renameIndexQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        user2Conn.execute(format("set schema %s", SCHEMA1));
+        assertFailed(user2Conn, renameIndexQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+
     }
 
     @Test
     public void testCreateTriggerPrivileges() throws Exception {
+        //REVOKE ALL to start
+        PreparedStatement ps = adminConn.prepareStatement( format("REVOKE ALL PRIVILEGES ON SCHEMA %s FROM %s", SCHEMA1,USER1  ) );
+        ps.execute();
         //GRANT
-        PreparedStatement ps = adminConn.prepareStatement( format("GRANT TRIGGER ON SCHEMA %s TO %s", SCHEMA1,USER1  ) );
+        ps = adminConn.prepareStatement( format("GRANT TRIGGER ON SCHEMA %s TO %s", SCHEMA1,USER1  ) );
         ps.execute();
         //SELECT
         assertFailed(user2Conn, selectQuery, SQLState.AUTH_NO_COLUMN_PERMISSION);
@@ -215,13 +345,44 @@ public class SchemaPrivilegeIT {
         //FOREIGN KEYS
         assertFailed(user2Conn, foreignKeyQuery, SQLState.AUTH_NO_COLUMN_PERMISSION);
         assertFailed(user1Conn, foreignKeyQuery, SQLState.AUTH_NO_COLUMN_PERMISSION);
-
+        //create table
+        assertFailed(user1Conn, createTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, createTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //drop table
+        assertFailed(user1Conn, dropTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, dropTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //modify table
+        assertFailed(user1Conn, modifyTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, modifyTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //truncate table
+        assertFailed(user1Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //pin table
+        assertFailed(user1Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //unpin table
+        assertFailed(user1Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //rename column
+        assertFailed(user1Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //rename table
+        assertFailed(user1Conn, renameTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, renameTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //rename index
+        user1Conn.execute(format("set schema %s", SCHEMA1));
+        assertFailed(user1Conn, renameIndexQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        user2Conn.execute(format("set schema %s", SCHEMA1));
+        assertFailed(user2Conn, renameIndexQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
     }
 
     @Test @Ignore
     public void testReferencesPrivileges() throws Exception {
+        //REVOKE ALL to start
+        PreparedStatement ps = adminConn.prepareStatement( format("REVOKE ALL PRIVILEGES ON SCHEMA %s FROM %s", SCHEMA1,USER1  ) );
+        ps.execute();
         //GRANT
-        PreparedStatement ps = adminConn.prepareStatement( format("GRANT REFERENCES ON SCHEMA %s TO %s", SCHEMA1,USER1  ) );
+        ps = adminConn.prepareStatement( format("GRANT REFERENCES ON SCHEMA %s TO %s", SCHEMA1,USER1  ) );
         ps.execute();
         //SELECT
         assertFailed(user2Conn, selectQuery, SQLState.AUTH_NO_COLUMN_PERMISSION);
@@ -242,13 +403,147 @@ public class SchemaPrivilegeIT {
         PreparedStatement foreignKeys = user1Conn.prepareStatement(foreignKeyQuery);
         foreignKeys.execute();
         assertFailed(user2Conn, foreignKeyQuery, SQLState.AUTH_NO_COLUMN_PERMISSION);
+        //create table
+        assertFailed(user1Conn, createTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, createTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //drop table
+        assertFailed(user1Conn, dropTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, dropTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //modify table
+        assertFailed(user1Conn, modifyTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, modifyTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //truncate table
+        assertFailed(user1Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //pin table
+        assertFailed(user1Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //unpin table
+        assertFailed(user1Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //rename column
+        assertFailed(user1Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //rename table
+        assertFailed(user1Conn, renameTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, renameTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //rename index
+        user1Conn.execute(format("set schema %s", SCHEMA1));
+        assertFailed(user1Conn, renameIndexQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        user2Conn.execute(format("set schema %s", SCHEMA1));
+        assertFailed(user2Conn, renameIndexQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
     }
 
     @Test
-    public void testNoAllowedCreateTable() throws  Exception {
-        String createTable =  format("CREATE TABLE %s.O( a int )", SCHEMA1) ;
-        assertFailed(user1Conn, createTable, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+    public void testModifySchemaPrivilege() throws  Exception {
+        //REVOKE ALL to start
+        PreparedStatement ps = adminConn.prepareStatement( format("REVOKE ALL PRIVILEGES ON SCHEMA %s FROM %s", SCHEMA1,USER1  ) );
+        ps.execute();
+        //GRANT MODIFY
+        //GRANT INSERT/SELECT so that we can check the content of the table
+        adminConn.prepareStatement( format("GRANT MODIFY, SELECT, INSERT ON SCHEMA %s TO %s", SCHEMA1,USER1  ) ).execute();
 
+        //User1 can now create/truncate/modify/drop table in schema1
+        // create table
+        user1Conn.prepareStatement(format("create table %s.FOO(col1 int, col2 int, col3 int)", SCHEMA1)).execute();
+        // create index
+        user1Conn.prepareStatement(format("create index %s.ix_FOO on FOO(col1, col2)", SCHEMA1)).execute();
+
+        // insert rows to the table
+        user1Conn.prepareStatement(format("insert into %s.FOO values (1,1,1), (2,2,2), (3,3,3)", SCHEMA1)).execute();
+
+        // select from the table
+        String expected = "COL1 |COL2 |COL3 |\n" +
+                "------------------\n" +
+                "  1  |  1  |  1  |\n" +
+                "  2  |  2  |  2  |\n" +
+                "  3  |  3  |  3  |";
+        ps =  user1Conn.prepareStatement(format("select * from %s.FOO ", SCHEMA1));
+        ResultSet rs = ps.executeQuery();
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //alter table
+        user1Conn.prepareStatement(format("alter table %s.FOO add column added_col4 int", SCHEMA1)).execute();
+
+        // pin table
+        user1Conn.prepareStatement(format("PIN table %s.FOO", SCHEMA1)).execute();
+
+        // rename column
+        user1Conn.prepareStatement(format("rename column %s.FOO.col1 to col1_new", SCHEMA1)).execute();
+
+        // rename index
+        user1Conn.execute(format("set schema %s", SCHEMA1));
+        user1Conn.prepareStatement("rename index ix_FOO to ix_Foo_new").execute();
+
+        // rename table
+        user1Conn.prepareStatement(format("rename table %s.FOO to Foo_new", SCHEMA1)).execute();
+
+        // check the content
+        expected = "COL1_NEW |COL2 |COL3 |ADDED_COL4 |\n" +
+                "----------------------------------\n" +
+                "    1    |  1  |  1  |   NULL    |\n" +
+                "    2    |  2  |  2  |   NULL    |\n" +
+                "    3    |  3  |  3  |   NULL    |";
+        ps =  user1Conn.prepareStatement(format("select * from %s.FOO_new --splice-properties index=ix_foo_new", SCHEMA1));
+        rs = ps.executeQuery();
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // unpin table
+        user1Conn.prepareStatement(format("unpin table %s.FOO_new", SCHEMA1)).execute();
+
+        // truncate table
+        user1Conn.prepareStatement(format("truncate table %s.FOO_new", SCHEMA1)).execute();
+
+        //check the content - should be empty after truncation
+        expected = "";
+        ps =  user1Conn.prepareStatement(format("select * from %s.FOO_new ", SCHEMA1));
+        rs = ps.executeQuery();
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // drop the table
+        user1Conn.prepareStatement(format("drop table %s.FOO_new ", SCHEMA1));
+    }
+
+    @Test
+    public void testRevokeModifySchemaPrivilege() throws  Exception {
+        //GRANT
+        adminConn.createStatement().execute( format("GRANT ALL PRIVILEGES ON SCHEMA %s TO %s", SCHEMA1,USER1  ) );
+        adminConn.createStatement().execute( format("REVOKE MODIFY ON SCHEMA %s FROM %s", SCHEMA1,USER1  ) );
+        //SELECT
+        user1Conn.createStatement().execute(selectQuery );
+        assertFailed(user2Conn, selectQuery, SQLState.AUTH_NO_COLUMN_PERMISSION);
+        //create table
+        assertFailed(user1Conn, createTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, createTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //drop table
+        assertFailed(user1Conn, dropTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, dropTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //modify table
+        assertFailed(user1Conn, modifyTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, modifyTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //truncate table
+        assertFailed(user1Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //pin table
+        assertFailed(user1Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //unpin table
+        assertFailed(user1Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //rename column
+        assertFailed(user1Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //rename table
+        assertFailed(user1Conn, renameTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, renameTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //rename index
+        user1Conn.execute(format("set schema %s", SCHEMA1));
+        assertFailed(user1Conn, renameIndexQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        user2Conn.execute(format("set schema %s", SCHEMA1));
+        assertFailed(user2Conn, renameIndexQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
     }
 
     @Test
@@ -367,6 +662,13 @@ public class SchemaPrivilegeIT {
        user1Conn.createStatement().execute(format("CREATE TABLE  %s.%s(a int)",USER1,"E") );
        assertFailed(adminConn, format("REVOKE ALL PRIVILEGES ON SCHEMA %s FROM %s",USER1,USER1), SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED );
        user1Conn.createStatement().execute(format("SELECT * FROM %s.%s",USER1,"E" ) );
+    }
+
+    @Test
+    public void testPreserveOwnerPrivilegeForModify() throws Exception {
+        user1Conn.createStatement().execute(format("CREATE TABLE  %s.%s(a int)",USER1,"F") );
+        assertFailed(adminConn, format("REVOKE MODIFY ON SCHEMA %s FROM %s",USER1,USER1), SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED );
+        user1Conn.createStatement().execute(format("DROP TABLE %s.%s",USER1,"F" ) );
     }
 
     @Test
@@ -517,6 +819,13 @@ public class SchemaPrivilegeIT {
         ResultSet rs = null;
         PreparedStatement ps = adminConn.prepareStatement( format("GRANT ALL PRIVILEGES ON SCHEMA %s TO %s", SCHEMA1,ROLE1  ) );
         ps.execute();
+        //revoke all privilege on user1
+        adminConn.execute(format("REVOKE ALL PRIVILEGES ON SCHEMA %s from %s", SCHEMA1, USER1));
+
+        assertFailed(user2Conn, createTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user1Conn, createTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+
+        //grant role to user1
         adminConn.execute( format("GRANT  %s TO %s ", ROLE1,USER1) );
         user1Conn.execute( format("SET ROLE %s  ", ROLE1) );
         String query = format("SELECT a from %s.%s where a=1", SCHEMA1,TABLE);
@@ -524,18 +833,36 @@ public class SchemaPrivilegeIT {
         assertEquals("Expected to be have all privileges", 1, resultSetSize(rs));
         assertFailed(user2Conn, query, SQLState.AUTH_NO_COLUMN_PERMISSION);
 
+        //create/drop table privilege would work with grant all privileges
+        assertFailed(user2Conn, createTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        user1Conn.execute(createTableQuery);
+
+
+        query = format("drop table %s.FOO", SCHEMA1);
+        assertFailed(user2Conn, query, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        PreparedStatement dropTable = user1Conn.prepareStatement(query);
+        dropTable.execute();
+
     }
 
     @Test
     public void testCreateSelectSchemaPrivilegesToRole() throws Exception {
+        //Revoke all privileges first
+        adminConn.prepareStatement( format("REVOKE ALL PRIVILEGES ON SCHEMA %s FROM %s", SCHEMA1,ROLE1  ) ).execute();
         //GRANT
         PreparedStatement ps = adminConn.prepareStatement( format("GRANT SELECT ON SCHEMA %s TO %s", SCHEMA1,ROLE1  ) );
         ps.execute();
+
+        //revoke all privilege on user1
+        adminConn.execute(format("REVOKE ALL PRIVILEGES ON SCHEMA %s from %s", SCHEMA1, USER1));
+
+        // grant role1 to user1
         adminConn.execute( format("GRANT  %s TO %s ", ROLE1,USER1) );
         user1Conn.execute( format("SET ROLE %s  ", ROLE1) );
         //SELECT
         ResultSet rs = user1Conn.query(selectQuery );
         assertEquals("Expected to be have SELECT privileges", 1, resultSetSize(rs));
+        assertFailed(user2Conn, selectQuery, SQLState.AUTH_NO_COLUMN_PERMISSION);
         //UPDATE
         assertFailed(user2Conn, updateQuery, SQLState.AUTH_NO_COLUMN_PERMISSION);
         assertFailed(user1Conn, updateQuery, SQLState.AUTH_NO_COLUMN_PERMISSION);
@@ -556,6 +883,136 @@ public class SchemaPrivilegeIT {
     }
 
     @Test
+    public void testGrantModifySchemaPrivilegeToRole() throws  Exception {
+        //Revoke all privileges on role1 to start
+        adminConn.prepareStatement( format("REVOKE ALL PRIVILEGES ON SCHEMA %s FROM %s", SCHEMA1,ROLE1  ) ).execute();
+        //GRANT modifiy to role1, in addition, grant select, update to faciliate the subsequent test
+        PreparedStatement ps = adminConn.prepareStatement( format("GRANT MODIFY, SELECT, INSERT ON SCHEMA %s TO %s", SCHEMA1,ROLE1  ) );
+        ps.execute();
+
+        //revoke all privilege on user1
+        adminConn.execute(format("REVOKE ALL PRIVILEGES ON SCHEMA %s from %s", SCHEMA1, USER1));
+
+        //no right to modify schema now
+        assertFailed(user1Conn, createTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, createTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+
+        // grant role1 to user1
+        adminConn.execute( format("GRANT  %s TO %s ", ROLE1,USER1) );
+        user1Conn.execute( format("SET ROLE %s  ", ROLE1) );
+
+        //user2 still can't modify schema1
+        assertFailed(user2Conn, createTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        // But User1 can now create/truncate/modify/drop table in schema1
+        // create table
+        user1Conn.prepareStatement(format("create table %s.FOO(col1 int, col2 int, col3 int)", SCHEMA1)).execute();
+        // create index
+        user1Conn.prepareStatement(format("create index %s.ix_FOO on FOO(col1, col2)", SCHEMA1)).execute();
+
+        // insert rows to the table
+        user1Conn.prepareStatement(format("insert into %s.FOO values (1,1,1), (2,2,2), (3,3,3)", SCHEMA1)).execute();
+
+        // select from the table
+        String expected = "COL1 |COL2 |COL3 |\n" +
+                "------------------\n" +
+                "  1  |  1  |  1  |\n" +
+                "  2  |  2  |  2  |\n" +
+                "  3  |  3  |  3  |";
+        ps =  user1Conn.prepareStatement(format("select * from %s.FOO ", SCHEMA1));
+        ResultSet rs = ps.executeQuery();
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //alter table
+        user1Conn.prepareStatement(format("alter table %s.FOO add column added_col4 int", SCHEMA1)).execute();
+
+        // pin table
+        user1Conn.prepareStatement(format("PIN table %s.FOO", SCHEMA1)).execute();
+
+        // rename column
+        user1Conn.prepareStatement(format("rename column %s.FOO.col1 to col1_new", SCHEMA1)).execute();
+
+        // rename index
+        user1Conn.execute(format("set schema %s", SCHEMA1));
+        user1Conn.prepareStatement("rename index ix_FOO to ix_Foo_new").execute();
+
+        // rename table
+        user1Conn.prepareStatement(format("rename table %s.FOO to Foo_new", SCHEMA1)).execute();
+
+        // check the content
+        expected = "COL1_NEW |COL2 |COL3 |ADDED_COL4 |\n" +
+                "----------------------------------\n" +
+                "    1    |  1  |  1  |   NULL    |\n" +
+                "    2    |  2  |  2  |   NULL    |\n" +
+                "    3    |  3  |  3  |   NULL    |";
+        ps =  user1Conn.prepareStatement(format("select * from %s.FOO_new --splice-properties index=ix_foo_new", SCHEMA1));
+        rs = ps.executeQuery();
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // unpin table
+        user1Conn.prepareStatement(format("unpin table %s.FOO_new", SCHEMA1)).execute();
+
+        // truncate table
+        user1Conn.prepareStatement(format("truncate table %s.FOO_new", SCHEMA1)).execute();
+
+        //check the content - should be empty after truncation
+        expected = "";
+        ps =  user1Conn.prepareStatement(format("select * from %s.FOO_new ", SCHEMA1));
+        rs = ps.executeQuery();
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // drop the table
+        user1Conn.prepareStatement(format("drop table %s.FOO_new ", SCHEMA1)).execute();
+    }
+
+    @Test
+    public void testRevokeModifySchemaPrivilegeToRole() throws  Exception {
+        //REVOKE MODIFY ON ROLE1 and USER1
+        adminConn.createStatement().execute( format("REVOKE ALL PRIVILEGES ON SCHEMA %s FROM %s", SCHEMA1,USER1  ) );
+        adminConn.createStatement().execute( format("GRANT ALL PRIVILEGES ON SCHEMA %s TO %s", SCHEMA1,ROLE1  ) );
+        adminConn.createStatement().execute( format("REVOKE MODIFY ON SCHEMA %s FROM %s", SCHEMA1,ROLE1  ) );
+
+        // grant role1 to user1
+        adminConn.execute( format("GRANT  %s TO %s ", ROLE1,USER1) );
+        user1Conn.execute( format("SET ROLE %s  ", ROLE1) );
+
+        //SELECT
+        user1Conn.createStatement().execute(selectQuery );
+        assertFailed(user2Conn, selectQuery, SQLState.AUTH_NO_COLUMN_PERMISSION);
+        //create table
+        assertFailed(user1Conn, createTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, createTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //drop table
+        assertFailed(user1Conn, dropTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, dropTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //modify table
+        assertFailed(user1Conn, modifyTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, modifyTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //truncate table
+        assertFailed(user1Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //pin table
+        assertFailed(user1Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //unpin table
+        assertFailed(user1Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //rename column
+        assertFailed(user1Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //rename table
+        assertFailed(user1Conn, renameTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user2Conn, renameTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        //rename index
+        user1Conn.execute(format("set schema %s", SCHEMA1));
+        assertFailed(user1Conn, renameIndexQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        user2Conn.execute(format("set schema %s", SCHEMA1));
+        assertFailed(user2Conn, renameIndexQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+    }
+
+    @Test
     public void testCreateAllPrivilegesToUserSchema() throws Exception {
         ResultSet rs = null;
         PreparedStatement ps = user3Conn.prepareStatement( format("GRANT ALL PRIVILEGES ON SCHEMA %s TO %s", SECOND_SCHEMA,USER1  ) );
@@ -572,6 +1029,232 @@ public class SchemaPrivilegeIT {
         String query =  format("GRANT ALL PRIVILEGES ON SCHEMA %s TO %s", SECOND_SCHEMA,USER2  );
         assertFailed(user2Conn, query, SQLState.AUTH_NOT_OWNER);
 
+    }
+
+    @Test
+    public void testOwnerGrantRevokeModifySchemaPrivilegeToOtherUser() throws Exception {
+        // create a new table in user3's own schema
+        user3Conn.execute(format("create table %s.user3_table(a3 int, b3 int, c3 int)", USER3));
+
+        //revoke all privileges on USER1
+        adminConn.execute(format("REVOKE ALL PRIVILEGES ON SCHEMA %s from %s", USER3, USER1));
+
+        // user3 can grant modify for his own schema to other user
+        user3Conn.execute(format("GRANT MODIFY, SELECT, INSERT on SCHEMA %s to %s", USER3, USER1));
+
+        //user2 still can't modify user3's schema
+        assertFailed(user2Conn, format("drop table %s.user3_table", USER3), SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        // But User1 can now create/truncate/modify/drop table in user3's schema
+        user1Conn.prepareStatement(format("drop table %s.user3_table", USER3)).execute();
+
+        // more ddl/dml operations
+        // create table
+        user1Conn.prepareStatement(format("create table %s.FOO(col1 int, col2 int, col3 int)", USER3)).execute();
+        // create index
+        user1Conn.prepareStatement(format("create index %s.ix_FOO on FOO(col1, col2)", USER3)).execute();
+
+        // insert rows to the table
+        user1Conn.prepareStatement(format("insert into %s.FOO values (1,1,1), (2,2,2), (3,3,3)", USER3)).execute();
+
+        // select from the table
+        String expected = "COL1 |COL2 |COL3 |\n" +
+                "------------------\n" +
+                "  1  |  1  |  1  |\n" +
+                "  2  |  2  |  2  |\n" +
+                "  3  |  3  |  3  |";
+        PreparedStatement ps =  user1Conn.prepareStatement(format("select * from %s.FOO ", USER3));
+        ResultSet rs = ps.executeQuery();
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //alter table
+        user1Conn.prepareStatement(format("alter table %s.FOO add column added_col4 int", USER3)).execute();
+
+        // pin table
+        user1Conn.prepareStatement(format("PIN table %s.FOO", USER3)).execute();
+
+        // rename column
+        user1Conn.prepareStatement(format("rename column %s.FOO.col1 to col1_new", USER3)).execute();
+
+        // rename index
+        user1Conn.execute(format("set schema %s", USER3));
+        user1Conn.prepareStatement("rename index ix_FOO to ix_Foo_new").execute();
+
+        // rename table
+        user1Conn.prepareStatement(format("rename table %s.FOO to Foo_new", USER3)).execute();
+
+        // check the content
+        expected = "COL1_NEW |COL2 |COL3 |ADDED_COL4 |\n" +
+                "----------------------------------\n" +
+                "    1    |  1  |  1  |   NULL    |\n" +
+                "    2    |  2  |  2  |   NULL    |\n" +
+                "    3    |  3  |  3  |   NULL    |";
+        ps =  user1Conn.prepareStatement(format("select * from %s.FOO_new --splice-properties index=ix_foo_new", USER3));
+        rs = ps.executeQuery();
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // unpin table
+        user1Conn.prepareStatement(format("unpin table %s.FOO_new", USER3)).execute();
+
+        // truncate table
+        user1Conn.prepareStatement(format("truncate table %s.FOO_new", USER3)).execute();
+
+        //check the content - should be empty after truncation
+        expected = "";
+        ps =  user1Conn.prepareStatement(format("select * from %s.FOO_new ", USER3));
+        rs = ps.executeQuery();
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // drop the table
+        user1Conn.prepareStatement(format("drop table %s.FOO_new ", USER3)).execute();
+
+        // test  revoke
+        user3Conn.execute(format("REVOKE MODIFY on SCHEMA %s from %s", USER3, USER1));
+        assertFailed(user1Conn, format("create table %s.FOO(col1 int, col2 int, col3 int)", USER3), SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+    }
+
+    @Test
+    public void testOwnerGrantRevokeModifySchemaPrivilegeToRole() throws Exception {
+        // create a new table in user3's own schema
+        user3Conn.execute(format("create table %s.user3_table(a3 int, b3 int, c3 int)", USER3));
+
+        //revoke all privileges on role1
+        adminConn.execute(format("REVOKE ALL PRIVILEGES ON SCHEMA %s from %s", USER3, ROLE1));
+
+        // user3 can grant modify for his own schema to other role
+        user3Conn.execute(format("GRANT MODIFY, SELECT, INSERT on SCHEMA %s to %s", USER3, ROLE1));
+
+        //revoke all privilege on user1
+        adminConn.execute(format("REVOKE ALL PRIVILEGES ON SCHEMA %s from %s", USER3, USER1));
+
+        //no right to modify schema now
+        assertFailed(user1Conn, format("drop table %s.user3_table", USER3), SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+
+        // grant role1 to user1
+        adminConn.execute( format("GRANT  %s TO %s ", ROLE1,USER1) );
+        user1Conn.execute( format("SET ROLE %s  ", ROLE1) );
+
+        // User1 can now create/truncate/modify/drop table in User3's schema
+        user1Conn.prepareStatement(format("drop table %s.user3_table", USER3)).execute();
+
+        // more ddl/dml operations
+        // create table
+        user1Conn.prepareStatement(format("create table %s.FOO(col1 int, col2 int, col3 int)", USER3)).execute();
+        // create index
+        user1Conn.prepareStatement(format("create index %s.ix_FOO on FOO(col1, col2)", USER3)).execute();
+
+        // insert rows to the table
+        user1Conn.prepareStatement(format("insert into %s.FOO values (1,1,1), (2,2,2), (3,3,3)", USER3)).execute();
+
+        // select from the table
+        String expected = "COL1 |COL2 |COL3 |\n" +
+                "------------------\n" +
+                "  1  |  1  |  1  |\n" +
+                "  2  |  2  |  2  |\n" +
+                "  3  |  3  |  3  |";
+        PreparedStatement ps =  user1Conn.prepareStatement(format("select * from %s.FOO ", USER3));
+        ResultSet rs = ps.executeQuery();
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //alter table
+        user1Conn.prepareStatement(format("alter table %s.FOO add column added_col4 int", USER3)).execute();
+
+        // pin table
+        user1Conn.prepareStatement(format("PIN table %s.FOO", USER3)).execute();
+
+        // rename column
+        user1Conn.prepareStatement(format("rename column %s.FOO.col1 to col1_new", USER3)).execute();
+
+        // rename index
+        user1Conn.execute(format("set schema %s", USER3));
+        user1Conn.prepareStatement("rename index ix_FOO to ix_Foo_new").execute();
+
+        // rename table
+        user1Conn.prepareStatement(format("rename table %s.FOO to Foo_new", USER3)).execute();
+
+        // check the content
+        expected = "COL1_NEW |COL2 |COL3 |ADDED_COL4 |\n" +
+                "----------------------------------\n" +
+                "    1    |  1  |  1  |   NULL    |\n" +
+                "    2    |  2  |  2  |   NULL    |\n" +
+                "    3    |  3  |  3  |   NULL    |";
+        ps =  user1Conn.prepareStatement(format("select * from %s.FOO_new --splice-properties index=ix_foo_new", USER3));
+        rs = ps.executeQuery();
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // unpin table
+        user1Conn.prepareStatement(format("unpin table %s.FOO_new", USER3)).execute();
+
+        // truncate table
+        user1Conn.prepareStatement(format("truncate table %s.FOO_new", USER3)).execute();
+
+        //check the content - should be empty after truncation
+        expected = "";
+        ps =  user1Conn.prepareStatement(format("select * from %s.FOO_new ", USER3));
+        rs = ps.executeQuery();
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // drop the table
+        user1Conn.prepareStatement(format("drop table %s.FOO_new ", USER3)).execute();
+
+        // test  revoke
+        user3Conn.execute(format("REVOKE MODIFY on SCHEMA %s from %s", USER3, ROLE1));
+        assertFailed(user1Conn, format("create table %s.FOO(col1 int, col2 int, col3 int)", USER3), SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+
+    }
+
+    @Test
+    public void testRoleInheritModifySchemaPrivilege() throws Exception {
+        //Revoke all privileges on role1 & role2 to start
+        adminConn.prepareStatement( format("REVOKE ALL PRIVILEGES ON SCHEMA %s FROM %s", SCHEMA1,ROLE1  ) ).execute();
+        adminConn.prepareStatement( format("REVOKE ALL PRIVILEGES ON SCHEMA %s FROM %s", SCHEMA1,ROLE2  ) ).execute();
+
+        //GRANT modifiy to role1, in addition, grant select, update to faciliate the subsequent test
+        PreparedStatement ps = adminConn.prepareStatement( format("GRANT MODIFY, SELECT, INSERT ON SCHEMA %s TO %s", SCHEMA1,ROLE1  ) );
+        ps.execute();
+        adminConn.prepareStatement(format("GRANT %s TO %s", ROLE1, ROLE2 )).execute();
+
+        //revoke all privilege on user1
+        adminConn.execute(format("REVOKE ALL PRIVILEGES ON SCHEMA %s from %s", SCHEMA1, USER1));
+
+        //no right to modify schema now
+        assertFailed(user1Conn, createTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+
+        // grant role2 to user1
+        adminConn.execute( format("GRANT  %s TO %s ", ROLE2, USER1) );
+        user1Conn.execute( format("SET ROLE %s  ", ROLE2) );
+
+        // User1 can now create/truncate/modify/drop table in schema1
+        user1Conn.prepareStatement(format("create table %s.FOO(col1 int, col2 int, col3 int)", SCHEMA1)).execute();
+        user1Conn.prepareStatement(format("drop table %s.FOO", SCHEMA1)).execute();
+
+        //revoke the nested role
+        adminConn.prepareStatement(format("REVOKE %s FROM %s", ROLE1, ROLE2 )).execute();
+
+        //User1 no longer have modify privilege on schema1
+        assertFailed(user1Conn, createTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+
+    }
+
+    @Test
+    public void testGrantModifySystemSchemaNotAllowed() throws Exception {
+        String query =  format("GRANT MODIFY ON SCHEMA SYS TO %s",  USER2  );
+        assertFailed(adminConn, query, SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED);
+        query =  format("REVOKE MODIFY ON SCHEMA SYS FROM %s",  USER2  );
+        assertFailed(adminConn, query, SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED);
+    }
+
+    @Test
+    public void testGrantModifyTablePrivilegeNotAllowed() throws Exception {
+        String query =  format("GRANT MODIFY ON TABLE %s.%s TO %s", SECOND_SCHEMA, TABLE, USER2  );
+        assertFailed(user2Conn, query, SQLState.AUTH_NOT_VALID_TABLE_PRIVILEGE);
+        query =  format("REVOKE MODIFY ON TABLE %s.%s FROM %s", SECOND_SCHEMA, TABLE, USER2  );
+        assertFailed(user2Conn, query, SQLState.AUTH_NOT_VALID_TABLE_PRIVILEGE);
     }
 
     @Test

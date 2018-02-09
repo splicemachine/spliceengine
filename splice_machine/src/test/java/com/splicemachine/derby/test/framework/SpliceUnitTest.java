@@ -621,9 +621,9 @@ public class SpliceUnitTest {
             connection.createStatement().execute(sql);
             fail("Did not fail");
         } catch (Exception e) {
-            assertTrue("Incorrect error type!", e instanceof SQLException);
+            assertTrue("Incorrect error type: " + e.getClass().getName(), e instanceof SQLException);
             SQLException se = (SQLException) e;
-            assertTrue("Incorrect error state!",  errorState.startsWith( se.getSQLState()));
+            assertTrue("Incorrect error state: " + se.getSQLState() + ", expected: " + errorState,  errorState.startsWith( se.getSQLState()));
         }
     }
 }

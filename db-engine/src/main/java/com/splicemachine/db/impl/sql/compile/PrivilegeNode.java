@@ -112,7 +112,7 @@ public class PrivilegeNode extends QueryTreeNode
             }
             schemaName = (String) objectOfPrivilege;
             this.specificPrivileges = (BasicPrivilegesNode) specificPrivileges;
-        break;
+            break;
         case ROUTINE_PRIVILEGES:
             if( SanityManager.DEBUG)
             {
@@ -186,7 +186,7 @@ public class PrivilegeNode extends QueryTreeNode
 
             if (sd.isSystemSchema())
             {
-                throw StandardException.newException(SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED, objectName.getFullTableName());
+                throw StandardException.newException(SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED, schemaName);
             }
 
             // Don't allow authorization on SESSION schema tables. Causes confusion if
@@ -200,6 +200,9 @@ public class PrivilegeNode extends QueryTreeNode
             break;
         case TABLE_PRIVILEGES:
 
+            if (specificPrivileges.modifyActionAllowed()) {
+                throw StandardException.newException(SQLState.AUTH_NOT_VALID_TABLE_PRIVILEGE);
+            }
             sd = getSchemaDescriptor( objectName.getSchemaName(), true);
             verifySelfGrantRevoke(sd,grantees);
 

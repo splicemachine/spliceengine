@@ -92,7 +92,7 @@ public class DropPinNode extends DDLStatementNode
 
 	public String statementToString()
 	{
-		return "DROP TABLE";
+		return "UNPIN TABLE";
 	}
 
 	/**
