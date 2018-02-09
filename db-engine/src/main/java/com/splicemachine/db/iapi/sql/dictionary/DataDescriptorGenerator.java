@@ -31,21 +31,18 @@
 
 package com.splicemachine.db.iapi.sql.dictionary;
 
-import com.splicemachine.db.iapi.services.monitor.Monitor;
-import com.splicemachine.db.iapi.error.StandardException;
-
-import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
-import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-
 import com.splicemachine.db.catalog.ReferencedColumns;
-import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.catalog.UUID;
-
-import java.sql.Timestamp;
-
+import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
+
+import java.sql.Timestamp;
 
 /**
  * This is an implementation of the DataDescriptorGenerator interface
@@ -471,7 +468,7 @@ public class DataDescriptorGenerator
 		return new UserDescriptor( dataDictionary, userName, hashingScheme, password, lastModified );
 	}
 	 	
-    public TablePermsDescriptor newTablePermsDescriptor( TableDescriptor td,
+    public TablePermsDescriptor  newTablePermsDescriptor( TableDescriptor td,
                                                          String selectPerm,
                                                          String deletePerm,
                                                          String insertPerm,
@@ -517,11 +514,13 @@ public class DataDescriptorGenerator
 														 String updatePerm,
 														 String referencesPerm,
 														 String triggerPerm,
+														 String modifyPerm,
 														 String grantor)
 			throws StandardException
 	{
 		if( "N".equals( selectPerm) && "N".equals( deletePerm) && "N".equals( insertPerm)
-				&& "N".equals( updatePerm) && "N".equals( referencesPerm) && "N".equals( triggerPerm))
+				&& "N".equals( updatePerm) && "N".equals( referencesPerm) && "N".equals( triggerPerm)
+				&& "N".equals(modifyPerm))
 			return null;
 
 		return new SchemaPermsDescriptor( dataDictionary,
@@ -533,7 +532,8 @@ public class DataDescriptorGenerator
 				insertPerm,
 				updatePerm,
 				referencesPerm,
-				triggerPerm);
+				triggerPerm,
+				modifyPerm);
 	}
 
     /**

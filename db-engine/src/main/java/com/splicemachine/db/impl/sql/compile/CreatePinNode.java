@@ -32,7 +32,10 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 
 /**
@@ -40,22 +43,17 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
  */
 
 public class CreatePinNode extends DDLStatementNode  {
-	private String schemaName;
-	private TableName tableName;
+	private TableDescriptor td;
 
 	 /**
 	 * Initializer for a CreateTableNode for a base table
 	 *
-	 * @param schemaName		Schema to Pin
 	 * @param tableName			Table to Pin
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public void init(
-			Object schemaName,
-			Object tableName) throws StandardException {
-		this.schemaName = (String) schemaName;
-		this.tableName = (TableName) tableName;
+	public void init(Object tableName) throws StandardException {
+		initAndCheck(tableName);
 	}
 
 	/**
@@ -65,7 +63,7 @@ public class CreatePinNode extends DDLStatementNode  {
 	 */
 
 	public String toString() {
-		return String.format("schemaName=%s, tableName=%s",schemaName,tableName);
+        return String.format("schemaName=%s, tableName=%s",objectName.getSchemaName(),objectName.getTableName());
 	}
 
 	/**
@@ -79,10 +77,7 @@ public class CreatePinNode extends DDLStatementNode  {
 
 
 	public String statementToString() {
-		if (schemaName != null)
-			return "DECLARE GLOBAL TEMPORARY TABLE";
-		else
-			return "CREATE TABLE";
+		return "PIN TABLE";
 	}
 
 	// We inherit the generate() method from DDLStatementNode.
@@ -97,7 +92,16 @@ public class CreatePinNode extends DDLStatementNode  {
 	 */
 
 	public void bindStatement() throws StandardException {
+		CompilerContext cc = getCompilerContext();
 
+		td = getTableDescriptor();
+
+		/* Get the base conglomerate descriptor */
+		ConglomerateDescriptor cd = td.getConglomerateDescriptor(td.getHeapConglomerateId());
+
+		/* Statement is dependent on the TableDescriptor and ConglomerateDescriptor */
+		cc.createDependency(td);
+		cc.createDependency(cd);
 	}
 
 	/**
@@ -107,8 +111,10 @@ public class CreatePinNode extends DDLStatementNode  {
 	 */
 	public ConstantAction	makeConstantAction() throws StandardException {
            return getGenericConstantActionFactory().getPinTableConstantAction(
-                getSchemaDescriptor(schemaName!=null?schemaName:tableName.getSchemaName(),false).getSchemaName(),
-					tableName.getTableName());
+				   getSchemaDescriptor(td.getTableType() !=
+								   TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE,
+						   true).getSchemaName(),
+					getObjectName().getTableName());
 	}
 
 	/**

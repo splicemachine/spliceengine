@@ -2045,6 +2045,7 @@ public class SQLParser
 				tokenKind == INSERT ||
 				tokenKind == UPDATE ||
 				tokenKind == REFERENCES ||
+				tokenKind == MODIFY ||
 				tokenKind == EXECUTE ||
 				tokenKind == USAGE ||
 				tokenKind == ALL);
@@ -3821,7 +3822,6 @@ StatementNode
 pinStatement() throws StandardException :
 {
     StatementNode   statementNode;
-    String schemaName = null;
     String authName = null;
     TableName tableName = null;
     Vector parameterList = new Vector();
@@ -3832,7 +3832,6 @@ pinStatement() throws StandardException :
     <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
     {
         return (CreatePinNode) nodeFactory.getNode(C_NodeTypes.CREATE_PIN_NODE,
-                                   schemaName,
                                    tableName,
                                    getContextManager());
 
@@ -15512,6 +15511,10 @@ PrivilegeNode basicPrivileges( BasicPrivilegesNode basicPrivilegesNode) throws S
 |   [  <TABLE> ]
         objectName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
     {
+             /* modify action is not supported at the table level, so take it out */
+             if (basicPrivilegesNode.getIsAll())
+                 basicPrivilegesNode.removeAction(TablePrivilegeInfo.MODIFY_ACTION);
+
              return (PrivilegeNode) nodeFactory.getNode( C_NodeTypes.PRIVILEGE_NODE,
                                                          ReuseFactory.getInteger( PrivilegeNode.TABLE_PRIVILEGES),
                                                          objectName, basicPrivilegesNode,
@@ -15705,6 +15708,11 @@ void basicAction( BasicPrivilegesNode basicPrivilegesNode)  throws StandardExcep
     <TRIGGER>
     {
         basicPrivilegesNode.addAction( BasicPrivilegeInfo.TRIGGER_ACTION, (ResultColumnList) null);
+    }
+|
+    <MODIFY>
+    {
+        basicPrivilegesNode.addAction( BasicPrivilegeInfo.MODIFY_ACTION, (ResultColumnList) null);
     }
 } // end of tableAction
 

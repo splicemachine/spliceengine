@@ -798,6 +798,7 @@ public interface SQLState {
 	String AUTH_USER_IN_READ_AND_WRITE_LISTS                           = "4250C";
 	String AUTH_DUPLICATE_USERS                                        = "4250D";
 	String AUTH_INTERNAL_BAD_UUID                                      = "4250E";
+	String AUTH_NOT_VALID_TABLE_PRIVILEGE                              = "4250F";
     String AUTH_ROLE_DBO_ONLY                                          = "4251A";
 	String AUTH_PUBLIC_ILLEGAL_AUTHORIZATION_ID                        = "4251B";
 	String AUTH_ROLE_GRANT_CIRCULARITY                                 = "4251C";
