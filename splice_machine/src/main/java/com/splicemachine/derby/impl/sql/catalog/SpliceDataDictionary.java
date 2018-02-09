@@ -30,7 +30,6 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -866,5 +865,37 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         return manager.isEnabled()?manager.getColPermsManager().getColumnPermissions(this,tableUUID,privType,forGrant,authorizationId):null;
     } // end of getColumnPermissions
 
+    public void upgradeSysSchemaPermsForModifySchemaPrivilege(TransactionController tc) throws StandardException {
+        SchemaDescriptor sd = getSystemSchemaDescriptor();
+        TableDescriptor td = getTableDescriptor(SYSSCHEMAPERMSRowFactory.SCHEMANAME_STRING, sd, tc);
+        ColumnDescriptor cd = td.getColumnDescriptor("MODIFYPRIV");
+        if (cd == null) {
+            tc.elevate("dictionary");
+            dropTableDescriptor(td, sd, tc);
+            td.setColumnSequence(td.getColumnSequence()+1);
+            // add the table descriptor with new name
+            addDescriptor(td,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc);
 
+            ColumnDescriptor columnDescriptor;
+            UUID uuid = getUUIDFactory().createUUID();
+
+            /**
+             *  Add the column MODIFYPRIV
+             */
+            DataValueDescriptor storableDV = getDataValueFactory().getNullChar(null);
+            int colNumber = td.getNumberOfColumns() + 1;
+            DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1);
+            tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
+
+            columnDescriptor = new ColumnDescriptor(SYSSCHEMAPERMSRowFactory.MODIFYPRIV_COL_NAME,colNumber,
+                    colNumber,dtd,null,null,td,uuid,0,0,td.getColumnSequence());
+
+            addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+            // now add the column to the tables column descriptor list.
+            td.getColumnDescriptorList().add(columnDescriptor);
+            updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
+
+            SpliceLogUtils.info(LOG, "SYS.SYSSCHEMAPERMS upgraded: added columns: MODIFYPRIV.");
+        }
+    }
 }

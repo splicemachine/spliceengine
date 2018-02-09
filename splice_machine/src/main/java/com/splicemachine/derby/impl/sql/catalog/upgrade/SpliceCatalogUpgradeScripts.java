@@ -14,19 +14,17 @@
 
 package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
-import java.util.Comparator;
-import java.util.NavigableSet;
-import java.util.TreeMap;
-
 import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.si.impl.driver.SIDriver;
-import org.apache.log4j.Logger;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
-import org.apache.zookeeper.ZKUtil;
+import com.splicemachine.si.impl.driver.SIDriver;
+import org.apache.log4j.Logger;
+
+import java.util.Comparator;
+import java.util.NavigableSet;
+import java.util.TreeMap;
 
 /**
  * Created by jyuan on 10/14/14.
@@ -63,6 +61,7 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,1,0,0),new UpgradeScriptForFuji(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,1,1,1),new LassenUpgradeScript(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,6,0),new UpgradeScriptFor260(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,2,7,1), new UpgradeScriptForModifySchemaPermission(sdd,tc));
     }
 
     public void run() throws StandardException{

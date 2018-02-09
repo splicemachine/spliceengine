@@ -1301,6 +1301,11 @@ Guide.
             </msg>
 
             <msg>
+                <name>4250F</name>
+                <text>MODIFY PRIVILEGE is not a valid table level privilege.</text>
+            </msg>
+
+            <msg>
                 <name>4251A</name>
                 <text>Statement {0} can only be issued by database owner.</text>
                 <arg>value</arg>

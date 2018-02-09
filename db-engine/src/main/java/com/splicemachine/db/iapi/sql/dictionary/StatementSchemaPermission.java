@@ -33,9 +33,12 @@ package com.splicemachine.db.iapi.sql.dictionary;
 
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -86,11 +89,31 @@ public class StatementSchemaPermission extends StatementPermission
 		DataDictionary dd =	lcc.getDataDictionary();
 		TransactionController tc = lcc.getTransactionExecute();
         String currentUserId = lcc.getCurrentUserId(activation);
+
+		SchemaDescriptor sd;
 		switch ( privType )
 		{
 			case Authorizer.MODIFY_SCHEMA_PRIV:
+				sd = dd.getSchemaDescriptor(schemaName, tc, false);
+				if (sd == null)
+					return;
+
+				// if current user is owner, it can modify the schema
+                if (currentUserId.equals(sd.getAuthorizationId()))
+                    return;
+
+				schemaUUID = sd.getUUID();
+				if (!hasPermissionOnSchema(lcc, dd, activation, forGrant))
+                {
+                    throw StandardException.newException(
+                            SQLState.AUTH_NO_ACCESS_NOT_OWNER,
+                            currentUserId,
+                            schemaName);
+                }
+
+                break;
 			case Authorizer.DROP_SCHEMA_PRIV:
-				SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, false);
+				sd = dd.getSchemaDescriptor(schemaName, tc, false);
 				// If schema hasn't been created already, no need to check
 				// for drop schema, an exception will be thrown if the schema 
 				// does not exists.
@@ -128,6 +151,87 @@ public class StatementSchemaPermission extends StatementPermission
 		}
 	}
 
+	protected boolean hasPermissionOnSchema(LanguageConnectionContext lcc,
+                                        DataDictionary dd,
+                                        Activation activation,
+                                        boolean forGrant) throws StandardException {
+        String currentUserId = lcc.getCurrentUserId(activation);
+        ExecPreparedStatement ps = activation.getPreparedStatement();
+
+        int authorization = oneAuthHasPermissionOnSchema(dd, Authorizer.PUBLIC_AUTHORIZATION_ID, forGrant);
+
+        if(authorization == NONE || authorization == UNAUTHORIZED )
+            authorization = oneAuthHasPermissionOnSchema(dd, currentUserId, forGrant);
+
+        if (authorization == NONE) {
+            // Since no permission exists for the current user or PUBLIC,
+            // check if a permission exists for the current role (if set).
+            String role = lcc.getCurrentRoleId(activation);
+
+            if (role != null) {
+
+                // Check that role is still granted to current user or
+                // to PUBLIC: A revoked role which is current for this
+                // session, is lazily set to none when it is attempted
+                // used.
+                String dbo = dd.getAuthorizationDatabaseOwner();
+                RoleGrantDescriptor rd = dd.getRoleGrantDescriptor
+                        (role, currentUserId, dbo);
+
+                if (rd == null) {
+                    rd = dd.getRoleGrantDescriptor(
+                            role,
+                            Authorizer.PUBLIC_AUTHORIZATION_ID,
+                            dbo);
+                }
+
+                if (rd == null) {
+                    // We have lost the right to set this role, so we can't
+                    // make use of any permission granted to it or its
+                    // ancestors.
+                    lcc.setCurrentRole(activation, null);
+                } else {
+                    // The current role is OK, so we can make use of
+                    // any permission granted to it.
+                    //
+                    // Look at the current role and, if necessary, the
+                    // transitive closure of roles granted to current role to
+                    // see if permission has been granted to any of the
+                    // applicable roles.
+
+                    RoleClosureIterator rci =
+                            dd.createRoleClosureIterator
+                                    (activation.getTransactionController(),
+                                            role, true /* inverse relation*/);
+
+                    String r;
+
+                    while ((authorization != AUTHORIZED) && (r = rci.next()) != null) {
+                            authorization = oneAuthHasPermissionOnSchema
+                                    (dd, r, forGrant);
+                    }
+
+                    if (authorization == AUTHORIZED) {
+                        // Also add a dependency on the role (qua provider), so
+                        // that if role is no longer available to the current
+                        // user (e.g. grant is revoked, role is dropped,
+                        // another role has been set), we are able to
+                        // invalidate the ps or activation (the latter is used
+                        // if the current role changes).
+                        DependencyManager dm = dd.getDependencyManager();
+                        RoleGrantDescriptor rgd =
+                                dd.getRoleDefinitionDescriptor(role);
+                        ContextManager cm = lcc.getContextManager();
+
+                        dm.addDependency(ps, rgd, cm);
+                        dm.addDependency(activation, rgd, cm);
+                    }
+                }
+            }
+        }
+        return authorization == AUTHORIZED;
+    }
+
 	protected int oneAuthHasPermissionOnSchema(DataDictionary dd, String authorizationId, boolean forGrant)
 			throws StandardException
 	{
@@ -157,6 +261,9 @@ public class StatementSchemaPermission extends StatementPermission
 				break;
 			case Authorizer.TRIGGER_PRIV:
 				priv = perms.getTriggerPriv();
+				break;
+			case Authorizer.MODIFY_SCHEMA_PRIV:
+				priv = perms.getModifyPriv();
 				break;
 		}
 

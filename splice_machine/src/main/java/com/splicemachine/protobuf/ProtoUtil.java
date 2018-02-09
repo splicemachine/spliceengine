@@ -14,20 +14,15 @@
 
 package com.splicemachine.protobuf;
 
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
-import org.apache.commons.lang.SerializationUtils;
-import org.spark_project.guava.base.Function;
-import com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory;
-import org.spark_project.guava.base.Joiner;
-import org.spark_project.guava.collect.Lists;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
+import com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.DerbyMessage;
@@ -36,7 +31,11 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.Logger;
+import org.spark_project.guava.base.Function;
+import org.spark_project.guava.base.Joiner;
+import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.primitives.Ints;
 
 import javax.annotation.Nullable;
@@ -441,6 +440,7 @@ public class ProtoUtil {
                 .setUpdatePerm(permissionsDescriptor.getUpdatePriv())
                 .setReferencesPerm(permissionsDescriptor.getReferencesPriv())
                 .setTriggerPerm(permissionsDescriptor.getTriggerPriv())
+                .setModifyPerm(permissionsDescriptor.getModifyPriv())
                 .setGrantor(permissionsDescriptor.getGrantor())
                 .setGrantee(permissionsDescriptor.getGrantee())
                 .setPermObjectId(transferDerbyUUID((BasicUUID) permissionsDescriptor.getUUID()))
