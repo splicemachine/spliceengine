@@ -41,26 +41,6 @@ public class PipelineConfiguration implements ConfigurationDefault {
     public static final String SPARK_COMPACTION_RESERVED_SLOTS = "spark.compaction.reserved.slots";
     public static final int DEFAULT_SPARK_COMPACTION_RESERVED_SLOTS = 1;
 
-    // Timeout in milliseconds
-    public static final String SPARK_COMPACTION_MAXIMUM_WAIT = "spark.compaction.maximum.wait";
-    public static final int DEFAULT_SPARK_COMPACTION_MAXIMUM_WAIT = 60000;
-
-    // Maximum concurrent compactions
-    public static final String SPARK_COMPACTION_MAXIMUM_CONCURRENT = "spark.compaction.maximum.concurrent";
-    public static final int DEFAULT_SPARK_COMPACTION_MAXIMUM_CONCURRENT = Integer.MAX_VALUE;
-
-    // Share of time spent on transaction resolution, between 0 and 1 (no time vs infinite time)
-    public static final String SPARK_COMPACTION_RESOLUTION_SHARE = "spark.compaction.resolution.share";
-    public static final double DEFAULT_SPARK_COMPACTION_RESOLUTION_SHARE = 1f;
-
-    // Size of buffer for asynchronous transaction resolution
-    public static final String SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE = "spark.compaction.resolution.bufferSize";
-    public static final int DEFAULT_SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE = 1024*100;
-
-    // Whether we block asynchronous transaction resolution when the executor is full
-    public static final String SPARK_COMPACTION_BLOCKING = "spark.compaction.blocking";
-    public static final boolean DEFAULT_SPARK_COMPACTION_BLOCKING = true;
-
     // Timeout in seconds
     public static final String SPARK_RESERVED_SLOTS_TIMEOUT = "spark.reserved.slots.timeout";
     public static final int DEFAULT_SPARK_RESERVED_SLOTS_TIMEOUT = 60;
@@ -203,16 +183,7 @@ public class PipelineConfiguration implements ConfigurationDefault {
         builder.sparkResultStreamingBatches = configurationSource.getInt(SPARK_RESULT_STREAMING_BATCHES, DEFAULT_SPARK_RESULT_STREAMING_BATCHES);
         builder.sparkResultStreamingBatchSize = configurationSource.getInt(SPARK_RESULT_STREAMING_BATCH_SIZE, DEFAULT_SPARK_RESULT_STREAMING_BATCH_SIZE);
         builder.compactionReservedSlots = configurationSource.getInt(SPARK_COMPACTION_RESERVED_SLOTS, DEFAULT_SPARK_COMPACTION_RESERVED_SLOTS);
-        builder.olapCompactionMaximumWait = configurationSource.getInt(SPARK_COMPACTION_MAXIMUM_WAIT, DEFAULT_SPARK_COMPACTION_MAXIMUM_WAIT);
-        builder.olapCompactionMaximumConcurrent = configurationSource.getInt(SPARK_COMPACTION_MAXIMUM_CONCURRENT, DEFAULT_SPARK_COMPACTION_MAXIMUM_CONCURRENT);
-        builder.olapCompactionResolutionShare = configurationSource.getDouble(SPARK_COMPACTION_RESOLUTION_SHARE, DEFAULT_SPARK_COMPACTION_RESOLUTION_SHARE);
-        if (builder.olapCompactionResolutionShare < 0)
-            builder.olapCompactionResolutionShare = 0;
-        if (builder.olapCompactionResolutionShare > 1)
-            builder.olapCompactionResolutionShare = 1;
-
-        builder.olapCompactionResolutionBufferSize = configurationSource.getInt(SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE, DEFAULT_SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE);
-        builder.olapCompactionBlocking = configurationSource.getBoolean(SPARK_COMPACTION_BLOCKING, DEFAULT_SPARK_COMPACTION_BLOCKING);
+        
         builder.reservedSlotsTimeout = configurationSource.getInt(SPARK_RESERVED_SLOTS_TIMEOUT, DEFAULT_SPARK_RESERVED_SLOTS_TIMEOUT);
         builder.bulkImportSampleFraction = configurationSource.getDouble(BULK_IMPORT_SAMPLE_FRACTION, DEFAULT_BULK_IMPORT_SAMPLE_FRACTION);
         builder.bulkImportTasksPerRegion = configurationSource.getInt(BULK_IMPORT_TASKS_PER_REGION, DEFAULT_BULK_IMPORT_TASKS_PER_REGION);
