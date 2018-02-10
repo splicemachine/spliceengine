@@ -116,6 +116,7 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
         //initialize the engine driver
         SqlEnvironment ese = SqlEnvironmentLoader.loadEnvironment(configuration,snowflake,internalConnection,spliceVersion);
         EngineDriver.loadDriver(ese);
+        SIDriver.driver().engineStarted();
 
         //initialize the DDLDriver
         DDLDriver.loadDriver(DDLEnvironmentLoader.loadEnvironment(configuration,EngineDriver.driver().getExceptionFactory()));

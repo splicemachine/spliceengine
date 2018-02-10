@@ -92,6 +92,27 @@ public class OlapConfigurations implements ConfigurationDefault {
     public static final String ACTIVE_TRANSACTION_CACHE_SIZE="splice.txn.activeCacheSize";
     private static final int DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE = 1<<12;
 
+    // Timeout in milliseconds
+    public static final String SPARK_COMPACTION_MAXIMUM_WAIT = "spark.compaction.maximum.wait";
+    public static final int DEFAULT_SPARK_COMPACTION_MAXIMUM_WAIT = 60000;
+
+    // Maximum concurrent compactions
+    public static final String SPARK_COMPACTION_MAXIMUM_CONCURRENT = "spark.compaction.maximum.concurrent";
+    public static final int DEFAULT_SPARK_COMPACTION_MAXIMUM_CONCURRENT = Integer.MAX_VALUE;
+
+    // Share of time spent on transaction resolution, between 0 and 1 (no time vs infinite time)
+    public static final String SPARK_COMPACTION_RESOLUTION_SHARE = "spark.compaction.resolution.share";
+    public static final double DEFAULT_SPARK_COMPACTION_RESOLUTION_SHARE = 1f;
+
+    // Size of buffer for asynchronous transaction resolution
+    public static final String SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE = "spark.compaction.resolution.bufferSize";
+    public static final int DEFAULT_SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE = 1024*100;
+
+    // Whether we block asynchronous transaction resolution when the executor is full
+    public static final String SPARK_COMPACTION_BLOCKING = "spark.compaction.blocking";
+    public static final boolean DEFAULT_SPARK_COMPACTION_BLOCKING = true;
+
+
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         builder.activeTransactionCacheSize  = configurationSource.getInt(ACTIVE_TRANSACTION_CACHE_SIZE, DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE);
@@ -108,5 +129,15 @@ public class OlapConfigurations implements ConfigurationDefault {
         builder.olapServerMemoryOverhead = configurationSource.getInt(OLAP_SERVER_MEMORY_OVERHEAD, DEFAULT_OLAP_SERVER_MEMORY_OVERHEAD);
         builder.olapServerVirtualCores = configurationSource.getInt(OLAP_SERVER_VIRTUAL_CORES, DEFAULT_OLAP_SERVER_VIRTUAL_CORES);
         builder.olapShufflePartitions = configurationSource.getInt(OLAP_SHUFFLE_PARTITIONS,DEFAULT_OLAP_SHUFFLE_PARTITIONS);
+        builder.olapCompactionMaximumWait = configurationSource.getInt(SPARK_COMPACTION_MAXIMUM_WAIT, DEFAULT_SPARK_COMPACTION_MAXIMUM_WAIT);
+        builder.olapCompactionMaximumConcurrent = configurationSource.getInt(SPARK_COMPACTION_MAXIMUM_CONCURRENT, DEFAULT_SPARK_COMPACTION_MAXIMUM_CONCURRENT);
+        builder.olapCompactionResolutionShare = configurationSource.getDouble(SPARK_COMPACTION_RESOLUTION_SHARE, DEFAULT_SPARK_COMPACTION_RESOLUTION_SHARE);
+        if (builder.olapCompactionResolutionShare < 0)
+            builder.olapCompactionResolutionShare = 0;
+        if (builder.olapCompactionResolutionShare > 1)
+            builder.olapCompactionResolutionShare = 1;
+
+        builder.olapCompactionResolutionBufferSize = configurationSource.getInt(SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE, DEFAULT_SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE);
+        builder.olapCompactionBlocking = configurationSource.getBoolean(SPARK_COMPACTION_BLOCKING, DEFAULT_SPARK_COMPACTION_BLOCKING);
     }
 }

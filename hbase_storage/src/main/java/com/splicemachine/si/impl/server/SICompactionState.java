@@ -18,6 +18,7 @@ import com.google.common.util.concurrent.Futures;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.readresolve.RollForward;
+import com.splicemachine.si.api.txn.TransactionMissing;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
@@ -225,15 +226,24 @@ public class SICompactionState {
                                 return executorService.submit(() -> {
                                     if (LOG.isDebugEnabled())
                                         LOG.debug("Resolving " + txnId);
-                                    TxnView txn = transactionStore.getTransaction(txnId);
+                                    TxnView txn;
+                                    try {
+                                        txn = transactionStore.getTransaction(txnId);
 
-                                    if (LOG.isTraceEnabled())
-                                        LOG.trace("Txn " + txn);
-                                    while (txn.getState() == Txn.State.COMMITTED && txn.getParentTxnView() != Txn.ROOT_TRANSACTION) {
-                                        txn = txn.getParentTxnView();
-                                        
                                         if (LOG.isTraceEnabled())
-                                            LOG.trace("Parent " + txn);
+                                            LOG.trace("Txn " + txn);
+                                        while (txn.getState() == Txn.State.COMMITTED && txn.getParentTxnView() != Txn.ROOT_TRANSACTION) {
+                                            txn = txn.getParentTxnView();
+
+                                            if (LOG.isTraceEnabled())
+                                                LOG.trace("Parent " + txn);
+                                        }
+                                    } catch (TransactionMissing ex) {
+                                        txn = null;
+                                    }
+                                    if (txn == null) {
+                                        LOG.warn("We couldn't resolve transaction " + timestamp +". This is only acceptable during a Restore operation");
+                                        return null;
                                     }
                                     if (LOG.isDebugEnabled())
                                         LOG.debug("Returning, parent " + txn.getParentTxnView());

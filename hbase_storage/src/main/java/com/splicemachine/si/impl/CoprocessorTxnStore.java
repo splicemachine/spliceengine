@@ -16,6 +16,7 @@ package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.si.api.txn.TransactionMissing;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.spark_project.guava.collect.Iterators;
 import org.spark_project.guava.collect.Lists;
@@ -250,10 +251,12 @@ public class CoprocessorTxnStore implements TxnStore {
         byte[] rowKey=getTransactionRowKey(txnId );
         TxnMessage.TxnRequest request=TxnMessage.TxnRequest.newBuilder().setTxnId(txnId).build();
 
-        try (TxnNetworkLayer table = tableFactory.accessTxnNetwork()){
+        try (TxnNetworkLayer table = tableFactory.accessTxnNetwork()) {
 
-            TxnMessage.Txn messageTxn=table.getTxn(rowKey,request);
+            TxnMessage.Txn messageTxn = table.getTxn(rowKey, request);
             return decode(txnId, messageTxn);
+        } catch (IOException e) {
+            throw e;
         } catch(Throwable throwable){
             throw new IOException(throwable);
         }
@@ -266,6 +269,8 @@ public class CoprocessorTxnStore implements TxnStore {
         try (TxnNetworkLayer table = tableFactory.accessTxnNetwork()){
             TxnMessage.Txn messageTxn=table.getTxn(rowKey,request);
             return decode(txnId, messageTxn);
+        } catch (IOException e) {
+            throw e;
         } catch(Throwable throwable){
             throw new IOException(throwable);
         }
@@ -350,7 +355,7 @@ public class CoprocessorTxnStore implements TxnStore {
                         queryId,queryId,
                         Txn.State.COMMITTED,Iterators.emptyIterator(),System.currentTimeMillis());
             } else {
-                return null;
+                throw new TransactionMissing(queryId);
             }
         }
 
