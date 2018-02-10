@@ -40,6 +40,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -72,192 +73,209 @@ public class TransactionResolutionIT {
 
     @Test
     public void testMissingTransactionsDuringFlush() throws Exception {
-        Connection conn1 = dataSource.getConnection("localhost", 1527);
+        try (Connection conn1 = dataSource.getConnection("localhost", 1527)) {
 
-        conn1.setAutoCommit(false);
-        conn1.setSchema(SCHEMA);
-        String tableName = "missing2";
-        new TableDAO(conn1).drop(SCHEMA, tableName);
+            conn1.setAutoCommit(false);
+            conn1.setSchema(SCHEMA);
+            String tableName = "missing2";
+            new TableDAO(conn1).drop(SCHEMA, tableName);
 
 
-        //noinspection unchecked
-        new TableCreator(conn1)
-                .withCreate("create table missing2 (i int)")
-                .create();
-        conn1.commit();
+            //noinspection unchecked
+            new TableCreator(conn1)
+                    .withCreate("create table missing2 (i int)")
+                    .create();
+            conn1.commit();
 
-        PreparedStatement ps = conn1.prepareStatement("insert into missing2 values 1");
+            try (PreparedStatement ps = conn1.prepareStatement("insert into missing2 values 1")) {
 
-        ps.execute();
-        ResultSet rs = conn1.createStatement().executeQuery("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
-        assertTrue(rs.next());
-        long txnId = rs.getLong(1);
+                ps.execute();
+                try (Statement st = conn1.createStatement()) {
+                    ResultSet rs = st.executeQuery("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
+                    assertTrue(rs.next());
+                    long txnId = rs.getLong(1);
 
-        for (int i = 0; i<1024; ++i) {
-            ps.execute();
+                    for (int i = 0; i < 1024; ++i) {
+                        ps.execute();
+                    }
+
+                    conn1.commit();
+
+                    byte[] rowKey = TxnUtils.getRowKey(txnId);
+
+                    Configuration config = HConfiguration.unwrapDelegate();
+                    Table txnTable = ConnectionFactory.createConnection(config).getTable(TableName.valueOf("splice:SPLICE_TXN"));
+
+                    Delete d = new Delete(rowKey);
+                    txnTable.delete(d);
+
+                    long conglomerateId = TableSplit.getConglomerateId(conn1, SCHEMA, "MISSING2", null);
+                    ConnectionFactory.createConnection(config).getAdmin().flush(TableName.valueOf("splice:" + conglomerateId));
+
+                    Thread.sleep(2000);
+
+                    rs = st.executeQuery("select count(*) from sys.systables");
+                    assertTrue(rs.next());
+                    int count = rs.getInt(1);
+                    assertTrue(count > 10);
+
+                }
+            }
+
+            conn1.rollback();
         }
-
-        conn1.commit();
-
-        byte[] rowKey = TxnUtils.getRowKey(txnId);
-
-        Configuration config = HConfiguration.unwrapDelegate();
-        Table txnTable = ConnectionFactory.createConnection(config).getTable(TableName.valueOf("splice:SPLICE_TXN"));
-
-        Delete d = new Delete(rowKey);
-        txnTable.delete(d);
-
-        long conglomerateId = TableSplit.getConglomerateId(conn1, SCHEMA, "MISSING2", null);
-        ConnectionFactory.createConnection(config).getAdmin().flush(TableName.valueOf("splice:"+conglomerateId));
-
-        Thread.sleep(2000);
-
-        rs = conn1.createStatement().executeQuery("select count(*) from sys.systables");
-        assertTrue(rs.next());
-        int count = rs.getInt(1);
-        assertTrue(count > 10);
-
     }
 
     @Test
     public void testTransactionResolutionFlush() throws Exception {
-        Connection conn1 = dataSource.getConnection("localhost", 1527);
+        try (Connection conn1 = dataSource.getConnection("localhost", 1527)) {
 
-        conn1.setAutoCommit(false);
-        conn1.setSchema(SCHEMA);
-        String tableName = "FLUSH";
-        new TableDAO(conn1).drop(SCHEMA, tableName);
-
-
-        //noinspection unchecked
-        new TableCreator(conn1)
-                .withCreate(String.format("create table %s (i int)", tableName))
-                .create();
-        conn1.commit();
-
-        PreparedStatement ps = conn1.prepareStatement(String.format("insert into %s values 1", tableName));
-
-        for (int i = 0; i<256; ++i) {
-            ps.execute();
-        }
-
-        conn1.commit();
+            conn1.setAutoCommit(false);
+            conn1.setSchema(SCHEMA);
+            String tableName = "FLUSH";
+            new TableDAO(conn1).drop(SCHEMA, tableName);
 
 
-        for (int i = 0; i<256; ++i) {
-            ps.execute();
-        }
+            //noinspection unchecked
+            new TableCreator(conn1)
+                    .withCreate(String.format("create table %s (i int)", tableName))
+                    .create();
+            conn1.commit();
 
-        long conglomerateId = TableSplit.getConglomerateId(conn1, SCHEMA, tableName, null);
+            try (PreparedStatement ps = conn1.prepareStatement(String.format("insert into %s values 1", tableName))) {
 
-        Configuration config = HConfiguration.unwrapDelegate();
-        Table table = ConnectionFactory.createConnection(config).getTable(TableName.valueOf("splice:" + conglomerateId));
+                for (int i = 0; i < 256; ++i) {
+                    ps.execute();
+                }
 
-        Scan scan = new Scan();
-        try (ResultScanner rs = table.getScanner(scan)) {
+                conn1.commit();
 
-            Result result;
-            int count = 0;
-            while ((result = rs.next()) != null) {
-                count += result.size();
+
+                for (int i = 0; i < 256; ++i) {
+                    ps.execute();
+                }
+
+                long conglomerateId = TableSplit.getConglomerateId(conn1, SCHEMA, tableName, null);
+
+                Configuration config = HConfiguration.unwrapDelegate();
+                try (org.apache.hadoop.hbase.client.Connection hbaseConn = ConnectionFactory.createConnection(config)) {
+                    Table table = hbaseConn.getTable(TableName.valueOf("splice:" + conglomerateId));
+
+                    Scan scan = new Scan();
+                    try (ResultScanner rs = table.getScanner(scan)) {
+
+                        Result result;
+                        int count = 0;
+                        while ((result = rs.next()) != null) {
+                            count += result.size();
+                        }
+                        assertEquals(512, count);
+                    }
+
+
+                    hbaseConn.getAdmin().flush(TableName.valueOf("splice:" + conglomerateId));
+
+                    Thread.sleep(2000);
+                    try (ResultScanner rs = table.getScanner(scan)) {
+
+                        Result result;
+                        int count = 0;
+                        while ((result = rs.next()) != null) {
+                            count += result.size();
+                        }
+                        // Only half of the rows should be resolved
+                        assertEquals(512 + 256, count);
+                    }
+                }
             }
-            assertEquals(512, count);
-        }
-
-
-        ConnectionFactory.createConnection(config).getAdmin().flush(TableName.valueOf("splice:"+conglomerateId));
-
-        Thread.sleep(2000);
-        try (ResultScanner rs = table.getScanner(scan)) {
-
-            Result result;
-            int count = 0;
-            while ((result = rs.next()) != null) {
-                count += result.size();
-            }
-            // Only half of the rows should be resolved
-            assertEquals(512 + 256, count);
+            conn1.rollback();
         }
     }
 
     @Test
     public void testTransactionResolutionCompaction() throws Exception {
-        Connection conn1 = dataSource.getConnection("localhost", 1527);
+        try (Connection conn1 = dataSource.getConnection("localhost", 1527)) {
 
-        conn1.setAutoCommit(false);
-        conn1.setSchema(SCHEMA);
-        String tableName = "COMPACTION";
-        new TableDAO(conn1).drop(SCHEMA, tableName);
+            conn1.setAutoCommit(false);
+            conn1.setSchema(SCHEMA);
+            String tableName = "COMPACTION";
+            new TableDAO(conn1).drop(SCHEMA, tableName);
 
 
-        //noinspection unchecked
-        new TableCreator(conn1)
-                .withCreate(String.format("create table %s (i int)", tableName))
-                .create();
-        conn1.commit();
+            //noinspection unchecked
+            new TableCreator(conn1)
+                    .withCreate(String.format("create table %s (i int)", tableName))
+                    .create();
+            conn1.commit();
 
-        PreparedStatement ps = conn1.prepareStatement(String.format("insert into %s values 1", tableName));
+            try (PreparedStatement ps = conn1.prepareStatement(String.format("insert into %s values 1", tableName))) {
 
-        for (int i = 0; i<256; ++i) {
-            ps.execute();
-        }
+                for (int i = 0; i < 256; ++i) {
+                    ps.execute();
+                }
 
-        long conglomerateId = TableSplit.getConglomerateId(conn1, SCHEMA, tableName, null);
-        Configuration config = HConfiguration.unwrapDelegate();
-        ConnectionFactory.createConnection(config).getAdmin().flush(TableName.valueOf("splice:"+conglomerateId));
+                long conglomerateId = TableSplit.getConglomerateId(conn1, SCHEMA, tableName, null);
+                Configuration config = HConfiguration.unwrapDelegate();
+                try (org.apache.hadoop.hbase.client.Connection hbaseConn = ConnectionFactory.createConnection(config)) {
+                    hbaseConn.getAdmin().flush(TableName.valueOf("splice:" + conglomerateId));
 
-        Thread.sleep(1000);
-        
-        conn1.commit();
+                    Thread.sleep(1000);
 
-        for (int i = 0; i<256; ++i) {
-            ps.execute();
-        }
+                    conn1.commit();
 
-        ConnectionFactory.createConnection(config).getAdmin().flush(TableName.valueOf("splice:"+conglomerateId));
+                    for (int i = 0; i < 256; ++i) {
+                        ps.execute();
+                    }
 
-        Table table = ConnectionFactory.createConnection(config).getTable(TableName.valueOf("splice:" + conglomerateId));
-        Scan scan = new Scan();
-        try (ResultScanner rs = table.getScanner(scan)) {
+                    hbaseConn.getAdmin().flush(TableName.valueOf("splice:" + conglomerateId));
+                    Table table = hbaseConn.getTable(TableName.valueOf("splice:" + conglomerateId));
+                    Scan scan = new Scan();
+                    try (ResultScanner rs = table.getScanner(scan)) {
 
-            Result result;
-            int count = 0;
-            while ((result = rs.next()) != null) {
-                count += result.size();
+                        Result result;
+                        int count = 0;
+                        while ((result = rs.next()) != null) {
+                            count += result.size();
+                        }
+                        assertEquals(512, count);
+                    }
+
+                    hbaseConn.getAdmin().majorCompact(TableName.valueOf("splice:" + conglomerateId));
+
+                    try (Statement st = conn1.createStatement()) {
+                        st.execute(String.format("call SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE( '%s', '%s')", SCHEMA, tableName));
+
+                        Thread.sleep(2000);
+                        try (ResultScanner rs = table.getScanner(scan)) {
+
+                            Result result;
+                            int count = 0;
+                            while ((result = rs.next()) != null) {
+                                count += result.size();
+                            }
+                            // Only half of the rows should be resolved
+                            assertEquals(512 + 256, count);
+                        }
+
+                        conn1.commit();
+                        st.execute(String.format("call SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE( '%s', '%s')", SCHEMA, tableName));
+                    }
+
+                    Thread.sleep(2000);
+                    try (ResultScanner rs = table.getScanner(scan)) {
+
+                        Result result;
+                        int count = 0;
+                        while ((result = rs.next()) != null) {
+                            count += result.size();
+                        }
+                        // All rows should be resolved
+                        assertEquals(512 * 2, count);
+                    }
+                    conn1.rollback();
+                }
+
             }
-            assertEquals(512, count);
         }
-
-        ConnectionFactory.createConnection(config).getAdmin().majorCompact(TableName.valueOf("splice:"+conglomerateId));
-
-        conn1.createStatement().execute(String.format("call SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE( '%s', '%s')", SCHEMA, tableName));
-
-        Thread.sleep(2000);
-        try (ResultScanner rs = table.getScanner(scan)) {
-
-            Result result;
-            int count = 0;
-            while ((result = rs.next()) != null) {
-                count += result.size();
-            }
-            // Only half of the rows should be resolved
-            assertEquals(512 + 256, count);
-        }
-
-        conn1.commit();
-        conn1.createStatement().execute(String.format("call SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE( '%s', '%s')", SCHEMA, tableName));
-
-        Thread.sleep(2000);
-        try (ResultScanner rs = table.getScanner(scan)) {
-
-            Result result;
-            int count = 0;
-            while ((result = rs.next()) != null) {
-                count += result.size();
-            }
-            // All rows should be resolved
-            assertEquals(512 * 2, count);
-        }
-
     }
 }
