@@ -36,6 +36,7 @@ public class Exceptions {
     private Exceptions(){} //can't make me
 
     public static StandardException parseException(Throwable e) {
+        LOG.warn("Parsing exception, original stacktrace:", e);
         try {
             return parseException(e,PipelineDriver.driver().exceptionFactory(),SIDriver.driver().getExceptionFactory());
         } catch (Throwable t) {
