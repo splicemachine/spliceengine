@@ -128,6 +128,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
 
         org.spark_project.guava.base.Predicate<Predicate> joinScoped = evalableAtNode(j);
 
+        ResultSetNode parent = null;
         for (ResultSetNode rsn: rightsUntilBinary) {
             List<? extends Predicate> c = null;
             // Encode whether to pull up predicate to join:
@@ -145,7 +146,13 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
                  */
                 // Removing HashNestedLoopJoinStrategy: Implementation Detail not a join strategy
 //                boolean removeFromBaseTable = !(ap.getJoinStrategy() instanceof HashNestedLoopJoinStrategy);
-                c = pullPredsFromTable((FromBaseTable)rsn,shouldPull,true);
+                /* predicate on the non-covering index node must be store predicate, there is no need to pull up.
+                   so skip the predicate pullup logic for this scenario
+                 */
+                if (parent != null && parent instanceof IndexToBaseRowNode)
+                    c = Collections.emptyList();
+                else
+                    c = pullPredsFromTable((FromBaseTable)rsn,shouldPull,true);
             }else if(rsn instanceof IndexToBaseRowNode){
                 /* Only pull from index if we are a HashNestedLoopJoin */
                 boolean pullFromIndex = true;//(ap.getJoinStrategy() instanceof HashNestedLoopJoinStrategy);
@@ -159,6 +166,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
                 if (!toPullUp.contains(p))
                     toPullUp.addAll(c);
             }
+            parent = rsn;
         }
        // joinChainMap = j.rsnChainMapV2();
         for (Predicate p: toPullUp){
@@ -269,17 +277,21 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
 
     	if (LOG.isDebugEnabled())
     		LOG.debug(String.format("joinScoped joinScoped=%s",joinScoped));
-        
+
+        ResultSetNode parent = null;
         for (ResultSetNode rsn: rightsUntilBinary) {
         	if (LOG.isDebugEnabled())
         		LOG.debug(String.format("rewriteNLJColumnRefs rightsUntilBinary=%s",rsn));
         	// Encode whether to pull up predicate to join:
             //  when can't evaluate on node but can evaluate at join
-            org.spark_project.guava.base.Predicate<Predicate> predOfInterest =
-                    Predicates.and(Predicates.not(evalableAtNode(rsn)), joinScoped);
-            joinPreds.addAll(Collections2
-                                 .filter(RSUtils.collectExpressionNodes(rsn, Predicate.class),
-                                         predOfInterest));
+            if (!(rsn instanceof FromBaseTable && parent != null && parent instanceof IndexToBaseRowNode)) {
+                org.spark_project.guava.base.Predicate<Predicate> predOfInterest =
+                        Predicates.and(Predicates.not(evalableAtNode(rsn)), joinScoped);
+                joinPreds.addAll(Collections2
+                        .filter(RSUtils.collectExpressionNodes(rsn, Predicate.class),
+                                predOfInterest));
+            }
+            parent = rsn;
         }
 
       //  joinChainMap = j.rsnChainMapV2();
