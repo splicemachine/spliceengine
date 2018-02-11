@@ -1234,6 +1234,7 @@
                                     -enableassertions
                                     ${jacocoAgent}
                                 </argument>
+				<argument>-Dsplice.spark.yarn.user=${user.name}</argument>
 				<argument>-Dsplice.olapServer.classpath=${project.build.directory}/dependency/javax.servlet-api-3.1.0.jar:${project.build.directory}/classes</argument>
                                 <argument>-Dsplice.olapServer.extraJavaOptions=
 					-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
