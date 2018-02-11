@@ -362,8 +362,11 @@ public final class ContextService{
             }
         }
 
-        if(cm.activeCount!=-1){
-            if(--cm.activeCount<=0){
+        ContextManager current = getCurrentContextManager();
+        if (current == null) return;
+
+        if(current.activeCount!=-1){
+            if(current == cm && --cm.activeCount<=0){
                 cm.activeThread=null;
 
                 // If the ContextManager is empty
@@ -383,7 +386,10 @@ public final class ContextService{
 
         java.util.Stack stack=(java.util.Stack)tcl.get();
 
-        Object oldCM=stack.pop();
+        int idx = stack.lastIndexOf(cm);
+        if (idx >= 0) {
+            stack.remove(idx);
+        }
 
         ContextManager nextCM=(ContextManager)stack.peek();
 
