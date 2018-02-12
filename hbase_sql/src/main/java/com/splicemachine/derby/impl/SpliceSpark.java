@@ -353,24 +353,32 @@ public class SpliceSpark {
             printConfigProps(conf);
         }
 
-        UserGroupInformation ugi;
-        if (user != null && keytab != null) {
-            try {
-                ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(user, keytab);
-            } catch (IOException e) {
-                LOG.error("Error while authenticating user " + user + " with keytab " + keytab, e);
-                throw new RuntimeException(e);
+        UserGroupInformation ugi = null;
+        if (user != null) {
+            if (keytab != null) {
+                try {
+                    ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(user, keytab);
+                } catch (IOException e) {
+                    LOG.error("Error while authenticating user " + user + " with keytab " + keytab, e);
+                    throw new RuntimeException(e);
+                }
+            } else {
+                ugi = UserGroupInformation.createRemoteUser(user);
             }
-        } else {
-            user = System.getProperty("splice.spark.yarn.user", "hbase");
-            ugi = UserGroupInformation.createRemoteUser(user);
         }
 
-        return ugi.doAs((PrivilegedAction<SparkSession>) () ->
-                SparkSession.builder()
-                        .appName("Splice Spark Session")
-                        .config(conf)
-                        .getOrCreate());
+        if (ugi != null) {
+            return ugi.doAs((PrivilegedAction<SparkSession>) () ->
+                    SparkSession.builder()
+                            .appName("Splice Spark Session")
+                            .config(conf)
+                            .getOrCreate());
+        } else {
+            return SparkSession.builder()
+                    .appName("Splice Spark Session")
+                    .config(conf)
+                    .getOrCreate();
+        }
     }
 
     private static void printConfigProps(SparkConf conf) {
