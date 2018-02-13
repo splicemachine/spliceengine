@@ -30,7 +30,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
+import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.mapreduce.MRJobConfig;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
@@ -60,6 +62,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -177,6 +180,10 @@ public class OlapServerSubmitter implements Runnable {
                 setupAppMasterEnv(appMasterEnv, conf);
                 amContainer.setEnvironment(appMasterEnv);
                 amContainer.setLocalResources(localResources);
+
+                DataOutputBuffer dob = new DataOutputBuffer();
+                UserGroupInformation.getCurrentUser().getCredentials().writeTokenStorageToStream(dob);
+                amContainer.setTokens(ByteBuffer.wrap(dob.getData()));
 
 
                 // Set up resource type requirements for ApplicationMaster
