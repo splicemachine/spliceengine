@@ -107,7 +107,7 @@
   </property>
   <property>
     <name>yarn.nodemanager.resource.memory-mb</name>
-    <value>4096</value>
+    <value>8192</value>
     <description>Physical memory, in MB, to be made available to running containers</description>
   </property>
   <property>
