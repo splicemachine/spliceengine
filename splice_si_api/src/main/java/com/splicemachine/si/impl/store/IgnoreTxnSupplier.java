@@ -21,13 +21,9 @@ import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.storage.*;
-import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.util.Pair;
-
+import com.splicemachine.utils.Pair;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 /**
