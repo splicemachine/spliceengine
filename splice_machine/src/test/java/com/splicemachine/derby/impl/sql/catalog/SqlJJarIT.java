@@ -14,22 +14,19 @@
 
 package com.splicemachine.derby.impl.sql.catalog;
 
-import static org.junit.Assert.assertTrue;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test.SerialTest;
+import org.junit.*;
+import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+import static org.junit.Assert.assertTrue;
 
 /**
  * This class tests the SQLJ JAR file loading system procedures (INSTALL_JAR, REPLACE_JAR, and REMOVE_JAR).
@@ -58,7 +55,15 @@ public class SqlJJarIT extends SpliceUnitTest {
 
 	// SQL statements to create and drop stored procedures.
 	private static final String CREATE_PROC_SIMPLE_ONE_ARG = String.format("CREATE PROCEDURE %s.SIMPLE_ONE_ARG_PROC(IN name VARCHAR(30)) PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.sqlj.SqlJTestProcs.SIMPLE_ONE_ARG_PROC'", SCHEMA_NAME);
+	private static final String CREATE_FUNC = String.format("CREATE FUNCTION %s.addNumbers(val1 int, val2 int)\n" +
+			"    RETURNS integer\n" +
+			"    LANGUAGE JAVA\n" +
+			"    PARAMETER STYLE JAVA\n" +
+			"    NO SQL\n" +
+			"    EXTERNAL NAME 'org.splicetest.sqlj.MyFuncs.addNumbers'", SCHEMA_NAME);
+
 	private static final String DROP_PROC_SIMPLE_ONE_ARG = String.format("DROP PROCEDURE %s.SIMPLE_ONE_ARG_PROC", SCHEMA_NAME);
+	private static final String DROP_FUNC = String.format("DROP FUNCTION %s.addNumbers", SCHEMA_NAME);
 
 	// SQL statements to call stored procedures.
 	private static final String CALL_INSTALL_JAR_FORMAT_STRING = "CALL SQLJ.INSTALL_JAR('%s', '%s', 0)";
@@ -72,7 +77,7 @@ public class SqlJJarIT extends SpliceUnitTest {
 	private static final String CALL_GET_GLOBAL_CLASSPATH = "CALL SYSCS_UTIL.SYSCS_GET_GLOBAL_DATABASE_PROPERTY('derby.database.classpath')";
 
 	// SQL statements to use VTI
-	private static final String SELECT_FROM_VTI_STRING = "select * from new org.splicetest.sqlj.PropertiesFileVTI('log4j.properties') a (key1 varchar(200), value varchar(200))";
+	private static final String SELECT_FROM_VTI_STRING = "select * from (select * from new org.splicetest.sqlj.PropertiesFileVTI('log4j.properties') a (key1 varchar(200), value varchar(200)) where key1 <> 'abc')dt";
 
 
 	// SQL queries.
@@ -145,6 +150,14 @@ public class SqlJJarIT extends SpliceUnitTest {
 		rs = methodWatcher.executeQuery(String.format(CALL_SIMPLE_ONE_ARG_PROC_FORMAT_STRING, "foobar"));
 		assertTrue("Incorrect rows returned!", resultSetSize(rs) > 10);
 
+		// Create the user-defined function.
+		rc = methodWatcher.executeUpdate(CREATE_FUNC);
+		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+		// Call the user-defined function.
+		rs = methodWatcher.executeQuery(format("select * from (SELECT %s.addNumbers(1,2) as mySum FROM SYS.SYSTABLES --splice-properties useSpark=true\n) dt where dt.mySum > 0", SCHEMA_NAME));
+		assertTrue("Incorrect rows returned!", resultSetSize(rs) > 10);
+
 		// Replace the jar file.
 		rc = methodWatcher.executeUpdate(String.format(CALL_REPLACE_JAR_FORMAT_STRING, STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
 		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
@@ -155,6 +168,10 @@ public class SqlJJarIT extends SpliceUnitTest {
 
 		// Drop the user-defined stored procedure.
 		rc = methodWatcher.executeUpdate(DROP_PROC_SIMPLE_ONE_ARG);
+		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+		// Drop the user-defined functions.
+		rc = methodWatcher.executeUpdate(DROP_FUNC);
 		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
 
 		// Remove the jar file from the DB class path.
@@ -232,5 +249,37 @@ public class SqlJJarIT extends SpliceUnitTest {
 		// Compare that the number of SYSFILES matches the original count.
 		rs = methodWatcher.executeQuery(SELECT_FROM_SYSFILES);
 		Assert.assertEquals("Incorrect rows returned!", numSysFiles, resultSetSize(rs));
+	}
+
+	@Test
+	public void testJarWithSimpleOneArgProc1() throws Exception {
+		ResultSet rs = null;
+		int rc = 0;
+
+		/*
+		 * ========================================================================================
+		 * Test the local database CLASSPATH for the region server.
+		 * ========================================================================================
+		 */
+		// Install the jar file of user-defined stored procedures.
+		try{
+			rc=methodWatcher.executeUpdate(String.format(CALL_INSTALL_JAR_FORMAT_STRING,STORED_PROCS_JAR_FILE,JAR_FILE_SQL_NAME));
+			Assert.assertEquals("Incorrect return code or result count returned!",0,rc);
+		}catch(SQLException se){
+			if(!"SE014".equals(se.getSQLState())) //ignore WWConflicts
+				throw se;
+		}
+
+		// Add the jar file into the local DB class path.
+		rc = methodWatcher.executeUpdate(String.format(CALL_SET_CLASSPATH_FORMAT_STRING, JAR_FILE_SQL_NAME));
+		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+		// Create the user-defined function.
+		rc = methodWatcher.executeUpdate(CREATE_FUNC);
+		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+		// Call the user-defined function.
+		rs = methodWatcher.executeQuery(format("select * from (SELECT %s.addNumbers(1,2) as mySum FROM SYS.SYSTABLES --splice-properties useSpark=true\n) dt where dt.mySum > 0", SCHEMA_NAME));
+		assertTrue("Incorrect rows returned!", resultSetSize(rs) > 10);
 	}
 }
