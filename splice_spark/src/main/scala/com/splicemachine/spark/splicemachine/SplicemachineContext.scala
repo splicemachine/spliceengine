@@ -78,7 +78,6 @@ class SplicemachineContext(url: String) extends Serializable {
     val maker = new EmbedConnectionMaker
     val dbProperties = new Properties
     dbProperties.put("useSpark", "true")
-    maker.createNew(dbProperties)
     dbProperties.put(EmbedConnection.INTERNAL_CONNECTION, "true")
     maker.createNew(dbProperties)
   }
