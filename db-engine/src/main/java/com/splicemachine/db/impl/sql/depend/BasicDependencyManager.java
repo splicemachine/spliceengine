@@ -135,7 +135,9 @@ public class BasicDependencyManager implements DependencyManager {
 		@exception StandardException thrown if something goes wrong
 	 */
 	public void addDependency(Dependent d, Provider p, ContextManager cm) throws StandardException {
-		addDependency(d, p, cm, null);
+        if (dd.canUseDependencyManager()) {
+			addDependency(d, p, cm, null);
+		}
 	}
 
     /**
