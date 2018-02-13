@@ -855,6 +855,11 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     @Override
+    public boolean canUseDependencyManager() {
+        return !SpliceClient.isClient;
+    }
+
+    @Override
     public ColPermsDescriptor getColumnPermissions(UUID colPermsUUID) throws StandardException {
         Manager manager = EngineDriver.driver().manager();
             return manager.isEnabled()?manager.getColPermsManager().getColumnPermissions(this,colPermsUUID):null;

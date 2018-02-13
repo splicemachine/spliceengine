@@ -2119,4 +2119,6 @@ public interface DataDictionary{
     void addSnapshot(TupleDescriptor descriptor, TransactionController tc) throws StandardException;
 
     void deleteSnapshot(String snapshotName, long conglomeratenumber, TransactionController tc) throws StandardException;
+
+    boolean canUseDependencyManager();
 }
