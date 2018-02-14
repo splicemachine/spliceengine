@@ -78,6 +78,8 @@ public class OlapServerMaster implements Watcher {
     }
 
     private void run() throws Exception {
+        boolean securityEnabled = UserGroupInformation.isSecurityEnabled();
+        LOG.info("Security enabled: " + securityEnabled);
 
         // Initialize clients to ResourceManager and NodeManagers
         Configuration conf = HConfiguration.unwrapDelegate();
