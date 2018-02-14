@@ -131,7 +131,7 @@ public class SpliceSpark {
         UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
         ugi.addCredentials(credentials);
         // specify that this is a proxy user
-        ugi.setAuthenticationMethod(UserGroupInformation.AuthenticationMethod.PROXY);
+        ugi.setAuthenticationMethod(UserGroupInformation.AuthenticationMethod.TOKEN);
 
         LOG.info("Applied credentials");
 
