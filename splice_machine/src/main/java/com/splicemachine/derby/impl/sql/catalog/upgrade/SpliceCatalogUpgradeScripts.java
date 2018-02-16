@@ -61,7 +61,7 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,1,0,0),new UpgradeScriptForFuji(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,1,1,1),new LassenUpgradeScript(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,5,0),new K2UpgradeScript(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,2,7,1), new UpgradeScriptForModifySchemaPermission(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,2,5,1), new UpgradeScriptForModifySchemaPermission(sdd,tc));
     }
 
     public void run() throws StandardException{
