@@ -262,6 +262,27 @@ class SplicemachineContext(url: String) extends Serializable {
     internalConnection.createStatement().executeUpdate(sqlText)
   }
 
+  def upsert(dataFrame: DataFrame, schemaTableName: String): Unit = {
+    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
+    val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
+    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
+    val sqlText = "insert into " + schemaTableName + " (" + columnList + ") --splice-properties insertMode=UPSERT\n select " + columnList + " from " +
+      "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
+      "as SpliceDatasetVTI (" + schemaString + ")"
+    internalConnection.createStatement().executeUpdate(sqlText)
+  }
+
+  def upsert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = {
+    SpliceRDDVTI.datasetThreadLocal.set(rdd)
+    val columnList = SpliceJDBCUtil.listColumns(schema.fieldNames)
+    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(schema, url)
+    val sqlText = "insert into " + schemaTableName + " (" + columnList + ") --splice-properties insertMode=UPSERT\n select " + columnList + " from " +
+      "new com.splicemachine.derby.vti.SpliceRDDVTI() " +
+      "as SpliceRDDVTI (" + schemaString + ")"
+    internalConnection.createStatement().executeUpdate(sqlText)
+  }
+
+
   def delete(dataFrame: DataFrame, schemaTableName: String): Unit = {
     val jdbcOptions = new JDBCOptions(Map(
       JDBCOptions.JDBC_URL -> url,
