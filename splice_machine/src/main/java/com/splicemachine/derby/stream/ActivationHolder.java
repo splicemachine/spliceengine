@@ -59,7 +59,8 @@ public class ActivationHolder implements Externalizable {
     private Activation activation;
     private SpliceObserverInstructions soi;
     private TxnView txn;
-    private boolean initialized=false;
+    private boolean initialized = false;
+    private int reinitCount = 0;
     private SpliceTransactionResourceImpl impl;
     private boolean prepared = false;
 
@@ -197,11 +198,15 @@ public class ActivationHolder implements Externalizable {
         reinitialize(otherTxn, true);
     }
 
-    public void reinitialize(TxnView otherTxn, boolean reinit) {
+    public synchronized void reinitialize(TxnView otherTxn, boolean reinit) {
         TxnView txnView = otherTxn!=null ? otherTxn : this.txn;
         initialized = true;
+        reinitCount += 1;
         try {
-            close();
+            if (prepared) {
+                impl.close();
+                prepared = false;
+            }
 
             impl = new SpliceTransactionResourceImpl();
             prepared =  impl.marshallTransaction(txnView);
@@ -222,10 +227,12 @@ public class ActivationHolder implements Externalizable {
         }
     }
 
-    public void close() {
-        if (prepared) {
-            impl.close();
-            prepared = false;
+    public synchronized void close() {
+        if (--reinitCount == 0) {
+            if (prepared) {
+                impl.close();
+                prepared = false;
+            }
         }
     }
 }
