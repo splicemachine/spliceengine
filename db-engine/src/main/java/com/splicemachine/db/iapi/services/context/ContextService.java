@@ -168,17 +168,8 @@ public final class ContextService{
      * </pre>
      */
 
-    private static class ContextManagerLink {
-        ContextManager cm;
-        ContextManagerLink next;
-
-        ContextManagerLink(ContextManager cm, ContextManagerLink next) {
-            this.cm = cm;
-            this.next = next;
-        }
-    }
-
-    private ThreadLocal<ContextManagerLink> threadContextList = new ThreadLocal<>();
+    private static final ThreadLocal<List<ContextManager>> threadContextList =
+            ThreadLocal.withInitial(ArrayList::new);
 
     /**
      * Collection of all ContextManagers that are open
@@ -274,12 +265,12 @@ public final class ContextService{
             return null;
         }
 
-        ContextManagerLink link = threadContextList.get();
-        if (link == null || link.cm == null) {
+        List<ContextManager> list = threadContextList.get();
+        if (list.isEmpty()) {
             return null;
         }
-        ContextManager cm = link.cm;
-        if (link.next == null && cm.activeThread != Thread.currentThread()) {
+        ContextManager cm = list.get(list.size() - 1);
+        if (list.size() == 1 && cm.activeThread != Thread.currentThread()) {
             return null;
         }
         return cm;
@@ -297,8 +288,11 @@ public final class ContextService{
             return;
         }
 
-        if(cm.activeCount!=-1){
-            if(--cm.activeCount<=0){
+        ContextManager current = getCurrentContextManager();
+        if (current == null) return;
+
+        if (current.activeCount != -1) {
+            if (current == cm && --cm.activeCount <= 0) {
                 cm.activeThread=null;
 
                 // If the ContextManager is empty
@@ -310,7 +304,7 @@ public final class ContextService{
                 // chance of holding onto a another reference
                 // will could cause issues for future operations.
                 if(cm.isEmpty()) {
-                    threadContextList.set(null);
+                    threadContextList.get().clear();
                 }
             }
             return;
@@ -327,16 +321,16 @@ public final class ContextService{
             }
         }
 
-        ContextManagerLink link = threadContextList.get();
-        link = link.next;
-        threadContextList.set(link);
+        List<ContextManager> list = threadContextList.get();
+        int idx = list.lastIndexOf(cm);
+        if (idx >= 0) {
+            list.remove(idx);
+        }
 
-        ContextManager nextCM = link.cm;
+        ContextManager nextCM = list.get(list.size() - 1);
         boolean seenMultipleCM=false;
         boolean seenCM=false;
-        int count = 0;
-        for (;link != null; link = link.next, ++count){
-            ContextManager stackCM = link.cm;
+        for (ContextManager stackCM : list) {
             if (stackCM != nextCM) {
                 seenMultipleCM = true;
             }
@@ -353,9 +347,9 @@ public final class ContextService{
         if(!seenMultipleCM){
             // all the context managers on the stack
             // are the same so reduce to a simple count.
-            nextCM.activeCount = count;
-            link = new ContextManagerLink(nextCM, null);
-            threadContextList.set(link);
+            nextCM.activeCount = list.size();
+            list.clear();
+            list.add(nextCM);
         }
     }
 
@@ -370,33 +364,36 @@ public final class ContextService{
      * @see ContextManager#activeCount
      * @see ContextManager#activeThread
      */
-    private boolean addToThreadList(ContextManager associateCM) {
+    private void addToThreadList(ContextManager associateCM) {
 
-        ContextManagerLink link = threadContextList.get();
+        List<ContextManager> list = threadContextList.get();
 
         // Not currently using any ContextManager
-        if (link == null){
-            link = new ContextManagerLink(associateCM, null);
-            threadContextList.set(link);
-            return true;
+        if (list.isEmpty()){
+            list.add(associateCM);
+            associateCM.activeCount++;
+            return;
         }
 
         // Already set up to reflect associateCM ContextManager
-        if (associateCM == link.cm) {
-            return true;
+        ContextManager threadsCM = list.get(list.size() - 1);
+        if (associateCM == threadsCM) {
+            associateCM.activeCount++;
+            return;
         }
 
-        if (link.next == null) {
+        if (list.size() == 1) {
             // Could be two situations:
             // 1. Single ContextManager not in use by this thread
             // 2. Single ContextManager in use by this thread (nested call)
 
-            ContextManager threadsCM = link.cm;
+            list.clear();
             if (threadsCM.activeThread != Thread.currentThread()) {
                 // Not nested, just a CM left over
                 // from a previous execution.
-                link.cm = associateCM;
-                return true;
+                list.add(associateCM);
+                associateCM.activeCount++;
+                return;
             }
             // Nested, need to create a Stack of ContextManagers,
             // the top of the stack will be the active one.
@@ -404,26 +401,20 @@ public final class ContextService{
             // of ContextManagers, splitting out nesting
             // of a single ContextManager into multiple
             // entries in the stack.
-            link = null;
             for (int i = 0; i < threadsCM.activeCount; i++) {
-                link = new ContextManagerLink(threadsCM, link);
+                list.add(threadsCM);
             }
             threadsCM.activeCount = -1;
         }
 
-        link = new ContextManagerLink(associateCM, link);
-        threadContextList.set(link);
-        associateCM.activeCount=-1;
+        list.add(associateCM);
+        associateCM.activeCount = -1;
 
         if (LOG.isTraceEnabled()) {
-            int size = 0;
-            for (; link != null; link = link.next) ++size;
-            if (size > 10) {
-                LOG.trace("memoryLeakTrace:threadLocal " + size);
+            if (list.size() > 10) {
+                LOG.trace("memoryLeakTrace:threadLocal " + list.size());
             }
         }
-
-        return false;
     }
 
     /**
@@ -467,9 +458,7 @@ public final class ContextService{
         if (cm.activeThread == null) {
             cm.activeThread = Thread.currentThread();
         }
-        if (addToThreadList(cm)) {
-            cm.activeCount++;
-        }
+        addToThreadList(cm);
     }
 
     /**
