@@ -19,17 +19,29 @@ import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.log4j.Logger;
+import org.apache.spark.SimpleFutureAction;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
+import scala.Function1;
+import scala.Tuple2;
 import scala.collection.JavaConversions;
 import scala.collection.Seq;
+import scala.concurrent.Await;
+import scala.concurrent.duration.Duration;
 import scala.reflect.ClassTag;
+import scala.runtime.AbstractFunction0;
+import scala.runtime.AbstractFunction2;
+import scala.runtime.BoxedUnit;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Created by dgomezferro on 6/1/16.
@@ -43,12 +55,12 @@ public class StreamableRDD<T> {
     private final int clientBatchSize;
     private final String host;
     private final JavaRDD<T> rdd;
-    private final ExecutorCompletionService<Object> completionService;
     private final ExecutorService executor;
     private final int clientBatches;
     private final UUID uuid;
     private final OperationContext<?> context;
     private OlapStatus jobStatus;
+    private BlockingQueue<Future<Object>> futures = new LinkedBlockingDeque<>();
 
 
     StreamableRDD(JavaRDD<T> rdd, UUID uuid, String clientHost, int clientPort) {
@@ -62,7 +74,6 @@ public class StreamableRDD<T> {
         this.host = clientHost;
         this.port = clientPort;
         this.executor = Executors.newFixedThreadPool(PARALLEL_PARTITIONS);
-        completionService = new ExecutorCompletionService<>(executor);
         this.clientBatchSize = batchSize;
         this.clientBatches = batches;
     }
@@ -91,17 +102,20 @@ public class StreamableRDD<T> {
             int received = 0;
             int submitted = 2;
             while (received < partitionBatches && error == null) {
-                if (jobStatus != null && !jobStatus.isRunning()) {
-                    throw new CancellationException("The olap job is no longer running, cancelling Spark job");
-                }
-                Future<Object> resultFuture = null;
                 try {
-                    resultFuture = completionService.poll(10, TimeUnit.SECONDS);
-                    if (resultFuture == null) {
-                        // retry loop checking job status
-                        continue;
+                    Future<Object> resultFuture = futures.remove();
+                    Object result = null;
+                    while (result == null) {
+                        if (jobStatus != null && !jobStatus.isRunning()) {
+                            throw new CancellationException("The olap job is no longer running, cancelling Spark job");
+                        }
+                        
+                        try {
+                            result = resultFuture.get(10, TimeUnit.SECONDS);;
+                        } catch (TimeoutException ex) {
+                            // retry loop, checking job status
+                        }
                     }
-                    Object result = resultFuture.get();
                     received++;
                     if ("STOP".equals(result)) {
                         if (LOG.isTraceEnabled())
@@ -134,20 +148,41 @@ public class StreamableRDD<T> {
         if (LOG.isTraceEnabled())
             LOG.trace("Submitting batch " + batch + " with partitions " + list);
         final Seq objects = JavaConversions.asScalaBuffer(list).toList();
-        completionService.submit(new Callable<Object>() {
+        futures.add(executor.submit(new Callable<Object>() {
             @Override
-            public Object call() {
+            public Object call() throws Exception {
                 SparkContext sc = SpliceSpark.getContextUnsafe().sc();
                 sc.setLocalProperties(properties);
-                String[] results = (String[]) sc.runJob(streamed.rdd(), new FunctionAdapter(), objects, tag);
-                for (String o2: results) {
-                    if ("STOP".equals(o2)) {
+                AtomicBoolean cont = new AtomicBoolean(true);
+                SimpleFutureAction<Boolean> job = sc.submitJob(streamed.rdd(), new FunctionAdapter(), objects, new AbstractFunction2<Object, String, BoxedUnit>() {
+                    @Override
+                    public BoxedUnit apply(Object index, String result) {
+                        if ("STOP".equals(result))
+                            cont.set(false);
+                        return BoxedUnit.UNIT;
+                    }
+                }, new AbstractFunction0<Boolean>() {
+                    @Override
+                    public Boolean apply() {
+                        return cont.get();
+                    }
+                });
+
+
+                Boolean result = null;
+                while (result == null) {
+                    try {
+                        result = Await.result(job, Duration.apply(10, TimeUnit.SECONDS));
+                    } catch (TimeoutException e) {
+                        if (!jobStatus.isRunning()) {
+                            job.cancel();
+                        }
                         return "STOP";
                     }
                 }
-                return "CONTINUE";
+                return result ? "CONTINUE" : "STOP";
             }
-        });
+        }));
     }
 
     public void setJobStatus(OlapStatus jobStatus) {

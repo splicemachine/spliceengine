@@ -26,6 +26,8 @@ import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 
 /**
@@ -151,7 +153,12 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
             while (next == null) {
                 PartitionState state = partitionStateMap.get(currentQueue);
                 // We take a message first to make sure we have a connection
-                Object msg = canBlock ? state.messages.take() : state.messages.remove();
+                Object msg = canBlock ? state.messages.take() : state.messages.poll(1, TimeUnit.MINUTES);
+                if (msg == null) {
+                    failed(new TimeoutException("Couldn't get message after Olap Job completed"));
+                    currentResult = null;
+                    return;
+                }
                 if (msg == FAILURE) {
                     // The olap job failed, return right away
                     currentResult = null;
