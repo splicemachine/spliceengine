@@ -149,6 +149,7 @@ class SpliceTestPlatformConfig {
         config.setLong("hbase.regionserver.handler.count", 100);
         config.setLong("hbase.regionserver.metahandler.count", 100);
         config.setLong("hbase.regionserver.msginterval", 1000);
+        config.setLong("hbase.regionserver.optionalcacheflushinterval", 0); // disable automatic flush, meaningless since our timestamps are arbitrary
         config.setLong("hbase.master.event.waiting.time", 20);
         config.setLong("hbase.master.lease.thread.wakefrequency", SECONDS.toMillis(3));
 //        config.setBoolean("hbase.master.loadbalance.bytable",true);
