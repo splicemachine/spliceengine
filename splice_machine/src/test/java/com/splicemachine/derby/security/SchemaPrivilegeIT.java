@@ -376,7 +376,7 @@ public class SchemaPrivilegeIT {
         assertFailed(user2Conn, renameIndexQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
     }
 
-    @Test @Ignore
+    @Test
     public void testReferencesPrivileges() throws Exception {
         //REVOKE ALL to start
         PreparedStatement ps = adminConn.prepareStatement( format("REVOKE ALL PRIVILEGES ON SCHEMA %s FROM %s", SCHEMA1,USER1  ) );

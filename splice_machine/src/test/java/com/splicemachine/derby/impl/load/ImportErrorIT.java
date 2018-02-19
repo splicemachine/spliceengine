@@ -310,7 +310,7 @@ public class ImportErrorIT extends SpliceUnitTest {
     }
 
 
-    @Test @Ignore("This error, 42Z23, gets detected before import begins in statement bind.")
+    @Test @Ignore("This error, 42Z23, gets detected before import begins in statement bind. Tracked by SPLICE-2035")
     public void testNonNullIntoIncrement() throws Exception {
         final String importFileName = "simple_column.txt";
         final String expectedErrorCode = "42Z23";

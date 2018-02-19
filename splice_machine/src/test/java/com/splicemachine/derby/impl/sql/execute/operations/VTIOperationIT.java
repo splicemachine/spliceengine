@@ -158,7 +158,7 @@ public class VTIOperationIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("DB-4641: failing when in Jenkins when run under the mem DB profile")
+    // DB-4641: failing when in Jenkins when run under the mem DB profile, re-enable on 2/8/2018
     public void testFileVTIExpectError() throws Exception {
         String location = getResourceDirectory()+"importTest.in";
         String sql = String.format("select * from new com.splicemachine.derby.vti.SpliceFileVTI('%s','',',') as b" +

@@ -68,7 +68,7 @@ public class SQLDoubleTest extends SQLDataValueDescriptorTest {
             SQLDouble double2 = new SQLDouble(100.0d);
             Assert.assertEquals("Integer subtract Fails",100.0d,double1.minus(double1, double2, null).getDouble(),0.0d);
         }
-        @Ignore
+        @Ignore("Exception expected")
         @Test(expected = StandardException.class)
         public void testPositiveOverFlow() throws StandardException {
             SQLDouble double1 = new SQLDouble(Double.MAX_VALUE);
@@ -76,7 +76,7 @@ public class SQLDoubleTest extends SQLDataValueDescriptorTest {
             double1.plus(double1,double2,null).getDouble();
         }
 
-        @Ignore
+        @Ignore("Exception expected")
         @Test(expected = StandardException.class)
         public void testNegativeOverFlow() throws StandardException {
                 SQLDouble double1 = new SQLDouble(Double.MIN_VALUE);

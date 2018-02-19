@@ -25,7 +25,7 @@ import org.junit.Ignore;
  * Spark Pair Data Set Test
  *
  */
-@Ignore
+@Ignore("All tests passed")
 public class SparkPairDataSetTest extends AbstractPairDataSetTest{
 
     @Override
