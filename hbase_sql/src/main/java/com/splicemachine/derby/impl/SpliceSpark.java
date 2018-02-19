@@ -380,21 +380,23 @@ public class SpliceSpark {
 
         if (ugi != null) {
             return ugi.doAs((PrivilegedAction<SparkSession>) () -> {
-                System.setProperty("SPARK_YARN_MODE", "true");
-                Credentials creds;
-                try {
-                    creds = setupRenewer(conf);
-                } catch (IOException e) {
-                    LOG.error("Unexpected exception when setting up the credentials sparkRenewer", e);
-                    return null;
-                }
+//                System.setProperty("SPARK_YARN_MODE", "true");
+//                Credentials creds;
+//                try {
+//                    creds = setupRenewer(conf);
+//                } catch (IOException e) {
+//                    LOG.error("Unexpected exception when setting up the credentials sparkRenewer", e);
+//                    return null;
+//                }
 
+                LOG.warn("hbase enabled " + conf.get("spark.yarn.security.credentials.hbase.enabled", "notThere"));
                 SparkSession session = SparkSession.builder()
                         .appName("Splice Spark Session")
                         .config(conf)
                         .getOrCreate();
 
-                setCredentials(new JavaSparkContext(session.sparkContext()).broadcast(new SerializableWritable(creds)));
+                LOG.warn("credentials file " + conf.get("spark.yarn.credentials.file", "notThere"));
+//                setCredentials(new JavaSparkContext(session.sparkContext()).broadcast(new SerializableWritable(creds)));
                 return session;
             });
         } else {
