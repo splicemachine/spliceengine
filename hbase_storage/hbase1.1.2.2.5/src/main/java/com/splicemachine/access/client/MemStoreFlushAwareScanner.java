@@ -161,8 +161,8 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 
     @Override
     public void close() {
-        if (LOG.isDebugEnabled()) {
-            SpliceLogUtils.debug(LOG, "close", new RuntimeException());
+        if (LOG.isTraceEnabled()) {
+            SpliceLogUtils.trace(LOG, "close");
         }
         super.close();
         boolean shouldC;
