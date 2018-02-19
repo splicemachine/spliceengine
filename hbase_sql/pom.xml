@@ -19,7 +19,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>2.5.0.1806</version>
+        <version>2.5.0.1806-SNAPSHOT</version>
     </parent>
     <properties>
         <!--Skip server startup-->
@@ -652,12 +652,12 @@
                     <dependency>
                         <groupId>org.splicetest.txn</groupId>
                         <artifactId>txn-it-procs</artifactId>
-                        <version>2.5.0.1806</version>
+                        <version>2.5.0.1806-SNAPSHOT</version>
                     </dependency>
                     <dependency>
                         <groupId>org.splicetest.sqlj</groupId>
                         <artifactId>sqlj-it-procs</artifactId>
-                        <version>2.5.0.1806</version>
+                        <version>2.5.0.1806-SNAPSHOT</version>
                     </dependency>
                 </dependencies>
                 <executions>
@@ -683,7 +683,7 @@
                                 <artifactItem>
                                     <groupId>org.splicetest.txn</groupId>
                                     <artifactId>txn-it-procs</artifactId>
-                                    <version>2.5.0.1806</version>
+                                    <version>2.5.0.1806-SNAPSHOT</version>
                                     <type>jar</type>
                                     <overWrite>true</overWrite>
                                     <outputDirectory>${project.build.directory}/txn-it</outputDirectory>
@@ -692,7 +692,7 @@
                                 <artifactItem>
                                     <groupId>org.splicetest.sqlj</groupId>
                                     <artifactId>sqlj-it-procs</artifactId>
-                                    <version>2.5.0.1806</version>
+                                    <version>2.5.0.1806-SNAPSHOT</version>
                                     <type>jar</type>
                                     <overWrite>true</overWrite>
                                     <outputDirectory>${project.build.directory}/sql-it</outputDirectory>
