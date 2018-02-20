@@ -37,7 +37,7 @@ import java.util.*;
  * Date: 6/10/13
  */
 @RunWith(Parameterized.class)
-@Ignore //Tracked by SPLICE-2039
+@Ignore("Tracked by SPLICE-2039")
 public class EquiJoinOperationIT {
 
     private static Logger LOG = Logger.getLogger(EquiJoinOperationIT.class);

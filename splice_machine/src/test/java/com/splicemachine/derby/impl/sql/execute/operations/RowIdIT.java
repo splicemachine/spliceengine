@@ -195,7 +195,7 @@ public class RowIdIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore //Tracked by SPLICE-2036
+    @Ignore("Tracked by SPLICE-2036")
     public void testStringConversion() throws Exception {
         ResultSet rs  = methodWatcher.executeQuery(
                 String.format("select t1.rowid, t1.i from %s t1, %s t2 where cast(t1.rowid as varchar(128))=cast(t2.rowid as varchar(128))",
