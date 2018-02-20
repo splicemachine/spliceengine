@@ -79,15 +79,6 @@ public class SpliceSequenceIT {
         methodWatcher.executeUpdate("drop sequence SMALLSEQ restrict");
     }
 
-
-    //Created failing test for val_local, ignored. Tracked by SPLICE-2042
-    public void testIdentityValLocal() throws Exception{
-        methodWatcher.executeUpdate(String.format("create table t1(c1 int generated always as identity, c2 int)"));
-        methodWatcher.executeUpdate(String.format("insert into t1(c2) values (8)"));
-        methodWatcher.executeUpdate(String.format("insert into t1(c2) values (IDENTITY_VAL_LOCAL())"));
-
-
-    }
 /*
     @Test
     public void testSparkSequenceGenerationWithCreateAndDrops() throws Exception {

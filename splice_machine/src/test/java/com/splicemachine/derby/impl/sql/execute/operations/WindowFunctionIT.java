@@ -2429,7 +2429,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
 
     // TODO : difference of precision, need to be // FIXME: 10/12/16
-    @Test @Ignore //Tracked by SPLICE-2038
+    @Test @Ignore("Tracked by SPLICE-2038")
     public void testMediaForDept() throws Exception {
         // DB-1650, DB-2020
         String sqlText = String.format("SELECT %1$s.Nome_Dep, %2$s.Nome AS Funcionario, %2$s.Salario, " +
@@ -2448,12 +2448,12 @@ public class WindowFunctionIT extends SpliceUnitTest {
                         "----------------------------------------------------------------------------------------\n" +
                         "Recursos Humanos |   Luciano   |23500.00 |      14166.3333       |       0.0000        |\n" +
                         "Recursos Humanos |  Zavaschi   |13999.00 |      14166.3333       |       0.0000        |\n" +
-                        "       IT        |   Nogare    |11999.00 |       5499.6667       |       0.0000        |\n" +
+                        "       IT        |   Nogare    |11999.00 |       5499.6666       |       0.0000        |\n" +
                         "     Vendas      |    Diego    | 9000.00 |       4500.0000       |       0.0000        |\n" +
                         "Recursos Humanos |   Laerte    | 5000.00 |      14166.3333       |       0.0000        |\n" +
-                        "       IT        |  Ferreira   | 2500.00 |       5499.6667       |       0.0000        |\n" +
+                        "       IT        |  Ferreira   | 2500.00 |       5499.6666       |       0.0000        |\n" +
                         "     Vendas      |   Amorim    | 2500.00 |       4500.0000       |       0.0000        |\n" +
-                        "       IT        |   Felipe    | 2000.00 |       5499.6667       |       0.0000        |\n" +
+                        "       IT        |   Felipe    | 2000.00 |       5499.6666       |       0.0000        |\n" +
                         "     Vendas      |   Fabiano   | 2000.00 |       4500.0000       |       0.0000        |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
