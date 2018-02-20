@@ -36,7 +36,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.SMRecordReaderImpl;
 
-@Ignore //Track by SPLICE-2046
+@Ignore("Track by SPLICE-2046")
 public class SMRecordReaderImplIT extends BaseMRIOTest {
     private static final Logger LOG = Logger.getLogger(SMRecordReaderImplIT.class);
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
