@@ -20,7 +20,6 @@ import java.io.ObjectOutput;
 import java.io.OutputStream;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.concurrent.atomic.AtomicLong;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLLongint;
@@ -29,11 +28,9 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.function.SpliceFunction2;
@@ -41,8 +38,7 @@ import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.ByteDataOutput;
-import org.apache.spark.scheduler.SparkListener;
-import org.apache.spark.scheduler.SparkListenerTaskEnd;
+import org.apache.spark.util.LongAccumulator;
 
 /**
  * @author Scott Fines
@@ -98,22 +94,15 @@ public class SparkExportDataSetWriter<V> implements DataSetWriter{
         job.setOutputFormatClass(SparkDataSet.EOutputFormat.class);
         job.getConfiguration().set("mapred.output.dir",directory);
 
-        SparkContext context = rdd.context();
-        AtomicLong writtenRows = new AtomicLong(0);
-        context.addSparkListener(new SparkListener() {
-            @Override
-            public void onTaskEnd(SparkListenerTaskEnd taskEnd) {
-                writtenRows.getAndAdd(taskEnd.taskMetrics().outputMetrics().recordsWritten());
-            }
-        });
-
-        rdd.keyBy(new NullFunction<V>())
-            .setName(String.format("Export Directory: %s", directory))
-            .saveAsNewAPIHadoopDataset(job.getConfiguration());
+        CountFunction countFunction = new CountFunction<>();
+        rdd.map(countFunction)
+                .keyBy(new NullFunction<V>())
+                .setName(String.format("Export Directory: %s", directory))
+                .saveAsNewAPIHadoopDataset(job.getConfiguration());
 
         long end = System.currentTimeMillis();
         ValueRow valueRow=new ValueRow(2);
-        valueRow.setColumn(1,new SQLLongint(writtenRows.get()));
+        valueRow.setColumn(1,new SQLLongint(countFunction.getCount().value()));
         valueRow.setColumn(2,new SQLLongint(end-start));
         return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
     }
@@ -167,6 +156,24 @@ public class SparkExportDataSetWriter<V> implements DataSetWriter{
         @Override
         public Object call(V v) throws Exception{
             return null;
+        }
+    }
+
+    public static class CountFunction<V> implements org.apache.spark.api.java.function.Function<V, V>{
+        private LongAccumulator count = SpliceSpark.getContext().sc().longAccumulator("exported rows");
+
+        public CountFunction(){
+
+        }
+
+        @Override
+        public V call(V v) throws Exception{
+            count.add(1);
+            return v;
+        }
+
+        public LongAccumulator getCount() {
+            return count;
         }
     }
 }

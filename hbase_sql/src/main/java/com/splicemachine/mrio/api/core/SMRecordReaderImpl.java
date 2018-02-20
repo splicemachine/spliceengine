@@ -22,6 +22,8 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
+import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.derby.stream.spark.SparkOperationContext;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.primitives.Bytes;
@@ -31,6 +33,8 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
@@ -61,6 +65,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 	private List<AutoCloseable> closeables = new ArrayList<>();
     private boolean statisticsRun = false;
 	private Txn localTxn;
+	private ActivationHolder activationHolder;
 	private volatile boolean closed = false;
 	private String closeExceptionString;
 	private InputSplit split;
@@ -85,12 +90,17 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 			SpliceLogUtils.debug(LOG, "init");
 		TaskContext.get().addTaskFailureListener(this);
 		String tableScannerAsString = config.get(MRConstants.SPLICE_SCAN_INFO);
+		String operationContextAsString = config.get(MRConstants.SPLICE_OPERATION_CONTEXT);
         if (tableScannerAsString == null)
 			throw new IOException("splice scan info was not serialized to task, failing");
 		byte[] scanStartKey = null;
 		byte[] scanStopKey = null;
 		try {
 			builder = TableScannerBuilder.getTableScannerBuilderFromBase64String(tableScannerAsString);
+			SparkOperationContext operationContext = null;
+			if (operationContextAsString != null) {
+				operationContext = (SparkOperationContext) SerializationUtils.deserialize(Base64.decodeBase64(operationContextAsString));
+			}
 			if (LOG.isTraceEnabled())
 				SpliceLogUtils.trace(LOG, "config loaded builder=%s", builder);
 			TableSplit tSplit = ((SMSplit) split).getSplit();
@@ -109,6 +119,12 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 			// TODO (wjk): this seems weird (added with DB-4483)
 			this.statisticsRun = AbstractSMInputFormat.oneSplitPerRegion(config);
 			restart(scan.getStartKey());
+
+			if (operationContext != null) {
+				activationHolder = operationContext.getActivationHolder();
+				if (activationHolder != null)
+					activationHolder.reinitialize(null);
+			}
 		} catch (IOException ioe) {
 			LOG.error(String.format("Received exception with scan %s, original start key %s, original stop key %s, split %s",
 					scan, Bytes.toStringBinary(scanStartKey), Bytes.toStringBinary(scanStopKey), split), ioe);
@@ -174,6 +190,9 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 					}
 					lastThrown = ioe;
 				}
+			}
+			if (activationHolder != null) {
+				activationHolder.close();
 			}
 
 			for (AutoCloseable c : closeables) {

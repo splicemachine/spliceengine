@@ -48,6 +48,8 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.splicemachine.db.impl.sql.execute.BasicPrivilegeInfo.MODIFY_ACTION;
+
 /**
  * This class represents a set of privileges on one table and schema.
  */
@@ -59,6 +61,7 @@ public class BasicPrivilegesNode extends QueryTreeNode
 	private TableDescriptor td;  
 	private SchemaDescriptor sd;
 	private List descriptorList;
+	private boolean isAll = false;
 	
 	/**
 	 * Add all actions
@@ -70,6 +73,7 @@ public class BasicPrivilegesNode extends QueryTreeNode
 			actionAllowed[i] = true;
 			columnLists[i] = null;
 		}
+		isAll = true;
 	} // end of addAll
 
 	/**
@@ -91,6 +95,12 @@ public class BasicPrivilegesNode extends QueryTreeNode
 			columnLists[ action].appendResultColumns( privilegeColumnList, false);
 	} // end of addAction
 
+	public void removeAction(int action) {
+		actionAllowed[action] = false;
+		if (columnLists[action] != null)
+			columnLists[action] = null;
+		return;
+	}
 	/**
 	 * Bind.
 	 *
@@ -195,6 +205,13 @@ public class BasicPrivilegesNode extends QueryTreeNode
 				}	   
 		}
 	}
-	
+
+	public boolean modifyActionAllowed() {
+		return actionAllowed[MODIFY_ACTION];
+	}
+
+	public boolean getIsAll() {
+		return isAll;
+	}
 }
 	
