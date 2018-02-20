@@ -865,7 +865,7 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "  2  |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
-    @Test @Ignore //Tracked by SPLICE-2047
+    @Test @Ignore("Tracked by SPLICE-2047")
     public void testWriteReadFromCompressedParquetExternalTable() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table compressed_parquet_test (col1 int, col2 varchar(24))" +
                 " COMPRESSED WITH SNAPPY STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"compressed_parquet_test"));
