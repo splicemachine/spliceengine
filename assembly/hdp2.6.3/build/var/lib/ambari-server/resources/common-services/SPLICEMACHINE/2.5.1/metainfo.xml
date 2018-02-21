@@ -53,6 +53,7 @@
                 <service>HDFS</service>
                 <service>YARN</service>
                 <service>ZOOKEEPER</service>
+                <service>SPARK2</service>
             </requiredServices>
         </service>
     </services>

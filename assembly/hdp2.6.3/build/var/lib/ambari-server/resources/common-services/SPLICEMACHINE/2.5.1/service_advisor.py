@@ -118,14 +118,6 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
       putZooProperty('maxClientCnxns',0)
       putZooProperty('maxSessionTimeout',120000)
 
-    if 'yarn-site' in services['configurations']:
-      yarn_site = services['configurations']['yarn-site']["properties"]
-      putYarnSiteProperty = self.putProperty(configurations,"yarn-site",services)
-      yarn_application_classpath = yarn_site['yarn.application.classpath'] + ',/var/lib/splicemachine/lib/'
-      yarn_nodemanager_aux_services_spark2_shuffle_classpath = yarn_site['yarn.nodemanager.aux-services.spark2_shuffle.classpath'] + ',/var/lib/splicemachine/lib/'
-      putYarnSiteProperty('yarn.application.classpath',yarn_application_classpath)
-      putYarnSiteProperty('yarn.nodemanager.aux-services.spark2_shuffle.classpath',yarn_nodemanager_aux_services_spark2_shuffle_classpath)
-
   def getServiceConfigurationsValidationItems(self, configurations, recommendedDefaults, services, hosts):
       print "getServiceConfigurationsValidationItems"
       return []

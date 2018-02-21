@@ -75,7 +75,7 @@
 +  <property><name>hbase.regionserver.hlog.blocksize</name><value>134217728</value></property>
 +  <property><name>hbase.regionserver.logroll.period</name><value>3600000</value></property>
 +  <property><name>hbase.regionserver.maxlogs</name><value>48</value></property>
-+  <property><name>hbase.regionserver.metahandler.count</name><value>10</value></property>
++  <property><name>hbase.regionserver.metahandler.count</name><value>200</value></property>
 +  <property><name>hbase.regionserver.msginterval</name><value>3000</value></property>
 +  <property><name>hbase.regionserver.nbreservationblocks</name><value>4</value></property>
 +  <property><name>hbase.regionserver.optionallogflushinterval</name><value>1000</value></property>
