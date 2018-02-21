@@ -244,9 +244,8 @@ public class SpliceDatabase extends BasicDatabase{
         String authenticationLDAPSearchFilter = config.getAuthenticationLdapSearchfilter();
         String authenticationLDAPServer = config.getAuthenticationLdapServer();
         SpliceLogUtils.info(LOG,"using LDAP to authorize Splice Machine with "+
-                        "{ldap={searchAuthDN=%s,searchAuthPW=%s,searchBase=%s, searchFilter=%s}}",
+                        "{ldap={searchAuthDN=%s,searchBase=%s, searchFilter=%s}}",
                 authenticationLDAPSearchAuthDN,
-                authenticationLDAPSearchAuthPW,
                 authenticationLDAPSearchBase,
                 authenticationLDAPSearchFilter);
         System.setProperty("derby.authentication.provider", Property.AUTHENTICATION_PROVIDER_LDAP);
