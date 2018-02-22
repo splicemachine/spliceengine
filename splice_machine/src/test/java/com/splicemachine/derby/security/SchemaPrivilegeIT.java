@@ -39,10 +39,12 @@ public class SchemaPrivilegeIT {
 
     private static final String SCHEMA1 = "MAIN_SCH";
     private static final String SECOND_SCHEMA = "SECOND_SCH";
+    private static final String THIRD_SCHEMA = "THIRD_SCH";
 
     private static final String TABLE = "Y";
     private static final String TABLE2 = "Z";
     private static final String IX_TABLE2 = "IX_Z";
+    private static final String TABLE3 = "CDL";
 
 
 
@@ -60,6 +62,7 @@ public class SchemaPrivilegeIT {
     private static SpliceWatcher        spliceClassWatcherAdmin = new SpliceWatcher();
     private static SpliceSchemaWatcher  spliceSchemaWatcher1 = new SpliceSchemaWatcher(SCHEMA1);
     private static SpliceSchemaWatcher  spliceSchemaWatcherUser3 = new SpliceSchemaWatcher(SECOND_SCHEMA,USER3);
+    private static SpliceSchemaWatcher  spliceSchema3WatcherUser3 = new SpliceSchemaWatcher(THIRD_SCHEMA,USER3);
     private static SpliceUserWatcher    spliceUserWatcher1 = new SpliceUserWatcher(USER1, PASSWORD1);
     private static SpliceUserWatcher    spliceUserWatcher2 = new SpliceUserWatcher(USER2, PASSWORD2);
     private static SpliceUserWatcher    spliceUserWatcher3 = new SpliceUserWatcher(USER3, PASSWORD3);
@@ -69,7 +72,7 @@ public class SchemaPrivilegeIT {
     private static SpliceTableWatcher   table2Watcher = new SpliceTableWatcher(TABLE2, SCHEMA1,"(a int PRIMARY KEY, b int, c int)" );
     private static SpliceIndexWatcher   index2Watcher = new SpliceIndexWatcher(TABLE2, SCHEMA1, IX_TABLE2, SCHEMA1, "(b, c)");
     private static SpliceTableWatcher   tableWatcherUser3 = new SpliceTableWatcher(TABLE, SECOND_SCHEMA,"(a int PRIMARY KEY, b int, c int)" );
-
+    private static SpliceTableWatcher   table3WatcherUser3 = new SpliceTableWatcher(TABLE3, THIRD_SCHEMA,"(a int PRIMARY KEY, b int, c int)" );
     @Rule
     public  TestRule chain =
             RuleChain.outerRule(spliceClassWatcherAdmin)
@@ -80,10 +83,12 @@ public class SchemaPrivilegeIT {
             .around(spliceRoleWatcher2)
             .around(spliceSchemaWatcher1)
             .around(spliceSchemaWatcherUser3)
+            .around(spliceSchema3WatcherUser3)
             .around(tableWatcher)
             .around(table2Watcher)
             .around(index2Watcher)
-            .around(tableWatcherUser3);
+            .around(tableWatcherUser3)
+            .around(table3WatcherUser3);
 
     protected static TestConnection adminConn;
     protected static TestConnection user1Conn;
@@ -121,6 +126,7 @@ public class SchemaPrivilegeIT {
         adminConn.execute( format("insert into %s.%s values ( 1, 2, 3)", SCHEMA1, TABLE ) );
         adminConn.execute( format("insert into %s.%s values ( 1, 2, 3)", SCHEMA1, TABLE2 ) );
         user3Conn.execute( format("insert into %s.%s values ( 1, 2, 3)", SECOND_SCHEMA, TABLE ) );
+        user3Conn.execute(format("insert into %s.%s values ( 4, 5, 6)", THIRD_SCHEMA, TABLE3 ));
     }
 
     @Test
@@ -1274,5 +1280,26 @@ public class SchemaPrivilegeIT {
         String query =  format("GRANT ALL PRIVILEGES ON TABLE %s.%s TO %s", SECOND_SCHEMA,TABLE,USER2  );
         assertFailed(user2Conn, query, SQLState.AUTH_NOT_OWNER);
 
+    }
+
+    @Test
+    public void testUpdateSchemaOwner() throws Exception {
+        ResultSet rs = null;
+        // step 1: user 3 is owner of schema3, so it can select from schema3 from conn3, but user1 and user2 cannot
+        String query = format("SELECT * from %s.%s", THIRD_SCHEMA,TABLE3);
+        rs = user3Conn.query(query);
+        assertEquals("Expected to be have all privileges", 1, resultSetSize(rs));
+        assertFailed(user1Conn, query, SQLState.AUTH_NO_COLUMN_PERMISSION);
+        assertFailed(user2Conn, query, SQLState.AUTH_NO_COLUMN_PERMISSION);
+
+        // step 2: change the owner of schema3 to user1
+        String query2 = format("CALL SYSCS_UTIL.SYSCS_UPDATE_SCHEMA_OWNER('%s','%s')", THIRD_SCHEMA, USER1);
+        adminConn.execute(query2);
+
+        // step 3: user 1can now select from schema3, but user3 can no longer select, user2 still cannot select
+        rs = user1Conn.query(query);
+        assertEquals("Expected to be have all privileges", 1, resultSetSize(rs));
+        assertFailed(user3Conn, query, SQLState.AUTH_NO_COLUMN_PERMISSION);
+        assertFailed(user2Conn, query, SQLState.AUTH_NO_COLUMN_PERMISSION);
     }
 }
