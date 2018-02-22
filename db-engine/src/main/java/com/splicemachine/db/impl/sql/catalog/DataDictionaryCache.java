@@ -156,6 +156,12 @@ public class DataDictionaryCache {
         return td;
     }
 
+    public void clearNameTdCache() throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("clearNameTdCache ");
+        nameTdCache.invalidateAll();
+    }
+
     public TableDescriptor oidTdCacheFind(UUID tableID) throws StandardException {
         if (!dd.canReadCache(null))
             return null;

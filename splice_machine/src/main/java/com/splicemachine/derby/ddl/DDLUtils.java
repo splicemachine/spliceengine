@@ -385,6 +385,7 @@ public class DDLUtils {
         dd.getDataDictionaryCache().clearPermissionCache();
         // clear  TableDescriptor cache as it may reference the schema with an out-of-date authorization id
         dd.getDataDictionaryCache().clearOidTdCache();
+        dd.getDataDictionaryCache().clearNameTdCache();
     }
 
     public static void preCreateIndex(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {

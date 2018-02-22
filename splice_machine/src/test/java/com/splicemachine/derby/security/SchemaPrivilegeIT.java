@@ -17,8 +17,12 @@ package com.splicemachine.derby.security;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test.SlowTest;
-import org.junit.*;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -94,6 +98,9 @@ public class SchemaPrivilegeIT {
     protected static TestConnection user1Conn;
     protected static TestConnection user2Conn;
     protected static TestConnection user3Conn;
+    protected static TestConnection user1Conn2;
+    protected static TestConnection user2Conn2;
+    protected static TestConnection user3Conn2;
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -119,6 +126,8 @@ public class SchemaPrivilegeIT {
 
     @Before
     public  void setUpClass() throws Exception {
+        String remoteURLTemplate = "jdbc:splice://localhost:1528/splicedb;create=true;user=%s;password=%s";
+
         adminConn = spliceClassWatcherAdmin.createConnection();
         user1Conn = spliceClassWatcherAdmin.createConnection(USER1, PASSWORD1);
         user2Conn = spliceClassWatcherAdmin.createConnection(USER2, PASSWORD2);
@@ -127,6 +136,9 @@ public class SchemaPrivilegeIT {
         adminConn.execute( format("insert into %s.%s values ( 1, 2, 3)", SCHEMA1, TABLE2 ) );
         user3Conn.execute( format("insert into %s.%s values ( 1, 2, 3)", SECOND_SCHEMA, TABLE ) );
         user3Conn.execute(format("insert into %s.%s values ( 4, 5, 6)", THIRD_SCHEMA, TABLE3 ));
+        user1Conn2 = spliceClassWatcherAdmin.createConnection(remoteURLTemplate, USER1, PASSWORD1);
+        user2Conn2 = spliceClassWatcherAdmin.createConnection(remoteURLTemplate, USER2, PASSWORD2);
+        user3Conn2 = spliceClassWatcherAdmin.createConnection(remoteURLTemplate, USER3, PASSWORD3);
     }
 
     @Test
@@ -1283,23 +1295,40 @@ public class SchemaPrivilegeIT {
     }
 
     @Test
+    @Category(HBaseTest.class)
     public void testUpdateSchemaOwner() throws Exception {
         ResultSet rs = null;
         // step 1: user 3 is owner of schema3, so it can select from schema3 from conn3, but user1 and user2 cannot
         String query = format("SELECT * from %s.%s", THIRD_SCHEMA,TABLE3);
         rs = user3Conn.query(query);
         assertEquals("Expected to be have all privileges", 1, resultSetSize(rs));
+        rs.close();
         assertFailed(user1Conn, query, SQLState.AUTH_NO_COLUMN_PERMISSION);
         assertFailed(user2Conn, query, SQLState.AUTH_NO_COLUMN_PERMISSION);
+
+        // step 1-2: select on another region server, , it should behave the same
+        rs = user3Conn2.query(query);
+        assertEquals("Expected to be have all privileges", 1, resultSetSize(rs));
+        rs.close();
+        assertFailed(user1Conn2, query, SQLState.AUTH_NO_COLUMN_PERMISSION);
+        assertFailed(user2Conn2, query, SQLState.AUTH_NO_COLUMN_PERMISSION);
 
         // step 2: change the owner of schema3 to user1
         String query2 = format("CALL SYSCS_UTIL.SYSCS_UPDATE_SCHEMA_OWNER('%s','%s')", THIRD_SCHEMA, USER1);
         adminConn.execute(query2);
 
-        // step 3: user 1can now select from schema3, but user3 can no longer select, user2 still cannot select
+        // step 3: user1 can now select from schema3, but user3 can no longer select, user2 still cannot select
         rs = user1Conn.query(query);
         assertEquals("Expected to be have all privileges", 1, resultSetSize(rs));
+        rs.close();
         assertFailed(user3Conn, query, SQLState.AUTH_NO_COLUMN_PERMISSION);
         assertFailed(user2Conn, query, SQLState.AUTH_NO_COLUMN_PERMISSION);
+
+        // step 3-2: select on another region server, it should behave the same
+        rs = user1Conn2.query(query);
+        assertEquals("Expected to be have all privileges", 1, resultSetSize(rs));
+        rs.close();
+        assertFailed(user3Conn2, query, SQLState.AUTH_NO_COLUMN_PERMISSION);
+        assertFailed(user2Conn2, query, SQLState.AUTH_NO_COLUMN_PERMISSION);
     }
 }
