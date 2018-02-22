@@ -14,27 +14,16 @@
 
 package com.splicemachine.derby.ddl;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
 import com.carrotsearch.hppc.BitSet;
-import com.splicemachine.db.iapi.services.loader.ClassFactory;
-import com.splicemachine.db.iapi.sql.dictionary.*;
-import org.apache.log4j.Logger;
-
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
@@ -59,6 +48,12 @@ import com.splicemachine.storage.DataScan;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
+
+import java.io.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by jleach on 11/12/15.
@@ -380,6 +375,17 @@ public class DDLUtils {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preDropSchema with change=%s",change);
         dd.getDataDictionaryCache().schemaCacheRemove(change.getDropSchema().getSchemaName());
+    }
+
+    public static void preUpdateSchemaOwner(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preUpdateSchemaOwner with change=%s",change);
+        dd.getDataDictionaryCache().schemaCacheRemove(change.getUpdateSchemaOwner().getSchemaName());
+        // clear permission cache as it has out-of-date permission info for the schema
+        dd.getDataDictionaryCache().clearPermissionCache();
+        // clear  TableDescriptor cache as it may reference the schema with an out-of-date authorization id
+        dd.getDataDictionaryCache().clearOidTdCache();
+        dd.getDataDictionaryCache().clearNameTdCache();
     }
 
     public static void preCreateIndex(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {

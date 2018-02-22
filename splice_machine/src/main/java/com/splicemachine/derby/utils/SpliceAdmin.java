@@ -1109,7 +1109,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 throw StandardException.newException(String.format("User '%s' does not exist.", ownerName));
             }
             ((DataDictionaryImpl)dd).updateSchemaAuth(schemaName, ownerName, tc);
-            DDLMessage.DDLChange ddlChange = ProtoUtil.createDropSchema(tc.getActiveStateTxn().getTxnId(), schemaName);
+            DDLMessage.DDLChange ddlChange = ProtoUtil.createUpdateSchemaOwner(tc.getActiveStateTxn().getTxnId(), schemaName, ownerName);
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
