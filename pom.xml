@@ -552,9 +552,9 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>2.19</version>
 		    <configuration>
-                       <forkCount>3</forkCount>
+                       <forkCount>6</forkCount>
                        <reuseForks>true</reuseForks>
-                       <argLine>-Xmx1024m -XX:MaxPermSize=256m</argLine>
+                       <argLine>-Xmx10240m -XX:MaxPermSize=1024m</argLine>
                     </configuration>
                 </plugin>
                 <plugin>
