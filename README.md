@@ -1,4 +1,14 @@
-# Splice Machine SQL Engine
+
+<p align="left">
+  <img src="https://www.splicemachine.com/wp-content/themes/SpliceMachine/nhimages/splice-logo.png" width="250"/>
+</p>
+[__Install on Cloudera__](https://doc.splicemachine.com/onprem_install_cloudera.html) |
+[__Install on HDP__](https://doc.splicemachine.com/onprem_install_hortonworks.html) |
+[__Install on MapR__](https://doc.splicemachine.com/onprem_install_mapr.html) |
+[__Developer Setup__](GETTING-STARTED.md) |
+[__Quick Start__](README.md#quick-start) |
+[__Contributing__](CONTRIBUTING.md) |
+[__Slack__](https://splicemachine.slack.com/messages/splice-community/)
 
 Before proceeding with these instructions, please follow the instructions found in the GETTING-STARTED.md file.
 

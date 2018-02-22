@@ -173,17 +173,6 @@
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-network-common_${scala.binary.version}</artifactId>
-            <version>${spark.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.scalatest</groupId>
-                    <artifactId>scalatest_${scala.binary.version}</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.spark</groupId>
             <artifactId>spark-hive_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
             <exclusions>
@@ -251,16 +240,6 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>splice_machine</artifactId>
             <version>${project.version}</version>
-            <exclusions>
-                <exclusion>
-                    <artifactId>hadoop-common</artifactId>
-                    <groupId>org.apache.hadoop</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>hbase-common</artifactId>
-                    <groupId>org.apache.hbase</groupId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.hbase</groupId>
@@ -346,13 +325,19 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>hbase_pipeline-${envClassifier}</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-network-common_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
             <exclusions>
                 <exclusion>
-                    <groupId>org.jboss.netty</groupId>
-                    <artifactId>netty</artifactId>
+                    <groupId>org.scalatest</groupId>
+                    <artifactId>scalatest_${scala.binary.version}</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
+
         <dependency>
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-client</artifactId>
@@ -437,6 +422,10 @@
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-core</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.mortbay.jetty</groupId>
+                    <artifactId>servlet-api</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -451,6 +440,10 @@
                 <exclusion>
                     <groupId>asm</groupId>
                     <artifactId>asm</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>javax.servlet</groupId>
+                    <artifactId>servlet-api</artifactId>
                 </exclusion>
                 <exclusion>
                     <artifactId>hive-common</artifactId>
@@ -622,61 +615,12 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <configuration>
-                    <artifactSet>
-                        <includes>
-                            <include>io.netty:netty-all</include>
-                            <!-- <include>com.typesafe.akka:akka-remote_${scala.binary.version}</include> -->
-                        </includes>
-                    </artifactSet>
-                    <filters>
-                        <filter>
-                            <artifact>*:*</artifact>
-                            <excludes>
-                                <exclude>META-INF/*.SF</exclude>
-                                <exclude>META-INF/*.DSA</exclude>
-                                <exclude>META-INF/*.RSA</exclude>
-                            </excludes>
-                        </filter>
-                    </filters>
-                    <relocations>
-                        <relocation>
-                            <pattern>io.netty</pattern>
-                            <shadedPattern>org.spark_project.io.netty</shadedPattern>
-                            <includes>
-                                <include>io.netty.**</include>
-                            </includes>
-                        </relocation>
-                        <!-- <relocation>
-                    <pattern>akka.remote</pattern>
-                    <shadedPattern>splice.akka.remote</shadedPattern>
-                    <includes>
-                        <include>akka.remote.**</include>
-                    </includes>
-                </relocation> -->
-                    </relocations>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <configuration>
                     <excludes>
                         <exclude>**/com/splicemachine/backup/*</exclude>
                         <exclude>**/core-site.xml</exclude>
-                        <exclude>**/hbase-site.xml</exclude>
-                        <exclude>**/splice-site.xml</exclude>
                         <exclude>**/yarn-site.xml</exclude>
-                        <exclude>**/fairscheduler.xml</exclude>
                     </excludes>
                 </configuration>
                 <executions>
@@ -943,9 +887,28 @@
                         <configuration>
                             <sources>
                                 <source>${envHbase}/src/test/java</source>
+                                <source>spark${spark.version}/src/test/java</source>
                             </sources>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>add-platform-test-resource</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-test-resource</goal>
+                        </goals>
+                        <configuration>
+                            <resources>
+                                <resource>
+                                    <directory>${envHbase}/src/test/resources</directory>
+                                </resource>
+                                <resource>
+                                    <directory>spark${spark.version}/src/test/resources</directory>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+
                 </executions>
             </plugin>
         </plugins>
@@ -1209,7 +1172,7 @@
                                 </argument>
                                 <argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
                                 <argument>-Dsplice.spark.executor.instances=1</argument>
-                                <argument>-Dsplice.spark.executor.memory=2g</argument>
+                                <argument>-Dsplice.spark.executor.memory=2000M</argument>
                                 <argument>-Dsplice.spark.io.compression.lz4.blockSize=32k</argument>
                                 <argument>-Dspark.broadcast.compress=true</argument>
                                 <argument>-Dsplice.spark.kryo.referenceTracking=false</argument>
@@ -1227,9 +1190,17 @@
                                 <argument>-Dsplice.spark.scheduler.mode=FAIR</argument>
                                 <argument>-Dsplice.spark.serializer=com.splicemachine.serializer.SpliceKryoSerializer</argument>
                                 <argument>-Dsplice.spark.shuffle.compress=false</argument>
+                                <argument>-Dsplice.spark.driver.extraJavaOptions=
+                                    -Dhbase.rootdir=${project.build.directory}/hbase
+                                    -Dhdp.version=2.6.3
+                                    -enableassertions
+                                </argument>
+                                <argument>-Dsplice.spark.yarn.am.extraJavaOptions=
+                                    -Dhdp.version=2.6.3
+                                </argument>
                                 <argument>-Dsplice.spark.executor.extraJavaOptions=
                                     -Dhbase.rootdir=${project.build.directory}/hbase
-                                    -Dlog4j.configuration=${log4j.config.uri}
+                                    -Dhdp.version=2.6.3
                                     -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020
                                     -enableassertions
                                     ${jacocoAgent}
