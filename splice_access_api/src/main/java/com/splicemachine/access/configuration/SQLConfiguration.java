@@ -103,11 +103,11 @@ public class SQLConfiguration implements ConfigurationDefault {
     private static final int DEFAULT_BROADCAST_REGION_MB_THRESHOLD = 100;
 
     /**
-     * Threshold in rows for the broadcast join region size.  Default is 1 Million Rows
+     * Threshold in rows for the broadcast join region size.
      *
      */
     public static final String BROADCAST_REGION_ROW_THRESHOLD = "splice.optimizer.broadcastRegionRowThreshold";
-    private static final int DEFAULT_BROADCAST_REGION_ROW_THRESHOLD = 1000000;
+    private static final int DEFAULT_BROADCAST_REGION_ROW_THRESHOLD = 50000;
 
     /**
      * Threshold in cost for the broadcast Dataset implementation.  Default is 10000 (~ 10s, more than that and the subtree
