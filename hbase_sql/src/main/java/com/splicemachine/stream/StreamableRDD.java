@@ -60,7 +60,7 @@ public class StreamableRDD<T> {
     private final UUID uuid;
     private final OperationContext<?> context;
     private OlapStatus jobStatus;
-    private BlockingQueue<Future<Object>> futures = new LinkedBlockingDeque<>();
+    private BlockingQueue<Future<Object>> futures = new LinkedBlockingQueue<>();
 
 
     StreamableRDD(JavaRDD<T> rdd, UUID uuid, String clientHost, int clientPort) {
@@ -111,7 +111,7 @@ public class StreamableRDD<T> {
                         }
                         
                         try {
-                            result = resultFuture.get(10, TimeUnit.SECONDS);;
+                            result = resultFuture.get(10, TimeUnit.SECONDS);
                         } catch (TimeoutException ex) {
                             // retry loop, checking job status
                         }
