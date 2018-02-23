@@ -169,6 +169,11 @@ message RevokePrivilege {
         optional RevokeSchemaPrivilege  revokeSchemaPrivilege = 6;
 }
 
+message UpdateSchemaOwner {
+        required string schemaName = 1;
+        required string ownerName = 2;
+}
+
 message TentativeFK {
         optional int64 baseConglomerate = 1;
         optional int64 conglomerate = 2;
@@ -320,6 +325,7 @@ enum DDLChangeType {
     NOTIFY_MODIFY_CLASSPATH = 35;
     REFRESH_ENTRPRISE_FEATURES = 36;
     CREATE_ROLE = 37;
+    UPDATE_SCHEMA_OWNER=38;
 }
 
 message DDLChange {
@@ -357,4 +363,5 @@ message DDLChange {
     optional NotifyModifyClasspath notifyModifyClasspath = 32;
     optional RefreshEnterpriseFeatures refreshEnterpriseFeatures = 33;
     optional CreateRole createRole = 34;
+    optional UpdateSchemaOwner updateSchemaOwner = 35;
 }
