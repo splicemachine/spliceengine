@@ -14,20 +14,19 @@
 
 package com.splicemachine.derby.test.framework;
 
-import com.splicemachine.derby.utils.ConglomerateUtils;
-import org.spark_project.guava.collect.Lists;
 import org.apache.log4j.Logger;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.junit.runners.model.MultipleFailureException;
+import org.spark_project.guava.collect.Lists;
 
 import java.sql.*;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import static org.spark_project.guava.base.Strings.isNullOrEmpty;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.spark_project.guava.base.Strings.isNullOrEmpty;
 
 /**
  * A TestWatcher that provides Connections, Statements, and ResultSets and then closes them when finished() is called.
@@ -94,6 +93,15 @@ public class SpliceWatcher extends TestWatcher {
      */
     public TestConnection createConnection(String userName, String password) throws Exception {
         currentConnection = new TestConnection(SpliceNetConnection.getConnectionAs(userName, password));
+        connections.add(currentConnection);
+        if (!isNullOrEmpty(defaultSchema)) {
+            setSchema(defaultSchema);
+        }
+        return currentConnection;
+    }
+
+    public TestConnection createConnection(String providedURL, String userName, String password) throws Exception {
+        currentConnection = new TestConnection(SpliceNetConnection.getConnectionAs(providedURL, userName, password));
         connections.add(currentConnection);
         if (!isNullOrEmpty(defaultSchema)) {
             setSchema(defaultSchema);
