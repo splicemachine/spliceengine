@@ -31,10 +31,11 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
-import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.services.io.StreamStorable;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.io.StreamStorable;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
@@ -42,17 +43,8 @@ import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.RowChanger;
 import com.splicemachine.db.iapi.sql.execute.TupleFilter;
-import com.splicemachine.db.iapi.sql.Activation;
-
-import com.splicemachine.db.iapi.store.access.ConglomerateController;
-import com.splicemachine.db.iapi.store.access.DynamicCompiledOpenConglomInfo;
-import com.splicemachine.db.iapi.store.access.Qualifier;
-import com.splicemachine.db.iapi.store.access.ScanController;
-import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
-import com.splicemachine.db.iapi.store.access.TransactionController;
-
+import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-
 import com.splicemachine.db.iapi.types.RowLocation;
 
 import java.util.ArrayList;
@@ -132,7 +124,7 @@ public class TabInfoImpl
      *
      * @return long     The conglomerate for the specified index.
      */
-    long getIndexConglomerate(int indexID)
+    public long getIndexConglomerate(int indexID)
     {
         if (SanityManager.DEBUG)
         {
@@ -302,7 +294,7 @@ public class TabInfoImpl
      *
      * @return IndexRowGenerator    The IRG for the specified index number.
      */
-    IndexRowGenerator getIndexRowGenerator(int indexNumber)
+    public IndexRowGenerator getIndexRowGenerator(int indexNumber)
     {
         if (SanityManager.DEBUG)
         {
@@ -544,6 +536,54 @@ public class TabInfoImpl
         return	retCode;
     }
 
+    public int insertIndexRowListImpl(ExecRow[] rowList,
+                                      RowLocation[] rowLocationList,
+                                      TransactionController tc,
+                                      int ictr, // index number
+                                      int numRows)
+            throws StandardException
+    {
+        int							insertRetCode;
+        int							retCode = ROWNOTDUPLICATE;
+        int							indexCount = crf.getNumIndexes();
+        ConglomerateController	indexController = null;
+
+        // Open the conglomerates
+        long conglomNumber = getIndexConglomerate(ictr);
+        if (conglomNumber > -1) {
+            indexController =
+                    tc.openConglomerate(
+                            conglomNumber,
+                            false,
+                            TransactionController.OPENMODE_FORUPDATE,
+                            TransactionController.MODE_RECORD,
+                            TransactionController.ISOLATION_REPEATABLE_READ);
+        }
+
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(indexController != null,
+                        "indexController is expected to be non-null");
+        }
+
+        // loop through rows on this list, inserting them into system table
+        List<ExecRow> indexRows = new ArrayList(numRows);
+        for (int rowNumber = 0; rowNumber < numRows; rowNumber++) {
+            // Get an index row based on the base row
+            indexRows.add(getIndexRowFromHeapRow(getIndexRowGenerator(ictr),
+                    rowLocationList[rowNumber],
+                    rowList[rowNumber]).getClone());
+        }
+        insertRetCode = indexController.batchInsert(indexRows);
+        if ( insertRetCode == ConglomerateController.ROWISDUPLICATE ) {
+            retCode = 1;
+        }
+
+        // Close the open conglomerates
+        indexController.close();
+
+        return	retCode;
+    }
 
     /**
      * Given a key row, delete all matching heap rows and their index

@@ -31,8 +31,9 @@
 
 package com.splicemachine.db.iapi.sql.conn;
 
-import java.lang.String;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+
+import java.util.List;
 
 /**
  * An implementation of this interface encapsulates some of the SQL
@@ -84,11 +85,6 @@ public interface SQLSessionContext {
     void setRole(String role);
 
     /**
-     * Get the SQL role of this SQL connection context
-     */
-    String getRole();
-
-    /**
      * Set the SQL current user of this SQL connection context
      */
     void setUser(String user);
@@ -107,4 +103,13 @@ public interface SQLSessionContext {
      * Get the schema of this SQL connection context
      */
     SchemaDescriptor getDefaultSchema();
+
+    /**
+     * Get the SQL roles of this SQL connection context
+     */
+    List<String> getRoles();
+
+    void setRoles(List<String> roles);
+
+    void removeRole(String roleName);
 }
