@@ -48,7 +48,7 @@ import static org.mockito.Mockito.when;
 /**
  * Basic concurrency testing on MemstoreAwareObserver
  */
-@Ignore
+@Ignore("Tracked by SPLICE-2048")
 public class MemstoreAwareObserverTest {
 
     private static final String REGION_NAME = "NetherRegion";

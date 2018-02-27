@@ -31,7 +31,7 @@ import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-@Ignore
+@Ignore("Tracked by SPLICE-2046")
 public class SpliceMemstoreKeyValueScannerIT extends BaseMRIOTest{
     private static final Logger LOG = Logger.getLogger(SpliceMemstoreKeyValueScannerIT.class);
     protected static String SCHEMA_NAME=SpliceMemstoreKeyValueScannerIT.class.getSimpleName();
@@ -86,7 +86,7 @@ public class SpliceMemstoreKeyValueScannerIT extends BaseMRIOTest{
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
 	@Test
-	@Ignore
+	@Ignore("Tracked by SPLICE-2046")
 	public void testFlushHandling() throws SQLException, IOException, InterruptedException {
     	int i = 0;
     	HBaseAdmin admin = null;

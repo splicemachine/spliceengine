@@ -30,7 +30,7 @@ import java.sql.ResultSet;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
-@Ignore
+@Ignore("Tracked by SPLICE-2040")
 public class HashNestedLoopLeftOuterJoinOperationIT {
 
     private static final String CLASS_NAME = HashNestedLoopLeftOuterJoinOperationIT.class.getSimpleName().toUpperCase();

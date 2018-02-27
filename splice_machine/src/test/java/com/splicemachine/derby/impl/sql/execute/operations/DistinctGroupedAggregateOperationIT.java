@@ -81,7 +81,7 @@ public class DistinctGroupedAggregateOperationIT extends SpliceUnitTest {
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     @Test
-    @Ignore // TODO: ignore until we have real support for multiple distincts
+    // TODO: ignore until we have real support for multiple distincts
     public void testMultipleDistinctAggregates() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(format("select oid, sum(distinct quantity) as summation,count(distinct quantity) as count from %s group by oid",this.getTableReference(TABLE_NAME_1)));
         int j = 0;

@@ -244,9 +244,8 @@ public class SpliceDatabase extends BasicDatabase{
         String authenticationLDAPSearchFilter = config.getAuthenticationLdapSearchfilter();
         String authenticationLDAPServer = config.getAuthenticationLdapServer();
         SpliceLogUtils.info(LOG,"using LDAP to authorize Splice Machine with "+
-                        "{ldap={searchAuthDN=%s,searchAuthPW=%s,searchBase=%s, searchFilter=%s}}",
+                        "{ldap={searchAuthDN=%s,searchBase=%s, searchFilter=%s}}",
                 authenticationLDAPSearchAuthDN,
-                authenticationLDAPSearchAuthPW,
                 authenticationLDAPSearchBase,
                 authenticationLDAPSearchFilter);
         System.setProperty("derby.authentication.provider", Property.AUTHENTICATION_PROVIDER_LDAP);
@@ -359,6 +358,9 @@ public class SpliceDatabase extends BasicDatabase{
                         break;
                     case DROP_SCHEMA:
                         DDLUtils.preDropSchema(change,dataDictionary,dependencyManager);
+                        break;
+                    case UPDATE_SCHEMA_OWNER:
+                        DDLUtils.preUpdateSchemaOwner(change,dataDictionary,dependencyManager);
                         break;
                     case DROP_ROLE:
                         DDLUtils.preDropRole(change,dataDictionary,dependencyManager);

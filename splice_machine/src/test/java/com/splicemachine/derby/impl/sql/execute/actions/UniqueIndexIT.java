@@ -288,7 +288,7 @@ public class UniqueIndexIT extends SpliceUnitTest{
     }
 
     @Test
-    @Ignore("still failing as of Feb 29 2016")
+    @Ignore("still failing as of Feb 29 2016, tracked by SPLICE-2041")
     public void testRepeatedCanDeleteEntry() throws Exception{
         for(int i=0;i<100;i++){
             testCanDeleteEntry();

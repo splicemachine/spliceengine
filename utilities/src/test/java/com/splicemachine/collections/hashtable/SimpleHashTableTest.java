@@ -33,7 +33,7 @@ import java.util.Random;
  * @author Scott Fines
  *         Date: 10/8/14
  */
-@Ignore
+@Ignore("Tracked by SPLICE-2049")
 public class SimpleHashTableTest {
 
     @Test

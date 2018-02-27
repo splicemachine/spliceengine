@@ -99,7 +99,7 @@ public class SQLDecimalTest extends SQLDataValueDescriptorTest {
             }
         // TODO
         @Test
-        @Ignore
+        @Ignore("Tracked by SPLICE-2050")
         public void serdeKeyData() throws Exception {
                 SQLDecimal value1 = new SQLDecimal(new BigDecimal(100.0d));
                 SQLDecimal value2 = new SQLDecimal(new BigDecimal(200.0d));

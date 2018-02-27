@@ -25,7 +25,7 @@ import java.util.jar.Manifest;
 import static org.junit.Assert.assertEquals;
 
 @Category(ArchitectureIndependent.class)
-@Ignore("-sf- ignore until classpath issues can be resolved")
+@Ignore("-sf- ignore until classpath issues can be resolved, tracked by SPLICE-2034")
 public class ManifestFinderTest {
 
     @Test

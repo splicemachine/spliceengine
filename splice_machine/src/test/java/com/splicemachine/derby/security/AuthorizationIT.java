@@ -141,7 +141,7 @@ public class AuthorizationIT {
     }
 
     @Test
-    @Ignore("unknown reason")
+    @Ignore("unknown reason, tracked by SPLICE-2043")
     public void testCannotCreateRoleWithUserName() throws Exception {
         assertFailed(methodWatcher.getOrCreateConnection(), format("create role %s", USER2), null); // "X0Y68"?
     }

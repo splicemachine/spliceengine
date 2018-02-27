@@ -61,8 +61,8 @@ import static org.mockito.Mockito.when;
  * @author Scott Fines
  *         Date: 4/9/14
  */
-@Ignore
 @Category(ArchitectureSpecific.class)
+@Ignore("SHOULD be run in the equivalent architecture module")
 public class FixedSITableScannerTest{
 
     private OperationFactory opFactory;

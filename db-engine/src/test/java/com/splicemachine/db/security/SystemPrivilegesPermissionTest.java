@@ -300,7 +300,7 @@ public class SystemPrivilegesPermissionTest {
     /**
      * Tests DatabasePermission.
      */
-    @Ignore
+    @Ignore("Exception expected")
     @org.junit.Test
     public void testDatabasePermission() throws IOException {
         // test DatabasePermission with null url

@@ -39,7 +39,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-@Ignore
+@Ignore("Tracked by SPLICE-2046")
 public class ClientSideRegionScannerIT extends BaseMRIOTest{
     private static final Logger LOG=Logger.getLogger(ClientSideRegionScannerIT.class);
     protected static String SCHEMA_NAME=ClientSideRegionScannerIT.class.getSimpleName();
@@ -93,7 +93,7 @@ public class ClientSideRegionScannerIT extends BaseMRIOTest{
     public SpliceWatcher methodWatcher=new SpliceWatcher();
 
     @Test
-    @Ignore
+    @Ignore("Tracked by SPLICE-2046")
     public void validateAccurateRecordsWithStoreFileAndMemstore() throws SQLException, IOException, InterruptedException{
         int i=0;
         String tableName=sqlUtil.getConglomID(SCHEMA_NAME+".A");
