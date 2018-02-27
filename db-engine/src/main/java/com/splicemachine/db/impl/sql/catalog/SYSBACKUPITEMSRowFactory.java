@@ -68,7 +68,7 @@ public class SYSBACKUPITEMSRowFactory extends CatalogRowFactory {
             "a0527143-4f6e-42df-98ab-b1dff6bea7db",
             "a0527143-4f6c-42df-98ab-b1dff6bea7db",
             "a0527143-4f6d-42df-98ab-b1dff6bea7db",
-            "a0527143-4f6e-42df-98ab-b1dff6bea7db"
+            "a0527143-4f6b-42df-98ab-b1dff6bea7db"
     };
 
     public SYSBACKUPITEMSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf) {

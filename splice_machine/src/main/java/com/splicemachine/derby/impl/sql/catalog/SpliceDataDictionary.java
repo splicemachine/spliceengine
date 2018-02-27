@@ -30,9 +30,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.store.access.AccessFactory;
-import com.splicemachine.db.iapi.store.access.ColumnOrdering;
-import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.*;
@@ -55,10 +53,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.sql.Types;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * @author Scott Fines
@@ -897,5 +892,110 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
             SpliceLogUtils.info(LOG, "SYS.SYSSCHEMAPERMS upgraded: added columns: MODIFYPRIV.");
         }
+    }
+
+    public void upgradeSysRolesWithDefaultRoleColumn(TransactionController tc) throws StandardException {
+        SchemaDescriptor sd = getSystemSchemaDescriptor();
+        TableDescriptor td = getTableDescriptor(SYSROLESRowFactory.TABLENAME_STRING, sd, tc);
+        ColumnDescriptor cd = td.getColumnDescriptor("DEFAULTROLE");
+
+        // column already exists, no upgrade needed
+        if (cd != null)
+            return;
+
+        /**
+         * LOGIC below add the new column DEFAULTROLE to SYSROLES
+         */
+        tc.elevate("dictionary");
+        dropTableDescriptor(td, sd, tc);
+        td.setColumnSequence(td.getColumnSequence()+1);
+        // add the table descriptor with new name
+        addDescriptor(td,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc);
+
+        ColumnDescriptor columnDescriptor;
+        UUID uuid = getUUIDFactory().createUUID();
+
+        /**
+         *  Add the column DEFAULTROLE
+         */
+        DataValueDescriptor storableDV = getDataValueFactory().getNullChar(null);
+        int colNumber = td.getNumberOfColumns() + 1;
+        DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1);
+        tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
+
+        columnDescriptor = new ColumnDescriptor("DEFAULTROLE",colNumber,
+                colNumber,dtd,null,null,td,uuid,0,0,td.getColumnSequence());
+
+        addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+        // now add the column to the tables column descriptor list.
+        td.getColumnDescriptorList().add(columnDescriptor);
+        updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
+
+        /**
+         * LOGIC below create and populuate index on (GRANTEE, DEFAULTROLE)
+         */
+        DataDescriptorGenerator ddg=getDataDescriptorGenerator();
+        TabInfoImpl ti = getNonCoreTIByNumber(SYSROLES_CATALOG_NUM);
+        {
+            ConglomerateDescriptor[] cds=td.getConglomerateDescriptors();
+
+			/* Init the heap conglomerate here */
+            for(ConglomerateDescriptor conglomerateDescriptor : cds){
+
+                if(!conglomerateDescriptor.isIndex()){
+                    ti.setHeapConglomerate(conglomerateDescriptor.getConglomerateNumber());
+                    break;
+                }
+            }
+        }
+        ConglomerateDescriptor cgd = bootstrapOneIndex(systemSchemaDesc, tc, ddg, ti, SYSROLESRowFactory.SYSROLES_INDEX_EE_DEFAULT_IDX, ti.getHeapConglomerate());
+        addDescriptor(cgd,sd,SYSCONGLOMERATES_CATALOG_NUM,false,tc);
+
+        /* purge td dictionary cache as it may have the sysrole td without the new index info */
+        dataDictionaryCache.clearNameTdCache();
+        dataDictionaryCache.clearOidTdCache();
+
+        // scan the sysroles table
+        SYSROLESRowFactory rf=(SYSROLESRowFactory)ti.getCatalogRowFactory();
+        ExecRow outRow = rf.makeEmptyRow();
+        ScanController scanController=tc.openScan(
+                ti.getHeapConglomerate(),      // conglomerate to open
+                false,                          // don't hold open across commit
+                0,                              // for read
+                TransactionController.MODE_TABLE,
+                TransactionController.ISOLATION_REPEATABLE_READ,
+                null,               // all fields as objects
+                null, // start position - first row
+                0,                          // startSearchOperation - none
+                null,              // scanQualifier,
+                null, // stop position -through last row
+                0);                          // stopSearchOperation - none
+
+        int batch = 1024;
+        ExecRow[] rowList = new ExecRow[batch];
+        RowLocation[] rowLocationList = new RowLocation[batch];
+
+        try{
+            int i = 0;
+            while(scanController.fetchNext(outRow.getRowArray())){
+                rowList[i%batch] = outRow.getClone();
+                rowLocationList[i%batch] = scanController.newRowLocationTemplate();
+                scanController.fetchLocation(rowLocationList[i%batch]);
+                i++;
+                if (i % batch == 0) {
+                    ti.insertIndexRowListImpl(rowList, rowLocationList, tc, SYSROLESRowFactory.SYSROLES_INDEX_EE_DEFAULT_IDX, batch);
+                }
+            }
+            // insert last batch
+            if (i % batch > 0)
+                ti.insertIndexRowListImpl(rowList, rowLocationList, tc, SYSROLESRowFactory.SYSROLES_INDEX_EE_DEFAULT_IDX, i%batch);
+        }finally{
+            scanController.close();
+        }
+
+        // reset TI for sysroles in NonCoreTI array, as we only used the 4th index here, so inforamtion about the other
+        // 3 indexes is not fully populated. This TI should not be reused for future operations
+        clearNoncoreTable(SYSROLES_CATALOG_NUM-NUM_CORE);
+        SpliceLogUtils.info(LOG, "SYS.SYSROLES upgraded: added columns: DEFAULTROLE; added index on (GRANTEE, DEFAULTROLE)");
     }
 }

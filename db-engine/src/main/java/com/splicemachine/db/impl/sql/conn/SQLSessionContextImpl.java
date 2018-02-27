@@ -31,28 +31,59 @@
 
 package com.splicemachine.db.impl.sql.conn;
 
-import java.lang.String;
 import com.splicemachine.db.iapi.sql.conn.SQLSessionContext;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class SQLSessionContextImpl implements SQLSessionContext {
 
     private String currentUser;
-    private String currentRole;
+    private ArrayList<String> currentRoles = new ArrayList<>();
     private SchemaDescriptor currentDefaultSchema;
 
-    public SQLSessionContextImpl (SchemaDescriptor sd, String currentUser) {
-        currentRole = null;
+    public SQLSessionContextImpl (SchemaDescriptor sd, String currentUser, List<String> roles) {
+        if (roles != null)
+            currentRoles.addAll(roles);
         currentDefaultSchema = sd;
         this.currentUser = currentUser;
     }
 
     public void setRole(String role) {
-        currentRole = role;
+        if (role == null) {
+            currentRoles.clear();
+        } else {
+            // check if it already exists
+            for (String aRole : currentRoles) {
+                if (aRole.equals(role))
+                    return;
+            }
+            currentRoles.add(role);
+        }
     }
 
-    public String getRole() {
-        return currentRole;
+    public void removeRole(String roleName) {
+        int i;
+        for (i=0; i< currentRoles.size(); i++) {
+            String aRole = currentRoles.get(i);
+            if (aRole.equals(roleName)) {
+                break;
+            }
+        }
+        if (i < currentRoles.size())
+            currentRoles.remove(i);
+        return;
+    }
+
+    public List<String> getRoles() {
+        return currentRoles;
+    }
+
+    public void setRoles(List<String> roles) {
+        currentRoles.clear();
+        if (roles != null)
+            currentRoles.addAll(roles);
     }
 
     public void setUser(String user) {

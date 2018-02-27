@@ -31,6 +31,8 @@ import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 
+import java.util.List;
+
 public class SetRoleConstantOperation implements ConstantAction {
     protected final String  roleName;
     protected final int     type;
@@ -91,20 +93,24 @@ public class SetRoleConstantOperation implements ConstantAction {
         RoleGrantDescriptor rdDef = null;
 
         try {
-            String oldRole = lcc.getCurrentRoleId(activation);
 
-            if (oldRole != null && !oldRole.equals(thisRoleName)) {
-                rdDef = dd.getRoleDefinitionDescriptor(oldRole);
+            if (thisRoleName == null) {
+                // this is the case we want to unset roles for a session,
+                // so we need to invalidate objects depends on these roles
+                List<String> roleList = lcc.getCurrentRoles(activation);
+                for (String oldRole: roleList) {
+                    rdDef = dd.getRoleDefinitionDescriptor(oldRole);
 
-                if (rdDef != null) {
-                    dd.getDependencyManager().invalidateFor(
-                        rdDef,
-                        DependencyManager.RECHECK_PRIVILEGES,
-                        lcc);
-                } // else: old role else no longer exists, so ignore.
-            }
-
-            if (thisRoleName != null) {
+                    if (rdDef != null) {
+                        dd.getDependencyManager().invalidateFor(
+                                rdDef,
+                                DependencyManager.RECHECK_PRIVILEGES,
+                                lcc);
+                    } // else: old role else no longer exists, so ignore.
+                }
+            } else {
+                // we want to add another role to currentRoles list in SQLSessionContext,
+                // make sure we are granted with the privilege
                 rdDef = dd.getRoleDefinitionDescriptor(thisRoleName);
 
                 // SQL 2003, section 18.3, General rule 4:
@@ -124,6 +130,6 @@ public class SetRoleConstantOperation implements ConstantAction {
             lcc.userCommit();
         }
 
-        lcc.setCurrentRole(activation, rdDef != null ? thisRoleName : null);
+        lcc.setCurrentRole(activation, thisRoleName);
     }
 }

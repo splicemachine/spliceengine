@@ -2121,4 +2121,13 @@ public interface DataDictionary{
     void deleteSnapshot(String snapshotName, long conglomeratenumber, TransactionController tc) throws StandardException;
 
     boolean canUseDependencyManager();
+
+    /**
+     * Get default roles granted to a user
+     *
+     * @param username      the name of the user we want to find the default roles granted
+     * @param tc            the transaction to use for dropping
+     * @throws StandardException
+     */
+    List<String> getDefaultRoles(String username, TransactionController tc) throws StandardException;
 }

@@ -15954,17 +15954,19 @@ roleGrantStatement() throws StandardException :
 {
 	List rolesGranted;
 	List grantees;
+	boolean isDefaultRole = true;
 }
 {
 	/*
 	 * GRANT <rolename> {, <rolename>}* TO <authentication identifier>
-	 *									{, <authentication identifier>}*
+	 *									{, <authentication identifier>}* {AS DEFAULT | NOT AS DEFAULT}
 	 *
 	 * not implemented: WITH ADMIN OPTION, GRANTED BY clauses
 	 */
 	rolesGranted = roleList()
 	<TO>
 	grantees = granteeList()
+	[isDefaultRole = asDefault()]
 	{
 		checkSqlStandardAccess("GRANT <role>");
 		checkVersion( DataDictionary.DD_VERSION_DERBY_10_5, "ROLES");
@@ -15973,10 +15975,24 @@ roleGrantStatement() throws StandardException :
 			(C_NodeTypes.GRANT_ROLE_NODE,
 			 rolesGranted,
 			 grantees,
+			 isDefaultRole,
 			 getContextManager());
 	}
 }
 
+boolean asDefault() throws StandardException :
+{
+}
+{
+   <AS> <_DEFAULT>
+   {
+       return true;
+   }
+   | <NOT> <AS> <_DEFAULT>
+   {
+       return false;
+   }
+}
 
 /*
  * <A NAME="roleList">roleList</A>
