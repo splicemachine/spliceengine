@@ -31,15 +31,18 @@
 
 package com.splicemachine.db.iapi.sql.dictionary;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * This class describes a permission require by a statement.
@@ -139,10 +142,9 @@ public abstract class StatementPermission
 
 		// Since no permission exists for the current user or PUBLIC,
 		// check if a permission exists for the current role (if set).
-		String role = lcc.getCurrentRoleId(activation);
-
-		if (role != null) {
-
+		List<String> currentRoles = lcc.getCurrentRoles(activation);
+		List<String> rolesToRemove = new ArrayList<>();
+		for (String role : currentRoles) {
 			// Check that role is still granted to current user or
 			// to PUBLIC: A revoked role which is current for this
 			// session, is lazily set to none when it is attemped
@@ -162,7 +164,7 @@ public abstract class StatementPermission
 				// We have lost the right to set this role, so we can't
 				// make use of any permission granted to it or its
 				// ancestors.
-				lcc.setCurrentRole(activation, null);
+				rolesToRemove.add(role);
 			} else {
 				// The current role is OK, so we can make use of
 				// any permission granted to it.
@@ -197,8 +199,10 @@ public abstract class StatementPermission
 				ContextManager cm = lcc.getContextManager();
 				dm.addDependency(ps, rgd, cm);
 				dm.addDependency(activation, rgd, cm);
+				break;
 			}
 		}
+		lcc.removeRoles(activation, rolesToRemove);
 
 		if (!resolved)
         {

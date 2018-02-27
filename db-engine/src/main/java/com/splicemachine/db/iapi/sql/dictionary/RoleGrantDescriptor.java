@@ -66,6 +66,7 @@ public class RoleGrantDescriptor extends TupleDescriptor
     private boolean withAdminOption;
     private final boolean isDef; // if true, represents a role
                                  // definition, else a grant
+    private boolean isDefaultRole; // if true, it is a default role of the user granted this role
 
     /**
      * Constructor
@@ -78,6 +79,7 @@ public class RoleGrantDescriptor extends TupleDescriptor
      * @param grantor
      * @param withAdminOption
      * @param isDef
+     * @param isDefaultRole
      *
      */
     public RoleGrantDescriptor(DataDictionary dd,
@@ -86,7 +88,8 @@ public class RoleGrantDescriptor extends TupleDescriptor
                                String grantee,
                                String grantor,
                                boolean withAdminOption,
-                               boolean isDef) {
+                               boolean isDef,
+                               boolean isDefaultRole) {
         super(dd);
         this.uuid = uuid;
         this.roleName = roleName;
@@ -94,6 +97,7 @@ public class RoleGrantDescriptor extends TupleDescriptor
         this.grantor = grantor;
         this.withAdminOption = withAdminOption;
         this.isDef = isDef;
+        this.isDefaultRole = isDefaultRole;
     }
 
     public UUID getUUID() {
@@ -112,6 +116,13 @@ public class RoleGrantDescriptor extends TupleDescriptor
         return isDef;
     }
 
+    public boolean isDefaultRole() {
+        return isDefaultRole;
+    }
+
+    public void setDefaultRole(boolean isDefault) {
+        isDefaultRole = isDefault;
+    }
     public String getRoleName() {
         return roleName;
     }
@@ -131,7 +142,8 @@ public class RoleGrantDescriptor extends TupleDescriptor
                 "grantor: " + grantor + "\n" +
                 "grantee: " + grantee + "\n" +
                 "withadminoption: " + withAdminOption + "\n" +
-                "isDef: " + isDef + "\n";
+                "isDef: " + isDef + "\n" +
+                "defaultRole: " + isDefaultRole + "\n";
         } else {
             return "";
         }
@@ -197,6 +209,7 @@ public class RoleGrantDescriptor extends TupleDescriptor
     {
         return ((isDef ? "CREATE ROLE: " : "GRANT ROLE: ") + roleName +
                 " GRANT TO: " + grantee +
+                (isDefaultRole? " AS DEFAULT": "") +
                 " GRANTED BY: " + grantor +
                 (withAdminOption? " WITH ADMIN OPTION" : ""));
     }

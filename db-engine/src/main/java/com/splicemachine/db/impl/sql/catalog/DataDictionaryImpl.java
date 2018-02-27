@@ -31,8 +31,6 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
-import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Function;
 import com.google.common.base.Optional;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.DependableFinder;
@@ -45,7 +43,8 @@ import com.splicemachine.db.iapi.reference.*;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-import com.splicemachine.db.iapi.services.locks.*;
+import com.splicemachine.db.iapi.services.locks.LockFactory;
+import com.splicemachine.db.iapi.services.locks.ShExLockable;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -68,9 +67,12 @@ import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
-import org.spark_project.guava.collect.Lists;
+import org.apache.log4j.Logger;
+import org.spark_project.guava.base.Function;
 import org.spark_project.guava.collect.ImmutableListMultimap;
+import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.collect.Multimaps;
+
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
@@ -10263,5 +10265,36 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         keyRow.setColumn(1, new SQLVarchar(snapshotName));
         keyRow.setColumn(2, new SQLLongint(conglomeratenumber));
         ti.deleteRow(tc, keyRow, SYSSNAPSHOTSRowFactory.SYSSNAPSHOTS_INDEX1_ID);
+    }
+
+    @Override
+    public List<String> getDefaultRoles(String username, TransactionController tc) throws StandardException {
+        // check dictionary cache first
+        List<String> roleList = dataDictionaryCache.defaultRoleCacheFind(username);
+        if (roleList != null)
+            return roleList;
+
+        List<RoleGrantDescriptor> roleGrantDescriptors = new ArrayList<>();
+
+        TabInfoImpl ti=getNonCoreTI(SYSROLES_CATALOG_NUM);
+        /* set up the start/stop position for the scan */
+        ExecIndexRow keyRow = exFactory.getIndexableRow(2);
+        DataValueDescriptor granteeOrderable=new SQLVarchar(username);
+        DataValueDescriptor defaultRoleOrderable = new SQLChar("Y");
+        keyRow.setColumn(1, granteeOrderable);
+        keyRow.setColumn(2, defaultRoleOrderable);
+        getDescriptorViaIndex(
+                SYSROLESRowFactory.SYSROLES_INDEX_EE_DEFAULT_IDX,
+                keyRow,
+                null,
+                ti,
+                null,
+                roleGrantDescriptors,
+                false);
+
+        roleList = Lists.transform(roleGrantDescriptors, (rgd -> rgd.getRoleName()));
+        dataDictionaryCache.defaultRoleCacheAdd(username, roleList);
+        return roleList;
+
     }
 }

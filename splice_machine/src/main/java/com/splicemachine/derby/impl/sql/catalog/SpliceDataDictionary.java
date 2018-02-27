@@ -983,4 +983,38 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             SpliceLogUtils.info(LOG, "SYS.SYSSCHEMAPERMS upgraded: added columns: MODIFYPRIV.");
         }
     }
+
+    public void upgradeSysRolesWithDefaultRoleColumn(TransactionController tc) throws StandardException {
+        SchemaDescriptor sd = getSystemSchemaDescriptor();
+        TableDescriptor td = getTableDescriptor(SYSROLESRowFactory.TABLENAME_STRING, sd, tc);
+        ColumnDescriptor cd = td.getColumnDescriptor("DEFAULTROLE");
+        if (cd == null) {
+            tc.elevate("dictionary");
+            dropTableDescriptor(td, sd, tc);
+            td.setColumnSequence(td.getColumnSequence()+1);
+            // add the table descriptor with new name
+            addDescriptor(td,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc);
+
+            ColumnDescriptor columnDescriptor;
+            UUID uuid = getUUIDFactory().createUUID();
+
+            /**
+             *  Add the column DEFAULTROLE
+             */
+            DataValueDescriptor storableDV = getDataValueFactory().getNullChar(null);
+            int colNumber = td.getNumberOfColumns() + 1;
+            DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1);
+            tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
+
+            columnDescriptor = new ColumnDescriptor("DEFAULTROLE",colNumber,
+                    colNumber,dtd,null,null,td,uuid,0,0,td.getColumnSequence());
+
+            addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+            // now add the column to the tables column descriptor list.
+            td.getColumnDescriptorList().add(columnDescriptor);
+            updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
+
+            SpliceLogUtils.info(LOG, "SYS.SYSROLES upgraded: added columns: DEFAULTROLE.");
+        }
+    }
 }

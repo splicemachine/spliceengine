@@ -31,12 +31,12 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
-import java.util.*;
-
-import com.splicemachine.db.iapi.sql.dictionary.RoleGrantDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.RoleClosureIterator;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.dictionary.RoleClosureIterator;
+import com.splicemachine.db.iapi.sql.dictionary.RoleGrantDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+
+import java.util.*;
 
 /**
  * Allows iterator over the role grant closure defined by the relation
@@ -136,6 +136,7 @@ public class RoleClosureIteratorImpl implements RoleClosureIterator
              inverse ? root : null,
              inverse ? null : root,
              null,
+             false,
              false,
              false);
         List dummyList = new ArrayList();

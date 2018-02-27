@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.sql.catalog;
 
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.client.am.Types;
 import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -54,7 +55,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 public class SYSROLESRowFactory extends CatalogRowFactory
 {
-    private static final String TABLENAME_STRING = "SYSROLES";
+    public static final String TABLENAME_STRING = "SYSROLES";
 
     private static final int SYSROLES_COLUMN_COUNT = 6;
     /* Column #s for sysinfo (1 based) */
@@ -64,12 +65,14 @@ public class SYSROLESRowFactory extends CatalogRowFactory
     private static final int SYSROLES_GRANTOR = 4;
     private static final int SYSROLES_WITHADMINOPTION = 5;
     static final int SYSROLES_ISDEF = 6;
+    static final int SYSROLES_DEFAULT_ROLE = 7;
 
     private static final int[][] indexColumnPositions =
     {
         {SYSROLES_ROLEID, SYSROLES_GRANTEE, SYSROLES_GRANTOR},
         {SYSROLES_ROLEID, SYSROLES_ISDEF},
-        {SYSROLES_ROLE_UUID}
+        {SYSROLES_ROLE_UUID},
+        {SYSROLES_GRANTEE, SYSROLES_DEFAULT_ROLE}
     };
 
     static final int SYSROLES_ROLEID_COLPOS_IN_INDEX_ID_EE_OR = 1;
@@ -81,18 +84,22 @@ public class SYSROLESRowFactory extends CatalogRowFactory
     static final int SYSROLES_INDEX_ID_DEF_IDX = 1;
     // UUID
     static final int SYSROLES_INDEX_UUID_IDX = 2;
+    // (grant)EE_DEFAULT(role)
+    static final int SYSROLES_INDEX_EE_DEFAULT_IDX = 3;
 
     private static  final   boolean[]   uniqueness = {
         true,
         false, // many rows have same roleid and is not a definition
-        true};
+        true,
+        false};
 
     private static final String[] uuids = {
         "e03f4017-0115-382c-08df-ffffe275b270", // catalog UUID
         "c851401a-0115-382c-08df-ffffe275b270", // heap UUID
         "c065801d-0115-382c-08df-ffffe275b270", // SYSROLES_INDEX_ID_EE_OR
         "787c0020-0115-382c-08df-ffffe275b270", // SYSROLES_INDEX_ID_DEF
-        "629f8094-0116-d8f9-5f97-ffffe275b270"  // SYSROLES_INDEX_UUID
+        "629f8094-0116-d8f9-5f97-ffffe275b270", // SYSROLES_INDEX_UUID
+        "629f8098-0116-d8f9-5f97-ffffe275b270"  // SYSROLES_INDEX_EE_DEFAULT
     };
 
     /**
@@ -131,7 +138,8 @@ public class SYSROLESRowFactory extends CatalogRowFactory
         String                  grantee = null;
         String                  grantor = null;
         boolean                 wao = false;
-        boolean                 isdef = false;
+        boolean                 isdef = false;   // is role definition or not
+        boolean                 isDefaultRole = false; // is default role of a user or not
 
         if (td != null)
         {
@@ -144,6 +152,7 @@ public class SYSROLESRowFactory extends CatalogRowFactory
             isdef = rgd.isDef();
             UUID oid = rgd.getUUID();
             oid_string = oid.toString();
+            isDefaultRole = rgd.isDefaultRole();
         }
 
         /* Build the row to insert */
@@ -166,6 +175,9 @@ public class SYSROLESRowFactory extends CatalogRowFactory
 
         /* 6th column is ISDEF */
         row.setColumn(6, new SQLChar(isdef ? "Y" : "N"));
+
+        /* 7th column is DefaultRole */
+        row.setColumn(7, new SQLChar(isDefaultRole? "Y" : "N"));
 
         return row;
     }
@@ -202,6 +214,7 @@ public class SYSROLESRowFactory extends CatalogRowFactory
         String                      grantor;
         String                      wao;
         String                      isdef;
+        String                      isDefaultRole;
         DataDescriptorGenerator     ddg = dd.getDataDescriptorGenerator();
 
         if (SanityManager.DEBUG)
@@ -234,13 +247,20 @@ public class SYSROLESRowFactory extends CatalogRowFactory
         col = row.getColumn(6);
         isdef = col.getString();
 
+        // seventh column is defaultRole (char(1))
+        col = row.getColumn(7);
+        if (col == null || col.isNull())
+            isDefaultRole = null;
+        else
+            isDefaultRole = col.getString();
         descriptor = ddg.newRoleGrantDescriptor
             (getUUIDFactory().recreateUUID(oid_string),
              roleid,
              grantee,
              grantor,
              wao.equals("Y") ? true: false,
-             isdef.equals("Y") ? true: false);
+             isdef.equals("Y") ? true: false,
+             isDefaultRole==null? false : (isDefaultRole.equals("Y") ? true: false));
 
         return descriptor;
     }
@@ -261,6 +281,7 @@ public class SYSROLESRowFactory extends CatalogRowFactory
             SystemColumnImpl.getIdentifierColumn("GRANTOR", false),
             SystemColumnImpl.getIndicatorColumn("WITHADMINOPTION"),
             SystemColumnImpl.getIndicatorColumn("ISDEF"),
+            SystemColumnImpl.getColumn("DEFAULTROLE", Types.CHAR, true, 1)
         };
     }
 }

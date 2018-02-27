@@ -31,27 +31,23 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
-import java.sql.Timestamp;
-import java.util.List;
-import java.util.Properties;
-
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.depend.ProviderInfo;
-import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.compile.TableName;
+
+import java.sql.Timestamp;
+import java.util.List;
+import java.util.Properties;
 
 /**
  * Factory for creating ConstantActions.
@@ -882,7 +878,7 @@ public abstract class GenericConstantActionFactory {
 	 * @param grantees  list of authentication ids (user or roles) to
 	 *                  which roles(s) are to be granted
 	 */
-	public abstract ConstantAction getGrantRoleConstantAction(List roleNames, List grantees);
+	public abstract ConstantAction getGrantRoleConstantAction(List roleNames, List grantees, boolean isDefaultRole);
 
 
 	/**

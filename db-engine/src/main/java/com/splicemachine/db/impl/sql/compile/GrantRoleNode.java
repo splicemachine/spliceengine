@@ -45,6 +45,7 @@ public class GrantRoleNode extends DDLStatementNode
 {
     private List roles;
     private List grantees;
+    private boolean isDefaultRole;
 
     /**
      * Initialize a GrantRoleNode.
@@ -53,12 +54,14 @@ public class GrantRoleNode extends DDLStatementNode
      * @param grantees list of strings containing grantee names
      */
     public void init(Object roles,
-					 Object grantees)
+					 Object grantees,
+                     Object isDefaultRole)
         throws StandardException
     {
         initAndCheck(null);
         this.roles = (List) roles;
         this.grantees = (List) grantees;
+        this.isDefaultRole = (Boolean)isDefaultRole;
     }
 
 
@@ -70,7 +73,7 @@ public class GrantRoleNode extends DDLStatementNode
     public ConstantAction makeConstantAction() throws StandardException
     {
         return getGenericConstantActionFactory().
-            getGrantRoleConstantAction( roles, grantees);
+            getGrantRoleConstantAction( roles, grantees, isDefaultRole);
     }
 
 
@@ -102,7 +105,7 @@ public class GrantRoleNode extends DDLStatementNode
                 return (super.toString() +
                         sb1.toString() +
                         " TO: " +
-                        sb2.toString() +
+                        sb2.toString() + (isDefaultRole?" AS DEFAULT": "") +
                         "\n");
 		} else {
 			return "";
