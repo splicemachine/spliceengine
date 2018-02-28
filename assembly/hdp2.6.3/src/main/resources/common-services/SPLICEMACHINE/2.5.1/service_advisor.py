@@ -225,7 +225,10 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         "splice.timestamp_server.clientWaitTime" : "120000",
         "splice.txn.activeTxns.cacheSize" : "10240",
         "splice.txn.completedTxns.concurrency" : "128",
-        "splice.txn.concurrencyLevel" : "4096"
+        "splice.txn.concurrencyLevel" : "4096",
+        "splice.olap.server.memory" : "8g",
+        "splice.olap_server.memoryOverhead" : "2g",
+        "splice.olap_server.virtualCores" : "2"
     }
     return hbase_site_desired_values
 
@@ -279,10 +282,7 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         "splice.spark.executor.extraJavaOptions=-Dhdp.version=2.6.3.0-235",
         "splice.spark.executor.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native",
         "splice.spark.executor.extraClassPath=/usr/hdp/current/hbase-regionserver/conf:/usr/hdp/current/hbase-regionserver/lib/htrace-core-3.1.0-incubating.jar:/var/lib/splicemachine/*:/usr/hdp/2.6.3.0-235/spark2/jars/*:/usr/hdp/current/hbase-master/lib/*",
-        "splice.spark.yarn.jars=/usr/hdp/2.6.3.0-235/spark2/jars/*",
-        "splice.olap.server.memory=8g",
-        "splice.olap_server.memoryOverhead=2g",
-        "splice.olap_server.virtualCores=2"
+        "splice.spark.yarn.jars=/usr/hdp/2.6.3.0-235/spark2/jars/*"
       ]
     return dashDProperties
 
