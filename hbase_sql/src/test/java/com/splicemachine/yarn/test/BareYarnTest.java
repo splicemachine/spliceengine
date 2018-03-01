@@ -64,7 +64,7 @@ public class BareYarnTest {
     @BeforeClass
     public static void beforeClass() throws Exception {
         // start yarn server
-        yarnPlatform = new SpliceTestYarnPlatform();
+        yarnPlatform = new SpliceTestYarnPlatform("", false);
         yarnPlatform.start(SpliceTestYarnPlatform.DEFAULT_NODE_COUNT);
 
         URL configURL = Thread.currentThread().getContextClassLoader().getResource("yarn-site.xml");
