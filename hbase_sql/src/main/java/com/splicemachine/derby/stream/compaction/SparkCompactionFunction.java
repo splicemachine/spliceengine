@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import com.splicemachine.compactions.SpliceDefaultCompactor;
 import com.splicemachine.stream.SparkCompactionContext;
 import org.apache.commons.collections.iterators.EmptyListIterator;
 import org.apache.commons.collections.iterators.SingletonIterator;
@@ -41,7 +42,6 @@ import org.apache.log4j.Logger;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.compactions.SpliceDefaultCompactor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
