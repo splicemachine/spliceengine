@@ -50,21 +50,12 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
   def getServiceConfigurationRecommendations(self, configurations, clusterData, services, hosts):
     #Update HBase Classpath
     print "getServiceConfigurationRecommendations",services
-    splice_jars = ":".join([jar for jar in glob.glob('/var/lib/splicemachine/*.jar')])
-    spark_jars = ":".join([jar for jar in glob.glob('/usr/hdp/2.6.3.0-235/spark2/jars/*.jar')])
-    # Has a few libs that cause us to go sideways
-    # master_jars = ":".join([jar for jar in glob.glob('/usr/hdp/current/hbase-master/lib/*.jar')])
-    subsetMaster = "/usr/hdp/current/hbase-master/lib/joni-2.1.2.jar:/usr/hdp/current/hbase-master/lib/hbase-rsgroup-1.1.2.2.6.3.0-235.jar:/usr/hdp/current/hbase-master/lib/protobuf-java-2.5.0.jar:/usr/hdp/current/hbase-master/lib/commons-cli-1.2.jar:/usr/hdp/current/hbase-master/lib/jsr305-1.3.9.jar:/usr/hdp/current/hbase-master/lib/okhttp-2.4.0.jar:/usr/hdp/current/hbase-master/lib/jersey-client-1.9.jar:/usr/hdp/current/hbase-master/lib/hbase-spark.jar:/usr/hdp/current/hbase-master/lib/servlet-api-2.5.jar:/usr/hdp/current/hbase-master/lib/leveldbjni-all-1.8.jar:/usr/hdp/current/hbase-master/lib/jersey-server-1.9.jar:/usr/hdp/current/hbase-master/lib/aws-java-sdk-s3-1.10.6.jar:/usr/hdp/current/hbase-master/lib/disruptor-3.3.0.jar:/usr/hdp/current/hbase-master/lib/spymemcached-2.11.6.jar:/usr/hdp/current/hbase-master/lib/jaxb-impl-2.2.3-1.jar:/usr/hdp/current/hbase-master/lib/hbase-annotations-1.1.2.2.6.3.0-235-tests.jar:/usr/hdp/current/hbase-master/lib/hbase-it-1.1.2.2.6.3.0-235-tests.jar:/usr/hdp/current/hbase-master/lib/jetty-6.1.26.hwx.jar:/usr/hdp/current/hbase-master/lib/hbase-rest-1.1.2.2.6.3.0-235.jar:/usr/hdp/current/hbase-master/lib/joda-time-2.9.4.jar:/usr/hdp/current/hbase-master/lib/jsch-0.1.54.jar:/usr/hdp/current/hbase-master/lib/zookeeper.jar:/usr/hdp/current/hbase-master/lib/jsp-api-2.1-6.1.14.jar:/usr/hdp/current/hbase-master/lib/hbase-common-1.1.2.2.6.3.0-235.jar:/usr/hdp/current/hbase-master/lib/jettison-1.3.3.jar:/usr/hdp/current/hbase-master/lib/hbase-rsgroup.jar:/usr/hdp/current/hbase-master/lib/activation-1.1.jar:/usr/hdp/current/hbase-master/lib/hbase-hadoop-compat.jar:/usr/hdp/current/hbase-master/lib/hbase-server.jar:/usr/hdp/current/hbase-master/lib/ojdbc6.jar:/usr/hdp/current/hbase-master/lib/hbase-client-1.1.2.2.6.3.0-235.jar:/usr/hdp/current/hbase-master/lib/jackson-databind-2.2.3.jar:/usr/hdp/current/hbase-master/lib/hbase-server-1.1.2.2.6.3.0-235.jar:/usr/hdp/current/hbase-master/lib/netty-3.2.4.Final.jar:/usr/hdp/current/hbase-master/lib/aws-java-sdk-kms-1.10.6.jar:/usr/hdp/current/hbase-master/lib/hbase-resource-bundle.jar:/usr/hdp/current/hbase-master/lib/paranamer-2.3.jar:/usr/hdp/current/hbase-master/lib/jersey-json-1.9.jar:/usr/hdp/current/hbase-master/lib/jersey-guice-1.9.jar:/usr/hdp/current/hbase-master/lib/azure-storage-5.4.0.jar:/usr/hdp/current/hbase-master/lib/hbase-spark-1.1.2.2.6.3.0-235.jar:/usr/hdp/current/hbase-master/lib/findbugs-annotations-1.3.9-1.jar:/usr/hdp/current/hbase-master/lib/commons-configuration-1.6.jar:/usr/hdp/current/hbase-master/lib/aopalliance-1.0.jar:/usr/hdp/current/hbase-master/lib/hbase-shell.jar:/usr/hdp/current/hbase-master/lib/hbase-procedure.jar:/usr/hdp/current/hbase-master/lib/hbase-rsgroup-1.1.2.2.6.3.0-235-tests.jar:/usr/hdp/current/hbase-master/lib/commons-compress-1.4.1.jar:/usr/hdp/current/hbase-master/lib/hbase-prefix-tree-1.1.2.2.6.3.0-235.jar:/usr/hdp/current/hbase-master/lib/hbase-thrift-1.1.2.2.6.3.0-235.jar:/usr/hdp/current/hbase-master/lib/commons-collections-3.2.2.jar:/usr/hdp/current/hbase-master/lib/servlet-api-2.5-6.1.14.jar:/usr/hdp/current/hbase-master/lib/hbase-procedure-1.1.2.2.6.3.0-235.jar:/usr/hdp/current/hbase-master/lib/okio-1.4.0.jar:/usr/hdp/current/hbase-master/lib/httpcore-4.4.4.jar:/usr/hdp/current/hbase-master/lib/commons-codec-1.9.jar:/usr/hdp/current/hbase-master/lib/xercesImpl-2.9.1.jar:/usr/hdp/current/hbase-master/lib/jetty-sslengine-6.1.26.hwx.jar:/usr/hdp/current/hbase-master/lib/jackson-mapper-asl-1.9.13.jar:/usr/hdp/current/hbase-master/lib/commons-digester-1.8.jar:/usr/hdp/current/hbase-master/lib/commons-beanutils-1.7.0.jar:/usr/hdp/current/hbase-master/lib/hbase-annotations-1.1.2.2.6.3.0-235.jar:/usr/hdp/current/hbase-master/lib/xml-apis-1.3.04.jar:/usr/hdp/current/hbase-master/lib/jets3t-0.9.0.jar:/usr/hdp/current/hbase-master/lib/javax.inject-1.jar:/usr/hdp/current/hbase-master/lib/hbase-protocol.jar:/usr/hdp/current/hbase-master/lib/jamon-runtime-2.4.1.jar:/usr/hdp/current/hbase-master/lib/guice-3.0.jar:/usr/hdp/current/hbase-master/lib/netty-all-4.0.52.Final.jar:/usr/hdp/current/hbase-master/lib/hbase-it-1.1.2.2.6.3.0-235.jar:/usr/hdp/current/hbase-master/lib/jsp-2.1-6.1.14.jar:/usr/hdp/current/hbase-master/lib/curator-recipes-2.7.1.jar:/usr/hdp/current/hbase-master/lib/jackson-core-asl-1.9.13.jar:/usr/hdp/current/hbase-master/lib/guice-servlet-3.0.jar:/usr/hdp/current/hbase-master/lib/hbase-rest.jar:/usr/hdp/current/hbase-master/lib/jcodings-1.0.8.jar:/usr/hdp/current/hbase-master/lib/asm-3.1.jar:/usr/hdp/current/hbase-master/lib/hbase-examples.jar:/usr/hdp/current/hbase-master/lib/hbase-prefix-tree.jar:/usr/hdp/current/hbase-master/lib/api-util-1.0.0-M20.jar:/usr/hdp/current/hbase-master/lib/jackson-jaxrs-1.9.13.jar:/usr/hdp/current/hbase-master/lib/aws-java-sdk-core-1.10.6.jar:/usr/hdp/current/hbase-master/lib/junit-4.12.jar:/usr/hdp/current/hbase-master/lib/jackson-core-2.2.3.jar:/usr/hdp/current/hbase-master/lib/ranger-hbase-plugin-shim-0.7.0.2.6.3.0-235.jar:/usr/hdp/current/hbase-master/lib/java-xmlbuilder-0.4.jar:/usr/hdp/current/hbase-master/lib/hbase-annotations.jar:/usr/hdp/current/hbase-master/lib/commons-beanutils-core-1.8.0.jar:/usr/hdp/current/hbase-master/lib/apacheds-kerberos-codec-2.0.0-M15.jar:/usr/hdp/current/hbase-master/lib/commons-io-2.4.jar:/usr/hdp/current/hbase-master/lib/hbase-protocol-1.1.2.2.6.3.0-235.jar:/usr/hdp/current/hbase-master/lib/guava-12.0.1.jar:/usr/hdp/current/hbase-master/lib/hbase-thrift.jar:/usr/hdp/current/hbase-master/lib/avro-1.7.6.jar:/usr/hdp/current/hbase-master/lib/hbase-client.jar:/usr/hdp/current/hbase-master/lib/jaxb-api-2.2.2.jar:/usr/hdp/current/hbase-master/lib/hbase-examples-1.1.2.2.6.3.0-235.jar:/usr/hdp/current/hbase-master/lib/curator-client-2.7.1.jar:/usr/hdp/current/hbase-master/lib/ranger-plugin-classloader-0.7.0.2.6.3.0-235.jar:/usr/hdp/current/hbase-master/lib/api-asn1-api-1.0.0-M20.jar:/usr/hdp/current/hbase-master/lib/hbase-common.jar:/usr/hdp/current/hbase-master/lib/json-smart-1.1.1.jar:/usr/hdp/current/hbase-master/lib/jasper-runtime-5.5.23.jar:/usr/hdp/current/hbase-master/lib/htrace-core-3.1.0-incubating.jar:/usr/hdp/current/hbase-master/lib/libthrift-0.9.3.jar:/usr/hdp/current/hbase-master/lib/xz-1.0.jar:/usr/hdp/current/hbase-master/lib/apacheds-i18n-2.0.0-M15.jar:/usr/hdp/current/hbase-master/lib/azure-keyvault-core-0.8.0.jar:/usr/hdp/current/hbase-master/lib/jetty-util-6.1.26.hwx.jar:/usr/hdp/current/hbase-master/lib/hbase-hadoop2-compat.jar:/usr/hdp/current/hbase-master/lib/commons-daemon-1.0.13.jar:/usr/hdp/current/hbase-master/lib/commons-math3-3.1.1.jar:/usr/hdp/current/hbase-master/lib/commons-lang3-3.5.jar:/usr/hdp/current/hbase-master/lib/commons-math-2.2.jar:/usr/hdp/current/hbase-master/lib/commons-net-3.1.jar:/usr/hdp/current/hbase-master/lib/jersey-core-1.9.jar:/usr/hdp/current/hbase-master/lib/xmlenc-0.52.jar:/usr/hdp/current/hbase-master/lib/snappy-java-1.0.5.jar:/usr/hdp/current/hbase-master/lib/hbase-shell-1.1.2.2.6.3.0-235.jar:/usr/hdp/current/hbase-master/lib/nimbus-jose-jwt-3.9.jar:/usr/hdp/current/hbase-master/lib/hbase-server-1.1.2.2.6.3.0-235-tests.jar:/usr/hdp/current/hbase-master/lib/hbase-resource-bundle-1.1.2.2.6.3.0-235.jar:/usr/hdp/current/hbase-master/lib/hbase-hadoop-compat-1.1.2.2.6.3.0-235.jar:/usr/hdp/current/hbase-master/lib/metrics-core-2.2.0.jar:/usr/hdp/current/hbase-master/lib/jackson-xc-1.9.13.jar:/usr/hdp/current/hbase-master/lib/log4j-1.2.17.jar:/usr/hdp/current/hbase-master/lib/hbase-it.jar:/usr/hdp/current/hbase-master/lib/jcip-annotations-1.0.jar:/usr/hdp/current/hbase-master/lib/jackson-annotations-2.2.3.jar:/usr/hdp/current/hbase-master/lib/commons-logging-1.2.jar:/usr/hdp/current/hbase-master/lib/hbase-common-1.1.2.2.6.3.0-235-tests.jar:/usr/hdp/current/hbase-master/lib/curator-framework-2.7.1.jar:/usr/hdp/current/hbase-master/lib/jasper-compiler-5.5.23.jar:/usr/hdp/current/hbase-master/lib/commons-lang-2.6.jar:/usr/hdp/current/hbase-master/lib/httpclient-4.5.2.jar:/usr/hdp/current/hbase-master/lib/hbase-hadoop2-compat-1.1.2.2.6.3.0-235.jar:/usr/hdp/current/hbase-master/lib/commons-el-1.0.jar"
-    executor_extraclasspath = "/usr/hdp/current/hbase-regionserver/conf:/usr/hdp/current/hbase-regionserver/lib/htrace-core-3.1.0-incubating.jar:" + splice_jars + ":" + subsetMaster
-    splice_spark_jars = splice_jars + ":" + subsetMaster
     if "hbase-env" in services["configurations"]:
         hbase_env = services["configurations"]["hbase-env"]["properties"]
         if "content" in hbase_env:
           content = hbase_env["content"]
-          HBASE_CLASSPATH_PREFIX = "export HBASE_CLASSPATH_PREFIX="+ splice_jars + ":" + spark_jars
-          HBASE_MASTER_OPTS = "export HBASE_MASTER_OPTS=\"${HBASE_MASTER_OPTS} -D"+ " -D".join(self.getMasterDashDProperties()) + \
-              " -Dsplice.spark.executor.extraClassPath=" + executor_extraclasspath + \
-              " -Dsplice.spark.jars=" + splice_spark_jars + "\""
+          HBASE_CLASSPATH_PREFIX = "export HBASE_CLASSPATH_PREFIX=/var/lib/splicemachine/*:/usr/hdp/2.6.3.0-235/spark2/jars/*"
+          HBASE_MASTER_OPTS = "export HBASE_MASTER_OPTS=\"${HBASE_MASTER_OPTS} -D"+ " -D".join(self.getMasterDashDProperties()) + "\""
           if "splicemachine" not in content:
             print "Updating Hbase Env Items"
             HBASE_CLASSPATH_PREFIX = "#Add Splice Jars to HBASE_PREFIX_CLASSPATH\n" + HBASE_CLASSPATH_PREFIX
@@ -93,33 +84,16 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         if property not in hbase_site or hbase_site[property] != desired_value:
           putHBaseSiteProperty(property, desired_value)
 
-    # Update spark-defaults for spark
-    if "spark2-env" in services["configurations"]:
-        spark2_env = services['configurations']['spark2-env']["properties"]
-        splice_driver_lib = "export spark.driver.extraLibraryPath=${spark.driver.extraLibraryPath}:" + splice_jars + "\n"
-        splice_executor_lib = "export spark.executor.extraLibraryPath=${spark.executor.extraLibraryPath}:" + splice_jars + "\n"
-        splice_path = "\n".join((splice_driver_lib,splice_executor_lib))
-        if 'content' in spark2_env:
-          spark_content = spark2_env["content"]
-          if "splicemachine" not in spark_content:
-            spark_content = "\n\n".join((spark_content,splice_path))
-            putSparkProperty = self.putProperty(configurations, "spark2-env", services)
-            putSparkProperty("content",spark_content)
+    # Update hbase-site properties in hbase-site
+    if "yarn-site" in services["configurations"]:
+        yarn_site = services["configurations"]["yarn-site"]["properties"]
+        putYarnSitePropertyAttributes = self.putPropertyAttribute(configurations, "yarn-site")
+        putYarnSiteProperty = self.putProperty(configurations, "yarn-site", services)
+        for property, desired_value in self.getYarnSiteDesiredValues().iteritems():
+            if property not in yarn_site or yarn_site[property] != desired_value:
+                putYarnSiteProperty(property, desired_value)
 
-    if "zeppelin-env" in services["configurations"]:
-      zeppelinenv = services["configurations"]["zeppelin-env"]["properties"]
-      if "content" in zeppelinenv:
-            content = zeppelinenv["content"]
-            ZEPPELIN_INTP_CLASSPATH_OVERRIDES = "export ZEPPELIN_INTP_CLASSPATH_OVERRIDES=\"${ZEPPELIN_INTP_CLASSPATH_OVERRIDES}:" + executor_extraclasspath
-            if "splicemachine" not in content:
-                print "Updating Zeppelin Env Items"
-                ZEPPELIN_INTP_CLASSPATH_OVERRIDES = "#Add Splice Jars to Zeppelin Interpreter Classpath\n" + ZEPPELIN_INTP_CLASSPATH_OVERRIDES
-                content = "\n\n".join((content, ZEPPELIN_INTP_CLASSPATH_OVERRIDES))
-                print "content: " + content
-                putZeppelinEnvProperty = self.putProperty(configurations, "zeppelin-env", services)
-                putZeppelinEnvProperty("content", content)
-
-   #update zookeeper configs
+    #update zookeeper configs
     if 'zoo.cfg' in services['configurations']:
       zoo_cfg = services['configurations']['zoo.cfg']["properties"]
       print(zoo_cfg),zoo_cfg
@@ -191,6 +165,13 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
     }
     return hdfs_site_desired_values
 
+  def getYarnSiteDesiredValues(self):
+      yarn_site_desired_values = {
+          "hdp.version" : "2.6.3.0-235"
+
+      }
+      return yarn_site_desired_values
+
   def getHBaseSiteDesiredValues(self):
     hbase_site_desired_values = {
         "hbase.coprocessor.master.classes" : "org.apache.ranger.authorization.hbase.RangerAuthorizationCoprocessor,com.splicemachine.hbase.SpliceMasterObserver",
@@ -244,7 +225,10 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         "splice.timestamp_server.clientWaitTime" : "120000",
         "splice.txn.activeTxns.cacheSize" : "10240",
         "splice.txn.completedTxns.concurrency" : "128",
-        "splice.txn.concurrencyLevel" : "4096"
+        "splice.txn.concurrencyLevel" : "4096",
+        "splice.olap.server.memory" : "8192",
+        "splice.olap_server.memoryOverhead" : "2048",
+        "splice.olap_server.virtualCores" : "2"
     }
     return hbase_site_desired_values
 
@@ -252,7 +236,8 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
     dashDProperties = [
         "splice.spark.enabled=true",
         "splice.spark.app.name=SpliceMachine",
-        "splice.spark.master=yarn-client",
+        "splice.spark.master=yarn",
+        "splice.spark.submit.deployMode=client",
         "splice.spark.logConf=true",
         "splice.spark.yarn.maxAppAttempts=1",
         "splice.spark.driver.maxResultSize=1g",
@@ -262,7 +247,7 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         "splice.spark.dynamicAllocation.executorIdleTimeout=120",
         "splice.spark.dynamicAllocation.cachedExecutorIdleTimeout=120",
         "splice.spark.dynamicAllocation.minExecutors=0",
-        "splice.spark.kryo.referenceTracking=false"
+        "splice.spark.kryo.referenceTracking=false",
         "splice.spark.kryo.registrator=com.splicemachine.derby.impl.SpliceSparkKryoRegistrator",
         "splice.spark.kryoserializer.buffer.max=512m",
         "splice.spark.kryoserializer.buffer=4m",
@@ -277,10 +262,10 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         "splice.spark.yarn.am.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native",
         "splice.spark.yarn.am.waitTime=10s",
         "splice.spark.yarn.executor.memoryOverhead=2048",
-        "splice.spark.driver.extraJavaOptions=-Dlog4j.configuration=file:/etc/spark/conf/log4j.properties",
+        "splice.spark.yarn.am.extraJavaOptions=-Dhdp.version=2.6.3.0-235",
+        "splice.spark.driver.extraJavaOptions=-Dhdp.version=2.6.3.0-235",
         "splice.spark.driver.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native",
         "splice.spark.driver.extraClassPath=/usr/hdp/current/hbase-regionserver/conf:/usr/hdp/current/hbase-regionserver/lib/htrace-core-3.1.0-incubating.jar",
-        "splice.spark.executor.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native",
         "splice.spark.ui.retainedJobs=100",
         "splice.spark.ui.retainedStages=100",
         "splice.spark.worker.ui.retainedExecutors=100",
@@ -294,7 +279,10 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         "splice.spark.local.dir=/tmp",
         "splice.spark.executor.userClassPathFirst=true",
         "splice.spark.driver.userClassPathFirst=true",
-        "splice.spark.executor.extraJavaOptions=-Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl -Djavax.xml.parsers.SAXParserFactory=com.sun.org.apache.xerces.internal.jaxp.SAXParserFactoryImpl"
+        "splice.spark.executor.extraJavaOptions=-Dhdp.version=2.6.3.0-235",
+        "splice.spark.executor.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native",
+        "splice.spark.executor.extraClassPath=/usr/hdp/current/hbase-regionserver/conf:/usr/hdp/current/hbase-regionserver/lib/htrace-core-3.1.0-incubating.jar:/var/lib/splicemachine/*:/usr/hdp/2.6.3.0-235/spark2/jars/*:/usr/hdp/current/hbase-master/lib/*",
+        "splice.spark.yarn.jars=/usr/hdp/2.6.3.0-235/spark2/jars/*"
       ]
     return dashDProperties
 
