@@ -69,6 +69,16 @@ public class ProtoUtil {
                 .build();
     }
 
+    public static DDLChange createUpdateSchemaOwner(long txnId, String schemaName, String ownerName) {
+        return DDLChange.newBuilder().setTxnId(txnId).setUpdateSchemaOwner(UpdateSchemaOwner.newBuilder()
+                .setSchemaName(schemaName)
+                .setOwnerName(ownerName)
+                .build())
+                .setDdlChangeType(DDLChangeType.UPDATE_SCHEMA_OWNER)
+                .build();
+    }
+
+
     public static DDLChange createRefreshEnterpriseFeatures(long txnId) {
         return DDLChange.newBuilder().setTxnId(txnId).setRefreshEnterpriseFeatures(RefreshEnterpriseFeatures.newBuilder().build())
                 .setDdlChangeType(DDLChangeType.REFRESH_ENTRPRISE_FEATURES)
