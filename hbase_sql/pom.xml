@@ -301,6 +301,12 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.apache.hadoop</groupId>
+	    <artifactId>hadoop-minikdc</artifactId>
+            <version>${hadoop.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-testing-util</artifactId>
             <version>${hbase.version}</version>
@@ -573,6 +579,13 @@
         </extensions>
 
         <plugins>
+
+<plugin>
+<groupId>org.apache.felix</groupId>
+<artifactId>maven-bundle-plugin</artifactId>
+<inherited>true</inherited>
+<extensions>true</extensions>
+</plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -1054,6 +1067,76 @@
             </build>
         </profile>
         <profile>
+            <id>spliceHdfs</id>
+            <activation>
+                <property>
+                    <name>spliceHdfs</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>1.4.0</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>java</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <!-- exec:java required so that these 2 dependency properties are available (they aren't with exec:exec -->
+                            <classpathScope>test</classpathScope>
+                            <!--<includeProjectDependencies>false</includeProjectDependencies>-->
+                            <!--<includePluginDependencies>true</includePluginDependencies>-->
+                            <mainClass>com.splicemachine.test.SpliceTestDfsPlatform</mainClass>
+                            <arguments>
+                                <argument>2</argument>
+                                <argument>${project.build.directory}</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>spliceKDC</id>
+            <activation>
+                <property>
+                    <name>spliceKDC</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>1.4.0</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>java</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <!-- exec:java required so that these 2 dependency properties are available (they aren't with exec:exec -->
+                            <classpathScope>test</classpathScope>
+                            <!--<includeProjectDependencies>false</includeProjectDependencies>-->
+                            <!--<includePluginDependencies>true</includePluginDependencies>-->
+                            <mainClass>com.splicemachine.test.SpliceTestKDCPlatform</mainClass>
+                            <arguments>
+                                <!-- Root of the serve classpath. Yarn config file (yarn-site.xml) will be written here. -->
+                                <argument>${project.build.directory}</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
             <id>spliceYarn</id>
             <activation>
                 <property>
@@ -1121,6 +1204,7 @@
                                 <argument>-Xdebug</argument>
                                 <!-- <argument>-XX:+UnlockCommercialFeatures</argument>
                                 <argument>-XX:+FlightRecorder</argument> -->
+				<argument>-Djava.security.krb5.conf=${project.build.directory}/krb5.conf</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Djava.awt.headless=true</argument>
@@ -1137,7 +1221,7 @@
                                 <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
 				<argument>-Dsplice.spark.eventLog.enabled=true</argument>
 				<argument>-Dsplice.spark.eventLog.dir=${project.build.directory}/SpliceTestYarnPlatform/</argument>
-                                <argument>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse</argument>
+				<!-- <argument>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse</argument> -->
                                 <!--                                <argument>-Dsplice.spark.broadcast.factory=org.apache.spark.broadcast.HttpBroadcastFactory</argument> -->
                                 <argument>-Dsplice.spark.driver.host=localhost</argument>
                                 <argument>-Dsplice.spark.driver.cores=1</argument>
@@ -1148,8 +1232,9 @@
                                 <argument>-Dsplice.spark.driver.memory=1g</argument>
                                 <argument>-Dsplice.spark.enabled=true</argument>
                                 <argument>-Dsplice.spark.executor.cores=3</argument>
+				<argument>-Dsplice.spark.hadoop.fs.defaultFS=hdfs://localhost:58878/</argument>
                                 <argument>
-                                    -Dsplice.spark.executor.extraClassPath=${project.build.directory}/classes:${project.build.directory}/dependency/*
+                                    -Dsplice.spark.executor.extraClassPath=${project.build.directory}:${project.build.directory}/classes:${project.build.directory}/dependency/*
                                 </argument>
                                 <argument>-Dspark.executor.extraLibraryPath=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}</argument>
                                 <argument>
@@ -1180,19 +1265,21 @@
                                 <argument>-Dsplice.spark.serializer=com.splicemachine.serializer.SpliceKryoSerializer</argument>
                                 <argument>-Dsplice.spark.shuffle.compress=false</argument>
                                 <argument>-Dsplice.spark.executor.extraJavaOptions=
-                                    -Dhbase.rootdir=${project.build.directory}/hbase
                                     -Dlog4j.configuration=${log4j.config.uri}
+                                    -Dhdp.version=2.6.3
                                     -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020
                                     -enableassertions
                                 </argument>
-				<argument>-Dsplice.olapServer.classpath=${project.build.directory}/dependency/javax.servlet-api-3.1.0.jar:${project.build.directory}/classes</argument>
+				<argument>-Dsplice.spark.yarn.keytab=${project.build.directory}/splice.keytab</argument>
+				<argument>-Dsplice.spark.yarn.principal=hbase/example.com@EXAMPLE.COM</argument>
+				<argument>-Dsplice.olapServer.classpath=${project.build.directory}:${project.build.directory}/dependency/javax.servlet-api-3.1.0.jar:${project.build.directory}/classes</argument>
                                 <argument>-Dsplice.olapServer.extraJavaOptions=
 			             -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
-                                    -Dhbase.rootdir=${project.build.directory}/hbase
                                     -Dlog4j.configuration=${log4j.config.uri}
                                     -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4025
                                     -enableassertions
                                     -Djava.net.preferIPv4Stack=true
+				    -Djava.security.krb5.conf=${project.build.directory}/krb5.conf
                                 </argument>
                                 <argument>-Dsplice.spark.shuffle.file.buffer=128k</argument>
                                 <argument>-Dsplice.spark.shuffle.memoryFraction=0.7</argument>
@@ -1218,7 +1305,7 @@
                                 <argument>-Dderby.language.logStatementText=false</argument>
                                 <argument>-Dderby.infolog.append=true</argument>
                                 <argument>com.splicemachine.test.SpliceTestPlatform</argument>
-                                <argument>file://${project.build.directory}/hbase</argument>
+				<argument>file://${project.build.directory}/</argument>
                                 <argument>60000</argument>
                                 <argument>60010</argument>
                                 <argument>60020</argument>
@@ -1260,6 +1347,7 @@
                                 <argument>-classpath</argument>
                                 <classpath/>
                                 <argument>-Djava.awt.headless=true</argument>
+				<argument>-Djava.security.krb5.conf=${project.build.directory}/krb5.conf</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
 				<argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
@@ -1276,7 +1364,7 @@
                                 <argument>-XX:+CMSClassUnloadingEnabled</argument>
                                 <argument>-XX:MaxDirectMemorySize=1g</argument>
                                 <argument>com.splicemachine.test.SpliceTestClusterParticipant</argument>
-                                <argument>${project.build.directory}/hbase</argument>
+                                <argument>${project.build.directory}</argument>
                                 <argument>${memberNumber}</argument>
                             </arguments>
                         </configuration>

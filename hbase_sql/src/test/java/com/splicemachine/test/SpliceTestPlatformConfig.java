@@ -17,7 +17,14 @@ package com.splicemachine.test;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.spark_project.guava.collect.Lists.transform;
+
+import java.io.IOException;
 import java.util.List;
+
+import com.splicemachine.compactions.SpliceDefaultCompactor;
+import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
+import org.apache.hadoop.hbase.security.token.TokenProvider;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.base.Joiner;
 import org.spark_project.guava.collect.ImmutableList;
@@ -59,7 +66,8 @@ class SpliceTestPlatformConfig {
             RegionSizeEndpoint.class,
             TxnLifecycleEndpoint.class,
             SIObserver.class,
-            BackupEndpointObserver.class
+            BackupEndpointObserver.class ,
+            TokenProvider.class
     );
 
     private static final List<Class<?>> MASTER_COPROCESSORS = ImmutableList.<Class<?>>of(
@@ -90,6 +98,18 @@ class SpliceTestPlatformConfig {
         config.set("hbase.coprocessor.regionserver.classes", getRegionServerCoprocessorsAsString());
         config.set("hbase.coprocessor.region.classes", getRegionCoprocessorsAsString());
         config.set("hbase.coprocessor.master.classes", getMasterCoprocessorsAsString());
+
+        // Security
+
+        String keytab = hbaseRootDirUri+"/splice.keytab";
+        config.set("hadoop.security.authentication", "kerberos");
+        config.set("hbase.security.authentication", "kerberos");
+        config.set("hbase.regionserver.kerberos.principal", "hbase/example.com@EXAMPLE.COM");
+        config.set("hbase.regionserver.keytab.file", keytab);
+        config.set("hbase.master.kerberos.principal", "hbase/example.com@EXAMPLE.COM");
+        config.set("hbase.master.keytab.file", keytab);
+
+//        UserGroupInformation.setLoginUser(Us);
 
         //
         // Networking
@@ -122,15 +142,18 @@ class SpliceTestPlatformConfig {
         //
         // File System
         //
-        config.set("fs.defaultFS", "file:///"); // MapR Hack, tells it local filesystem // fs.default.name is deprecated
-        config.set(FileSystem.FS_DEFAULT_NAME_KEY, "file:///");
+        boolean security = true;
+        String defaultFs = security ? "hdfs://localhost:58878/" : "file:///";
+
+        config.set("fs.defaultFS", defaultFs); // MapR Hack, tells it local filesystem // fs.default.name is deprecated
+        config.set(FileSystem.FS_DEFAULT_NAME_KEY, defaultFs);
         config.setDouble("yarn.nodemanager.resource.io-spindles",2.0);
-        config.set("fs.default.name", "file:///");
+        config.set("fs.default.name", defaultFs);
         config.set("yarn.nodemanager.container-executor.class","org.apache.hadoop.yarn.server.nodemanager.DefaultContainerExecutor");
 
         // Must allow Cygwin instance to config its own rootURI
         if (!"CYGWIN".equals(hbaseRootDirUri)) {
-            config.set("hbase.rootdir", hbaseRootDirUri);
+            config.set("hbase.rootdir", "hdfs://localhost:58878/hbase");
         }
 
 

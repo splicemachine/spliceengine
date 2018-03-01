@@ -19,9 +19,16 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.zookeeper.KeeperException;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URL;
+import java.security.PrivilegedExceptionAction;
 
 /**
  * Start MiniHBaseCluster for use by ITs.
@@ -63,9 +70,35 @@ public class SpliceTestPlatform {
                 // ignore
             }
 
-            MiniHBaseCluster miniHBaseCluster = new MiniHBaseCluster(config, 1, 1);
+            String keytab = hbaseRootDirUri+"/splice.keytab";
+            UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI("hbase/example.com@EXAMPLE.COM", keytab);
+            UserGroupInformation.setLoginUser(ugi);
+            ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
 
-            new SpliceTestPlatformShutdownThread(miniHBaseCluster);
+            ugi.doAs(new PrivilegedExceptionAction<Void>() {
+                @Override
+                public Void run() throws Exception {
+                    MiniHBaseCluster miniHBaseCluster = new MiniHBaseCluster(config, 1, 1);
+                    new SpliceTestPlatformShutdownThread(miniHBaseCluster);
+
+
+                    Configuration hbaseConf = miniHBaseCluster.getConfiguration();
+                    hbaseConf.writeXml(bytesOut);
+                    bytesOut.close();
+
+
+                    return null;
+                }
+
+            });
+
+            String hbaseSiteFile = hbaseRootDirUri+"/hbase-site.xml";
+            File file = new File(new URL(hbaseSiteFile).getPath());
+            file.createNewFile();
+            //write the bytes to the file in the classpath
+            OutputStream os = new FileOutputStream(file);
+            os.write(bytesOut.toByteArray());
+            os.close();
 
         } catch (NumberFormatException e) {
             SpliceTestPlatformUsage.usage("Bad port specified", e);

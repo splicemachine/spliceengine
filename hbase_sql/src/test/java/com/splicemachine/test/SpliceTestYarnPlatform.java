@@ -21,9 +21,12 @@ import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.security.PrivilegedExceptionAction;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.hbase.MiniHBaseCluster;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.service.CompositeService;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
@@ -47,11 +50,12 @@ public class SpliceTestYarnPlatform {
     private URL yarnSiteConfigURL = null;
     private CompositeService yarnCluster = null;
     private Configuration conf = null;
+    private String keytab;
 
-    public SpliceTestYarnPlatform() {
+    public SpliceTestYarnPlatform(String classPathRoot) {
         // for testing
         try {
-            configForTesting();
+            configForTesting(classPathRoot);
         } catch (URISyntaxException e) {
             throw new RuntimeException("Error trying to config.", e);
         }
@@ -72,7 +76,7 @@ public class SpliceTestYarnPlatform {
             nodeCount = Integer.parseInt(args[1]);
         }
 
-        SpliceTestYarnPlatform yarnParticipant = new SpliceTestYarnPlatform();
+        SpliceTestYarnPlatform yarnParticipant = new SpliceTestYarnPlatform(classPathRoot);
         yarnParticipant.configForSplice(classPathRoot);
         LOG.error("Yarn -- > class " + yarnParticipant.getConfig().get("yarn.nodemanager.container-executor.class"));
         yarnParticipant.start(nodeCount);
@@ -96,9 +100,23 @@ public class SpliceTestYarnPlatform {
         if (yarnCluster == null) {
             LOG.info("Starting up YARN cluster with "+nodeCount+" nodes. Server yarn-site.xml is: "+yarnSiteConfigURL);
             conf.set(YarnConfiguration.RM_WEBAPP_ADDRESS, "localhost:0");
-            yarnCluster = new MiniYARNClusterSplice(SpliceTestYarnPlatform.class.getSimpleName(), nodeCount, 1, 1);
-            yarnCluster.init(conf);
-            yarnCluster.start();
+
+
+            UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI("yarn/example.com@EXAMPLE.COM", keytab);
+            UserGroupInformation.setLoginUser(ugi);
+
+            ugi.doAs(new PrivilegedExceptionAction<Void>() {
+                @Override
+                public Void run() throws Exception {
+                    yarnCluster = new MiniYARNClusterSplice(SpliceTestYarnPlatform.class.getSimpleName(), nodeCount, 1, 1);
+                    yarnCluster.init(conf);
+                    yarnCluster.start();
+                    return null;
+                }
+
+            });
+
+
 
             NodeManager nm = getNodeManager();
             waitForNMToRegister(nm);
@@ -132,7 +150,7 @@ public class SpliceTestYarnPlatform {
         yarnSiteConfigURL = cpRootFile.toURI().toURL();
     }
 
-    private void configForTesting() throws URISyntaxException {
+    private void configForTesting(String classPathRoot) throws URISyntaxException {
         yarnSiteConfigURL = Thread.currentThread().getContextClassLoader().getResource("yarn-site.xml");
         if (yarnSiteConfigURL == null) {
             throw new RuntimeException("Could not find 'yarn-site.xml' file in classpath");
@@ -142,6 +160,13 @@ public class SpliceTestYarnPlatform {
 
         conf = new YarnConfiguration();
         conf.set(FileSystem.FS_DEFAULT_NAME_KEY, "file:///");
+
+        keytab = classPathRoot.substring(0, classPathRoot.lastIndexOf('/'))+"/splice.keytab";
+        conf.set("hadoop.security.authentication", "kerberos");
+        conf.set("yarn.resourcemanager.principal", "yarn/example.com@EXAMPLE.COM");
+        conf.set("yarn.resourcemanager.keytab", keytab);
+        conf.set("yarn.nodemanager.principal", "yarn/example.com@EXAMPLE.COM");
+        conf.set("yarn.nodemanager.keytab", keytab);
         conf.setDouble("yarn.nodemanager.resource.io-spindles",2.0);
         conf.set("fs.default.name", "file:///");
         conf.set("yarn.nodemanager.container-executor.class","org.apache.hadoop.yarn.server.nodemanager.DefaultContainerExecutor");

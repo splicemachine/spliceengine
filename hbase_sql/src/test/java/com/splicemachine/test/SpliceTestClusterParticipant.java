@@ -16,9 +16,12 @@ package com.splicemachine.test;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.access.configuration.SQLConfiguration;
+
+import java.security.PrivilegedExceptionAction;
 
 /**
  * Add an additional member to the cluster started with SpliceTestPlatform.
@@ -75,8 +78,19 @@ public class SpliceTestClusterParticipant {
                 false
         );
 
-        MiniHBaseCluster miniHBaseCluster = new MiniHBaseCluster(config, 0, 1);
-        miniHBaseCluster.startRegionServer();
+        String keytab = hbaseTargetDirectory+"/splice.keytab";
+        UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI("hbase/example.com@EXAMPLE.COM", keytab);
+        UserGroupInformation.setLoginUser(ugi);
+
+        ugi.doAs(new PrivilegedExceptionAction<Void>() {
+            @Override
+            public Void run() throws Exception {
+                MiniHBaseCluster miniHBaseCluster = new MiniHBaseCluster(config, 0, 1);
+                miniHBaseCluster.startRegionServer();
+                return null;
+            }
+
+        });
     }
 
 }

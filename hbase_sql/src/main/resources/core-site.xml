@@ -13,9 +13,21 @@
   -->
 
 <configuration>
-<property>
+
+    <property>
+        <name>hadoop.security.authentication</name>
+        <value>kerberos</value>
+    </property>
+
+    <property>
+        <name>hbase.security.authentication</name>
+        <value>kerberos</value>
+    </property>
+
+
+    <property>
     <name>fs.default.name</name>
-    <value>file:///</value>
+    <value>hdfs://localhost:58878/</value>
 </property>
 
 <property>
@@ -25,12 +37,12 @@
 
     <property>
         <name>fs.hdfs.impl</name>
-        <value>org.apache.hadoop.fs.LocalFileSystem</value>
+        <value>org.apache.hadoop.hdfs.DistributedFileSystem</value>
     </property>
 
     <property>
         <name>fs.defaultFS</name>
-        <value>file:///</value>
+        <value>hdfs://localhost:58878/</value>
     </property>
 
     </configuration>

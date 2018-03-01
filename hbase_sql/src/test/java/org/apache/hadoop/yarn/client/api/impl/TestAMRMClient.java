@@ -101,7 +101,7 @@ public class TestAMRMClient {
     @BeforeClass
     public static void setup() throws Exception {
         // start yarn test platform
-        testYarnParticipant = new SpliceTestYarnPlatform();
+        testYarnParticipant = new SpliceTestYarnPlatform("");
         testYarnParticipant.start(NODECOUNT);
 
         // start rm client

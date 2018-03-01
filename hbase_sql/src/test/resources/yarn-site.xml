@@ -121,4 +121,25 @@
     <name>yarn.nodemanager.dist-health-checker.max-disk-utilization-per-disk-percentage</name>
     <value>100</value>
   </property>
+  <property>
+    <name>hadoop.security.authentication</name>
+    <value>kerberos</value>
+  </property>
+  <property>
+    <name>yarn.resourcemanager.principal</name>
+    <value>yarn/example.com@EXAMPLE.COM</value>
+  </property>
+  <property>
+    <name>yarn.nodemanager.principal</name>
+    <value>yarn/example.com@EXAMPLE.COM</value>
+  </property>
+
+  <property>
+    <name>yarn.resourcemanager.keytab</name>
+    <value>splice.keytab</value>
+  </property>
+  <property>
+    <name>yarn.nodemanager.keytab</name>
+    <value>splice.keytab</value>
+  </property>
 </configuration>

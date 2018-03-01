@@ -34,8 +34,21 @@ _kill_em_all () {
 }
 export -f _kill_em_all
 
+wait_for () {
+	LOG_FILE=$1
+	shift
+	NEEDLE=$*
+
+	echo -n "  Waiting. "
+	while ! grep -q "$NEEDLE" $LOG_FILE 
+		do echo -n ". " 
+		sleep 2
+	done
+	echo
+}
+
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-DEFAULT_PROFILE="cdh5.8.0"  # default hbase platform profile
+DEFAULT_PROFILE="cdh5.8.3"  # default hbase platform profile
 PROFILE=$DEFAULT_PROFILE
 IN_MEM_PROFILE="mem"
 RUN_DIR="${BASE_DIR}/hbase_sql"
@@ -173,6 +186,18 @@ if [ ${COUNT} -eq 0 ]; then
     echo "ZooKeeper did not start up properly, aborting startup. Please check ${RUN_DIR}/zoo.log for more information"
     exit 5
 fi
+
+KDC_LOG="${RUN_DIR}/kdc.log"
+echo "Starting KDC. Log file is ${KDC_LOG}"
+(${MVN} exec:java -P${PROFILE},spliceKDC > ${KDC_LOG} 2>&1) &  ## KDC
+wait_for ${KDC_LOG} "KDC cluster started" 
+
+export MAVEN_OPTS="$MAVEN_OPTS -Djava.security.krb5.conf=${RUN_DIR}/target/krb5.conf -Dsun.security.krb5.debug=true"
+
+HDFS_LOG="${RUN_DIR}/hdfs.log"
+echo "Starting HDFS. Log file is ${HDFS_LOG}"
+(${MVN} exec:java -P${PROFILE},spliceHdfs > ${HDFS_LOG} 2>&1) &  ## HDFS
+wait_for ${HDFS_LOG} "HDFS cluster started"
   
 YARN_LOG="${RUN_DIR}/yarn.log"
 echo "Starting YARN. Log file is ${YARN_LOG}"
@@ -188,7 +213,7 @@ echo "Starting Master and 1 Region Server. Log file is ${SPLICE_LOG}"
 ## (master + region server on 1527)
 (${MVN} exec:exec -P${PROFILE},spliceFast ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
 echo -n "  Waiting. "
-while ! echo exit | nc localhost 1527; do echo -n ". " ; sleep 5; done
+while ! echo exit | nc localhost 1527; do echo -n ". " ; sleep 2; done
 echo
 
 if [[ ${MEMBERS} -gt 0 ]]; then
@@ -198,7 +223,7 @@ if [[ ${MEMBERS} -gt 0 ]]; then
     ## (region server, splice on 1528, 1529, ...)
     (${MVN} exec:exec -P${PROFILE},spliceClusterMember ${SYSTEM_PROPS} -DmemberNumber=${MEMBER} -Dxml.plan.debug.path=${DEBUG_PATH} > ${REGION_SVR_LOG} 2>&1) &
     echo -n "  Waiting. "
-    while ! echo exit | nc localhost $(( 1527 + ${MEMBER} )); do echo -n ". " ; sleep 5; done
+    while ! echo exit | nc localhost $(( 1527 + ${MEMBER} )); do echo -n ". " ; sleep 2; done
     echo
   done
 fi

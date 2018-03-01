@@ -27,4 +27,10 @@
     <name>splice.authentication.native.create.credentials.database</name>
     <value>false</value>
   </property>
+
+  <property>
+    <name>hbase.security.authentication</name>
+    <value>kerberos</value>
+  </property>
+
 </configuration>
