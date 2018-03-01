@@ -917,6 +917,7 @@
                 <zookeeper.version>3.4.6.2.5.5.7-1</zookeeper.version>
                 <spark-assembly-id>spark-assembly-hadoop2.7.3.2.5.5.7-1</spark-assembly-id>
                 <spark.version>2.2.0</spark.version>
+                <spark.major.version>spark2.2</spark.major.version>
                 <kafka.version>0.9.0.2.4.2.0-258</kafka.version>
                 <!-- <kafka.version>0.10.0.2.5.5.7-1</kafka.version> -->
             </properties>
@@ -1082,8 +1083,8 @@
                 <hive.version>0.13.0-mapr-1602</hive.version>
                 <zookeeper.version>3.4.5-mapr-1503</zookeeper.version>
                 <maprfs.version>5.1.0-mapr</maprfs.version>
-                <spark.major.version>spark2.1</spark.major.version>
-                <spark.version>2.1.0</spark.version>
+                <spark.major.version>spark2.2</spark.major.version>
+                <spark.version>2.2.0</spark.version>
                 <kafka.version>0.9.0.0-mapr-1607</kafka.version>
             </properties>
             <modules>
@@ -1110,8 +1111,8 @@
                 <hive.version>0.13.0-mapr-1602</hive.version>
                 <zookeeper.version>3.4.5-mapr-1503</zookeeper.version>
                 <maprfs.version>5.2.0-mapr</maprfs.version>
-                <spark.major.version>spark2.1</spark.major.version>
-                <spark.version>2.1.0-mapr-1710</spark.version>
+                <spark.major.version>spark2.2</spark.major.version>
+                <spark.version>2.2.0</spark.version>
                 <kafka.version>0.9.0.0-mapr-1607</kafka.version>
                 <netty.version>3.6.2.Final</netty.version>
             </properties>
