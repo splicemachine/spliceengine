@@ -131,7 +131,7 @@ public class SpliceSpark {
         UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
         ugi.addCredentials(credentials);
         // specify that this is a proxy user
-        ugi.setAuthenticationMethod(UserGroupInformation.AuthenticationMethod.PROXY);
+        ugi.setAuthenticationMethod(UserGroupInformation.AuthenticationMethod.TOKEN);
 
         LOG.info("Applied credentials");
 
@@ -311,7 +311,7 @@ public class SpliceSpark {
         conf.set("spark.app.name", System.getProperty("splice.spark.app.name", "SpliceMachine"));
         conf.set("spark.driver.maxResultSize", System.getProperty("splice.spark.driver.maxResultSize", "1g"));
         conf.set("spark.driver.memory", System.getProperty("splice.spark.driver.memory", "1g"));
-        conf.set("spark.executor.memory", System.getProperty("splice.spark.executor.memory", "2g"));
+        conf.set("spark.executor.memory", System.getProperty("splice.spark.executor.memory", "2000M"));
         conf.set("spark.extraListeners", System.getProperty("splice.spark.extraListeners", ""));
         conf.set("spark.local.dir", System.getProperty("splice.spark.local.dir", System.getProperty("java.io.tmpdir")));
         conf.set("spark.logConf", System.getProperty("splice.spark.logConf", "true"));

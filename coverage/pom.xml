@@ -178,6 +178,26 @@
         	</dependency>
         </dependencies>
         </profile>
+		<profile>
+			<id>hdp2.6.3</id>
+			<dependencies>
+				<dependency>
+					<groupId>${project.groupId}</groupId>
+					<artifactId>hbase_sql-${envClassifier}</artifactId>
+					<version>${project.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>${project.groupId}</groupId>
+					<artifactId>hbase_storage-${envClassifier}</artifactId>
+					<version>${project.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>${project.groupId}</groupId>
+					<artifactId>hbase_pipeline-${envClassifier}</artifactId>
+					<version>${project.version}</version>
+				</dependency>
+			</dependencies>
+		</profile>
         <profile>
         	<id>cdh5.8.3</id>
         <dependencies>
@@ -238,6 +258,26 @@
         	</dependency>
         </dependencies>
         </profile>
+		<profile>
+			<id>cdh5.13.0</id>
+			<dependencies>
+				<dependency>
+					<groupId>${project.groupId}</groupId>
+					<artifactId>hbase_sql-${envClassifier}</artifactId>
+					<version>${project.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>${project.groupId}</groupId>
+					<artifactId>hbase_storage-${envClassifier}</artifactId>
+					<version>${project.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>${project.groupId}</groupId>
+					<artifactId>hbase_pipeline-${envClassifier}</artifactId>
+					<version>${project.version}</version>
+				</dependency>
+			</dependencies>
+		</profile>
         <profile>
         	<id>mapr5.1.0</id>
         <dependencies>
@@ -278,5 +318,25 @@
         	</dependency>
         </dependencies>
         </profile>
+		<profile>
+			<id>mapr6.0.0</id>
+			<dependencies>
+				<dependency>
+					<groupId>${project.groupId}</groupId>
+					<artifactId>hbase_sql-${envClassifier}</artifactId>
+					<version>${project.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>${project.groupId}</groupId>
+					<artifactId>hbase_storage-${envClassifier}</artifactId>
+					<version>${project.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>${project.groupId}</groupId>
+					<artifactId>hbase_pipeline-${envClassifier}</artifactId>
+					<version>${project.version}</version>
+				</dependency>
+			</dependencies>
+		</profile>
     </profiles>
 </project>

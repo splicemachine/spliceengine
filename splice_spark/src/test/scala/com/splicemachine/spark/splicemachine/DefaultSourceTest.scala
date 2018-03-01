@@ -89,6 +89,24 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     assert(newDF.count == 10)
   }
 
+  test("upsert") {
+    val df = sqlContext.read.options(internalOptions).splicemachine
+    val changedDF = df.withColumn("C6_INT", when(col("C6_INT").leq(10), col("C6_INT").plus(5)) )
+    .withColumn("C7_BIGINT", when(col("C7_BIGINT").leq(10), col("C7_BIGINT").plus(5)) )
+    splicemachineContext.upsert(changedDF, internalTN)
+    val newDF = sqlContext.read.options(internalOptions).splicemachine
+    assert(newDF.count == 15)
+  }
+
+  test("upsert using rdd") {
+    val df = sqlContext.read.options(internalOptions).splicemachine
+    val changedDF = df.withColumn("C6_INT", when(col("C6_INT").leq(10), col("C6_INT").plus(5)) )
+      .withColumn("C7_BIGINT", when(col("C7_BIGINT").leq(10), col("C7_BIGINT").plus(5)) )
+    splicemachineContext.upsert(changedDF.rdd, changedDF.schema, internalTN)
+    val newDF = sqlContext.read.options(internalOptions).splicemachine
+    assert(newDF.count == 15)
+  }
+
 
   test("bulkImportHFile") {
     val bulkImportOptions = scala.collection.mutable.Map(
