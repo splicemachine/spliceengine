@@ -33,7 +33,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>2.5.0.1808-SNAPSHOT</version>
+        <version>2.5.0.1809-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>db-engine</artifactId>
@@ -42,17 +42,19 @@
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-common</artifactId>
             <version>2.6.0-cdh5.6.0</version>
-	    <exclusions>
-		    <exclusion>
-			    <groupId>asm</groupId>
-			    <artifactId>asm</artifactId>
-		    </exclusion>
+            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>asm</groupId>
+                    <artifactId>asm</artifactId>
+                </exclusion>
 	    </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-common</artifactId>
             <version>1.0.0-cdh5.6.0</version>
+            <scope>provided</scope>
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.hadoop</groupId>
@@ -102,11 +104,14 @@
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-catalyst_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-unsafe_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
+            <scope>provided</scope>
+
         </dependency>
 
         <dependency>

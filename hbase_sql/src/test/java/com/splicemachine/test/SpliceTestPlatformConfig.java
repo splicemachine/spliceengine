@@ -18,6 +18,9 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.spark_project.guava.collect.Lists.transform;
 import java.util.List;
+
+import com.splicemachine.compactions.SpliceDefaultCompactor;
+import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.base.Joiner;
 import org.spark_project.guava.collect.ImmutableList;
@@ -35,8 +38,6 @@ import org.apache.hadoop.hbase.regionserver.compactions.CompactionPolicy;
 import org.apache.hadoop.hbase.regionserver.compactions.Compactor;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.configuration.SQLConfiguration;
-import com.splicemachine.compactions.SpliceDefaultCompactor;
-import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.derby.hbase.SpliceIndexObserver;
 import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
 import com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint;

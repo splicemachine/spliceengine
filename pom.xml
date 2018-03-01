@@ -16,7 +16,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.splicemachine</groupId>
     <artifactId>spliceengine-parent</artifactId>
-    <version>2.5.0.1808-SNAPSHOT</version>
+    <version>2.5.0.1809-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>${project.artifactId}</name>
     <description>Splice Engine Parent POM</description>
@@ -793,58 +793,6 @@
             </modules>
         </profile>
         <profile>
-            <id>hdp2.5.0</id>
-            <activation>
-                <property>
-                    <name>env</name>
-                    <value>hdp2.5.0</value>
-                </property>
-            </activation>
-            <properties>
-                <envClassifier>hdp2.5.0</envClassifier>
-                <envHbase>hbase1.1.2.2.5</envHbase>
-                <hadoop.version>2.7.3.2.5.0.0-1245</hadoop.version>
-                <hbase.version>1.1.2.2.5.0.0-1245</hbase.version>
-                <hive.version>1.2.1000.2.5.0.0-1245</hive.version>
-                <zookeeper.version>3.4.6.2.5.0.0-1245</zookeeper.version>
-                <spark-assembly-id>spark-assembly-hadoop2.7.3.2.5.0.0-1245</spark-assembly-id>
-                <spark.version>2.1.0</spark.version>
-                <kafka.version>0.9.0.2.4.2.0-258</kafka.version>
-                <!-- kafka.version>0.10.0.2.5.0.0-1245</kafka.version -->
-            </properties>
-            <modules>
-                <module>hbase_storage</module>
-                <module>hbase_pipeline</module>
-                <module>hbase_sql</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>hdp2.5.3</id>
-            <activation>
-                <property>
-                    <name>env</name>
-                    <value>hdp2.5.3</value>
-                </property>
-            </activation>
-            <properties>
-                <envClassifier>hdp2.5.3</envClassifier>
-                <envHbase>hbase1.1.2.2.5</envHbase>
-                <hadoop.version>2.7.3.2.5.3.0-37</hadoop.version>
-                <hbase.version>1.1.2.2.5.3.0-37</hbase.version>
-                <hive.version>1.2.1000.2.5.3.0-37</hive.version>
-                <zookeeper.version>3.4.6.2.5.3.0-37</zookeeper.version>
-                <spark-assembly-id>spark-assembly-hadoop2.7.3.2.5.3.0-37</spark-assembly-id>
-                <spark.version>2.1.0</spark.version>
-                <kafka.version>0.9.0.2.4.2.0-258</kafka.version>
-                <!-- <kafka.version>0.10.0.2.5.3.0-37</kafka.version> -->
-            </properties>
-            <modules>
-                <module>hbase_storage</module>
-                <module>hbase_pipeline</module>
-                <module>hbase_sql</module>
-            </modules>
-        </profile>
-        <profile>
             <id>hdp2.5.5</id>
             <activation>
                 <property>
@@ -861,6 +809,7 @@
                 <zookeeper.version>3.4.6.2.5.5.7-1</zookeeper.version>
                 <spark-assembly-id>spark-assembly-hadoop2.7.3.2.5.5.7-1</spark-assembly-id>
                 <spark.version>2.1.0</spark.version>
+                <spark.major.version>spark2.1</spark.major.version>
                 <kafka.version>0.9.0.2.4.2.0-258</kafka.version>
                 <!-- <kafka.version>0.10.0.2.5.5.7-1</kafka.version> -->
             </properties>
@@ -868,8 +817,38 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>splice_spark</module>
             </modules>
         </profile>
+
+        <profile>
+            <id>hdp2.6.3</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>hdp2.6.3</value>
+                </property>
+            </activation>
+            <properties>
+                <envClassifier>hdp2.6.3</envClassifier>
+                <envHbase>hbase1.1.2.2.6</envHbase>
+                <hadoop.version>2.7.3.2.6.3.0-235</hadoop.version>
+                <hbase.version>1.1.2.2.6.3.0-235</hbase.version>
+                <hive.version>2.1.0.2.6.3.0-235</hive.version>
+                <zookeeper.version>3.4.6.2.6.3.0-235</zookeeper.version>
+                <spark-assembly-id>spark-assembly-hadoop2.7.3.2.6.3.0-235</spark-assembly-id>
+                <spark.version>2.2.0.2.6.3.0-235</spark.version>
+                <spark.major.version>spark2.2</spark.major.version>
+                <kafka.version>0.10.1.2.6.3.0-235</kafka.version>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+                <module>splice_spark</module>
+            </modules>
+        </profile>
+
         <profile>
             <id>cdh5.8.3</id>
             <activation>
@@ -885,8 +864,9 @@
                 <hadoop.version>2.6.0-cdh5.8.3</hadoop.version>
                 <hbase.version>1.2.0-cdh5.8.3</hbase.version>
                 <hive.version>1.1.0-cdh5.8.3</hive.version>
+                <spark.major.version>spark2.2</spark.major.version>
                 <zookeeper.version>3.4.5-cdh5.8.3</zookeeper.version>
-                <spark.version>2.1.0.cloudera1</spark.version>
+                <spark.version>2.2.0.cloudera2</spark.version>
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.8.3</spark-assembly-id>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
             </properties>
@@ -911,6 +891,7 @@
                 <envHbase>hbase1.2.0</envHbase>
                 <hadoop.version>2.6.0-cdh5.9.0</hadoop.version>
                 <hbase.version>1.2.0-cdh5.9.0</hbase.version>
+                <spark.major.version>spark2.1</spark.major.version>
                 <hive.version>1.1.0-cdh5.9.0</hive.version>
                 <zookeeper.version>3.4.5-cdh5.9.0</zookeeper.version>
                 <spark.version>2.1.0.cloudera1</spark.version>
@@ -938,9 +919,66 @@
                 <hadoop.version>2.6.0-cdh5.12.0</hadoop.version>
                 <hbase.version>1.2.0-cdh5.12.0</hbase.version>
                 <hive.version>1.1.0-cdh5.12.0</hive.version>
+                <spark.major.version>spark2.2</spark.major.version>
                 <zookeeper.version>3.4.5-cdh5.12.0</zookeeper.version>
-                <spark.version>2.1.0.cloudera1</spark.version>
+                <spark.version>2.2.0.cloudera1</spark.version>
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.12.0</spark-assembly-id>
+                <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+                <module>splice_spark</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>cdh5.13.0</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>cdh5.13.0</value>
+                </property>
+            </activation>
+            <properties>
+                <cdh.parcel.version>5.13.0</cdh.parcel.version>
+                <envClassifier>cdh5.13.0</envClassifier>
+                <envHbase>hbase1.2.0</envHbase>
+                <hadoop.version>2.6.0-cdh5.13.0</hadoop.version>
+                <hbase.version>1.2.0-cdh5.13.0</hbase.version>
+                <hive.version>1.1.0-cdh5.13.0</hive.version>
+                <spark.major.version>spark2.2</spark.major.version>
+                <zookeeper.version>3.4.5-cdh5.13.0</zookeeper.version>
+                <spark.version>2.2.0.cloudera1</spark.version>
+                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.13.0</spark-assembly-id>
+                <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+                <module>splice_spark</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>cdh5.14.0</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>cdh5.14.0</value>
+                </property>
+            </activation>
+            <properties>
+                <cdh.parcel.version>5.14.0</cdh.parcel.version>
+                <envClassifier>cdh5.14.0</envClassifier>
+                <envHbase>hbase1.2.0</envHbase>
+                <hadoop.version>2.6.0-cdh5.14.0</hadoop.version>
+                <hbase.version>1.2.0-cdh5.14.0</hbase.version>
+                <hive.version>1.1.0-cdh5.14.0</hive.version>
+                <spark.major.version>spark2.2</spark.major.version>
+                <zookeeper.version>3.4.5-cdh5.14.0</zookeeper.version>
+                <spark.version>2.2.0.cloudera1</spark.version>
+                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.14.0</spark-assembly-id>
                 <kafka.version>0.9.0-kafka-2.0.2</kafka.version>
             </properties>
             <modules>
@@ -960,13 +998,14 @@
             </activation>
             <properties>
                 <envClassifier>mapr5.1.0</envClassifier>
-                <envHbase>hbase1.1.0</envHbase>
+                <envHbase>hbase1.1.1</envHbase>
                 <hadoop.version>2.7.0-mapr-1602</hadoop.version>
                 <hadoop.tools.version>1.0.3-mapr-5.1.0</hadoop.tools.version>
                 <hbase.version>1.1.1-mapr-1602</hbase.version>
                 <hive.version>0.13.0-mapr-1602</hive.version>
                 <zookeeper.version>3.4.5-mapr-1503</zookeeper.version>
                 <maprfs.version>5.1.0-mapr</maprfs.version>
+                <spark.major.version>spark2.1</spark.major.version>
                 <spark.version>2.1.0</spark.version>
                 <spark-assembly-id>spark-assembly-hadoop2.7.0-mapr-1602</spark-assembly-id>
                 <kafka.version>0.9.0.0-mapr-1607</kafka.version>
@@ -975,6 +1014,7 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>splice_spark</module>
             </modules>
         </profile>
         <profile>
@@ -987,15 +1027,15 @@
             </activation>
             <properties>
                 <envClassifier>mapr5.2.0</envClassifier>
-                <envHbase>hbase1.1.0</envHbase>
+                <envHbase>hbase1.1.1</envHbase>
                 <hadoop.version>2.7.0-mapr-1607</hadoop.version>
                 <hadoop.tools.version>1.0.3-mapr-5.2.0</hadoop.tools.version>
                 <hbase.version>1.1.1-mapr-1602-5.2.0</hbase.version>
                 <hive.version>0.13.0-mapr-1602</hive.version>
                 <zookeeper.version>3.4.5-mapr-1503</zookeeper.version>
                 <maprfs.version>5.2.0-mapr</maprfs.version>
-                <spark.version>2.1.0</spark.version>
-                <spark-assembly-id>spark-assembly-hadoop${hadoop.version}</spark-assembly-id>
+                <spark.major.version>spark2.1</spark.major.version>
+                <spark.version>2.1.0-mapr-1710</spark.version>
                 <kafka.version>0.9.0.0-mapr-1607</kafka.version>
                 <netty.version>3.6.2.Final</netty.version>
             </properties>
@@ -1003,8 +1043,39 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>splice_spark</module>
             </modules>
         </profile>
+        <profile>
+            <id>mapr6.0.0</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>mapr6.0.0</value>
+                </property>
+            </activation>
+            <properties>
+                <envClassifier>mapr6.0.0</envClassifier>
+                <envHbase>hbase1.1.8</envHbase>
+                <hadoop.version>2.7.0-mapr-1710</hadoop.version>
+                <hadoop.tools.version>1.0.3-mapr-5.2.0</hadoop.tools.version>
+                <hbase.version>1.1.8-mapr-1710</hbase.version>
+                <hive.version>2.1.1-mapr-1710</hive.version>
+                <zookeeper.version>3.4.5-mapr-1710</zookeeper.version>
+                <maprfs.version>6.0.0-mapr</maprfs.version>
+                <spark.version>2.1.0-mapr-1710</spark.version>
+                <spark.major.version>spark2.1</spark.major.version>
+                <kafka.version>0.9.0.0-mapr-1710</kafka.version>
+                <netty.version>3.6.2.Final</netty.version>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+                <module>splice_spark</module>
+            </modules>
+        </profile>
+
         <profile>
             <id>assemble</id>
             <activation>

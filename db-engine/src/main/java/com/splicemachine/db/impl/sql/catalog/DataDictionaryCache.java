@@ -45,9 +45,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
-import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.cache.Cache;
 import org.spark_project.guava.cache.CacheBuilder;
 import org.spark_project.guava.cache.RemovalListener;
 import org.spark_project.guava.cache.RemovalNotification;
@@ -158,6 +156,12 @@ public class DataDictionaryCache {
         return td;
     }
 
+    public void clearNameTdCache() throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("clearNameTdCache ");
+        nameTdCache.invalidateAll();
+    }
+
     public TableDescriptor oidTdCacheFind(UUID tableID) throws StandardException {
         if (!dd.canUseCache(null))
             return null;
@@ -185,6 +189,11 @@ public class DataDictionaryCache {
         return td;
     }
 
+    public void clearOidTdCache() throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("clearOidTdCache ");
+        oidTdCache.invalidateAll();
+    }
 
     public List<PartitionStatisticsDescriptor> partitionStatisticsCacheFind(Long conglomID) throws StandardException {
         if (!dd.canUseCache(null))
@@ -222,6 +231,13 @@ public class DataDictionaryCache {
         if (LOG.isDebugEnabled())
             LOG.debug("permissionCacheRemove " + desc);
         permissionsCache.invalidate(desc);
+    }
+
+    public void clearPermissionCache() throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("clearPermissionsCache ");
+        permissionsCache.invalidateAll();
+
     }
 
     public PermissionsDescriptor permissionCacheFind(PermissionsDescriptor desc) throws StandardException {

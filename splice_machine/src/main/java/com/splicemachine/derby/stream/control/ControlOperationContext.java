@@ -358,7 +358,7 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     @Override
     public OperationContext getClone() throws IOException, ClassNotFoundException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        Kryo kryo = SpliceKryoRegistry.getInstance().newInstance();
+        Kryo kryo = SpliceKryoRegistry.getInstance().get();
 
         try {
             Output output = new Output(baos);
