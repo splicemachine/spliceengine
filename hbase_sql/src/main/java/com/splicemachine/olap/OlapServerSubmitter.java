@@ -30,7 +30,11 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
+import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.mapreduce.MRJobConfig;
+import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
@@ -60,6 +64,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -178,6 +183,26 @@ public class OlapServerSubmitter implements Runnable {
                 amContainer.setEnvironment(appMasterEnv);
                 amContainer.setLocalResources(localResources);
 
+                // Setup security tokens
+                if (UserGroupInformation.isSecurityEnabled()) {
+                    Credentials credentials = new Credentials();
+                    String tokenRenewer = conf.get(YarnConfiguration.RM_PRINCIPAL);
+                    if (tokenRenewer == null || tokenRenewer.length() == 0) {
+                        throw new IOException(
+                                "Can't get Master Kerberos principal for the RM to use as renewer");
+                    }
+
+                    final Token<?> tokens[] = fs.addDelegationTokens(tokenRenewer, credentials);
+                    if (tokens != null) {
+                        for (Token<?> token : tokens) {
+                            LOG.info("Got dt for " + fs.getUri() + "; " + token);
+                        }
+                    }
+                    DataOutputBuffer dob = new DataOutputBuffer();
+                    credentials.writeTokenStorageToStream(dob);
+                    ByteBuffer fsTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
+                    amContainer.setTokens(fsTokens);
+                }
 
                 // Set up resource type requirements for ApplicationMaster
                 Resource capability = Records.newRecord(Resource.class);
