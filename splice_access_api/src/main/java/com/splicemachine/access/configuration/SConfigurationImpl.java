@@ -14,13 +14,12 @@
 
 package com.splicemachine.access.configuration;
 
+import com.splicemachine.access.api.SConfiguration;
+import org.apache.log4j.Logger;
+
 import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.TreeMap;
-
-import org.apache.log4j.Logger;
-
-import com.splicemachine.access.api.SConfiguration;
 
 /**
  * The implementation of SConfiguration.
@@ -799,6 +798,8 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public void traceConfig() {
         for (Map.Entry<String, Object> entry : getConfigMap().entrySet()) {
+            if (entry.getKey().toLowerCase().contains("searchauthpw"))
+                continue;
             LOG.info(String.format(" %s = [%s]", entry.getKey(), entry.getValue()));
         }
     }
