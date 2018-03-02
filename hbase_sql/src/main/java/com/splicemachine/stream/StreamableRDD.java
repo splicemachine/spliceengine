@@ -14,22 +14,29 @@
 
 package com.splicemachine.stream;
 
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import org.apache.commons.lang3.SerializationUtils;
 import org.apache.log4j.Logger;
+import org.apache.spark.SimpleFutureAction;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import scala.collection.JavaConversions;
 import scala.collection.Seq;
+import scala.concurrent.Await;
+import scala.concurrent.duration.Duration;
 import scala.reflect.ClassTag;
+import scala.runtime.AbstractFunction0;
+import scala.runtime.AbstractFunction2;
+import scala.runtime.BoxedUnit;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Created by dgomezferro on 6/1/16.
@@ -82,7 +89,7 @@ public class StreamableRDD<T> {
 
             // Assume this will always be called either from testing or from the OlapServer, since those are the only
             // places this is used
-            Properties properties = SpliceSpark.getContextUnsafe().sc().getLocalProperties();
+            Properties properties = SerializationUtils.clone(SpliceSpark.getContextUnsafe().sc().getLocalProperties());
 
             submitBatch(0, partitionsBatchSize, numPartitions, streamed, properties);
             if (partitionBatches > 1)
@@ -136,16 +143,40 @@ public class StreamableRDD<T> {
         final Seq objects = JavaConversions.asScalaBuffer(list).toList();
         completionService.submit(new Callable<Object>() {
             @Override
-            public Object call() {
+            public Object call() throws Exception {
                 SparkContext sc = SpliceSpark.getContextUnsafe().sc();
                 sc.setLocalProperties(properties);
-                String[] results = (String[]) sc.runJob(streamed.rdd(), new FunctionAdapter(), objects, tag);
-                for (String o2: results) {
-                    if ("STOP".equals(o2)) {
-                        return "STOP";
+                AtomicBoolean cont = new AtomicBoolean(true);
+                SimpleFutureAction<Boolean> job = sc.submitJob(streamed.rdd(), new FunctionAdapter(), objects, new AbstractFunction2<Object, String, BoxedUnit>() {
+                    @Override
+                    public BoxedUnit apply(Object index, String result) {
+                        if ("STOP".equals(result))
+                            cont.set(false);
+                        return BoxedUnit.UNIT;
+                    }
+                }, new AbstractFunction0<Boolean>() {
+                    @Override
+                    public Boolean apply() {
+                        return cont.get();
+                    }
+                });
+
+
+                Boolean result = null;
+                while (result == null) {
+                    try {
+                        result = Await.result(job, Duration.apply(10, TimeUnit.SECONDS));
+                    } catch (InterruptedException e) {
+                        job.cancel();
+                        throw new CancellationException("Interrupted");
+                    } catch (TimeoutException e) {
+                        if (!jobStatus.isRunning()) {
+                            job.cancel();
+                            throw new CancellationException("The olap job is no longer running, cancelling Spark job");
+                        }
                     }
                 }
-                return "CONTINUE";
+                return result ? "CONTINUE" : "STOP";
             }
         });
     }

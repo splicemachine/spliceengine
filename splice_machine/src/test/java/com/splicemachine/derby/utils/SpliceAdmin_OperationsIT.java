@@ -183,6 +183,7 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
                     while(rs.next()) {
                     }
                 } catch (Exception e) {
+                    LOG.error("Unexpected exception", e);
                     result.set(e);
                 }
             }
@@ -269,7 +270,6 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
             assertEquals("SE008", se.getSQLState());
         }
     }
-
 
     public void testKillLongRunningQuery(boolean useSpark) throws Exception {
         String sql= "select count(*) from TEST_BIG --splice-properties useSpark="+useSpark + "\n" +
