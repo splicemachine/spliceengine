@@ -3812,4 +3812,34 @@ public class WindowFunctionIT extends SpliceUnitTest {
         assert rs.next();
     }
 
+    @Test
+    public void testSerDeForWindowFunctionOverNLJ() throws Exception {
+        String sqlText =
+                String.format("select max(X.salary) over (partition by X.deptno) from --splice-properties joinOrder=fixed\n" +
+                        "%s as X, %s as Y " +
+                        "--splice-properties joinStrategy=nestedloop, useSpark=%s\n" +
+                        "where X.empno=Y.empno", EMP_2_REF, EMP_2_REF, this.useSpark);
+
+        String expected = "1   |\n" +
+                "-------\n" +
+                "12000 |\n" +
+                "12000 |\n" +
+                "12000 |\n" +
+                "7800  |\n" +
+                "7800  |\n" +
+                "7800  |\n" +
+                "8500  |\n" +
+                "8500  |\n" +
+                "8500  |\n" +
+                "9000  |\n" +
+                "9000  |\n" +
+                "9000  |\n" +
+                "9500  |\n" +
+                "9500  |\n" +
+                "9500  |";
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+    }
 }
