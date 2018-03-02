@@ -1060,8 +1060,7 @@
                                 <argument>org.apache.zookeeper.server.ZooKeeperServerMain</argument>
                                 <argument>2181</argument>
                                 <argument>${project.build.directory}/zookeeper</argument>
-                                <argument>10</argument>
-                                <argument>0</argument>
+                                <argument>10000</argument>
                             </arguments>
                         </configuration>
                     </plugin>
