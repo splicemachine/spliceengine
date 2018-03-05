@@ -2708,7 +2708,14 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             }
 
             InListOperatorNode ilon=pred.getSourceInList();
-            mb.getField(ilon.generateListAsArray(acb,mb));
+            /* create a new method to get the probeValues*/
+            MethodBuilder getProbeValuesMethod = acb.newExprFun();
+            LocalField inlistArray = ilon.generateListAsArray(acb, getProbeValuesMethod);
+
+            getProbeValuesMethod.getField(inlistArray);
+            getProbeValuesMethod.methodReturn();
+            getProbeValuesMethod.complete();
+            acb.pushMethodReference(mb, getProbeValuesMethod);
 
             if(ilon.sortDescending())
                 mb.push(RowOrdering.DESCENDING);

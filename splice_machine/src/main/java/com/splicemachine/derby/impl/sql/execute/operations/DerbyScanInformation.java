@@ -50,7 +50,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
     private static final long serialVersionUID = 1l;
     //fields marked transient as a documentation tool, so we know which fields aren't set
     private transient GenericStorablePreparedStatement gsps;
-    private transient Activation activation;
+    protected transient Activation activation;
     public static final int[] Empty_Array = new int[]{};
     //serialized fields
     private String resultRowAllocatorMethodName;

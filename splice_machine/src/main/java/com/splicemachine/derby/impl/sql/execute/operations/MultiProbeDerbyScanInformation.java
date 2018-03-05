@@ -15,23 +15,26 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.carrotsearch.hppc.BitSet;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.utils.SerializationUtils;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataScan;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  *
@@ -43,6 +46,8 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
     private DataValueDescriptor[] probeValues;
     private DataValueDescriptor probeValue;
     private int inlistPosition;
+    private int sortRequired;
+    private String getProbeValsFuncName;
 
 	@SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public MultiProbeDerbyScanInformation(String resultRowAllocatorMethodName,
@@ -54,7 +59,8 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
                                           boolean sameStartStopPosition,
                                           int startSearchOperator,
                                           int stopSearchOperator,
-                                          DataValueDescriptor[] probeValues,
+                                          String getProbeValsFuncName,
+										  int sortRequired,
 										  int inlistPosition,
 										  String tableVersion,
 										  String defaultRowMethodName,
@@ -62,7 +68,8 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
         super(resultRowAllocatorMethodName, startKeyGetterMethodName, stopKeyGetterMethodName,
                 scanQualifiersField, conglomId, colRefItem, -1, sameStartStopPosition, startSearchOperator, stopSearchOperator, false,tableVersion,
 				defaultRowMethodName, defaultValueMapItem);
-        this.probeValues = probeValues;
+        this.getProbeValsFuncName = getProbeValsFuncName;
+        this.sortRequired = sortRequired;
         this.inlistPosition = inlistPosition;
     }
 
@@ -134,22 +141,78 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 		@Override
 		public void writeExternal(ObjectOutput out) throws IOException {
 				super.writeExternal(out);
-				out.writeInt(probeValues.length);
-				for(DataValueDescriptor dvd:probeValues){
+				SerializationUtils.writeNullableString(getProbeValsFuncName, out);
+				out.writeInt(sortRequired);
+				out.writeInt(inlistPosition);
+				out.writeBoolean(probeValues!=null);
+				if (probeValues != null) {
+					out.writeInt(probeValues.length);
+					for (DataValueDescriptor dvd : probeValues) {
 						out.writeObject(dvd);
+					}
 				}
                 out.writeObject(probeValue);
-				out.writeInt(inlistPosition);
 		}
 
 		@Override
 		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 				super.readExternal(in);
-				probeValues = new DataValueDescriptor[in.readInt()];
-				for(int i=0;i<probeValues.length;i++){
-						probeValues[i] = (DataValueDescriptor)in.readObject();
+				getProbeValsFuncName = SerializationUtils.readNullableString(in);
+				sortRequired = in.readInt();
+				inlistPosition = in.readInt();
+				if (in.readBoolean()) {
+					probeValues = new DataValueDescriptor[in.readInt()];
+					for (int i = 0; i < probeValues.length; i++) {
+						probeValues[i] = (DataValueDescriptor) in.readObject();
+					}
 				}
                 probeValue = (DataValueDescriptor)in.readObject();
-			    inlistPosition = in.readInt();
+
 		}
+
+	public DataValueDescriptor[] getProbeValues() throws StandardException {
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(
+                    (getProbeValsFuncName != null),
+                    "No getProbeValsFuncName found for multi-probe scan.");
+        }
+
+		SpliceMethod<DataValueDescriptor[]> getProbeVals = new SpliceMethod<>(getProbeValsFuncName, activation);
+		DataValueDescriptor[] probingVals = getProbeVals.invoke();
+
+		if (SanityManager.DEBUG)
+		{
+			SanityManager.ASSERT(
+					(probingVals != null) && (probingVals.length > 0),
+					"No probe values found for multi-probe scan.");
+		}
+
+
+		if (sortRequired == RowOrdering.DONTCARE) // Already Sorted
+			probeValues = probingVals;
+		else {
+            /* RESOLVE: For some reason sorting the probeValues array
+             * directly leads to incorrect parameter value assignment when
+             * executing a prepared statement multiple times.  Need to figure
+             * out why (maybe related to DERBY-827?).  In the meantime, if
+             * we're going to sort the values we use clones.  This is not
+             * ideal, but it works for now.
+             */
+
+			// eliminate duplicates from probeValues
+			HashSet<DataValueDescriptor> vset = new HashSet<DataValueDescriptor>(probingVals.length);
+			for (int i = 0; i < probingVals.length; i++)
+				vset.add(probingVals[i].cloneValue(false));
+
+			DataValueDescriptor[] probeValues1 = vset.toArray(new DataValueDescriptor[vset.size()]);
+
+			if (sortRequired == RowOrdering.ASCENDING)
+				Arrays.sort(probeValues1);
+			else
+				Arrays.sort(probeValues1, Collections.reverseOrder());
+			this.probeValues = probeValues1;
+		}
+		return this.probeValues;
+	}
 }
