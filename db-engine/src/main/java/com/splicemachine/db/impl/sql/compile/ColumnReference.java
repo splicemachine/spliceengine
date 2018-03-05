@@ -1405,7 +1405,7 @@ public class ColumnReference extends ValueNode {
 				// stored in the table is really 'a   ', so we need a conversion here
 				if (defaultValue instanceof SQLChar) {
 					DataValueDescriptor newDefault = defaultValue.cloneValue(false);
-					newDefault.normalize(columnDesc.getType(), defaultValue);
+					newDefault.normalize(columnDesc.getType(), newDefault);
 					defaultValue = newDefault;
 				}
 				return getStoreCostController().getSelectivityExcludingValueIfSkewed(source.getColumnPosition(), defaultValue);
