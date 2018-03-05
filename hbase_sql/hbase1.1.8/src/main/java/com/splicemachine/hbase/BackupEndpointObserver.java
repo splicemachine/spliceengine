@@ -121,16 +121,16 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         if (!BackupUtils.regionKeysMatch(request, region)) {
             // if the start/end key of the request does not match this region, return false to the client, because
             // region has been split. The client should retry.
-
+            SpliceLogUtils.info(LOG, "preparing backup for table %s region %s", tableName, regionName);
+            SpliceLogUtils.info(LOG, "Region keys do not match with keys in the request");
             return responseBuilder;
         }
 
         boolean canceled = false;
 
         if (isSplitting.get() || isFlushing.get() || isCompacting.get()) {
-            if (LOG.isDebugEnabled()) {
-                SpliceLogUtils.debug(LOG, "%s:%s is being split before trying to prepare for backup", tableName, regionName);
-            }
+            SpliceLogUtils.info(LOG, "table %s region %s is not ready for backup: isSplitting=%s, isCompacting=%s, isFlushing=%s",
+                    tableName , regionName, isSplitting.get(), isCompacting.get(), isFlushing.get());
             // return false to client if the region is being split
             responseBuilder.setReadyForBackup(false);
         } else {
@@ -154,10 +154,10 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
                     }
 
                     if (isFlushing.get() || isCompacting.get() || isSplitting.get()) {
-                        if (LOG.isDebugEnabled()) {
-                            SpliceLogUtils.debug(LOG, "table %s region %s is not ready for backup: isSplitting=%s, isCompacting=%s, isFlushing=%s",
-                                    isSplitting.get(), isCompacting.get(), isFlushing.get());
-                        }
+                        SpliceLogUtils.info(LOG, "table %s region %s is not ready for backup: isSplitting=%s, isCompacting=%s, isFlushing=%s",
+                                tableName, regionName, isSplitting.get(), isCompacting.get(), isFlushing.get());
+                        SpliceLogUtils.info(LOG, "delete znode %d", path);
+
                         ZkUtils.recursiveDelete(path);
                     }
                     else {
