@@ -15,6 +15,8 @@
 package com.splicemachine.derby.impl.sql.compile;
 
 import java.util.Properties;
+import com.splicemachine.EngineDriver;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
@@ -109,6 +111,11 @@ return getOptimizerImpl(optimizableList,
 	 */
 	public CostEstimate getCostEstimate() throws StandardException {
 		return new SimpleCostEstimate();
+	}
+
+	public long getDetermineSparkRowThreshold() {
+		SConfiguration configuration = EngineDriver.driver().getConfiguration();
+		return configuration.getDetermineSparkRowThreshold();
 	}
 }
 
