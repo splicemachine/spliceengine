@@ -57,6 +57,8 @@ public class OptimizerFactoryImpl
 	protected boolean noTimeout = false;
 	protected boolean useStatistics = true;
 	protected int maxMemoryPerTable = Integer.MAX_VALUE;//may need to be long, but this also can be defined in configuration
+	protected long determineSparkRowThreshold = 20000 ; // This value is not effected, the default value is defined in SQLConfiguration
+
 
 	/*
 	** The fact that we have one set of join strategies for use by all
@@ -217,5 +219,7 @@ public class OptimizerFactoryImpl
 	{
 		return maxMemoryPerTable;
 	}
+
+	public long getDetermineSparkRowThreshold() { return determineSparkRowThreshold;}
 }
 

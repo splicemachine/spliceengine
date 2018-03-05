@@ -123,6 +123,7 @@ public class ConfigurationBuilder {
     public long broadcastDatasetCostThreshold;
     public long optimizerPlanMaximumTimeout;
     public long optimizerPlanMinimumTimeout;
+    public long determineSparkRowThreshold;
     public String networkBindAddress;
     public String upgradeForcedFrom;
     public String storageFactoryHome;

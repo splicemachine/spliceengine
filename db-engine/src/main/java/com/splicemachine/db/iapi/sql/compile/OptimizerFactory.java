@@ -101,4 +101,6 @@ public interface OptimizerFactory {
 	 * @return	maxMemoryPerTable value
 	 */
 	public int getMaxMemoryPerTable();
+
+	public long getDetermineSparkRowThreshold();
 }
