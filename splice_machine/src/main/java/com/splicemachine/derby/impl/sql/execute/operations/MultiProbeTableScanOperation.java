@@ -16,11 +16,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -35,7 +32,8 @@ import com.splicemachine.storage.DataScan;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Result set that fetches rows from a scan by "probing" the underlying
@@ -61,8 +59,6 @@ import java.util.*;
  */
 public class MultiProbeTableScanOperation extends TableScanOperation  {
     private static final long serialVersionUID = 1l;
-    /** The values with which we will probe the table. */
-    protected DataValueDescriptor [] probeValues;
     protected int inlistPosition;
 //    /**
 //     * The values with which we will probe the table, as they were passed to
@@ -101,7 +97,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         boolean sameStartStopPosition,
         boolean rowIdKey,
         String qualifiersField,
-        DataValueDescriptor [] probingVals,
+        GeneratedMethod getProbingValsFunc,
         int sortRequired,
         int inlistPosition,
         String tableName,
@@ -169,38 +165,6 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 defaultRowFunc,
                 defaultValueMapItem);
 
-        if (SanityManager.DEBUG)
-        {
-            SanityManager.ASSERT(
-                    (probingVals != null) && (probingVals.length > 0),
-                    "No probe values found for multi-probe scan.");
-        }
-
-
-        if (sortRequired == RowOrdering.DONTCARE) // Already Sorted
-            probeValues = probingVals;
-        else {
-            /* RESOLVE: For some reason sorting the probeValues array
-             * directly leads to incorrect parameter value assignment when
-             * executing a prepared statement multiple times.  Need to figure
-             * out why (maybe related to DERBY-827?).  In the meantime, if
-             * we're going to sort the values we use clones.  This is not
-             * ideal, but it works for now.
-             */
-
-            // eliminate duplicates from probeValues
-            HashSet<DataValueDescriptor> vset = new HashSet<DataValueDescriptor>(probingVals.length);
-            for (int i = 0; i < probingVals.length; i++)
-                vset.add(probingVals[i].cloneValue(false));
-
-            DataValueDescriptor[] probeValues = vset.toArray(new DataValueDescriptor[vset.size()]);
-
-            if (sortRequired == RowOrdering.ASCENDING)
-                Arrays.sort(probeValues);
-            else
-                Arrays.sort(probeValues, Collections.reverseOrder());
-            this.probeValues = probeValues;
-        }
         this.inlistPosition = inlistPosition;
 
         this.scanInformation = new MultiProbeDerbyScanInformation(
@@ -213,7 +177,8 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 sameStartStopPosition,
                 startSearchOperator,
                 stopSearchOperator,
-                probeValues,
+                getProbingValsFunc==null?null:getProbingValsFunc.getMethodName(),
+                sortRequired,
                 inlistPosition,
                 tableVersion,
                 defaultRowFunc==null?null:defaultRowFunc.getMethodName(),
@@ -231,8 +196,6 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
-        probeValues = new DataValueDescriptor[in.readInt()];
-        ArrayUtil.readArrayItems(in,probeValues);
         inlistPosition = in.readInt();
 
     }
@@ -240,7 +203,6 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
-        ArrayUtil.writeArray(out,probeValues);
         out.writeInt(inlistPosition);
     }
 
@@ -253,6 +215,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         try {
             TxnView txn = getCurrentTransaction();
+            DataValueDescriptor[] probeValues = ((MultiProbeDerbyScanInformation)scanInformation).getProbeValues();
             List<DataScan> scans = scanInformation.getScans(getCurrentTransaction(), null, activation, getKeyDecodingMap());
             DataSet<ExecRow> dataSet = dsp.getEmpty();
             OperationContext<MultiProbeTableScanOperation> operationContext = dsp.<MultiProbeTableScanOperation>createOperationContext(this);
