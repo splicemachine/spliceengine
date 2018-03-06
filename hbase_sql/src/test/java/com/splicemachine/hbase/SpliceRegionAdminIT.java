@@ -92,12 +92,12 @@ public class SpliceRegionAdminIT {
         spliceTableSplitKeys.add(7, "{ 2, 2 }");
 
         hbaseTableSplitKeys.add(0, "");
-        hbaseTableSplitKeys.add(1, "\\x81");
+        hbaseTableSplitKeys.add(1, "\\x81\\x00");
         hbaseTableSplitKeys.add(2, "\\x81\\x00\\x82");
         hbaseTableSplitKeys.add(3, "\\x81\\x00\\x84");
         hbaseTableSplitKeys.add(4, "\\x81\\x00\\x86");
         hbaseTableSplitKeys.add(5, "\\x81\\x00\\x88");
-        hbaseTableSplitKeys.add(6, "\\x82");
+        hbaseTableSplitKeys.add(6, "\\x82\\x00");
         hbaseTableSplitKeys.add(7, "\\x82\\x00\\x82");
 
         spliceIndexSplitKeys.add(0, "{ NULL, NULL }");
