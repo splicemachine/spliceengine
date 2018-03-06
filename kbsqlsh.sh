@@ -165,21 +165,21 @@ fi
 
 if [ -n "$PRINCIPAL" ]; then
   echo "Running Splice Machine SQL shell in kerberos mode:"
-  echo "For help: \"splice> help;\""
   if [ -n "$KEYTAB" ] ; then
-     
-     echo_arg ${RLWRAP} java ${GEN_SYS_ARGS} ${IJ_KBR_FULL_ARGS}  com.splicemachine.db.tools.ij ${SCRIPT}
-     ${RLWRAP} java ${GEN_SYS_ARGS} ${IJ_KBR_FULL_ARGS}  com.splicemachine.db.tools.ij ${SCRIPT}
+     FULL_PROG_ARGS="${GEN_SYS_ARGS} ${IJ_KBR_FULL_ARGS}  com.splicemachine.db.tools.ij ${SCRIPT}"
   else
-     echo_arg {RLWRAP} java ${GEN_SYS_ARGS} ${IJ_KBR_PRINCIPAL_ARGS}  com.splicemachine.db.tools.ij ${SCRIPT}
-     ${RLWRAP} java ${GEN_SYS_ARGS} ${IJ_KBR_PRINCIPAL_ARGS}  com.splicemachine.db.tools.ij ${SCRIPT}
+     FULL_PROG_ARGS="${GEN_SYS_ARGS} ${IJ_KBR_PRINCIPAL_ARGS}  com.splicemachine.db.tools.ij ${SCRIPT}"
   fi
 else
   echo "Running Splice Machine SQL shell"
-  echo "For help: \"splice> help;\""
-  echo_arg ${RLWRAP} java ${GEN_SYS_ARGS} ${IJ_SYS_ARGS}  com.splicemachine.db.tools.ij ${SCRIPT}
-  ${RLWRAP} java ${GEN_SYS_ARGS} ${IJ_SYS_ARGS}  com.splicemachine.db.tools.ij ${SCRIPT}
+  FULL_PROG_ARGS="${GEN_SYS_ARGS} ${IJ_SYS_ARGS}  com.splicemachine.db.tools.ij ${SCRIPT}"
 fi
+
+echo "For help: \"splice> help;\""
+
+# Execution of the 
+echo_arg ${RLWRAP} java $FULL_PROG_ARGS
+${RLWRAP} java $FULL_PROG_ARGS
 
 stat=$?
 exit $stat
