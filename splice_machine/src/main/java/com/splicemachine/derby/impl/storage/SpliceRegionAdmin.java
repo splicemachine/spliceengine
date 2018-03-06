@@ -665,7 +665,7 @@ public class SpliceRegionAdmin {
 
         String version = td.getVersion();
         DescriptorSerializer[] serializers= VersionedSerializers
-                .forVersion(version,true)
+                .forVersion(version,false)
                 .getSerializers(execRow.getRowArray());
         int[] rowColumns = IntArrays.count(execRow.nColumns());
         boolean[] sortOrder = null;

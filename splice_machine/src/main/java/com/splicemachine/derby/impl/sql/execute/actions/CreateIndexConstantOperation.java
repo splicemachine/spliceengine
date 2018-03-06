@@ -871,7 +871,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
 
     private DataHash getEncoder(TableDescriptor td, ExecRow execRow, IndexDescriptor indexDescriptor) {
         DescriptorSerializer[] serializers= VersionedSerializers
-                .forVersion(td.getVersion(), true)
+                .forVersion(td.getVersion(), false)
                 .getSerializers(execRow.getRowArray());
         int[] rowColumns = IntArrays.count(execRow.nColumns());
         boolean[] sortOrder = indexDescriptor.isAscending();

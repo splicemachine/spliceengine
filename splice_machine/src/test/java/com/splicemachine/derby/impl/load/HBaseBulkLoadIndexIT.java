@@ -385,7 +385,7 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery("call syscs_util.get_regions('HBASEBULKLOADINDEXIT', 'LINEITEM', " +
                 "'L_SHIPDATE_IDX',null, null,null,null,null,null,null)");
         String[] startKeys = {"{ NULL, NULL, NULL, NULL }", "{ 1993-05-30, 58476, 5737.88, 0.04 }",
-        "{ 1995-02-01, 133234, 24077.37, 0.03 }", "{ 1996-04-20, 94751, 48881, 0.06 }"};
+        "{ 1995-02-01, 133234, 24077.37, 0.03 }", "{ 1996-04-20, NULL, 48881, 0.06 }", "{ 1996-04-20, 94751, 48881, 0.06 }"};
         int i = 0;
         while(rs.next()) {
             String k = rs.getString(2);
