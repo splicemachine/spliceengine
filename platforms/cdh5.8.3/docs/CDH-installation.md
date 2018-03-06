@@ -1,7 +1,3 @@
----
-title: 'Documentation : CDH Install'
----
-
 # Installing and Configuring Splice Machine for Cloudera Manager
 
 This topic describes installing and configuring Splice Machine on a
@@ -58,31 +54,6 @@ Machine on your cluster:
        </tr>
    </thead>
    <tbody>
-      <tr>
-         <td rowspan="6" style="vertical-align:top; font-weight:bold;">5.12.0</td>
-         <td>EL6</td>
-         <td>[https://s3.amazonaws.com/splice-releases/2.5.0.1802/cluster/parcel/cdh5.12.0/SPLICEMACHINE-2.5.0.1802.cdh5.12.0.p0.540-el6.parcel]</td>
-     </tr>
-     <tr>
-         <td>EL7</td>
-         <td>[https://s3.amazonaws.com/splice-releases/2.5.0.1802/cluster/parcel/cdh5.12.0/SPLICEMACHINE-2.5.0.1802.cdh5.12.0.p0.540-el7.parcel]</td>
-     </tr>
-     <tr>
-         <td>Precise</td>
-         <td>[https://s3.amazonaws.com/splice-releases/2.5.0.1802/cluster/parcel/cdh5.12.0/SPLICEMACHINE-2.5.0.1802.cdh5.12.0.p0.540-precise.parcel]</td>
-       </tr>
-       <tr>
-           <td>SLES11</td>
-           <td>[https://s3.amazonaws.com/splice-releases/2.5.0.1802/cluster/parcel/cdh5.12.0/SPLICEMACHINE-2.5.0.1802.cdh5.12.0.p0.540-sles11.parcel]</a></td>
-       </tr>
-       <tr>
-           <td>Trusty</td>
-           <td>[https://s3.amazonaws.com/splice-releases/2.5.0.1802/cluster/parcel/cdh5.12.0/SPLICEMACHINE-2.5.0.1802.cdh5.12.0.p0.540-trusty.parcel]</td>
-       </tr>
-       <tr>
-           <td>Wheezy</td>
-           <td>[https://s3.amazonaws.com/splice-releases/2.5.0.1802/cluster/parcel/cdh5.12.0/SPLICEMACHINE-2.5.0.1802.cdh5.12.0.p0.540-wheezy.parcel]</td>
-        </tr>
        <tr>
            <td rowspan="6" style="vertical-align:top"><bold>5.8.3</bold></td>
            <td>EL6</td>
@@ -176,7 +147,9 @@ work properly on a CDH cluster:
    Issue this command **on each node** in
    your cluster:
 
-   `sudo /opt/cloudera/parcels/SPLICEMACHINE/scripts/install-splice-symlinks.sh`
+   ````
+   sudo /opt/cloudera/parcels/SPLICEMACHINE/scripts/install-splice-symlinks.sh
+   ````
 
 ## Configure Hadoop Services
 
@@ -193,7 +166,7 @@ configurations:
 
 1. Select the `Configuration` tab in CM:
 
-   ![Configuring the Cloudera Manager ports](https://doc.styleease.com/images/CM.AlertListenPort.png)
+   <img src="https://doc.splicemachine.com/images/CM.AlertListenPort.png" />
 
 2. Change the value of the Alerts: Listen Port to `10110`.
 
@@ -208,10 +181,12 @@ and follow these steps:
 1. Select the `Service-Wide` category.
 
    Make the following changes:
-
-    Maximum Client Connections = 0
-    Maximum Session Timeout    = 120000
-
+   
+   ````
+   Maximum Client Connections = 0
+   Maximum Session Timeout    = 120000
+   ````
+   
    Click the `Save Changes` button.
 
 ### Configure HDFS
@@ -279,8 +254,8 @@ these changes:
 2. Change the values of these settings
 
    <table>
-     <col />
-     <col />
+     <col width="50%" />
+     <col width="50%" />
      <thead>
          <tr>
              <th style="text-align:left">Setting</th>
@@ -294,31 +269,27 @@ these changes:
          </tr>
          <tr>
              <td><code>MR Application Classpath</code></td>
-             <td><code>
-                 <p>$HADOOP_MAPRED_HOME/*</p>
-                 <p>$HADOOP_MAPRED_HOME/lib/*</p>
-                 <p>$MR2_CLASSPATH/opt/cloudera/parcels/SPLICEMACHINE/lib/*</p>
-                 </code>
+             <td><code>$HADOOP_MAPRED_HOME/*
+$HADOOP_MAPRED_HOME/lib/*
+$MR2_CLASSPATH/opt/cloudera/parcels/SPLICEMACHINE/lib/*</code>
              </td>
          </tr>
          <tr>
              <td><code>YARN Application Classpath</code></td>
-             <td><code>
-                 <p>$HADOOP_CLIENT_CONF_DIR</p>
-                 <p>$HADOOP_CONF_DIR</p>
-                 <p>$HADOOP_COMMON_HOME/*</p>
-                 <p>$HADOOP_COMMON_HOME/lib/*</p>
-                 <p>$HADOOP_HDFS_HOME/*</p>
-                 <p>$HADOOP_HDFS_HOME/lib/*</p>
-                 <p>$HADOOP_YARN_HOME/*</p>
-                 <p>$HADOOP_YARN_HOME/lib/*</p>
-                 <p>$HADOOP_MAPRED_HOME/*</p>
-                 <p>$HADOOP_MAPRED_HOME/lib/*</p>
-                 <p>$MR2_CLASSPATH</p>
-                 <p>/opt/cloudera/parcels/CDH/lib/hbase/*</p>
-                 <p>/opt/cloudera/parcels/CDH/lib/hbase/lib/*</p>
-                 <p>/opt/cloudera/parcels/SPLICEMACHINE/lib/*</p>
-                 </code>
+             <td><code>$HADOOP_CLIENT_CONF_DIR
+$HADOOP_CONF_DIR
+$HADOOP_COMMON_HOME/*
+$HADOOP_COMMON_HOME/lib/*
+$HADOOP_HDFS_HOME/*
+$HADOOP_HDFS_HOME/lib/*
+$HADOOP_YARN_HOME/*
+$HADOOP_YARN_HOME/lib/*
+$HADOOP_MAPRED_HOME/*
+$HADOOP_MAPRED_HOME/lib/*
+$MR2_CLASSPATH
+/opt/cloudera/parcels/CDH/lib/hbase/*
+/opt/cloudera/parcels/CDH/lib/hbase/lib/*
+/opt/cloudera/parcels/SPLICEMACHINE/lib/*</code>
              </td>
          </tr>
          <tr>
@@ -363,8 +334,8 @@ these changes:
    Add these properties:
 
    <table>
-     <col />
-     <col />
+     <col width="50%" />
+     <col width="50%" />
      <thead>
          <tr>
              <th>XML Property Name</th>
@@ -385,10 +356,10 @@ these changes:
 
    To each of these YARN settings:
 
-    * `Yarn Service Advanced Configuration Snippet (Safety Valve) for yarn-site.xml`
-    * `Yarn Client Advanced Configuration Snippet (Safety Valve) for yarn-site.xml`
-    * `NodeManager Advanced Configuration Snippet (Safety Valve) for yarn-site.xml`
-    * `ResourceManager Advanced Configuration Snippet (Safety Valve) for yarn-site.xml`
+   * `Yarn Service Advanced Configuration Snippet (Safety Valve) for yarn-site.xml`
+   * `Yarn Client Advanced Configuration Snippet (Safety Valve) for yarn-site.xml`
+   * `NodeManager Advanced Configuration Snippet (Safety Valve) for yarn-site.xml`
+   * `ResourceManager Advanced Configuration Snippet (Safety Valve) for yarn-site.xml`
 
 4. Click the `Save Changes` button.
 
@@ -401,8 +372,8 @@ make these changes:
 1. Change the values of these settings
 
    <table>
-    <col />
-    <col />
+    <col width="50%" />
+    <col width="50%" />
     <thead>
         <tr>
             <th>Setting</th>
@@ -512,7 +483,14 @@ make these changes:
         </tr>
         <tr>
             <td><code>HBase Coprocessor Region Classes</code></td>
-            <td><code>com.splicemachine.hbase.MemstoreAwareObserver<br />com.splicemachine.derby.hbase.SpliceIndexObserver<br />com.splicemachine.derby.hbase.SpliceIndexEndpoint<br />com.splicemachine.hbase.RegionSizeEndpoint<br />com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint<br />com.splicemachine.si.data.hbase.coprocessor.SIObserver<br />com.splicemachine.hbase.BackupEndpointObserver</code></td>
+            <td><code>com.splicemachine.hbase.MemstoreAwareObserver
+com.splicemachine.derby.hbase.SpliceIndexObserver
+com.splicemachine.derby.hbase.SpliceIndexEndpoint
+com.splicemachine.hbase.RegionSizeEndpoint
+com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint
+com.splicemachine.si.data.hbase.coprocessor.SIObserver
+com.splicemachine.hbase.BackupEndpointObserver</code>
+           </td>
         </tr>
         <tr>
             <td><code>Maximum number of Write-Ahead Log (WAL) files</code></td>
@@ -536,70 +514,70 @@ make these changes:
 2. Set the value of `HBase Service Advanced Configuration Snippet
   (Safety Valve)` for `hbase-site.xml`:
 
-```
-    <property><name>dfs.client.read.shortcircuit.buffer.size</name><value>131072</value></property>
-    <property><name>hbase.balancer.period</name><value>60000</value></property>
-    <property><name>hbase.client.ipc.pool.size</name><value>10</value></property>
-    <property><name>hbase.client.max.perregion.tasks</name><value>100</value></property>
-    <property><name>hbase.coprocessor.regionserver.classes</name><value>com.splicemachine.hbase.RegionServerLifecycleObserver</value></property><property><name>hbase.hstore.defaultengine.compactionpolicy.class</name><value>com.splicemachine.compactions.SpliceDefaultCompactionPolicy</value></property>
-    <property><name>hbase.hstore.defaultengine.compactor.class</name><value>com.splicemachine.compactions.SpliceDefaultCompactor</value></property>
-    <property><name>hbase.htable.threads.max</name><value>96</value></property>
-    <property><name>hbase.ipc.warn.response.size</name><value>-1</value></property>
-    <property><name>hbase.ipc.warn.response.time</name><value>-1</value></property>
-    <property><name>hbase.master.loadbalance.bytable</name><value>true</value></property>
-    <property><name>hbase.mvcc.impl</name><value>org.apache.hadoop.hbase.regionserver.SIMultiVersionConsistencyControl</value></property>
-    <property><name>hbase.regions.slop</name><value>0.01</value></property>
-    <property><name>hbase.regionserver.global.memstore.size.lower.limit</name><value>0.9</value></property>
-    <property><name>hbase.regionserver.global.memstore.size</name><value>0.25</value></property>
-    <property><name>hbase.regionserver.maxlogs</name><value>48</value></property>
-    <property><name>hbase.regionserver.wal.enablecompression</name><value>true</value></property>
-    <property><name>hbase.rowlock.wait.duration</name><value>0</value></property>
-    <property><name>hbase.status.multicast.port</name><value>16100</value></property>
-    <property><name>hbase.wal.disruptor.batch</name><value>true</value></property>
-    <property><name>hbase.wal.provider</name><value>multiwal</value></property>
-    <property><name>hbase.wal.regiongrouping.numgroups</name><value>16</value></property>
-    <property><name>hbase.zookeeper.property.tickTime</name><value>6000</value></property>
-    <property><name>hfile.block.bloom.cacheonwrite</name><value>true</value></property>
-    <property><name>io.storefile.bloom.error.rate</name><value>0.005</value></property>
-    <property><name>splice.client.numConnections</name><value>1</value></property>
-    <property><name>splice.client.write.maxDependentWrites</name><value>60000</value></property>
-    <property><name>splice.client.write.maxIndependentWrites</name><value>60000</value></property>
-    <property><name>splice.compression</name><value>snappy</value></property>
-    <property><name>splice.marshal.kryoPoolSize</name><value>1100</value></property>
-    <property><name>splice.olap_server.clientWaitTime</name><value>900000</value></property>
-    <property><name>splice.ring.bufferSize</name><value>131072</value></property>
-    <property><name>splice.splitBlockSize</name><value>67108864</value></property>
-    <property><name>splice.timestamp_server.clientWaitTime</name><value>120000</value></property>
-    <property><name>splice.txn.activeTxns.cacheSize</name><value>10240</value></property>
-    <property><name>splice.txn.completedTxns.concurrency</name><value>128</value></property>
-    <property><name>splice.txn.concurrencyLevel</name><value>4096</value></property>
-    <property><name>hbase.hstore.compaction.max.size</name><value>260046848</value></property>
-    <property><name>hbase.hstore.compaction.min.size</name><value>16777216</value></property>
-    <property><name>hbase.hstore.compaction.min</name><value>5</value></property>
-    <property><name>hbase.regionserver.thread.compaction.large</name><value>1</value></property>
-    <property><name>splice.authentication.native.algorithm</name><value>SHA-512</value></property>
-    <property><name>splice.authentication</name><value>NATIVE</value></property>
-```
+   ````
+   <property><name>dfs.client.read.shortcircuit.buffer.size</name><value>131072</value></property>
+   <property><name>hbase.balancer.period</name><value>60000</value></property>
+   <property><name>hbase.client.ipc.pool.size</name><value>10</value></property>
+   <property><name>hbase.client.max.perregion.tasks</name><value>100</value></property>
+   <property><name>hbase.coprocessor.regionserver.classes</name>   <value>com.splicemachine.hbase.RegionServerLifecycleObserver</value></property><property><name>hbase.hstore.defaultengine.compactionpolicy.class</name><value>com.splicemachine.compactions.SpliceDefaultCompactionPolicy</value></property>
+   <property><name>hbase.hstore.defaultengine.compactor.class</name><value>com.splicemachine.compactions.SpliceDefaultCompactor</value></property>
+   <property><name>hbase.htable.threads.max</name><value>96</value></property>
+   <property><name>hbase.ipc.warn.response.size</name><value>-1</value></property>
+   <property><name>hbase.ipc.warn.response.time</name><value>-1</value></property>
+   <property><name>hbase.master.loadbalance.bytable</name><value>true</value></property>
+   <property><name>hbase.mvcc.impl</name><value>org.apache.hadoop.hbase.regionserver.SIMultiVersionConsistencyControl</value></property>
+   <property><name>hbase.regions.slop</name><value>0.01</value></property>
+   <property><name>hbase.regionserver.global.memstore.size.lower.limit</name><value>0.9</value></property>
+   <property><name>hbase.regionserver.global.memstore.size</name><value>0.25</value></property>
+   <property><name>hbase.regionserver.maxlogs</name><value>48</value></property>
+   <property><name>hbase.regionserver.wal.enablecompression</name><value>true</value></property>
+   <property><name>hbase.rowlock.wait.duration</name><value>0</value></property>
+   <property><name>hbase.status.multicast.port</name><value>16100</value></property>
+   <property><name>hbase.wal.disruptor.batch</name><value>true</value></property>
+   <property><name>hbase.wal.provider</name><value>multiwal</value></property>
+   <property><name>hbase.wal.regiongrouping.numgroups</name><value>16</value></property>
+   <property><name>hbase.zookeeper.property.tickTime</name><value>6000</value></property>
+   <property><name>hfile.block.bloom.cacheonwrite</name><value>true</value></property>
+   <property><name>io.storefile.bloom.error.rate</name><value>0.005</value></property>
+   <property><name>splice.client.numConnections</name><value>1</value></property>
+   <property><name>splice.client.write.maxDependentWrites</name><value>60000</value></property>
+   <property><name>splice.client.write.maxIndependentWrites</name><value>60000</value></property>
+   <property><name>splice.compression</name><value>snappy</value></property>
+   <property><name>splice.marshal.kryoPoolSize</name><value>1100</value></property>
+   <property><name>splice.olap_server.clientWaitTime</name><value>900000</value></property>
+   <property><name>splice.ring.bufferSize</name><value>131072</value></property>
+   <property><name>splice.splitBlockSize</name><value>67108864</value></property>
+   <property><name>splice.timestamp_server.clientWaitTime</name><value>120000</value></property>
+   <property><name>splice.txn.activeTxns.cacheSize</name><value>10240</value></property>
+   <property><name>splice.txn.completedTxns.concurrency</name><value>128</value></property>
+   <property><name>splice.txn.concurrencyLevel</name><value>4096</value></property>
+   <property><name>hbase.hstore.compaction.max.size</name><value>260046848</value></property>
+   <property><name>hbase.hstore.compaction.min.size</name><value>16777216</value></property>
+   <property><name>hbase.hstore.compaction.min</name><value>5</value></property>
+   <property><name>hbase.regionserver.thread.compaction.large</name><value>1</value></property>
+   <property><name>splice.authentication.native.algorithm</name><value>SHA-512</value></property>
+   <property><name>splice.authentication</name><value>NATIVE</value></property>
+   ````
 
 3. Set the value of Java Configuration Options for HBase Master
 
    If you're using version 2.2 or later of the Spark Shuffle service, set the Java Configuration Options for HBase Master to:
 
-```
-    -XX:MaxPermSize=512M -XX:+HeapDumpOnOutOfMemoryError -XX:MaxDirectMemorySize=2g -XX:+AlwaysPreTouch -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.port=10101 -Dsplice.spark.enabled=true -Dsplice.spark.app.name=SpliceMachine -Dsplice.spark.master=yarn-client -Dsplice.spark.logConf=true -Dsplice.spark.yarn.maxAppAttempts=1 -Dsplice.spark.driver.maxResultSize=1g -Dsplice.spark.driver.cores=2 -Dsplice.spark.yarn.am.memory=1g -Dsplice.spark.dynamicAllocation.enabled=true -Dsplice.spark.dynamicAllocation.executorIdleTimeout=120 -Dsplice.spark.dynamicAllocation.cachedExecutorIdleTimeout=120 -Dsplice.spark.dynamicAllocation.minExecutors=0 -Dsplice.spark.dynamicAllocation.maxExecutors=12 -Dsplice.spark.io.compression.lz4.blockSize=32k -Dsplice.spark.kryo.referenceTracking=false -Dsplice.spark.kryo.registrator=com.splicemachine.derby.impl.SpliceSparkKryoRegistrator -Dsplice.spark.kryoserializer.buffer.max=512m -Dsplice.spark.kryoserializer.buffer=4m -Dsplice.spark.locality.wait=100 -Dsplice.spark.memory.fraction=0.5 -Dsplice.spark.scheduler.mode=FAIR -Dsplice.spark.serializer=org.apache.spark.serializer.KryoSerializer -Dsplice.spark.shuffle.compress=false -Dsplice.spark.shuffle.file.buffer=128k -Dsplice.spark.shuffle.service.enabled=true -Dsplice.spark.reducer.maxReqSizeShuffleToMem=134217728 -Dsplice.spark.yarn.am.extraLibraryPath=/opt/cloudera/parcels/CDH/lib/hadoop/lib/native -Dsplice.spark.yarn.am.waitTime=10s -Dsplice.spark.yarn.executor.memoryOverhead=2048 -Dsplice.spark.driver.extraJavaOptions=-Dlog4j.configuration=file:/etc/spark/conf/log4j.properties -Dsplice.spark.driver.extraLibraryPath=/opt/cloudera/parcels/CDH/lib/hadoop/lib/native -Dsplice.spark.driver.extraClassPath=/opt/cloudera/parcels/CDH/lib/hbase/conf:/opt/cloudera/parcels/CDH/jars/htrace-core-3.1.0-incubating.jar -Dsplice.spark.executor.extraLibraryPath=/opt/cloudera/parcels/CDH/lib/hadoop/lib/native -Dsplice.spark.executor.extraClassPath=/opt/cloudera/parcels/CDH/lib/hbase/conf:/opt/cloudera/parcels/CDH/jars/htrace-core-3.1.0-incubating.jar -Dsplice.spark.ui.retainedJobs=100 -Dsplice.spark.ui.retainedStages=100 -Dsplice.spark.worker.ui.retainedExecutors=100 -Dsplice.spark.worker.ui.retainedDrivers=100 -Dsplice.spark.streaming.ui.retainedBatches=100 -Dsplice.spark.executor.cores=4 -Dsplice.spark.executor.memory=8g -Dspark.compaction.reserved.slots=4 -Dsplice.spark.eventLog.enabled=true -Dsplice.spark.eventLog.dir=hdfs:///user/splice/history -Dsplice.spark.local.dir=/tmp -Dsplice.spark.yarn.jars=/opt/cloudera/parcels/SPLICEMACHINE/lib/*
-```
+   ````
+   -XX:MaxPermSize=512M -XX:+HeapDumpOnOutOfMemoryError -XX:MaxDirectMemorySize=2g -XX:+AlwaysPreTouch -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.port=10101 -Dsplice.spark.enabled=true -Dsplice.spark.app.name=SpliceMachine -Dsplice.spark.master=yarn-client -Dsplice.spark.logConf=true -Dsplice.spark.yarn.maxAppAttempts=1 -Dsplice.spark.driver.maxResultSize=1g -Dsplice.spark.driver.cores=2 -Dsplice.spark.yarn.am.memory=1g -Dsplice.spark.dynamicAllocation.enabled=true -Dsplice.spark.dynamicAllocation.executorIdleTimeout=120 -Dsplice.spark.dynamicAllocation.cachedExecutorIdleTimeout=120 -Dsplice.spark.dynamicAllocation.minExecutors=0 -Dsplice.spark.dynamicAllocation.maxExecutors=12 -Dsplice.spark.io.compression.lz4.blockSize=32k -Dsplice.spark.kryo.referenceTracking=false -Dsplice.spark.kryo.registrator=com.splicemachine.derby.impl.SpliceSparkKryoRegistrator -Dsplice.spark.kryoserializer.buffer.max=512m -Dsplice.spark.kryoserializer.buffer=4m -Dsplice.spark.locality.wait=100 -Dsplice.spark.memory.fraction=0.5 -Dsplice.spark.scheduler.mode=FAIR -Dsplice.spark.serializer=org.apache.spark.serializer.KryoSerializer -Dsplice.spark.shuffle.compress=false -Dsplice.spark.shuffle.file.buffer=128k -Dsplice.spark.shuffle.service.enabled=true -Dsplice.spark.reducer.maxReqSizeShuffleToMem=134217728 -Dsplice.spark.yarn.am.extraLibraryPath=/opt/cloudera/parcels/CDH/lib/hadoop/lib/native -Dsplice.spark.yarn.am.waitTime=10s -Dsplice.spark.yarn.executor.memoryOverhead=2048 -Dsplice.spark.driver.extraJavaOptions=-Dlog4j.configuration=file:/etc/spark/conf/log4j.properties -Dsplice.spark.driver.extraLibraryPath=/opt/cloudera/parcels/CDH/lib/hadoop/lib/native -Dsplice.spark.driver.extraClassPath=/opt/cloudera/parcels/CDH/lib/hbase/conf:/opt/cloudera/parcels/CDH/jars/htrace-core-3.1.0-incubating.jar -Dsplice.spark.executor.extraLibraryPath=/opt/cloudera/parcels/CDH/lib/hadoop/lib/native -Dsplice.spark.executor.extraClassPath=/opt/cloudera/parcels/CDH/lib/hbase/conf:/opt/cloudera/parcels/CDH/jars/htrace-core-3.1.0-incubating.jar -Dsplice.spark.ui.retainedJobs=100 -Dsplice.spark.ui.retainedStages=100 -Dsplice.spark.worker.ui.retainedExecutors=100 -Dsplice.spark.worker.ui.retainedDrivers=100 -Dsplice.spark.streaming.ui.retainedBatches=100 -Dsplice.spark.executor.cores=4 -Dsplice.spark.executor.memory=8g -Dspark.compaction.reserved.slots=4 -Dsplice.spark.eventLog.enabled=true -Dsplice.spark.eventLog.dir=hdfs:///user/splice/history -Dsplice.spark.local.dir=/tmp -Dsplice.spark.yarn.jars=/opt/cloudera/parcels/SPLICEMACHINE/lib/*
+   ````
 
    If you're using a version of the Spark Shuffle service earlier than 2.2, set the Java Configuration Options for HBase Master to this instead:
 
-```
-    -XX:MaxPermSize=512M -XX:+HeapDumpOnOutOfMemoryError -XX:MaxDirectMemorySize=2g -XX:+AlwaysPreTouch -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.port=10101 -Dsplice.spark.enabled=true -Dsplice.spark.app.name=SpliceMachine -Dsplice.spark.master=yarn-client -Dsplice.spark.logConf=true -Dsplice.spark.yarn.maxAppAttempts=1 -Dsplice.spark.driver.maxResultSize=1g -Dsplice.spark.driver.cores=2 -Dsplice.spark.yarn.am.memory=1g -Dsplice.spark.dynamicAllocation.enabled=true -Dsplice.spark.dynamicAllocation.executorIdleTimeout=120 -Dsplice.spark.dynamicAllocation.cachedExecutorIdleTimeout=120 -Dsplice.spark.dynamicAllocation.minExecutors=0 -Dsplice.spark.dynamicAllocation.maxExecutors=12 -Dsplice.spark.io.compression.lz4.blockSize=32k -Dsplice.spark.kryo.referenceTracking=false -Dsplice.spark.kryo.registrator=com.splicemachine.derby.impl.SpliceSparkKryoRegistrator -Dsplice.spark.kryoserializer.buffer.max=512m -Dsplice.spark.kryoserializer.buffer=4m -Dsplice.spark.locality.wait=100 -Dsplice.spark.memory.fraction=0.5 -Dsplice.spark.scheduler.mode=FAIR -Dsplice.spark.serializer=org.apache.spark.serializer.KryoSerializer -Dsplice.spark.shuffle.compress=false -Dsplice.spark.shuffle.file.buffer=128k -Dsplice.spark.shuffle.service.enabled=true  -Dsplice.spark.yarn.am.extraLibraryPath=/opt/cloudera/parcels/CDH/lib/hadoop/lib/native -Dsplice.spark.yarn.am.waitTime=10s -Dsplice.spark.yarn.executor.memoryOverhead=2048 -Dsplice.spark.driver.extraJavaOptions=-Dlog4j.configuration=file:/etc/spark/conf/log4j.properties -Dsplice.spark.driver.extraLibraryPath=/opt/cloudera/parcels/CDH/lib/hadoop/lib/native -Dsplice.spark.driver.extraClassPath=/opt/cloudera/parcels/CDH/lib/hbase/conf:/opt/cloudera/parcels/CDH/jars/htrace-core-3.1.0-incubating.jar -Dsplice.spark.executor.extraLibraryPath=/opt/cloudera/parcels/CDH/lib/hadoop/lib/native -Dsplice.spark.executor.extraClassPath=/opt/cloudera/parcels/CDH/lib/hbase/conf:/opt/cloudera/parcels/CDH/jars/htrace-core-3.1.0-incubating.jar -Dsplice.spark.ui.retainedJobs=100 -Dsplice.spark.ui.retainedStages=100 -Dsplice.spark.worker.ui.retainedExecutors=100 -Dsplice.spark.worker.ui.retainedDrivers=100 -Dsplice.spark.streaming.ui.retainedBatches=100 -Dsplice.spark.executor.cores=4 -Dsplice.spark.executor.memory=8g -Dspark.compaction.reserved.slots=4 -Dsplice.spark.eventLog.enabled=true -Dsplice.spark.eventLog.dir=hdfs:///user/splice/history -Dsplice.spark.local.dir=/tmp -Dsplice.spark.yarn.jars=/opt/cloudera/parcels/SPLICEMACHINE/lib/*
-```
+   ````
+   -XX:MaxPermSize=512M -XX:+HeapDumpOnOutOfMemoryError -XX:MaxDirectMemorySize=2g -XX:+AlwaysPreTouch -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.port=10101 -Dsplice.spark.enabled=true -Dsplice.spark.app.name=SpliceMachine -Dsplice.spark.master=yarn-client -Dsplice.spark.logConf=true -Dsplice.spark.yarn.maxAppAttempts=1 -Dsplice.spark.driver.maxResultSize=1g -Dsplice.spark.driver.cores=2 -Dsplice.spark.yarn.am.memory=1g -Dsplice.spark.dynamicAllocation.enabled=true -Dsplice.spark.dynamicAllocation.executorIdleTimeout=120 -Dsplice.spark.dynamicAllocation.cachedExecutorIdleTimeout=120 -Dsplice.spark.dynamicAllocation.minExecutors=0 -Dsplice.spark.dynamicAllocation.maxExecutors=12 -Dsplice.spark.io.compression.lz4.blockSize=32k -Dsplice.spark.kryo.referenceTracking=false -Dsplice.spark.kryo.registrator=com.splicemachine.derby.impl.SpliceSparkKryoRegistrator -Dsplice.spark.kryoserializer.buffer.max=512m -Dsplice.spark.kryoserializer.buffer=4m -Dsplice.spark.locality.wait=100 -Dsplice.spark.memory.fraction=0.5 -Dsplice.spark.scheduler.mode=FAIR -Dsplice.spark.serializer=org.apache.spark.serializer.KryoSerializer -Dsplice.spark.shuffle.compress=false -Dsplice.spark.shuffle.file.buffer=128k -Dsplice.spark.shuffle.service.enabled=true  -Dsplice.spark.yarn.am.extraLibraryPath=/opt/cloudera/parcels/CDH/lib/hadoop/lib/native -Dsplice.spark.yarn.am.waitTime=10s -Dsplice.spark.yarn.executor.memoryOverhead=2048 -Dsplice.spark.driver.extraJavaOptions=-Dlog4j.configuration=file:/etc/spark/conf/log4j.properties -Dsplice.spark.driver.extraLibraryPath=/opt/cloudera/parcels/CDH/lib/hadoop/lib/native -Dsplice.spark.driver.extraClassPath=/opt/cloudera/parcels/CDH/lib/hbase/conf:/opt/cloudera/parcels/CDH/jars/htrace-core-3.1.0-incubating.jar -Dsplice.spark.executor.extraLibraryPath=/opt/cloudera/parcels/CDH/lib/hadoop/lib/native -Dsplice.spark.executor.extraClassPath=/opt/cloudera/parcels/CDH/lib/hbase/conf:/opt/cloudera/parcels/CDH/jars/htrace-core-3.1.0-incubating.jar -Dsplice.spark.ui.retainedJobs=100 -Dsplice.spark.ui.retainedStages=100 -Dsplice.spark.worker.ui.retainedExecutors=100 -Dsplice.spark.worker.ui.retainedDrivers=100 -Dsplice.spark.streaming.ui.retainedBatches=100 -Dsplice.spark.executor.cores=4 -Dsplice.spark.executor.memory=8g -Dspark.compaction.reserved.slots=4 -Dsplice.spark.eventLog.enabled=true -Dsplice.spark.eventLog.dir=hdfs:///user/splice/history -Dsplice.spark.local.dir=/tmp -Dsplice.spark.yarn.jars=/opt/cloudera/parcels/SPLICEMACHINE/lib/*
+   ````
 
 4. Set the value of Java Configuration Options for Region Servers:
 
-```
-    -XX:+HeapDumpOnOutOfMemoryError -XX:MaxDirectMemorySize=2g -XX:MaxPermSize=512M -XX:+AlwaysPreTouch -XX:+UseG1GC -XX:MaxNewSize=4g -XX:InitiatingHeapOccupancyPercent=60 -XX:ParallelGCThreads=24 -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=5000 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.port=10102
-```
+   ```
+   -XX:+HeapDumpOnOutOfMemoryError -XX:MaxDirectMemorySize=2g -XX:MaxPermSize=512M -XX:+AlwaysPreTouch -XX:+UseG1GC -XX:MaxNewSize=4g -XX:InitiatingHeapOccupancyPercent=60 -XX:ParallelGCThreads=24 -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=5000 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.port=10102
+   ```
 
 5. Click the `Save Changes` button.
 
@@ -627,7 +605,9 @@ Authentication](https://doc.splicemachine.com/onprem_install_configureauth.html)
 
 You can use <a href="https://www.cloudera.com/documentation/enterprise/5-8-x/topics/cm_sg_intro_kerb.html" target="_blank">Cloudera's Kerberos Wizard</a> to enable Kerberos mode on a CDH5.8.x cluster. If you're enabling Kerberos, you need to add this option to your HBase Master Java Configuration Options:
 
+````
     -Dsplice.spark.hadoop.fs.hdfs.impl.disable.cache=true
+````
 
 ### Modify the Log Location
 
@@ -638,25 +618,24 @@ Machine stroes logs by adding the following snippet to your *RegionServer Loggin
 Advanced Configuration Snippet (Safety Valve)* section of your HBase
 Configuration:
 
-```
-    log4j.appender.spliceDerby=org.apache.log4j.FileAppender
-    log4j.appender.spliceDerby.File=${hbase.log.dir}/splice-derby.log
-    log4j.appender.spliceDerby.layout=org.apache.log4j.EnhancedPatternLayout
-    log4j.appender.spliceDerby.layout.ConversionPattern=%d{EEE MMM d HH:mm:ss,SSS} Thread[%t] %m%n
+   ```
+   log4j.appender.spliceDerby=org.apache.log4j.FileAppender
+   log4j.appender.spliceDerby.File=${hbase.log.dir}/splice-derby.log
+   log4j.appender.spliceDerby.layout=org.apache.log4j.EnhancedPatternLayout
+   log4j.appender.spliceDerby.layout.ConversionPattern=%d{EEE MMM d HH:mm:ss,SSS} Thread[%t] %m%n
+   log4j.appender.spliceStatement=org.apache.log4j.FileAppender
+   log4j.appender.spliceStatement.File=${hbase.log.dir}/splice-statement.log
+   log4j.appender.spliceStatement.layout=org.apache.log4j.EnhancedPatternLayout
+   log4j.appender.spliceStatement.layout.ConversionPattern=%d{EEE MMM d HH:mm:ss,SSS} Thread[%t] %m%n
 
-    log4j.appender.spliceStatement=org.apache.log4j.FileAppender
-    log4j.appender.spliceStatement.File=${hbase.log.dir}/splice-statement.log
-    log4j.appender.spliceStatement.layout=org.apache.log4j.EnhancedPatternLayout
-    log4j.appender.spliceStatement.layout.ConversionPattern=%d{EEE MMM d HH:mm:ss,SSS} Thread[%t] %m%n
+   log4j.logger.splice-derby=INFO, spliceDerby
+   log4j.additivity.splice-derby=false
 
-    log4j.logger.splice-derby=INFO, spliceDerby
-    log4j.additivity.splice-derby=false
-
-    # Uncomment to log statements to a different file:
-    #log4j.logger.splice-derby.statement=INFO, spliceStatement
-    # Uncomment to not replicate statements to the spliceDerby file:
-    #log4j.additivity.splice-derby.statement=false
-```
+   # Uncomment to log statements to a different file:
+   #log4j.logger.splice-derby.statement=INFO, spliceStatement
+   # Uncomment to not replicate statements to the spliceDerby file:
+   #log4j.additivity.splice-derby.statement=false
+   ```
 
 ## Deploy the Client Configuration
 
@@ -692,11 +671,11 @@ the Cloudera Manager home screen:
    Use your terminal window to create these directories (if they are
    not already available in HDFS):
 
-```
-    sudo -iu hdfs hadoop fs -mkdir -p hdfs:///user/hbase hdfs:///user/splice/history
-    sudo -iu hdfs hadoop fs -chown -R hbase:hbase hdfs:///user/hbase hdfs:///user/splice
-    sudo -iu hdfs hadoop fs -chmod 1777 hdfs:///user/splice hdfs:///user/splice/history
-```
+   ````
+   sudo -iu hdfs hadoop fs -mkdir -p hdfs:///user/hbase hdfs:///user/splice/history
+   sudo -iu hdfs hadoop fs -chown -R hbase:hbase hdfs:///user/hbase hdfs:///user/splice
+   sudo -iu hdfs hadoop fs -chmod 1777 hdfs:///user/splice hdfs:///user/splice/history
+   ````
 
 3.  Restart YARN
 
@@ -738,52 +717,31 @@ everything is working with your Splice Machine installation.
     <tbody>
         <tr>
             <td>Display tables</td>
-            <td>
-                <div class="preWrapperWide"><pre>splice&gt; show tables;</pre>
-                </div>
-            </td>
+            <td><code>splice&gt; show tables;</code></td>
         </tr>
         <tr>
             <td>Create a table</td>
-            <td>
-                <div class="preWrapperWide"><pre>splice&gt; create table test (i int);</pre>
-                </div>
-            </td>
+            <td><code>splice&gt; create table test (i int);</code></td>
         </tr>
         <tr>
             <td>Add data to the table</td>
-            <td>
-                <div class="preWrapperWide"><pre>splice&gt; insert into test values 1,2,3,4,5;</pre>
-                </div>
-            </td>
+            <td><code>splice&gt; insert into test values 1,2,3,4,5;</code></td>
         </tr>
         <tr>
             <td>Query data in the table</td>
-            <td>
-                <div class="preWrapperWide"><pre>splice&gt; select * from test;</pre>
-                </div>
-            </td>
+            <td><code>splice&gt; select * from test;</code></td>
         </tr>
         <tr>
             <td>Drop the table</td>
-            <td>
-                <div class="preWrapperWide"><pre>splice&gt; drop table test;</pre>
-                </div>
-            </td>
+            <td><code>splice&gt; drop table test;</code></td>
         </tr>
         <tr>
             <td>List available commands</td>
-            <td>
-                <div class="preWrapperWide"><pre>splice&gt; help;</pre>
-                </div>
-            </td>
+            <td><code>splice&gt; help;</code></td>
         </tr>
         <tr>
             <td>Exit the command line interpreter</td>
-            <td>
-                <div class="preWrapperWide"><pre>splice&gt; exit;</pre>
-                </div>
-            </td>
+            <td><code>splice&gt; exit;</code></td>
         </tr>
         <tr>
             <td colspan="2"><strong>Make sure you end each command with a semicolon</strong> (<code>;</code>), followed by the <em>Enter</em> key or <em>Return</em> key </td>
