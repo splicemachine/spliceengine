@@ -580,8 +580,8 @@
                                     <name>splicemachine</name>
                                     <targetOS>linux</targetOS>
                                     <classifier>splicemachine</classifier>
-                                    <version>${envClassifier}_${project.version}</version>
-				    <release>${parcel.patch}</release>
+                                    <version>${envClassifier}</version>
+				    <release>${project.version}.${parcel.patch}</release>
                                     <group>Applications/Internet</group>
                                     <licence>Copyright © 2018 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</licence>
                                     <requires>
@@ -608,8 +608,8 @@
                                     <targetOS>linux</targetOS>
                                     <classifier>splicemachine_ambari_service</classifier>
                                     <name>splicemachine_ambari_service</name>
-                                    <version>${envClassifier}_${project.version}</version>
-				    <release>${parcel.patch}</release>
+                                    <version>${envClassifier}</version>
+				    <release>${project.version}.${parcel.patch}</release>
                                     <group>Applications/Internet</group>
                                     <licence>Copyright © 2018 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</licence>
                                     <requires>
