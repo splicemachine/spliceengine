@@ -31,37 +31,28 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.services.loader.ClassInspector;
-
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.reference.Limits;
+import com.splicemachine.db.catalog.DefaultInfo;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.catalog.types.DefaultInfoImpl;
 import com.splicemachine.db.iapi.error.StandardException;
-
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.reference.Limits;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.services.loader.ClassInspector;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.depend.ProviderList;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
-
-import com.splicemachine.db.iapi.sql.depend.ProviderList;
-
-import com.splicemachine.db.iapi.reference.SQLState;
-
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 
-import com.splicemachine.db.catalog.DefaultInfo;
-import com.splicemachine.db.catalog.UUID;
-
-import com.splicemachine.db.catalog.types.DefaultInfoImpl;
-
-import java.util.Vector;
 import java.sql.Types;
+import java.util.Vector;
 
 /**
  * A ColumnDefinitionNode represents a column definition in a DDL statement.
@@ -668,6 +659,15 @@ public class ColumnDefinitionNode extends TableElementNode
 			defaultInfo = new DefaultInfoImpl(false,
 							  defaultNode.getDefaultText(), 
 							  defaultValue);
+
+			// for fixed-length char type, if default value cannot fix in the column, for example,
+			// default of 'xxxxx' cannot fix in the type of CHAR(4), for such cases, we should error out.
+			// If default value after trimming the trailing space can fit in CHAR(4), it can still go
+			// through
+			if (columnTypeId.getTypeFormatId() == StoredFormatIds.CHAR_TYPE_ID && defaultValue != null) {
+				DataValueDescriptor newDefault = defaultValue.cloneValue(false);
+				newDefault.normalize(getType(), newDefault);
+			}
 
 			if (SanityManager.DEBUG)
 			{
