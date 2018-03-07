@@ -146,6 +146,12 @@ public class SQLConfiguration implements ConfigurationDefault {
     private static final long DEFAULT_OPTIMIZER_PLAN_MAXIMUM_TIMEOUT = Long.MAX_VALUE;
 
     /**
+     * Threshold in rows for using spark.  Default is 20000
+     */
+    public static final String DETERMINE_SPARK_ROW_THRESHOLD = "splice.optimizer.determineSparkRowThreshold";
+    private static final int DEFAULT_DETERMINE_SPARK_ROW_THRESHOLD = 20000;
+
+    /**
      * The maximum number of Kryo objects to pool for reuse. This setting is generally
      * not necessary to adjust unless there are an extremely large number of concurrent
      * operations allowed on the system. Adjusting this down may lengthen the amount of
@@ -237,6 +243,7 @@ public class SQLConfiguration implements ConfigurationDefault {
         builder.storageFactoryHome = configurationSource.getString(STORAGE_FACTORY_HOME,defaultStorageFactoryHome);
         builder.optimizerPlanMaximumTimeout = configurationSource.getLong(OPTIMIZER_PLAN_MAXIMUM_TIMEOUT, DEFAULT_OPTIMIZER_PLAN_MAXIMUM_TIMEOUT);
         builder.optimizerPlanMinimumTimeout = configurationSource.getLong(OPTIMIZER_PLAN_MINIMUM_TIMEOUT, DEFAULT_OPTIMIZER_PLAN_MINIMUM_TIMEOUT);
+        builder.determineSparkRowThreshold = configurationSource.getLong(DETERMINE_SPARK_ROW_THRESHOLD, DEFAULT_DETERMINE_SPARK_ROW_THRESHOLD);
         builder.broadcastRegionMbThreshold = configurationSource.getLong(BROADCAST_REGION_MB_THRESHOLD, DEFAULT_BROADCAST_REGION_MB_THRESHOLD);
         builder.broadcastRegionRowThreshold = configurationSource.getLong(BROADCAST_REGION_ROW_THRESHOLD, DEFAULT_BROADCAST_REGION_ROW_THRESHOLD);
         builder.broadcastDatasetCostThreshold = configurationSource.getLong(BROADCAST_DATASET_COST_THRESHOLD, DEFAULT_BROADCAST_DATASET_COST_THRESHOLD);

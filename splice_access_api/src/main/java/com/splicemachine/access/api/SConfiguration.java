@@ -235,6 +235,8 @@ public interface SConfiguration {
 
     long getOptimizerPlanMinimumTimeout();
 
+    long getDetermineSparkRowThreshold();
+
     String getNetworkBindAddress();
 
     String getUpgradeForcedFrom();

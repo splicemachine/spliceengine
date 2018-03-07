@@ -3421,11 +3421,12 @@ public class FromBaseTable extends FromTable {
 
     public void determineSpark() {
         // Set Spark Baby...
+        long sparkRowThreshold = getLanguageConnectionContext().getOptimizerFactory().getDetermineSparkRowThreshold();
         if (dataSetProcessorType.equals(CompilerContext.DataSetProcessorType.DEFAULT_CONTROL) &&
             // we need to check not only the number of row scanned, but also the number of output rows for the
             // join result
-            (getTrulyTheBestAccessPath().getCostEstimate().getScannedBaseTableRows() > 20000 ||
-             getTrulyTheBestAccessPath().getCostEstimate().getEstimatedRowCount() > 20000)) {
+            (getTrulyTheBestAccessPath().getCostEstimate().getScannedBaseTableRows() > sparkRowThreshold ||
+             getTrulyTheBestAccessPath().getCostEstimate().getEstimatedRowCount() > sparkRowThreshold)) {
             dataSetProcessorType = CompilerContext.DataSetProcessorType.SPARK;
         }
     }
