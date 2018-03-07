@@ -158,6 +158,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  long broadcastDatasetCostThreshold;
     private final  long optimizerPlanMaximumTimeout;
     private final  long optimizerPlanMinimumTimeout;
+    private final  long determineSparkRowThreshold;
     private final  String networkBindAddress;
     private final  String upgradeForcedFrom;
     private final String storageFactoryHome;
@@ -574,6 +575,8 @@ public final class SConfigurationImpl implements SConfiguration {
         return optimizerPlanMinimumTimeout;
     }
     @Override
+    public long getDetermineSparkRowThreshold() {  return determineSparkRowThreshold; }
+    @Override
     public String getNetworkBindAddress() {
         return networkBindAddress;
     }
@@ -738,6 +741,7 @@ public final class SConfigurationImpl implements SConfiguration {
         broadcastDatasetCostThreshold = builder.broadcastDatasetCostThreshold;
         optimizerPlanMaximumTimeout = builder.optimizerPlanMaximumTimeout;
         optimizerPlanMinimumTimeout = builder.optimizerPlanMinimumTimeout;
+        determineSparkRowThreshold = builder.determineSparkRowThreshold;
         networkBindAddress = builder.networkBindAddress;
         upgradeForcedFrom = builder.upgradeForcedFrom;
         coreWriterThreads = builder.coreWriterThreads;
