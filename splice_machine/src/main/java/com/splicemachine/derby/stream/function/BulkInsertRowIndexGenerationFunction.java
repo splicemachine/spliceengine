@@ -191,7 +191,7 @@ public class BulkInsertRowIndexGenerationFunction extends  RowAndIndexGenerator 
                 keyColumns[i] = pkCols[i] -1;
             }
             prefix = NoOpPrefix.INSTANCE;
-            DescriptorSerializer[] serializers = VersionedSerializers.forVersion(tableVersion, true).getSerializers(execRowDefinition);
+            DescriptorSerializer[] serializers = VersionedSerializers.forVersion(tableVersion, false).getSerializers(execRowDefinition);
             dataHash = BareKeyHash.encoder(keyColumns,null, SpliceKryoRegistry.getInstance(),serializers);
         }
         return new KeyEncoder(prefix,dataHash,postfix);
