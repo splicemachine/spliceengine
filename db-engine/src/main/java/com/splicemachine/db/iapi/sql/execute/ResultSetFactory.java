@@ -949,7 +949,7 @@ public interface ResultSetFactory {
 		All arguments are the same as for TableScanResultSet, plus the
 		following:
 
-		@param probeVals List of values with which to probe the underlying
+		@param getProbeValsFunc function pointer to get list of values with which to probe the underlying
 			table. Should not be null.
 		@param sortRequired Which type of sort we need for the values
 			(ascending, descending, or none).
@@ -967,7 +967,7 @@ public interface ResultSetFactory {
 								boolean sameStartStopPosition,
                                 boolean rowIdKey,
 								String qualifiersField,
-								DataValueDescriptor [] probeVals,
+								GeneratedMethod getProbeValsFunc,
 								int sortRequired,
 								int inlistPosition,
 								String tableName,
