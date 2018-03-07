@@ -13,6 +13,7 @@
  */
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -28,6 +29,7 @@ import org.spark_project.guava.collect.Lists;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Collection;
 
 import static com.splicemachine.test_tools.Rows.row;
@@ -694,6 +696,108 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
         rs = methodWatcher.executeQuery(sql);
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
+    }
+
+    @Test
+    public void testColumnsOfCharTypeWithDefaultOfSmallerSize() throws Exception {
+        // add not null column to t4 with default value
+        methodWatcher.executeUpdate("alter table t4 add column b4 CHAR(6) not null default 'ZZZZ'");
+
+        methodWatcher.executeUpdate("create index idx1_t4 on t4 (b4)");
+        methodWatcher.executeUpdate("insert into t4 values (10, 'AAAA')");
+
+        /* case 1: check partial covering index */
+        String sql = format("select a4, '-' || b4 || '-' from t4 --splice-properties index=idx1_t4, useSpark=%s\n where a4=10", useSparkString);
+        String expected = "A4 |    2    |\n" +
+                "--------------\n" +
+                "10 |-AAAA  - |";
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sql = format("select a4, '-' || b4 || '-'  from t4 --splice-properties index=idx1_t4, useSpark=%s\n where a4=3", useSparkString);
+        expected = "A4 |    2    |\n" +
+                "--------------\n" +
+                " 3 |-ZZZZ  - |";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* case 2: check direct access of the base table */
+        sql = format("select a4, '-' || b4 || '-' from t4 --splice-properties index=null, useSpark=%s", useSparkString);
+        expected = "A4 |    2    |\n" +
+                "--------------\n" +
+                " 1 |-ZZZZ  - |\n" +
+                "10 |-AAAA  - |\n" +
+                " 2 |-ZZZZ  - |\n" +
+                " 3 |-ZZZZ  - |";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testColumnsOfCharTypeWithDefaultOfLargerSize() throws Exception {
+        // case 1: add not null column to t4 with default value of bigger size, exepct to error out
+        try {
+            methodWatcher.executeUpdate("alter table t4 add column b4 CHAR(4) not null default 'ZZZZZ'");
+            Assert.fail("the update statement should fail");
+        } catch (SQLException e) {
+            Assert.assertEquals("Upexpected failure: "+ e.getMessage(), e.getSQLState(), SQLState.LANG_STRING_TRUNCATION);
+        }
+
+        // case 2: add not null column to t4 with default value of bigger size, but after trimming the trailing space,
+        // the value can fit in the column, for this case, we don't want to error out
+        methodWatcher.executeUpdate("alter table t4 add column b4 CHAR(4) not null default 'ZZZZ    '");
+
+        methodWatcher.executeUpdate("insert into t4 values (10, 'AAAA')");
+        String sql = format("select a4, '-' || b4 || '-' from t4 --splice-properties index=null, useSpark=%s", useSparkString);
+        String expected = "A4 |   2   |\n" +
+                "------------\n" +
+                " 1 |-ZZZZ- |\n" +
+                "10 |-AAAA- |\n" +
+                " 2 |-ZZZZ- |\n" +
+                " 3 |-ZZZZ- |";
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+
+    @Test
+    public void testAlterCharColumnWithDefaultOfNonmatchingSize() throws Exception {
+        methodWatcher.executeUpdate("alter table t4 add column b4 CHAR(6) not null default 'ZZZZ'");
+        methodWatcher.executeUpdate("insert into t4 values (10, 'AAAA')");
+        // change to a default value which is of smaller size than the definition, it should go through padding spaces
+        methodWatcher.executeUpdate("alter table t4 alter column b4 default 'YYYY' ");
+        methodWatcher.executeUpdate("insert into t4(a4) values (11)");
+
+        // change to a default value which is of larger size but after trimming trailing spaces, it can fit, it should
+        //go through
+        methodWatcher.executeUpdate("alter table t4 alter column b4 default 'XXXX   ' ");
+        methodWatcher.executeUpdate("insert into t4(a4) values (12)");
+
+        String sql = format("select a4, '-' || b4 || '-' from t4 --splice-properties index=null, useSpark=%s", useSparkString);
+        String expected = "A4 |    2    |\n" +
+                "--------------\n" +
+                " 1 |-ZZZZ  - |\n" +
+                "10 |-AAAA  - |\n" +
+                "11 |-YYYY  - |\n" +
+                "12 |-XXXX  - |\n" +
+                " 2 |-ZZZZ  - |\n" +
+                " 3 |-ZZZZ  - |";
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // change to a default value which is of larger size with no trailing spaces, it should error out
+        try {
+            methodWatcher.executeUpdate("alter table t4 alter column b4 default 'XXXXXXX'");
+            Assert.fail("the update statement should fail");
+        } catch (SQLException e) {
+            Assert.assertEquals("Upexpected failure: "+ e.getMessage(), e.getSQLState(), SQLState.LANG_STRING_TRUNCATION);
+        }
+
     }
 
     @Test
