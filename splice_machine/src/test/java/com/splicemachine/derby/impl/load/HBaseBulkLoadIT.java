@@ -376,12 +376,12 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
         String expected =
                 "KEY     |\n" +
                 "--------------\n" +
-                "    \\x81     |\n" +
+                "  \\x81\\x00   |\n" +
                 "\\x81\\x00\\x82 |\n" +
                 "\\x81\\x00\\x84 |\n" +
                 "\\x81\\x00\\x86 |\n" +
                 "\\x81\\x00\\x88 |\n" +
-                "    \\x82     |\n" +
+                "  \\x82\\x00   |\n" +
                 "\\x82\\x00\\x82 |";
 
 
