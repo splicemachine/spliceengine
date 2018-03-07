@@ -41,6 +41,8 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
 
@@ -1209,7 +1211,15 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
                  */
                 if (defaultInfo != null && defaultInfo.getDefaultValue() != null &&
                         !colDesc.isAutoincrement() && !colDesc.hasGenerationClause() && !colDesc.getType().isNullable()) {
-                    defaultTree = getConstantNode(colType, defaultInfo.getDefaultValue().cloneValue(false));
+                    DataValueDescriptor defaultValue = defaultInfo.getDefaultValue();
+                    DataValueDescriptor newDefault = defaultValue.cloneValue(false);
+                    // For Char type, the default value may not match the column type exactly.
+                    // For example, column char(4) could have a default value 'a'. For such cases, what's
+                    // stored in the table is really 'a   ', so we need a conversion here
+                    if (newDefault instanceof SQLChar) {
+                        newDefault.normalize(colDesc.getType(), newDefault);
+                    }
+                    defaultTree = getConstantNode(colType, newDefault);
                     defaultValueMap.set(i);
                 } else {
                     defaultTree = getNullNode(colType);
