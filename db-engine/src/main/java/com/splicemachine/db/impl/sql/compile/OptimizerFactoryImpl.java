@@ -57,7 +57,7 @@ public class OptimizerFactoryImpl
 	protected boolean noTimeout = false;
 	protected boolean useStatistics = true;
 	protected int maxMemoryPerTable = Integer.MAX_VALUE;//may need to be long, but this also can be defined in configuration
-	protected long determineSparkRowThreshold = 20000 ; // This value is not effected, the default value is defined in SQLConfiguration
+	protected long determineSparkRowThreshold; //The default value is defined in SQLConfiguration
 
 
 	/*
