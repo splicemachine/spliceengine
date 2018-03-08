@@ -493,6 +493,8 @@ public final class TransactionResourceImpl
 		return  username;
 	}
 
+	void setUserName(String user) { username = user; }
+
     /**
      * clean up error and print it to db.log if diagActive is true
      * @param e the error we want to clean up

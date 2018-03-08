@@ -89,7 +89,7 @@ public final class NoneAuthenticationServiceImpl extends AuthenticationServiceBa
 	 * @param databaseName	The database which the user wants to connect to.
 	 * @param info			Additional jdbc connection info.
 	 */
-	public boolean	authenticateUser(String userName,
+	public String	authenticateUser(String userName,
 								 String userPassword,
 								 String databaseName,
 								 Properties info
@@ -99,7 +99,7 @@ public final class NoneAuthenticationServiceImpl extends AuthenticationServiceBa
 		// any particular authentication, therefore we satisfy the request.
 		// and always authenticate successfully the user.
 		//
-		return true;
+		return userName;
 	}
 
 }
