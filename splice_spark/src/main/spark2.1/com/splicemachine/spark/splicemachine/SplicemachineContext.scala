@@ -184,6 +184,51 @@ class SplicemachineContext(url: String) extends Serializable {
     }
   }
 
+  def executeUpdate(sql: String): Unit = {
+    val spliceOptions = Map(
+      JDBCOptions.JDBC_URL -> url,
+      JDBCOptions.JDBC_TABLE_NAME -> "dismiss"
+    )
+    val jdbcOptions = new JDBCOptions(spliceOptions)
+    val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
+    try {
+      val statement = conn.createStatement
+      statement.executeUpdate(sql)
+    } finally {
+      conn.close()
+    }
+  }
+
+  def execute(sql: String): Unit = {
+    val spliceOptions = Map(
+      JDBCOptions.JDBC_URL -> url,
+      JDBCOptions.JDBC_TABLE_NAME -> "dismiss"
+    )
+    val jdbcOptions = new JDBCOptions(spliceOptions)
+    val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
+    try {
+      val statement = conn.createStatement
+      statement.execute(sql)
+    } finally {
+      conn.close()
+    }
+  }
+
+  def truncateTable(tableName: String): Unit = {
+    executeUpdate(s"TRUNCATE TABLE $tableName")
+  }
+
+  def analyzeSchema(schemaName: String): Unit = {
+    execute(s"ANALYZE SCHEMA $schemaName")
+  }
+
+  def analyzeTable(tableName: String, estimateStatistics: Boolean = false, samplePercent: Double = 0.10 ): Unit = {
+    if (!estimateStatistics)
+      execute(s"ANALYZE TABLE $tableName")
+    else
+      execute(s"ANALYZE TABLE $tableName ESTIMATE STATISTICS SAMPLE $samplePercent PERCENT")
+  }
+
   def df(sql: String): Dataset[Row] = {
     SparkUtils.resultSetToDF(internalConnection.createStatement().executeQuery(sql));
   }
