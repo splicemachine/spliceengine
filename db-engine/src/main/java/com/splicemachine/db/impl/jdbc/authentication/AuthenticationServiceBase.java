@@ -31,51 +31,34 @@
 
 package com.splicemachine.db.impl.jdbc.authentication;
 
+import com.splicemachine.db.authentication.UserAuthenticator;
 import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.reference.Module;
-import com.splicemachine.db.iapi.reference.Property;
-import com.splicemachine.db.authentication.UserAuthenticator;
-import com.splicemachine.db.iapi.jdbc.AuthenticationService;
-
-import com.splicemachine.db.iapi.reference.Limits;
-
 import com.splicemachine.db.iapi.error.StandardException;
-
+import com.splicemachine.db.iapi.jdbc.AuthenticationService;
+import com.splicemachine.db.iapi.reference.*;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.daemon.Serviceable;
-
-import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
 import com.splicemachine.db.iapi.services.monitor.ModuleControl;
+import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
-import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.services.property.PropertyFactory;
-import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.services.property.PropertySetCallback;
-
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
-import com.splicemachine.db.iapi.reference.Attribute;
-
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.store.access.AccessFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.StringUtil;
 
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.PasswordHasher;
-import com.splicemachine.db.iapi.sql.dictionary.UserDescriptor;
-
+import java.io.Serializable;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-
-import java.io.Serializable;
 import java.sql.SQLException;
 import java.util.Dictionary;
 import java.util.Properties;
-import com.splicemachine.db.iapi.reference.SQLState;
 
 /**
  * <p>
@@ -236,14 +219,14 @@ public abstract class AuthenticationServiceBase
 	 *
 	 *
 	 */
-	public boolean authenticate(String databaseName, Properties userInfo) throws java.sql.SQLException
+	public String authenticate(String databaseName, Properties userInfo) throws java.sql.SQLException
 	{
 		if (userInfo == (Properties) null)
-			return false;
+			return null;
 
 		String userName = userInfo.getProperty(Attribute.USERNAME_ATTR);
 		if ((userName != null) && userName.length() > Limits.MAX_IDENTIFIER_LENGTH) {
-			return false;
+			return null;
 		}
 
 		if (SanityManager.DEBUG)
@@ -264,11 +247,13 @@ public abstract class AuthenticationServiceBase
 				//t.printStackTrace(istream.getPrintWriter());
 			}
 		}
-		return this.authenticationScheme.authenticateUser(userName,
+		// Authenticated username maybe a groupname for LDAP
+		String authUser = this.authenticationScheme.authenticateUser(userName,
 						  userInfo.getProperty(Attribute.PASSWORD_ATTR),
 						  databaseName,
 						  userInfo
 						 );
+		return authUser;
 	}
 
     public  String  getSystemCredentialsDatabaseName()    { return null; }
