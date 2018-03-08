@@ -557,6 +557,7 @@ public class ConstraintTransactionIT {
 
         // Now should be able to insert violating row
         s1.execute(String.format("insert into %s values(-1, 3)", tableRef));
+        c1.commit();
     }
     
 }

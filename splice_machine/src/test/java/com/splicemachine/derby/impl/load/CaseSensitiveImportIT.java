@@ -14,13 +14,11 @@
 
 package com.splicemachine.derby.impl.load;
 
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 import org.spark_project.guava.collect.Lists;
 
 import java.io.File;
@@ -34,7 +32,9 @@ import static org.junit.Assert.assertNotNull;
  * SpliceTableWatcher, etc., uppercase identifiers.
  */
 public class CaseSensitiveImportIT {
-    public static final String SCHEMA_NAME = CaseSensitiveImportIT.class.getSimpleName().toUpperCase();
+    public static final String CLASS_NAME= CaseSensitiveImportIT.class.getSimpleName().toUpperCase();
+    @ClassRule public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    public static final String SCHEMA_NAME = spliceSchemaWatcher.schemaName;
 
     private static File BADDIR;
 
@@ -44,10 +44,6 @@ public class CaseSensitiveImportIT {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        cleanSchema(SCHEMA_NAME, methodWatcher);
-        try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
-            s.executeUpdate(String.format("create schema %s",SCHEMA_NAME));
-        }
         BADDIR = SpliceUnitTest.createBadLogDirectory(SCHEMA_NAME);
         assertNotNull(BADDIR);
     }

@@ -88,12 +88,9 @@ public class TempTableHBaseIT{
         }  finally {
             methodWatcher.closeAll();
         }
+        // wait for the temp table deleted from schema
+        Thread.sleep(5000);
         hbaseTempExists = hBaseAdmin.tableExists(tempConglomID);
-        if (hbaseTempExists) {
-            // HACK: wait a sec, try again.  It's going away, just takes some time.
-            Thread.sleep(1000);
-            hbaseTempExists = hBaseAdmin.tableExists(tempConglomID);
-        }
         hBaseAdmin.close();
         Assert.assertFalse("HBase temp table [" + tempConglomID + "] still exists.", hbaseTempExists);
     }

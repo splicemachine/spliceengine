@@ -75,6 +75,16 @@ public class SpliceSchemaWatcher extends TestWatcher {
     @Override
     protected void finished(Description description) {
         LOG.trace(tag("Finished", schemaName));
+	SpliceTestDataSource dataSource = new SpliceTestDataSource();
+        try (Connection connection = SpliceNetConnection.getConnection()) {
+                SchemaDAO schemaDAO = new SchemaDAO(connection);
+                schemaDAO.drop(schemaName);
+                connection.createStatement().execute("CALL SYSCS_UTIL.VACUUM()");
+                connection.commit();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+	dataSource.shutdown();
     }
 
     @Override

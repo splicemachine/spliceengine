@@ -14,8 +14,7 @@
 
 package com.splicemachine.foreignkeys;
 
-import com.splicemachine.derby.test.framework.RuledConnection;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.SerialTest;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -45,7 +44,10 @@ public class ForeignKey_AlterDropTable_IT {
     @ClassRule
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
-    @Rule public RuledConnection conn = new RuledConnection(SCHEMA,false);
+    @Rule
+    public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
+
+    private TestConnection conn = methodWatcher.getOrCreateConnection();
 
     @Before
     public void deleteTables() throws Exception {

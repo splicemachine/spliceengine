@@ -31,7 +31,7 @@
         <ee_out/>
         <skipTests>${maven.skip.tests}</skipTests>
         <skip.dep.copy>${skipSparkPrepare}</skip.dep.copy>
-        <argLine>-Xmx4g -XX:MaxPermSize=256m ${jacocoAgent}</argLine>
+        <argLine>-Xmx2g -XX:MaxPermSize=256m ${jacocoAgent}</argLine>
     </properties>
     <dependencies>
         <!--
@@ -707,7 +707,7 @@
                         <configuration>
                             <groups>com.splicemachine.test.SerialTest</groups>
                             <excludedGroups>${excluded.categories}</excludedGroups>
-                            <argLine>-Xmx3g</argLine>
+                            <argLine>-Xmx2g</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
@@ -734,7 +734,7 @@
                             <threadCount>1</threadCount>
                             <!-- -sf- single-threaded for now -->
                             <perCoreThreadCount>false</perCoreThreadCount>
-                            <argLine>-Xmx5g</argLine>
+                            <argLine>-Xmx2g</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
@@ -758,7 +758,7 @@
                         </goals>
                         <configuration>
                             <groups>com.splicemachine.test.RestoreTest</groups>
-                            <argLine>-Xmx3g</argLine>
+                            <argLine>-Xmx2g</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <includes>
                                 <include>**/*RestoreIT.java</include>
@@ -1146,7 +1146,7 @@
                                 <argument>-Dsplice.authentication=NATIVE</argument>
                                 <argument>-Dcom.splicemachine.enableLegacyAsserts=true</argument>
                                 <argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
-                                <argument>-Xmx6g</argument>
+                                <argument>-Xmx2g</argument>
                                 <argument>-Xms1g</argument>
                                 <!-- Spark Sys props -->
                                 <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
@@ -1284,7 +1284,7 @@
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
-                                <argument>-Xmx4g</argument>
+                                <argument>-Xmx2g</argument>
                                 <argument>-Xmn128m</argument>
                                 <argument>-XX:+UseConcMarkSweepGC</argument>
                                 <argument>-XX:+UseParNewGC</argument>
@@ -1542,7 +1542,7 @@
                                 <argument>-Dsplice.authentication=NATIVE</argument>
                                 <argument>-Dcom.splicemachine.enableLegacyAsserts=true</argument>
                                 <argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
-                                <argument>-Xmx6g</argument>
+                                <argument>-Xmx2g</argument>
                                 <argument>-Xms1g</argument>
                                 <!-- Spark Sys props -->
                                 <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
