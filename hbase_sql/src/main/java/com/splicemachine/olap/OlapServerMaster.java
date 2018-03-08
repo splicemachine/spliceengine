@@ -143,7 +143,7 @@ public class OlapServerMaster implements Watcher {
         UserGroupInformation.setLoginUser(ugi);
         ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
             try {
-                submitSparkApplication(conf);
+                submitSparkApplication(conf, ugi);
             } catch (Exception e) {
                 LOG.error("Unexpected exception when submitting Spark application with authentication", e);
                 throw e;
@@ -158,7 +158,7 @@ public class OlapServerMaster implements Watcher {
         System.exit(0);
     }
 
-    private void submitSparkApplication(Configuration conf) throws IOException, InterruptedException, KeeperException {
+    private void submitSparkApplication(Configuration conf, UserGroupInformation ugi) throws IOException, InterruptedException, KeeperException {
         rzk = ZKUtil.connect(conf, null);
 
         HBaseSIEnvironment env=HBaseSIEnvironment.loadEnvironment(new SystemClock(),rzk);
@@ -195,7 +195,8 @@ public class OlapServerMaster implements Watcher {
         SpliceSpark.getContextUnsafe(); // kickstart Spark
         
         while(!end.get()) {
-            Thread.sleep(1000);
+            Thread.sleep(10000);
+            ugi.checkTGTAndReloginFromKeytab();
         }
 
         LOG.info("OlapServerMaster shutting down");
