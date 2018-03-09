@@ -213,8 +213,8 @@ public class SYSROLESRowFactory extends CatalogRowFactory
         String                      grantee;
         String                      grantor;
         String                      wao;
-        String                      isdef;
-        String                      isDefaultRole;
+        boolean                      isdef;
+        boolean                      isDefaultRole;
         DataDescriptorGenerator     ddg = dd.getDataDescriptorGenerator();
 
         if (SanityManager.DEBUG)
@@ -245,22 +245,26 @@ public class SYSROLESRowFactory extends CatalogRowFactory
 
         // sixth column is isdef (char(1))
         col = row.getColumn(6);
-        isdef = col.getString();
+        isdef = col.getString().equals("Y");
 
         // seventh column is defaultRole (char(1))
         col = row.getColumn(7);
-        if (col == null || col.isNull())
-            isDefaultRole = null;
-        else
-            isDefaultRole = col.getString();
+        if (col == null || col.isNull()) {
+            // whether this is a role definition
+            if (!isdef)
+                isDefaultRole = true;
+            else
+                isDefaultRole = false;
+        } else
+            isDefaultRole = col.getString().equals("Y");
         descriptor = ddg.newRoleGrantDescriptor
             (getUUIDFactory().recreateUUID(oid_string),
              roleid,
              grantee,
              grantor,
              wao.equals("Y") ? true: false,
-             isdef.equals("Y") ? true: false,
-             isDefaultRole==null? false : (isDefaultRole.equals("Y") ? true: false));
+             isdef,
+             isDefaultRole);
 
         return descriptor;
     }

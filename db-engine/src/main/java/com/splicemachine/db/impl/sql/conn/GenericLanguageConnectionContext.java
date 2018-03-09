@@ -473,7 +473,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     protected List<String> initDefaultRoleSet() throws StandardException{
         if(defaultRoles==null){
             DataDictionary dd=getDataDictionary();
-            String authorizationId=getSessionUserId();
             defaultRoles = new ArrayList<>();
             List<String>  userRoles =
                     dd.getDefaultRoles(getSessionUserId(),getTransactionCompile());

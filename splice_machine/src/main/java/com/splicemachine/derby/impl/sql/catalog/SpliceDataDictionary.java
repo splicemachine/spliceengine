@@ -988,33 +988,39 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SchemaDescriptor sd = getSystemSchemaDescriptor();
         TableDescriptor td = getTableDescriptor(SYSROLESRowFactory.TABLENAME_STRING, sd, tc);
         ColumnDescriptor cd = td.getColumnDescriptor("DEFAULTROLE");
-        if (cd == null) {
-            tc.elevate("dictionary");
-            dropTableDescriptor(td, sd, tc);
-            td.setColumnSequence(td.getColumnSequence()+1);
-            // add the table descriptor with new name
-            addDescriptor(td,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc);
 
-            ColumnDescriptor columnDescriptor;
-            UUID uuid = getUUIDFactory().createUUID();
+        // column already exists, no upgrade needed
+        if (cd != null)
+            return;
 
-            /**
-             *  Add the column DEFAULTROLE
-             */
-            DataValueDescriptor storableDV = getDataValueFactory().getNullChar(null);
-            int colNumber = td.getNumberOfColumns() + 1;
-            DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1);
-            tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
+        /**
+         * LOGIC below add the new column DEFAULTROLE to SYSROLES
+         */
+        tc.elevate("dictionary");
+        dropTableDescriptor(td, sd, tc);
+        td.setColumnSequence(td.getColumnSequence()+1);
+        // add the table descriptor with new name
+        addDescriptor(td,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc);
 
-            columnDescriptor = new ColumnDescriptor("DEFAULTROLE",colNumber,
-                    colNumber,dtd,null,null,td,uuid,0,0,td.getColumnSequence());
+        ColumnDescriptor columnDescriptor;
+        UUID uuid = getUUIDFactory().createUUID();
 
-            addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
-            // now add the column to the tables column descriptor list.
-            td.getColumnDescriptorList().add(columnDescriptor);
-            updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
+        /**
+         *  Add the column DEFAULTROLE
+         */
+        DataValueDescriptor storableDV = getDataValueFactory().getNullChar(null);
+        int colNumber = td.getNumberOfColumns() + 1;
+        DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1);
+        tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
 
-            SpliceLogUtils.info(LOG, "SYS.SYSROLES upgraded: added columns: DEFAULTROLE.");
-        }
+        columnDescriptor = new ColumnDescriptor("DEFAULTROLE",colNumber,
+                colNumber,dtd,null,null,td,uuid,0,0,td.getColumnSequence());
+
+        addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+        // now add the column to the tables column descriptor list.
+        td.getColumnDescriptorList().add(columnDescriptor);
+        updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
+        
+        SpliceLogUtils.info(LOG, "SYS.SYSROLES upgraded: added columns: DEFAULTROLE; added index on (GRANTEE, DEFAULTROLE)");
     }
 }

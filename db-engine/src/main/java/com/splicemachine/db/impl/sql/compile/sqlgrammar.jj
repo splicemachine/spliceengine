@@ -15771,7 +15771,7 @@ roleGrantStatement() throws StandardException :
 {
 	List rolesGranted;
 	List grantees;
-	boolean isDefaultRole = false;
+	boolean isDefaultRole = true;
 }
 {
 	/*

@@ -109,11 +109,13 @@ public class DefaultRoleIT {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
 
-    String grantRoleToUserAsDefault = "grant %s to %s AS DEFAULT";
-    // explict syntax NOT to grant role as default
+    // explicit syntax to grant role as default
+    String grantRoleToUserAsDefault1 = "grant %s to %s AS DEFAULT";
+    // implicit syntax to grant role as default
+    String grantRoleToUserAsDefault = "grant %s to %s";
+    // syntax NOT to grant role as default
     String grantRoleToUserNotAsDefault = "grant %s to %s NOT AS DEFAULT";
-    // implict syntax NOT to grant role as default
-    String grantRoleToUser = "grant %s to %s";
+
     String revokeRoleFromUser = "revoke %s from %s";
 
     private String selectQuery1      = format("select a1 from %s.%s", SCHEMA1, TABLE1);
@@ -145,10 +147,11 @@ public class DefaultRoleIT {
     public void testSetRoleAsDefault() throws Exception {
         clearAllRolesOnUsers();
 
-        // 1: grant role as default
+        // 1: grant role as default implicitly
         adminConn.execute(format(grantRoleToUserAsDefault, ROLE1, PUBLIC));
         adminConn.execute(format(grantRoleToUserAsDefault, ROLE2, USER1));
-        adminConn.execute(format(grantRoleToUserAsDefault, ROLE3, USER1));
+        // grant ROLE3 as default explicitly
+        adminConn.execute(format(grantRoleToUserAsDefault1, ROLE3, USER1));
         adminConn.execute(format(grantRoleToUserNotAsDefault, ROLE4, USER1));
 
         // 2: check the role definition table
@@ -191,14 +194,14 @@ public class DefaultRoleIT {
         clearAllRolesOnUsers();
 
         // 1: grant role as default
-        adminConn.execute(format(grantRoleToUserAsDefault, ROLE1, PUBLIC));
-        adminConn.execute(format(grantRoleToUserAsDefault, ROLE2, USER1));
+        adminConn.execute(format(grantRoleToUserAsDefault1, ROLE1, PUBLIC));
+        adminConn.execute(format(grantRoleToUserAsDefault1, ROLE2, USER1));
         adminConn.execute(format(grantRoleToUserAsDefault, ROLE3, USER1));
         adminConn.execute(format(grantRoleToUserNotAsDefault, ROLE4, USER1));
 
-        // 2: grant role NOT as default for ROLE2 explicitly, grant role NOT as default for ROLE3 implicitly
+        // 2: grant role NOT as default for ROLE2 and ROLE3
         adminConn.execute(format(grantRoleToUserNotAsDefault, ROLE2, USER1));
-        adminConn.execute(format(grantRoleToUser, ROLE3, USER1));
+        adminConn.execute(format(grantRoleToUserNotAsDefault, ROLE3, USER1));
 
         // 3: check the role definition table
         String expected = "ROLEID | GRANTEE | GRANTOR | ISDEF | DEFAULTROLE |\n" +
@@ -306,22 +309,22 @@ public class DefaultRoleIT {
         // we should be able to select from schema1, schema2, schema3, but not schema4 and schema5
         testPrivileges(user1Conn, new boolean[] {false, false, false, true, true});
 
-        // 3: re-grant role4 to user1 as default
+        // 3: re-grant role4 to user1 as default, and role2 as non-default
         adminConn.execute(format(grantRoleToUserAsDefault, ROLE4, USER1));
+        adminConn.execute(format(grantRoleToUserNotAsDefault, ROLE2, USER1));
 
-        // 4. In new connection, we should see role4 in current_role
+        // 4. In new connection, we should see role4 in current_role, also role2 will be removed from current_role
         user1Conn = spliceClassWatcherAdmin.createConnection(USER1, PASSWORD1);
 
-        // also admin2 will be removed from current_role
-        expected = "1                   |\n" +
-                "----------------------------------------\n" +
-                "\"ADMIN2\", \"ADMIN3\", \"ADMIN4\", \"ADMIN1\" |";
+        expected = "1              |\n" +
+                "------------------------------\n" +
+                "\"ADMIN3\", \"ADMIN4\", \"ADMIN1\" |";
         ps = user1Conn.prepareStatement("values current_role");
         rs = ps.executeQuery();
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
-        testPrivileges(user1Conn, new boolean[] {false, false, false, false, true});
+        testPrivileges(user1Conn, new boolean[] {false, true, false, false, true});
 
         // 4. check current_role(remote) and privilege/permisssion
         user1Conn2 = spliceClassWatcherAdmin.createConnection(remoteURLTemplate, USER1, PASSWORD1);
@@ -330,7 +333,7 @@ public class DefaultRoleIT {
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
-        testPrivileges(user1Conn2, new boolean[] {false, false, false, false, true});
+        testPrivileges(user1Conn2, new boolean[] {false, true, false, false, true});
     }
 
     @Test
