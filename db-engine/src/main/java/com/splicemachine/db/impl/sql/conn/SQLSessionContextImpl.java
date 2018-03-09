@@ -42,12 +42,14 @@ public class SQLSessionContextImpl implements SQLSessionContext {
     private String currentUser;
     private ArrayList<String> currentRoles = new ArrayList<>();
     private SchemaDescriptor currentDefaultSchema;
+    private String groupuser;
 
-    public SQLSessionContextImpl (SchemaDescriptor sd, String currentUser, List<String> roles) {
+    public SQLSessionContextImpl (SchemaDescriptor sd, String currentUser, List<String> roles, String groupuser) {
         if (roles != null)
             currentRoles.addAll(roles);
         currentDefaultSchema = sd;
         this.currentUser = currentUser;
+        this.groupuser = groupuser;
     }
 
     public void setRole(String role) {
@@ -101,4 +103,6 @@ public class SQLSessionContextImpl implements SQLSessionContext {
     public SchemaDescriptor getDefaultSchema() {
         return currentDefaultSchema;
     }
+
+    public String getCurrentGroupUser() { return groupuser; }
 }

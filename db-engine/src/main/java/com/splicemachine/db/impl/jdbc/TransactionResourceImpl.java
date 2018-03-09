@@ -137,6 +137,9 @@ public final class TransactionResourceImpl
 	protected Database database;
 	protected LanguageConnectionContext lcc;
 
+	// Set this when LDAP has groupname
+	protected String groupuser;
+
 	/**
 	 * create a brand new connection for a brand new transaction
 	 */
@@ -227,7 +230,7 @@ public final class TransactionResourceImpl
 	void startTransaction() throws StandardException, SQLException
 	{
 		// setting up local connection
-		lcc = database.setupConnection(cm, username, drdaID, dbname,useSpark, skipStats, defaultSelectivityFactor);
+		lcc = database.setupConnection(cm, username, groupuser, drdaID, dbname,useSpark, skipStats, defaultSelectivityFactor);
 	}
 
 	/**
@@ -493,7 +496,13 @@ public final class TransactionResourceImpl
 		return  username;
 	}
 
-	void setUserName(String user) { username = user; }
+	void setGroupUserName(String user) {
+		groupuser = user;
+	}
+
+	String getGroupUserName() {
+		return groupuser;
+	}
 
     /**
      * clean up error and print it to db.log if diagActive is true

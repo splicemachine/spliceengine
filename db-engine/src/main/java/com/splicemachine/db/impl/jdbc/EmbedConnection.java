@@ -346,9 +346,10 @@ public abstract class EmbedConnection implements EngineConnection
                 throw sqle;
             }
 
-            // If we have an authenticated group username from LDAP, use that
-            if (authUser != null)
-                tr.setUserName(authUser);
+            if (authUser != null && !tr.getUserName().equalsIgnoreCase(authUser)) {
+				// If we have an authenticated group username from LDAP, use that
+				tr.setGroupUserName(authUser);
+			}
 
 			// Make a real connection into the database, setup lcc, tc and all
 			// the rest.
