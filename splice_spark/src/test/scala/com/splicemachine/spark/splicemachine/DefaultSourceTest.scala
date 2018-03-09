@@ -14,7 +14,10 @@
 package com.splicemachine.spark.splicemachine
 
 import java.io.File
-import java.sql.Timestamp
+import java.math.BigDecimal
+import java.sql.{Time, Timestamp}
+
+import org.apache.spark.sql.execution.datasources.jdbc.JdbcUtils
 
 import scala.collection.immutable.IndexedSeq
 import org.apache.spark.sql.SQLContext
@@ -40,7 +43,6 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     insertInternalRows(rowCount)
     sqlContext.read.options(internalOptions).splicemachine.createOrReplaceTempView(table)
   }
-
 
   test("read from datasource api") {
     val df = sqlContext.read.options(internalOptions).splicemachine
@@ -82,6 +84,25 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     assert(newDF.count == 15)
   }
 
+  test("truncate table") {
+    val df = sqlContext.read.options(internalOptions).splicemachine
+    assert(df.count == 10)
+    splicemachineContext.truncateTable(internalTN)
+    val df2 = sqlContext.read.options(internalOptions).splicemachine
+    assert(df2.count == 0)
+  }
+
+  test("analyze table") {
+      splicemachineContext.analyzeTable(internalTN)
+      val df = sqlContext.read.options(statOptions).splicemachine.filter(s"SCHEMANAME = '${schema.toUpperCase}' and TABLENAME = '${table.toUpperCase}'")
+      assert(df.count == 1)
+  }
+
+  test("analyze table with sampling") {
+    splicemachineContext.analyzeTable(internalTN,true) // 10% default
+    val df = sqlContext.read.options(statOptions).splicemachine.filter(s"SCHEMANAME = '${schema.toUpperCase}' and TABLENAME = '${table.toUpperCase}'")
+    assert(df.count == 1)
+  }
 
   test("bulkImportHFile") {
     val bulkImportOptions = scala.collection.mutable.Map(
@@ -221,14 +242,13 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     assertEquals("[[0], [1], [2], [3], [4]]",
       sqlContext.sql(s"""SELECT c9_smallint FROM $table where c9_smallint < 5""").collectAsList().toString)
   }
-
   /*
   test("table scan with projection and predicate time") {
     assertEquals("[[0], [1], [2], [3], [4]]",
       sqlContext.sql(s"""SELECT c9_smallint FROM $table where c9_smallint < 5""").collectAsList().toString)
   }
   */
-
+  /*
   test("table scan with projection and predicate timestamp") {
     val ts0 = new Timestamp(0)
     val ts1 = new Timestamp(1)
@@ -291,25 +311,5 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     assertEquals("[[0], [1], [2], [3], [4], [5], [6], [7], [8], [9]]",
       sqlContext.sql(s"""SELECT c6_int FROM $table where c6_int is NOT NULL""").collectAsList().toString)
   }
-/*
-  test("Test SparkSQL insert into") {
-    val newtable = "foo"
-    val newSpliceTable = schema+".foo";
-    if (splicemachineContext.tableExists(newSpliceTable)) {
-      splicemachineContext.dropTable(newSpliceTable)
-    }
-    val df = sqlContext.sql(s"SELECT * FROM $table LIMIT 0")
-    splicemachineContext.createTable(newSpliceTable,df.schema,Seq("C6_INT","C7_BIGINT"),"")
-    val newOptions = Map(
-      JDBCOptions.JDBC_TABLE_NAME -> internalTN,
-      JDBCOptions.JDBC_URL -> defaultJDBCURL
-    )
-    sqlContext.read.options(newOptions).splicemachine.createOrReplaceTempView(newtable)
-
-    sqlContext.sql(s"INSERT INTO TABLE $newtable SELECT * FROM $table")
-    assertEquals("[[8], [9]]",
-      sqlContext.sql(s"""SELECT c6_int FROM $newtable where c6_int > 7""").collectAsList().toString)
-  }
-
-*/
+  */
 }
