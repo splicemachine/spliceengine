@@ -190,7 +190,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
 
         CompilerContext.DataSetProcessorType type = this.activation.getLanguageConnectionContext().getDataSetProcessorType();
         // JL-TODO Cannot do this in the hot path
-        explainPlan=(plan==null?"":plan.replace("n=","RS=").replace("->","").trim());
+        if (type == CompilerContext.DataSetProcessorType.SPARK) {
+            explainPlan = (plan == null ? "" : plan.replace("n=", "RS=").replace("->", "").trim());
+        }
     }
 
     @Override
