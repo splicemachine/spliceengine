@@ -26,12 +26,12 @@
             <id>ee</id>
             <activation>
                 <property>
-                    <name>enterpise</name>
+                    <name>enterprise</name>
                     <value>ee</value>
                 </property>
             </activation>
             <properties>
-                <enterpise>ee</enterpise>
+                <enterprise>ee</enterprise>
             </properties>
             <modules>
                 <!-- dont ee mem
