@@ -57,7 +57,7 @@ public class SYSROLESRowFactory extends CatalogRowFactory
 {
     public static final String TABLENAME_STRING = "SYSROLES";
 
-    private static final int SYSROLES_COLUMN_COUNT = 6;
+    private static final int SYSROLES_COLUMN_COUNT = 7;
     /* Column #s for sysinfo (1 based) */
     private static final int SYSROLES_ROLE_UUID = 1;
     private static final int SYSROLES_ROLEID = 2;
@@ -72,7 +72,7 @@ public class SYSROLESRowFactory extends CatalogRowFactory
         {SYSROLES_ROLEID, SYSROLES_GRANTEE, SYSROLES_GRANTOR},
         {SYSROLES_ROLEID, SYSROLES_ISDEF},
         {SYSROLES_ROLE_UUID},
-        {SYSROLES_GRANTEE, SYSROLES_DEFAULT_ROLE}
+        {SYSROLES_GRANTEE}
     };
 
     static final int SYSROLES_ROLEID_COLPOS_IN_INDEX_ID_EE_OR = 1;
@@ -85,7 +85,7 @@ public class SYSROLESRowFactory extends CatalogRowFactory
     // UUID
     static final int SYSROLES_INDEX_UUID_IDX = 2;
     // (grant)EE_DEFAULT(role)
-    static final int SYSROLES_INDEX_EE_DEFAULT_IDX = 3;
+    public static final int SYSROLES_INDEX_EE_DEFAULT_IDX = 3;
 
     private static  final   boolean[]   uniqueness = {
         true,

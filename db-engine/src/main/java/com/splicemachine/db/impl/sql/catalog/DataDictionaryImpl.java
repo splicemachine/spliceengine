@@ -69,6 +69,7 @@ import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Function;
+import org.spark_project.guava.collect.FluentIterable;
 import org.spark_project.guava.collect.ImmutableListMultimap;
 import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.collect.Multimaps;
@@ -6621,7 +6622,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }
     }
 
-    private ConglomerateDescriptor bootstrapOneIndex(SchemaDescriptor sd,
+    protected ConglomerateDescriptor bootstrapOneIndex(SchemaDescriptor sd,
                                                      TransactionController tc,
                                                      DataDescriptorGenerator ddg,
                                                      TabInfoImpl ti,
@@ -7377,7 +7378,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     // Expected to be called only during boot time, so no synchronization.
-    private void clearNoncoreTable(int nonCoreNum){
+    protected void clearNoncoreTable(int nonCoreNum){
         noncoreInfo[nonCoreNum]=null;
     }
 
@@ -10278,11 +10279,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         TabInfoImpl ti=getNonCoreTI(SYSROLES_CATALOG_NUM);
         /* set up the start/stop position for the scan */
-        ExecIndexRow keyRow = exFactory.getIndexableRow(2);
+        ExecIndexRow keyRow = exFactory.getIndexableRow(1);
         DataValueDescriptor granteeOrderable=new SQLVarchar(username);
-        DataValueDescriptor defaultRoleOrderable = new SQLChar("Y");
         keyRow.setColumn(1, granteeOrderable);
-        keyRow.setColumn(2, defaultRoleOrderable);
         getDescriptorViaIndex(
                 SYSROLESRowFactory.SYSROLES_INDEX_EE_DEFAULT_IDX,
                 keyRow,
@@ -10292,7 +10291,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 roleGrantDescriptors,
                 false);
 
-        roleList = Lists.transform(roleGrantDescriptors, (rgd -> rgd.getRoleName()));
+        roleList = FluentIterable.from(roleGrantDescriptors).filter(rgd -> rgd.isDefaultRole()).transform(rgd -> rgd.getRoleName()).toList();
         dataDictionaryCache.defaultRoleCacheAdd(username, roleList);
         return roleList;
 

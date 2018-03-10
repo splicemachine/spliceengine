@@ -386,6 +386,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                         " reasonably");
             }
         }
+        referencedColumnMap=new WeakHashMap<>();
         defaultRoles = initDefaultRoleSet();
         SchemaDescriptor sd=initDefaultSchemaDescriptor();
         /*
@@ -395,9 +396,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
          */
         if(getDefaultSchema()==null)
             setDefaultSchema(sd);
-        referencedColumnMap=new WeakHashMap<>();
-
-
     }
 
     /*
