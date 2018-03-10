@@ -113,6 +113,10 @@ public class CreateRoleConstantOperation extends DDLConstantOperation {
             true,
             false);        // is definition
 
+        DDLMessage.DDLChange change = ProtoUtil.createAddRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), roleName);
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(change));
+
+
         dd.addDescriptor(rdDef,
                          null,  // parent
                          DataDictionary.SYSROLES_CATALOG_NUM,
