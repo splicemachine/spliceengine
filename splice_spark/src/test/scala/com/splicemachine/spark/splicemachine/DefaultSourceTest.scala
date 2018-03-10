@@ -18,7 +18,6 @@ import java.math.BigDecimal
 import java.sql.{Time, Timestamp}
 
 import org.apache.spark.sql.execution.datasources.jdbc.JdbcUtils
-
 import scala.collection.immutable.IndexedSeq
 import org.apache.spark.sql.SQLContext
 import org.junit.runner.RunWith
@@ -192,6 +191,30 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     assertEquals(5, newDF.filter("c6_int < 10").count())
   }
 
+  test ("deletion no primary keys") {
+    val conn = JdbcUtils.createConnectionFactory(externalJDBCOptions)()
+    if (!splicemachineContext.tableExists(externalTN))
+      conn.createStatement().execute("create table "+externalTN + this.allTypesCreateStringWithoutPrimaryKey)
+    val df = sqlContext.read.options(externalOptions).splicemachine
+    val deleteDF = df.filter("c6_int < 5").select("C6_INT","C7_BIGINT")
+    val thrown = intercept[UnsupportedOperationException] {
+      splicemachineContext.delete(deleteDF, externalTN)
+    }
+    assert(thrown.getMessage == "Primary Key Required for the Table to Perform Deletes")
+  }
+
+  test ("deletion no primary keys using rdd") {
+    val conn = JdbcUtils.createConnectionFactory(externalJDBCOptions)()
+    if (!splicemachineContext.tableExists(externalTN))
+      conn.createStatement().execute("create table "+externalTN + this.allTypesCreateStringWithoutPrimaryKey)
+    val df = sqlContext.read.options(externalOptions).splicemachine
+    val deleteDF = df.filter("c6_int < 5").select("C6_INT","C7_BIGINT")
+    val thrown = intercept[UnsupportedOperationException] {
+      splicemachineContext.delete(deleteDF.rdd, deleteDF.schema, externalTN)
+    }
+    assert(thrown.getMessage == "Primary Key Required for the Table to Perform Deletes")
+  }
+
   test ("update") {
     val df = sqlContext.read.options(internalOptions).splicemachine
     val updatedDF = df
@@ -202,6 +225,36 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     // read the data back
     val newDF = sqlContext.read.options(internalOptions).splicemachine
     assertEquals(5, newDF.filter("c8_float >= 10.0").count())
+  }
+
+  test ("update without primary key throws Exception") {
+    val conn = JdbcUtils.createConnectionFactory(externalJDBCOptions)()
+    if (!splicemachineContext.tableExists(externalTN))
+      conn.createStatement().execute("create table "+externalTN + this.allTypesCreateStringWithoutPrimaryKey)
+    val df = sqlContext.read.options(externalOptions).splicemachine
+    val updatedDF = df
+      .filter("C6_INT < 5")
+      .select("C6_INT","C7_BIGINT","C8_FLOAT","C9_SMALLINT")
+      .withColumn("C8_FLOAT", when(col("C8_FLOAT").leq(10.0), col("C8_FLOAT").plus(10.0)) )
+    val thrown = intercept[UnsupportedOperationException] {
+      splicemachineContext.update(updatedDF, externalTN)
+    }
+    assert(thrown.getMessage == "Primary Key Required for the Table to Perform Updates")
+  }
+
+  test ("update without primary key throws Exception for RDD") {
+    val conn = JdbcUtils.createConnectionFactory(externalJDBCOptions)()
+    if (!splicemachineContext.tableExists(externalTN))
+      conn.createStatement().execute("create table "+externalTN + this.allTypesCreateStringWithoutPrimaryKey)
+    val df = sqlContext.read.options(externalOptions).splicemachine
+    val updatedDF = df
+      .filter("C6_INT < 5")
+      .select("C6_INT","C7_BIGINT","C8_FLOAT","C9_SMALLINT")
+      .withColumn("C8_FLOAT", when(col("C8_FLOAT").leq(10.0), col("C8_FLOAT").plus(10.0)) )
+    val thrown = intercept[UnsupportedOperationException] {
+      splicemachineContext.update(updatedDF.rdd, updatedDF.schema, externalTN)
+    }
+    assert(thrown.getMessage == "Primary Key Required for the Table to Perform Updates")
   }
 
   test ("update using rdd") {
@@ -268,13 +321,6 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     assertEquals("[[0], [1], [2], [3], [4]]",
       sqlContext.sql(s"""SELECT c9_smallint FROM $table where c9_smallint < 5""").collectAsList().toString)
   }
-  /*
-  test("table scan with projection and predicate time") {
-    assertEquals("[[0], [1], [2], [3], [4]]",
-      sqlContext.sql(s"""SELECT c9_smallint FROM $table where c9_smallint < 5""").collectAsList().toString)
-  }
-  */
-  /*
   test("table scan with projection and predicate timestamp") {
     val ts0 = new Timestamp(0)
     val ts1 = new Timestamp(1)
@@ -337,5 +383,4 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     assertEquals("[[0], [1], [2], [3], [4], [5], [6], [7], [8], [9]]",
       sqlContext.sql(s"""SELECT c6_int FROM $table where c6_int is NOT NULL""").collectAsList().toString)
   }
-  */
 }
