@@ -19,8 +19,8 @@ import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.derby.impl.SpliceSparkKryoRegistrator;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
@@ -29,6 +29,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
 import java.io.*;
+import java.math.BigDecimal;
 
 import static org.junit.Assert.assertEquals;
 
@@ -63,6 +64,70 @@ public class SparkValueRowSerializerTest {
         input.close();
     }
 
+    @Test
+    public void testLongBufferedSumAggregator() throws IOException, StandardException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        Output output = new Output(out);
+        LongBufferedSumAggregator lbsa = new LongBufferedSumAggregator(64);
+        lbsa.add(new SQLLongint(100));
+        lbsa.add(new SQLLongint(200));
+        kryo.writeClassAndObject(output, lbsa);
+        output.close();
+        InputStream in = new ByteArrayInputStream(out.toByteArray());
+        Input input = new Input(in);
+        LongBufferedSumAggregator lbsa2 = (LongBufferedSumAggregator) kryo.readClassAndObject(input);
+        assertEquals(lbsa.getResult(), lbsa2.getResult());
+        input.close();
+    }
+
+    @Test
+    public void testDoubleBufferedSumAggregator() throws IOException, StandardException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        Output output = new Output(out);
+        DoubleBufferedSumAggregator lbsa = new DoubleBufferedSumAggregator(64);
+        lbsa.add(new SQLDouble(100));
+        lbsa.add(new SQLDouble(200));
+        kryo.writeClassAndObject(output, lbsa);
+        output.close();
+        InputStream in = new ByteArrayInputStream(out.toByteArray());
+        Input input = new Input(in);
+        DoubleBufferedSumAggregator lbsa2 = (DoubleBufferedSumAggregator) kryo.readClassAndObject(input);
+        assertEquals(lbsa.getResult(), lbsa2.getResult());
+        input.close();
+    }
+
+    @Test
+    public void testFloatBufferedSumAggregator() throws IOException, StandardException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        Output output = new Output(out);
+        FloatBufferedSumAggregator lbsa = new FloatBufferedSumAggregator(64);
+        lbsa.add(new SQLReal(100));
+        lbsa.add(new SQLReal(200));
+        kryo.writeClassAndObject(output, lbsa);
+        output.close();
+        InputStream in = new ByteArrayInputStream(out.toByteArray());
+        Input input = new Input(in);
+        FloatBufferedSumAggregator lbsa2 = (FloatBufferedSumAggregator) kryo.readClassAndObject(input);
+        assertEquals(lbsa.getResult(), lbsa2.getResult());
+        input.close();
+    }
+
+    @Test
+    public void testDecimalBufferedSumAggregator() throws IOException, StandardException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        Output output = new Output(out);
+        DecimalBufferedSumAggregator lbsa = new DecimalBufferedSumAggregator(64);
+        lbsa.add(new SQLDecimal(new BigDecimal(23.0)));
+        lbsa.add(new SQLDecimal(new BigDecimal(23.0)));
+        kryo.writeClassAndObject(output, lbsa);
+        output.close();
+        InputStream in = new ByteArrayInputStream(out.toByteArray());
+        Input input = new Input(in);
+        DecimalBufferedSumAggregator lbsa2 = (DecimalBufferedSumAggregator) kryo.readClassAndObject(input);
+        assertEquals(lbsa.getResult(), lbsa2.getResult());
+        input.close();
+    }
+    
     public static ExecRow getExecRow(int value, int numberOfRecords) {
         try {
             ValueRow vr = new ValueRow(numberOfRecords);
