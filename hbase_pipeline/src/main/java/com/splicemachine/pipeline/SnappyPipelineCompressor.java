@@ -14,22 +14,10 @@
 
 package com.splicemachine.pipeline;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.lang.reflect.Method;
-
-import com.google.common.io.ByteStreams;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.compress.CodecPool;
-import org.apache.hadoop.io.compress.Compressor;
-import org.apache.hadoop.io.compress.Decompressor;
-import org.apache.hadoop.io.compress.SnappyCodec;
 import org.apache.log4j.Logger;
+import org.xerial.snappy.Snappy;
 
-import com.splicemachine.access.HConfiguration;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -39,33 +27,19 @@ import com.splicemachine.utils.SpliceLogUtils;
  */
 public class SnappyPipelineCompressor implements PipelineCompressor{
     private static final Logger LOG=Logger.getLogger(SnappyPipelineCompressor.class);
-    private static final SnappyCodec snappy;
     private static final boolean supportsNative;
 
-    static{
-        snappy = new SnappyCodec();
-        snappy.setConf(HConfiguration.unwrapDelegate());
-        boolean sN;
-        Method method;
-        try{
-            // Cloudera Path
-            method=SnappyCodec.class.getMethod("isNativeCodeLoaded",null);
-            sN=(Boolean)method.invoke(snappy,null);
-        }catch(Exception e){
-            SpliceLogUtils.error(LOG,"basic snappy codec not supported, checking alternative method signature");
-            try{
-                method=SnappyCodec.class.getMethod("isNativeSnappyLoaded",Configuration.class);
-                sN=(Boolean)method.invoke(snappy, HConfiguration.unwrapDelegate());
-            }catch(Exception ioe){
-                SpliceLogUtils.error(LOG,"Alternative signature did not work, No Snappy Codec Support",ioe);
-                sN=false;
-            }
+    static {
+        boolean installed = false;
+        try {
+            String version = Snappy.getNativeLibraryVersion();
+            SpliceLogUtils.info(LOG, "Snappy Installed (" + version + "): Splice Machine's Write Pipeline will compress data over the wire.");
+            installed = true;
         }
-        if(!sN)
+        catch (Exception ex) {
             SpliceLogUtils.error(LOG,"No Native Snappy Installed: Splice Machine's Write Pipeline will not compress data over the wire.");
-        else
-            SpliceLogUtils.info(LOG,"Snappy Installed: Splice Machine's Write Pipeline will compress data over the wire.");
-        supportsNative = sN;
+        }
+        supportsNative = installed;
     }
 
     private final PipelineCompressor delegate;
@@ -75,54 +49,19 @@ public class SnappyPipelineCompressor implements PipelineCompressor{
     }
 
     @Override
-    public InputStream compressedInput(InputStream input) throws IOException{
-        if(supportsNative)
-            return snappy.createInputStream(input);
-        else return input;
-    }
-
-    @Override
-    public OutputStream compress(OutputStream output) throws IOException{
-        if(supportsNative)
-            return snappy.createOutputStream(output);
-        else return output;
-    }
-
-    @Override
-    public byte[] compress(Object o) throws IOException{
+    public byte[] compress(Object o) throws IOException {
         byte[] d = delegate.compress(o);
-        if(!supportsNative) return d;
-        ByteArrayOutputStream baos = new ByteArrayOutputStream(d.length);
-        Compressor snappyCompressor = CodecPool.getCompressor(snappy);
-        try {
-            OutputStream os = snappy.createOutputStream(baos, snappyCompressor);
-            os.write(d);
-            os.flush();
-            os.close();
-        } finally {
-            CodecPool.returnCompressor(snappyCompressor);
+        if (supportsNative) {
+            d = Snappy.compress(d);
         }
-        return baos.toByteArray();
+        return d;
     }
 
     @Override
-    public <T> T decompress(byte[] bytes,Class<T> clazz) throws IOException{
+    public <T> T decompress(byte[] bytes,Class<T> clazz) throws IOException {
         byte[] d = bytes;
         if (supportsNative) {
-            ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-            ByteArrayOutputStream baos = new ByteArrayOutputStream(d.length);
-
-            Decompressor snappyDecompressor = CodecPool.getDecompressor(snappy);
-            try {
-                InputStream is = snappy.createInputStream(bais, snappyDecompressor);
-                ByteStreams.copy(is, baos);
-                baos.flush();
-                d = baos.toByteArray();
-                baos.close();
-                is.close();
-            } finally {
-                CodecPool.returnDecompressor(snappyDecompressor);
-            }
+            d = Snappy.uncompress(bytes);
         }
         return delegate.decompress(d, clazz);
     }
