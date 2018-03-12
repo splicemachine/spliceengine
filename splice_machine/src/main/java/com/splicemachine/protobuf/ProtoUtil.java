@@ -426,6 +426,13 @@ public class ProtoUtil {
                 .build();
     }
 
+    public static DDLChange createAddRole(long txnId, String roleName) {
+        return DDLChange.newBuilder().setDdlChangeType(DDLChangeType.CREATE_ROLE)
+                .setTxnId(txnId)
+                .setCreateRole(CreateRole.newBuilder().setRoleName(roleName).build())
+                .build();
+    }
+
     public static DDLChange createTruncateTable(long txnId, BasicUUID basicUUID) {
         return DDLChange.newBuilder().setDdlChangeType(DDLChangeType.TRUNCATE_TABLE)
                 .setTxnId(txnId)
