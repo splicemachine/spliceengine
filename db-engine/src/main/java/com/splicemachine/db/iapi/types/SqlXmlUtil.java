@@ -684,7 +684,7 @@ public class SqlXmlUtil
          * XML_DOC_ANY (which means we can store it in a Derby
          * XML column).
          */
-        if ((itemRefs.size() == 1) && (itemRefs.get(0) instanceof Document))
+        if ((itemRefs != null) && (itemRefs.size() == 1) && (itemRefs.get(0) instanceof Document))
             resultXType[0] = XML.XML_DOC_ANY;
         else
             resultXType[0] = XML.XML_SEQUENCE;
