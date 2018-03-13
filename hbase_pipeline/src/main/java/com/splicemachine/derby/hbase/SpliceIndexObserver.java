@@ -14,8 +14,6 @@
 
 package com.splicemachine.derby.hbase;
 
-import com.splicemachine.si.data.hbase.coprocessor.CoprocessorUtils;
-import org.spark_project.guava.base.Function;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.concurrent.SystemClock;
@@ -35,6 +33,7 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.data.hbase.coprocessor.CoprocessorUtils;
 import com.splicemachine.si.data.hbase.coprocessor.TableType;
 import com.splicemachine.si.impl.HWriteConflict;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -47,15 +46,14 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
-import org.apache.hadoop.hbase.regionserver.RegionServerServices;
-import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
+import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.log4j.Logger;
+import org.spark_project.guava.base.Function;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.io.InterruptedIOException;
 import java.util.List;
 
 /**
@@ -163,11 +161,21 @@ public class SpliceIndexObserver extends BaseRegionObserver {
             if(conglomId>0){
                 if(put.getAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)!=null) return;
                 if(factoryLoader==null){
+                    /** the below awaitStartup() call is commented out since we don't think there will be
+                     * rows inserted into a user index during startup, this code will cause a deadlock
+                     * when we add a new system index during system upgrade *
                     try{
                         DatabaseLifecycleManager.manager().awaitStartup();
                     }catch(InterruptedException e1){
                         throw new InterruptedIOException();
                     }
+                    */
+                    /* In the case that a new system index is added during a system upgrade, its conglomId will be
+                       bigger than 0, but it should still go through the path for system index instead of the regular
+                       user table index
+                     */
+                    super.prePut(e, put, edit, durability);
+                    return;
                 }
                 //we can't update an index if the conglomerate id isn't positive--it's probably a temp table or something
                 byte[] row = put.getRow();

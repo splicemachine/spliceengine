@@ -31,16 +31,19 @@
 
 package com.splicemachine.db.iapi.sql.dictionary;
 
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.sql.conn.Authorizer;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
-import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.Authorizer;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * This class describes a column permission used (required) by a statement.
@@ -163,16 +166,16 @@ public class StatementColumnPermission extends StatementTablePermission
 
 		// If columns are still unauthorized, look to role closure for
 		// resolution.
-		String role = lcc.getCurrentRoleId(activation);
-		RoleGrantDescriptor rd = null;
-
-		if (role != null) {
+		List<String> currentRoles = lcc.getCurrentRoles(activation);
+		List<String> rolesToRemove = new ArrayList<>();
+		String lastRole = null;
+		for (String role : currentRoles) {
 			// Check that role is still granted to current user or
 			// to PUBLIC: A revoked role which is current for this
 			// session, is lazily set to none when it is attempted
 			// used.
 			String dbo = dd.getAuthorizationDatabaseOwner();
-            rd = dd.getRoleGrantDescriptor(role, currentUserId, dbo);
+			RoleGrantDescriptor rd = dd.getRoleGrantDescriptor(role, currentUserId, dbo);
 
 			if (rd == null) {
 				rd = dd.getRoleGrantDescriptor
@@ -184,8 +187,9 @@ public class StatementColumnPermission extends StatementTablePermission
 			if (rd == null) {
 				// we have lost the right to set this role, so we can't
 				// make use of any permission granted to it or its ancestors.
-				lcc.setCurrentRole(activation, null);
+				rolesToRemove.add(role);
 			} else {
+				lastRole = role;
 				// The current role is OK, so we can make use of
 				// any permission granted to it.
 				//
@@ -238,8 +242,13 @@ public class StatementColumnPermission extends StatementTablePermission
 						}
 					}
 				}
+				//if we get the permission we want, we don't need to look further
+				if (unresolvedColumns.anySetBit() < 0)
+					break;
 			}
 		}
+		lcc.removeRoles(activation, rolesToRemove);
+
 		TableDescriptor td = getTableDescriptor(dd);
 		//if we are still here, then that means that we didn't find any select
 		//privilege on the table or any column in the table
@@ -272,22 +281,30 @@ public class StatementColumnPermission extends StatementTablePermission
 					td.getName());
 			}
 		} else {
-			// We found and successfully applied a role to resolve the
+			// We found and successfully applied a (set of) role to resolve the
 			// (remaining) required permissions.
 			//
-			// Also add a dependency on the role (qua provider), so
-			// that if role is no longer available to the current
+			// Also add a dependency on the roles (qua provider), so
+			// that if the roles are no longer available to the current
 			// user (e.g. grant is revoked, role is dropped,
 			// another role has been set), we are able to
 			// invalidate the ps or activation (the latter is used
 			// if the current role changes).
 			DependencyManager dm = dd.getDependencyManager();
-			RoleGrantDescriptor rgd =
-				dd.getRoleDefinitionDescriptor(role);
 			ContextManager cm = lcc.getContextManager();
-
-			dm.addDependency(ps, rgd, cm);
-			dm.addDependency(activation, rgd, cm);
+			// get the currentRoles again, as some may have been removed
+			// during the loop above due to the loss of the right to set this role
+			// we need to set dependency for all roles checked so far, as the privileges of columns
+			// may come from multiple roles
+			currentRoles = lcc.getCurrentRoles(activation);
+			for (String role: currentRoles) {
+				RoleGrantDescriptor rgd =
+						dd.getRoleDefinitionDescriptor(role);
+				dm.addDependency(ps, rgd, cm);
+				dm.addDependency(activation, rgd, cm);
+				if (role.equals(lastRole))
+					break;
+			}
 		}
 
 	} // end of check

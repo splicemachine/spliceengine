@@ -106,7 +106,8 @@ public class CreateRoleConstantOperation extends DDLConstantOperation {
             currentAuthId,// grantee
             Authorizer.SYSTEM_AUTHORIZATION_ID,// grantor
             true,         // with admin option
-            true);        // is definition
+            true,
+            false);        // is definition
 
         DDLMessage.DDLChange change = ProtoUtil.createAddRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), roleName);
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(change));

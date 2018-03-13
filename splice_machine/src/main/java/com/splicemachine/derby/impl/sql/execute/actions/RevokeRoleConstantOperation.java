@@ -14,18 +14,24 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import java.util.Iterator;
-import java.util.List;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.conn.Authorizer;
-import com.splicemachine.db.iapi.sql.dictionary.RoleGrantDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.RoleClosureIterator;
+import com.splicemachine.db.iapi.sql.dictionary.RoleGrantDescriptor;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.shared.common.reference.SQLState;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.protobuf.ProtoUtil;
+
+import java.util.Iterator;
+import java.util.List;
 
 
 /**
@@ -59,6 +65,7 @@ public class RevokeRoleConstantOperation extends DDLConstantOperation {
     public void executeConstantAction(Activation activation) throws StandardException {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
+        TransactionController tc = lcc.getTransactionExecute();
         final String grantor = lcc.getCurrentUserId(activation);
         dd.startWriting(lcc);
         for (Iterator rIter = roleNames.iterator(); rIter.hasNext();) {
@@ -176,6 +183,14 @@ public class RevokeRoleConstantOperation extends DDLConstantOperation {
                     }
 
                     rd.drop(lcc);
+
+                    if (rd.isDefaultRole()) {
+                        /* we need to invalidate the defaultRole cache as the grantee's defaultRole list has changed */
+                        DDLMessage.DDLChange ddlChange =
+                                ProtoUtil.createGrantRevokeRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
+                                        role, grantee, false);
+                        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+                    }
 
                 } else {
                     activation.addWarning

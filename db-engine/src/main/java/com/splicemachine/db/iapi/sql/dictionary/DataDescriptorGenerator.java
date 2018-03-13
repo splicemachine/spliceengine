@@ -593,13 +593,16 @@ public class DataDescriptorGenerator
 	 *        this descriptor
      * @param isDef if true, this descriptor represents a role
      *              definition, otherwise it represents a grant.
+	 * @param isDefaultRole if true, the role is a default role of the
+	 *                      user granted the role
      */
     public RoleGrantDescriptor newRoleGrantDescriptor(UUID uuid,
 													  String roleName,
 													  String grantee,
 													  String grantor,
 													  boolean withadminoption,
-													  boolean isDef)
+													  boolean isDef,
+													  boolean isDefaultRole)
         throws StandardException
     {
         return new RoleGrantDescriptor(dataDictionary,
@@ -608,7 +611,8 @@ public class DataDescriptorGenerator
 									   grantee,
 									   grantor,
 									   withadminoption,
-									   isDef);
+									   isDef,
+				                       isDefaultRole);
     }
 
     /**

@@ -26,7 +26,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.db.impl.sql.compile.ResultColumnList;
 import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.derby.impl.sql.execute.actions.*;
@@ -479,9 +478,9 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
     }
 
     @Override
-    public ConstantAction getGrantRoleConstantAction(List roleNames,List grantees){
-        SpliceLogUtils.trace(LOG,"getGrantRoleConstantAction for roles {%s} and grantees {%s}",roleNames,grantees);
-        return new GrantRoleConstantOperation(roleNames,grantees);
+    public ConstantAction getGrantRoleConstantAction(List roleNames,List grantees, boolean isDefaultRole){
+        SpliceLogUtils.trace(LOG,"getGrantRoleConstantAction for %s roles {%s} and grantees {%s}",(isDefaultRole?"default":"non-default"), roleNames,grantees);
+        return new GrantRoleConstantOperation(roleNames,grantees,isDefaultRole);
     }
 
     @Override
