@@ -69,6 +69,7 @@ import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.compile.CompilerContextImpl;
 import com.splicemachine.db.impl.sql.execute.*;
+
 import java.util.*;
 
 /**
@@ -216,6 +217,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * cf logic in initDefaultSchemaDescriptor.
      */
     private SchemaDescriptor cachedInitialDefaultSchemaDescr=null;
+
+    /**
+     * Used to hold the defaultRoles
+     */
+    private List<String> defaultRoles = null;
 
     // RESOLVE - How do we want to set the default.
     private int defaultIsolationLevel=ExecutionContext.READ_COMMITTED_ISOLATION_LEVEL;
@@ -381,6 +387,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                         " reasonably");
             }
         }
+        referencedColumnMap=new WeakHashMap<>();
+        defaultRoles = initDefaultRoleSet();
         SchemaDescriptor sd=initDefaultSchemaDescriptor();
         /*
          * It is possible for Splice's startup sequence to end up in this code on the same thread
@@ -389,7 +397,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
          */
         if(getDefaultSchema()==null)
             setDefaultSchema(sd);
-        referencedColumnMap=new WeakHashMap<>();
     }
 
     /*
@@ -456,6 +463,29 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         return cachedInitialDefaultSchemaDescr;
     }
 
+    /**
+     * Compute the default roles of the current session user, including the roles granted to public
+     *
+     * @return computed initial default roles for this session
+     * @throws StandardException
+     */
+    protected List<String> initDefaultRoleSet() throws StandardException{
+        if(defaultRoles==null){
+            DataDictionary dd=getDataDictionary();
+            defaultRoles = new ArrayList<>();
+            List<String>  userRoles =
+                    dd.getDefaultRoles(getSessionUserId(),getTransactionCompile());
+            defaultRoles.addAll(userRoles);
+            List<String> publicRoles =
+                    dd.getDefaultRoles("PUBLIC", getTransactionCompile());
+            defaultRoles.addAll(publicRoles);
+        }
+        return defaultRoles;
+    }
+
+    private List<String> getDefaultRoles() {
+        return defaultRoles;
+    }
     /**
      * Get the computed value for the initial default schema.
      *
@@ -2027,17 +2057,17 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public SchemaDescriptor getDefaultSchema(){
+    public SchemaDescriptor getDefaultSchema() {
         return getCurrentSQLSessionContext().getDefaultSchema();
     }
 
     @Override
-    public SchemaDescriptor getDefaultSchema(Activation a){
+    public SchemaDescriptor getDefaultSchema(Activation a) {
         return getCurrentSQLSessionContext(a).getDefaultSchema();
     }
 
     @Override
-    public String getCurrentSchemaName(){
+    public String getCurrentSchemaName() {
         // getCurrentSchemaName with no arg is used even
         // at run-time but only in places(*) where the statement context
         // can be relied on, AFAICT.
@@ -2052,7 +2082,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public String getCurrentSchemaName(Activation a){
+    public String getCurrentSchemaName(Activation a) {
         SchemaDescriptor s=getDefaultSchema(a);
         if(null==s)
             return null;
@@ -2272,7 +2302,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public StatementContext pushStatementContext(boolean isAtomic,boolean isForReadOnly,
                                                  String stmtText,ParameterValueSet pvs,
                                                  boolean rollbackParentContext,
-                                                 long timeoutMillis){
+                                                 long timeoutMillis) {
         int parentStatementDepth=statementDepth;
         boolean inTrigger=false;
         boolean parentIsAtomic=false;
@@ -3181,44 +3211,72 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public void setCurrentRole(Activation a,String role){
+    public void setCurrentRole(Activation a, String role) {
         getCurrentSQLSessionContext(a).setRole(role);
     }
 
     @Override
-    public String getCurrentRoleId(Activation a){
-        return getCurrentSQLSessionContext(a).getRole();
+    public void setCurrentRoles(Activation a, List<String> roles) {
+        getCurrentSQLSessionContext(a).setRoles(roles);
     }
 
     @Override
-    public String getCurrentUserId(Activation a){
+    public List<String> getCurrentRoles(Activation a) {
+        return getCurrentSQLSessionContext(a).getRoles();
+    }
+
+    @Override
+    public String getCurrentUserId(Activation a) {
         return getCurrentSQLSessionContext(a).getCurrentUser();
     }
 
     @Override
     public String getCurrentRoleIdDelimited(Activation a) throws StandardException{
 
-        String role=getCurrentSQLSessionContext(a).getRole();
+        List<String> roles=getCurrentSQLSessionContext(a).getRoles();
 
-        if(role!=null){
-            beginNestedTransaction(true);
+        List<String > rolesToRemove = new ArrayList<>();
+        String roleListString = null;
+        for (String role : roles) {
+            if (role != null) {
+                beginNestedTransaction(true);
 
-            try{
-                if(!roleIsSettable(a,role)){
-                    // invalid role, so lazily reset it.
-                    setCurrentRole(a,null);
-                    role=null;
+                try {
+                    if (!roleIsSettable(a, role)) {
+                        // invalid role, so remove it from the currentRoles list in SQLSessionContext
+                        rolesToRemove.add(role);
+                        role = null;
+                    }
+                } finally {
+                    commitNestedTransaction();
                 }
-            }finally{
-                commitNestedTransaction();
+            }
+
+            if (role != null) {
+                if (roleListString == null)
+                    roleListString = IdUtil.normalToDelimited(role);
+                else
+                    roleListString = roleListString + ", " + IdUtil.normalToDelimited(role);
             }
         }
+        removeRoles(a, rolesToRemove);
+        return roleListString;
+    }
 
-        if(role!=null){
-            role=IdUtil.normalToDelimited(role);
-        }
+    @Override
+    public void removeRole(Activation a, String roleName) {
+        getCurrentSQLSessionContext(a).removeRole(roleName);
+    }
 
-        return role;
+    @Override
+    public void removeRoles(Activation a, List<String> rolesToRemove) {
+        if (rolesToRemove == null || rolesToRemove.isEmpty())
+            return;
+
+        for (String aRole: rolesToRemove)
+            getCurrentSQLSessionContext(a).removeRole(aRole);
+
+        return;
     }
 
     @Override
@@ -3250,7 +3308,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      *
      * @param activation the activation
      */
-    private SQLSessionContext getCurrentSQLSessionContext(Activation activation){
+    private SQLSessionContext getCurrentSQLSessionContext(Activation activation) {
         SQLSessionContext curr;
 
         Activation parent=activation.getParentActivation();
@@ -3272,7 +3330,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     /**
      * Return the current SQL session context based on statement context
      */
-    private SQLSessionContext getCurrentSQLSessionContext(){
+    private SQLSessionContext getCurrentSQLSessionContext() {
         StatementContext ctx=getStatementContext();
         SQLSessionContext curr;
 
@@ -3332,7 +3390,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             // Semantics for roles dictate (SQL 4.34.1.1 and 4.27.3.) that the
             // role is initially inherited from the current session context
             // when we run with INVOKER security characteristic.
-            sc.setRole(getCurrentRoleId(a));
+            sc.setRoles(getCurrentRoles(a));
         }
 
 
@@ -3380,21 +3438,23 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public SQLSessionContext getTopLevelSQLSessionContext(){
+    public SQLSessionContext getTopLevelSQLSessionContext() {
         if(topLevelSSC==null){
             topLevelSSC=new SQLSessionContextImpl(
                     getInitialDefaultSchemaDescriptor(),
-                    getSessionUserId());
+                    getSessionUserId(),
+                    defaultRoles);
         }
         return topLevelSSC;
     }
 
 
     @Override
-    public SQLSessionContext createSQLSessionContext(){
+    public SQLSessionContext createSQLSessionContext() {
         return new SQLSessionContextImpl(
                 getInitialDefaultSchemaDescriptor(),
-                getSessionUserId() /* a priori */);
+                getSessionUserId() /* a priori */,
+                defaultRoles);
     }
 
     /**

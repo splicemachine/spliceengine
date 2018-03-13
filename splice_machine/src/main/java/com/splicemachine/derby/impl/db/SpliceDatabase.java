@@ -390,6 +390,9 @@ public class SpliceDatabase extends BasicDatabase{
                     case REFRESH_ENTRPRISE_FEATURES:
                         EngineDriver.driver().refreshEnterpriseFeatures();
                         break;
+                    case GRANT_REVOKE_ROLE:
+                        DDLUtils.preGrantRevokeRole(change, dataDictionary, dependencyManager);
+                        break;
                 }
                 final List<DDLAction> ddlActions = new ArrayList<>();
                 ddlActions.add(new AddIndexToPipeline());

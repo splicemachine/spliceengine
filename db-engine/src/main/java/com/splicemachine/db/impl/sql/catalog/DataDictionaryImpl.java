@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Function;
@@ -46,7 +48,8 @@ import com.splicemachine.db.iapi.reference.*;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-import com.splicemachine.db.iapi.services.locks.*;
+import com.splicemachine.db.iapi.services.locks.LockFactory;
+import com.splicemachine.db.iapi.services.locks.ShExLockable;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -69,9 +72,13 @@ import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
-import org.spark_project.guava.collect.Lists;
+import org.apache.log4j.Logger;
+import org.spark_project.guava.base.Function;
+import org.spark_project.guava.collect.FluentIterable;
 import org.spark_project.guava.collect.ImmutableListMultimap;
+import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.collect.Multimaps;
+
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
@@ -760,7 +767,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public SchemaDescriptor getSystemSchemaDescriptor() throws StandardException{
+    public SchemaDescriptor getSystemSchemaDescriptor() throws StandardException {
         return systemSchemaDesc;
     }
 
@@ -6624,7 +6631,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }
     }
 
-    private ConglomerateDescriptor bootstrapOneIndex(SchemaDescriptor sd,
+    protected ConglomerateDescriptor bootstrapOneIndex(SchemaDescriptor sd,
                                                      TransactionController tc,
                                                      DataDescriptorGenerator ddg,
                                                      TabInfoImpl ti,
@@ -7383,7 +7390,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     // Expected to be called only during boot time, so no synchronization.
-    private void clearNoncoreTable(int nonCoreNum){
+    protected void clearNoncoreTable(int nonCoreNum){
         noncoreInfo[nonCoreNum]=null;
     }
 
@@ -10274,27 +10281,27 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
     @Override
     public void saveSourceCode(SourceCodeDescriptor descriptor, TransactionController tc) throws StandardException {
-        TabInfoImpl ti=getNonCoreTI(SYSSOURCECODE_CATALOG_NUM);
+        TabInfoImpl ti = getNonCoreTI(SYSSOURCECODE_CATALOG_NUM);
 
         ExecIndexRow keyRow;
-        keyRow=exFactory.getIndexableRow(4);
-        keyRow.setColumn(1,new SQLVarchar(descriptor.getSchemaName()));
-        keyRow.setColumn(2,new SQLVarchar(descriptor.getObjectName()));
-        keyRow.setColumn(3,new SQLVarchar(descriptor.getObjectType()));
-        keyRow.setColumn(4,new SQLVarchar(descriptor.getObjectForm()));
+        keyRow = exFactory.getIndexableRow(4);
+        keyRow.setColumn(1, new SQLVarchar(descriptor.getSchemaName()));
+        keyRow.setColumn(2, new SQLVarchar(descriptor.getObjectName()));
+        keyRow.setColumn(3, new SQLVarchar(descriptor.getObjectType()));
+        keyRow.setColumn(4, new SQLVarchar(descriptor.getObjectForm()));
 
         if (descriptor.getSourceCode() == null) { // drop sourcecode object
-            ti.deleteRow(tc,keyRow,SYSSOURCECODERowFactory.SYSSOURCECODE_INDEX1_ID);
+            ti.deleteRow(tc, keyRow, SYSSOURCECODERowFactory.SYSSOURCECODE_INDEX1_ID);
             return;
         }
 
-        ExecRow row = ti.getCatalogRowFactory().makeRow(descriptor,null);
+        ExecRow row = ti.getCatalogRowFactory().makeRow(descriptor, null);
 
-        ExecRow existingRow=ti.getRow(tc,keyRow,SYSSOURCECODERowFactory.SYSSOURCECODE_INDEX1_ID);
-        if (existingRow==null) {
-            int insertRetCode=ti.insertRow(row,tc);
-            if(insertRetCode!=TabInfoImpl.ROWNOTDUPLICATE)
-                throw duplicateDescriptorException(descriptor,null);
+        ExecRow existingRow = ti.getRow(tc, keyRow, SYSSOURCECODERowFactory.SYSSOURCECODE_INDEX1_ID);
+        if (existingRow == null) {
+            int insertRetCode = ti.insertRow(row, tc);
+            if (insertRetCode != TabInfoImpl.ROWNOTDUPLICATE)
+                throw duplicateDescriptorException(descriptor, null);
         } else {
             boolean[] bArray = {false};
             int[] colsToUpdate = {
@@ -10302,7 +10309,34 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     SYSSOURCECODERowFactory.LAST_MODIFIED,
                     SYSSOURCECODERowFactory.SOURCE_CODE,
             };
-            ti.updateRow(keyRow,row,SYSSOURCECODERowFactory.SYSSOURCECODE_INDEX1_ID,bArray,colsToUpdate,tc);
+            ti.updateRow(keyRow, row, SYSSOURCECODERowFactory.SYSSOURCECODE_INDEX1_ID, bArray, colsToUpdate, tc);
         }
+    }
+
+    public List<String> getDefaultRoles(String username, TransactionController tc) throws StandardException {
+        // check dictionary cache first
+        List<String> roleList = dataDictionaryCache.defaultRoleCacheFind(username);
+        if (roleList != null)
+            return roleList;
+
+        List<RoleGrantDescriptor> roleGrantDescriptors = new ArrayList<>();
+
+        TabInfoImpl ti=getNonCoreTI(SYSROLES_CATALOG_NUM);
+        /* set up the start/stop position for the scan */
+        ExecIndexRow keyRow = exFactory.getIndexableRow(1);
+        DataValueDescriptor granteeOrderable=new SQLVarchar(username);
+        keyRow.setColumn(1, granteeOrderable);
+        getDescriptorViaIndex(
+                SYSROLESRowFactory.SYSROLES_INDEX_EE_DEFAULT_IDX,
+                keyRow,
+                null,
+                ti,
+                null,
+                roleGrantDescriptors,
+                false);
+
+        roleList = FluentIterable.from(roleGrantDescriptors).filter(rgd -> rgd.isDefaultRole()).transform(rgd -> rgd.getRoleName()).toList();
+        dataDictionaryCache.defaultRoleCacheAdd(username, roleList);
+        return roleList;
     }
 }

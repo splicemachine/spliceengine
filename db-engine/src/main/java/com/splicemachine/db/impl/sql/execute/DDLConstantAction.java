@@ -31,21 +31,16 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.DependableFinder;
-import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.TypeDescriptor;
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.AggregateAliasInfo;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -53,29 +48,16 @@ import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.depend.ProviderInfo;
-import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColPermsDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.DefaultDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DependencyDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.PermissionsDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.RoleGrantDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.StatementColumnPermission;
-import com.splicemachine.db.iapi.sql.dictionary.StatementPermission;
-import com.splicemachine.db.iapi.sql.dictionary.StatementGenericPermission;
-import com.splicemachine.db.iapi.sql.dictionary.StatementSchemaPermission;
-import com.splicemachine.db.iapi.sql.dictionary.StatementRolePermission;
-import com.splicemachine.db.iapi.sql.dictionary.StatementRoutinePermission;
-import com.splicemachine.db.iapi.sql.dictionary.StatementTablePermission;
-import com.splicemachine.db.iapi.sql.dictionary.RoleClosureIterator;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * Abstract class that has actions that are across
@@ -520,45 +502,50 @@ public abstract class DDLConstantAction implements ConstantAction
 		LanguageConnectionContext lcc =
 			activation.getLanguageConnectionContext();
 		DataDictionary dd = lcc.getDataDictionary();
+		List<String> roleList = lcc.getCurrentRoles(activation);
 		RoleGrantDescriptor rootGrant = null;
-		String role = lcc.getCurrentRoleId(activation);
+
 		String dbo = dd.getAuthorizationDatabaseOwner();
         String currentUser = lcc.getCurrentUserId(activation);
 		PermissionsDescriptor permDesc = null;
 
-		if (SanityManager.DEBUG) {
-			SanityManager.ASSERT(
-				role != null,
-				"Unexpected: current role is not set");
-		}
+		for (String role : roleList) {
+			if (SanityManager.DEBUG) {
+				SanityManager.ASSERT(
+						role != null,
+						"Unexpected: current role is null");
+			}
 
-		// determine how we got to be able use this role
-		rootGrant =
-            dd.getRoleGrantDescriptor(role, currentUser, dbo);
+			// determine how we got to be able use this role
+			rootGrant =
+					dd.getRoleGrantDescriptor(role, currentUser, dbo);
 
-		if (rootGrant == null) {
-			rootGrant = dd.getRoleGrantDescriptor(
-				role,
-				Authorizer.PUBLIC_AUTHORIZATION_ID,
-				dbo);
-		}
+			if (rootGrant == null) {
+				rootGrant = dd.getRoleGrantDescriptor(
+						role,
+						Authorizer.PUBLIC_AUTHORIZATION_ID,
+						dbo);
+			}
 
-		// If not found in current role, get transitive
-		// closure of roles granted to current role and
-		// iterate over it to see if permission has
-		// been granted to any of the roles the current
-		// role inherits.
-		RoleClosureIterator rci =
-			dd.createRoleClosureIterator
-			(activation.getTransactionController(),
-			 role, true /* inverse relation*/);
+			// If not found in current role, get transitive
+			// closure of roles granted to current role and
+			// iterate over it to see if permission has
+			// been granted to any of the roles the current
+			// role inherits.
+			RoleClosureIterator rci =
+					dd.createRoleClosureIterator
+							(activation.getTransactionController(),
+									role, true /* inverse relation*/);
 
-		String graphGrant;
-		while (permDesc == null &&
-			   (graphGrant = rci.next()) != null) {
-			permDesc =
-				statPerm.getPermissionDescriptor
-				(graphGrant, dd);
+			String graphGrant;
+			while (permDesc == null &&
+					(graphGrant = rci.next()) != null) {
+				permDesc =
+						statPerm.getPermissionDescriptor
+								(graphGrant, dd);
+			}
+			if (permDesc != null)
+				break;
 		}
 
 		if (SanityManager.DEBUG) {
@@ -573,8 +560,8 @@ public abstract class DDLConstantAction implements ConstantAction
 
 	/**
 	 * The statement permission needed for dependent has been found to rely on
-	 * the current role. If not already done, register the dependency so that
-	 * if the current role (or any of the roles it inherits) is revoked (or
+	 * the current roles. If not already done, register the dependency so that
+	 * if the current roles (or any of the roles it inherits) are revoked (or
 	 * dropped), we can invalidate dependent.
 	 *
 	 * @param activation the current activation
@@ -598,14 +585,15 @@ public abstract class DDLConstantAction implements ConstantAction
 			DataDictionary dd = lcc.getDataDictionary();
 			DependencyManager dm = dd.getDependencyManager();
 
-			String role =
-				lcc.getCurrentRoleId(activation);
-			RoleGrantDescriptor rgd =
-				dd.getRoleDefinitionDescriptor(role);
+			List<String> roleList = lcc.getCurrentRoles(activation);
+			for (String role: roleList) {
+				RoleGrantDescriptor rgd =
+						dd.getRoleDefinitionDescriptor(role);
 
-			dm.addDependency
-				(dependent, rgd,
-				 lcc.getContextManager());
+				dm.addDependency
+						(dependent, rgd,
+								lcc.getContextManager());
+			}
 			roleDepAdded.set(true);
 		}
 	}

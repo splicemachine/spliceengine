@@ -14,9 +14,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import java.util.Iterator;
-import java.util.List;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -29,10 +26,18 @@ import com.splicemachine.db.iapi.sql.dictionary.RoleGrantDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.protobuf.ProtoUtil;
+
+import java.util.Iterator;
+import java.util.List;
 
 public class GrantRoleConstantOperation extends DDLConstantOperation {
     private List roleNames;
     private List grantees;
+    private boolean isDefaultRole = false;
     private static final boolean withAdminOption = false; // not client.
     /**
      *  Make the ConstantAction for a CREATE ROLE statement.
@@ -41,9 +46,10 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
      *  @param roleNames     List of the names of the roles being granted
      *  @param grantees       List of the authorization ids granted to role
      */
-    public GrantRoleConstantOperation(List roleNames, List grantees) {
+    public GrantRoleConstantOperation(List roleNames, List grantees, boolean isDefaultRole) {
         this.roleNames = roleNames;
         this.grantees = grantees;
+        this.isDefaultRole = isDefaultRole;
     }
 
     /**
@@ -127,6 +133,19 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
                                      DataDictionary.SYSROLES_CATALOG_NUM,
                                      false, // no duplicatesAllowed
                                      tc);
+                } else if (rgd!= null && (isDefaultRole && !rgd.isDefaultRole() || !isDefaultRole && rgd.isDefaultRole())) {
+                    rgd.drop(lcc);
+                    rgd.setDefaultRole(isDefaultRole);
+                    dd.addDescriptor(rgd,
+                            null,  // parent
+                            DataDictionary.SYSROLES_CATALOG_NUM,
+                            false, // no duplicatesAllowed
+                            tc);
+                    /* we need to invalidate the defaultRole cache as the grantee's defaultRole list has changed */
+                    DDLMessage.DDLChange ddlChange =
+                            ProtoUtil.createGrantRevokeRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
+                                    role, grantee, true);
+                    tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
                 } else if (rgd == null) {
                     // Check if the grantee is a role (if not, it is a user)
                     RoleGrantDescriptor granteeDef =
@@ -142,13 +161,22 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
                         grantee,
                         grantor, // dbo for now
                         withAdminOption,
-                        false);  // not definition
+                        false,
+                        isDefaultRole);  // not definition
                     dd.addDescriptor(
                         rgd,
                         null,  // parent
                         DataDictionary.SYSROLES_CATALOG_NUM,
                         false, // no duplicatesAllowed
                         tc);
+
+                    if (isDefaultRole) {
+                        /* we need to invalidate the defaultRole cache as the grantee's defaultRole list has changed */
+                        DDLMessage.DDLChange ddlChange =
+                                ProtoUtil.createGrantRevokeRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
+                                        role, grantee, true);
+                        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+                    }
                 } // else exists already, no need to add
             }
         }
@@ -213,7 +241,7 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
         return ("GRANT " +
                 sb1.toString() +
                 " TO: " +
-                sb2.toString() +
+                sb2.toString() + (isDefaultRole?" AS DEFAULT":"") +
                 "\n");
     }
 }

@@ -15,7 +15,8 @@
 
 package com.splicemachine.derby.impl.store.access.btree;
 
-import com.splicemachine.access.api.PartitionFactory;import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;

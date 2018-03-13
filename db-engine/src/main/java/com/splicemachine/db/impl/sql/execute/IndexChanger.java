@@ -31,8 +31,6 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
-import java.util.Properties;
-
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -43,11 +41,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -55,6 +49,8 @@ import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
 import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
+
+import java.util.Properties;
 
 /**
   Perform Index maintenace associated with DML operations for a single index.
@@ -272,6 +268,7 @@ public class IndexChanger
               ScanQualifier qualifier = new GenericScanQualifier();
               qualifier.setQualifier(dvdPos,ourRowDvds[dvdPos],DataValueDescriptor.ORDER_OP_EQUALS,false,false,false);
               qualifiers[0][qualPos] = qualifier;
+              qualPos ++;
           }
       }
 		/* Get the SC from the activation if re-using */
