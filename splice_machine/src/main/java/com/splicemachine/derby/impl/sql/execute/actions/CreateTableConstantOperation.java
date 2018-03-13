@@ -487,7 +487,11 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                         StructField externalField = externalSchema.fields()[i];
                         StructField definedField = template.schema().fields()[i];
                         if (!definedField.dataType().equals(externalField.dataType())) {
-                            if (!supportAvroDateToString(storedAs,externalField,definedField)) {
+                            // splice machine doesn't has a float data type
+                            boolean doubleCompat = definedField.dataType().typeName().equals("double") &&
+                                    externalField.dataType().typeName().equals("float");
+                            boolean dateCompat = supportAvroDateToString(storedAs,externalField,definedField);
+                            if (!doubleCompat && !dateCompat){
                                 throw StandardException.newException(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, definedField.name(), externalField.name(), location);
                             }
                         }

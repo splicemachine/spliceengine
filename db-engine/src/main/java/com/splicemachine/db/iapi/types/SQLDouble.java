@@ -985,7 +985,12 @@ public final class SQLDouble extends NumberDataType
 			setToNull();
 		else {
 			isNull = false;
-			value = row.getDouble(ordinal);
+			try {
+				value = row.getDouble(ordinal);
+			} catch (ClassCastException e) {
+				// while read external table, spark may get float type which is not exists in splice
+				value = row.getFloat(ordinal);
+			}
 		}
 	}
 
