@@ -250,11 +250,8 @@ public class SYSROLESRowFactory extends CatalogRowFactory
         // seventh column is defaultRole (char(1))
         col = row.getColumn(7);
         if (col == null || col.isNull()) {
-            // whether this is a role definition
-            if (!isdef)
-                isDefaultRole = true;
-            else
-                isDefaultRole = false;
+            // whether this is a role definition, defaultRole cannot be a role definition
+            isDefaultRole = !isdef;
         } else
             isDefaultRole = col.getString().equals("Y");
         descriptor = ddg.newRoleGrantDescriptor
