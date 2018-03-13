@@ -1002,4 +1002,10 @@ public class DDLUtils {
             dm.invalidateFor(privilegedSQLObject, invalidationType, lcc);
         }
     }
+
+    public static void preGrantRevokeRole(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preGrantRevokeRole with change=%s",change);
+        dd.getDataDictionaryCache().defaultRoleCacheRemove(change.getGrantRevokeRole().getGranteeName());
+    }
 }

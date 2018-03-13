@@ -478,9 +478,9 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
     }
 
     @Override
-    public ConstantAction getGrantRoleConstantAction(List roleNames,List grantees){
-        SpliceLogUtils.trace(LOG,"getGrantRoleConstantAction for roles {%s} and grantees {%s}",roleNames,grantees);
-        return new GrantRoleConstantOperation(roleNames,grantees);
+    public ConstantAction getGrantRoleConstantAction(List roleNames,List grantees, boolean isDefaultRole){
+        SpliceLogUtils.trace(LOG,"getGrantRoleConstantAction for %s roles {%s} and grantees {%s}",(isDefaultRole?"default":"non-default"), roleNames,grantees);
+        return new GrantRoleConstantOperation(roleNames,grantees,isDefaultRole);
     }
 
     @Override

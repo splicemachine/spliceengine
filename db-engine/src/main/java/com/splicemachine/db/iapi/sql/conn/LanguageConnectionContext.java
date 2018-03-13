@@ -31,30 +31,33 @@
 
 package com.splicemachine.db.iapi.sql.conn;
 
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.db.Database;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ContextId;
 import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-import com.splicemachine.db.iapi.db.Database;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.compile.OptimizerFactory;
-import com.splicemachine.db.iapi.types.DataValueFactory;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.LanguageFactory;
+import com.splicemachine.db.iapi.sql.ParameterValueSet;
+import com.splicemachine.db.iapi.sql.PreparedStatement;
 import com.splicemachine.db.iapi.sql.compile.ASTVisitor;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.OptimizerFactory;
 import com.splicemachine.db.iapi.sql.depend.Provider;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.RoleGrantDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.CursorActivation;
 import com.splicemachine.db.iapi.sql.execute.ExecutionStmtValidator;
-import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.LanguageFactory;
-import com.splicemachine.db.iapi.sql.PreparedStatement;
-import com.splicemachine.db.iapi.sql.ParameterValueSet;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
-import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionStack;
+
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -1109,14 +1112,21 @@ public interface LanguageConnectionContext extends Context {
 	void setCurrentRole(Activation a, String role);
 
 	/**
-	 * Get the current role authorization identifier of the dynamic
+	 * Set the current role
+	 *
+	 * @param a activation of set role statement
+	 * @param roles  the list of roles to be set to current
+	 */
+	public void setCurrentRoles(Activation a, List<String> roles);
+
+	/**
+	 * Get the current set of roles of the dynamic
 	 * call context associated with this activation.
 	 *
 	 * @param a activation of statement needing current role
-	 * @return String	the role id
+	 * @return List of roleids
 	 */
-	String getCurrentRoleId(Activation a);
-
+	List<String> getCurrentRoles(Activation a);
 	/**
 	 * Get the current role authorization identifier in external delimited form
 	 * (not case normal form) of the dynamic call context associated with this
@@ -1144,6 +1154,22 @@ public interface LanguageConnectionContext extends Context {
 	 */
 	boolean roleIsSettable(Activation a, String role)
             throws StandardException;
+
+	/**
+	 *
+	 * @param a activation
+	 * @param roleName role name for the role to remove from session's current role list.
+	 * @throws StandardException
+	 */
+	public void removeRole(Activation a, String roleName);
+
+	/**
+	 *
+	 * @param a activation
+	 * @param rolesToRemove a list of roles to remove from session's current role list.
+	 * @throws StandardException
+	 */
+	public void removeRoles(Activation a, List<String> rolesToRemove);
 
 	/**
 	 * Create a new SQL session context for the current activation on the basis
