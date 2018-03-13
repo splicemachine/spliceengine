@@ -16,9 +16,11 @@ package com.splicemachine.derby.security;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.HBaseTest;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -35,6 +37,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * Created by yxia on 3/8/18.
  */
+@Category(HBaseTest.class)
 public class DefaultRoleIT {
     private static final String SCHEMA1 = "TEST1";
     private static final String SCHEMA2 = "TEST2";
