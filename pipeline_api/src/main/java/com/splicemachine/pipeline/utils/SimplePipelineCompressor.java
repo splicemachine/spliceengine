@@ -23,8 +23,6 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.utils.kryo.KryoPool;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 
 /**
  * @author Scott Fines
@@ -37,16 +35,6 @@ public class SimplePipelineCompressor implements PipelineCompressor{
     public SimplePipelineCompressor(KryoPool kp,TxnOperationFactory txnOperationFactory){
         this.txnOperationFactory = txnOperationFactory;
         this.kp = kp;
-    }
-
-    @Override
-    public InputStream compressedInput(InputStream input) throws IOException{
-        return input;
-    }
-
-    @Override
-    public OutputStream compress(OutputStream output) throws IOException{
-        return output;
     }
 
     @Override
