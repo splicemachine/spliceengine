@@ -62,7 +62,7 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,1,1,1),new LassenUpgradeScript(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,6,0),new UpgradeScriptFor260(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,7,1), new UpgradeScriptForModifySchemaPermission(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,2,7,1), new UpgradeScriptForAddDefaultRole(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,2,8,1), new UpgradeScriptForAddDefaultRole(sdd,tc));
     }
 
     public void run() throws StandardException{
