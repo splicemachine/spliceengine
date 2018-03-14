@@ -670,12 +670,11 @@ public class SqlXmlUtil
                 }
                 break;
             default:
+                String msg = "Don't know how to handle XPath result type " + result.getResultType();
                 if (SanityManager.DEBUG) {
-                    SanityManager.THROWASSERT(
-                            "Don't know how to handle XPath result type " +
-                            result.getResultType());
+                    SanityManager.THROWASSERT(msg);
                 }
-                itemRefs = null;
+                throw new UnsupportedOperationException(msg);
         }
 
         /* Indicate what kind of XML result value we have.  If
@@ -684,7 +683,7 @@ public class SqlXmlUtil
          * XML_DOC_ANY (which means we can store it in a Derby
          * XML column).
          */
-        if ((itemRefs != null) && (itemRefs.size() == 1) && (itemRefs.get(0) instanceof Document))
+        if ((itemRefs.size() == 1) && (itemRefs.get(0) instanceof Document))
             resultXType[0] = XML.XML_DOC_ANY;
         else
             resultXType[0] = XML.XML_SEQUENCE;
