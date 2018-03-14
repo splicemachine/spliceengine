@@ -146,13 +146,14 @@ implements Authorizer
         {
             List requiredPermissionsList = activation.getPreparedStatement().getRequiredPermissionsList();
             DataDictionary dd = lcc.getDataDictionary();
+            String dbo = dd.getAuthorizationDatabaseOwner();
 
             // Database Owner can access any object. Ignore 
             // requiredPermissionsList for Database Owner
             if( requiredPermissionsList != null    && 
-                !requiredPermissionsList.isEmpty() && 
-                !lcc.getCurrentUserId(activation).equals(
-                    dd.getAuthorizationDatabaseOwner()))
+                !requiredPermissionsList.isEmpty() &&
+					!(lcc.getCurrentUserId(activation).equals(dbo)
+                      || dbo.equalsIgnoreCase(lcc.getCurrentGroupUser(activation))))
             {
 
                  /*

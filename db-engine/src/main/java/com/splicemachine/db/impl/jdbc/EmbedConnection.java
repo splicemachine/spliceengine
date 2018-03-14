@@ -348,7 +348,7 @@ public abstract class EmbedConnection implements EngineConnection
 
             if (authUser != null && !tr.getUserName().equalsIgnoreCase(authUser)) {
 				// If we have an authenticated group username from LDAP, use that
-				tr.setGroupUserName(authUser);
+				tr.setGroupUserName(authUser.toUpperCase());
 			}
 
 			// Make a real connection into the database, setup lcc, tc and all
