@@ -125,8 +125,10 @@ public class Vacuum{
                 }
             }
         } catch (IOException e) {
-            LOG.error("Unexpected exception", e);
+            LOG.error("Vacuum Unexpected exception", e);
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        } finally {
+            LOG.info("Vacuum complete");
         }
     }
 
