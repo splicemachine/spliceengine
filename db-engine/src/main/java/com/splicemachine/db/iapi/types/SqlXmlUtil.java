@@ -674,7 +674,7 @@ public class SqlXmlUtil
                 if (SanityManager.DEBUG) {
                     SanityManager.THROWASSERT(msg);
                 }
-                throw new Exception(msg);
+                throw new UnsupportedOperationException(msg);
         }
 
         /* Indicate what kind of XML result value we have.  If
