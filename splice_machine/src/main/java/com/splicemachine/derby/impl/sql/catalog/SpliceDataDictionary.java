@@ -783,8 +783,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
 
         // Compare software version and catalog version
-        if(catalogVersion.toLong()<spliceSoftwareVersion.toLong()){
-            LOG.info("Upgrade needed since catalog version < software version");
+        if(catalogVersion.toLong()<=spliceSoftwareVersion.toLong()){
+            LOG.info("Upgrade needed since catalog version <= software version");
             return true;
         }
         return false;
