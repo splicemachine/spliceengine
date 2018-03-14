@@ -40,6 +40,7 @@ public class Hbase10PartitionCache implements PartitionInfoCache<TableName>{
     public void invalidate(TableName tableName) throws IOException{
         partitionCache.invalidate(tableName);
         ((HConnection)HBaseConnectionFactory.getInstance(config).getConnection()).clearRegionCache(tableName);
+        ((HConnection)HBaseConnectionFactory.getInstance(config).getNoRetryConnection()).clearRegionCache(tableName);
     }
 
     @Override
