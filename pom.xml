@@ -724,7 +724,7 @@
                 </property>
             </activation>
             <properties>
-                <envClassifier>core</envClassifier>
+                <platform>core</platform>
             </properties>
             <modules>
                 <module>sqlj-it-procs</module>
@@ -757,7 +757,7 @@
                 </property>
             </activation>
             <properties>
-                <envClassifier>mem</envClassifier>
+                <platform>mem</platform>
             </properties>
             <modules>
                 <module>mem_storage</module>
@@ -774,7 +774,7 @@
                 </property>
             </activation>
             <properties>
-                <envClassifier>apache-hbase</envClassifier>
+                <platform>apache-hbase</platform>
                 <envHbase>hbase1.2.0</envHbase>
                 <hbase.version>1.2.0</hbase.version>
                 <hadoop.version>2.6.0</hadoop.version>
@@ -799,7 +799,7 @@
                 </property>
             </activation>
             <properties>
-                <envClassifier>hdp2.5.5</envClassifier>
+                <platform>hdp2.5.5</platform>
                 <envHbase>hbase1.1.2.2.5</envHbase>
                 <hadoop.version>2.7.3.2.5.5.7-1</hadoop.version>
                 <hbase.version>1.1.2.2.5.5.7-1</hbase.version>
@@ -827,7 +827,7 @@
                 </property>
             </activation>
             <properties>
-                <envClassifier>hdp2.6.3</envClassifier>
+                <platform>hdp2.6.3</platform>
                 <envHbase>hbase1.1.2.2.6</envHbase>
                 <hadoop.version>2.7.3.2.6.3.0-235</hadoop.version>
                 <hbase.version>1.1.2.2.6.3.0-235</hbase.version>
@@ -855,7 +855,7 @@
             </activation>
             <properties>
                 <cdh.parcel.version>5.8.3</cdh.parcel.version>
-                <envClassifier>cdh5.8.3</envClassifier>
+                <platform>cdh5.8.3</platform>
                 <envHbase>hbase1.2.0</envHbase>
                 <hadoop.version>2.6.0-cdh5.8.3</hadoop.version>
                 <hbase.version>1.2.0-cdh5.8.3</hbase.version>
@@ -882,7 +882,7 @@
             </activation>
             <properties>
                 <cdh.parcel.version>5.9.0</cdh.parcel.version>
-                <envClassifier>cdh5.9.0</envClassifier>
+                <platform>cdh5.9.0</platform>
                 <envHbase>hbase1.2.0</envHbase>
                 <hadoop.version>2.6.0-cdh5.9.0</hadoop.version>
                 <hbase.version>1.2.0-cdh5.9.0</hbase.version>
@@ -908,7 +908,7 @@
             </activation>
             <properties>
                 <cdh.parcel.version>5.12.0</cdh.parcel.version>
-                <envClassifier>cdh5.12.0</envClassifier>
+                <platform>cdh5.12.0</platform>
                 <envHbase>hbase1.2.0</envHbase>
                 <hadoop.version>2.6.0-cdh5.12.0</hadoop.version>
                 <hbase.version>1.2.0-cdh5.12.0</hbase.version>
@@ -935,7 +935,7 @@
             </activation>
             <properties>
                 <cdh.parcel.version>5.13.0</cdh.parcel.version>
-                <envClassifier>cdh5.13.0</envClassifier>
+                <platform>cdh5.13.0</platform>
                 <envHbase>hbase1.2.0</envHbase>
                 <hadoop.version>2.6.0-cdh5.13.0</hadoop.version>
                 <hbase.version>1.2.0-cdh5.13.0</hbase.version>
@@ -962,7 +962,7 @@
             </activation>
             <properties>
                 <cdh.parcel.version>5.13.2</cdh.parcel.version>
-                <envClassifier>cdh5.13.2</envClassifier>
+                <platform>cdh5.13.2</platform>
                 <envHbase>hbase1.2.0</envHbase>
                 <hadoop.version>2.6.0-cdh5.13.2</hadoop.version>
                 <hbase.version>1.2.0-cdh5.13.2</hbase.version>
@@ -989,7 +989,7 @@
             </activation>
             <properties>
                 <cdh.parcel.version>5.14.0</cdh.parcel.version>
-                <envClassifier>cdh5.14.0</envClassifier>
+                <platform>cdh5.14.0</platform>
                 <envHbase>hbase1.2.0</envHbase>
                 <hadoop.version>2.6.0-cdh5.14.0</hadoop.version>
                 <hbase.version>1.2.0-cdh5.14.0</hbase.version>
@@ -1015,7 +1015,7 @@
                 </property>
             </activation>
             <properties>
-                <envClassifier>mapr5.2.0</envClassifier>
+                <platform>mapr5.2.0</platform>
                 <envHbase>hbase1.1.1</envHbase>
                 <hadoop.version>2.7.0-mapr-1607</hadoop.version>
                 <hadoop.tools.version>1.0.3-mapr-5.2.0</hadoop.tools.version>
@@ -1044,7 +1044,7 @@
                 </property>
             </activation>
             <properties>
-                <envClassifier>mapr6.0.0</envClassifier>
+                <platform>mapr6.0.0</platform>
                 <envHbase>hbase1.1.8</envHbase>
                 <hadoop.version>2.7.0-mapr-1710</hadoop.version>
                 <hadoop.tools.version>1.0.3-mapr-5.2.0</hadoop.tools.version>

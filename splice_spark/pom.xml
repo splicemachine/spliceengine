@@ -20,7 +20,7 @@
         <version>2.5.0.1811-SNAPSHOT</version>
     </parent>
 
-    <artifactId>splicemachine-${envClassifier}-${spark.version}_${scala.binary.version}</artifactId>
+    <artifactId>splicemachine-${platform}-${spark.version}_${scala.binary.version}</artifactId>
 
     <properties>
         <!--Skip server startup-->
@@ -166,13 +166,13 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_storage-${envClassifier}</artifactId>
+            <artifactId>hbase_storage-${platform}</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_sql-${envClassifier}</artifactId>
+            <artifactId>hbase_sql-${platform}</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -203,7 +203,7 @@
 
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_pipeline-${envClassifier}</artifactId>
+            <artifactId>hbase_pipeline-${platform}</artifactId>
             <version>${project.version}</version>
             <exclusions>
                 <exclusion>
@@ -266,7 +266,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-			<argLine>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/ -Dhbase.rootdir=${project.build.directory}/../../hbase_sql/target/hbase</argLine>
+			<argLine>-Djava.library.path=${project.build.directory}/../../assembly/${platform}/native/${os.detected.classifier}:/usr/local/lib/ -Dhbase.rootdir=${project.build.directory}/../../hbase_sql/target/hbase</argLine>
                 </configuration>
             </plugin>
 
@@ -287,14 +287,14 @@
                                         <exec executable="${shell.command}" dir="${basedir}/../hbase_sql" spawn="false">
                                             <arg value="${start.script}"/>
                                             <arg value="-c"/>
-                                            <arg value="-p ${envClassifier},${envHbase}${ee_out}"/>
+                                            <arg value="-p ${platform},${envHbase}${ee_out}"/>
                                         </exec>
                                     </then>
                                     <else>
                                         <!-- chaos monkey overridden: -DfailTasksRandomly=false -->
                                         <exec executable="${shell.command}" dir="${basedir}/../hbase_sql" spawn="false">
                                             <arg value="${start.script}"/>
-                                            <arg value="-p ${envClassifier},${envHbase}${ee_out}"/>
+                                            <arg value="-p ${platform},${envHbase}${ee_out}"/>
                                         </exec>
                                     </else>
                                 </if>
