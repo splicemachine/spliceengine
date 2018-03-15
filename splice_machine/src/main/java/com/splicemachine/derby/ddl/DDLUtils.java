@@ -836,26 +836,6 @@ public class DDLUtils {
         }
     }
 
-    public static void preCreateRole(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException{
-        if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG,"preCreatetRole with change=%s",change);
-        SpliceTransactionResourceImpl transactionResource = null;
-        boolean prepared = false;
-        try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            transactionResource = new SpliceTransactionResourceImpl();
-            prepared = transactionResource.marshallTransaction(txn);
-            dd.getDataDictionaryCache().roleCacheRemove(change.getCreateRole().getRoleName());
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw StandardException.plainWrapException(e);
-        } finally {
-            if (prepared) {
-                transactionResource.close();
-            }
-        }
-    }
-
     public static void preTruncateTable(DDLMessage.DDLChange change,
                                         DataDictionary dd,
                                         DependencyManager dm) throws StandardException{
