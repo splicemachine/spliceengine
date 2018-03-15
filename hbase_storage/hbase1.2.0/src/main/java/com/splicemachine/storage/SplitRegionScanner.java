@@ -63,11 +63,12 @@ public class SplitRegionScanner implements RegionScanner {
     private Partition clientPartition;
     private Scan initialScan;
     private volatile boolean closed = true;
+    private Configuration jobConfig;
 
     public SplitRegionScanner(Scan scan,
                               Table table,
                               Clock clock,
-                              Partition clientPartition, SConfiguration configuration) throws IOException {
+                              Partition clientPartition, SConfiguration configuration, Configuration jobConfig) throws IOException {
         this.scan = scan;
         this.initialScan = new Scan(scan);
         this.htable = table;
@@ -77,6 +78,7 @@ public class SplitRegionScanner implements RegionScanner {
         reInitCount = 0;
         scanExceptionCount = 0;
         maxRetries = configuration.getMaxRetries();
+        this.jobConfig = jobConfig;
         init(false);
     }
 
@@ -207,10 +209,11 @@ public class SplitRegionScanner implements RegionScanner {
             SpliceLogUtils.debug(LOG, "createAndRegisterClientSideRegionScanner with table=%s, scan=%s, tableConfiguration=%s", table, newScan, table.getConfiguration());
         Configuration conf = table.getConfiguration();
         if (System.getProperty("hbase.rootdir") != null)
-            conf.set("hbase.rootdir", System.getProperty("hbase.rootdir"));
+            jobConfig.set("hbase.rootdir", System.getProperty("hbase.rootdir"));
 
         SkeletonClientSideRegionScanner skeletonClientSideRegionScanner =
                 new HBase10ClientSideRegionScanner(table,
+                        jobConfig,
                         FSUtils.getCurrentFileSystem(conf),
                         FSUtils.getRootDir(conf),
                         table.getTableDescriptor(),
