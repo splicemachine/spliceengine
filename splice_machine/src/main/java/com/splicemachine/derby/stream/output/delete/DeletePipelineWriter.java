@@ -95,7 +95,6 @@ public class DeletePipelineWriter extends AbstractPipelineWriter<ExecRow>{
             rowsDeleted++;
             writeBuffer.add(encode);
             TriggerHandler.fireAfterRowTriggers(triggerHandler, execRow, flushCallback);
-            operationContext.recordWrite();
         } catch (Exception e) {
             throw Exceptions.parseException(e);
         }

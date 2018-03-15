@@ -62,7 +62,6 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     public LongAccumulator retryAttempts;
     public LongAccumulator regionTooBusyExceptions;
 
-    public LongAccumulator pipelineRowsWritten;
     public LongAccumulator thrownErrorsRows;
     public LongAccumulator retriedRows;
     public LongAccumulator partialRows;
@@ -115,7 +114,6 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     private void initWritePipeline() {
         this.retryAttempts =SpliceSpark.getContext().sc().longAccumulator("(WritePipeline) retry attempts");
         this.regionTooBusyExceptions =SpliceSpark.getContext().sc().longAccumulator("(WritePipeline) region too busy exceptions");
-        this.pipelineRowsWritten=SpliceSpark.getContext().sc().longAccumulator("(WritePipeline) rows written");
         this.thrownErrorsRows=SpliceSpark.getContext().sc().longAccumulator("(WritePipeline) rows thrown errors");
         this.retriedRows=SpliceSpark.getContext().sc().longAccumulator("(WritePipeline) rows retried");
         this.partialRows=SpliceSpark.getContext().sc().longAccumulator("(WritePipeline) total rows partial error");
@@ -167,7 +165,6 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         out.writeObject(ignoredRows);
         out.writeObject(catchThrownRows);
         out.writeObject(catchRetriedRows);
-        out.writeObject(pipelineRowsWritten);
     }
 
     @Override
@@ -209,7 +206,6 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         ignoredRows=(LongAccumulator)in.readObject();
         catchThrownRows=(LongAccumulator)in.readObject();
         catchRetriedRows=(LongAccumulator)in.readObject();
-        pipelineRowsWritten=(LongAccumulator)in.readObject();
     }
 
     @Override
@@ -260,7 +256,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
 
     @Override
     public void recordPipelineWrites(long w) {
-        pipelineRowsWritten.add(w);
+        rowsWritten.add(w);
     }
 
     @Override
