@@ -31,19 +31,7 @@
 
 package com.splicemachine.db.impl.jdbc.authentication;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.SQLWarning;
-import java.util.Arrays;
-import java.util.Properties;
-
-import javax.sql.DataSource;
-
 import com.splicemachine.db.authentication.UserAuthenticator;
-import com.splicemachine.db.catalog.SystemProcedures;
-import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.SQLWarningFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Attribute;
@@ -51,17 +39,22 @@ import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
-import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.PasswordHasher;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.UserDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.jdbc.InternalDriver;
+
+import javax.sql.DataSource;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
+import java.util.Arrays;
+import java.util.Properties;
 
 /**
  * <p>
@@ -303,7 +296,7 @@ public final class NativeAuthenticationServiceImpl
 	 * @param databaseName	The database which the user wants to connect to.
 	 * @param info			Additional jdbc connection info.
 	 */
-	public boolean	authenticateUser
+	public String	authenticateUser
         (
          String userName,
          String userPassword,
@@ -314,8 +307,8 @@ public final class NativeAuthenticationServiceImpl
 	{
         try {
             // No "guest" user
-            if ( userName == null ) { return false; }
-            if ( userPassword == null ) { return false; }
+            if ( userName == null ) { return null; }
+            if ( userPassword == null ) { return null; }
 
             //
             // We must handle these cases:
@@ -340,11 +333,11 @@ public final class NativeAuthenticationServiceImpl
 
             if ( (databaseName == null) || !authenticatingInThisDatabase( databaseName ) )
             {
-                return authenticateRemotely(  userName, userPassword, databaseName );
+                return (authenticateRemotely(  userName, userPassword, databaseName ) ? userName : null);
             }
             else
             {
-                return authenticateLocally( userName, userPassword, databaseName );
+                return (authenticateLocally( userName, userPassword, databaseName ) ? userName : null);
             }
         }
         catch (StandardException se)

@@ -31,54 +31,11 @@
 
 package com.splicemachine.db.impl.drda;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.FilterOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.io.PrintWriter;
-import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import javax.net.SocketFactory;
-import javax.net.ServerSocketFactory;
-import javax.net.ssl.SSLServerSocket;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.SSLServerSocketFactory;
-import java.net.UnknownHostException;
-import java.nio.charset.Charset;
-import java.security.Permission;
-import java.security.AccessController;
-import java.security.AccessControlException;
-import java.security.PrivilegedAction;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-import java.sql.Connection;
-import java.sql.Driver;
-import java.sql.SQLException;
-import java.sql.SQLWarning;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.Properties;
-import java.util.StringTokenizer;
-import java.util.Vector;
-import java.text.SimpleDateFormat;
-
 import com.splicemachine.db.drda.NetworkServerControl;
-import com.splicemachine.db.security.SystemPermission;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.jdbc.AuthenticationService;
 import com.splicemachine.db.iapi.jdbc.DRDAServerStarter;
-import com.splicemachine.db.iapi.reference.Attribute;
-import com.splicemachine.db.iapi.reference.DRDAConstants;
-import com.splicemachine.db.iapi.reference.Module;
-import com.splicemachine.db.iapi.reference.Property;
-import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.reference.*;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.info.ProductGenusNames;
 import com.splicemachine.db.iapi.services.info.ProductVersionHolder;
@@ -92,10 +49,29 @@ import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.jdbc.EmbedSQLException;
 import com.splicemachine.db.impl.jdbc.Util;
-import com.splicemachine.db.iapi.jdbc.AuthenticationService;
-import com.splicemachine.db.iapi.reference.MessageId;
 import com.splicemachine.db.mbeans.VersionMBean;
 import com.splicemachine.db.mbeans.drda.NetworkServerMBean;
+import com.splicemachine.db.security.SystemPermission;
+
+import javax.net.ServerSocketFactory;
+import javax.net.SocketFactory;
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLServerSocketFactory;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import java.io.*;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.UnknownHostException;
+import java.nio.charset.Charset;
+import java.security.*;
+import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 /** 
 	
@@ -1169,7 +1145,7 @@ public final class NetworkServerControlImpl {
             if (passwordArg != null) {
                 finfo.setProperty("password", passwordArg);
             }
-            if (!auth.authenticate((String)null, finfo)) {
+            if (auth.authenticate((String)null, finfo) == null) {
                 // not a valid user
                 throw Util.generateCsSQLException(
                 SQLState.NET_CONNECT_AUTH_FAILED,
