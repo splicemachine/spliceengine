@@ -680,12 +680,11 @@ public class SqlXmlUtil
                 }
                 break;
             default:
+                String msg = "Don't know how to handle XPath result type " + result.getResultType();
                 if (SanityManager.DEBUG) {
-                    SanityManager.THROWASSERT(
-                            "Don't know how to handle XPath result type " +
-                            result.getResultType());
+                    SanityManager.THROWASSERT(msg);
                 }
-                itemRefs = null;
+                throw new UnsupportedOperationException(msg);
         }
 
         /* Indicate what kind of XML result value we have.  If
