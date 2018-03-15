@@ -119,8 +119,6 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
             KVPair encode = encoder.encode(execRow);
             writeBuffer.add(encode);
             TriggerHandler.fireAfterRowTriggers(triggerHandler, execRow, flushCallback);
-            if (operationContext!=null)
-                operationContext.recordWrite();
         } catch (Exception e) {
             if (operationContext!=null && operationContext.isPermissive()) {
                     operationContext.recordBadRecord(e.getLocalizedMessage() + execRow.toString(), e);
