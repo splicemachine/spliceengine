@@ -52,8 +52,8 @@ import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.io.DynamicByteArrayOutputStream;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.compression.SpliceSnappy;
 import org.apache.log4j.Logger;
-import org.xerial.snappy.Snappy;
 
 /**
 	The DDMWriter is used to write DRDA protocol.   The DRDA Protocol is
@@ -1506,10 +1506,10 @@ class DDMWriter
 		{
 			// use snappy compression
 			final int uncompressedSize = totalSize - 6;
-			byte[] compressedBuffer = new byte[uncompressedSize];
+			byte[] compressedBuffer = new byte[SpliceSnappy.maxCompressedLength(uncompressedSize)];
 			int compressedSize = 0;
 			try {
-			    compressedSize = Snappy.compress(buffer.array(), dssLengthLocation + 6, 
+			    compressedSize = SpliceSnappy.compress(buffer.array(), dssLengthLocation + 6,
 			        uncompressedSize, compressedBuffer, 0);
 			} catch (IOException e) {
 				LOG.warn("COMPRESS Snappy compression exception:  " + e.getMessage());
