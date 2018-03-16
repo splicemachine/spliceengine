@@ -19,6 +19,7 @@ import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import org.junit.Assert;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -32,7 +33,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Table;
 import org.junit.After;
 import org.junit.Before;
@@ -204,6 +204,28 @@ public class ClusterDDLTestIT {
         // Assure both connections see the same table contents
         assertEquals(sqlText, conn2Str, conn1Str);
     }
+
+    @Test
+    public void testEmptyRoleOptionalCache() throws Exception {
+        Connection conn1 = dataSource.getConnection("localhost", 1527);
+        Connection conn1a = dataSource.getConnection("localhost", 1527);
+        Connection conn2 = dataSource.getConnection("localhost", 1528);
+        try {
+            conn1.createStatement().execute("drop role cddltest_zzz");
+        } catch (Exception e) {}
+        try {
+            conn1.createStatement().execute("set role cddltest_zzz");
+            Assert.assertTrue("did not throw exception",false);
+        } catch (Exception e) {}
+        try {
+            conn2.createStatement().execute("set role cddltest_zzz");
+            Assert.assertTrue("did not throw exception",false);
+        } catch (Exception e) {}
+        conn1.createStatement().execute("create role cddltest_zzz");
+        conn1a.createStatement().execute("set role cddltest_zzz");
+        conn2.createStatement().execute("set role cddltest_zzz");
+    }
+
 
     //    @Test
     public void testDataSource() throws Exception {

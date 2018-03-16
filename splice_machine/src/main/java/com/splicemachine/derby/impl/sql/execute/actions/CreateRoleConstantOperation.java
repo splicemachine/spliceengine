@@ -100,7 +100,7 @@ public class CreateRoleConstantOperation extends DDLConstantOperation {
                              "User", roleName);
         }
 
-        DDLMessage.DDLChange change = ProtoUtil.createRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), roleName);
+        DDLMessage.DDLChange change = ProtoUtil.createAddRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), roleName);
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(change));
 
 
