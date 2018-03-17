@@ -53,6 +53,7 @@ public class SQLSessionContextImpl implements SQLSessionContext {
     }
 
     public void setRole(String role) {
+
         if (role == null) {
             currentRoles.clear();
         } else {

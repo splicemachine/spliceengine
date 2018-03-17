@@ -115,7 +115,7 @@ public class StatementColumnPermission extends StatementTablePermission
 
         String currentUserId = lcc.getCurrentUserId(activation);
 
-		FormatableBitSet permittedColumns = null;
+			FormatableBitSet permittedColumns = null;
 		if( ! forGrant)
 		{
 			permittedColumns = addPermittedColumns( dd,
@@ -182,6 +182,10 @@ public class StatementColumnPermission extends StatementTablePermission
 					(role,
 					 Authorizer.PUBLIC_AUTHORIZATION_ID,
 					 dbo);
+			}
+			if (rd == null && lcc.getCurrentGroupUser(activation) != null) {
+				rd = dd.getRoleGrantDescriptor
+						(role, lcc.getCurrentGroupUser(activation), dbo);
 			}
 
 			if (rd == null) {

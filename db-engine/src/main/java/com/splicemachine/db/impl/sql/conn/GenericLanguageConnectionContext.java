@@ -482,6 +482,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             List<String> publicRoles =
                     dd.getDefaultRoles("PUBLIC", getTransactionCompile());
             defaultRoles.addAll(publicRoles);
+            if (groupuser != null) {
+                List<String> groupRoles =
+                        dd.getDefaultRoles(groupuser, getTransactionCompile());
+                defaultRoles.addAll(groupRoles);
+            }
+
         }
         return defaultRoles;
     }

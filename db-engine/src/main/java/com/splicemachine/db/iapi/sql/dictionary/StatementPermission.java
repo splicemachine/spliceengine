@@ -159,6 +159,10 @@ public abstract class StatementPermission
 					Authorizer.PUBLIC_AUTHORIZATION_ID,
 					dbo);
 			}
+			if (rd == null && lcc.getCurrentGroupUser(activation) != null) {
+				rd = dd.getRoleGrantDescriptor
+						(role, lcc.getCurrentGroupUser(activation), dbo);
+			}
 
 			if (rd == null) {
 				// We have lost the right to set this role, so we can't
