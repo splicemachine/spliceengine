@@ -86,14 +86,18 @@ public class SpliceDatabase extends BasicDatabase{
             System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
             System.setProperty("derby.language.logStatementText",Boolean.toString(true));
         }
+        else {
+            System.setProperty("derby.language.logStatementText",Boolean.toString(false));
+        }
         if(config.debugDumpClassFile()) {
             System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
             SanityManager.DEBUG_SET("DumpClassFile");
         }
-    if(config.debugDumpBindTree()) {
+        if(config.debugDumpBindTree()) {
             System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
             SanityManager.DEBUG_SET("DumpBindTree");
-        }if(config.debugDumpOptimizedTree()) {
+        }
+        if(config.debugDumpOptimizedTree()) {
             System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
             SanityManager.DEBUG_SET("DumpOptimizedTree");
         }
