@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.BackupDescriptor;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -174,34 +175,39 @@ public class BackupUtils {
                                                   String tableName,
                                                   String fileName,
                                                   boolean preparing) throws StandardException {
+
+        if (shouldCaptureIncrementalChanges(fs, rootDir)) {
+            registerHFile(conf, fs, backupDir, region, fileName);
+        }
+    }
+
+    public static boolean shouldCaptureIncrementalChanges(FileSystem fs,Path rootDir) throws StandardException{
         boolean shouldRegister = false;
         try {
             RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
             String spliceBackupPath = HConfiguration.getConfiguration().getBackupPath();
-            if (BackupUtils.existsDatabaseBackup(fs, rootDir)) {
-                if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.debug(LOG, "There exists a successful full or incremental backup in the system");
-                }
-                shouldRegister = true;
-            }
-            else if (zooKeeper.exists(spliceBackupPath, false) != null) {
+            boolean isRestoreMode = SIDriver.driver().lifecycleManager().isRestoreNode();
+            if (!isRestoreMode) {
+                if (BackupUtils.existsDatabaseBackup(fs, rootDir)) {
+                    if (LOG.isDebugEnabled()) {
+                        SpliceLogUtils.debug(LOG, "There exists a successful full or incremental backup in the system");
+                    }
+                    shouldRegister = true;
+                } else if (zooKeeper.exists(spliceBackupPath, false) != null) {
 
-                if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.debug(LOG, "A backup is running");
+                    if (LOG.isDebugEnabled()) {
+                        SpliceLogUtils.debug(LOG, "A backup is running");
+                    }
+                    shouldRegister = true;
                 }
-                shouldRegister = true;
             }
-
-            if (shouldRegister) {
-                registerHFile(conf, fs, backupDir, region, fileName);
-            }
+            return shouldRegister;
         }
         catch (Exception e) {
             e.printStackTrace();
-            throw Exceptions.parseException(e);
+            throw StandardException.plainWrapException(e);
         }
     }
-
     /**
      * Is this a splice managed table?
      * A table is managed by splice if its namespace is "splice", or it's
@@ -237,7 +243,7 @@ public class BackupUtils {
      * @param fileName
      * @throws StandardException
      */
-    private static void registerHFile(Configuration conf,
+    public static void registerHFile(Configuration conf,
                                       FileSystem fs,
                                       Path backupDir,
                                       HRegion region,
