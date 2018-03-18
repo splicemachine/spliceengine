@@ -33,10 +33,14 @@ import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs;
-
+import com.splicemachine.access.configuration.HBaseConfiguration;
+import org.apache.hadoop.hbase.util.Bytes;
+import java.util.Collection;
+import java.util.List;
+import org.apache.hadoop.hbase.util.Pair;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
-
+import java.util.concurrent.locks.ReentrantLock;
 /**
  * Created by jyuan on 2/18/16.
  */
@@ -56,6 +60,8 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
     private FileSystem fs;
     Path rootDir;
     private AtomicBoolean preparing;
+    private ThreadLocal<Collection<StoreFile>> storeFiles = new ThreadLocal<>();
+    private ReentrantLock bulkLoadLock = new ReentrantLock();
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException {
@@ -285,4 +291,63 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
     public void postSplit(ObserverContext<RegionCoprocessorEnvironment> e ,Region l, Region r) throws IOException{
     }
 
+    @Override
+    public void preBulkLoadHFile(ObserverContext<RegionCoprocessorEnvironment> ctx, List<Pair<byte[], String>> familyPaths) throws IOException {
+
+        try {
+            if (!BackupUtils.isSpliceTable(namespace, tableName)||
+                    !BackupUtils.shouldCaptureIncrementalChanges(fs, rootDir)) {
+                super.preBulkLoadHFile(ctx, familyPaths);
+                return;
+            }
+
+            // Each bulkload thread has its own list of store files before loading files
+            byte[] family = familyPaths.get(0).getFirst();
+            Store store = region.getStore(family);
+            storeFiles.set(store.getStorefiles());
+        } catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
+        }
+    }
+
+    @Override
+    public boolean postBulkLoadHFile(ObserverContext<RegionCoprocessorEnvironment> ctx, List<Pair<byte[], String>> familyPaths, boolean hasLoaded) throws IOException {
+
+        try {
+            if (!BackupUtils.isSpliceTable(namespace, tableName) ||
+                    !BackupUtils.shouldCaptureIncrementalChanges(fs, rootDir))
+                return super.postBulkLoadHFile(ctx, familyPaths, hasLoaded);
+
+            try {
+                // Only one bulkload thread can register HFiles for incremental backup at a time. It registers newly
+                // bulk loaded HFile between the time period when preBulkLoadHFile and postBulkLoadHFile are invoked.
+                // There might be multiple bulk load running for the same region, so it could register HFiles loaded
+                // by other bulkload threads. It is fine if multiple bulk load see the same incremental changes and
+                // try to register them.
+
+                bulkLoadLock.lock();
+                byte[] family = familyPaths.get(0).getFirst();
+                Store store = region.getStore(family);
+                Collection<StoreFile> postBulkLoadStoreFiles = store.getStorefiles();
+                for (StoreFile storeFile : postBulkLoadStoreFiles) {
+                    byte[] val = storeFile.getMetadataValue(StoreFile.BULKLOAD_TASK_KEY);
+                    if (val != null && Bytes.compareTo(val, HBaseConfiguration.BULKLOAD_TASK_KEY) == 0
+                            && !storeFiles.get().contains(storeFile)) {
+                        BackupUtils.registerHFile(conf, fs, backupDir, region, storeFile.getPath().getName());
+                    }
+                }
+            }
+            finally {
+                storeFiles.remove();
+                bulkLoadLock.unlock();
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "released bulk load lock for region %s", regionName);
+                }
+            }
+            return hasLoaded;
+        }
+        catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
+        }
+    }
 }
