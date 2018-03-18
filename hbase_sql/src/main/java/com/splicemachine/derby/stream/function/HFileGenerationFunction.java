@@ -16,6 +16,7 @@ package com.splicemachine.derby.stream.function;
 
 import com.clearspring.analytics.util.Lists;
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -168,7 +169,7 @@ public abstract class HFileGenerationFunction implements MapPartitionsFunction<R
             w.appendFileInfo(StoreFile.BULKLOAD_TIME_KEY,
                     Bytes.toBytes(System.currentTimeMillis()));
             w.appendFileInfo(StoreFile.BULKLOAD_TASK_KEY,
-                    Bytes.toBytes("bulk load"));//context.getTaskAttemptID().toString())); TODO JL
+                    HBaseConfiguration.BULKLOAD_TASK_KEY);//context.getTaskAttemptID().toString())); TODO JL
             w.appendFileInfo(StoreFile.MAJOR_COMPACTION_KEY,
                     Bytes.toBytes(true));
             w.appendFileInfo(StoreFile.EXCLUDE_FROM_MINOR_COMPACTION_KEY,
