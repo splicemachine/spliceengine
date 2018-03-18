@@ -16,6 +16,7 @@ package com.splicemachine.hbase;
 
 import com.google.protobuf.Service;
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.backup.BackupRestoreConstants;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.si.data.hbase.coprocessor.CoprocessorUtils;
@@ -29,13 +30,16 @@ import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.*;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.FSUtils;
-import org.apache.hadoop.hbase.zookeeper.ZKUtil;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -57,6 +61,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
     private FileSystem fs;
     Path rootDir;
     private AtomicBoolean preparing;
+    private Collection<StoreFile> storeFiles;
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException {
@@ -290,5 +295,50 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
 
     @Override
     public void postSplit(ObserverContext<RegionCoprocessorEnvironment> e ,Region l, Region r) throws IOException{
+    }
+
+    @Override
+    public void preBulkLoadHFile(ObserverContext<RegionCoprocessorEnvironment> ctx, List<Pair<byte[], String>> familyPaths) throws IOException {
+
+        try {
+            if (!BackupUtils.isSpliceTable(namespace, tableName)||
+                    !BackupUtils.shouldCaptureIncrementalChanges(fs, rootDir))
+                super.preBulkLoadHFile(ctx, familyPaths);
+
+            region.startRegionOperation();
+            byte[] family = familyPaths.get(0).getFirst();
+            Store store = region.getStore(family);
+            storeFiles = store.getStorefiles();
+        } catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
+        }
+    }
+
+    @Override
+    public boolean postBulkLoadHFile(ObserverContext<RegionCoprocessorEnvironment> ctx, List<Pair<byte[], String>> familyPaths, boolean hasLoaded) throws IOException {
+
+        try {
+            if (!BackupUtils.isSpliceTable(namespace, tableName) ||
+                    !BackupUtils.shouldCaptureIncrementalChanges(fs, rootDir))
+                return super.postBulkLoadHFile(ctx, familyPaths, hasLoaded);
+
+            byte[] family = familyPaths.get(0).getFirst();
+            Store store = region.getStore(family);
+            Collection<StoreFile> postBulkLoadStoreFiles = store.getStorefiles();
+            for (StoreFile storeFile : postBulkLoadStoreFiles) {
+                if (Bytes.compareTo(storeFile.getMetadataValue(StoreFile.BULKLOAD_TASK_KEY), HBaseConfiguration.BULKLOAD_TASK_KEY) == 0
+                        && !storeFiles.contains(storeFile)) {
+                    BackupUtils.registerHFile(conf, fs, backupDir, region, storeFile.getPath().getName());
+                }
+            }
+            return hasLoaded;
+        }
+        catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
+        }
+        finally {
+            storeFiles = null;
+            region.closeRegionOperation();
+        }
     }
 }
