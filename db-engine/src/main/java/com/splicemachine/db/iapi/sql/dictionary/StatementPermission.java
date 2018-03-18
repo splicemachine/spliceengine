@@ -130,15 +130,19 @@ public abstract class StatementPermission
 		DataDictionary dd = lcc.getDataDictionary();
 		TransactionController tc = lcc.getTransactionExecute();
 		ExecPreparedStatement ps = activation.getPreparedStatement();
+		String currentGroupuser = lcc.getCurrentGroupUser(activation);
 
         PermissionsDescriptor perm =
             getPermissionDescriptor( lcc.getCurrentUserId(activation), dd );
 		if( !isCorrectPermission( perm ) ) { perm = getPermissionDescriptor(Authorizer.PUBLIC_AUTHORIZATION_ID, dd ); }
 
-        // if the user has the correct permission, we're done
+		if( !isCorrectPermission( perm ) && currentGroupuser != null ) {
+			perm = getPermissionDescriptor(currentGroupuser, dd );
+		}
+        // if the user/groupuser has the correct permission, we're done
 		if ( isCorrectPermission( perm ) ) { return; }
 
-		boolean resolved = false;
+			boolean resolved = false;
 
 		// Since no permission exists for the current user or PUBLIC,
 		// check if a permission exists for the current role (if set).
@@ -159,9 +163,8 @@ public abstract class StatementPermission
 					Authorizer.PUBLIC_AUTHORIZATION_ID,
 					dbo);
 			}
-			if (rd == null && lcc.getCurrentGroupUser(activation) != null) {
-				rd = dd.getRoleGrantDescriptor
-						(role, lcc.getCurrentGroupUser(activation), dbo);
+			if (rd == null && currentGroupuser != null) {
+				rd = dd.getRoleGrantDescriptor(role, currentGroupuser, dbo);
 			}
 
 			if (rd == null) {

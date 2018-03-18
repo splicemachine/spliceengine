@@ -160,11 +160,15 @@ public class StatementSchemaPermission extends StatementPermission
                                         boolean forGrant) throws StandardException {
         String currentUserId = lcc.getCurrentUserId(activation);
         ExecPreparedStatement ps = activation.getPreparedStatement();
+		String currentGroupuser = lcc.getCurrentGroupUser(activation);
 
         int authorization = oneAuthHasPermissionOnSchema(dd, Authorizer.PUBLIC_AUTHORIZATION_ID, forGrant);
 
         if(authorization == NONE || authorization == UNAUTHORIZED )
             authorization = oneAuthHasPermissionOnSchema(dd, currentUserId, forGrant);
+		if((authorization == NONE || authorization == UNAUTHORIZED) && currentGroupuser != null ) {
+			authorization = oneAuthHasPermissionOnSchema(dd, currentGroupuser, forGrant);
+		}
 
         if (authorization == NONE) {
             // Since no permission exists for the current user or PUBLIC,
@@ -186,9 +190,8 @@ public class StatementSchemaPermission extends StatementPermission
 							Authorizer.PUBLIC_AUTHORIZATION_ID,
 							dbo);
 				}
-				if (rd == null && lcc.getCurrentGroupUser(activation) != null) {
-					rd = dd.getRoleGrantDescriptor
-							(role, lcc.getCurrentGroupUser(activation), dbo);
+				if (rd == null && currentGroupuser != null) {
+					rd = dd.getRoleGrantDescriptor(role, currentGroupuser, dbo);
 				}
 
 				if (rd == null) {
