@@ -111,8 +111,9 @@ public class StatementColumnPermission extends StatementTablePermission
 		}
 
         String currentUserId = lcc.getCurrentUserId(activation);
+		String currentGroupuser = lcc.getCurrentGroupUser(activation);
 
-		FormatableBitSet permittedColumns = null;
+			FormatableBitSet permittedColumns = null;
 		if( ! forGrant)
 		{
 			permittedColumns = addPermittedColumns( dd,
@@ -123,6 +124,12 @@ public class StatementColumnPermission extends StatementTablePermission
 													false /* non-grantable permissions */,
                                                     currentUserId,
 													permittedColumns);
+			if (currentGroupuser != null) {
+				permittedColumns = addPermittedColumns( dd,
+						false /* non-grantable permissions */,
+						currentGroupuser,
+						permittedColumns);
+			}
 		}
 		permittedColumns = addPermittedColumns( dd,
 												true /* grantable permissions */,
@@ -132,6 +139,12 @@ public class StatementColumnPermission extends StatementTablePermission
 												true /* grantable permissions */,
                                                 currentUserId,
 												permittedColumns);
+		if (currentGroupuser != null) {
+			permittedColumns = addPermittedColumns( dd,
+					true /* grantable permissions */,
+					currentGroupuser,
+					permittedColumns);
+		}
 		
 		//DERBY-4191
 		//If we are looking for select privilege on ANY column,
@@ -179,6 +192,9 @@ public class StatementColumnPermission extends StatementTablePermission
 					(role,
 					 Authorizer.PUBLIC_AUTHORIZATION_ID,
 					 dbo);
+			}
+			if (rd == null && currentGroupuser != null) {
+				rd = dd.getRoleGrantDescriptor(role, currentGroupuser, dbo);
 			}
 
 			if (rd == null) {
