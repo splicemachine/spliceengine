@@ -21,6 +21,7 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -33,6 +34,7 @@ import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.StringUtils;
@@ -62,8 +64,10 @@ import scala.runtime.BoxedUnit;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.HashMap;
@@ -82,6 +86,9 @@ public class OlapServerSubmitter implements Runnable {
     private static final String SPLICE_STAGING = ".spliceStaging";
 
     private static final String KEYTAB_KEY = "splice.spark.yarn.keytab";
+    private static final String PRINCIPAL_KEY = "splice.spark.yarn.principal";
+    private static final String HBASE_MASTER_KEYTAB_KEY = "hbase.master.keytab.file";
+    private static final String HBASE_MASTER_PRINCIPAL_KEY="hbase.master.kerberos.principal";
 
     // Staging directory is private! -> rwx--------
     private static final FsPermission STAGING_DIR_PERMISSION = FsPermission.createImmutable(Short.parseShort("700", 8));
@@ -138,7 +145,7 @@ public class OlapServerSubmitter implements Runnable {
                 FileSystem fs = appStagingDirPath.getFileSystem(conf);
                 FileSystem.mkdirs(fs, appStagingDirPath, new FsPermission(STAGING_DIR_PERMISSION));
 
-                String keytab = System.getProperty(KEYTAB_KEY);
+                String keytab = getKeytab();
                 Map<String, LocalResource> localResources = new HashMap<>();
                 if (keytab != null) {
                     LOG.info(KEYTAB_KEY + " is set, adding it to local resources");
@@ -269,6 +276,18 @@ public class OlapServerSubmitter implements Runnable {
 
     }
 
+    /**
+     * If security is enabled, but the user did not specify a keytab, use hbase master's keytab
+     * @return
+     */
+    private String getKeytab() {
+        String keytab = System.getProperty(KEYTAB_KEY);
+        if (keytab == null && UserGroupInformation.isSecurityEnabled()) {
+            keytab = HConfiguration.unwrapDelegate().get(HBASE_MASTER_KEYTAB_KEY);
+        }
+        return keytab;
+    }
+
     private void clearZookeeper(RecoverableZooKeeper rzk, ServerName serverName) throws InterruptedException, KeeperException {
         String root = HConfiguration.getConfiguration().getSpliceRootPath();
 
@@ -373,7 +392,7 @@ public class OlapServerSubmitter implements Runnable {
     }
 
 
-    private String prepareCommands(String exec, String parameters) {
+    private String prepareCommands(String exec, String parameters) throws IOException {
         StringBuilder result = new StringBuilder();
         result.append(exec);
         for (Object sysPropertyKey : System.getProperties().keySet()) {
@@ -388,6 +407,25 @@ public class OlapServerSubmitter implements Runnable {
                 if (sysPropertyValue != null) {
                     result.append(' ').append("-D"+spsPropertyName+"=\\\""+sysPropertyValue+"\\\"");
                 }
+            }
+        }
+        // If user does not specify a kerberos keytab or principal, use HBase master's.
+        if (UserGroupInformation.isSecurityEnabled()) {
+            Configuration configuration = HConfiguration.unwrapDelegate();
+            String principal = System.getProperty(PRINCIPAL_KEY);
+            String keytab = System.getProperty(KEYTAB_KEY);
+            if (principal == null || keytab == null) {
+                principal = configuration.get(HBASE_MASTER_PRINCIPAL_KEY);
+                String hostname = configuration.get("hbase.master.hostname");
+                if (hostname == null) {
+                    hostname = InetAddress.getLocalHost().getHostName();
+                    SpliceLogUtils.warn(LOG, "Trying to get local hostname. This could be problem for host with multiple interfaces.");
+                    SpliceLogUtils.warn(LOG, "For machine with multiple interfaces, please set 'hbase.master.hostname'");
+                }
+                principal = SecurityUtil.getServerPrincipal(principal, hostname);
+                SpliceLogUtils.info(LOG, "User did not specify principal or keytab, use default principal=%s, keytab=%s", principal, amKeytabFileName);
+                result.append(' ').append("-D"+PRINCIPAL_KEY+"="+principal);
+                result.append(' ').append("-D"+KEYTAB_KEY+"="+amKeytabFileName);
             }
         }
         String extraOptions = System.getProperty("splice.olapServer.extraJavaOptions");
