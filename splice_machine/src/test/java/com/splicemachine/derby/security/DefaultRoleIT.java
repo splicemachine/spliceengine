@@ -400,6 +400,53 @@ public class DefaultRoleIT {
         testPrivileges(user1Conn2, new boolean[] {false, false, false, true, true});
 
     }
+
+    @Test
+    public void testRoleGrantCache() throws Exception {
+        clearAllRolesOnUsers();
+
+        // 1: grant role as default
+        adminConn.execute(format(grantRoleToUserAsDefault, ROLE1, PUBLIC));
+        adminConn.execute(format(grantRoleToUserAsDefault, ROLE2, USER1));
+        adminConn.execute(format(grantRoleToUserAsDefault, ROLE3, USER1));
+
+        // 2: check current_role(local) and privilege/permission
+        String expected = "1              |\n" +
+                "------------------------------\n" +
+                "\"ADMIN2\", \"ADMIN3\", \"ADMIN1\" |";
+        user1Conn = spliceClassWatcherAdmin.createConnection(USER1, PASSWORD1);
+        PreparedStatement ps = user1Conn.prepareStatement("values current_role");
+        ResultSet rs = ps.executeQuery();
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // we should be able to select from schema1, schema2, schema3, but not schema4 and schema5
+        // role grant permission should be cached
+        testPrivileges(user1Conn, new boolean[] {false, false, false, true, true});
+
+        // remote connection should behave the same
+        user1Conn2 = spliceClassWatcherAdmin.createConnection(remoteURLTemplate, USER1, PASSWORD1);
+        ps = user1Conn2.prepareStatement("values current_role");
+        rs = ps.executeQuery();
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        testPrivileges(user1Conn2, new boolean[] {false, false, false, true, true});
+
+        // 3: revoke Role2 but grant Role4
+        adminConn.execute(format(revokeRoleFromUser, ROLE2, USER1));
+        adminConn.execute(format(grantRoleToUserAsDefault, ROLE4, USER1));
+
+        // 4: for both local and remote connection, we lose access to schema2, but should now have access to schema4
+        // note, we need to set role for role4 explicitly as role4 is granted after the user1Conn and user1Conn2 are
+        // created
+        user1Conn.execute(format("set role %s", ROLE4));
+        user1Conn2.execute(format("set role %s", ROLE4));
+
+        testPrivileges(user1Conn, new boolean[] {false, true, false, false, true});
+        testPrivileges(user1Conn2, new boolean[] {false, true, false, false, true});
+    }
+
     private void clearAllRolesOnUsers() throws Exception {
         try {
             adminConn.execute(format(revokeRoleFromUser, ROLE1, PUBLIC));
