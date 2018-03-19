@@ -48,6 +48,7 @@ import com.splicemachine.storage.DataScan;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.apache.log4j.Logger;
 
 import java.io.*;
@@ -380,12 +381,28 @@ public class DDLUtils {
     public static void preUpdateSchemaOwner(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preUpdateSchemaOwner with change=%s",change);
-        dd.getDataDictionaryCache().schemaCacheRemove(change.getUpdateSchemaOwner().getSchemaName());
-        // clear permission cache as it has out-of-date permission info for the schema
-        dd.getDataDictionaryCache().clearPermissionCache();
-        // clear  TableDescriptor cache as it may reference the schema with an out-of-date authorization id
-        dd.getDataDictionaryCache().clearOidTdCache();
-        dd.getDataDictionaryCache().clearNameTdCache();
+
+        SpliceTransactionResourceImpl transactionResource = null;
+        boolean prepared = false;
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            transactionResource = new SpliceTransactionResourceImpl();
+            prepared = transactionResource.marshallTransaction(txn);
+            // remove corresponding schema canche entry
+            dd.getDataDictionaryCache().schemaCacheRemove(change.getUpdateSchemaOwner().getSchemaName());
+            // clear permission cache as it has out-of-date permission info for the schema
+            dd.getDataDictionaryCache().clearPermissionCache();
+            // clear  TableDescriptor cache as it may reference the schema with an out-of-date authorization id
+            dd.getDataDictionaryCache().clearOidTdCache();
+            dd.getDataDictionaryCache().clearNameTdCache();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw StandardException.plainWrapException(e);
+        } finally {
+            if (prepared) {
+                transactionResource.close();
+            }
+        }
     }
 
     public static void preCreateIndex(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
@@ -1006,6 +1023,28 @@ public class DDLUtils {
     public static void preGrantRevokeRole(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preGrantRevokeRole with change=%s",change);
-        dd.getDataDictionaryCache().defaultRoleCacheRemove(change.getGrantRevokeRole().getGranteeName());
+        SpliceTransactionResourceImpl transactionResource = null;
+        boolean prepared = false;
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            transactionResource = new SpliceTransactionResourceImpl();
+            prepared = transactionResource.marshallTransaction(txn);
+            //remove corresponding defaultRole entry
+            dd.getDataDictionaryCache().defaultRoleCacheRemove(change.getGrantRevokeRole().getGranteeName());
+
+            // remove role grant cache
+            String roleName = change.getGrantRevokeRole().getRoleName();
+            String granteeName = change.getGrantRevokeRole().getGranteeName();
+            String grantorName = change.getGrantRevokeRole().getGrantorName();
+            dd.getDataDictionaryCache().roleGrantCacheRemove(new ImmutableTriple<>(roleName, granteeName, grantorName));
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw StandardException.plainWrapException(e);
+        } finally {
+            if (prepared) {
+                transactionResource.close();
+            }
+        }
+
     }
 }

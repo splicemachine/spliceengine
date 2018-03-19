@@ -182,6 +182,7 @@ message GrantRevokeRole {
         required Type type = 1;
         required string roleName = 2;
         required string granteeName = 3;
+        required string grantorName = 4;
 }
 message TentativeFK {
         optional int64 baseConglomerate = 1;
