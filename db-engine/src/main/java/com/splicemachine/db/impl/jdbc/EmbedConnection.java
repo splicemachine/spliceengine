@@ -31,60 +31,43 @@
 
 package com.splicemachine.db.impl.jdbc;
 
-import com.splicemachine.db.jdbc.InternalDriver;
-
-import com.splicemachine.db.iapi.reference.Attribute;
-import com.splicemachine.db.iapi.reference.MessageId;
-import com.splicemachine.db.iapi.reference.Property;
-import com.splicemachine.db.iapi.reference.SQLState;
-
-import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.memory.LowMemory;
-import com.splicemachine.db.iapi.services.monitor.Monitor;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.services.property.PropertyUtil;
-
-import com.splicemachine.db.iapi.jdbc.AuthenticationService;
-import com.splicemachine.db.iapi.jdbc.EngineConnection;
-import com.splicemachine.db.security.DatabasePermission;
-
 import com.splicemachine.db.iapi.db.Database;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.SQLWarningFactory;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.jdbc.AuthenticationService;
+import com.splicemachine.db.iapi.jdbc.EngineConnection;
+import com.splicemachine.db.iapi.jdbc.EngineLOB;
+import com.splicemachine.db.iapi.jdbc.ExceptionFactory;
+import com.splicemachine.db.iapi.reference.Attribute;
+import com.splicemachine.db.iapi.reference.MessageId;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
+import com.splicemachine.db.iapi.services.memory.LowMemory;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.store.access.XATransactionController;
+import com.splicemachine.db.iapi.util.InterruptStatus;
+import com.splicemachine.db.impl.jdbc.authentication.NoneAuthenticationServiceImpl;
+import com.splicemachine.db.jdbc.InternalDriver;
+import com.splicemachine.db.security.DatabasePermission;
+
 import java.io.IOException;
-import java.security.Permission;
 import java.security.AccessControlException;
+import java.security.Permission;
+import java.sql.*;
+import java.util.*;
+
 /* can't import due to name overlap:
 import java.sql.Connection;
 import java.sql.ResultSet;
 */
-import java.sql.PreparedStatement;
-import java.sql.CallableStatement;
-import java.sql.Blob;
-import java.sql.Clob;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLWarning;
-import java.sql.Statement;
-
-import java.util.HashSet;
-import java.util.Map;
-import java.util.WeakHashMap;
-import java.util.HashMap;
-import java.util.Properties;
-import java.util.Iterator;
-
-import com.splicemachine.db.iapi.jdbc.EngineLOB;
-import com.splicemachine.db.iapi.jdbc.ExceptionFactory;
-import com.splicemachine.db.iapi.util.InterruptStatus;
-import com.splicemachine.db.impl.jdbc.authentication.NoneAuthenticationServiceImpl;
 
 /**
  * Local implementation of Connection for a JDBC driver in 
@@ -218,6 +201,8 @@ public abstract class EmbedConnection implements EngineConnection
     private String connString;
 
     private boolean internal;
+
+    private String authUser;
 
 	//////////////////////////////////////////////////////////
 	// CONSTRUCTORS
@@ -360,6 +345,11 @@ public abstract class EmbedConnection implements EngineConnection
                 }
                 throw sqle;
             }
+
+            if (authUser != null && !tr.getUserName().equalsIgnoreCase(authUser)) {
+				// If we have an authenticated group username from LDAP, use that
+				tr.setGroupUserName(authUser.toUpperCase());
+			}
 
 			// Make a real connection into the database, setup lcc, tc and all
 			// the rest.
@@ -657,7 +647,7 @@ public abstract class EmbedConnection implements EngineConnection
 	 *
 	 * @param inputConnection the input connection
 	 */
-	public EmbedConnection(EmbedConnection inputConnection) 
+	public  EmbedConnection(EmbedConnection inputConnection)
 	{
 		if (SanityManager.DEBUG)
 		{
@@ -785,10 +775,11 @@ public abstract class EmbedConnection implements EngineConnection
 		// Let's authenticate now
 
         boolean authenticationSucceeded = true;
-
         try {
-        		if (!internal)
-        			authenticationSucceeded = authenticationService.authenticate( dbname, userInfo );
+        		if (!internal) {
+					authUser = authenticationService.authenticate(dbname, userInfo);
+					authenticationSucceeded = (authUser != null) ? true : false;
+				}
 //        	authenticationSucceeded = true; // internal connections are allowed without authentication
         }
         catch (SQLWarning warnings)
@@ -809,6 +800,7 @@ public abstract class EmbedConnection implements EngineConnection
 		// to its implementation here, since it will always be present.
 		if (authenticationService instanceof NoneAuthenticationServiceImpl)
 			usingNoneAuth = true;
+
 	}
 
     /**

@@ -95,6 +95,11 @@ public interface SQLSessionContext {
     public String getCurrentUser();
 
     /**
+     * Get the Group user of this SQL connection context
+     */
+    public String getCurrentGroupUser();
+
+    /**
      * Set the schema of this SQL connection context
      */
     public void setDefaultSchema(SchemaDescriptor sd);

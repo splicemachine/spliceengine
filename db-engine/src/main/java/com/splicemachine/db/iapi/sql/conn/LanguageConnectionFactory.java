@@ -112,6 +112,7 @@ public interface LanguageConnectionFactory {
 								LanguageFactory lf,
 								Database db,
 								String userName,
+								String groupuser,
 								String drdaID,
 								String dbname,
                                 CompilerContext.DataSetProcessorType type,

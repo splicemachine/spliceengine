@@ -198,6 +198,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     protected Authorizer authorizer;
     protected String userName=null; //The name the user connects with.
+    protected String groupuser = null; // name of ldap user group
+
     //May still be quoted.
     /**
      * The top SQL session context stack frame (SQL 2003, section
@@ -321,6 +323,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             LanguageConnectionFactory lcf,
             Database db,
             String userName,
+            String groupuser,
             int instanceNumber,
             String drdaID,
             String dbname,
@@ -339,6 +342,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         connFactory=lcf;
         this.db=db;
         this.userName=userName;
+        this.groupuser=groupuser;
         this.instanceNumber=instanceNumber;
         this.drdaID=drdaID;
         this.dbname=dbname;
@@ -478,6 +482,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             List<String> publicRoles =
                     dd.getDefaultRoles("PUBLIC", getTransactionCompile());
             defaultRoles.addAll(publicRoles);
+            if (groupuser != null) {
+                List<String> groupRoles =
+                        dd.getDefaultRoles(groupuser, getTransactionCompile());
+                defaultRoles.addAll(groupRoles);
+            }
+
         }
         return defaultRoles;
     }
@@ -3214,6 +3224,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
+    public String getCurrentGroupUser(Activation a) {
+        return getCurrentSQLSessionContext(a).getCurrentGroupUser();
+    }
+
+    @Override
     public String getCurrentRoleIdDelimited(Activation a) throws StandardException{
 
         List<String> roles=getCurrentSQLSessionContext(a).getRoles();
@@ -3426,7 +3441,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             topLevelSSC=new SQLSessionContextImpl(
                     getInitialDefaultSchemaDescriptor(),
                     getSessionUserId(),
-                    defaultRoles);
+                    defaultRoles, groupuser);
         }
         return topLevelSSC;
     }
@@ -3437,7 +3452,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         return new SQLSessionContextImpl(
                 getInitialDefaultSchemaDescriptor(),
                 getSessionUserId() /* a priori */,
-                defaultRoles);
+                defaultRoles, groupuser);
     }
 
     /**
