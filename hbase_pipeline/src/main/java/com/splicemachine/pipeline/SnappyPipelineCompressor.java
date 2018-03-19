@@ -16,10 +16,9 @@ package com.splicemachine.pipeline;
 
 import java.io.IOException;
 import org.apache.log4j.Logger;
-import org.xerial.snappy.Snappy;
 
 import com.splicemachine.pipeline.utils.PipelineCompressor;
-import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.compression.SpliceSnappy;
 
 /**
  * @author Scott Fines
@@ -27,20 +26,6 @@ import com.splicemachine.utils.SpliceLogUtils;
  */
 public class SnappyPipelineCompressor implements PipelineCompressor{
     private static final Logger LOG=Logger.getLogger(SnappyPipelineCompressor.class);
-    private static final boolean supportsNative;
-
-    static {
-        boolean installed = false;
-        try {
-            String version = Snappy.getNativeLibraryVersion();
-            SpliceLogUtils.info(LOG, "Snappy Installed (" + version + "): Splice Machine's Write Pipeline will compress data over the wire.");
-            installed = true;
-        }
-        catch (Exception ex) {
-            SpliceLogUtils.error(LOG,"No Native Snappy Installed: Splice Machine's Write Pipeline will not compress data over the wire.");
-        }
-        supportsNative = installed;
-    }
 
     private final PipelineCompressor delegate;
 
@@ -51,18 +36,13 @@ public class SnappyPipelineCompressor implements PipelineCompressor{
     @Override
     public byte[] compress(Object o) throws IOException {
         byte[] d = delegate.compress(o);
-        if (supportsNative) {
-            d = Snappy.compress(d);
-        }
+        d = SpliceSnappy.compress(d);
         return d;
     }
 
     @Override
     public <T> T decompress(byte[] bytes,Class<T> clazz) throws IOException {
-        byte[] d = bytes;
-        if (supportsNative) {
-            d = Snappy.uncompress(bytes);
-        }
+        byte[] d = SpliceSnappy.uncompress(bytes);
         return delegate.decompress(d, clazz);
     }
 }
