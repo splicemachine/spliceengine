@@ -34,10 +34,7 @@ import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Table;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.*;
 
 import com.splicemachine.derby.test.framework.SpliceTestDataSource;
 import com.splicemachine.homeless.TestUtils;
@@ -228,6 +225,7 @@ public class ClusterDDLTestIT {
     }
 
 
+    @Ignore
     @Test
     public void testMissingTransactions() throws Exception {
         Connection conn1 = dataSource.getConnection("localhost", 1527);
