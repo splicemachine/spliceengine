@@ -17,7 +17,6 @@ package com.splicemachine.ddl;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.hbase.RegionServerLifecycleObserver;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
@@ -26,7 +25,6 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;

@@ -24,9 +24,9 @@ import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiterImpl;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.derby.impl.sql.execute.operations.NoRowsOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
+import com.splicemachine.server.SpliceMachineServer;
 import com.splicemachine.stream.RemoteQueryClientImpl;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
@@ -36,7 +36,6 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.spark.HregionDataSetProcessor;
 import com.splicemachine.derby.stream.spark.SparkDataSetProcessor;
-import com.splicemachine.hbase.RegionServerLifecycleObserver;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.derby.stream.iapi.RemoteQueryClient;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -125,7 +124,7 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
 
     private boolean isHBase() {
         if(Thread.currentThread().getName().contains("DRDAConn")) return true; //we are on the derby execution thread
-        else return RegionServerLifecycleObserver.isHbaseJVM;
+        else return SpliceMachineServer.isDerbyJVM;
     }
 
     private boolean allowsDistributedExecution(){ // corresponds to master_dataset isRunningOnSpark

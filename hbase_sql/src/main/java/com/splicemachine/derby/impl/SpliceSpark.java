@@ -19,12 +19,11 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Iterator;
-import java.security.PrivilegedAction;
-
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.server.SpliceMachineServer;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.SecurityUtil;
@@ -47,7 +46,6 @@ import com.splicemachine.derby.hbase.HBasePipelineEnvironment;
 import com.splicemachine.derby.lifecycle.DistributedDerbyStartup;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
 import com.splicemachine.hbase.HBaseRegionLoads;
-import com.splicemachine.hbase.RegionServerLifecycleObserver;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.pipeline.ContextFactoryDriverService;
 import com.splicemachine.pipeline.PipelineDriver;
@@ -122,7 +120,7 @@ public class SpliceSpark {
     public static synchronized boolean isRunningOnSpark() {
         // TODO: This is temporary and is the integrated equivalent of
         // SpliceBaseDerbyCoprocessor.runningOnSpark on master_dataset.
-        return !RegionServerLifecycleObserver.isHbaseJVM;
+        return !SpliceMachineServer.isDerbyJVM;
     }
 
     private static UserGroupInformation applyCredentials(Credentials credentials) throws IOException {
