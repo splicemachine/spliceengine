@@ -285,6 +285,8 @@ public class ClusterDDLTestIT {
             //ignore
         } finally {
             dataSource = new SpliceTestDataSource();
+            // sleep 10 seconds to wait transaction complete
+            Thread.sleep(10000);
         }
     }
 
