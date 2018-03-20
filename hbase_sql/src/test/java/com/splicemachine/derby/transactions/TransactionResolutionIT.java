@@ -123,8 +123,8 @@ public class TransactionResolutionIT {
             }
 
             conn1.rollback();
-            // sleep 10 seconds to wait for the transaction complete
-            Thread.sleep(10000);
+            // sleep 30 seconds to wait for the transaction complete
+            Thread.sleep(30000);
         }
     }
 
