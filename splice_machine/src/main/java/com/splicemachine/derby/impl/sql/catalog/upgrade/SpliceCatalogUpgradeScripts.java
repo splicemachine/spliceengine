@@ -61,8 +61,8 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,1,0,0),new UpgradeScriptForFuji(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,1,1,1),new LassenUpgradeScript(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,6,0),new UpgradeScriptFor260(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,2,7,1), new UpgradeScriptForModifySchemaPermission(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,2,7,1), new UpgradeScriptForAddDefaultRole(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,2,7,1), new UpgradeScriptForModifySchemaPermissionAndDefaultRole(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,2,7,0, 1812), new UpgradeScriptToCleanSysRoutinePerms(sdd,tc));
     }
 
     public void run() throws StandardException{
