@@ -72,6 +72,7 @@ import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
+import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.collect.FluentIterable;
@@ -9691,6 +9692,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         DataValueDescriptor granteeOrderable;
         DataValueDescriptor grantorOrderable;
 
+        ImmutableTriple roleGrantTriple = new ImmutableTriple<>(roleName, grantee, grantor);
+        Optional<RoleGrantDescriptor> optional = dataDictionaryCache.roleGrantCacheFind(roleGrantTriple);
+        if (optional!=null)
+            return optional.orNull();
 
         TabInfoImpl ti=getNonCoreTI(SYSROLES_CATALOG_NUM);
 
@@ -9707,8 +9712,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         keyRow.setColumn(2,granteeOrderable);
         keyRow.setColumn(3,grantorOrderable);
 
-        return (RoleGrantDescriptor)
+        RoleGrantDescriptor rgd = (RoleGrantDescriptor)
                 getDescriptorViaIndex(SYSROLESRowFactory.SYSROLES_INDEX_ID_EE_OR_IDX,keyRow,null,ti,null,null,false);
+
+        dataDictionaryCache.roleGrantCacheAdd(roleGrantTriple,rgd==null?Optional.<RoleGrantDescriptor>absent():Optional.of(rgd));
+        return rgd;
     }
 
 

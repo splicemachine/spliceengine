@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.cache.CacheBuilder;
 import org.spark_project.guava.cache.RemovalListener;
@@ -78,12 +79,13 @@ public class DataDictionaryCache {
     private ManagedCache<String,AliasDescriptor> aliasDescriptorCache;
     private ManagedCache<String,Optional<RoleGrantDescriptor>> roleCache;
     private ManagedCache<String,List<String>> defaultRoleCache;
+    private ManagedCache<Triple<String, String, String>, Optional<RoleGrantDescriptor>> roleGrantCache;
     private int tdCacheSize;
     private int stmtCacheSize;
     private int permissionsCacheSize;
     private DataDictionary dd;
     public static final String [] cacheNames = new String[] {"oidTdCache", "nameTdCache", "spsNameCache", "sequenceGeneratorCache", "permissionsCache", "partitionStatisticsCache",
-            "storedPreparedStatementCache", "conglomerateCache", "statementCache", "schemaCache", "aliasDescriptorCache", "roleCache", "defaultRoleCache"};
+            "storedPreparedStatementCache", "conglomerateCache", "statementCache", "schemaCache", "aliasDescriptorCache", "roleCache", "defaultRoleCache", "roleGrantCache"};
 
 
     public DataDictionaryCache(Properties startParams,DataDictionary dd) throws StandardException {
@@ -130,6 +132,7 @@ public class DataDictionaryCache {
         roleCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(100).build());
         permissionsCache=new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(permissionsCacheSize).build());
         defaultRoleCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(1024).build());
+        roleGrantCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(1024).build());
         this.dd = dd;
     }
 
@@ -371,6 +374,7 @@ public class DataDictionaryCache {
         statementCache.invalidateAll();
         roleCache.invalidateAll();
         defaultRoleCache.invalidateAll();
+        roleGrantCache.invalidateAll();
     }
 
     public void clearTableCache(){
@@ -383,6 +387,7 @@ public class DataDictionaryCache {
         statementCache.invalidateAll();
         roleCache.invalidateAll();
         defaultRoleCache.invalidateAll();
+        roleGrantCache.invalidateAll();
     }
 
     public void clearSchemaCache(){
@@ -470,6 +475,28 @@ public class DataDictionaryCache {
         defaultRoleCache.invalidateAll();
     }
 
+    public void roleGrantCacheAdd(Triple<String, String, String> key, Optional<RoleGrantDescriptor> optional) throws StandardException {
+        if (!dd.canWriteCache(null))
+            return;
+        if (LOG.isDebugEnabled())
+            LOG.debug("roleGrantCacheAdd " + key);
+        roleGrantCache.put(key,optional);
+    }
+
+    public Optional<RoleGrantDescriptor> roleGrantCacheFind(Triple<String, String, String> key) throws StandardException {
+        if (!dd.canReadCache(null))
+            return null;
+        if (LOG.isDebugEnabled())
+            LOG.debug("roleGrantCacheFind " + key);
+        return roleGrantCache.getIfPresent(key);
+    }
+
+    public void roleGrantCacheRemove(Triple<String, String, String> key) throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("roleGrantCacheRemove " + key);
+        roleGrantCache.invalidate(key);
+    }
+
     @MXBean
     @SuppressWarnings("UnusedDeclaration")
     public interface DataDictionaryCacheIFace {
@@ -479,7 +506,7 @@ public class DataDictionaryCache {
     public void registerJMX(MBeanServer mbs) throws Exception{
         try{
             ManagedCache [] mc = new ManagedCache[] {oidTdCache, nameTdCache, spsNameCache, sequenceGeneratorCache, permissionsCache, partitionStatisticsCache, storedPreparedStatementCache,
-                    conglomerateCache, statementCache, schemaCache, aliasDescriptorCache, roleCache, defaultRoleCache};
+                    conglomerateCache, statementCache, schemaCache, aliasDescriptorCache, roleCache, defaultRoleCache, roleGrantCache};
             //Passing in objects from mc array and names of objects from cacheNames array (static above)
             for(int i = 0; i < mc.length; i++){
                 ObjectName cacheName = new ObjectName("com.splicemachine.db.impl.sql.catalog:type="+cacheNames[i]);
