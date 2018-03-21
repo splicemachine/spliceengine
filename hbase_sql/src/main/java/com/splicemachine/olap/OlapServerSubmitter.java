@@ -19,6 +19,7 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.HBaseConfiguration;
+import com.splicemachine.access.util.NetworkUtils;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -416,12 +417,7 @@ public class OlapServerSubmitter implements Runnable {
             String keytab = System.getProperty(KEYTAB_KEY);
             if (principal == null || keytab == null) {
                 principal = configuration.get(HBASE_MASTER_PRINCIPAL_KEY);
-                String hostname = configuration.get("hbase.master.hostname");
-                if (hostname == null) {
-                    hostname = InetAddress.getLocalHost().getHostName();
-                    SpliceLogUtils.warn(LOG, "Trying to get local hostname. This could be problem for host with multiple interfaces.");
-                    SpliceLogUtils.warn(LOG, "For machine with multiple interfaces, please set 'hbase.master.hostname'");
-                }
+                String hostname = NetworkUtils.getHostname(HConfiguration.getConfiguration());
                 principal = SecurityUtil.getServerPrincipal(principal, hostname);
                 SpliceLogUtils.info(LOG, "User did not specify principal or keytab, use default principal=%s, keytab=%s", principal, amKeytabFileName);
                 result.append(' ').append("-D"+PRINCIPAL_KEY+"="+principal);
