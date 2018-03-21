@@ -229,7 +229,7 @@ public abstract class InternalDriver implements ModuleControl {
                                 MessageService.getTextMessage(MessageId.AUTH_NO_SERVICE_FOR_SYSTEM));
 					
 						
-					if (!this.getAuthenticationService().authenticate((String) null, finfo)) {
+					if (this.getAuthenticationService().authenticate((String) null, finfo) == null) {
 
 						// not a valid user
 						throw Util.generateCsSQLException(

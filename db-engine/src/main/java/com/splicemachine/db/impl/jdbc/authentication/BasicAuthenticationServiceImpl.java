@@ -145,7 +145,7 @@ public final class BasicAuthenticationServiceImpl
 	 * @param databaseName	The database which the user wants to connect to.
 	 * @param info			Additional jdbc connection info.
 	 */
-	public boolean	authenticateUser(String userName,
+	public String	authenticateUser(String userName,
 								 String userPassword,
 								 String databaseName,
 								 Properties info
@@ -167,7 +167,7 @@ public final class BasicAuthenticationServiceImpl
 		//
 		if (userName == null)
 			// We don't tolerate 'guest' user for now.
-			return false;
+			return null;
 
 		String definedUserPassword = null, passedUserPassword = null;
 
@@ -279,7 +279,7 @@ public final class BasicAuthenticationServiceImpl
                     SQLState.NET_CONNECT_SECMEC_INCOMPATIBLE_SCHEME);
         }
 
-        return passwordsMatch;
+        return (passwordsMatch ? userName : null);
 	}
 
     /**

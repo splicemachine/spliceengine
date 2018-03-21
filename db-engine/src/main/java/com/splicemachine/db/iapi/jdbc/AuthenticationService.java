@@ -55,7 +55,7 @@ public interface AuthenticationService
 	 * @param info			Connection properties info.
 	 * failure.
 	 */
-	boolean authenticate(String databaseName, Properties info)
+	public String authenticate(String databaseName, Properties info)
 	  throws SQLException;
 
     /**
