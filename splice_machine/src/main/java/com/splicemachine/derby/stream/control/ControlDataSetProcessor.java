@@ -24,13 +24,9 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.function.Partitioner;
-import com.splicemachine.derby.stream.iapi.DataSet;
-import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
-import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.iapi.PairDataSet;
-import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
+import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.iterator.TableScannerIterator;
+import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.server.Transactor;
@@ -364,5 +360,10 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     public StructType getExternalFileSchema(String storedAs, String location) {
         DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
         return proc.getExternalFileSchema(storedAs,location);
+    }
+
+    @Override
+    public TableChecker getTableChecker(String schemaName, String tableName, PairDataSet table, KeyHashDecoder tableKeyDecoder, ExecRow tableKey) {
+        return new ControlTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey);
     }
 }

@@ -33,11 +33,7 @@ import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SnapshotDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -69,6 +65,9 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.iapi.sql.execute.RunningOperation;
+import com.splicemachine.derby.iapi.sql.olap.OlapClient;
+import com.splicemachine.derby.impl.storage.CheckTableResult;
+import com.splicemachine.derby.impl.storage.DistributedCheckTableJob;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -78,6 +77,7 @@ import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.DataMutation;
 import com.splicemachine.storage.Partition;
@@ -89,6 +89,10 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.SerializationUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.spark_project.guava.collect.Lists;
@@ -97,6 +101,7 @@ import org.spark_project.guava.net.HostAndPort;
 import javax.management.MalformedObjectNameException;
 import javax.management.remote.JMXConnector;
 import java.io.IOException;
+import java.net.URI;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -116,6 +121,10 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.text.SimpleDateFormat;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INVALID_FUNCTION_ARGUMENT;
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_NO_SUCH_RUNNING_OPERATION;
@@ -1661,4 +1670,124 @@ public class SpliceAdmin extends BaseAdminProcedures{
             throw  PublicAPI.wrapStandardException(StandardException.newException(LANG_NO_SUCH_RUNNING_OPERATION, uuidString));
     }
 
+
+    public static void CHECK_TABLE(String schemaName, String tableName,
+                                   String outputFile, final ResultSet[] resultSet) throws Exception{
+
+        FSDataOutputStream out = null;
+        FileSystem fs = null;
+        Map<String, List<String>> errors = null;
+        try {
+            Configuration conf = (Configuration) SIDriver.driver().getConfiguration().getConfigSource().unwrapDelegate();
+            String schema = EngineUtils.validateSchema(schemaName);
+            String table = EngineUtils.validateTable(tableName);
+            fs = FileSystem.get(URI.create(outputFile), conf);
+            out = fs.create(new Path(outputFile));
+
+            LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
+            TransactionController tc=lcc.getTransactionExecute();
+            TxnView txn = ((SpliceTransactionManager) tc).getActiveStateTxn();
+            Activation activation = lcc.getLastActivation();
+
+            DataDictionary dd =lcc.getDataDictionary();
+            SchemaDescriptor sd = dd.getSchemaDescriptor(schema, tc, true);
+            if (sd == null) {
+                throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schema);
+            }
+            TableDescriptor td = dd.getTableDescriptor(table, sd, tc);
+            if(td == null) {
+                throw StandardException.newException(SQLState.TABLE_NOT_FOUND, table);
+            }
+
+            ConglomerateDescriptorList list = td.getConglomerateDescriptorList();
+            List<DDLMessage.TentativeIndex> tentativeIndexList = new ArrayList();
+
+            for (ConglomerateDescriptor searchCD :list) {
+                if (searchCD.isIndex() && !searchCD.isPrimaryKey()) {
+                    DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(txn.getTxnId(),
+                            activation.getLanguageConnectionContext(),
+                            td.getHeapConglomerateId(), searchCD.getConglomerateNumber(),
+                            td, searchCD.getIndexDescriptor(),td.getDefaultValue(searchCD.getIndexDescriptor().baseColumnPositions()[0]));
+                    tentativeIndexList.add(ddlChange.getTentativeIndex());
+                }
+            }
+
+            SIDriver driver = SIDriver.driver();
+            String hostname = NetworkUtils.getHostname(driver.getConfiguration());
+            SConfiguration config =SIDriver.driver().getConfiguration();
+            String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+            int localPort = config.getNetworkBindPort();
+            int sessionId = activation.getLanguageConnectionContext().getInstanceNumber();
+            String session = hostname + ":" + localPort + "," + sessionId;
+            String jobGroup = userId + " <" +session + "," + txn.getTxnId() +">";
+
+            OlapClient olapClient = EngineDriver.driver().getOlapClient();
+            ActivationHolder ah = new ActivationHolder(activation, null);
+            Future<CheckTableResult> futureResult = olapClient.submit(new DistributedCheckTableJob(ah, txn, schema, table, tentativeIndexList, jobGroup));
+            CheckTableResult result = null;
+            while (result == null) {
+                try {
+                    result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
+                } catch (InterruptedException e) {
+                    //we were interrupted processing, so we're shutting down. Nothing to be done, just die gracefully
+                    Thread.currentThread().interrupt();
+                    throw new IOException(e);
+                } catch (ExecutionException e) {
+                    throw Exceptions.rawIOException(e.getCause());
+                } catch (TimeoutException e) {
+                        /*
+                         * A TimeoutException just means that tickTime expired. That's okay, we just stick our
+                         * head up and make sure that the client is still operating
+                         */
+                }
+            }
+            errors = result.getResults();
+            String message = null;
+            if (errors == null || errors.size() == 0) {
+                message = String.format("Table '%s'.'%s' is consistent with its indexes.", schema, table);
+            }
+            else {
+                printErrorMessages(out, errors);
+                message = String.format("Found inconsistencies for table '%s'.'%s'. Check %s for details.", schema, table, outputFile);
+            }
+
+            EmbedConnection conn = (EmbedConnection)getDefaultConn();
+            List<ExecRow> rows = new ArrayList<>(1);
+            ExecRow row = new ValueRow(1);
+            row.setColumn(1, new SQLVarchar(message));
+            rows.add(row);
+
+            IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, new GenericColumnDescriptor[]{
+                    new GenericColumnDescriptor("RESULT", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120))},
+                    activation);
+            try {
+                resultsToWrap.openCore();
+            } catch (StandardException se) {
+                throw PublicAPI.wrapStandardException(se);
+            }
+            resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
+        }
+        finally {
+            if (out != null) {
+                out.close();
+                if (errors == null || errors.size() == 0) {
+                    fs.delete(new Path(outputFile), true);
+                }
+            }
+
+        }
+    }
+
+    private static void printErrorMessages(FSDataOutputStream out, Map<String, List<String>> errors) throws IOException {
+
+        for(Entry<String, List<String>> entry : errors.entrySet()) {
+            String index = entry.getKey();
+            List<String> messages = entry.getValue();
+
+            out.writeBytes(index + ":\n");
+            for (String message : messages) {
+                out.writeBytes("\t" + message + "\n");
+            }
+        }
+    }
 }

@@ -307,4 +307,6 @@ public interface SConfiguration {
     int getOlapServerTickLimit();
 
     long getControlExecutionRowLimit();
+
+    int getMaxCheckTableErrors();
 }
