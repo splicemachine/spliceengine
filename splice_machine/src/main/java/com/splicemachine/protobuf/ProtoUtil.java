@@ -78,11 +78,12 @@ public class ProtoUtil {
                 .build();
     }
 
-    public static DDLChange createGrantRevokeRole(long txnId, String roleName, String granteeName, boolean isGrant) {
+    public static DDLChange createGrantRevokeRole(long txnId, String roleName, String granteeName, String grantorName, boolean isGrant) {
         return DDLChange.newBuilder().setTxnId(txnId).setGrantRevokeRole(GrantRevokeRole.newBuilder()
                 .setType(isGrant?GrantRevokeRole.Type.GRANT_OP:GrantRevokeRole.Type.REVOKE_OP)
                 .setRoleName(roleName)
                 .setGranteeName(granteeName)
+                .setGrantorName(grantorName)
                 .build())
                 .setDdlChangeType(DDLChangeType.GRANT_REVOKE_ROLE)
                 .build();
