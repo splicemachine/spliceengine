@@ -59,8 +59,11 @@ public class RoutinePermsDescriptor extends PermissionsDescriptor
         this.hasExecutePermission = hasExecutePermission;
         //routineUUID can be null only if the constructor with routineePermsUUID
         //has been invoked.
-        if (routineUUID != null)
-        	routineName = dd.getAliasDescriptor(routineUUID).getObjectName();
+        if (routineUUID != null) {
+        	AliasDescriptor ad = dd.getAliasDescriptor(routineUUID);
+        	if (ad != null)
+        		routineName = ad.getObjectName();
+		}
 	}
 	
 	public RoutinePermsDescriptor( DataDictionary dd,
@@ -170,5 +173,9 @@ public class RoutinePermsDescriptor extends PermissionsDescriptor
 	{
         return getDependableFinder(
                 StoredFormatIds.ROUTINE_PERMISSION_FINDER_V01_ID);
+	}
+
+	public String getRoutineName() {
+		return routineName;
 	}
 }
