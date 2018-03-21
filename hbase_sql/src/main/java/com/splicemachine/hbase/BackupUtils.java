@@ -258,6 +258,13 @@ public class BackupUtils {
             if (LOG.isDebugEnabled()) {
                 SpliceLogUtils.debug(LOG, "Register %s for incrmental backup", p.toString());
             }
+            // For bulk load, multiple threads may see the same incremental changes and want to register it.
+            if (fs.exists(p)) {
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "HFile %s has already been registered for incremental backup", p.toString());
+                }
+                return;
+            }
             out = fs.create(p);
         }
         catch (Exception e) {
