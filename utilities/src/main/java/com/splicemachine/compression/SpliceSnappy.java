@@ -17,6 +17,7 @@ package com.splicemachine.compression;
 import java.io.File;
 import java.io.IOException;
 import org.apache.log4j.Logger;
+import org.xerial.snappy.OSInfo;
 import org.xerial.snappy.Snappy;
 
 public class SpliceSnappy {
@@ -30,6 +31,11 @@ public class SpliceSnappy {
             if (userDir != null && new File(userDir).exists()) {
                 System.setProperty("org.xerial.snappy.tempdir", userDir);
             }
+        }
+
+        // SPLICE-2115, workaround for snappy-java-1.0.4.1 on Mac
+        if (OSInfo.getOSName().equals("Mac")) {
+            System.setProperty("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");
         }
 
         try {
