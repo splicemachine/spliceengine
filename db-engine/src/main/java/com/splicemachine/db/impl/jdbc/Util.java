@@ -155,10 +155,9 @@ public abstract class Util  {
     		return;
     	}
     	ErrorStringBuilder	errorStringBuilder = new ErrorStringBuilder(errorStream.getHeader());
-    	errorStringBuilder.append("\nERROR " +  sqlstate + ": "  + se.getMessage() + "\n");
+    	errorStringBuilder.append("\nERROR " +  sqlstate + ": "  + se.getMessage());
     	errorStringBuilder.stackTrace(se);
-    	errorStream.print(errorStringBuilder.get().toString());
-    	errorStream.flush();
+    	errorStream.println(errorStringBuilder.get().toString());
     	errorStringBuilder.reset();
     }
 

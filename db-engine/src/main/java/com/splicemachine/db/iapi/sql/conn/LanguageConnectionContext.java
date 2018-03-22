@@ -82,11 +82,12 @@ public interface LanguageConnectionContext extends Context {
     public static final int USER_NAME_SCHEMA = 1; // User names are schema names.
     public static final int NO_SCHEMAS = 2; // Schemas not implemented.
 
-	/* String for logStatementText output */
-	public static final String xidStr = "(XID = ";
-	public static final String lccStr = "(SESSIONID = ";
-	public static final String dbnameStr = "(DATABASE = ";
-	public static final String drdaStr = "(DRDAID = ";
+	String xidStr = "(XID = ";
+	String lccStr = "(SESSIONID = ";
+	String dbnameStr = "(DATABASE = ";
+	String drdaStr = "(DRDAID = ";
+	String uuidStr = "(UUID = ";
+	String execStr = "(ENGINE = ";
 
 	// Lock Management
 
