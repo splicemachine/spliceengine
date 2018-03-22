@@ -35,68 +35,13 @@ operating environment, and are called out in detail in the
 
 Perform the following steps **on each node** in your cluster:
 
-1. Download the installer for your version.
+1.  install two splicemachine rpms using following command (take version 2.5.0.1811 for example) :
 
-    Which Splice Machine installer (gzip) package you need depends upon which Splice Machine version you're installing and which version of HDP you are using. Here are the URLs for Splice Machine Release 2.7 and 2.5:
+    ````
+    sudo rpm -ivh splicemachine_ambari_service-hdp2.6.3.2.5.0.1811.p0.647-1.noarch.rpm
+    sudo rpm -ivh splicemachine-hdp2.6.3.2.5.0.1811.p0.647-1.noarch.rpm
+    ````
 
-   <table>
-        <col />
-        <col />
-        <col />
-        <thead>
-            <tr>
-                <th>Splice Machine Release</th>
-                <th>HDP Version</th>
-                <th>Installer Package Link</th>
-            </tr>
-        </thead>
-        <tbody>
-               <tr>
-                   <td><strong>2.7</strong></td>
-                   <td><strong>2.5.5</strong></td>
-                   <td><a href="https://s3.console.aws.amazon.com/s3/object/splice-releases/2.6.1.1745/cluster/installer/hdp2.5.5/SPLICEMACHINE-2.6.1.1745.hdp2.5.5.p0.121.tar.gz">https://s3.console.aws.amazon.com/s3/object/splice-releases/2.6.1.1745/cluster/installer/hdp2.5.5/SPLICEMACHINE-2.6.1.1745.hdp2.5.5.p0.121.tar.gz</a></td>
-                </tr>
-               <tr>
-                   <td><strong>2.5</strong></td>
-                   <td><strong>2.5.5</strong></td>
-                   <td><a href="https://s3.amazonaws.com/splice-releases/2.5.0.1802/cluster/installer/hdp2.5.5/SPLICEMACHINE-2.5.0.1802.hdp2.5.5.p0.540.tar.gz">https://s3.amazonaws.com/splice-releases/2.5.0.1802/cluster/installer/hdp2.5.5/SPLICEMACHINE-2.5.0.1802.hdp2.5.5.p0.540.tar.gz</a></td>
-                </tr>
-        </tbody>
-   </table>
-
-   **NOTE:** To be sure that you have the latest URL, please check [the Splice
-   Machine Community site](https://community.splicemachine.com/) or contact your Splice
-   Machine representative.
-
-2. Create the `splice` installation directory:
-
-   ````
-   sudo mkdir -p /opt/splice
-   ````
-
-3. Download the Splice Machine package into the `splice` directory on
-    the node. For example:
-
-   ````
-   sudo curl '////SPLICEMACHINE-..' -o /opt/splice/SPLICEMACHINE-..
-   ````
-
-4. Extract the Splice Machine package:
-
-   ````
-   sudo tar -xf SPLICEMACHINE-.. --directory /opt/splice
-   ````
-
-5. Run our script as *root* user **on each
-   node<** in your cluster to add symbolic links to set up Splice
-   Machine jar script symbolic links
-
-   Issue this command **on each node** in
-    your cluster:
-
-   ````
-   sudo /opt/splice/default/scripts/install-splice-symlinks.sh
-   ````
 
 ## Stop Hadoop Services
 
@@ -212,15 +157,15 @@ To edit the YARN configuration, click `YARN` in the Ambari *Services* sidebar. T
     <tbody>
         <tr>
             <td><code>yarn.application.classpath </code></td>
-            <td><code>   $HADOOP_CONF_DIR,/usr/hdp/current/hadoop-client/*,/usr/hdp/current/hadoop-client/lib/*,/usr/hdp/current/hadoop-hdfs-client/*,/usr/hdp/current/hadoop-hdfs-client/lib/*,/usr/hdp/current/hadoop-yarn-client/*,/usr/hdp/current/hadoop-yarn-client/lib/*,/usr/hdp/current/hadoop-mapreduce-client/*,/usr/hdp/current/hadoop-mapreduce-client/lib/*,/usr/hdp/current/hbase-regionserver/*,/usr/hdp/current/hbase-regionserver/lib/*,/opt/splice/default/lib/*</code></td>
+            <td><code>   /var/lib/splicemachine/*,{{hadoop_home}}/conf,{{hadoop_home}}/*,{{hadoop_home}}/lib/*,/usr/hdp/current/hadoop-hdfs-client/*,/usr/hdp/current/hadoop-hdfs-client/lib/*,/usr/hdp/current/hadoop-yarn-client/*,/usr/hdp/current/hadoop-yarn-client/lib/*,/usr/hdp/current/ext/hadoop/*</code></td>
         </tr>
         <tr>
             <td><code>yarn.nodemanager.aux-services.spark2_shuffle.classpath</code></td>
-            <td><code>/opt/splice/default/lib/*</code></td>
+            <td><code>{{stack_root}}/${hdp.version}/spark2/aux/*</code></td>
         </tr>
         <tr>
             <td><code>yarn.nodemanager.aux-services.spark_shuffle.classpath</code></td>
-            <td><code>/opt/splice/default/lib/*</code></td>
+            <td><code>{{stack_root}}/${hdp.version}/spark/aux/*</code></td>
         </tr>
         <tr>
             <td><code>yarn.nodemanager.aux-services.spark2_shuffle.class</code></td>
