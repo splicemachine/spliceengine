@@ -65,12 +65,15 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
           HBASE_MASTER_OPTS = "export HBASE_MASTER_OPTS=\"${HBASE_MASTER_OPTS} -D"+ " -D".join(self.getMasterDashDProperties()) + \
               " -Dsplice.spark.executor.extraClassPath=" + executor_extraclasspath + \
               " -Dsplice.spark.jars=" + splice_spark_jars + "\""
+          HBASE_REGIONSERVER_OPTS = "export HBASE_REGIONSERVER_OPTS=\"${HBASE_REGIONSERVER_OPTS} -D"+ " -D".join(self.getRegionServerDashDProperties()) + "\""
           if "splicemachine" not in content:
             print "Updating Hbase Env Items"
             HBASE_CLASSPATH_PREFIX = "#Add Splice Jars to HBASE_PREFIX_CLASSPATH\n" + HBASE_CLASSPATH_PREFIX
-            HBASE_MASTER_OPTS = "Add Splice Specific Information to HBase Master\n" + HBASE_MASTER_OPTS
+            HBASE_MASTER_OPTS = "#Add Splice Specific Information to HBase Master\n" + HBASE_MASTER_OPTS
+            HBASE_REGIONSERVER_OPTS = "#Add Splice Specific Information to Region Server\n" + HBASE_REGIONSERVER_OPTS
             content = "\n\n".join((content, HBASE_CLASSPATH_PREFIX))
             content = "\n\n".join((content, HBASE_MASTER_OPTS))
+            content = "\n\n".join((content, HBASE_REGIONSERVER_OPTS))
             print "content: " + content
             putHbaseEnvProperty = self.putProperty(configurations, "hbase-env", services)
             putHbaseEnvProperty("content", content)
@@ -214,7 +217,6 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         "hbase.ipc.warn.response.size" : "-1",
         "hbase.ipc.warn.response.time" : "-1",
         "hbase.master.loadbalance.bytable" : "true",
-        "hbase.htable.threads.max" : "96",
         "hbase.regions.slop" : "0.01",
         "hbase.regionserver.global.memstore.size.lower.limit" : "0.9",
         "hbase.client.scanner.timeout.period" : "1200000",
@@ -298,3 +300,10 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
       ]
     return dashDProperties
 
+  def getRegionServerDashDProperties(self):
+    dashDProperties = [
+          "com.sun.management.jmxremote.authenticate=false",
+          "com.sun.management.jmxremote.ssl=false",
+          "com.sun.management.jmxremote.port=10102"
+      ]
+    return dashDProperties
