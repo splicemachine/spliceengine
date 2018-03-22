@@ -110,7 +110,8 @@ public class GenericPrivilegeInfo extends PrivilegeInfo
         String objectTypeName = _tupleDescriptor.getObjectTypeName();
 		List<PermissionsDescriptor> result = Lists.newArrayList();
 		// Check that the current user has permission to grant the privileges.
-		checkOwnership( currentUser, sd, dd );
+		String groupuser = lcc.getCurrentGroupUser(activation);
+		checkOwnership( currentUser, groupuser, sd, dd );
 		
 		DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 
