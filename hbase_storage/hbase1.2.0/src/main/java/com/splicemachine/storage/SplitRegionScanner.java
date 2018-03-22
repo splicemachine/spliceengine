@@ -215,8 +215,10 @@ public class SplitRegionScanner implements RegionScanner {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "createAndRegisterClientSideRegionScanner with table=%s, scan=%s, tableConfiguration=%s", table, newScan, table.getConfiguration());
         Configuration conf = table.getConfiguration();
-        if (System.getProperty("hbase.rootdir") != null)
+        if (System.getProperty("hbase.rootdir") != null) {
+            conf.set("hbase.rootdir", System.getProperty("hbase.rootdir"));
             jobConfig.set("hbase.rootdir", System.getProperty("hbase.rootdir"));
+        }
 
         SkeletonClientSideRegionScanner skeletonClientSideRegionScanner =
                 new HBase10ClientSideRegionScanner(table,
