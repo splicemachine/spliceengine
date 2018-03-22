@@ -33,6 +33,7 @@ hbase_sql/splicedb
 *.exe
 *.o
 *.so
+*.jnilib
  
 # Packages #
 ############
