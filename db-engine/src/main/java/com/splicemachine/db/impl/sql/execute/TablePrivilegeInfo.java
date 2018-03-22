@@ -86,9 +86,10 @@ public class TablePrivilegeInfo extends BasicPrivilegeInfo
         String currentUser = lcc.getCurrentUserId(activation);
 		TransactionController tc = lcc.getTransactionExecute();
 		SchemaDescriptor sd = td.getSchemaDescriptor();
+		String groupuser = lcc.getCurrentGroupUser(activation);
 		
 		// Check that the current user has permission to grant the privileges.
-		checkOwnership( currentUser, td, sd, dd, lcc, grant);
+		checkOwnership( currentUser, groupuser, td, sd, dd, lcc, grant);
 		
 		DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 

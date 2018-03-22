@@ -71,9 +71,10 @@ public class SchemaPrivilegeInfo extends BasicPrivilegeInfo
 		DataDictionary dd = lcc.getDataDictionary();
 		String currentUser = lcc.getCurrentUserId(activation);
 		TransactionController tc = lcc.getTransactionExecute();
+		String groupuser = lcc.getCurrentGroupUser(activation);
 
 		// Check that the current user has permission to grant the privileges.
-		checkOwnership( currentUser, sd, dd, lcc, grant);
+		checkOwnership( currentUser, groupuser, sd, dd, lcc, grant);
 
 		DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 		SchemaPermsDescriptor schemaPermsDesc =
