@@ -100,6 +100,11 @@ public class ForwardingLifecycleManager implements TxnLifecycleManager{
             lifecycleManager.enterRestoreMode();
         }
 
+		@Override
+		public boolean isRestoreNode() {
+			return lifecycleManager.isRestoreNode();
+		}
+
         @Override
 		public Txn elevateTransaction(Txn txn, byte[] destinationTable) throws IOException {
 				Txn txn1 = lifecycleManager.elevateTransaction(txn, destinationTable);
