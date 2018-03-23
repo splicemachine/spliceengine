@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.services.stream;
 
 import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 import com.splicemachine.db.iapi.services.stream.PrintWriterGetHeader;
+import org.apache.log4j.Logger;
 
 import java.io.PrintWriter;
 import java.io.Writer;
@@ -50,9 +51,9 @@ class BasicHeaderPrintWriter
 	extends PrintWriter
 	implements HeaderPrintWriter
 {
+	private static final Logger LOG = Logger.getLogger("splice-derby");
 
 	private final PrintWriterGetHeader headerGetter;
-	private final boolean canClose;
 	private final String name;
 
 	// constructors
@@ -71,7 +72,6 @@ class BasicHeaderPrintWriter
 			PrintWriterGetHeader headerGetter,  boolean canClose, String streamName){
 		super(writeTo, true);
 		this.headerGetter = headerGetter;
-		this.canClose = canClose;
 		this.name = streamName;
 	}
 
@@ -89,7 +89,6 @@ class BasicHeaderPrintWriter
 			PrintWriterGetHeader headerGetter, boolean canClose, String writerName){
 		super(writeTo, true);
 		this.headerGetter = headerGetter;
-		this.canClose = canClose;
 		this.name = writerName;
 	}
 
@@ -98,9 +97,8 @@ class BasicHeaderPrintWriter
 	 * come from the PrintWriter supertype).
 	 */
 	public synchronized void printlnWithHeader(String message)
-	{ 
-		print(headerGetter.getHeader());
-		println(message);
+	{
+		LOG.info(headerGetter.getHeader() + message);
 	}
 
 	public PrintWriterGetHeader getHeader()
@@ -116,16 +114,17 @@ class BasicHeaderPrintWriter
 		return name;
 	}
 
+	@Override
+	public void println(String message) {
+		LOG.info(message);
+	}
+
 	/**
 	 * Flushes stream, and optionally also closes it if constructed
 	 * with canClose equal to true.
 	 */
 
 	void complete() {
-		flush();
-		if (canClose) {
-			close();
-		}
 	}
 }
 

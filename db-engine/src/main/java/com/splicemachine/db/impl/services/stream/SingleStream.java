@@ -76,7 +76,7 @@ import com.splicemachine.db.shared.common.reference.MessageId;
  * remains stable in JDK1.1)
  *
  */
-public class SingleStream implements InfoStreams, ModuleControl, java.security.PrivilegedAction {
+public class SingleStream implements InfoStreams, ModuleControl {
 
 	/*
 	** Instance fields
@@ -173,62 +173,6 @@ public class SingleStream implements InfoStreams, ModuleControl, java.security.P
 		return null;
 	}
 
-	/**
-		Make a header print writer out of a file name. If it is a relative
-		path name then it is taken as relative to db.system.home if that is set,
-		otherwise relative to the current directory. If the path name is absolute
-		then it is taken as absolute.
-	*/
-	private HeaderPrintWriter PBmakeFileHPW(String fileName,
-											PrintWriterGetHeader header) {
-
-		boolean appendInfoLog = PropertyUtil.getSystemBoolean(Property.LOG_FILE_APPEND);
-
-		File streamFile = new File(fileName);
-
-		// See if this needs to be made relative to something ...
-		if (!streamFile.isAbsolute()) {
-			Object monitorEnv = Monitor.getMonitor().getEnvironment();
-			if (monitorEnv instanceof File)
-				streamFile = new File((File) monitorEnv, fileName);
-		}
-
-		boolean archived = archiveLogFileIfNeeded(streamFile);
-
-		FileOutputStream	fos;
-
-		try {
-			if (streamFile.exists() && appendInfoLog && !archived)
-				fos = new FileOutputStream(streamFile.getPath(), true);
-			else
-				fos = new FileOutputStream(streamFile);
-            FileUtil.limitAccessToOwner(streamFile);
-		} catch (IOException ioe) {
-			return useDefaultStream(header, ioe);
-		} catch (SecurityException se) {
-			return useDefaultStream(header, se);
-		}
-
-		return new BasicHeaderPrintWriter(new BufferedOutputStream(fos), header,
-			true, streamFile.getPath());
-	}
-
-	/**
-	 * Returns <code>true</code> if it was determined that the existing log file
-	 * should be archived and that this operation was successful. Otherwise,
-	 * returns <code>false</code>.
-	 */
-	protected boolean archiveLogFileIfNeeded(File logFile) {
-		// Default Derby behavior is to return false,
-		// which means we don't archive the log file,
-		// just truncate it or append to it depending
-		// on the configuration.
-		//
-		// This is generally only to be called as a hook
-		// from PBmakeFileHPW method.
-		return false;
-	}
-	
 	private HeaderPrintWriter makeMethodHPW(String methodInvocation,
 											PrintWriterGetHeader header) {
 
@@ -330,19 +274,7 @@ public class SingleStream implements InfoStreams, ModuleControl, java.security.P
 	private HeaderPrintWriter makeValueHPW(Member whereFrom, Object value,
 		PrintWriterGetHeader header, String name) {
 
-		if (value instanceof OutputStream)
-			 return new BasicHeaderPrintWriter((OutputStream) value, header, false, name);
-		else if (value instanceof Writer)
-			 return new BasicHeaderPrintWriter((Writer) value, header, false, name);
-		
-		HeaderPrintWriter hpw = useDefaultStream(header);
-
-		if (value == null)
-			hpw.printlnWithHeader(whereFrom.toString() + "=null");
-		else
-			hpw.printlnWithHeader(whereFrom.toString() + " instanceof " + value.getClass().getName());
-
-		return hpw;
+		return new BasicHeaderPrintWriter(System.err, header, false, name);
 	}
  
 
@@ -388,14 +320,7 @@ public class SingleStream implements InfoStreams, ModuleControl, java.security.P
     {
         this.PBfileName = fileName;
         this.PBheader = header;
-        return (HeaderPrintWriter) java.security.AccessController.doPrivileged(this);
-    }
-
-
-    public final Object run()
-    {
-        // SECURITY PERMISSION - OP4, OP5
-        return PBmakeFileHPW(PBfileName, PBheader);
+        return new BasicHeaderPrintWriter(System.err, header, false, fileName);
     }
 }
 
