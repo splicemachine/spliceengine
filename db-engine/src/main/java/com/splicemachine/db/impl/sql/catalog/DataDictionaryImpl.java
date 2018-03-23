@@ -10245,10 +10245,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     @Override
-    public void addBackupItem(TupleDescriptor descriptor, TransactionController tc) throws StandardException {
+    public void addBackupItems(TupleDescriptor[] descriptor, TransactionController tc) throws StandardException {
         TabInfoImpl ti=getNonCoreTI(SYSBACKUPITEMS_CATALOG_NUM);
-        ExecRow row = ti.getCatalogRowFactory().makeRow(descriptor, null);
-        int insertRetCode=ti.insertRow(row,tc);
+        ExecRow[] rows = new ValueRow[descriptor.length];
+        for (int i = 0; i < descriptor.length; ++i) {
+            rows[i] = ti.getCatalogRowFactory().makeRow(descriptor[i], null);
+        }
+
+        ti.insertRowList(rows,tc);
     }
 
     @Override
