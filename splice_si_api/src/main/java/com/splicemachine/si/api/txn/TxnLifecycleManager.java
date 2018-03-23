@@ -221,6 +221,4 @@ public interface TxnLifecycleManager{
      * Puts this manager into Restore Mode, which would be deactivated after a reboot
      */
     void enterRestoreMode();
-
-    boolean isRestoreNode();
 }
