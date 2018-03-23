@@ -47,6 +47,7 @@ import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
@@ -61,8 +62,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.spark_project.guava.collect.Lists;
@@ -81,6 +80,7 @@ import java.util.*;
 public class SpliceRegionAdmin {
 
     private static final Logger LOG=Logger.getLogger(SpliceRegionAdmin.class);
+    public static final String HBASE_DIR = "hbase.rootdir";
 
 
     /**
@@ -891,7 +891,7 @@ public class SpliceRegionAdmin {
 
     }
     private static Path getRegionPath(Configuration conf, String conglomId, String encodedName) throws IOException {
-        Path p = new Path(conf.get(HConstants.HBASE_DIR));
+        Path p = new Path(conf.get(HBASE_DIR));
         FileSystem fs = p.getFileSystem(conf);
         p =  p.makeQualified(fs);
         Path data = new Path(p, "data");
@@ -904,7 +904,7 @@ public class SpliceRegionAdmin {
     private static Path getTmpPath(Configuration conf,
                                              String conglomId,
                                              String encodedName) throws IOException {
-        Path p = new Path(conf.get(HConstants.HBASE_DIR));
+        Path p = new Path(conf.get(HBASE_DIR));
         FileSystem fs = p.getFileSystem(conf);
         p =  p.makeQualified(fs);
         Path tmp = new Path(p, ".tmp");

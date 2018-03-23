@@ -54,9 +54,6 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
-import org.apache.hadoop.hbase.util.Order;
-import org.apache.hadoop.hbase.util.OrderedBytes;
-import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
@@ -942,53 +939,6 @@ public final class SQLReal
 			isNull = false;
 			value = row.getFloat(ordinal);
 		}
-	}
-
-	/**
-	 *
-	 * Get Encoded Key Length.  if null then 1 else 5.
-	 *
-	 * @return
-	 * @throws StandardException
-     */
-	@Override
-	public int encodedKeyLength() throws StandardException {
-		return isNull()?1:5;
-	}
-
-	/**
-	 *
-	 * Encode into Key.
-	 *
-	 * @see OrderedBytes#encodeFloat32(PositionedByteRange, float, Order)
-	 *
-	 * @param src
-	 * @param order
-	 * @throws StandardException
-     */
-	@Override
-	public void encodeIntoKey(PositionedByteRange src, Order order) throws StandardException {
-		if (isNull())
-				OrderedBytes.encodeNull(src, order);
-		else
-			OrderedBytes.encodeFloat32(src, value, order);
-	}
-
-	/**
-	 *
-	 * Decode from Key.
-	 *
-	 * @see OrderedBytes#decodeFloat32(PositionedByteRange)
-	 *
-	 * @param src
-	 * @throws StandardException
-     */
-	@Override
-	public void decodeFromKey(PositionedByteRange src) throws StandardException {
-		if (OrderedBytes.isNull(src))
-				setToNull();
-		else
-			value = OrderedBytes.decodeFloat32(src);
 	}
 
 	@Override

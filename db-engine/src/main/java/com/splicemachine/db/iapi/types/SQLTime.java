@@ -54,9 +54,6 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
-import org.apache.hadoop.hbase.util.Order;
-import org.apache.hadoop.hbase.util.OrderedBytes;
-import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
@@ -1186,54 +1183,6 @@ public final class SQLTime extends DataType
 			isNull = false;
 			encodedTime = computeEncodedTime(row.getTimestamp(ordinal));
 			encodedTimeFraction = 0;
-		}
-	}
-
-	/**
-	 *
-	 * Get Encoded Key Length.  if null then 1 else 10.
-	 *
-	 * @return
-	 * @throws StandardException
-     */
-	@Override
-	public int encodedKeyLength() throws StandardException {
-		return isNull()?1:10;
-	}
-
-	/**
-	 *
-	 * Encode into key two int32s.
-	 *
-	 * @param src
-	 * @param order
-	 * @throws StandardException
-     */
-	@Override
-	public void encodeIntoKey(PositionedByteRange src, Order order) throws StandardException {
-		if (isNull())
-			OrderedBytes.encodeNull(src, order);
-		else {
-			OrderedBytes.encodeInt32(src, encodedTime, order);
-			OrderedBytes.encodeInt32(src, encodedTimeFraction, order);
-		}
-	}
-
-	/**
-	 *
-	 * Decode from key two int32s.
-	 *
-	 * @param src
-	 * @throws StandardException
-     */
-	@Override
-	public void decodeFromKey(PositionedByteRange src) throws StandardException {
-		if (OrderedBytes.isNull(src))
-			setToNull();
-		else {
-			encodedTime = OrderedBytes.decodeInt32(src);
-			encodedTimeFraction = OrderedBytes.decodeInt32(src);
-			setIsNull(false);
 		}
 	}
 

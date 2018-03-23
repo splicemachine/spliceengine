@@ -38,8 +38,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl;
 import com.yahoo.sketches.quantiles.ItemsSketch;
 import com.yahoo.sketches.theta.UpdateSketch;
-import org.apache.hadoop.hbase.util.Order;
-import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
@@ -445,21 +443,6 @@ public class StatsBoundaryDataValueDescriptor implements DataValueDescriptor {
     @Override
     public void read(Row row, int ordinal) throws StandardException {
         dvd.read(row,ordinal);
-    }
-
-    @Override
-    public int encodedKeyLength() throws StandardException {
-        return dvd.encodedKeyLength();
-    }
-
-    @Override
-    public void encodeIntoKey(PositionedByteRange builder, Order order) throws StandardException {
-        dvd.encodeIntoKey(builder,order);
-    }
-
-    @Override
-    public void decodeFromKey(PositionedByteRange builder) throws StandardException {
-        dvd.decodeFromKey(builder);
     }
 
     @Override

@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.storage;
 
 import java.io.*;
 import java.net.URI;
+import java.nio.file.StandardOpenOption;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -23,6 +24,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.splicemachine.access.api.DistributedFileSystem;
+import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -30,13 +33,12 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.pipeline.ErrorState;
+import com.splicemachine.primitives.Bytes;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Splitter;
 
@@ -107,10 +109,9 @@ public class TableSplit{
         ps.executeQuery();
         ps.close();
 
-        Configuration conf = HBaseConfiguration.create();
-        FileSystem fs = FileSystem.get(URI.create(tempDir), conf);
+        DistributedFileSystem fs = SIDriver.driver().getFileSystem(tempDir);
         Path filePath = new Path(tempDir, conglomId + "/keys");
-        FSDataInputStream in = fs.open(filePath);
+        InputStream in = fs.newInputStream(filePath.toString(), StandardOpenOption.READ);
         BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
         String splitKey = null;
         while((splitKey = br.readLine()) != null) {

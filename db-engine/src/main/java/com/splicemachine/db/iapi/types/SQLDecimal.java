@@ -48,9 +48,6 @@ import java.sql.*;
 
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
-import org.apache.hadoop.hbase.util.Order;
-import org.apache.hadoop.hbase.util.OrderedBytes;
-import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
@@ -1200,54 +1197,6 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 			isNull = false;
 			value = unsafeRow.getDecimal(ordinal, precision, scale).toJavaBigDecimal();
 		}
-	}
-
-	/**
-	 *
-	 * TODO JL: This is not accurate...
-	 *
-	 * @return
-	 * @throws StandardException
-     */
-	@Override
-	public int encodedKeyLength() throws StandardException {
-//		throw new RuntimeException("not implemented correctly");
-		return 33;
-	}
-
-	/**
-	 *
-	 * Encode into Key
-	 *
-	 * @see OrderedBytes#encodeNumeric(PositionedByteRange, BigDecimal, Order)
-	 *
-	 * @param src
-	 * @param order
-	 * @throws StandardException
-     */
-	@Override
-	public void encodeIntoKey(PositionedByteRange src, Order order) throws StandardException {
-		if (isNull())
-				OrderedBytes.encodeNull(src, order);
-		else
-			OrderedBytes.encodeNumeric(src, value, order);
-	}
-
-	/**
-	 *
-	 * Decode from Key
-	 *
-	 * @see OrderedBytes#decodeNumericAsBigDecimal(PositionedByteRange)
-	 *
-	 * @param src
-	 * @throws StandardException
-     */
-	@Override
-	public void decodeFromKey(PositionedByteRange src) throws StandardException {
-		if (OrderedBytes.isNull(src))
-				setToNull();
-		else
-			value = OrderedBytes.decodeNumericAsBigDecimal(src);
 	}
 
 	/**
