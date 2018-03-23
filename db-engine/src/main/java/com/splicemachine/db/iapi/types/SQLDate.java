@@ -41,9 +41,6 @@ import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.yahoo.sketches.theta.UpdateSketch;
-import org.apache.hadoop.hbase.util.Order;
-import org.apache.hadoop.hbase.util.OrderedBytes;
-import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
@@ -1382,56 +1379,6 @@ public final class SQLDate extends DataType
 			isNull = false;
 		}
 	}
-
-
-
-	/**
-	 *
-	 * Get the encoded key length.  1 if null else 5.
-	 *
-	 * @return
-	 * @throws StandardException
-     */
-	@Override
-	public int encodedKeyLength() throws StandardException {
-		return isNull()?1:5;
-	}
-
-	/**
-	 *
-	 * Encode into a key
-	 *
-	 * @see OrderedBytes#encodeInt32(PositionedByteRange, int, Order)
-	 *
-	 * @param src
-	 * @param order
-	 * @throws StandardException
-     */
-	@Override
-	public void encodeIntoKey(PositionedByteRange src, Order order) throws StandardException {
-		if (isNull())
-			OrderedBytes.encodeNull(src, order);
-		else
-			OrderedBytes.encodeInt32(src, encodedDate, order);
-		}
-
-	/**
-	 *
-	 * Decode from a key
-	 *
-	 * @see OrderedBytes#decodeInt32(PositionedByteRange)
-	 *
- 	 * @param src
-	 * @throws StandardException
-     */
-	@Override
-	public void decodeFromKey(PositionedByteRange src) throws StandardException {
-		if (OrderedBytes.isNull(src))
-			setToNull();
-		else
-			encodedDate = OrderedBytes.decodeInt32(src);
-			setIsNull(false);
-		}
 
 	@Override
 	public StructField getStructField(String columnName) {

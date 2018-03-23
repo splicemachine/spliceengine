@@ -51,9 +51,6 @@ import java.util.Calendar;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.commons.lang.SerializationUtils;
-import org.apache.hadoop.hbase.util.Order;
-import org.apache.hadoop.hbase.util.OrderedBytes;
-import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
@@ -703,53 +700,6 @@ public class UserType extends DataType
 			isNull = false;
 			value = row.get(ordinal);
 		}
-	}
-
-	/**
-	 *
-	 * Get Key length.  TODO JL.
-	 *
-	 * @return
-	 * @throws StandardException
-     */
-	@Override
-	public int encodedKeyLength() throws StandardException {
-		return isNull()?1:SerializationUtils.serialize((Serializable)value).length;
-	}
-
-	/**
-	 *
-	 * Encode into Key
-	 *
-	 * @see OrderedBytes#encodeBlobVar(PositionedByteRange, byte[], Order)
-	 *
-	 * @param src
-	 * @param order
-	 * @throws StandardException
-     */
-	@Override
-	public void encodeIntoKey(PositionedByteRange src, Order order) throws StandardException {
-		if (isNull())
-			OrderedBytes.encodeNull(src, order);
-		else
-			OrderedBytes.encodeBlobVar(src, SerializationUtils.serialize((Serializable)value), order);
-	}
-
-	/**
-	 *
-	 * Decode from Key
-	 *
-	 * @see OrderedBytes#decodeBlobVar(PositionedByteRange)
-	 *
-	 * @param src
-	 * @throws StandardException
-     */
-	@Override
-	public void decodeFromKey(PositionedByteRange src) throws StandardException {
-		if (OrderedBytes.isNull(src))
-			setToNull();
-		else
-			value = SerializationUtils.deserialize(OrderedBytes.decodeBlobVar(src));
 	}
 
 	@Override

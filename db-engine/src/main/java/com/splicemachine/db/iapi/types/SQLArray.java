@@ -33,8 +33,6 @@ import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
-import org.apache.hadoop.hbase.util.Order;
-import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
@@ -486,42 +484,6 @@ public class SQLArray extends DataType implements ArrayDataValue {
 		}
 	}
 
-	/**
-	 *
-	 * This calls the references encodedKeyLength method.
-	 *
-	 * @return
-	 * @throws StandardException
-     */
-	@Override
-	public int encodedKeyLength() throws StandardException {
-		throw new UnsupportedOperationException("Cannot index arrays");
-	}
-
-	/**
-	 *
-	 * This calls the references underlying encodeIntoKey
-	 *
-	 * @param src
-	 * @param order
-	 * @throws StandardException
-     */
-	@Override
-	public void encodeIntoKey(PositionedByteRange src, Order order) throws StandardException {
-		throw new UnsupportedOperationException("Cannot index arrays");
-	}
-
-	/**
-	 *
-	 * This calls the references underlying decodeFromKey method.
-	 *
-	 * @param src
-	 * @throws StandardException
-     */
-	@Override
-	public void decodeFromKey(PositionedByteRange src) throws StandardException {
-		throw new UnsupportedOperationException("Cannot index arrays");
-	}
 
 	@Override
 	public StructField getStructField(String columnName) {

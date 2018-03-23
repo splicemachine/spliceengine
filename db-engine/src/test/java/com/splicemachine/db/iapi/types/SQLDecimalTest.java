@@ -34,10 +34,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Order;
-import org.apache.hadoop.hbase.util.PositionedByteRange;
-import org.apache.hadoop.hbase.util.SimplePositionedMutableByteRange;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
@@ -97,30 +93,7 @@ public class SQLDecimalTest extends SQLDataValueDescriptorTest {
                 value.read(row, 0);
                 Assert.assertTrue("SerdeIncorrect", valueA.isNull());
             }
-        // TODO
-        @Test
-        @Ignore
-        public void serdeKeyData() throws Exception {
-                SQLDecimal value1 = new SQLDecimal(new BigDecimal(100.0d));
-                SQLDecimal value2 = new SQLDecimal(new BigDecimal(200.0d));
-                SQLDecimal value1a = new SQLDecimal();
-                value1a.setPrecision(value1.getPrecision());
-                value1a.setScale(value1.getScale());
-                SQLDecimal value2a = new SQLDecimal();
-                value2a.setPrecision(value2.getPrecision());
-                value2a.setScale(value2.getScale());
-                PositionedByteRange range1 = new SimplePositionedMutableByteRange(value1.encodedKeyLength());
-                PositionedByteRange range2 = new SimplePositionedMutableByteRange(value2.encodedKeyLength());
-                value1.encodeIntoKey(range1, Order.ASCENDING);
-                value2.encodeIntoKey(range2, Order.ASCENDING);
-                Assert.assertTrue("Positioning is Incorrect", Bytes.compareTo(range1.getBytes(), 0, 9, range2.getBytes(), 0, 9) < 0);
-                range1.setPosition(0);
-                range2.setPosition(0);
-                value1a.decodeFromKey(range1);
-                value2a.decodeFromKey(range2);
-                Assert.assertEquals("1 incorrect",value1.getBigDecimal().doubleValue(),value1a.getBigDecimal().doubleValue(),0.1d);
-                Assert.assertEquals("2 incorrect",value2.getBigDecimal().doubleValue(),value2a.getBigDecimal().doubleValue(),0.1d);
-        }
+
 
         @Test
         public void testColumnStatistics() throws Exception {

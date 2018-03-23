@@ -905,4 +905,12 @@ public class Bytes {
         return b[offset] != (byte) 0;
     }
 
+    /**
+     * @param left left operand
+     * @param right right operand
+     * @return 0 if equal, &lt; 0 if left is less than right, etc.
+     */
+    public static int compareTo(byte[] left, byte[] right) {
+        return compareBytes(false, left, right);
+    }
 }

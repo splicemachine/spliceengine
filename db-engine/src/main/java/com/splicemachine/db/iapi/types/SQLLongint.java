@@ -53,9 +53,6 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
-import org.apache.hadoop.hbase.util.Order;
-import org.apache.hadoop.hbase.util.OrderedBytes;
-import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
@@ -969,28 +966,6 @@ public final class SQLLongint extends NumberDataType {
 			isNull = false;
 			value = row.getLong(ordinal);
 		}
-	}
-
-
-	@Override
-	public int encodedKeyLength() throws StandardException {
-		return isNull()?1:9;
-	}
-
-	@Override
-	public void encodeIntoKey(PositionedByteRange src, Order order) throws StandardException {
-		if (isNull())
-			OrderedBytes.encodeNull(src,order);
-		else
-			OrderedBytes.encodeInt64(src, value, order);
-	}
-
-			@Override
-	public void decodeFromKey(PositionedByteRange src) throws StandardException {
-		if (OrderedBytes.isNull(src))
-				setToNull();
-		else
-			value = OrderedBytes.decodeInt64(src);
 	}
 
 	@Override
