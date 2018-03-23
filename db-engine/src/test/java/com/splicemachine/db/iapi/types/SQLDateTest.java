@@ -32,10 +32,6 @@ package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Order;
-import org.apache.hadoop.hbase.util.PositionedByteRange;
-import org.apache.hadoop.hbase.util.SimplePositionedMutableByteRange;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
@@ -79,27 +75,6 @@ public class SQLDateTest extends SQLDataValueDescriptorTest {
                 value.read(row, 0);
                 Assert.assertTrue("SerdeIncorrect", valueA.isNull());
             }
-    
-        @Test
-        public void serdeKeyData() throws Exception {
-                GregorianCalendar gc = new GregorianCalendar();
-                SQLDate value1 = new SQLDate(new Date(97,9,7));
-                SQLDate value2 = new SQLDate(new Date(97,10,7));
-                SQLDate value1a = new SQLDate();
-                SQLDate value2a = new SQLDate();
-                PositionedByteRange range1 = new SimplePositionedMutableByteRange(value1.encodedKeyLength());
-                PositionedByteRange range2 = new SimplePositionedMutableByteRange(value2.encodedKeyLength());
-                value1.encodeIntoKey(range1, Order.ASCENDING);
-                value2.encodeIntoKey(range2, Order.ASCENDING);
-                Assert.assertTrue("Positioning is Incorrect", Bytes.compareTo(range1.getBytes(), 0, 9, range2.getBytes(), 0, 9) < 0);
-                range1.setPosition(0);
-                range2.setPosition(0);
-                value1a.decodeFromKey(range1);
-                value2a.decodeFromKey(range2);
-                Assert.assertEquals("1 incorrect",value1.getDate(gc),value1a.getDate(gc));
-                Assert.assertEquals("2 incorrect",value2.getDate(gc),value2a.getDate(gc));
-        }
-
 
         @Test
         public void testArray() throws Exception {

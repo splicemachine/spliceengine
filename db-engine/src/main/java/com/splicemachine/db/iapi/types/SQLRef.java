@@ -45,9 +45,6 @@ import java.sql.PreparedStatement;
 import java.sql.RowId;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
-import org.apache.hadoop.hbase.util.Order;
-import org.apache.hadoop.hbase.util.OrderedBytes;
-import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
@@ -363,50 +360,6 @@ public class SQLRef extends DataType implements RefDataValue {
 		value.read(row,ordinal);
 	}
 
-	/**
-	 *
-	 * This calls the references encodedKeyLength method.
-	 *
-	 * @return
-	 * @throws StandardException
-     */
-	@Override
-	public int encodedKeyLength() throws StandardException {
-		return isNull()?1:value.encodedKeyLength(); // Order Does Not Matter for Length
-	}
-
-	/**
-	 *
-	 * This calls the references underlying encodeIntoKey
-	 *
-	 * @param src
-	 * @param order
-	 * @throws StandardException
-     */
-	@Override
-	public void encodeIntoKey(PositionedByteRange src, Order order) throws StandardException {
-		if (isNull())
-				OrderedBytes.encodeNull(src, order);
-		else
-			value.encodeIntoKey(src,order);
-	}
-
-	/**
-	 *
-	 * This calls the references underlying decodeFromKey method.
-	 *
-	 * @param src
-	 * @throws StandardException
-     */
-	@Override
-	public void decodeFromKey(PositionedByteRange src) throws StandardException {
-		if (OrderedBytes.isNull(src))
-				setToNull();
-		else
-		if (value==null)
-				value = new SQLRowId();
-		value.decodeFromKey(src);
-	}
 
 	@Override
 	public StructField getStructField(String columnName) {
