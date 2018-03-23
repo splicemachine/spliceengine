@@ -49,9 +49,6 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.xerial.snappy</groupId>
-            <artifactId>snappy-java</artifactId>
-            <version>1.1.2.4</version>
         </dependency>
     </dependencies>
     <build>
