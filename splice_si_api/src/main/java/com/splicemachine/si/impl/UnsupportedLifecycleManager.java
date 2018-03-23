@@ -99,4 +99,9 @@ public class UnsupportedLifecycleManager implements TxnLifecycleManager {
         public void enterRestoreMode() {
             throw new UnsupportedOperationException("Cannot enter restore mode from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
         }
+
+		@Override
+		public boolean isRestoreNode() {
+			throw new UnsupportedOperationException("Cannot return restore mode from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
+		}
 }

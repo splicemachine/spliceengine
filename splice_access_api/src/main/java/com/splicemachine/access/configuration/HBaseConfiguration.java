@@ -46,6 +46,7 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String HBASE_SECURITY_AUTHORIZATION = "hbase_security_authorization";
     public static final String DEFAULT_HBASE_SECURITY_AUTHORIZATION = "simple";
 
+    public static final byte[] BULKLOAD_TASK_KEY = Bytes.toBytes("SPLICE_BULKLOAD_SOURCE_TASK");
 
     /**
      * Path in Zookeeper for storing ongoing backup
