@@ -17,7 +17,6 @@ package com.splicemachine.db.impl.drda;
 
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.sun.security.jgss.GSSUtil;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSName;
@@ -41,7 +40,7 @@ public class RemoteUserKerberos implements RemoteUser {
             GSSName clientName = clientCr.getName(); 
             Subject subject = GSSUtil.createSubject(clientName, clientCr);
             String databaseURL = String.format("jdbc:splice://%s/splicedb;principal=%s",hostname, clientName.toString());
-            return UserGroupInformation.getUGIFromSubject(subject).doAs(
+            return UserManagerService.loadPropertyManager().getUserFromSubject(subject).doAs(
                     (PrivilegedExceptionAction<Connection>) () -> DriverManager.getConnection(databaseURL));
         } catch (Exception e) {
             throw new SQLException(SQLState.AUTH_ERROR_KERBEROS_CLIENT,

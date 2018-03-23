@@ -14,9 +14,6 @@
  */
 package com.splicemachine.db.iapi.types;
 
-import org.apache.hadoop.hbase.util.Order;
-import org.apache.hadoop.hbase.util.PositionedByteRange;
-import org.apache.hadoop.hbase.util.SimplePositionedMutableByteRange;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
@@ -43,12 +40,5 @@ public class SQLArrayTest extends SQLDataValueDescriptorTest {
                 value.read(row, 0);
                 Assert.assertTrue("SerdeIncorrect", valueA.isNull());
         }
-    
-        @Test (expected = Exception.class)
-        public void serdeKeyData() throws Exception {
-                SQLArray value = new SQLArray();
-                value.setValue(new DataValueDescriptor[] {new SQLInteger(23),new SQLInteger(48), new SQLInteger(10)});
-                PositionedByteRange range1 = new SimplePositionedMutableByteRange(value.encodedKeyLength());
-                value.encodeIntoKey(range1, Order.ASCENDING);
-        }
+
 }
