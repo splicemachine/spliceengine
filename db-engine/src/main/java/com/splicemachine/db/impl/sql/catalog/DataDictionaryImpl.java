@@ -8155,7 +8155,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         RoutinePermsDescriptor routinePermDesc=
                 new RoutinePermsDescriptor(this,"PUBLIC",authorizationID,routineUUID);
 
-        addDescriptor(routinePermDesc,null,DataDictionary.SYSROUTINEPERMS_CATALOG_NUM,false,tc);
+        // add if this permission has not been granted before
+        if (getUncachedRoutinePermsDescriptor(routinePermDesc) == null)
+            addDescriptor(routinePermDesc,null,DataDictionary.SYSROUTINEPERMS_CATALOG_NUM,false,tc);
     }
 
     /**
@@ -9316,6 +9318,15 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return getUncachedRoutinePermsDescriptor(key);
     }
 
+    @Override
+    public RoutinePermsDescriptor getRoutinePermissions(UUID routineUUID,
+                                                 List<RoutinePermsDescriptor> permsList) throws StandardException{
+        RoutinePermsDescriptor key=new RoutinePermsDescriptor(this,null,null,routineUUID);
+        TabInfoImpl ti=getNonCoreTI(SYSROUTINEPERMS_CATALOG_NUM);
+        PermissionsCatalogRowFactory rowFactory=(PermissionsCatalogRowFactory)ti.getCatalogRowFactory();
+        ExecIndexRow keyRow=rowFactory.buildIndexKeyRow(SYSROUTINEPERMSRowFactory.ALIASID_INDEX_NUM,key);
+        return (RoutinePermsDescriptor)getDescriptorViaIndex(SYSROUTINEPERMSRowFactory.ALIASID_INDEX_NUM,keyRow,null,ti,null,permsList,false);
+    } // end of getRoutinePermissions
     /**
      * Add or remove a permission to/from the permission database.
      *
@@ -9514,7 +9525,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         ExecIndexRow keyRow=rowFactory.buildIndexKeyRow(indexNumber,key);
         return getDescriptorViaIndex(indexNumber,keyRow,null,ti,null,null,false);
     } // end of getUncachedPermissionsDescriptor
-
     /**
      * Get a routine permissions descriptor from the system tables, without going through the cache.
      * This method is called to fill the permissions cache.

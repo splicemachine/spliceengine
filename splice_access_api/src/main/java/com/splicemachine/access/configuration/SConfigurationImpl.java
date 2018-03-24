@@ -54,6 +54,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  String authenticationLdapSearchbase;
     private final  String authenticationLdapSearchfilter;
     private final  String authenticationLdapServer;
+    private final  String authenticationLdapMapGroupAttr;
     private final  String authenticationNativeAlgorithm;
 
     // DDLConfiguration
@@ -236,6 +237,8 @@ public final class SConfigurationImpl implements SConfiguration {
     public String getAuthenticationLdapServer() {
         return authenticationLdapServer;
     }
+    @Override
+    public String getAuthenticationLdapMapGroupAttr() { return authenticationLdapMapGroupAttr; }
     @Override
     public String getAuthenticationNativeAlgorithm() {
         return authenticationNativeAlgorithm;
@@ -696,6 +699,7 @@ public final class SConfigurationImpl implements SConfiguration {
         authenticationLdapSearchbase = builder.authenticationLdapSearchbase;
         authenticationLdapSearchfilter = builder.authenticationLdapSearchfilter;
         authenticationLdapServer = builder.authenticationLdapServer;
+        authenticationLdapMapGroupAttr = builder.authenticationLdapMapGroupAttr;
         authenticationNativeAlgorithm = builder.authenticationNativeAlgorithm;
         fallbackNullFraction = builder.fallbackNullFraction;
         optimizerExtraQualifierMultiplier = builder.optimizerExtraQualifierMultiplier;

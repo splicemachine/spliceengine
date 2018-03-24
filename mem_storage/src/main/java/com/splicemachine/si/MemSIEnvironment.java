@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.splicemachine.access.api.DistributedFileSystem;
+import com.splicemachine.access.api.FilesystemAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.ServiceDiscovery;
@@ -189,6 +190,11 @@ public class MemSIEnvironment implements SIEnvironment{
     @Override
     public ClusterHealth clusterHealthFactory() {
         return new MClusterHealth();
+    }
+
+    @Override
+    public FilesystemAdmin filesystemAdmin() {
+        throw new UnsupportedOperationException("Operation not supported in Mem profile");
     }
 
 }

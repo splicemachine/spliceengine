@@ -88,6 +88,7 @@ public abstract class BasicPrivilegeInfo extends PrivilegeInfo {
 	 * There is some specific logic to determine the schema depending
 	 * of the nature of the table
 	 * @param user
+	 * @param groupuser
 	 * @param td
 	 * @param sd
 	 * @param dd
@@ -96,17 +97,18 @@ public abstract class BasicPrivilegeInfo extends PrivilegeInfo {
 	 * @throws StandardException
 	 */
 	protected void checkOwnership(String user,
+								  String groupuser,
 								  TableDescriptor td,
 								  SchemaDescriptor sd,
 								  DataDictionary dd,
 								  LanguageConnectionContext lcc,
 								  boolean grant)
 			throws StandardException {
-		super.checkOwnership(user, sd, dd);
+		super.checkOwnership(user, groupuser, sd, dd);
 
 		// additional check specific to this subclass
 		if (grant) {
-			checkPrivileges(user, td, sd, dd, lcc);
+			checkPrivileges(user, groupuser, td, sd, dd, lcc);
 		}
 	}
 
@@ -117,6 +119,7 @@ public abstract class BasicPrivilegeInfo extends PrivilegeInfo {
 	 *
 	 * Basically the same but we set the table descriptor to null
 	 * @param user
+	 * @param groupuser
 	 * @param sd
 	 * @param dd
 	 * @param lcc
@@ -125,12 +128,13 @@ public abstract class BasicPrivilegeInfo extends PrivilegeInfo {
 	 */
 
 	protected void checkOwnership(String user,
+								  String groupuser,
 								  SchemaDescriptor sd,
 								  DataDictionary dd,
 								  LanguageConnectionContext lcc,
 								  boolean grant)
 			throws StandardException{
-		checkOwnership(user,null,sd,dd,lcc,grant);
+		checkOwnership(user, groupuser,null,sd,dd,lcc,grant);
 	}
 
 
@@ -143,6 +147,7 @@ public abstract class BasicPrivilegeInfo extends PrivilegeInfo {
 	 * be called if it is a GRANT.
 	 *
 	 * @param user authorizationId of current user
+	 * @param groupuser groupId of current user
 	 * @param td   TableDescriptor to be checked against
 	 * @param sd   SchemaDescriptor
 	 * @param dd   DataDictionary
@@ -150,12 +155,15 @@ public abstract class BasicPrivilegeInfo extends PrivilegeInfo {
 	 * @throws StandardException if user does not have permission to grant
 	 */
 	protected void checkPrivileges(String user,
+								   String groupuser,
 								   TableDescriptor td,
 								   SchemaDescriptor sd,
 								   DataDictionary dd,
 								   LanguageConnectionContext lcc)
 			throws StandardException {
 		if (user.equals(dd.getAuthorizationDatabaseOwner())) return;
+		if (groupuser != null && groupuser.equals(dd.getAuthorizationDatabaseOwner()))
+			return;
 
 		if (td == null) return;
 		//  check view specific
