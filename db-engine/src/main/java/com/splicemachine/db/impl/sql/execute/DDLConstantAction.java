@@ -320,12 +320,13 @@ public abstract class DDLConstantAction implements ConstantAction
 		DependencyManager dm = dd.getDependencyManager();
 		String dbo = dd.getAuthorizationDatabaseOwner();
         String currentUser = lcc.getCurrentUserId(activation);
+        String groupuser = lcc.getCurrentGroupUser(activation);
 		SettableBoolean roleDepAdded = new SettableBoolean();
 
 		//If the Database Owner is creating this constraint, then no need to 
 		//collect any privilege dependencies because the Database Owner can   
 		//access any objects without any restrictions
-        if (! currentUser.equals( dd.getAuthorizationDatabaseOwner()) )
+        if (! (currentUser.equals(dbo) || (groupuser != null && groupuser.equals(dbo))))
 		{
 			PermissionsDescriptor permDesc;
 			// Now, it is time to add into dependency system the FOREIGN
