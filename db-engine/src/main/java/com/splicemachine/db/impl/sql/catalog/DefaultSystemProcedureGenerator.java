@@ -97,7 +97,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                 //free null check plus cast protection
                 if(n instanceof Procedure){
                     Procedure procedure = (Procedure)n;
-                    newlyCreatedRoutines.add(procedure.createSystemProcedure(uuid,dictionary,tc).getAliasInfo());
+                    newlyCreatedRoutines.add(procedure.createSystemProcedure(uuid,dictionary,tc).getAliasInfo().getMethodName());
                 }
             }
         }
@@ -139,7 +139,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     	if (procedure == null) {
     		throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
     	} else {
-    		newlyCreatedRoutines.add(procedure.createSystemProcedure(schemaId, dictionary, tc).getAliasInfo());
+    		newlyCreatedRoutines.add(procedure.createSystemProcedure(schemaId, dictionary, tc).getAliasInfo().getMethodName());
     	}
     }
 
@@ -232,7 +232,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     		throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
     	} else {
     		AliasDescriptor newAliasDescriptor = procedure.createSystemProcedure(schemaId, dictionary, tc);
-    		newlyCreatedRoutines.add(newAliasDescriptor.getAliasInfo());
+    		newlyCreatedRoutines.add(newAliasDescriptor.getAliasInfo().getMethodName());
 
     		// drop permission with old aliasInfo and re-populate with the new AliasInfo
 			for (RoutinePermsDescriptor perm : permsList) {

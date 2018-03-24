@@ -1082,7 +1082,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     // remove rows in sysroutineperms whose aliasid are no longer valid
     public void cleanSysRoutinePerms(TransactionController tc) throws StandardException {
         // scan the sysroutineperms table
-        TabInfoImpl ti = getNonCoreTIByNumber(SYSROUTINEPERMS_CATALOG_NUM);
+        TabInfoImpl ti = getNonCoreTI(SYSROUTINEPERMS_CATALOG_NUM);
         SYSROUTINEPERMSRowFactory rf=(SYSROUTINEPERMSRowFactory)ti.getCatalogRowFactory();
         ExecRow outRow = rf.makeEmptyRow();
         ScanController scanController=tc.openScan(

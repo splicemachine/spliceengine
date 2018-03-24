@@ -8155,7 +8155,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         RoutinePermsDescriptor routinePermDesc=
                 new RoutinePermsDescriptor(this,"PUBLIC",authorizationID,routineUUID);
 
-        addDescriptor(routinePermDesc,null,DataDictionary.SYSROUTINEPERMS_CATALOG_NUM,false,tc);
+        // add if this permission has not been granted before
+        if (getUncachedRoutinePermsDescriptor(routinePermDesc) == null)
+            addDescriptor(routinePermDesc,null,DataDictionary.SYSROUTINEPERMS_CATALOG_NUM,false,tc);
     }
 
     /**
