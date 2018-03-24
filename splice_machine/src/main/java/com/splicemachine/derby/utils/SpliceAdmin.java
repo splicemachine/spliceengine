@@ -1546,7 +1546,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
         LanguageConnectionContext lcc = conn.getLanguageConnection();
         Activation lastActivation = conn.getLanguageConnection().getLastActivation();
         String userId = lastActivation.getLanguageConnectionContext().getCurrentUserId(lastActivation);
-        if (userId.equals(lastActivation.getLanguageConnectionContext().getDataDictionary().getAuthorizationDatabaseOwner())) {
+        String groupuser = lastActivation.getLanguageConnectionContext().getCurrentUserId(lastActivation);
+        String dbo = lastActivation.getLanguageConnectionContext().getDataDictionary().getAuthorizationDatabaseOwner();
+        if (userId.equals(dbo) || (groupuser != null && groupuser.equals(dbo))) {
             userId = null;
         }
 
