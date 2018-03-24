@@ -1138,7 +1138,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
         if (dd.usesSqlAuthorization()) {
             String databaseOwner = dd.getAuthorizationDatabaseOwner();
             String currentUser = lcc.getStatementContext().getSQLSessionContext().getCurrentUser();
-            if (!databaseOwner.equals(currentUser)) {
+            String groupUser = lcc.getStatementContext().getSQLSessionContext().getCurrentGroupUser();
+            if (!(databaseOwner.equals(currentUser) || databaseOwner.equals(groupUser))) {
                 throw StandardException.newException(SQLState.DBO_ONLY);
             }
         }
@@ -1575,7 +1576,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
         LanguageConnectionContext lcc = conn.getLanguageConnection();
         Activation lastActivation = conn.getLanguageConnection().getLastActivation();
         String userId = lastActivation.getLanguageConnectionContext().getCurrentUserId(lastActivation);
-        if (userId.equals(lastActivation.getLanguageConnectionContext().getDataDictionary().getAuthorizationDatabaseOwner())) {
+        String groupuser = lastActivation.getLanguageConnectionContext().getCurrentUserId(lastActivation);
+        String dbo = lastActivation.getLanguageConnectionContext().getDataDictionary().getAuthorizationDatabaseOwner();
+        if (userId.equals(dbo) || (groupuser != null && groupuser.equals(dbo))) {
             userId = null;
         }
 
