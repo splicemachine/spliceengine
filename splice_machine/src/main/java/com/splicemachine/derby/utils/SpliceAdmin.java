@@ -14,37 +14,18 @@
 
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.access.util.NetworkUtils;
-import com.splicemachine.db.catalog.SystemProcedures;
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.impl.drda.RemoteUser;
-import com.splicemachine.db.impl.services.uuid.BasicUUID;
-import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
-import com.splicemachine.db.impl.sql.catalog.ManagedCacheMBean;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.iapi.sql.execute.RunningOperation;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.hbase.JMXThreadPool;
-import com.splicemachine.hbase.jmx.JMXUtils;
-import com.splicemachine.protobuf.ProtoUtil;
-import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.storage.DataMutation;
-import com.splicemachine.utils.Pair;
-import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.commons.codec.DecoderException;
-import org.apache.commons.codec.binary.Hex;
-import org.joda.time.DateTime;
-import org.spark_project.guava.collect.Lists;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DatabaseVersion;
+import com.splicemachine.access.api.FilesystemAdmin;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.SQLConfiguration;
+import com.splicemachine.access.util.NetworkUtils;
+import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.monitor.ModuleFactory;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
@@ -52,42 +33,94 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.*;
-import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SnapshotDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SourceCodeDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.StatementTablePermission;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLBlob;
+import com.splicemachine.db.iapi.types.SQLBoolean;
+import com.splicemachine.db.iapi.types.SQLChar;
+import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.iapi.types.SQLLongint;
+import com.splicemachine.db.iapi.types.SQLReal;
+import com.splicemachine.db.iapi.types.SQLTimestamp;
+import com.splicemachine.db.iapi.types.SQLVarchar;
+import com.splicemachine.db.impl.drda.RemoteUser;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.jdbc.ResultSetBuilder;
 import com.splicemachine.db.impl.jdbc.ResultSetBuilder.RowBuilder;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.GenericActivationHolder;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.GenericPreparedStatement;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
+import com.splicemachine.db.impl.sql.catalog.ManagedCacheMBean;
+import com.splicemachine.db.impl.sql.catalog.SYSUSERSRowFactory;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.iapi.sql.execute.RunningOperation;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.hbase.JMXThreadPool;
+import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.DataMutation;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionLoad;
 import com.splicemachine.storage.PartitionServer;
 import com.splicemachine.storage.PartitionServerLoad;
+import com.splicemachine.utils.Pair;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.Logger;
+import org.joda.time.DateTime;
+import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.net.HostAndPort;
 
 import javax.management.MalformedObjectNameException;
 import javax.management.remote.JMXConnector;
 import java.io.IOException;
-import java.sql.*;
+import java.sql.Blob;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.UUID;
 
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INVALID_FUNCTION_ARGUMENT;
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_NO_SUCH_RUNNING_OPERATION;
@@ -1655,5 +1688,49 @@ public class SpliceAdmin extends BaseAdminProcedures{
         if (!killed)
             throw  PublicAPI.wrapStandardException(StandardException.newException(LANG_NO_SUCH_RUNNING_OPERATION, uuidString));
     }
+
+
+    public static void SYSCS_HDFS_OPERATION(final String path, final String operation, final ResultSet[] resultSet) throws SQLException {
+        try {
+            FilesystemAdmin admin = SIDriver.driver().getFilesystemAdmin();
+
+            String conglomName = admin.extractConglomerate(path);
+            int conglomId = Integer.parseInt(conglomName);
+
+            EmbedConnection conn = (EmbedConnection)getDefaultConn();
+            LanguageConnectionContext lcc = conn.getLanguageConnection();
+            Activation lastActivation = conn.getLanguageConnection().getLastActivation();
+
+            ConglomerateDescriptor conglomerate = lcc.getDataDictionary().getConglomerateDescriptor(conglomId);
+
+            // Check generic table permission
+            new StatementTablePermission(conglomerate.getSchemaID(), conglomerate.getTableID(), 0).check(lcc, false, lastActivation);
+
+            // Special check for SYSUSERS which contains the user/passwords
+            if (conglomerate.getTableID().toString().equals(SYSUSERSRowFactory.SYSUSERS_UUID)) {
+                throw StandardException.newException(SQLState.DBO_ONLY);
+            }
+
+            final GenericColumnDescriptor[] descriptors = {
+                    new GenericColumnDescriptor("RESPONSE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BLOB)),
+            };
+
+            List<ExecRow> rows = new ArrayList<>();
+            List<byte[]> results = admin.hdfsOperation(path, operation);
+            for (byte[] result : results) {
+                ExecRow row = new ValueRow(1);
+                row.setColumn(1, new SQLBlob(result));
+                rows.add(row);
+            }
+            IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, descriptors, lastActivation);
+            resultsToWrap.openCore();
+            resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+    }
+
 
 }
