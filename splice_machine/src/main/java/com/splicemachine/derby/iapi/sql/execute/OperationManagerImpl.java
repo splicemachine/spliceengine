@@ -62,9 +62,15 @@ public class OperationManagerImpl implements OperationManager {
         Activation activation = op.getOperation().getActivation();
         String databaseOwner = activation.getLanguageConnectionContext().getDataDictionary().getAuthorizationDatabaseOwner();
         String runningUserId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+        String groupuser = activation.getLanguageConnectionContext().getCurrentGroupUser(activation);
 
-        if (!userId.equals(databaseOwner) && !userId.equals(runningUserId))
-            throw StandardException.newException(SQLState.AUTH_NO_PERMISSION_FOR_KILLING_OPERATION, userId, uuid.toString());
+        if (!userId.equals(databaseOwner) && !userId.equals(runningUserId)) {
+            if (groupuser != null) {
+                if (!groupuser.equals(databaseOwner) && !groupuser.equals(runningUserId))
+                    throw StandardException.newException(SQLState.AUTH_NO_PERMISSION_FOR_KILLING_OPERATION, userId, uuid.toString());
+            } else
+                throw StandardException.newException(SQLState.AUTH_NO_PERMISSION_FOR_KILLING_OPERATION, userId, uuid.toString());
+        }
 
         unregisterOperation(uuid);
         op.getOperation().kill();
