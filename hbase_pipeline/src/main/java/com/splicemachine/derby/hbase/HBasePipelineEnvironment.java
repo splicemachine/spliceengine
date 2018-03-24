@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 
 import com.splicemachine.access.api.DistributedFileSystem;
+import com.splicemachine.access.api.FilesystemAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.SnowflakeFactory;
@@ -212,6 +213,11 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
     @Override
     public ClusterHealth clusterHealthFactory() {
         return delegate.clusterHealthFactory();
+    }
+
+    @Override
+    public FilesystemAdmin filesystemAdmin() {
+        return delegate.filesystemAdmin();
     }
 
     private static class AvailablePipelineFactory implements WritePipelineFactory{
