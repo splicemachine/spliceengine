@@ -157,7 +157,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
             Scan scan = new Scan(subPartition.getStartKey(),subPartition.getEndKey());
             SplitRegionScanner srs = new SplitRegionScanner(scan,
                     htable,
-                    clock,subPartition, driver.getConfiguration());
+                    clock,subPartition, driver.getConfiguration(), htable.getConfiguration());
             while (srs.next(newCells)) {
                 i++;
                 simpleScan.add(CellUtils.toHex(newCells.get(0).getRow()));
@@ -182,7 +182,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
             Scan scan = new Scan(subPartition.getStartKey(),subPartition.getEndKey());
             SplitRegionScanner srs = new SplitRegionScanner(scan,
                     htable,
-                    clock,subPartition, driver.getConfiguration());
+                    clock,subPartition, driver.getConfiguration(), htable.getConfiguration());
             while (srs.next(newCells)) {
                 i++;
                 newCells.clear();
@@ -207,7 +207,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
         Scan scan = new Scan();
         SplitRegionScanner srs = new SplitRegionScanner(scan,
                 htable,
-                clock,partition, driver.getConfiguration());
+                clock,partition, driver.getConfiguration(), htable.getConfiguration());
         while (srs.next(newCells)) {
             i++;
             newCells.clear();
@@ -237,7 +237,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
             Scan scan = new Scan(subPartition.getStartKey(),subPartition.getEndKey());
             SplitRegionScanner srs = new SplitRegionScanner(scan,
                     htable,
-                    clock,subPartition, driver.getConfiguration());
+                    clock,subPartition, driver.getConfiguration(), htable.getConfiguration());
             while (srs.next(newCells)) {
                 i++;
                 newCells.clear();
@@ -264,7 +264,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
             Scan scan = new Scan(subPartition.getStartKey(),subPartition.getEndKey());
             SplitRegionScanner srs = new SplitRegionScanner(scan,
                     htable,
-                    clock,subPartition, driver.getConfiguration());
+                    clock,subPartition, driver.getConfiguration(), htable.getConfiguration());
             while (srs.next(newCells)) {
                 i++;
                 if (i==ITERATIONS/2)
@@ -293,7 +293,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
             Scan scan = new Scan(subPartition.getStartKey(),subPartition.getEndKey());
             SplitRegionScanner srs = new SplitRegionScanner(scan,
                     htable,
-                    clock,subPartition, driver.getConfiguration());
+                    clock,subPartition, driver.getConfiguration(), htable.getConfiguration());
             while (srs.next(newCells)) {
                 i++;
                 if (i==ITERATIONS/2)
@@ -324,7 +324,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
             Scan scan = new Scan(subPartition.getStartKey(),subPartition.getEndKey());
             SplitRegionScanner srs = new SplitRegionScanner(scan,
                                                             htable,
-                                                            clock,subPartition, driver.getConfiguration());
+                                                            clock,subPartition, driver.getConfiguration(), htable.getConfiguration());
             while (srs.next(newCells)) {
                 i++;
                 if (i==ITERATIONS/2) {
@@ -357,7 +357,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
             Scan scan = new Scan();
             SplitRegionScanner srs = new SplitRegionScanner(scan,
                     htable,
-                    clock,partition, driver.getConfiguration());
+                    clock,partition, driver.getConfiguration(), htable.getConfiguration());
             while (srs.next(newCells)) {
                 i++;
                 if (i==ITERATIONS/2) {
@@ -389,7 +389,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
         Scan scan = new Scan();
         SplitRegionScanner srs = new SplitRegionScanner(scan,
                 htable,
-                clock,partition, driver.getConfiguration());
+                clock,partition, driver.getConfiguration(), htable.getConfiguration());
         while (srs.next(newCells)) {
             i++;
             if (i==ITERATIONS/2) {
@@ -417,7 +417,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
 
             List<Cell> newCells = new ArrayList<>();
             Scan scan = new Scan();
-            SplitRegionScanner srs = new SplitRegionScanner(scan, htable, clock, partition, driver.getConfiguration());
+            SplitRegionScanner srs = new SplitRegionScanner(scan, htable, clock, partition, driver.getConfiguration(), htable.getConfiguration());
             while (srs.next(newCells)) {
                 if (i++ == ITERATIONS / 2) {
                     // JL - TODO Now that we are blocking moves, this hangs.

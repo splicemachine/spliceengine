@@ -18,13 +18,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.IsolationLevel;
-import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.BaseHRegionUtil;
@@ -32,6 +33,9 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hdfs.ProxiedFilesystem;
+import org.apache.hadoop.hdfs.DistributedFileSystem;
+import org.apache.hadoop.security.AccessControlException;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -55,6 +59,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 	private List<KeyValueScanner>	memScannerList = new ArrayList<>(1);
 	private boolean flushed;
 	private long numberOfRows = 0;
+    private FileSystem customFilesystem;
 
 	
 	public SkeletonClientSideRegionScanner(Configuration conf,
@@ -84,7 +89,9 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 		if (scanner != null)
 			scanner.close();
 		memScannerList.get(0).close();
-		region.close();
+        region.close();
+        if (customFilesystem != null)
+            customFilesystem.close();
         isClosed = true;
     }
 
@@ -211,7 +218,20 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
     }
 
     private HRegion openHRegion() throws IOException {
-        return HRegion.openHRegion(conf, fs, rootDir, hri, new ReadOnlyTableDescriptor(htd), null,null, null);
+        try {
+            return HRegion.openHRegion(conf, fs, rootDir, hri, new ReadOnlyTableDescriptor(htd), null, null, null);
+        } catch (AccessControlException e) {
+            // Our user doesn't have direct HBase access in HDFS, let's try to get proxy access through SpliceMachine
+            if (fs instanceof DistributedFileSystem) {
+                String connectionURL = conf.get(MRConstants.SPLICE_CONNECTION_STRING);
+                if (connectionURL != null) {
+                    customFilesystem = new ProxiedFilesystem((DistributedFileSystem) fs, connectionURL);
+                    customFilesystem.initialize(fs.getUri(), fs.getConf());
+                    return HRegion.openHRegion(conf, customFilesystem, rootDir, hri, new ReadOnlyTableDescriptor(htd), null, null, null);
+                }
+            }
+            throw e;
+        }
     }
 
     private KeyValueScanner getMemStoreScanner() throws IOException {
@@ -234,17 +254,6 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
     }
 
     protected abstract ResultScanner newScanner(Scan memScan) throws IOException;
-
-    private static class ReadOnlyTableDescriptor extends HTableDescriptor {
-        ReadOnlyTableDescriptor(HTableDescriptor desc) {
-            super(desc.getTableName(), desc.getColumnFamilies(), desc.getValues());
-        }
-
-        @Override
-        public boolean isReadOnly() {
-            return true;
-        }
-    }
 
     @Override
     public String toString() {
