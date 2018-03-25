@@ -35,68 +35,13 @@ operating environment, and are called out in detail in the
 
 Perform the following steps **on each node** in your cluster:
 
-1. Download the installer for your version.
+1.  install two splicemachine rpms using following command (take version 2.5.0.1811 for example) :
 
-    Which Splice Machine installer (gzip) package you need depends upon which Splice Machine version you're installing and which version of HDP you are using. Here are the URLs for Splice Machine Release 2.7 and 2.5:
+    ````
+    sudo rpm -ivh splicemachine_ambari_service-hdp2.6.3.2.5.0.1811.p0.647-1.noarch.rpm
+    sudo rpm -ivh splicemachine-hdp2.6.3.2.5.0.1811.p0.647-1.noarch.rpm
+    ````
 
-   <table>
-        <col />
-        <col />
-        <col />
-        <thead>
-            <tr>
-                <th>Splice Machine Release</th>
-                <th>HDP Version</th>
-                <th>Installer Package Link</th>
-            </tr>
-        </thead>
-        <tbody>
-               <tr>
-                   <td><strong>2.7</strong></td>
-                   <td><strong>2.5.5</strong></td>
-                   <td><a href="https://s3.console.aws.amazon.com/s3/object/splice-releases/2.6.1.1745/cluster/installer/hdp2.5.5/SPLICEMACHINE-2.6.1.1745.hdp2.5.5.p0.121.tar.gz">https://s3.console.aws.amazon.com/s3/object/splice-releases/2.6.1.1745/cluster/installer/hdp2.5.5/SPLICEMACHINE-2.6.1.1745.hdp2.5.5.p0.121.tar.gz</a></td>
-                </tr>
-               <tr>
-                   <td><strong>2.5</strong></td>
-                   <td><strong>2.5.5</strong></td>
-                   <td><a href="https://s3.amazonaws.com/splice-releases/2.5.0.1802/cluster/installer/hdp2.5.5/SPLICEMACHINE-2.5.0.1802.hdp2.5.5.p0.540.tar.gz">https://s3.amazonaws.com/splice-releases/2.5.0.1802/cluster/installer/hdp2.5.5/SPLICEMACHINE-2.5.0.1802.hdp2.5.5.p0.540.tar.gz</a></td>
-                </tr>
-        </tbody>
-   </table>
-
-   **NOTE:** To be sure that you have the latest URL, please check [the Splice
-   Machine Community site](https://community.splicemachine.com/) or contact your Splice
-   Machine representative.
-
-2. Create the `splice` installation directory:
-
-   ````
-   sudo mkdir -p /opt/splice
-   ````
-
-3. Download the Splice Machine package into the `splice` directory on
-    the node. For example:
-
-   ````
-   sudo curl '////SPLICEMACHINE-..' -o /opt/splice/SPLICEMACHINE-..
-   ````
-
-4. Extract the Splice Machine package:
-
-   ````
-   sudo tar -xf SPLICEMACHINE-.. --directory /opt/splice
-   ````
-
-5. Run our script as *root* user **on each
-   node<** in your cluster to add symbolic links to set up Splice
-   Machine jar script symbolic links
-
-   Issue this command **on each node** in
-    your cluster:
-
-   ````
-   sudo /opt/splice/default/scripts/install-splice-symlinks.sh
-   ````
 
 ## Stop Hadoop Services
 
@@ -212,15 +157,15 @@ To edit the YARN configuration, click `YARN` in the Ambari *Services* sidebar. T
     <tbody>
         <tr>
             <td><code>yarn.application.classpath </code></td>
-            <td><code>   $HADOOP_CONF_DIR,/usr/hdp/current/hadoop-client/*,/usr/hdp/current/hadoop-client/lib/*,/usr/hdp/current/hadoop-hdfs-client/*,/usr/hdp/current/hadoop-hdfs-client/lib/*,/usr/hdp/current/hadoop-yarn-client/*,/usr/hdp/current/hadoop-yarn-client/lib/*,/usr/hdp/current/hadoop-mapreduce-client/*,/usr/hdp/current/hadoop-mapreduce-client/lib/*,/usr/hdp/current/hbase-regionserver/*,/usr/hdp/current/hbase-regionserver/lib/*,/opt/splice/default/lib/*</code></td>
+            <td><code>   /var/lib/splicemachine/*,{{hadoop_home}}/conf,{{hadoop_home}}/*,{{hadoop_home}}/lib/*,/usr/hdp/current/hadoop-hdfs-client/*,/usr/hdp/current/hadoop-hdfs-client/lib/*,/usr/hdp/current/hadoop-yarn-client/*,/usr/hdp/current/hadoop-yarn-client/lib/*,/usr/hdp/current/ext/hadoop/*</code></td>
         </tr>
         <tr>
             <td><code>yarn.nodemanager.aux-services.spark2_shuffle.classpath</code></td>
-            <td><code>/opt/splice/default/lib/*</code></td>
+            <td><code>{{stack_root}}/${hdp.version}/spark2/aux/*</code></td>
         </tr>
         <tr>
             <td><code>yarn.nodemanager.aux-services.spark_shuffle.classpath</code></td>
-            <td><code>/opt/splice/default/lib/*</code></td>
+            <td><code>{{stack_root}}/${hdp.version}/spark/aux/*</code></td>
         </tr>
         <tr>
             <td><code>yarn.nodemanager.aux-services.spark2_shuffle.class</code></td>
@@ -380,24 +325,22 @@ To edit the HBase configuration, click `HBase` in the Ambari *Services* sidebar.
 3. Under `Advanced hbase-env`, set the value of `hbase-env template` to the following:
 
    ````
+   
    # Set environment variables here.
-
+   
    # The java implementation to use. Java 1.6 required.
    export JAVA_HOME={{java64_home}}
-
+   
    # HBase Configuration directory
    export HBASE_CONF_DIR=${HBASE_CONF_DIR:-{{hbase_conf_dir}}}
-
+   
    # Extra Java CLASSPATH elements. Optional.
-   export HBASE_CLASSPATH=${HBASE_CLASSPATH}
-   # add Splice Machine to the HBase classpath
-   SPLICELIBDIR="/opt/splice/default/lib"
-   APPENDSTRING=$(echo $(find ${SPLICELIBDIR} -maxdepth 1 -name \*.jar | sort) | sed 's/ /:/g')
-   export HBASE_CLASSPATH="${HBASE_CLASSPATH}:${APPENDSTRING}"
-
+   export HBASE_CLASSPATH=${HBASE_CLASSPATH}:{{stack_root}}/current/ext/hbase/*
+   
+   
    # The maximum amount of heap to use, in MB. Default is 1000.
    # export HBASE_HEAPSIZE=1000
-
+   
    # Extra Java runtime options.
    # Below are what we set by default. May only work with SUN JVM.
    # For more on why as well as other possible settings,
@@ -405,7 +348,7 @@ To edit the HBase configuration, click `HBase` in the Ambari *Services* sidebar.
    export SERVER_GC_OPTS="-verbose:gc -XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:{{log_dir}}/gc.log-`date +'%Y%m%d%H%M'`"
    # Uncomment below to enable java garbage collection logging.
    # export HBASE_OPTS="$HBASE_OPTS -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:$HBASE_HOME/logs/gc-hbase.log"
-
+   
    # Uncomment and adjust to enable JMX exporting
    # See jmxremote.password and jmxremote.access in $JRE_HOME/lib/management to configure remote password access.
    # More details at: http://java.sun.com/javase/6/docs/technotes/guides/management/agent.html
@@ -414,57 +357,64 @@ To edit the HBase configuration, click `HBase` in the Ambari *Services* sidebar.
    # If you want to configure BucketCache, specify '-XX: MaxDirectMemorySize=' with proper direct memory size
    # export HBASE_THRIFT_OPTS="$HBASE_JMX_BASE -Dcom.sun.management.jmxremote.port=10103"
    # export HBASE_ZOOKEEPER_OPTS="$HBASE_JMX_BASE -Dcom.sun.management.jmxremote.port=10104"
-
+   
    # File naming hosts on which HRegionServers will run. $HBASE_HOME/conf/regionservers by default.
    export HBASE_REGIONSERVERS=${HBASE_CONF_DIR}/regionservers
-
+   
    # Extra ssh options. Empty by default.
    # export HBASE_SSH_OPTS="-o ConnectTimeout=1 -o SendEnv=HBASE_CONF_DIR"
-
+   
    # Where log files are stored. $HBASE_HOME/logs by default.
    export HBASE_LOG_DIR={{log_dir}}
-
+   
    # A string representing this instance of hbase. $USER by default.
    # export HBASE_IDENT_STRING=$USER
-
+   
    # The scheduling priority for daemon processes. See 'man nice'.
    # export HBASE_NICENESS=10
-
+   
    # The directory where pid files are stored. /tmp by default.
    export HBASE_PID_DIR={{pid_dir}}
-
+   
    # Seconds to sleep between slave commands. Unset by default. This
    # can be useful in large clusters, where, e.g., slave rsyncs can
    # otherwise arrive faster than the master can service them.
    # export HBASE_SLAVE_SLEEP=0.1
-
+   
    # Tell HBase whether it should manage it's own instance of Zookeeper or not.
    export HBASE_MANAGES_ZK=false
-
-   export HBASE_OPTS="${HBASE_OPTS} -XX:ErrorFile={{log_dir}}/hs_err_pid%p.log -Djava.io.tmpdir={{java_io_tmpdir}}"
-   ````
-
-   * If you're using version 2.2 or later of the Spark Shuffle service, set these HBase Master option values:
-
-     ````
-     export HBASE_MASTER_OPTS="${HBASE_MASTER_OPTS} -Xms{{master_heapsize}} -Xmx{{master_heapsize}} ${JDK_DEPENDED_OPTS} -XX:+HeapDumpOnOutOfMemoryError -XX:MaxDirectMemorySize=2g -XX:+AlwaysPreTouch -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.port=10101 -Dsplice.spark.enabled=true -Dsplice.spark.app.name=SpliceMachine -Dsplice.spark.master=yarn-client -Dsplice.spark.logConf=true -Dsplice.spark.yarn.maxAppAttempts=1 -Dsplice.spark.driver.maxResultSize=1g -Dsplice.spark.driver.cores=2 -Dsplice.spark.yarn.am.memory=1g -Dsplice.spark.dynamicAllocation.enabled=true -Dsplice.spark.dynamicAllocation.executorIdleTimeout=120 -Dsplice.spark.dynamicAllocation.cachedExecutorIdleTimeout=120 -Dsplice.spark.dynamicAllocation.minExecutors=0 -Dsplice.spark.dynamicAllocation.maxExecutors=12 -Dsplice.spark.io.compression.lz4.blockSize=32k -Dsplice.spark.kryo.referenceTracking=false -Dsplice.spark.kryo.registrator=com.splicemachine.derby.impl.SpliceSparkKryoRegistrator -Dsplice.spark.kryoserializer.buffer.max=512m -Dsplice.spark.kryoserializer.buffer=4m -Dsplice.spark.locality.wait=100 -Dsplice.spark.memory.fraction=0.5 -Dsplice.spark.scheduler.mode=FAIR -Dsplice.spark.serializer=org.apache.spark.serializer.KryoSerializer -Dsplice.spark.shuffle.compress=false -Dsplice.spark.shuffle.file.buffer=128k -Dsplice.spark.shuffle.service.enabled=true -Dsplice.spark.reducer.maxReqSizeShuffleToMem=134217728 -Dsplice.spark.yarn.am.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native -Dsplice.spark.yarn.am.waitTime=10s -Dsplice.spark.yarn.executor.memoryOverhead=2048 -Dsplice.spark.driver.extraJavaOptions=-Dlog4j.configuration=file:/etc/spark/conf/log4j.properties -Dsplice.spark.driver.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native -Dsplice.spark.driver.extraClassPath=/usr/hdp/current/hbase-regionserver/conf:/usr/hdp/current/hbase-regionserver/lib/htrace-core-3.1.0-incubating.jar -Dsplice.spark.executor.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native -Dsplice.spark.executor.extraClassPath=/usr/hdp/current/hbase-regionserver/conf:/usr/hdp/current/hbase-regionserver/lib/htrace-core-3.1.0-incubating.jar -Dsplice.spark.ui.retainedJobs=100 -Dsplice.spark.ui.retainedStages=100 -Dsplice.spark.worker.ui.retainedExecutors=100 -Dsplice.spark.worker.ui.retainedDrivers=100 -Dsplice.spark.streaming.ui.retainedBatches=100 -Dsplice.spark.executor.cores=4 -Dsplice.spark.executor.memory=8g -Dspark.compaction.reserved.slots=4 -Dsplice.spark.eventLog.enabled=true -Dsplice.spark.eventLog.dir=hdfs:///user/splice/history -Dsplice.spark.local.dir=/tmp -Dsplice.spark.yarn.jars=/opt/splice/default/lib/*"
-     ````
-
-   * If you're using a version of the Spark Shuffle service earlier than 2.2, set these HBase Master option values instead:
-
-     ````
-     export HBASE_MASTER_OPTS="${HBASE_MASTER_OPTS} -Xms{{master_heapsize}} -Xmx{{master_heapsize}} ${JDK_DEPENDED_OPTS} -XX:+HeapDumpOnOutOfMemoryError -XX:MaxDirectMemorySize=2g -XX:+AlwaysPreTouch -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.port=10101 -Dsplice.spark.enabled=true -Dsplice.spark.app.name=SpliceMachine -Dsplice.spark.master=yarn-client -Dsplice.spark.logConf=true -Dsplice.spark.yarn.maxAppAttempts=1 -Dsplice.spark.driver.maxResultSize=1g -Dsplice.spark.driver.cores=2 -Dsplice.spark.yarn.am.memory=1g -Dsplice.spark.dynamicAllocation.enabled=true -Dsplice.spark.dynamicAllocation.executorIdleTimeout=120 -Dsplice.spark.dynamicAllocation.cachedExecutorIdleTimeout=120 -Dsplice.spark.dynamicAllocation.minExecutors=0 -Dsplice.spark.dynamicAllocation.maxExecutors=12 -Dsplice.spark.io.compression.lz4.blockSize=32k -Dsplice.spark.kryo.referenceTracking=false -Dsplice.spark.kryo.registrator=com.splicemachine.derby.impl.SpliceSparkKryoRegistrator -Dsplice.spark.kryoserializer.buffer.max=512m -Dsplice.spark.kryoserializer.buffer=4m -Dsplice.spark.locality.wait=100 -Dsplice.spark.memory.fraction=0.5 -Dsplice.spark.scheduler.mode=FAIR -Dsplice.spark.serializer=org.apache.spark.serializer.KryoSerializer -Dsplice.spark.shuffle.compress=false -Dsplice.spark.shuffle.file.buffer=128k -Dsplice.spark.shuffle.service.enabled=true -Dsplice.spark.yarn.am.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native -Dsplice.spark.yarn.am.waitTime=10s -Dsplice.spark.yarn.executor.memoryOverhead=2048 -Dsplice.spark.driver.extraJavaOptions=-Dlog4j.configuration=file:/etc/spark/conf/log4j.properties -Dsplice.spark.driver.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native -Dsplice.spark.driver.extraClassPath=/usr/hdp/current/hbase-regionserver/conf:/usr/hdp/current/hbase-regionserver/lib/htrace-core-3.1.0-incubating.jar -Dsplice.spark.executor.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native -Dsplice.spark.executor.extraClassPath=/usr/hdp/current/hbase-regionserver/conf:/usr/hdp/current/hbase-regionserver/lib/htrace-core-3.1.0-incubating.jar -Dsplice.spark.ui.retainedJobs=100 -Dsplice.spark.ui.retainedStages=100 -Dsplice.spark.worker.ui.retainedExecutors=100 -Dsplice.spark.worker.ui.retainedDrivers=100 -Dsplice.spark.streaming.ui.retainedBatches=100 -Dsplice.spark.executor.cores=4 -Dsplice.spark.executor.memory=8g -Dspark.compaction.reserved.slots=4 -Dsplice.spark.eventLog.enabled=true -Dsplice.spark.eventLog.dir=hdfs:///user/splice/history -Dsplice.spark.local.dir=/tmp -Dsplice.spark.yarn.jars=/opt/splice/default/lib/*"
-     ````
-
-4. Finish updating of `hbase-env template` with the following:
-
-   ````
-   export HBASE_REGIONSERVER_OPTS="${HBASE_REGIONSERVER_OPTS} -Xmn{{regionserver_xmn_size}} -Xms{{regionserver_heapsize}} -Xmx{{regionserver_heapsize}} ${JDK_DEPENDED_OPTS} -XX:+HeapDumpOnOutOfMemoryError -XX:MaxDirectMemorySize=2g -XX:+AlwaysPreTouch -XX:+UseG1GC -XX:MaxNewSize=4g -XX:InitiatingHeapOccupancyPercent=60 -XX:ParallelGCThreads=24 -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=5000 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.port=10102"
+   
+   {% if java_version < 8 %}
+   JDK_DEPENDED_OPTS="-XX:PermSize=128m -XX:MaxPermSize=128m"
+   {% endif %}
+   
+   {% if security_enabled %}
+   export HBASE_OPTS="$HBASE_OPTS -XX:+UseConcMarkSweepGC -XX:ErrorFile={{log_dir}}/hs_err_pid%p.log -Djava.security.auth.login.config={{client_jaas_config_file}} -Djava.io.tmpdir={{java_io_tmpdir}}"
+   export HBASE_MASTER_OPTS="$HBASE_MASTER_OPTS -Xmx{{master_heapsize}} -Djava.security.auth.login.config={{master_jaas_config_file}} -Djavax.security.auth.useSubjectCredsOnly=false $JDK_DEPENDED_OPTS"
+   export HBASE_REGIONSERVER_OPTS="$HBASE_REGIONSERVER_OPTS -Xmn{{regionserver_xmn_size}} -XX:CMSInitiatingOccupancyFraction={{regionserver_cms_initiating_occupancy_fraction}} -XX:+UseCMSInitiatingOccupancyOnly -Xms{{regionserver_heapsize}} -Xmx{{regionserver_heapsize}} -Djava.security.auth.login.config={{regionserver_jaas_config_file}} -Djavax.security.auth.useSubjectCredsOnly=false $JDK_DEPENDED_OPTS"
+   export PHOENIX_QUERYSERVER_OPTS="$PHOENIX_QUERYSERVER_OPTS -Djava.security.auth.login.config={{queryserver_jaas_config_file}}"
+   {% else %}
+   export HBASE_OPTS="$HBASE_OPTS -XX:+UseConcMarkSweepGC -XX:ErrorFile={{log_dir}}/hs_err_pid%p.log -Djava.io.tmpdir={{java_io_tmpdir}}"
+   export HBASE_MASTER_OPTS="$HBASE_MASTER_OPTS -Xmx{{master_heapsize}} $JDK_DEPENDED_OPTS"
+   export HBASE_REGIONSERVER_OPTS="$HBASE_REGIONSERVER_OPTS -Xmn{{regionserver_xmn_size}} -XX:CMSInitiatingOccupancyFraction={{regionserver_cms_initiating_occupancy_fraction}} -XX:+UseCMSInitiatingOccupancyOnly -Xms{{regionserver_heapsize}} -Xmx{{regionserver_heapsize}} $JDK_DEPENDED_OPTS"
+   {% endif %}
+   
    # HBase off-heap MaxDirectMemorySize
    export HBASE_REGIONSERVER_OPTS="$HBASE_REGIONSERVER_OPTS {% if hbase_max_direct_memory_size %} -XX:MaxDirectMemorySize={{hbase_max_direct_memory_size}}m {% endif %}"
+   export HBASE_MASTER_OPTS="$HBASE_MASTER_OPTS {% if hbase_max_direct_memory_size %} -XX:MaxDirectMemorySize={{hbase_max_direct_memory_size}}m {% endif %}"
+   
+   #Add Splice Jars to HBASE_PREFIX_CLASSPATH
+   export HBASE_CLASSPATH_PREFIX=/var/lib/splicemachine/*:/usr/hdp/2.6.3.0-235/spark2/jars/*
+   
+   #Add Splice Specific Information to HBase Master
+   export HBASE_MASTER_OPTS="${HBASE_MASTER_OPTS} -Dsplice.spark.enabled=true -Dsplice.spark.app.name=SpliceMachine -Dsplice.spark.master=yarn -Dsplice.spark.submit.deployMode=client -Dsplice.spark.logConf=true -Dsplice.spark.yarn.maxAppAttempts=1 -Dsplice.spark.driver.maxResultSize=1g -Dsplice.spark.driver.cores=2 -Dsplice.spark.yarn.am.memory=1g -Dsplice.spark.dynamicAllocation.enabled=true -Dsplice.spark.dynamicAllocation.executorIdleTimeout=120 -Dsplice.spark.dynamicAllocation.cachedExecutorIdleTimeout=120 -Dsplice.spark.dynamicAllocation.minExecutors=0 -Dsplice.spark.kryo.referenceTracking=false -Dsplice.spark.kryo.registrator=com.splicemachine.derby.impl.SpliceSparkKryoRegistrator -Dsplice.spark.kryoserializer.buffer.max=512m -Dsplice.spark.kryoserializer.buffer=4m -Dsplice.spark.locality.wait=100 -Dsplice.spark.memory.fraction=0.5 -Dsplice.spark.scheduler.mode=FAIR -Dsplice.spark.serializer=org.apache.spark.serializer.KryoSerializer -Dsplice.spark.shuffle.compress=false -Dsplice.spark.shuffle.file.buffer=128k -Dsplice.spark.shuffle.service.enabled=true -Dsplice.spark.reducer.maxReqSizeShuffleToMem=134217728 -Dsplice.spark.yarn.am.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native -Dsplice.spark.yarn.am.waitTime=10s -Dsplice.spark.yarn.executor.memoryOverhead=2048 -Dsplice.spark.yarn.am.extraJavaOptions=-Dhdp.version=2.6.3.0-235 -Dsplice.spark.driver.extraJavaOptions=-Dhdp.version=2.6.3.0-235 -Dsplice.spark.driver.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native -Dsplice.spark.driver.extraClassPath=/usr/hdp/current/hbase-regionserver/conf:/usr/hdp/current/hbase-regionserver/lib/htrace-core-3.1.0-incubating.jar -Dsplice.spark.ui.retainedJobs=100 -Dsplice.spark.ui.retainedStages=100 -Dsplice.spark.worker.ui.retainedExecutors=100 -Dsplice.spark.worker.ui.retainedDrivers=100 -Dsplice.spark.streaming.ui.retainedBatches=100 -Dsplice.spark.executor.cores=4 -Dsplice.spark.executor.memory=8g -Dspark.compaction.reserved.slots=4 -Dsplice.spark.eventLog.enabled=true -Dsplice.spark.eventLog.dir=hdfs:///user/splice/history -Dsplice.spark.local.dir=/tmp -Dsplice.spark.executor.userClassPathFirst=true -Dsplice.spark.driver.userClassPathFirst=true -Dsplice.spark.executor.extraJavaOptions=-Dhdp.version=2.6.3.0-235 -Dsplice.spark.executor.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native -Dsplice.spark.executor.extraClassPath=/usr/hdp/current/hbase-regionserver/conf:/usr/hdp/current/hbase-regionserver/lib/htrace-core-3.1.0-incubating.jar:/var/lib/splicemachine/*:/usr/hdp/2.6.3.0-235/spark2/jars/*:/usr/hdp/current/hbase-master/lib/* -Dsplice.spark.yarn.jars=/usr/hdp/2.6.3.0-235/spark2/jars/*"
+   
+   #Add Splice Specific Information to Region Server
+   export HBASE_REGIONSERVER_OPTS="${HBASE_REGIONSERVER_OPTS} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.port=10102"
+
    ````
 
-5. In `Custom hbase-site` property, add the following properties:
+4. In `Custom hbase-site` property, add the following properties:
 
    ````
    dfs.client.read.shortcircuit.buffer.size=131072
@@ -513,11 +463,11 @@ To edit the HBase configuration, click `HBase` in the Ambari *Services* sidebar.
    splice.txn.completedTxns.concurrency=128
    splice.txn.concurrencyLevel=4096
    ````
-6. Save Changes
+5. Save Changes
 
    Click the `Save` button to save your changes. You'll be prompted to optionally add a note such as `Updated HDFS configuration for Splice Machine`. Click `Save` again.
 
-7. Start HBase
+6. Start HBase
 
    After you save your changes, you'll land back on the HBase Service `Configs` tab in Ambari.
 
