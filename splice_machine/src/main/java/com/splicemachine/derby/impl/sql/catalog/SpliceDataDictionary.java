@@ -502,6 +502,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     public void createOrUpdateAllSystemProcedures(TransactionController tc) throws StandardException{
         tc.elevate("dictionary");
         super.createOrUpdateAllSystemProcedures(tc);
+        SpliceLogUtils.info(LOG, "System procedures created or updated");
     }
 
     /*Table fetchers for Statistics tables*/
@@ -552,13 +553,9 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             tc.setProperty(SPLICE_DATA_DICTIONARY_VERSION,spliceSoftwareVersion,true);
             tc.commit();
         }
-        // TODO - include the following in an upgrade script
-        if (spliceSoftwareVersion.toLong() >= 2005000) {
-            upgradeSystables(tc);
-        }
     }
 
-    private void upgradeSystables(TransactionController tc) throws StandardException {
+    public void upgradeSystables(TransactionController tc) throws StandardException {
         addNewColumToSystables(tc);
         SchemaDescriptor sd = getSystemSchemaDescriptor();
         TableDescriptor td = getTableDescriptor(SYSSNAPSHOTSRowFactory.TABLENAME_STRING, sd, tc);
@@ -570,8 +567,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
 
         upgradeSysStatsTable(tc);
-
-        createOrUpdateAllSystemProcedures(tc);
 
         updateSysTableStatsView1(tc);
     }
@@ -783,8 +778,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
 
         // Compare software version and catalog version
-        if(catalogVersion.toLong()<=spliceSoftwareVersion.toLong()){
-            LOG.info("Upgrade needed since catalog version <= software version");
+        if(catalogVersion.toLong()<spliceSoftwareVersion.toLong()){
+            LOG.info("Upgrade needed since catalog version < software version");
             return true;
         }
         return false;
@@ -1082,5 +1077,50 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         // 3 indexes is not fully populated. This TI should not be reused for future operations
         clearNoncoreTable(SYSROLES_CATALOG_NUM-NUM_CORE);
         SpliceLogUtils.info(LOG, "SYS.SYSROLES upgraded: added columns: DEFAULTROLE; added index on (GRANTEE, DEFAULTROLE)");
+    }
+
+    // remove rows in sysroutineperms whose aliasid are no longer valid
+    public void cleanSysRoutinePerms(TransactionController tc) throws StandardException {
+        // scan the sysroutineperms table
+        TabInfoImpl ti = getNonCoreTI(SYSROUTINEPERMS_CATALOG_NUM);
+        SYSROUTINEPERMSRowFactory rf=(SYSROUTINEPERMSRowFactory)ti.getCatalogRowFactory();
+        ExecRow outRow = rf.makeEmptyRow();
+        ScanController scanController=tc.openScan(
+                ti.getHeapConglomerate(),      // conglomerate to open
+                false,                          // don't hold open across commit
+                0,                              // for read
+                TransactionController.MODE_TABLE,
+                TransactionController.ISOLATION_REPEATABLE_READ,
+                null,               // all fields as objects
+                null, // start position - first row
+                0,                          // startSearchOperation - none
+                null,              // scanQualifier,
+                null, // stop position -through last row
+                0);                          // stopSearchOperation - none
+
+        List<RoutinePermsDescriptor> listToDelete = new ArrayList<>();
+
+        try{
+            while(scanController.fetchNext(outRow.getRowArray())){
+                String aliasUUIDString = outRow.getColumn(SYSROUTINEPERMSRowFactory.ALIASID_COL_NUM).getString();
+                UUID aliasUUID = getUUIDFactory().recreateUUID(aliasUUIDString);
+                RoutinePermsDescriptor permsDescriptor = (RoutinePermsDescriptor)rf.buildDescriptor(outRow, null, this);
+                // we have looked up the sysaliases table when building the permsDescriptor above,
+                // if the aliasid does not exist, routineName is null
+                String ad = permsDescriptor.getRoutineName();
+                if (ad == null) {
+                    listToDelete.add(permsDescriptor);
+                }
+            }
+        }finally{
+            scanController.close();
+        }
+
+        // delete the obselete rows
+        for (RoutinePermsDescriptor permsDescriptor: listToDelete) {
+            addRemovePermissionsDescriptor(false, permsDescriptor, permsDescriptor.getGrantee(), tc);
+        }
+        
+        SpliceLogUtils.info(LOG, "SYS.SYSROUTINEPERMS upgraded: obsolete rows deleted");
     }
 }

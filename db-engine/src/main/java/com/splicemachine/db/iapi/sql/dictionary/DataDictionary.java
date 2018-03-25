@@ -2125,4 +2125,14 @@ public interface DataDictionary{
      * @throws StandardException
      */
     List<String> getDefaultRoles(String username, TransactionController tc) throws StandardException;
+
+    /**
+     * Get permissions for a routine (function or procedure).
+     *
+     * @param routineUUID     the uuid of the routing permissions to fetch
+     * @param permsList       list of routine permissions related to routineUUID to be populated
+     * @return The first found descriptor of the users permissions for the routine.
+     * @throws StandardException
+     */
+    RoutinePermsDescriptor getRoutinePermissions(UUID routineUUID, List<RoutinePermsDescriptor> permsList) throws StandardException;
 }
