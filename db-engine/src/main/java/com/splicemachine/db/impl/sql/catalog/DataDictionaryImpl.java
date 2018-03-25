@@ -31,11 +31,6 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
-import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Function;
 import com.google.common.base.Optional;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.DependableFinder;
@@ -72,6 +67,7 @@ import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Function;
@@ -8166,8 +8162,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                            String authorizationID) throws StandardException{
         RoutinePermsDescriptor routinePermDesc=
                 new RoutinePermsDescriptor(this,"PUBLIC",authorizationID,routineUUID);
-
-        addDescriptor(routinePermDesc,null,DataDictionary.SYSROUTINEPERMS_CATALOG_NUM,false,tc);
+        // add if this permission has not been granted before
+        if (getUncachedRoutinePermsDescriptor(routinePermDesc) == null)
+            addDescriptor(routinePermDesc,null,DataDictionary.SYSROUTINEPERMS_CATALOG_NUM,false,tc);
     }
 
     /**
@@ -9328,6 +9325,15 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return getUncachedRoutinePermsDescriptor(key);
     }
 
+    @Override
+    public RoutinePermsDescriptor getRoutinePermissions(UUID routineUUID,
+                                                 List<RoutinePermsDescriptor> permsList) throws StandardException{
+        RoutinePermsDescriptor key=new RoutinePermsDescriptor(this,null,null,routineUUID);
+        TabInfoImpl ti=getNonCoreTI(SYSROUTINEPERMS_CATALOG_NUM);
+        PermissionsCatalogRowFactory rowFactory=(PermissionsCatalogRowFactory)ti.getCatalogRowFactory();
+        ExecIndexRow keyRow=rowFactory.buildIndexKeyRow(SYSROUTINEPERMSRowFactory.ALIASID_INDEX_NUM,key);
+        return (RoutinePermsDescriptor)getDescriptorViaIndex(SYSROUTINEPERMSRowFactory.ALIASID_INDEX_NUM,keyRow,null,ti,null,permsList,false);
+    } // end of getRoutinePermissions
     /**
      * Add or remove a permission to/from the permission database.
      *
@@ -9526,7 +9532,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         ExecIndexRow keyRow=rowFactory.buildIndexKeyRow(indexNumber,key);
         return getDescriptorViaIndex(indexNumber,keyRow,null,ti,null,null,false);
     } // end of getUncachedPermissionsDescriptor
-
     /**
      * Get a routine permissions descriptor from the system tables, without going through the cache.
      * This method is called to fill the permissions cache.

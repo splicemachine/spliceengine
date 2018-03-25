@@ -20,13 +20,14 @@ import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 /**
  * Created by yxia on 2/14/18.
  */
-public class UpgradeScriptForModifySchemaPermission extends UpgradeScriptBase {
-    public UpgradeScriptForModifySchemaPermission(SpliceDataDictionary sdd, TransactionController tc) {
+public class UpgradeScriptForModifySchemaPermissionAndDefaultRole extends UpgradeScriptBase {
+    public UpgradeScriptForModifySchemaPermissionAndDefaultRole(SpliceDataDictionary sdd, TransactionController tc) {
         super(sdd, tc);
     }
 
     @Override
     protected void upgradeSystemTables() throws StandardException {
         sdd.upgradeSysSchemaPermsForModifySchemaPrivilege(tc);
+        sdd.upgradeSysRolesWithDefaultRoleColumn(tc);
     }
 }
