@@ -41,13 +41,15 @@ public class SelfInsertIT{
     private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(SelfInsertIT.class.getSimpleName().toUpperCase());
 
     private static final SpliceTableWatcher splitTable = new SpliceTableWatcher("splice",schema.schemaName,"(a int, b bigint, c varchar(2000)) --SPLICE-PROPERTIES partitionSize=16\n");
+    private static final SpliceTableWatcher pt = new SpliceTableWatcher("pt",schema.schemaName,"(a int)");
 
     private static String REALLY_LONG_GARBAGE_STRING;
 
     @ClassRule
     public static TestRule chain  =RuleChain.outerRule(classWatcher)
             .around(schema)
-            .around(splitTable);
+            .around(splitTable)
+            .around(pt);
 
 
     private TestConnection conn;
@@ -96,6 +98,32 @@ public class SelfInsertIT{
                         Assert.assertEquals("Incorrect table count!",newSize<<1,rs.getLong(1));
                     }
                 }
+            }
+        }
+    }
+
+
+    @Test
+    public void testInsertParallelTasks() throws Exception{
+        try(PreparedStatement ps = conn.prepareStatement("select count(*) from "+pt)){
+            try(Statement s=conn.createStatement()){
+                String sql = "insert into "+pt+"(a) values (1)";
+                int updateCount = s.executeUpdate(sql);
+                Assert.assertEquals("Incorrect update count!",1,updateCount);
+
+
+                try(ResultSet rs = ps.executeQuery()){
+                    Assert.assertTrue("No rows returned from count query!",rs.next());
+                    Assert.assertEquals("Incorrect table size!",1l,rs.getLong(1));
+                }
+
+                String select = "select a from "+ pt+" --SPLICE-PROPERTIES useSpark=true\n";
+                String union = " union all ";
+
+                sql =  "insert into "+ pt +"(a) " + select + union + select + union + select + union + select + union + select;
+                updateCount = s.executeUpdate(sql);
+
+                Assert.assertEquals("Incorrect update count!",5,updateCount);
             }
         }
     }
