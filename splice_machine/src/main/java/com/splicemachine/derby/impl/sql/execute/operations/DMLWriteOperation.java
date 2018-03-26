@@ -27,6 +27,9 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
+import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
@@ -36,8 +39,13 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.DMLWriteInfo;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Strings;
@@ -289,8 +297,19 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
 
     @Override
     public void close() throws StandardException {
-        if (triggerHandler!=null)
+        if (triggerHandler!=null) {
             triggerHandler.cleanup();
+
+            // If we have triggers, wrap the next operations into another transaction to prevent the next transaction from ignoring
+            // our writes, see SPLICE-1625
+            TransactionController transactionExecute=activation.getLanguageConnectionContext().getTransactionExecute();
+            Transaction rawStoreXact=((TransactionManager)transactionExecute).getRawStoreXact();
+            BaseSpliceTransaction rawTxn=(BaseSpliceTransaction)rawStoreXact;
+            if (rawTxn instanceof SpliceTransaction) {
+                rawTxn.setSavePoint("triggers", null);
+                ((SpliceTransaction)rawTxn).elevate(getDestinationTable());
+            }
+        }
         super.close();
     }
 
