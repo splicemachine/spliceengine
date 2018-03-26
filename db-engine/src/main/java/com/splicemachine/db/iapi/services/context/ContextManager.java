@@ -368,8 +368,7 @@ cleanup:	for (int index = holder.size() - 1; index >= 0; index--) {
 							error = se;
 							reportError = reportError(se);
 							if (reportError) {
-								errorStream.println("New exception raised during cleanup " + error.getMessage());
-								errorStream.flush();
+								errorStream.printThrowable("New exception raised during cleanup", error);
 							}
 							continue forever;
 						}
@@ -399,8 +398,7 @@ cleanup:	for (int index = holder.size() - 1; index >= 0; index--) {
 						 */
 						error = t;
 						if (reportError) {
-							errorStream.println("New exception raised during cleanup " + error.getMessage());
-							errorStream.flush();
+							errorStream.printThrowable("New exception raised during cleanup", error);
 						}
 						continue forever;
 					}
@@ -434,7 +432,6 @@ cleanup:	for (int index = holder.size() - 1; index >= 0; index--) {
 
 			if (reportError) {
 				errorStream.println("Cleanup action completed");
-				errorStream.flush();
 			}
 
 			if (seenThreadDeath != null)
@@ -502,8 +499,7 @@ cleanup:	for (int index = holder.size() - 1; index >= 0; index--) {
 	 */
 	private void flushErrorString()
 	{
-		errorStream.print(errorStringBuilder.get().toString());
-		errorStream.flush();
+		errorStream.println(errorStringBuilder.get().toString());
 		errorStringBuilder.reset();
 	}
 

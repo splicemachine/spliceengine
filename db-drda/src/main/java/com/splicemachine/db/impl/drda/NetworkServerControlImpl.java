@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.drda;
 
 import com.splicemachine.db.drda.NetworkServerControl;
+import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.AuthenticationService;
 import com.splicemachine.db.iapi.jdbc.DRDAServerStarter;
@@ -201,7 +202,7 @@ public final class NetworkServerControlImpl {
 											
 	
 	protected PrintWriter logWriter;                        // console
-	protected PrintWriter cloudscapeLogWriter;              // db.log
+	protected HeaderPrintWriter cloudscapeLogWriter;              // db.log
 	private static Driver cloudscapeDriver;
 
 	// error types
@@ -572,11 +573,10 @@ public final class NetworkServerControlImpl {
 			e.printStackTrace();
 		}
 		
-		lw = cloudscapeLogWriter;
-		if (lw != null)
+		if (cloudscapeLogWriter != null)
 		{
-			synchronized(lw) {
-				e.printStackTrace(lw);
+			synchronized(cloudscapeLogWriter) {
+				cloudscapeLogWriter.printThrowable(e);
 			}
 		}
 	}
@@ -605,9 +605,8 @@ public final class NetworkServerControlImpl {
 			}
 		}
 		// always print to db.log
-		lw = cloudscapeLogWriter;
-		if (lw != null)
-			synchronized(lw)
+		if (cloudscapeLogWriter != null)
+			synchronized(cloudscapeLogWriter)
 			{
 				if (printTimeStamp) {
                     Monitor.logMessage(new SimpleDateFormat(timeStampFormat).format(new Date()) + " : " + msg);
@@ -697,7 +696,7 @@ public final class NetworkServerControlImpl {
 	{
 		startNetworkServer();
 		setLogWriter(consoleWriter);
-		cloudscapeLogWriter = Monitor.getStream().getPrintWriter();
+		cloudscapeLogWriter = Monitor.getStream();
 		if (SanityManager.DEBUG && debugOutput)
 		{
 			memCheck.showmem();
