@@ -197,7 +197,7 @@ public class BasicUnitTestManager implements UnitTestManager, ModuleControl
 		} catch (Throwable t) {
 			if (t instanceof ThreadDeath)
 			{
-				t.printStackTrace(output.getPrintWriter());
+				output.printThrowable(t);
 				Runtime.getRuntime().exit(1);
 			}
 
@@ -205,7 +205,7 @@ public class BasicUnitTestManager implements UnitTestManager, ModuleControl
 			String  msg = t.getMessage();
 			if (msg == null) msg = t.getClass().getName();
 			emitAMessage("Test '" + thisTestName + "' failed with exception '" + msg +"'.");
-			t.printStackTrace(output.getPrintWriter());
+			output.printThrowable(t);
 		} finally {
 
 			if (contextService != null) {

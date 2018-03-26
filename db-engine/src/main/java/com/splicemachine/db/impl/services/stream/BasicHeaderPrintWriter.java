@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.services.stream;
 
 import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 import com.splicemachine.db.iapi.services.stream.PrintWriterGetHeader;
+import org.apache.log4j.Logger;
 
 import java.io.PrintWriter;
 import java.io.Writer;
@@ -47,33 +48,15 @@ import java.io.OutputStream;
  *
  */
 class BasicHeaderPrintWriter 
-	extends PrintWriter
 	implements HeaderPrintWriter
 {
+	private static final Logger LOG = Logger.getLogger("splice-derby");
+	private static final Logger LOG_STATEMENT = Logger.getLogger("splice-derby.statement");
 
 	private final PrintWriterGetHeader headerGetter;
-	private final boolean canClose;
 	private final String name;
 
 	// constructors
-
-	/**
-	 * the constructor sets up the HeaderPrintWriter. 
-	 * <p>
-	 * @param writeTo       Where to write to.
-	 * @param headerGetter	Object to get headers for output lines.
-	 * @param canClose      If true, {@link #complete} will also close writeTo
-	 * @param streamName    Name of writeTo, e.g. a file name
-	 *
-	 * @see	PrintWriterGetHeader
-	 */
-	BasicHeaderPrintWriter(OutputStream writeTo,
-			PrintWriterGetHeader headerGetter,  boolean canClose, String streamName){
-		super(writeTo, true);
-		this.headerGetter = headerGetter;
-		this.canClose = canClose;
-		this.name = streamName;
-	}
 
 	/**
 	 * the constructor sets up the HeaderPrintWriter. 
@@ -87,9 +70,7 @@ class BasicHeaderPrintWriter
 	 */
 	BasicHeaderPrintWriter(Writer writeTo,
 			PrintWriterGetHeader headerGetter, boolean canClose, String writerName){
-		super(writeTo, true);
 		this.headerGetter = headerGetter;
-		this.canClose = canClose;
 		this.name = writerName;
 	}
 
@@ -98,9 +79,8 @@ class BasicHeaderPrintWriter
 	 * come from the PrintWriter supertype).
 	 */
 	public synchronized void printlnWithHeader(String message)
-	{ 
-		print(headerGetter.getHeader());
-		println(message);
+	{
+		LOG.info(headerGetter.getHeader() + message);
 	}
 
 	public PrintWriterGetHeader getHeader()
@@ -108,12 +88,28 @@ class BasicHeaderPrintWriter
 		return headerGetter;
 	}
 
-	public PrintWriter getPrintWriter(){
-		return this;
-	}
-
 	public String getName(){
 		return name;
+	}
+
+	@Override
+	public void printStatement(String statement) {
+		LOG_STATEMENT.info(statement);
+	}
+
+	@Override
+	public void println(String message) {
+		LOG.info(message);
+	}
+
+	@Override
+	public void printThrowable(String message, Throwable t) {
+		LOG.error(message, t);
+	}
+
+	@Override
+	public void printThrowable(Throwable t) {
+		printThrowable("Unexpected exception", t);
 	}
 
 	/**
@@ -122,10 +118,6 @@ class BasicHeaderPrintWriter
 	 */
 
 	void complete() {
-		flush();
-		if (canClose) {
-			close();
-		}
 	}
 }
 

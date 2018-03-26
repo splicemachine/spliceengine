@@ -54,40 +54,4 @@ public class ConfiguredStream extends SingleStream {
 
         return super.makeStream();
     }
-
-    protected boolean archiveLogFileIfNeeded(File logFile) {
-		boolean archived = false;
-		String logFileName = logFile.getName();
-		if (!SPLICE_DERBY_LOG.equalsIgnoreCase(logFileName)) {
-			return false;
-		}
-		if (logFile.exists()) {
-			int maxFileCount = PropertyUtil.getSystemInt("splice.log.file.max", 100);
-			boolean validTarget = false;
-			Path targetPath = null;
-			String baseName = logFileName + ".%s";
-			Path logFilePath = logFile.toPath();
-			for (int i = 1; !validTarget && i < maxFileCount; i++) {
-				targetPath = logFilePath.resolveSibling(String.format(baseName, i));
-				if (!Files.exists(targetPath)) {
-					validTarget = true;
-				}
-			}
-			try {
-				if (validTarget) {
-					Files.move(logFilePath, targetPath);
-					archived = true;
-				}
-			} catch (IOException ioe) {
-				archived = false;
-				LOG.error(String.format("IOException trying to archive log file %s. We will proceed without archiving it.",
-					logFileName), ioe);
-			} catch (SecurityException se) {
-				archived = false;
-				LOG.error(String.format("SecurityException trying to archive log file %s. We will proceed without archiving it.",
-					logFileName), se);
-			}
-		}
-		return archived;
-	}
 }

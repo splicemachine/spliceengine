@@ -227,11 +227,7 @@ public final class UserDefinedAggregator  extends UDTBase implements ExecAggrega
              t.getMessage()
              );
 
-		Monitor.getStream().println( errorMessage );
-
-        Exception   e = new Exception( errorMessage, t );
-
-        e.printStackTrace( Monitor.getStream().getPrintWriter() );
+		Monitor.getStream().printThrowable( errorMessage , t);
     }
 
     @Override

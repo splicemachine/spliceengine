@@ -320,32 +320,6 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
 
             LanguageConnectionContext lccToUse = activation.getLanguageConnectionContext();
 
-            if (lccToUse.getLogStatementText()) {
-                HeaderPrintWriter istream = Monitor.getStream();
-                String xactId = lccToUse.getTransactionExecute().getActiveStateTxIdString();
-                String pvsString = "";
-                ParameterValueSet pvs = activation.getParameterValueSet();
-                if (pvs != null && pvs.getParameterCount() > 0) {
-                    pvsString = " with " + pvs.getParameterCount() +
-                            " parameters " + pvs.toString();
-                }
-                istream.printlnWithHeader(LanguageConnectionContext.xidStr +
-                        xactId +
-                        "), " +
-                        LanguageConnectionContext.lccStr +
-                        lccToUse.getInstanceNumber() +
-                        "), " +
-                        LanguageConnectionContext.dbnameStr +
-                        lccToUse.getDbname() +
-                        "), " +
-                        LanguageConnectionContext.drdaStr +
-                        lccToUse.getDrdaID() +
-                        "), Executing prepared statement: " +
-                        getSource() +
-                        " :End prepared statement" +
-                        pvsString);
-            }
-
             ParameterValueSet pvs = activation.getParameterValueSet();
 
             /* put it in try block to unlock the PS in any case
