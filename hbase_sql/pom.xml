@@ -708,7 +708,7 @@
                             <groups>com.splicemachine.test.SerialTest</groups>
                             <excludedGroups>${excluded.categories}</excludedGroups>
                             <argLine>-Xmx3g</argLine>
-                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                            <redirectTestOutputToFile>false</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
                             </dependenciesToScan>
@@ -735,7 +735,7 @@
                             <!-- -sf- single-threaded for now -->
                             <perCoreThreadCount>false</perCoreThreadCount>
                             <argLine>-Xmx5g</argLine>
-                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                            <redirectTestOutputToFile>false</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
                             </dependenciesToScan>
@@ -759,7 +759,7 @@
                         <configuration>
                             <groups>com.splicemachine.test.RestoreTest</groups>
                             <argLine>-Xmx3g</argLine>
-                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                            <redirectTestOutputToFile>false</redirectTestOutputToFile>
                             <includes>
                                 <include>**/*RestoreIT.java</include>
                             </includes>

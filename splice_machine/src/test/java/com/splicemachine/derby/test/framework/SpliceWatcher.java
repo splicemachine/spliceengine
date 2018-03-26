@@ -20,6 +20,7 @@ import org.junit.runner.Description;
 import org.junit.runners.model.MultipleFailureException;
 import org.spark_project.guava.collect.Lists;
 
+import java.security.Permission;
 import java.sql.*;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -34,6 +35,20 @@ import static org.spark_project.guava.base.Strings.isNullOrEmpty;
  * Not thread-safe, synchronize externally if using in a multi-threaded test case.
  */
 public class SpliceWatcher extends TestWatcher {
+    static {
+        System.setSecurityManager(new SecurityManager() {
+            @Override
+            public void checkPermission(Permission perm) {
+                if (perm instanceof RuntimePermission) {
+                    RuntimePermission rperm = (RuntimePermission) perm;
+                    if (rperm.getName().startsWith("exitVM")) {
+                        new RuntimeException().printStackTrace(System.out);
+                        System.out.println("exit called");
+                    }
+                }
+            }
+        });
+    }
 
     private static final Logger LOG = Logger.getLogger(SpliceWatcher.class);
 
