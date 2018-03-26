@@ -3273,11 +3273,12 @@ class DRDAConnThread extends Thread {
                         if (database.passwordSubstitute == null)
                         {
                             database.passwordSubstitute = reader.readBytes();
-					        if (SanityManager.DEBUG)
+							//DB-6671
+					        /*if (SanityManager.DEBUG)
                                 trace("** Substitute Password is:" +
                                       DecryptionManager.toHexString(
                                         database.passwordSubstitute, 0,
-                                        database.passwordSubstitute.length));
+                                        database.passwordSubstitute.length));*/
                             database.password =
                                 DecryptionManager.toHexString(
                                     database.passwordSubstitute, 0,
