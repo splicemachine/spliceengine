@@ -113,7 +113,7 @@ public class BulkDataSetWriter  {
                         if (LOG.isDebugEnabled()) {
                             SpliceLogUtils.debug(LOG, "start key: %s", Bytes.toHex(startKey));
                             SpliceLogUtils.debug(LOG, "end key: %s", Bytes.toHex(endKey));
-                            SpliceLogUtils.debug(LOG, "path = %s");
+                            SpliceLogUtils.debug(LOG, "path = %s", familyPath.toString());
                         }
                     }
                     if (LOG.isDebugEnabled()) {
@@ -365,7 +365,7 @@ public class BulkDataSetWriter  {
                 totalSize = new Double(0);
             totalSize += size;
             if (LOG.isDebugEnabled()) {
-                SpliceLogUtils.debug(LOG, "totalSize=%s", totalSize);
+                SpliceLogUtils.debug(LOG, "totalSize=%f", totalSize);
             }
             sizeMap.put(conglomId, totalSize);
         }
