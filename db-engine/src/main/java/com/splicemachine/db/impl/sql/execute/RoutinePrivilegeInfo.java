@@ -69,12 +69,10 @@ public class RoutinePrivilegeInfo extends PrivilegeInfo
 		DataDictionary dd = lcc.getDataDictionary();
         String currentUser = lcc.getCurrentUserId(activation);
 		TransactionController tc = lcc.getTransactionExecute();
-		String groupuser = lcc.getCurrentGroupUser(activation);
 
 		List<PermissionsDescriptor> result = Lists.newArrayList();
         // Check that the current user has permission to grant the privileges.
 		checkOwnership( currentUser,
-						groupuser,
 						dd.getSchemaDescriptor( aliasDescriptor.getSchemaUUID(), tc),
 						dd);
 		

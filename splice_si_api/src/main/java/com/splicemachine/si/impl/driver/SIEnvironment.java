@@ -15,7 +15,6 @@
 package com.splicemachine.si.impl.driver;
 
 import com.splicemachine.access.api.DistributedFileSystem;
-import com.splicemachine.access.api.FilesystemAdmin;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SnowflakeFactory;
@@ -89,5 +88,4 @@ public interface SIEnvironment{
 
     ClusterHealth clusterHealthFactory();
 
-    FilesystemAdmin filesystemAdmin();
 }

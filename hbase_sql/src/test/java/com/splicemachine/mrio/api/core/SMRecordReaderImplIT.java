@@ -34,6 +34,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.mrio.MRConstants;
+import com.splicemachine.mrio.api.core.SMRecordReaderImpl;
 
 @Ignore
 public class SMRecordReaderImplIT extends BaseMRIOTest {

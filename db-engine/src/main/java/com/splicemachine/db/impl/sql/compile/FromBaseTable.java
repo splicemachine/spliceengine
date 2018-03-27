@@ -1160,9 +1160,8 @@ public class FromBaseTable extends FromTable {
         if(authorizeSYSUSERS){
             String databaseOwner=dataDictionary.getAuthorizationDatabaseOwner();
             String currentUser=getLanguageConnectionContext().getStatementContext().getSQLSessionContext().getCurrentUser();
-            String groupuser = getLanguageConnectionContext().getStatementContext().getSQLSessionContext().getCurrentGroupUser();
 
-            if(! (databaseOwner.equals(currentUser) || databaseOwner.equals(groupuser))){
+            if(!databaseOwner.equals(currentUser)){
                 throw StandardException.newException(SQLState.DBO_ONLY);
             }
         }

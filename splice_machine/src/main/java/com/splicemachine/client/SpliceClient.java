@@ -6,5 +6,4 @@ package com.splicemachine.client;
 public class SpliceClient {
     public static boolean isClient = false;
     public static boolean isRegionServer = false;
-    public static volatile String connectionString;
 }

@@ -11,7 +11,6 @@
  * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
  * If not, see <http://www.gnu.org/licenses/>.
  */
-
 package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
 import com.splicemachine.db.iapi.error.StandardException;
@@ -19,15 +18,15 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 
 /**
- * Created by yxia on 3/21/18.
+ * Created by yxia on 3/8/18.
  */
-public class UpgradeScriptToCleanSysRoutinePerms extends UpgradeScriptBase {
-    public UpgradeScriptToCleanSysRoutinePerms(SpliceDataDictionary sdd, TransactionController tc) {
+public class UpgradeScriptForAddDefaultRole extends UpgradeScriptBase {
+    public UpgradeScriptForAddDefaultRole(SpliceDataDictionary sdd, TransactionController tc) {
         super(sdd, tc);
     }
 
     @Override
     protected void upgradeSystemTables() throws StandardException {
-        sdd.cleanSysRoutinePerms(tc);
+        sdd.upgradeSysRolesWithDefaultRoleColumn(tc);
     }
 }

@@ -244,8 +244,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 					htable,
 					clock,
 					clientPartition,
-					driver.getConfiguration(),
-					config
+					driver.getConfiguration()
 			);
 			this.hregion = srs.getRegion();
 			this.mrs = srs;

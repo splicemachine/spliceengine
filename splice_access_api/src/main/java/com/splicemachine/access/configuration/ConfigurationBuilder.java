@@ -57,7 +57,6 @@ public class ConfigurationBuilder {
     public String authenticationLdapSearchbase;
     public String authenticationLdapSearchfilter;
     public String authenticationLdapServer;
-    public String authenticationLdapMapGroupAttr;
     public String authenticationNativeAlgorithm;
 
     // StatsConfiguration

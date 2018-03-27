@@ -18,11 +18,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import com.splicemachine.access.api.FilesystemAdmin;
 import com.splicemachine.access.api.ServiceDiscovery;
 import com.splicemachine.access.api.SnowflakeFactory;
-import com.splicemachine.access.hbase.HBaseConnectionFactory;
-import com.splicemachine.access.hbase.HFilesystemAdmin;
 import com.splicemachine.access.hbase.HSnowflakeFactory;
 import com.splicemachine.access.util.ByteComparisons;
 import com.splicemachine.hbase.ZkServiceDiscovery;
@@ -88,7 +85,6 @@ public class HBaseSIEnvironment implements SIEnvironment{
     private final DistributedFileSystem fileSystem;
     private final SnowflakeFactory snowflakeFactory;
     private final HClusterHealthFactory clusterHealthFactory;
-    private final HFilesystemAdmin filesystemAdmin;
     private SIDriver siDriver;
 
 
@@ -127,8 +123,6 @@ public class HBaseSIEnvironment implements SIEnvironment{
         this.clock = clock;
         this.snowflakeFactory = new HSnowflakeFactory();
         this.fileSystem =new HNIOFileSystem(FileSystem.get((Configuration) config.getConfigSource().unwrapDelegate()), exceptionFactory());
-
-        this.filesystemAdmin = new HFilesystemAdmin(HBaseConnectionFactory.getInstance(config).getConnection().getAdmin());
         this.keepAlive = new QueuedKeepAliveScheduler(config.getTransactionKeepAliveInterval(),
                 config.getTransactionTimeout(),
                 config.getTransactionKeepAliveThreads(),
@@ -158,7 +152,6 @@ public class HBaseSIEnvironment implements SIEnvironment{
         this.snowflakeFactory = new HSnowflakeFactory();
         this.clusterHealthFactory = new HClusterHealthFactory(rzk);
         this.ignoreTxnSupplier = new IgnoreTxnSupplier(partitionFactory, txnOpFactory);
-        this.filesystemAdmin = new HFilesystemAdmin(HBaseConnectionFactory.getInstance(config).getConnection().getAdmin());
 
         this.keepAlive = new QueuedKeepAliveScheduler(config.getTransactionKeepAliveInterval(),
                 config.getTransactionTimeout(),
@@ -267,10 +260,5 @@ public class HBaseSIEnvironment implements SIEnvironment{
     @Override
     public ClusterHealth clusterHealthFactory() {
         return clusterHealthFactory;
-    }
-
-    @Override
-    public FilesystemAdmin filesystemAdmin() {
-        return filesystemAdmin;
     }
 }

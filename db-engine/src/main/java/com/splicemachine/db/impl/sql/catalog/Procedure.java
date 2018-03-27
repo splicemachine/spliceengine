@@ -100,7 +100,7 @@ public class Procedure {
         return name.hashCode();
     }
 
-    public AliasDescriptor createSystemProcedure(UUID schemaId,
+    public RoutineAliasInfo createSystemProcedure(UUID schemaId,
                                                   DataDictionary dataDictionary,
                                                   TransactionController tc) throws StandardException {
         int numArgs = args.length;
@@ -139,7 +139,7 @@ public class Procedure {
                 null);
         dataDictionary.addDescriptor(ads,null,DataDictionary.SYSALIASES_CATALOG_NUM,false,tc);
 
-        return ads;
+        return rai;
     }
 
     public static class Builder{

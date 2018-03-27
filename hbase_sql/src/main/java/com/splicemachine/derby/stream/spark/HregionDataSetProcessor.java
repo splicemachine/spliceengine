@@ -34,7 +34,6 @@ import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
 import java.io.IOException;
@@ -65,12 +64,10 @@ public class HregionDataSetProcessor extends ControlDataSetProcessor {
 
                     Clock clock = driver.getClock();
                     Scan hscan = ((HScan)scan).unwrapDelegate();
-
-                    Table table = ((ClientPartition) partition).unwrapDelegate();
                     SplitRegionScanner srs = new SplitRegionScanner(hscan,
-                            table,
+                            ((ClientPartition)partition).unwrapDelegate(),
                             clock,
-                            partition, driver.getConfiguration(), table.getConfiguration());
+                            partition, driver.getConfiguration());
                     final HRegion hregion = srs.getRegion();
                     ExecRow template = getTemplate();
                     spliceOperation.registerCloseable(new AutoCloseable() {

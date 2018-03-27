@@ -59,10 +59,10 @@ public class SYSROUTINEPERMSRowFactory extends PermissionsCatalogRowFactory
 	static final String TABLENAME_STRING = "SYSROUTINEPERMS";
 
     // Column numbers for the SYSROUTINEPERMS table. 1 based
-    public static final int ROUTINEPERMSID_COL_NUM = 1;
+    private static final int ROUTINEPERMSID_COL_NUM = 1;
     private static final int GRANTEE_COL_NUM = 2;
     private static final int GRANTOR_COL_NUM = 3;
-    public static final int ALIASID_COL_NUM = 4;
+    private static final int ALIASID_COL_NUM = 4;
     private static final int GRANTOPTION_COL_NUM = 5;
     private static final int COLUMN_COUNT = 5;
 

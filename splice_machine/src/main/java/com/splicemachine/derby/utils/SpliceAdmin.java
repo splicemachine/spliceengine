@@ -16,7 +16,6 @@ package com.splicemachine.derby.utils;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DatabaseVersion;
-import com.splicemachine.access.api.FilesystemAdmin;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
@@ -34,12 +33,10 @@ import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SnapshotDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.StatementTablePermission;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -67,7 +64,6 @@ import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
 import com.splicemachine.db.impl.sql.catalog.ManagedCacheMBean;
-import com.splicemachine.db.impl.sql.catalog.SYSUSERSRowFactory;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
@@ -1137,8 +1133,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         if (dd.usesSqlAuthorization()) {
             String databaseOwner = dd.getAuthorizationDatabaseOwner();
             String currentUser = lcc.getStatementContext().getSQLSessionContext().getCurrentUser();
-            String groupUser = lcc.getStatementContext().getSQLSessionContext().getCurrentGroupUser();
-            if (!(databaseOwner.equals(currentUser) || databaseOwner.equals(groupUser))) {
+            if (!databaseOwner.equals(currentUser)) {
                 throw StandardException.newException(SQLState.DBO_ONLY);
             }
         }
@@ -1550,9 +1545,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         LanguageConnectionContext lcc = conn.getLanguageConnection();
         Activation lastActivation = conn.getLanguageConnection().getLastActivation();
         String userId = lastActivation.getLanguageConnectionContext().getCurrentUserId(lastActivation);
-        String groupuser = lastActivation.getLanguageConnectionContext().getCurrentUserId(lastActivation);
-        String dbo = lastActivation.getLanguageConnectionContext().getDataDictionary().getAuthorizationDatabaseOwner();
-        if (userId.equals(dbo) || (groupuser != null && groupuser.equals(dbo))) {
+        if (userId.equals(lastActivation.getLanguageConnectionContext().getDataDictionary().getAuthorizationDatabaseOwner())) {
             userId = null;
         }
 
@@ -1667,49 +1660,5 @@ public class SpliceAdmin extends BaseAdminProcedures{
         if (!killed)
             throw  PublicAPI.wrapStandardException(StandardException.newException(LANG_NO_SUCH_RUNNING_OPERATION, uuidString));
     }
-
-
-    public static void SYSCS_HDFS_OPERATION(final String path, final String operation, final ResultSet[] resultSet) throws SQLException {
-        try {
-            FilesystemAdmin admin = SIDriver.driver().getFilesystemAdmin();
-
-            String conglomName = admin.extractConglomerate(path);
-            int conglomId = Integer.parseInt(conglomName);
-
-            EmbedConnection conn = (EmbedConnection)getDefaultConn();
-            LanguageConnectionContext lcc = conn.getLanguageConnection();
-            Activation lastActivation = conn.getLanguageConnection().getLastActivation();
-
-            ConglomerateDescriptor conglomerate = lcc.getDataDictionary().getConglomerateDescriptor(conglomId);
-
-            // Check generic table permission
-            new StatementTablePermission(conglomerate.getSchemaID(), conglomerate.getTableID(), 0).check(lcc, false, lastActivation);
-
-            // Special check for SYSUSERS which contains the user/passwords
-            if (conglomerate.getTableID().toString().equals(SYSUSERSRowFactory.SYSUSERS_UUID)) {
-                throw StandardException.newException(SQLState.DBO_ONLY);
-            }
-
-            final GenericColumnDescriptor[] descriptors = {
-                    new GenericColumnDescriptor("RESPONSE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BLOB)),
-            };
-
-            List<ExecRow> rows = new ArrayList<>();
-            List<byte[]> results = admin.hdfsOperation(path, operation);
-            for (byte[] result : results) {
-                ExecRow row = new ValueRow(1);
-                row.setColumn(1, new SQLBlob(result));
-                rows.add(row);
-            }
-            IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, descriptors, lastActivation);
-            resultsToWrap.openCore();
-            resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
-        } catch (StandardException se) {
-            throw PublicAPI.wrapStandardException(se);
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }
-    }
-
 
 }

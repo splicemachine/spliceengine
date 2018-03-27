@@ -15,7 +15,6 @@
 package com.splicemachine.access.client;
 
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -35,12 +34,12 @@ public class HBase10ClientSideRegionScanner extends SkeletonClientSideRegionScan
     private final Table table;
 
     public HBase10ClientSideRegionScanner(Table table,
-                                          Configuration jobConfig, FileSystem fs,
+                                          FileSystem fs,
                                           Path rootDir,
                                           HTableDescriptor htd,
                                           HRegionInfo hri,
                                           Scan scan, String hostAndPort) throws IOException{
-        super(jobConfig,fs,rootDir,htd,hri,scan,hostAndPort);
+        super(table.getConfiguration(),fs,rootDir,htd,hri,scan,hostAndPort);
         this.table = table;
         updateScanner();
     }

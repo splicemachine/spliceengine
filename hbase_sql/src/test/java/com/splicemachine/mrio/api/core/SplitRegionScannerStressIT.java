@@ -305,7 +305,7 @@ public class SplitRegionScannerStressIT extends BaseMRIOTest {
         Scan scan = new Scan();
         SplitRegionScanner srs = new SplitRegionScanner(scan,
                 htable,
-                clock,partition, driver.getConfiguration(), htable.getConfiguration());
+                clock,partition, driver.getConfiguration());
         while (srs.next(newCells)) {
             i++;
             newCells.clear();

@@ -31,6 +31,16 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.catalog.UUID;
@@ -42,13 +52,9 @@ import com.splicemachine.db.iapi.services.monitor.ModuleControl;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.RoutinePermsDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-
-import java.sql.Types;
-import java.util.*;
 
 /**
  * @author Scott Fines
@@ -97,7 +103,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                 //free null check plus cast protection
                 if(n instanceof Procedure){
                     Procedure procedure = (Procedure)n;
-                    newlyCreatedRoutines.add(procedure.createSystemProcedure(uuid,dictionary,tc).getAliasInfo().getMethodName());
+                    newlyCreatedRoutines.add(procedure.createSystemProcedure(uuid,dictionary,tc));
                 }
             }
         }
@@ -139,7 +145,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     	if (procedure == null) {
     		throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
     	} else {
-    		newlyCreatedRoutines.add(procedure.createSystemProcedure(schemaId, dictionary, tc).getAliasInfo().getMethodName());
+    		newlyCreatedRoutines.add(procedure.createSystemProcedure(schemaId, dictionary, tc));
     	}
     }
 
@@ -217,12 +223,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     		// If not found check for existing function
         	ad = dictionary.getAliasDescriptor(schemaIdStr, procName, AliasInfo.ALIAS_NAME_SPACE_FUNCTION_AS_CHAR);
     	}
-
-		List<RoutinePermsDescriptor> permsList = new ArrayList<> ();
-
-    	if (ad != null) {
-			dictionary.getRoutinePermissions(ad.getUUID(), permsList);
-    		// Drop the procedure if it already exists.
+    	if (ad != null) {  // Drop the procedure if it already exists.
     		dictionary.dropAliasDescriptor(ad, tc);
     	}
 
@@ -231,18 +232,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     	if (procedure == null) {
     		throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
     	} else {
-    		AliasDescriptor newAliasDescriptor = procedure.createSystemProcedure(schemaId, dictionary, tc);
-    		newlyCreatedRoutines.add(newAliasDescriptor.getAliasInfo().getMethodName());
-
-    		// drop permission with old aliasInfo and re-populate with the new AliasInfo
-			for (RoutinePermsDescriptor perm : permsList) {
-				//remove perm from SYS.SYSROUTINEPERMS
-				dictionary.addRemovePermissionsDescriptor(false, perm, perm.getGrantee(), tc);
-				//update perm with new routineUUID
-				RoutinePermsDescriptor newPerm = new RoutinePermsDescriptor(dictionary, perm.getGrantee(), perm.getGrantor(), newAliasDescriptor.getUUID(), perm.getHasExecutePermission());
-				// add a new perm row with updated UUID of the system procedure
-				dictionary.addRemovePermissionsDescriptor(true, newPerm, newPerm.getGrantee(), tc);
-			}
+    		newlyCreatedRoutines.add(procedure.createSystemProcedure(schemaId, dictionary, tc));
     	}
     }
 

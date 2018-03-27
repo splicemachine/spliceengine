@@ -67,8 +67,6 @@ public class RevokeRoleConstantOperation extends DDLConstantOperation {
         DataDictionary dd = lcc.getDataDictionary();
         TransactionController tc = lcc.getTransactionExecute();
         final String grantor = lcc.getCurrentUserId(activation);
-        final String groupuser = lcc.getCurrentGroupUser(activation);
-
         dd.startWriting(lcc);
         for (Iterator rIter = roleNames.iterator(); rIter.hasNext();) {
             String role = (String)rIter.next();
@@ -103,13 +101,11 @@ public class RevokeRoleConstantOperation extends DDLConstantOperation {
                 // if (rd != null) {
                 //   :
                 if (grantor.equals(lcc.getDataDictionary().
-                                       getAuthorizationDatabaseOwner())
-                        || (groupuser != null && groupuser.equals(lcc.getDataDictionary().
-                                getAuthorizationDatabaseOwner()))) {
+                                       getAuthorizationDatabaseOwner())) {
                     // All ok, we are database owner
                     if (SanityManager.DEBUG) {
                         SanityManager.ASSERT(
-                            rdDef.getGrantee().equals(grantor) || rdDef.getGrantee().equals(groupuser),
+                            rdDef.getGrantee().equals(grantor),
                             "expected database owner in role grant descriptor");
                         SanityManager.ASSERT(
                             rdDef.isWithAdminOption(),

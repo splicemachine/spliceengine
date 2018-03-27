@@ -15,7 +15,6 @@
 package com.splicemachine.pipeline;
 
 import com.splicemachine.access.api.DistributedFileSystem;
-import com.splicemachine.access.api.FilesystemAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.ServiceDiscovery;
@@ -198,11 +197,6 @@ public class MPipelineEnv  implements PipelineEnvironment{
     @Override
     public ClusterHealth clusterHealthFactory() {
         return siEnv.clusterHealthFactory();
-    }
-
-    @Override
-    public FilesystemAdmin filesystemAdmin() {
-        return siEnv.filesystemAdmin();
     }
 
     @Override
