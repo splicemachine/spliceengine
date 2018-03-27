@@ -211,7 +211,7 @@
                             <groups>com.splicemachine.test.SerialTest</groups>
                             <excludedGroups>com.splicemachine.test.HBaseTest, ${excluded.categories}</excludedGroups>
                             <argLine>-Xmx3g</argLine>
-                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                            <redirectTestOutputToFile>false</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
                             </dependenciesToScan>
@@ -237,7 +237,7 @@
                             <threadCount>4</threadCount>
                             <perCoreThreadCount>false</perCoreThreadCount>
                             <argLine>-Xmx3g</argLine>
-                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                            <redirectTestOutputToFile>false</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
                             </dependenciesToScan>
