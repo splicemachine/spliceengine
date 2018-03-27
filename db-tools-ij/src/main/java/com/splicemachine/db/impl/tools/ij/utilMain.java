@@ -31,7 +31,6 @@
 
 package com.splicemachine.db.impl.tools.ij;
                 
-import com.splicemachine.db.jdbc.AutoloadedDriver;
 import com.splicemachine.db.tools.JDBCDisplayUtil;
 import com.splicemachine.db.iapi.tools.i18n.*;
 
@@ -434,22 +433,22 @@ public class utilMain implements java.security.PrivilegedAction {
 		/*
 			If an exit was requested, then we will be shutting down.
 		 */
-		if (ijParser.exit || (initialFileInput && !mtUse)) {
-        if(!AutoloadedDriver.isBooted()) return; //no reason to try booting the db if we are just going to shut it down
-			Driver d = null;
-			try {
-			    d = DriverManager.getDriver("jdbc:splice:");
-			} catch (Throwable e) {
-				d = null;
-			}
-			if (d!=null) { // do we have a driver running? shutdown on exit.
-				try {
-					DriverManager.getConnection("jdbc:splice:;shutdown=true");
-				} catch (SQLException e) {
-					// ignore the errors, they are expected.
-				}
-			}
-		}
+//		if (ijParser.exit || (initialFileInput && !mtUse)) {
+//        	if(!AutoloadedDriver.isBooted()) return; //no reason to try booting the db if we are just going to shut it down
+//			Driver d = null;
+//			try {
+//			    d = DriverManager.getDriver("jdbc:splice:");
+//			} catch (Throwable e) {
+//				d = null;
+//			}
+//			if (d!=null) { // do we have a driver running? shutdown on exit.
+//				try {
+//					DriverManager.getConnection("jdbc:splice:;shutdown=true");
+//				} catch (SQLException e) {
+//					// ignore the errors, they are expected.
+//				}
+//			}
+//		}
   	}
 
 	private void displayResult(LocalizedOutput out, ijResult result, Connection conn) throws SQLException {
