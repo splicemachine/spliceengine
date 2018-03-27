@@ -19,6 +19,7 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test.SerialTest;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -280,6 +281,7 @@ public class SavepointConstantOperationIT {
 
 
     @Test
+    @Category(HBaseTest.class) // the re-enabling is tracked in DB-6858
     public void testMorePersistedSavepointsInBatch() throws Exception {
         ResultSet rs = conn1.query("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
         rs.next();
