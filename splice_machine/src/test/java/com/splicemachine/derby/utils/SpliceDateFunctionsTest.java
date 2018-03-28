@@ -23,6 +23,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
+import org.apache.derby.client.am.SqlException;
 
 import java.sql.Date;
 import java.sql.SQLException;
@@ -64,7 +65,7 @@ public class SpliceDateFunctionsTest {
     }
 
     @Test
-    public void nextDay() throws ParseException, SQLException {
+    public void nextDay() throws ParseException, SqlException {
         Date date1 = new Date(DF.parse("2014/06/24").getTime());
         Date date2 = new Date(DF.parse("2014/06/29").getTime());
         Date date3 = new Date(DF.parse("2014/06/25").getTime());
@@ -78,24 +79,24 @@ public class SpliceDateFunctionsTest {
     }
 
     @Test
-    public void nextDayIsNotCaseSensitive() throws ParseException, SQLException {
+    public void nextDayIsNotCaseSensitive() throws ParseException, SqlException {
         Date startDate = new Date(DF.parse("2014/06/24").getTime());
         Date resultDate = new Date(DF.parse("2014/06/30").getTime());
         assertEquals(resultDate, SpliceDateFunctions.NEXT_DAY(startDate, "MoNdAy"));
     }
 
     @Test
-    public void nextDayThrowsWhenPassedInvalidDay() throws SQLException {
+    public void nextDayThrowsWhenPassedInvalidDay() throws SqlException {
         try{
             SpliceDateFunctions.NEXT_DAY(new Date(1L),"not-a-week-day");
-        }catch(SQLException se){
+        }catch(SqlException se){
             Assert.assertEquals("Invalid sql state!",ErrorState.LANG_INVALID_DAY.getSqlState(),se.getSQLState());
             Assert.assertTrue("Did not contain the proper week day message!",se.getMessage().contains("not-a-week-day"));
         }
     }
 
     @Test
-    public void nextDayReturnsPassedDateWhenGivenNullDay() throws SQLException {
+    public void nextDayReturnsPassedDateWhenGivenNullDay() throws SqlException {
         Date source = new Date(1L);
         assertSame(source, SpliceDateFunctions.NEXT_DAY(source, null));
     }
@@ -110,7 +111,7 @@ public class SpliceDateFunctionsTest {
     }
 
     @Test
-    public void toDate() throws SQLException, ParseException {
+    public void toDate() throws SqlException, ParseException {
         String format = "yyyy/MM/dd";
         String source = "2014/06/24";
         DateFormat formatter = new SimpleDateFormat(format);
@@ -120,8 +121,8 @@ public class SpliceDateFunctionsTest {
     }
 
     @Test
-    public void toDate_throwsOnInvalidDateFormat() throws SQLException, ParseException {
-        expectedException.expect(SQLException.class);
+    public void toDate_throwsOnInvalidDateFormat() throws SqlException, ParseException {
+        expectedException.expect(SqlException.class);
         SpliceDateFunctions.TO_DATE("bad-format", "yyyy/MM/dd");
     }
 
@@ -143,7 +144,7 @@ public class SpliceDateFunctionsTest {
         try {
             assertEquals(date, SpliceDateFunctions.TO_DATE(source));
             fail("Expected to get an exception for parsing the wrong date pattern.");
-        } catch (SQLException e) {
+        } catch (SqlException e) {
            assertEquals("Error parsing datetime 2014/06/24 with pattern: null. Try using an ISO8601 pattern such " +
                             "as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd",
                         e.getLocalizedMessage());
@@ -151,7 +152,7 @@ public class SpliceDateFunctionsTest {
     }
 
     @Test
-    public void toTimestamp() throws SQLException, ParseException {
+    public void toTimestamp() throws SqlException, ParseException {
         String format = "yyyy/MM/dd HH:mm:ss.SSS";
         String source = "2014/06/24 12:13:14.123";
         DateFormat formatter = new SimpleDateFormat("MM/dd/yy HH:mm:ss.SSS");
@@ -161,8 +162,8 @@ public class SpliceDateFunctionsTest {
     }
 
     @Test
-    public void toTimestamp_throwsOnInvalidDateFormat() throws SQLException, ParseException {
-        expectedException.expect(SQLException.class);
+    public void toTimestamp_throwsOnInvalidDateFormat() throws SqlException, ParseException {
+        expectedException.expect(SqlException.class);
         SpliceDateFunctions.TO_TIMESTAMP("bad-format", "yyyy/MM/dd HH:mm:ss.SSS");
     }
 
@@ -207,7 +208,7 @@ public class SpliceDateFunctionsTest {
         try {
             assertEquals(date, SpliceDateFunctions.TO_TIMESTAMP(source));
             fail("Expected to get an exception for parsing the wrong date pattern.");
-        } catch (SQLException e) {
+        } catch (SqlException e) {
            assertEquals("Error parsing datetime 2014-06-24 12:13:14.123 with pattern: null. Try using an ISO8601 " +
                             "pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd",
                         e.getLocalizedMessage());
@@ -228,7 +229,7 @@ public class SpliceDateFunctionsTest {
     }
 
     @Test
-    public void truncDate() throws ParseException, SQLException {
+    public void truncDate() throws ParseException, SqlException {
         assertEquals(timeStampT("2014/07/15 12:12:12.234"), TRUNC_DATE(timeStampT("2014/07/15 12:12:12.234"), "microseconds"));
         assertEquals(timeStampT("2014/07/15 12:12:12.234"), TRUNC_DATE(timeStampT("2014/07/15 12:12:12.234"), "milliseconds"));
         assertEquals(timeStampT("2014/07/15 12:12:12.0"), TRUNC_DATE(timeStampT("2014/07/15 12:12:12.234"), "second"));
@@ -244,7 +245,7 @@ public class SpliceDateFunctionsTest {
     }
 
     @Test
-    public void truncDate_Millennium() throws ParseException, SQLException {
+    public void truncDate_Millennium() throws ParseException, SqlException {
         assertEquals(timeStampT("0000/01/01 00:00:00.000"), TRUNC_DATE(timeStampT("955/12/31 12:13:14.123"), "millennium"));
         assertEquals(timeStampT("1000/01/01 00:00:00.000"), TRUNC_DATE(timeStampT("1955/12/31 12:13:14.123"), "millennium"));
         assertEquals(timeStampT("2000/01/01 00:00:00.000"), TRUNC_DATE(timeStampT("2000/01/01 12:13:14.123"), "millennium"));
@@ -254,20 +255,20 @@ public class SpliceDateFunctionsTest {
     }
 
     @Test
-    public void truncDate_returnsNullIfSourceOrDateOrBothAreNull() throws ParseException, SQLException {
+    public void truncDate_returnsNullIfSourceOrDateOrBothAreNull() throws ParseException, SqlException {
         assertNull(TRUNC_DATE(timeStampT("2014/07/15 12:12:12.234"), null));
         assertNull(TRUNC_DATE(null, "month"));
         assertNull(TRUNC_DATE(null, null));
     }
 
     @Test
-    public void truncDate_throwsOnInvalidTimeFieldArg() throws ParseException, SQLException {
-        expectedException.expect(SQLException.class);
+    public void truncDate_throwsOnInvalidTimeFieldArg() throws ParseException, SqlException {
+        expectedException.expect(SqlException.class);
         assertNull(TRUNC_DATE(timeStampT("2014/07/15 12:12:12.234"), "not-a-time-field"));
     }
 
     @Test
-    public void truncDate_isNotCaseSensitive() throws ParseException, SQLException {
+    public void truncDate_isNotCaseSensitive() throws ParseException, SqlException {
         assertEquals(timeStampT("2014/07/15 12:00:00.0"), TRUNC_DATE(timeStampT("2014/07/15 12:12:12.234"), "hOuR"));
     }
     private static Timestamp timeStampT(String dateString) throws ParseException {
