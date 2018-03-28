@@ -17,6 +17,7 @@ package com.splicemachine.derby.utils;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.pipeline.ErrorState;
+import com.splicemachine.db.client.am.SqlException;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeFieldType;
 import org.joda.time.Months;
@@ -55,14 +56,14 @@ public class SpliceDateFunctions {
     /**
      * Implements the TO_TIMESTAMP(source) function.
      */
-    public static Timestamp TO_TIMESTAMP(String source) throws SQLException {
+    public static Timestamp TO_TIMESTAMP(String source) throws SqlException {
         return TO_TIMESTAMP(source,null);
     }
 
     /**
      * Implements the TO_TIMESTAMP(source, pattern) function.
      */
-    public static Timestamp TO_TIMESTAMP(String source, String format) throws SQLException {
+    public static Timestamp TO_TIMESTAMP(String source, String format) throws SqlException {
 
         if (source == null) return null;
         try {
@@ -88,13 +89,13 @@ public class SpliceDateFunctions {
     /**
      * Implements the TO_TIME(source) function.
      */
-    public static Time TO_TIME(String source) throws SQLException {
+    public static Time TO_TIME(String source) throws SqlException {
         return TO_TIME(source,null);
     }
     /**
      * Implements the TO_TIME(source,format) function.
      */
-    public static Time TO_TIME(String source, String format) throws SQLException {
+    public static Time TO_TIME(String source, String format) throws SqlException {
         if (source == null) return null;
         return new Time(parseDateTime(source, format));
     }
@@ -102,35 +103,39 @@ public class SpliceDateFunctions {
     /**
      * Implements the TO_DATE(source) function.
      */
-    public static Date TO_DATE(String source) throws SQLException {
+    public static Date TO_DATE(String source) throws SqlException {
         return TO_DATE(source,null);
     }
 
     /**
      * Implements the TO_DATE(source[, pattern]) function.
      */
-    public static Date TO_DATE(String source, String format) throws SQLException {
+    public static Date TO_DATE(String source, String format) throws SqlException {
         if (source == null) return null;
         return new Date(parseDateTime(source, format));
     }
 
-    private static long parseDateTime(String source, String format) throws SQLException {
+    private static long parseDateTime(String source, String format) throws SqlException {
         // FIXME: Timezone loss for Timestamp - see http://stackoverflow.com/questions/16794772/joda-time-parse-a-date-with-timezone-and-retain-that-timezone
         DateTimeFormatter parser = DEFAULT_DATE_TIME_FORMATTER;
         if (format != null) {
             try {
                 parser = DateTimeFormat.forPattern(format);
             } catch (Exception e) {
-                throw new SQLException("Error creating a datetime parser for pattern: "+format+". Try using an" +
-                                           " ISO8601 pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd", SQLState.LANG_DATE_SYNTAX_EXCEPTION);
+                throw new SqlException(
+                        new SQLException("Error creating a datetime parser for pattern: "+format+". Try using an" +
+                                           " ISO8601 pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd", SQLState.LANG_DATE_SYNTAX_EXCEPTION)
+                );
             }
         }
         DateTime parsed;
         try {
             parsed = parser.withOffsetParsed().parseDateTime(source);
         } catch (Exception e) {
-            throw new SQLException("Error parsing datetime "+source+" with pattern: "+format+". Try using an" +
-                                       " ISO8601 pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd", SQLState.LANG_DATE_SYNTAX_EXCEPTION);
+            throw new SqlException(
+                    new SQLException("Error parsing datetime "+source+" with pattern: "+format+". Try using an" +
+                                       " ISO8601 pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd", SQLState.LANG_DATE_SYNTAX_EXCEPTION)
+            );
         }
         return parsed.getMillis();
     }
@@ -149,11 +154,11 @@ public class SpliceDateFunctions {
     /**
      * Implements the NEXT_DAY function
      */
-    public static Date NEXT_DAY(Date source, String weekday) throws SQLException {
+    public static Date NEXT_DAY(Date source, String weekday) throws SqlException {
         if (source == null || weekday == null) return source;
         String lowerWeekday = weekday.toLowerCase();
         if (!WEEK_DAY_MAP.containsKey(lowerWeekday)) {
-            throw PublicAPI.wrapStandardException(ErrorState.LANG_INVALID_DAY.newException(weekday));
+            throw new SqlException(PublicAPI.wrapStandardException(ErrorState.LANG_INVALID_DAY.newException(weekday)));
         }
         DateTime dt = new DateTime(source);
         int increment = WEEK_DAY_MAP.get(lowerWeekday) - dt.getDayOfWeek() - 1;
@@ -195,7 +200,7 @@ public class SpliceDateFunctions {
     /**
      * Implements the trunc_date function
      */
-    public static Timestamp TRUNC_DATE(Timestamp source, String field) throws SQLException {
+    public static Timestamp TRUNC_DATE(Timestamp source, String field) throws SqlException {
         if (source == null || field == null) return null;
         DateTime dt = new DateTime(source);
         field = field.toLowerCase();
@@ -297,7 +302,7 @@ public class SpliceDateFunctions {
             //noinspection deprecation (converstion from joda to java.sql.Timestamp did not work for millennium < 2000)
             return new Timestamp(newYear - 1900, Calendar.JANUARY, 1, 0, 0, 0, 0);
         } else {
-            throw new SQLException(String.format("invalid time unit '%s'", field));
+            throw new SqlException(new SQLException(String.format("invalid time unit '%s'", field)));
         }
     }
 

@@ -544,6 +544,8 @@ public class StandardException extends Exception
 				}
 				return se;
 			}
+
+
 		}
 
         if (t instanceof SQLException && t.getMessage().contains("amazonaws")) {
