@@ -23,7 +23,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
-import org.apache.derby.client.am.SqlException;
+import com.splicemachine.db.client.am.SqlException;
 
 import java.sql.Date;
 import java.sql.SQLException;
