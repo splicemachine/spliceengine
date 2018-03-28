@@ -1240,7 +1240,7 @@ public class SpliceDateFunctionsIT {
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             fail("Expected exception the syntax of the string representation of a datetime value is incorrect");
         } catch (SQLDataException e) {
-            assertEquals("The syntax of the string representation of a datetime value is incorrect.", e.getLocalizedMessage());
+            assertEquals("22007", e.getSQLState());
         }
     }
 }
