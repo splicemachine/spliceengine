@@ -544,6 +544,15 @@ public class StandardException extends Exception
 				}
 				return se;
 			}
+
+			//Handle Datetime format parsing exception
+			if ((state != null) &&
+					(state.equals(SQLState.LANG_DATE_SYNTAX_EXCEPTION) || (state.equals(SQLState.LANG_DATE_RANGE_EXCEPTION)))
+					)
+			{
+				return new StandardException(state, sqlex.getMessage());
+			}
+
 		}
 
         if (t instanceof SQLException && t.getMessage().contains("amazonaws")) {
