@@ -61,7 +61,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.19.1</version>
                 <!--
                                 -sf- We skip the tests in this module because all of our tests require an architecture
                                 to run, and those architectures are contained further down the line. The poms for
