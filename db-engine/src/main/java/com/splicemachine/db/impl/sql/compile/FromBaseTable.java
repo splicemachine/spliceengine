@@ -1776,7 +1776,7 @@ public class FromBaseTable extends FromTable {
 			/* No BULK FETCH or requalification, XOR off the columns coming from the heap 
 			 * to get the columns coming from the index.
 			 */
-            indexReferencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,true,false,true);
+            indexReferencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,true,false,false);
             heapReferencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,true,true,false);
             if(heapReferencedCols!=null){
                 indexReferencedCols.xor(heapReferencedCols);
