@@ -8,6 +8,7 @@ sys.setdefaultencoding('utf8')
 class SpliceInstall(Script):
   def install(self, env):
     import params
+    self.install_packages(env)
     env.set_params(params)
     print(params)
     print 'Install the client';
