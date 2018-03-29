@@ -24,6 +24,7 @@ import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 
 import java.io.IOException;
+import java.sql.SQLException;
 
 /**
  * @author Scott Fines
@@ -54,6 +55,8 @@ public class Exceptions {
                 return (StandardException) rootCause;
             } else if (rootCause instanceof SqlException) {
                 return StandardException.wrapSqlException((SqlException) rootCause);
+            } else if (rootCause instanceof SQLException) {
+                return StandardException.plainWrapException(rootCause);
             }
             if (pef != null) {
                 e = pef.processPipelineException(rootCause);
