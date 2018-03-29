@@ -1232,4 +1232,15 @@ public class SpliceDateFunctionsIT {
     //====================================================================================================
     // DB-2248, DB-2249: BI Tools and ODBC functions - end
     //====================================================================================================
+
+    //DB-6790
+    @Test
+    public void testToDateWithIncorrectFormatPattern() throws Exception {
+        String sqlText = "values to_date('2018-12','MM-DDD')";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            fail("Expected exception the syntax of the string representation of a datetime value is incorrect");
+        } catch (SQLDataException e) {
+            assertEquals("22007", e.getSQLState());
+        }
+    }
 }
