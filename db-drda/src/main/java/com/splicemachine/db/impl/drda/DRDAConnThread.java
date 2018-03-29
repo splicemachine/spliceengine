@@ -355,7 +355,7 @@ class DRDAConnThread extends Thread {
 						agentError("Session in invalid state:" + session.state);
 				}
 			} catch (Exception e) {
-				if (e instanceof DRDAProtocolException && 
+				if (e instanceof DRDAProtocolException &&
 						((DRDAProtocolException)e).isDisconnectException())
 				{
 				 	// client went away - this is O.K. here

@@ -99,7 +99,7 @@ public class SpliceMethod<T> {
 				return null;
 			} catch (StandardException se) {
 				throw se;
-			}		
+			}
 			catch (Throwable t) {
 				throw StandardException.unexpectedUserException(t);
 			}
