@@ -77,6 +77,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     public long badRecordsSeen;
     public long badRecordThreshold;
     public boolean failed;
+    private String importFileName;
 
     public SparkOperationContext(){
 
@@ -165,6 +166,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         out.writeObject(ignoredRows);
         out.writeObject(catchThrownRows);
         out.writeObject(catchRetriedRows);
+        out.writeObject(importFileName);
     }
 
     @Override
@@ -206,6 +208,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         ignoredRows=(LongAccumulator)in.readObject();
         catchThrownRows=(LongAccumulator)in.readObject();
         catchRetriedRows=(LongAccumulator)in.readObject();
+        importFileName= (String) in.readObject();
     }
 
     @Override
@@ -217,6 +220,34 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     @Override
     public void reset(){
 //        impl.resetContextManager();
+        BadRecordsRecorder oldRecorder = this.badRecordsAccumulator.value();
+        BadRecordsRecorder badRecordsRecorder = new BadRecordsRecorder(
+                oldRecorder.getStatusDirectory(),
+                importFileName,
+                badRecordThreshold);
+        this.badRecordsAccumulator=SpliceSpark.getContext().accumulable(badRecordsRecorder,
+                badRecordsRecorder.getUniqueName(),
+                new BadRecordsAccumulator());
+        badRecordsSeen = 0;
+        String baseName="";
+        if (op != null) {
+            baseName = "(" + op.resultSetNumber() + ") " + op.getName() + " ";
+        }
+        this.rowsRead = SpliceSpark.getContext().sc().longAccumulator(baseName + "rows read");
+        this.rowsFiltered = SpliceSpark.getContext().sc().longAccumulator(baseName + "rows filtered");
+        this.rowsWritten = SpliceSpark.getContext().sc().longAccumulator(baseName + "rows written");
+        this.rowsJoinedLeft = SpliceSpark.getContext().sc().longAccumulator(baseName + "rows joined left");
+        this.rowsJoinedRight = SpliceSpark.getContext().sc().longAccumulator(baseName + "rows joined right");
+        this.rowsProduced = SpliceSpark.getContext().sc().longAccumulator(baseName + "rows produced");
+        initWritePipeline();
+
+        List<SpliceOperation> operations=getOperation().getSubOperations();
+        if(operations!=null){
+            for(SpliceOperation operation : operations){
+                if(operation.getOperationContext()!=null)
+                    operation.getOperationContext().reset();
+            }
+        }
     }
 
     @Override
@@ -464,6 +495,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         this.permissive=true;
         this.badRecordThreshold = badRecordThreshold;
         if(importFileName == null)importFileName=BAD_FILENAME + System.currentTimeMillis();
+        this.importFileName = importFileName;
         BadRecordsRecorder badRecordsRecorder = new BadRecordsRecorder(statusDirectory,
                                                                        importFileName,
                                                                        badRecordThreshold);

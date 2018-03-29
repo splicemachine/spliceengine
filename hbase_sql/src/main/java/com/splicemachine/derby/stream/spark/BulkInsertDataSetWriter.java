@@ -212,6 +212,7 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
 
                 // dump cut points to file system for reference
                 dumpCutPoints(cutPoints, bulkImportDirectory);
+                operationContext.reset();
             }
             if (!samplingOnly && !outputKeysOnly) {
 
