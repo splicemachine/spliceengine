@@ -204,8 +204,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
 
     @Override
     public void close() throws StandardException {
-        if (uuid != null)
+        if (uuid != null) {
             EngineDriver.driver().getOperationManager().unregisterOperation(uuid);
+            logExecutionEnd();
+        }
         try{
             if(LOG_CLOSE.isTraceEnabled())
                 LOG_CLOSE.trace(String.format("closing operation %s",this));
@@ -462,6 +464,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         try {
             DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation, this);
             uuid = EngineDriver.driver().getOperationManager().registerOperation(this, Thread.currentThread(), new Date(), dsp.getType());
+            logExecutionStart(dsp);
             activation.getLanguageConnectionContext().getStatementContext().registerExpirable(this, Thread.currentThread());
             if (dsp.getType() == DataSetProcessor.Type.SPARK && !isOlapServer() && !SpliceClient.isClient) {
                 openDistributed();
@@ -475,6 +478,24 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             checkInterruptedException(e);
             throw e;
         }
+    }
+
+    private void logExecutionStart(DataSetProcessor dsp) {
+        LanguageConnectionContext lccToUse = activation.getLanguageConnectionContext();
+        if (lccToUse.getLogStatementText()) {
+            String xactId = lccToUse.getTransactionExecute().getActiveStateTxIdString();
+            EngineDriver.driver().getStatementLogger().logExecutionStart(xactId, lccToUse.getInstanceNumber(), lccToUse.getDbname(), lccToUse.getDrdaID(), uuid.toString(), dsp.getType(), activation.getPreparedStatement(), activation.getParameterValueSet());
+        }
+
+    }
+
+    private void logExecutionEnd() {
+        LanguageConnectionContext lccToUse = activation.getLanguageConnectionContext();
+        if (lccToUse.getLogStatementText()) {
+            String xactId = lccToUse.getTransactionExecute().getActiveStateTxIdString();
+            EngineDriver.driver().getStatementLogger().logExecutionEnd(xactId, lccToUse.getInstanceNumber(), lccToUse.getDbname(), lccToUse.getDrdaID(), uuid.toString());
+        }
+
     }
 
     protected void computeModifiedRows() throws StandardException {

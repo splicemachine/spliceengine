@@ -814,6 +814,6 @@ public class Monitor {
      * Logs the stack trace of the specified throwable object.
      */
     public static void logThrowable(Throwable t) {
-        t.printStackTrace(getStream().getPrintWriter());
+		getStream().printThrowable(t);
     }
 }

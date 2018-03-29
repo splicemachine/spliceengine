@@ -45,10 +45,6 @@ import com.splicemachine.db.iapi.services.stream.PrintWriterGetHeader;
 
 class BasicGetLogHeader implements PrintWriterGetHeader
 {
-	
-	private boolean doThreadId;
-	private boolean doTimeStamp;
-	private String tag;
 
 	// SPLICE-1998 Make splice log time stamp be compliant with Hadoop ISO8601
 	private String timeStampFormat = "yyyy-MM-dd HH:mm:ss,SSS";
@@ -73,31 +69,11 @@ class BasicGetLogHeader implements PrintWriterGetHeader
 	BasicGetLogHeader(boolean doThreadId,
 				boolean doTimeStamp,
 				String tag){
-		this.doThreadId = doThreadId;
-		this.doTimeStamp = doTimeStamp;
-		this.tag = tag;
-	}	
+	}
 	
 	public String getHeader()
 	{
-		StringBuffer header = new StringBuffer(48);
-
-		if (tag != null) {
-			header.append(tag);
-			header.append(' ');
-		}
-
-		if (doTimeStamp) {
-			header.append(new SimpleDateFormat(timeStampFormat).format(new Date()));
-			header.append(' ');
-		}
-
-		if (doThreadId) {
-			header.append(Thread.currentThread().toString());
-			header.append(' ');
-		}
-
-		return header.toString();
+		return ""; // no need for headers
 	}
 }
 	
