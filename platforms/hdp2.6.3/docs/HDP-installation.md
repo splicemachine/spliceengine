@@ -35,15 +35,67 @@ operating environment, and are called out in detail in the
 
 Setup local yum repo on ambari server node ( or a node that all the nodes in the cluster can access) :
 
+0.make sure there is a http server on the node that your_node_url is accessable.
+1.make sure createrepo is installed on the node ( use 'yum install createrepo' to confirm)
+2.put the splicemachine rpm under /var/www/html/ambari-repo/ ( or the path you choose)
+3.use 'createrepo /var/www/html/ambari-repo/' to create the repo metadata
+4.open the url your_node_url/ambari-repo to confirm it can be accessed by yum
+5.put a file named splicemachine.repo under /etc/yums.repo.d/
+
+the content is as below 
+
+  ````
+  [splicemachine]
+  name=SpliceMachine Repo
+  baseurl=http://your_node_url/ambari-repo
+  enabled=1
+  gpgcheck=0
+  ````
+  
+6. rum yum list | grep splicemachine to make sure the custom repo is up and running.  
+
 Perform the following steps **on each node** in your cluster:
 
 1.  install the splicemachine  custom ambari service rpm using following command (take version 2.5.0.1811 for example) :
 
     ````
-    sudo rpm -ivh splicemachine_ambari_service-hdp2.6.3.2.5.0.1811.p0.647-1.noarch.rpm
+    sudo yum install splicemachine_ambari_service
     ````
 
+After install the rpm,restart ambari-server using 'service ambari-server restart'
+
+
 ## install splicemachine using ambari service
+
+Follow the steps to install splicemachine server.
+
+1.click the action button on the left buttom of the ambari page,then click on 'Add Services'
+
+<img src="docs/add_services.jpg" alt="Add Service" width="400" height="200">
+
+2.choose splice machine from the 'add service wizard'
+
+<img src="docs/add_service_wizard.jpg" alt="Add Service Wizard" width="400" height="200">
+
+3.choose hosts needed to install splice machine,only choose hosts that have hbase region server installed.Then click next.
+
+<img src="docs/choose_hosts.jpeg" alt="Choose hosts" width="400" height="200">
+
+4.O On the page of custom services,no properties need to customize by hand.
+
+<img src="docs/custom_services.jpeg" alt="Custom Services" width="400" height="200">
+
+5.please review all the configuration change made by ambari and click OK to continue.
+
+<img src="docs/dependent_config.jpeg" alt="dependent_config.jpeg" width="400" height="200">
+
+6.please click next all the way down to this page ,then click 'deploy',after that finishes,splice machine is installed.
+
+<img src="docs/review.jpeg" alt="dependent_config.jpeg" width="400" height="200">
+
+7.restart all the services affected to start splice machine!
+
+
 
 ## Start any Additional Services
 
