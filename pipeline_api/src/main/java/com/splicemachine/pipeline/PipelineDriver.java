@@ -91,8 +91,8 @@ public class PipelineDriver{
         int ipcThreads = config.getIpcThreads();
         int maxIndependentWrites = config.getMaxIndependentWrites();
         int maxDependentWrites = config.getMaxDependentWrites();
-
-        this.writeControl= new SynchronousWriteControl(ipcThreads/2,ipcThreads/2,maxDependentWrites,maxIndependentWrites);
+        int portionWriteThreads = determinePortionOfWriteThreads(ipcThreads);
+        this.writeControl= new SynchronousWriteControl(portionWriteThreads,portionWriteThreads,maxDependentWrites,maxIndependentWrites);
         this.pipelineWriter = new PipelineWriter(pef, writePipelineFactory,writeControl,pipelineMeter);
         channelFactory.setWriter(pipelineWriter);
         channelFactory.setPipeline(writePipelineFactory);
@@ -102,6 +102,22 @@ public class PipelineDriver{
         }catch(IOException e){
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     *
+     * Return 4 if equal to or less than 10 else
+     *
+     * leave 20% of the pool for other resources and then take your half.
+     *
+     * @param ipcThreads
+     * @return
+     */
+    public static int determinePortionOfWriteThreads(int ipcThreads) {
+        if (ipcThreads <= 10) // 10 is the default...
+            return 4; // Magic Number, leaves 2 for the default scenario of 10
+        int metaPool = ipcThreads/5; // Leave 20% of them target 40 out of 200 with our basic configuration.
+        return (ipcThreads-metaPool)/2; // split evently between the two pools..
     }
 
     public PipelineCompressor compressor(){
