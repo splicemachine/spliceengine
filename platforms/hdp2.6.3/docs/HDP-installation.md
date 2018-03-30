@@ -36,10 +36,15 @@ operating environment, and are called out in detail in the
 Setup local yum repo on ambari server node ( or a node that all the nodes in the cluster can access) :
 
 0.make sure there is a http server on the node that your_node_url is accessable.
+
 1.make sure createrepo is installed on the node ( use 'yum install createrepo' to confirm)
+
 2.put the splicemachine rpm under /var/www/html/ambari-repo/ ( or the path you choose)
+
 3.use 'createrepo /var/www/html/ambari-repo/' to create the repo metadata
+
 4.open the url your_node_url/ambari-repo to confirm it can be accessed by yum
+
 5.put a file named splicemachine.repo under /etc/yums.repo.d/
 
 the content is as below 
