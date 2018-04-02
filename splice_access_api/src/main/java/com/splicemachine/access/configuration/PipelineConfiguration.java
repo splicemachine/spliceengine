@@ -146,8 +146,8 @@ public class PipelineConfiguration implements ConfigurationDefault {
     public static final String MAX_DEPENDENT_WRITES = "splice.client.write.maxDependentWrites";
     public static final int DEFAULT_MAX_DEPENDENT_WRITES = 40000;
 
-    public static final String IPC_THREADS="hbase.regionserver.handler.count";
-    public static final int DEFAULT_IPC_THREADS = 200;
+    public static final String IPC_THREADS="hbase.regionserver.metahandler.count";
+    public static final int DEFAULT_IPC_THREADS = 10;
 
     public static final String PIPELINE_KRYO_POOL_SIZE= "splice.writer.kryoPoolSize";
     private static final int DEFAULT_PIPELINE_KRYO_POOL_SIZE=1024;
