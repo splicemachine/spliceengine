@@ -34,6 +34,11 @@
             <osSpecifics>
                 <osSpecific>
                     <osFamily>any</osFamily>  <!-- note: use osType rather than osFamily for Ambari 1.5.0 and 1.5.1 -->
+                    <packages>
+                        <package>
+                          <name>splicemachine.noarch</name>
+                        </package>
+                       </packages>
                 </osSpecific>
             </osSpecifics>
             <configuration-dependencies>
