@@ -83,7 +83,8 @@ public final class SConfigurationImpl implements SConfiguration {
 
     // PipelineConfiguration
     private final  int coreWriterThreads;
-    private final  int ipcThreads;
+    private final  int maxDependentWriteThreads;
+    private final  int maxIndependentWriteThreads;
     private final  int maxBufferEntries;
     private final  int maxDependentWrites;
     private final  int maxIndependentWrites;
@@ -329,9 +330,14 @@ public final class SConfigurationImpl implements SConfiguration {
         return coreWriterThreads;
     }
     @Override
-    public int getIpcThreads() {
-        return ipcThreads;
+    public int getMaxDependentWriteThreads() {
+        return maxDependentWriteThreads;
     }
+    @Override
+    public int getMaxIndependentWriteThreads() {
+        return maxIndependentWriteThreads;
+    }
+
     @Override
     public int getMaxBufferEntries() {
         return maxBufferEntries;
@@ -749,7 +755,8 @@ public final class SConfigurationImpl implements SConfiguration {
         networkBindAddress = builder.networkBindAddress;
         upgradeForcedFrom = builder.upgradeForcedFrom;
         coreWriterThreads = builder.coreWriterThreads;
-        ipcThreads = builder.ipcThreads;
+        maxDependentWriteThreads = builder.maxDependentWriteThreads;
+        maxIndependentWriteThreads = builder.maxIndependentWriteThreads;
         maxBufferEntries = builder.maxBufferEntries;
         maxDependentWrites = builder.maxDependentWrites;
         maxIndependentWrites = builder.maxIndependentWrites;
