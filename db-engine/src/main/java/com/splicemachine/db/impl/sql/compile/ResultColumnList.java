@@ -1665,7 +1665,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
      *
      * @throws StandardException Thrown on error
      */
-    public void doProjection() throws StandardException{
+    public int doProjection(boolean checkSourceReference) throws StandardException{
         int numDeleted=0;
         int size=size();
         ResultColumnList deletedRCL=new ResultColumnList();
@@ -1677,32 +1677,42 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 			 * down the RC/VCN chain to see if the RC is referenced.  This is
 			 * because we propagate the referencing info from the bottom up.
 			 */
-            if((!resultColumn.isReferenced())
-                    && (resultColumn.getExpression() instanceof VirtualColumnNode)
-                    && !(((VirtualColumnNode)resultColumn.getExpression()).getSourceColumn().isReferenced())){
-                // Remember the RC to delete when done
-                deletedRCL.addElement(resultColumn);
+			if (!resultColumn.isReferenced()) {
+                if (!checkSourceReference) {
+                    // Remember the RC to delete when done
+                    deletedRCL.addElement(resultColumn);
+                    numDeleted++;
+                    continue;
+                }
+
+                if ((resultColumn.getExpression() instanceof VirtualColumnNode)
+                        && !(((VirtualColumnNode) resultColumn.getExpression()).getSourceColumn().isReferenced())) {
+                    // Remember the RC to delete when done
+                    deletedRCL.addElement(resultColumn);
 
 				/* Remember how many we have deleted and decrement the
 				 * VirtualColumnIds for all nodes which appear after us
 				 * in the list.
 				 */
-                numDeleted++;
-            }else{
-				/* Decrement the VirtualColumnId for each node in the list
-				 * after the 1st deleted one.
-				 */
-                if(numDeleted>=1)
-                    resultColumn.adjustVirtualColumnId(-numDeleted);
-				/* Make sure that the RC is marked as referenced! */
-                resultColumn.setReferenced();
+                    numDeleted++;
+                    continue;
+                }
             }
+
+            /* Decrement the VirtualColumnId for each node in the list
+             * after the 1st deleted one.
+             */
+            if(numDeleted>=1)
+                resultColumn.adjustVirtualColumnId(-numDeleted);
+            /* Make sure that the RC is marked as referenced! */
+            resultColumn.setReferenced();
         }
 
         // Go back and delete the RCs to be delete from the list
         for(int index=0;index<deletedRCL.size();index++){
             removeElement(deletedRCL.elementAt(index));
         }
+        return numDeleted;
     }
 
     /**
@@ -2602,6 +2612,27 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         }
     }
 
+    public void setColumnReferences(boolean set, boolean retainAggregateNodes) throws StandardException {
+        int size=size();
+        for(int index=0;index<size;index++){
+            ResultColumn rc=elementAt(index);
+
+            if (set)
+                rc.setReferenced();
+            else {
+                if (retainAggregateNodes) {
+                    //look for AggregateNode
+                    CollectNodesVisitor collectingNodeVisitor = new CollectNodesVisitor(AggregateNode.class);
+                    rc.getExpression().accept(collectingNodeVisitor);
+                    if (!collectingNodeVisitor.getList().isEmpty()) {
+                        rc.setReferenced();
+                        continue;
+                    }
+                }
+                rc.setUnreferenced();
+            }
+        }
+    }
     /**
      * Copy the referenced RCs from this list to the supplied target list.
      *
