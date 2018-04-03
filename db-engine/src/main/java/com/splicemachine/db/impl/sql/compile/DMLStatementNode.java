@@ -133,6 +133,9 @@ public abstract class DMLStatementNode extends StatementNode {
     @Override
     public void optimizeStatement() throws StandardException {
 
+        //prune projection list
+        accept(new ProjectionPruningVisitor());
+
         /* Perform subquery flattening if applicable. */
         SubqueryFlattening.flatten(this);
         /* it is possible that some where clause subquery will be converted to fromSubquery in preprocess(),

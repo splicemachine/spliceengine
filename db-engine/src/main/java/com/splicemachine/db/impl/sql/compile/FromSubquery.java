@@ -33,17 +33,20 @@ package com.splicemachine.db.impl.sql.compile;
 
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.Visitable;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.Visitor;
-
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.impl.ast.CollectingVisitor;
+import com.splicemachine.db.impl.ast.ColumnCollectingVisitor;
+import org.spark_project.guava.base.Predicates;
 
 import java.util.HashMap;
+import java.util.List;
 
 
 /**
@@ -311,7 +314,7 @@ public class FromSubquery extends FromTable
          * Create RCL based on subquery, adding a level of VCNs.
          */
          ResultColumnList newRcl = subqueryRCL.copyListAndObjects();
-         newRcl.genVirtualColumnNodes(subquery, subquery.getResultColumns());
+         newRcl.genVirtualColumnNodes(subquery, subquery.getResultColumns(), false);
          resultColumns = newRcl;
 
 		/* Propagate the name info from the derived column list */
@@ -412,7 +415,12 @@ public class FromSubquery extends FromTable
 							&& (hs.containsKey(((ColumnReference) gbc.getColumnExpression()).columnName))){
 							ResultColumn rc = hs.get(((ColumnReference) gbc.getColumnExpression()).columnName);
 							rc.isGenerated = false;
-							rc.isReferenced = false;
+						    /**
+						     * We've determined whether a RC is referenced or not at the beginning of optimization stage
+						     * through ProjectionPruningVisitor, and rely on this setting to determine if an RC need to
+						     * be pruned or preserved, so do not overwrite it
+						     */
+					//		rc.isReferenced = false;
 							rc.isGroupingColumn = true;
 					}
 				}
@@ -805,4 +813,35 @@ public class FromSubquery extends FromTable
             fetchFirst.accept(v, this);
         }
     }
+
+	public List<QueryTreeNode> collectReferencedColumns() throws StandardException {
+		CollectingVisitor<QueryTreeNode> cnVisitor = new ColumnCollectingVisitor(
+				Predicates.or(Predicates.instanceOf(ColumnReference.class),
+						      Predicates.instanceOf(VirtualColumnNode.class),
+						      Predicates.instanceOf(OrderedColumn.class)));
+		// collect column references from different components
+		if (orderByList != null)
+			orderByList.accept(cnVisitor);
+
+		for (int i=0; i<resultColumns.size(); i++) {
+			ResultColumn rc = resultColumns.elementAt(i);
+			if (rc.isReferenced())
+				rc.accept(cnVisitor);
+		}
+
+		return cnVisitor.getCollected();
+	}
+
+	public Visitable projectionListPruning(boolean considerAllRCs) throws StandardException {
+		// collect referenced columns.
+		List<QueryTreeNode> refedcolmnList = collectReferencedColumns();
+
+		ResultColumnList rcl = subquery.getResultColumns();
+		// clear the referenced fields for both source tables
+		rcl.setColumnReferences(false, true);
+
+		markReferencedResultColumns(refedcolmnList);
+
+		return this;
+	}
 }

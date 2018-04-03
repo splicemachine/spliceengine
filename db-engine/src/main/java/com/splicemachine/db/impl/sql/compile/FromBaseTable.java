@@ -1533,7 +1533,7 @@ public class FromBaseTable extends FromTable {
 		/* Project out any unreferenced columns.  If there are no referenced 
 		 * columns, generate and bind a single ResultColumn whose expression is 1.
 		 */
-        prRCList.doProjection();
+        prRCList.doProjection(true);
 
         // Add rowId column to prRCList
         if(rowIdColumn!=null){
