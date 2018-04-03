@@ -192,10 +192,12 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     public void close() throws StandardException {
         if (uuid != null) {
             EngineDriver.driver().getOperationManager().unregisterOperation(uuid);
-            logExecutionEnd();
+            if (isOpen) {
+                logExecutionEnd();
+            }
         }
         try{
-            if(LOG_CLOSE.isTraceEnabled())
+            if(LOG_CLOSE.isTraceEnabled() && isOpen)
                 LOG_CLOSE.trace(String.format("closing operation %s",this));
             if (remoteQueryClient != null) {
                 if (!isKilled && !isTimedout) {
