@@ -89,6 +89,7 @@ public class HdfsImportIT extends SpliceUnitTest {
     protected static String TABLE_20 = "T";
     protected static String TABLE_21 = "U";
     protected static String TABLE_22 = "V";
+    protected static String TABLE_23 = "W";
 
     private static final String AUTO_INCREMENT_TABLE = "INCREMENT";
 
@@ -177,6 +178,8 @@ public class HdfsImportIT extends SpliceUnitTest {
             .schemaName, "(c1 char(10) for bit data )");
     protected static SpliceTableWatcher spliceTableWatcher22 = new SpliceTableWatcher(TABLE_22, spliceSchemaWatcher
             .schemaName, "(c1 varchar(10) for bit data )");
+    protected static SpliceTableWatcher spliceTableWatcher23 = new SpliceTableWatcher(TABLE_23, spliceSchemaWatcher
+            .schemaName, "(i varchar(10), j varchar(10) not null, constraint a_pk primary key (i))");
 
     private static SpliceTableWatcher  multiLine = new SpliceTableWatcher("mytable",spliceSchemaWatcher.schemaName,
             "(a int, b char(10),c timestamp, d varchar(100),e bigint)");
@@ -214,6 +217,7 @@ public class HdfsImportIT extends SpliceUnitTest {
             .around(spliceTableWatcher20)
             .around(spliceTableWatcher21)
             .around(spliceTableWatcher22)
+            .around(spliceTableWatcher23)
             .around(multiLine)
             .around(multiPK)
             .around(autoIncTableWatcher);
@@ -1482,6 +1486,35 @@ public class HdfsImportIT extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery(format("select name, age from %s.%s order by age",spliceSchemaWatcher.schemaName,TABLE_17));
         List results = TestUtils.resultSetToArrays(rs);
         Assert.assertArrayEquals(expected.toArray(), results.toArray());
+    }
+
+    // Regression test for DB-6431
+    @Test
+    public void testImportRowsCount() throws Exception {
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
+                        "'%s'," +  // schema name
+                        "'%s'," +  // table name
+                        "null," +   // insert column list
+                        "'%s'," +  // file path
+                        "null," +  // column delimiter
+                        "null," +  // character delimiter
+                        "null," +  // timestamp format
+                        "null," +  // date format
+                        "null," +  // time format
+                        "%d," +    // max bad records
+                        "'%s'," +  // bad record dir
+                        "null," +  // has one line records
+                        "null)",   // char set
+                spliceSchemaWatcher.schemaName,
+                TABLE_23,
+                getResourceDirectory() + "rows_count.csv", -1,
+                BADDIR.getCanonicalPath()));
+        ResultSet result = ps.executeQuery();
+        result.next();
+        int rowsCount = result.getInt(1);
+        int badRecords = result.getInt(2);
+        assertEquals(rowsCount, 1);
+        assertEquals(badRecords, 2);
     }
 
     /**
