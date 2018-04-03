@@ -546,7 +546,7 @@ public abstract class TableOperatorNode extends FromTable{
      */
     @Override
     void projectResultColumns() throws StandardException{
-        resultColumns.doProjection();
+        resultColumns.doProjection(true);
     }
 
     /**
