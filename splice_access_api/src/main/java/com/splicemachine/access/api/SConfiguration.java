@@ -111,7 +111,9 @@ public interface SConfiguration {
     // PipelineConfiguration
     int getCoreWriterThreads();
 
-    int getIpcThreads();
+    int getMaxDependentWriteThreads();
+
+    int getMaxIndependentWriteThreads();
 
     int getMaxBufferEntries();
 
