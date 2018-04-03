@@ -14,8 +14,6 @@
 
 package com.splicemachine.derby.lifecycle;
 
-import java.io.IOException;
-
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
@@ -25,12 +23,13 @@ import com.splicemachine.access.configuration.ConfigurationSource;
 import com.splicemachine.access.configuration.HConfigurationDefaultsList;
 import com.splicemachine.access.util.ReflectingConfigurationSource;
 import com.splicemachine.concurrent.ConcurrentTicker;
-import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.si.MemSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.MPartitionFactory;
 import com.splicemachine.storage.MTxnPartitionFactory;
+
+import java.io.IOException;
 
 /**
  * @author Scott Fines
@@ -97,7 +96,8 @@ public class MemDatabase{
         public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
             // Overwritten for test
             builder.regionMaxFileSize = Long.MAX_VALUE;
-            builder.ipcThreads = 100;
+            builder.maxIndependentWriteThreads = 50;
+            builder.maxDependentWriteThreads = 50;
             builder.partitionserverPort = 16020;
             builder.storageFactoryHome = System.getProperty("user.dir");
         }
