@@ -34,6 +34,8 @@ package com.splicemachine.db.iapi.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
 
+import java.util.List;
+
 /**
  * A Visitable is something that can be visited by a Visitor
  */
@@ -54,5 +56,9 @@ public interface Visitable {
      */
     Visitable accept(Visitor visitor, QueryTreeNode parent) throws StandardException;
 
+    public List<QueryTreeNode> collectReferencedColumns() throws StandardException;
 
+    public Visitable projectionListPruning(boolean considerAllRCs) throws StandardException;
+
+    public void markReferencedResultColumns(List<QueryTreeNode> list) throws StandardException;
 }

@@ -36,34 +36,36 @@ import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 
 /**
- * Created by yxia on 10/4/17.
+ * Created by yxia on 4/2/18.
+ * Prune unreferenced result columns from FromSubquery Node and FromBaseTable Node
  */
-public class CheckCorrelatedSubqueryVisitor implements Visitor {
-    private boolean hasCorrelation;
-    private int outerNestingLvl;
+public class ProjectionPruningVisitor implements Visitor {
+    boolean isTopSelect=true;
 
-    public CheckCorrelatedSubqueryVisitor(int level) {
-            outerNestingLvl = level;
-        }
-        @Override
-        public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
-            if (node instanceof ColumnReference)
-            {
-                if (((ColumnReference)node).checkCRLevel(outerNestingLvl))
-                {
-                    hasCorrelation = true;
-                }
-            }
+    @Override
+    public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
+        if (parent != null && (parent instanceof SubqueryNode) && (node instanceof SelectNode || node instanceof SetOperatorNode)) {
+            isTopSelect = true;
+            node = node.projectionListPruning(isTopSelect);
+            if (isTopSelect)
+                isTopSelect = false;
+        } else if (node instanceof SelectNode || node instanceof SetOperatorNode) {
+            node = node.projectionListPruning(isTopSelect);
+            if (isTopSelect)
+                isTopSelect = false;
+        } else
+            node = node.projectionListPruning(false);
 
-            return node;
-        }
 
-        /**
-         * {@inheritDoc}
-         * @return {@code false}, since the entire tree should be visited
-         */
+        return node;
+    }
+
+    /**
+     * {@inheritDoc}
+     * @return {@code false}, since the entire tree should be visited
+     */
     public boolean stopTraversal() {
-        return hasCorrelation;
+        return false;
     }
 
     /**
@@ -82,8 +84,7 @@ public class CheckCorrelatedSubqueryVisitor implements Visitor {
         return false;
     }
 
-    public boolean getHasCorrelation() {
-        return hasCorrelation;
+    public boolean getIsTopSelect() {
+        return isTopSelect;
     }
-
 }

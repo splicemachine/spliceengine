@@ -1215,4 +1215,11 @@ public interface Property {
 
 	String SELECTIVITY_ESTIMATION_INCLUDING_SKEWED =
 			"derby.database.selectivityEstimationIncludingSkewedDefault";
+
+	/**
+	 * True if we want to enable the ProjectionPruning. By default it is false or NULL(which is
+	 * the same as false)
+	 */
+	String PROJECTION_PRUNING_DISABLED =
+			"derby.database.projectionPruningDisabled";
 }

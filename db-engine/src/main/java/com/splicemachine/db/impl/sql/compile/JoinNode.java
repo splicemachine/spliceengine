@@ -45,15 +45,14 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.PropertyUtil;
+import com.splicemachine.db.impl.ast.CollectingVisitor;
 import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
 import org.spark_project.guava.base.Joiner;
+import org.spark_project.guava.base.Predicates;
 import org.spark_project.guava.collect.Lists;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-import java.util.Vector;
+import java.util.*;
 
 /**
  * A JoinNode represents a join result set for either of the basic DML
@@ -1410,7 +1409,7 @@ public class JoinNode extends TableOperatorNode{
     /**
      * Build the RCL for this node.  We propagate the RCLs up from the children and splice them to form this node's RCL.
      */
-    private void buildRCL() throws StandardException{
+    public void buildRCL() throws StandardException{
 		/* NOTE - we only need to build this list if it does not already exist.  This can happen in the degenerate case
 		 * of an insert select with a join expression in a derived table within the select. */
         if(resultColumns!=null){
@@ -1995,5 +1994,41 @@ public class JoinNode extends TableOperatorNode{
     @Override
     protected boolean canBeOrdered(){
         return true;
+    }
+
+    public List<QueryTreeNode> collectReferencedColumns() throws StandardException {
+        CollectingVisitor<QueryTreeNode> cnVisitor = new CollectingVisitor(
+                Predicates.or(Predicates.instanceOf(ColumnReference.class),
+                        Predicates.instanceOf(VirtualColumnNode.class)));
+        // collect column references from different components
+
+        if (joinClause != null)
+            joinClause.accept(cnVisitor);
+
+        for (int i=0; i<resultColumns.size(); i++) {
+            ResultColumn rc = resultColumns.elementAt(i);
+            if (rc.isReferenced())
+                rc.accept(cnVisitor);
+        }
+
+        return cnVisitor.getCollected();
+
+    }
+
+
+    /**
+     * prune the unreferenced result columns of FromSubquery node and FromBaseTable node
+     */
+    public Visitable projectionListPruning(boolean considerAllRCs) throws StandardException {
+        // collect referenced columns.
+        List<QueryTreeNode> refedcolmnList = collectReferencedColumns();
+
+        // clear the referenced fields for both source tables
+        leftResultSet.resultColumns.setColumnReferences(false, true);
+        rightResultSet.resultColumns.setColumnReferences(false, true);
+
+        markReferencedResultColumns(refedcolmnList);
+
+        return this;
     }
 }
