@@ -163,7 +163,6 @@ public class CreateViewConstantOperation extends DDLConstantOperation {
 		ColumnDescriptor[] cdlArray = new ColumnDescriptor[columnInfo.length];
 		int index = 1;
 		for (int ix = 0; ix < columnInfo.length; ix++) {
-            index++;
 			columnDescriptor = new ColumnDescriptor(
 				                   columnInfo[ix].name,
 								   index,
@@ -178,6 +177,7 @@ public class CreateViewConstantOperation extends DDLConstantOperation {
                                     index
 							   );
 			cdlArray[ix] = columnDescriptor;
+			index++;
 		}
 
 		dd.addDescriptorArray(cdlArray, td,DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
