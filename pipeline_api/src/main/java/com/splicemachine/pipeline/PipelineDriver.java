@@ -88,11 +88,11 @@ public class PipelineDriver{
         this.pipelineMeter= meter;
         this.writePipelineFactory = writePipelineFactory;
 
-        int ipcThreads = config.getIpcThreads();
-        int maxIndependentWrites = config.getMaxIndependentWrites();
-        int maxDependentWrites = config.getMaxDependentWrites();
-
-        this.writeControl= new SynchronousWriteControl(ipcThreads/2,ipcThreads/2,maxDependentWrites,maxIndependentWrites);
+        this.writeControl= new SynchronousWriteControl(
+                config.getMaxDependentWriteThreads(),
+                config.getMaxIndependentWriteThreads(),
+                config.getMaxIndependentWrites(),
+                config.getMaxDependentWrites());
         this.pipelineWriter = new PipelineWriter(pef, writePipelineFactory,writeControl,pipelineMeter);
         channelFactory.setWriter(pipelineWriter);
         channelFactory.setPipeline(writePipelineFactory);
