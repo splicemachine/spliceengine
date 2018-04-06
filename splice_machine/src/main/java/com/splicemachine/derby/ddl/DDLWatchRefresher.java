@@ -21,9 +21,12 @@ import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.si.api.filter.TransactionReadController;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.DDLFilter;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.txn.LazyTxnView;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -105,8 +108,7 @@ public class DDLWatchRefresher{
                 //inform the server of the first time we see this change
                 String cId=change.getChangeId();
                 changeTimeouts.put(cId,clock.currentTimeMillis());
-                if (LOG.isDebugEnabled())
-                    SpliceLogUtils.debug(LOG,"New change with id=%s, and change=%s",changeId,change);
+                SpliceLogUtils.info(LOG,"New change with id=%s, and change=%s",changeId,change);
                 try {
                     processPreCommitChange(change, callbacks);
                     seenDDLChanges.add(changeId);
@@ -195,8 +197,7 @@ public class DDLWatchRefresher{
         for(Iterator<String> iterator=seenDDLChanges.iterator();iterator.hasNext();){
             String entry=iterator.next();
             if(!children.contains(entry)){
-                if (LOG.isDebugEnabled())
-                    LOG.debug("Removing change with id " + entry);
+                LOG.info("Removing change with id " + entry);
                 changeTimeouts.remove(entry);
                 currentDDLChanges.remove(entry);
                 currChangeCount.decrementAndGet();
@@ -232,7 +233,7 @@ public class DDLWatchRefresher{
 
     }
 
-    private int killTimeouts(Set<DDLWatcher.DDLListener> listeners) {
+    private int killTimeouts(Set<DDLWatcher.DDLListener> listeners) throws IOException {
         /*
          * Kill transactions which have been timed out.
          */
@@ -240,8 +241,11 @@ public class DDLWatchRefresher{
         Iterator<Map.Entry<String,Long>> timeoutsIter = changeTimeouts.entrySet().iterator();
         while(timeoutsIter.hasNext()){
             Map.Entry<String,Long> entry = timeoutsIter.next();
-            if (clock.currentTimeMillis() > entry.getValue() + maxDdlWaitMs) {
-                watchChecker.killDDLTransaction(entry.getKey());
+            String changeId = entry.getKey();
+            DDLChange ddlChange = watchChecker.getChange(changeId);
+            if (ddlChange != null && isTimeout(ddlChange)) {
+                SpliceLogUtils.info(LOG, "DDLChange %s timed out.", ddlChange);
+                watchChecker.killDDLTransaction(changeId);
                 /*
                  * DB-3816. We need to notify our listeners that we failed
                  * an operation, to avoid leaking resources due to never telling
@@ -255,6 +259,20 @@ public class DDLWatchRefresher{
             }
         }
         return numKilled;
+    }
+
+    /**
+     * We consider a DDL change to be timed out of the DDL txn was rolled back
+     * @param ddlChange
+     * @return
+     * @throws IOException
+     */
+    protected boolean isTimeout(DDLChange ddlChange) throws IOException{
+        long txnId = ddlChange.getTxnId();
+        SIDriver driver = SIDriver.driver();
+        TxnStore txnStore = driver.getTxnStore();
+        TxnView txn = txnStore.getTransaction(txnId);
+        return (txn == null || txn.getEffectiveState() == Txn.State.ROLLEDBACK);
     }
 
     public boolean cacheIsValid() {
