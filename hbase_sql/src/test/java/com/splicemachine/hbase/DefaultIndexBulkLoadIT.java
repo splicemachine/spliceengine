@@ -23,11 +23,15 @@ public class DefaultIndexBulkLoadIT extends SpliceUnitTest {
     private static SpliceTableWatcher BULK_HFILE_BLANK_TABLE = new SpliceTableWatcher("BULK_HFILE_BLANK_TABLE", schemaWatcher.schemaName,"(i varchar(10) default '', j varchar(10))");
     private static SpliceIndexWatcher BULK_HFILE_BLANK_TABLE_IX = new SpliceIndexWatcher(BULK_HFILE_BLANK_TABLE.tableName, schemaWatcher.schemaName, "BULK_HFILE_BLANK_TABLE_IX",
             schemaWatcher.schemaName, "(i)",false,false,true);
+    private static SpliceIndexWatcher BULK_HFILE_BLANK_TABLE_IX2 = new SpliceIndexWatcher(BULK_HFILE_BLANK_TABLE.tableName, schemaWatcher.schemaName, "BULK_HFILE_BLANK_TABLE_IX2",
+            schemaWatcher.schemaName, "(i desc, j desc)",false,false,true);
     private static SpliceTableWatcher T1 = new SpliceTableWatcher("T1", schemaWatcher.schemaName, "(a1 int, b1 int default 5, c1 int, d1 varchar(20) default 'NNN', e1 varchar(20))");
     private static SpliceIndexWatcher T1_IX_B1_EXCL_DEFAULTS = new SpliceIndexWatcher(T1.tableName, schemaWatcher.schemaName, "T1_IX_B1_EXCL_DEFAULTS", schemaWatcher.schemaName, "(b1)", false, false, true);
     private static SpliceIndexWatcher T1_IX_C1_EXCL_NULL = new SpliceIndexWatcher(T1.tableName, schemaWatcher.schemaName, "T1_IX_C1_EXCL_NULL", schemaWatcher.schemaName, "(c1)", false, true, false);
     private static SpliceIndexWatcher T1_IX_D1_EXCL_DEFAULTS = new SpliceIndexWatcher(T1.tableName, schemaWatcher.schemaName, "T1_IX_D1_EXCL_DEFAULTS", schemaWatcher.schemaName, "(d1)", false, false, true);
     private static SpliceIndexWatcher T1_IX_E1_EXCL_NULL = new SpliceIndexWatcher(T1.tableName, schemaWatcher.schemaName, "T1_IX_E1_EXCL_NULL", schemaWatcher.schemaName, "(e1)", false, true, false);
+    private static SpliceIndexWatcher T1_IX_D1_DESC_E1_EXCL_DEFAULTS = new SpliceIndexWatcher(T1.tableName, schemaWatcher.schemaName, "T1_IX_D1_DESC_E1_EXCL_DEFAULTS", schemaWatcher.schemaName, "(d1 desc, e1)", false, false, true);
+
 
 
 
@@ -39,11 +43,13 @@ public class DefaultIndexBulkLoadIT extends SpliceUnitTest {
             .around(schemaWatcher)
             .around(BULK_HFILE_BLANK_TABLE)
             .around(BULK_HFILE_BLANK_TABLE_IX)
+            .around(BULK_HFILE_BLANK_TABLE_IX2)
             .around(T1)
             .around(T1_IX_B1_EXCL_DEFAULTS)
             .around(T1_IX_C1_EXCL_NULL)
             .around(T1_IX_D1_EXCL_DEFAULTS)
-            .around(T1_IX_E1_EXCL_NULL);
+            .around(T1_IX_E1_EXCL_NULL)
+            .around(T1_IX_D1_DESC_E1_EXCL_DEFAULTS);
 
     private Connection conn;
 
@@ -92,6 +98,19 @@ public class DefaultIndexBulkLoadIT extends SpliceUnitTest {
             Assert.assertEquals("I | J |\n" +
                     "--------\n" +
                     "SD |SD |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+            try {
+                methodWatcher.executeQuery(String.format("SELECT * FROM BULK_HFILE_BLANK_TABLE --SPLICE-PROPERTIES index=BULK_HFILE_BLANK_TABLE_IX2\n where i =''"));
+                Assert.fail("did not throw exception");
+            } catch (SQLException sqle) {
+                Assert.assertEquals("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.", sqle.getMessage());
+            }
+            rs = methodWatcher.executeQuery(String.format("SELECT * FROM BULK_HFILE_BLANK_TABLE --SPLICE-PROPERTIES index=BULK_HFILE_BLANK_TABLE_IX2\n where i ='SD'"));
+
+
+            Assert.assertEquals("I | J |\n" +
+                    "--------\n" +
+                    "SD |SD |", TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
         catch (Exception e) {
             java.lang.Throwable ex = Throwables.getRootCause(e);
@@ -114,6 +133,10 @@ public class DefaultIndexBulkLoadIT extends SpliceUnitTest {
             Assert.assertEquals("", TestUtils.FormattedResult.ResultFactory.toString(rs));
 
             rs = methodWatcher.executeQuery(String.format("SELECT * FROM T1 --SPLICE-PROPERTIES index=T1_IX_B1_EXCL_DEFAULTS\n where b1 <> 5"));
+
+            Assert.assertEquals("", TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+            rs = methodWatcher.executeQuery(String.format("SELECT * FROM T1 --SPLICE-PROPERTIES index=T1_IX_D1_DESC_E1_EXCL_DEFAULTS\n where d1 <> 'NNN'"));
 
             Assert.assertEquals("", TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
