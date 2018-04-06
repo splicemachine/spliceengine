@@ -85,6 +85,8 @@ public class AuthorizationIT {
                 "EMPNAME  VARCHAR(20), " +
                 "GRADE    DECIMAL(4), " +
                 "CITY     VARCHAR(15))");
+        user1Conn.createStatement().executeUpdate("create view V_STAFF " +
+                "as select CITY from STAFF");
     }
 
     @Test
@@ -101,6 +103,11 @@ public class AuthorizationIT {
     @Test
     public void testSuperUserCannotSeePasswordsInSysUsers() throws Exception {
         assertFailed(methodWatcher.getOrCreateConnection(), "select * from sys.sysusers", SQLState.HIDDEN_COLUMN);
+    }
+
+    @Test
+    public void testUser2CannotSeeView() throws Exception {
+        assertFailed(user2Conn, "select CITY from V_STAFF", SQLState.AUTH_NO_COLUMN_PERMISSION);
     }
 
     @Test
