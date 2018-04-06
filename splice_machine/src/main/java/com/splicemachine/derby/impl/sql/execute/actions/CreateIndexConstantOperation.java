@@ -590,7 +590,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                     continue;
                 }
                 numSet++;
-                if (defaultValue == null && numSet==1) {
+                // check if the current column is the leading index column, then set the defaultValue
+                if (cd.getPosition() == baseColumnPositions[0]) {
                     defaultValue = cd.getDefaultValue();
                 }
                 DataValueDescriptor colDescriptor = dts.getNull();

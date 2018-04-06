@@ -14,25 +14,18 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLIntegrityConstraintViolationException;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
-
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
+import org.junit.*;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Index tests. Using more manual SQL, rather than SpliceIndexWatcher.
@@ -51,6 +44,7 @@ public class CreateIndexConstantOperationIT extends SpliceUnitTest {
     public static final String TABLE_NAME_6 = "F";
     public static final String TABLE_NAME_7 = "G";
     public static final String TABLE_NAME_8 = "H";
+    public static final String TABLE_NAME_9 = "T1";
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     private static final String WRITE_WRITE_CONFLICT="SE014";
 
@@ -66,6 +60,7 @@ public class CreateIndexConstantOperationIT extends SpliceUnitTest {
     		+ "col10 int, col11 int, col12 int, col13 int, col14 int, col15 int, col16 int, col17 int, col18 int,"
     		+ "col19 int, col20 int)");
     protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher(TABLE_NAME_8,CLASS_NAME, tableDef);
+    protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher(TABLE_NAME_9, CLASS_NAME, "(a1 int default 999, b1 varchar(20) default ' ', c1 int)");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -77,7 +72,8 @@ public class CreateIndexConstantOperationIT extends SpliceUnitTest {
             .around(spliceTableWatcher5)
             .around(spliceTableWatcher6)
             .around(spliceTableWatcher7)
-            .around(spliceTableWatcher8);
+            .around(spliceTableWatcher8)
+            .around(spliceTableWatcher9);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -183,5 +179,26 @@ public class CreateIndexConstantOperationIT extends SpliceUnitTest {
         } catch (SQLException e) {
             Assert.assertTrue(e.getCause().getMessage().contains("already exists"));
         }
+    }
+
+    @Test
+    public void testCreateIndexExecludingDefaults() throws Exception {
+        methodWatcher.execute(format("insert into %s values (1, ' ', 1), (2, ' ', 2), (3, 'xxxxxxxxxxxxxxxxxxxx', 3)", this.getPaddedTableReference(TABLE_NAME_9)));
+        methodWatcher.execute(format("create index IX_T1_EXCL_DEFAULTS on %s(b1 desc, a1) exclude default keys", this.getPaddedTableReference(TABLE_NAME_9)));
+        methodWatcher.execute(format("insert into %s values (4, ' ', 4), (5, ' ', 5), (6, 'yyyyyyyyyyyyyyyyyyyy', 6)", this.getPaddedTableReference(TABLE_NAME_9)));
+
+        try {
+            methodWatcher.executeQuery(format("SELECT * FROM %s --SPLICE-PROPERTIES index=IX_T1_EXCL_DEFAULTS", this.getPaddedTableReference(TABLE_NAME_9)));
+            Assert.fail("did not throw exception");
+        }
+        catch (SQLException sqle) {
+            Assert.assertEquals("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.", sqle.getMessage());
+        }
+
+        ResultSet rs = methodWatcher.executeQuery(format("SELECT * FROM %s --SPLICE-PROPERTIES index=IX_T1_EXCL_DEFAULTS\n where b1>' '", this.getPaddedTableReference(TABLE_NAME_9)));
+        Assert.assertEquals("A1 |         B1          |C1 |\n" +
+                "------------------------------\n" +
+                " 3 |xxxxxxxxxxxxxxxxxxxx | 3 |\n" +
+                " 6 |yyyyyyyyyyyyyyyyyyyy | 6 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 }
