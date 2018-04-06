@@ -99,7 +99,6 @@ class TestChecker implements DDLWatchChecker{
     @Override
     public void notifyProcessed(Collection<Pair<DDLChange,String>> processedChanges) throws IOException{
         for(Pair<DDLChange,String> change:processedChanges){
-            removeChange(change.getFirst().getChangeId());
             if(communicator!=null){
                 communicator.onCommunicationEvent(change.getFirst().getChangeId()+"-"+id); //notify the other side if we have one
             }

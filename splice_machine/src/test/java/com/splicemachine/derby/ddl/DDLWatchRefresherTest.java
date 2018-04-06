@@ -21,8 +21,12 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnStore;
+import com.splicemachine.si.api.txn.TxnSupplier;
+import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.store.TestingTimestampSource;
 import com.splicemachine.si.impl.store.TestingTxnStore;
 import com.splicemachine.si.impl.txn.SITransactionReadController;
@@ -76,7 +80,8 @@ public class DDLWatchRefresherTest{
 
         TxnStore supplier = new TestingTxnStore(clock,new TestingTimestampSource(),null,100l);
         supplier.recordNewTransaction(txn);
-        DDLWatchRefresher refresher = new DDLWatchRefresher(checker,null,clock,ef,10l,supplier);
+        TestDDLWatchRefresher refresher = new TestDDLWatchRefresher(checker,null,clock,ef,10l,supplier);
+        refresher.setTimeout(false);
 
         //add a new change
 
@@ -105,7 +110,8 @@ public class DDLWatchRefresherTest{
         TxnStore supplier = new TestingTxnStore(clock,new TestingTimestampSource(),null,100l);
         supplier.recordNewTransaction(txn);
         SITransactionReadController txnController=new SITransactionReadController(supplier);
-        DDLWatchRefresher refresher = new DDLWatchRefresher(checker,txnController,clock,ef,10l,supplier );
+        TestDDLWatchRefresher refresher = new TestDDLWatchRefresher(checker,txnController,clock,ef,10l,supplier );
+        refresher.setTimeout(false);
         CountingListener assertionListener = new CountingListener();
 
         for(DDLChangeType type:DDLChangeType.values()){
@@ -139,7 +145,8 @@ public class DDLWatchRefresherTest{
         TxnStore supplier = new TestingTxnStore(clock,new TestingTimestampSource(),null,100l);
         supplier.recordNewTransaction(txn);
         SITransactionReadController txnController=new SITransactionReadController(supplier);
-        DDLWatchRefresher refresher = new DDLWatchRefresher(checker,txnController,clock,ef,10l,supplier);
+        TestDDLWatchRefresher refresher = new TestDDLWatchRefresher(checker,txnController,clock,ef,10l,supplier);
+        refresher.setTimeout(false);
         CountingListener assertionListener = new CountingListener();
 
         for(DDLChangeType type:DDLChangeType.values()){
@@ -172,8 +179,8 @@ public class DDLWatchRefresherTest{
         TxnStore supplier = new TestingTxnStore(clock,new TestingTimestampSource(),null,100l);
         supplier.recordNewTransaction(txn);
         SITransactionReadController txnController=new SITransactionReadController(supplier);
-        DDLWatchRefresher refresher = new DDLWatchRefresher(checker,txnController,clock,ef,10l,supplier);
-
+        TestDDLWatchRefresher refresher = new TestDDLWatchRefresher(checker,txnController,clock,ef,10l,supplier);
+        refresher.setTimeout(true);
         //add a new change
         DDLChange testChange  = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),"change",DDLMessage.DDLChangeType.CHANGE_PK );
         checker.addChange(testChange);
@@ -218,7 +225,8 @@ public class DDLWatchRefresherTest{
         TxnStore supplier = new TestingTxnStore(clock,new TestingTimestampSource(),null,100l);
         supplier.recordNewTransaction(txn);
         long timeoutMs=10l;
-        DDLWatchRefresher refresher = new DDLWatchRefresher(checker,null,clock,ef,timeoutMs,supplier);
+        TestDDLWatchRefresher refresher = new TestDDLWatchRefresher(checker,null,clock,ef,timeoutMs,supplier);
+        refresher.setTimeout(false);
         //add a new change
         final DDLChange testChange  = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),"change",DDLMessage.DDLChangeType.ADD_PRIMARY_KEY );
         CountingListener assertionListener = new CountingListener();
@@ -256,6 +264,7 @@ public class DDLWatchRefresherTest{
          * Now move the clock forward past the timeout position, and refresh again, making sure that it was terminated
          */
         clock.tickMillis(10);
+        refresher.setTimeout(true);
         shouldCont=refresher.refreshDDL(Collections.<DDLWatcher.DDLListener>singleton(assertionListener));
         Assert.assertTrue("Returned an error State!",shouldCont);
         /*
@@ -285,4 +294,25 @@ public class DDLWatchRefresherTest{
         return checker;
     }
 
+    public static class TestDDLWatchRefresher extends DDLWatchRefresher {
+
+        private boolean timeout;
+
+        public TestDDLWatchRefresher(DDLWatchChecker watchChecker,
+                                     TransactionReadController txnController,
+                                     Clock clock,
+                                     SqlExceptionFactory exceptionFactory,
+                                     long maxDdlWaitMs,
+                                     TxnSupplier txnSupplier) {
+            super(watchChecker, txnController, clock, exceptionFactory, maxDdlWaitMs, txnSupplier);
+        }
+
+        public void setTimeout(boolean timeout) {
+            this.timeout = timeout;
+        }
+        @Override
+        protected boolean isTimeout(DDLChange ddlChange) throws IOException{
+            return timeout;
+        }
+    }
 }
