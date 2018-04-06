@@ -57,6 +57,10 @@ public class DefaultIndexIT extends SpliceUnitTest{
     private static SpliceIndexWatcher T2_IX_B2_EXCL_DEFAULTS = new SpliceIndexWatcher(T2.tableName, schemaWatcher.schemaName, "T2_IX_B2_EXCL_DEFAULTS", schemaWatcher.schemaName, "(b2)", false, false, true);
     private static SpliceIndexWatcher T2_IX_C2_EXCL_NULL = new SpliceIndexWatcher(T2.tableName, schemaWatcher.schemaName, "T2_IX_C2_EXCL_NULL", schemaWatcher.schemaName, "(c2)", false, true, false);
 
+    private static SpliceTableWatcher T3 = new SpliceTableWatcher("T3", schemaWatcher.schemaName, "(a3 int, b3 int default 5, c3 char(5) default ' ', d3 varchar(5) default ' ', e3 varchar(20), primary key(a3, b3))");
+    private static SpliceIndexWatcher T3_IX_C3_DESC_EXCL_DEFAULTS = new SpliceIndexWatcher(T3.tableName, schemaWatcher.schemaName, "T3_IX_C3_DESC_EXCL_DEFAULTS", schemaWatcher.schemaName, "(c3 desc)", false, false, true);
+    private static SpliceIndexWatcher T3_IX_D3_DESC_EXCL_DEFAULTS = new SpliceIndexWatcher(T3.tableName, schemaWatcher.schemaName, "T3_IX_D3_DESC_EXCL_DEFAULTS", schemaWatcher.schemaName, "(d3 desc)", false, false, true);
+    private static SpliceIndexWatcher T3_IX_B3_DESC_C3_EXCL_DEFAULTS = new SpliceIndexWatcher(T3.tableName, schemaWatcher.schemaName, "T3_IX_B3_DESC_C3_EXCL_DEFAULTS", schemaWatcher.schemaName, "(b3 desc, c3)", false, false, true);
 
 
     @Rule
@@ -82,7 +86,11 @@ public class DefaultIndexIT extends SpliceUnitTest{
             .around(T1_IX_E1_EXCL_NULL)
             .around(T2)
             .around(T2_IX_B2_EXCL_DEFAULTS)
-            .around(T2_IX_C2_EXCL_NULL);
+            .around(T2_IX_C2_EXCL_NULL)
+            .around(T3)
+            .around(T3_IX_C3_DESC_EXCL_DEFAULTS)
+            .around(T3_IX_D3_DESC_EXCL_DEFAULTS)
+            .around(T3_IX_B3_DESC_C3_EXCL_DEFAULTS);
 
     private Connection conn;
 
@@ -121,6 +129,9 @@ public class DefaultIndexIT extends SpliceUnitTest{
         methodWatcher.executeUpdate(String.format("INSERT INTO T2 VALUES(2, 2, 2, 'AAA', 'AAA'), " +
                 "(6, 6, 6, 'EEE', 'EEE'), " +
                 "(10, 10, 10, 'III', 'III')"));
+        methodWatcher.executeUpdate(String.format("INSERT INTO T3 VALUES(1, 1, 'AAA', 'AAA', 'AAA'), " +
+                "(2, 5, ' ', ' ', 'BBB'), " +
+                "(3, 5, '     ', '     ', 'CCC')"));
     }
 
     @Test
@@ -444,6 +455,54 @@ public class DefaultIndexIT extends SpliceUnitTest{
         catch (SQLException sqle) {
             Assert.assertEquals("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.", sqle.getMessage());
         }
+    }
+
+    @Test
+    public void testIndexExcludeDefaultDesc() throws Exception {
+        /* case 1 */
+        try {
+            methodWatcher.executeQuery(String.format("SELECT * FROM T3 --SPLICE-PROPERTIES index=T3_IX_C3_DESC_EXCL_DEFAULTS"));
+            Assert.fail("did not throw exception");
+        }
+        catch (SQLException sqle) {
+            Assert.assertEquals("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.", sqle.getMessage());
+        }
+        /* case 2 */
+        try {
+            methodWatcher.executeQuery(String.format("SELECT * FROM T3 --SPLICE-PROPERTIES index=T3_IX_D3_DESC_EXCL_DEFAULTS\n"));
+            Assert.fail("did not throw exception");
+        }
+        catch (SQLException sqle) {
+            Assert.assertEquals("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.", sqle.getMessage());
+        }
+
+        /* case 3 */
+        try {
+            methodWatcher.executeQuery(String.format("SELECT * FROM T3 --SPLICE-PROPERTIES index=T3_IX_B3_DESC_C3_EXCL_DEFAULTS\n where B3 <> 4"));
+            Assert.fail("did not throw exception");
+        }
+        catch (SQLException sqle) {
+            Assert.assertEquals("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.", sqle.getMessage());
+        }
+
+        /* case 4 */
+        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM T3 --SPLICE-PROPERTIES index=T3_IX_C3_DESC_EXCL_DEFAULTS\n where C3<>' '"));
+        Assert.assertEquals("A3 |B3 |C3  |D3  |E3  |\n" +
+                "-----------------------\n" +
+                " 1 | 1 |AAA |AAA |AAA |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+        /* case 5 */
+        rs = methodWatcher.executeQuery(String.format("SELECT a3, b3, '-'||c3||'-', '-'||d3||'-', '-'||e3||'-' FROM T3 --SPLICE-PROPERTIES index=T3_IX_D3_DESC_EXCL_DEFAULTS\n where d3 <> ' '"));
+        Assert.assertEquals("A3 |B3 |   3    |   4    |  5   |\n" +
+                "---------------------------------\n" +
+                " 1 | 1 |-AAA  - | -AAA-  |-AAA- |\n" +
+                " 3 | 5 |-     - |-     - |-CCC- |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+        /* case 6 */
+        rs = methodWatcher.executeQuery(String.format("SELECT a3, b3, '-'||c3||'-', '-'||d3||'-', '-'||e3||'-' FROM T3 --SPLICE-PROPERTIES index=T3_IX_B3_DESC_C3_EXCL_DEFAULTS\n where b3<=4"));
+        Assert.assertEquals("A3 |B3 |   3    |  4   |  5   |\n" +
+                "-------------------------------\n" +
+                " 1 | 1 |-AAA  - |-AAA- |-AAA- |", TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
     @Test
