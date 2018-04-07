@@ -13,18 +13,23 @@
  */
 package com.splicemachine.derby.stream.function;
 
-import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.kvpair.KVPair;
 import scala.Tuple2;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * Created by jyuan on 10/9/17.
  */
-public class BulkLoadKVPairFunction extends SpliceFunction<SpliceBaseOperation, KVPair, Tuple2<Long, Tuple2<byte[], byte[]>>> {
+public class BulkLoadKVPairFunction<Op extends SpliceOperation>
+        extends SpliceFlatMapFunction<Op, Iterator<KVPair>, Tuple2<Long, Tuple2<byte[], byte[]>>> {
 
     private long conglomerateId;
 
@@ -35,10 +40,20 @@ public class BulkLoadKVPairFunction extends SpliceFunction<SpliceBaseOperation, 
     }
 
     @Override
-    public Tuple2<Long,Tuple2<byte[], byte[]>> call(KVPair kvPair) throws Exception {
+    public Iterator<Tuple2<Long, Tuple2<byte[], byte[]>>> call(Iterator<KVPair> kvPairIterator) throws Exception {
+        if (!kvPairIterator.hasNext())
+            return Collections.EMPTY_LIST.iterator();
 
-        Tuple2<byte[], byte[]> kv = new Tuple2(kvPair.getRowKey(), kvPair.getValue());
-        return new Tuple2(conglomerateId, kv);
+        List<Tuple2<Long, Tuple2<byte[], byte[]>>> outList = new ArrayList<>();
+        while (kvPairIterator.hasNext()) {
+            KVPair kvPair = kvPairIterator.next();
+            if (kvPair == null)
+                continue;
+            Tuple2<byte[], byte[]> kv = new Tuple2(kvPair.getRowKey(), kvPair.getValue());
+            outList.add(new Tuple2(conglomerateId, kv));
+        }
+
+        return outList.iterator();
     }
 
     @Override
