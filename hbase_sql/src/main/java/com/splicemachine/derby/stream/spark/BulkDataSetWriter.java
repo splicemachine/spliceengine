@@ -113,7 +113,7 @@ public class BulkDataSetWriter  {
                         if (LOG.isDebugEnabled()) {
                             SpliceLogUtils.debug(LOG, "start key: %s", Bytes.toHex(startKey));
                             SpliceLogUtils.debug(LOG, "end key: %s", Bytes.toHex(endKey));
-                            SpliceLogUtils.debug(LOG, "path = %s");
+                            SpliceLogUtils.debug(LOG, "path = %s", familyPath.toString());
                         }
                     }
                     if (LOG.isDebugEnabled()) {
@@ -244,7 +244,7 @@ public class BulkDataSetWriter  {
             int numPartition = (int)(size/sampleFraction/(1.0*maxRegionSize)) + 1;
 
             if (LOG.isDebugEnabled()) {
-                SpliceLogUtils.debug(LOG, "total size of the table is %d", size);
+                SpliceLogUtils.debug(LOG, "total size of the table is %f", size);
             }
             if (numPartition > 1) {
                 numPartitions.put(conglomId, numPartition);
@@ -348,7 +348,7 @@ public class BulkDataSetWriter  {
             Long conglomId = t._1;
             Double size = t._2._1;
             if (LOG.isDebugEnabled()) {
-                SpliceLogUtils.debug(LOG, "conglomerate=%d, size=%d", conglomId, size);
+                SpliceLogUtils.debug(LOG, "conglomerate=%d, size=%f", conglomId, size);
             }
             // Merge statistics for keys
             ColumnStatisticsImpl cs = t._2._2;
@@ -365,7 +365,7 @@ public class BulkDataSetWriter  {
                 totalSize = new Double(0);
             totalSize += size;
             if (LOG.isDebugEnabled()) {
-                SpliceLogUtils.debug(LOG, "totalSize=%s", totalSize);
+                SpliceLogUtils.debug(LOG, "totalSize=%f", totalSize);
             }
             sizeMap.put(conglomId, totalSize);
         }

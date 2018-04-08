@@ -54,6 +54,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  String authenticationLdapSearchbase;
     private final  String authenticationLdapSearchfilter;
     private final  String authenticationLdapServer;
+    private final  String authenticationLdapMapGroupAttr;
     private final  String authenticationNativeAlgorithm;
 
     // DDLConfiguration
@@ -82,7 +83,8 @@ public final class SConfigurationImpl implements SConfiguration {
 
     // PipelineConfiguration
     private final  int coreWriterThreads;
-    private final  int ipcThreads;
+    private final  int maxDependentWriteThreads;
+    private final  int maxIndependentWriteThreads;
     private final  int maxBufferEntries;
     private final  int maxDependentWrites;
     private final  int maxIndependentWrites;
@@ -237,6 +239,8 @@ public final class SConfigurationImpl implements SConfiguration {
         return authenticationLdapServer;
     }
     @Override
+    public String getAuthenticationLdapMapGroupAttr() { return authenticationLdapMapGroupAttr; }
+    @Override
     public String getAuthenticationNativeAlgorithm() {
         return authenticationNativeAlgorithm;
     }
@@ -326,9 +330,14 @@ public final class SConfigurationImpl implements SConfiguration {
         return coreWriterThreads;
     }
     @Override
-    public int getIpcThreads() {
-        return ipcThreads;
+    public int getMaxDependentWriteThreads() {
+        return maxDependentWriteThreads;
     }
+    @Override
+    public int getMaxIndependentWriteThreads() {
+        return maxIndependentWriteThreads;
+    }
+
     @Override
     public int getMaxBufferEntries() {
         return maxBufferEntries;
@@ -696,6 +705,7 @@ public final class SConfigurationImpl implements SConfiguration {
         authenticationLdapSearchbase = builder.authenticationLdapSearchbase;
         authenticationLdapSearchfilter = builder.authenticationLdapSearchfilter;
         authenticationLdapServer = builder.authenticationLdapServer;
+        authenticationLdapMapGroupAttr = builder.authenticationLdapMapGroupAttr;
         authenticationNativeAlgorithm = builder.authenticationNativeAlgorithm;
         fallbackNullFraction = builder.fallbackNullFraction;
         optimizerExtraQualifierMultiplier = builder.optimizerExtraQualifierMultiplier;
@@ -745,7 +755,8 @@ public final class SConfigurationImpl implements SConfiguration {
         networkBindAddress = builder.networkBindAddress;
         upgradeForcedFrom = builder.upgradeForcedFrom;
         coreWriterThreads = builder.coreWriterThreads;
-        ipcThreads = builder.ipcThreads;
+        maxDependentWriteThreads = builder.maxDependentWriteThreads;
+        maxIndependentWriteThreads = builder.maxIndependentWriteThreads;
         maxBufferEntries = builder.maxBufferEntries;
         maxDependentWrites = builder.maxDependentWrites;
         maxIndependentWrites = builder.maxIndependentWrites;

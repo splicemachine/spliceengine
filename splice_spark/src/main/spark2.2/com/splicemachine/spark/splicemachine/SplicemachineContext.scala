@@ -79,6 +79,7 @@ class SplicemachineContext(url: String) extends Serializable {
 
   @transient lazy val internalConnection : Connection = {
     SpliceClient.isClient = true
+    SpliceClient.connectionString = url
     Holder.log.debug("Splice Client in SplicemachineContext "+SpliceClient.isClient)
 
     val principal = System.getProperty("spark.yarn.principal")

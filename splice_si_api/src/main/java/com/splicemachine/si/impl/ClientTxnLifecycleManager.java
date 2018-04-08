@@ -171,6 +171,11 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
     }
 
     @Override
+    public boolean isRestoreNode() {
+        return this.restoreMode;
+    }
+
+    @Override
     public Txn elevateTransaction(Txn txn,byte[] destinationTable) throws IOException{
         if(!txn.allowsWrites()){
             //we've elevated from a read-only to a writable, so make sure that we add

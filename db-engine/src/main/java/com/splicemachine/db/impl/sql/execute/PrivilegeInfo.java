@@ -64,19 +64,28 @@ public abstract class PrivilegeInfo
 	 * database objects without needing to be their owner
 	 *
 	 * @param user					authorizationId of current user
+	 * @param groupuser             groupId of current user
 	 * @param sd					SchemaDescriptor
 	 * @param dd					DataDictionary
 	 *
 	 * @exception StandardException if user does not own the object
 	 */
 	protected void checkOwnership( String user,
+								   String groupuser,
 								   SchemaDescriptor sd,
 								   DataDictionary dd)
 		throws StandardException
 	{
 		if (!user.equals(sd.getAuthorizationId()) &&
-				!user.equals(dd.getAuthorizationDatabaseOwner()))
-			throw StandardException.newException(SQLState.AUTH_NOT_OWNER, user,sd.getSchemaName());
+				!user.equals(dd.getAuthorizationDatabaseOwner())) {
+			if (groupuser != null) {
+				if (!groupuser.equals(sd.getAuthorizationId())
+						&& !groupuser.equals(dd.getAuthorizationDatabaseOwner()))
+				throw StandardException.newException(SQLState.AUTH_NOT_OWNER, user, sd.getSchemaName());
+			} else {
+				throw StandardException.newException(SQLState.AUTH_NOT_OWNER, user, sd.getSchemaName());
+			}
+		}
 	}
 	
 	/**

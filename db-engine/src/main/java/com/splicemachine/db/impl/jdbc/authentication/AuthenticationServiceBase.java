@@ -236,10 +236,10 @@ public abstract class AuthenticationServiceBase
 				java.io.PrintWriter iDbgStream =
 					SanityManager.GET_DEBUG_STREAM();
 
-				iDbgStream.println(
-								" - Authentication request: user [" +
-							    userName + "]"+ ", database [" +
-							    databaseName + "]");
+//				iDbgStream.println(
+//								" - Authentication request: user [" +
+//							    userName + "]"+ ", database [" +
+//							    databaseName + "]");
 				// The following will print the stack trace of the
 				// authentication request to the log.  
 				//Throwable t = new Throwable();

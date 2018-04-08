@@ -1160,8 +1160,9 @@ public class FromBaseTable extends FromTable {
         if(authorizeSYSUSERS){
             String databaseOwner=dataDictionary.getAuthorizationDatabaseOwner();
             String currentUser=getLanguageConnectionContext().getStatementContext().getSQLSessionContext().getCurrentUser();
+            String groupuser = getLanguageConnectionContext().getStatementContext().getSQLSessionContext().getCurrentGroupUser();
 
-            if(!databaseOwner.equals(currentUser)){
+            if(! (databaseOwner.equals(currentUser) || databaseOwner.equals(groupuser))){
                 throw StandardException.newException(SQLState.DBO_ONLY);
             }
         }
@@ -1775,7 +1776,7 @@ public class FromBaseTable extends FromTable {
 			/* No BULK FETCH or requalification, XOR off the columns coming from the heap 
 			 * to get the columns coming from the index.
 			 */
-            indexReferencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,true,false,true);
+            indexReferencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,true,false,false);
             heapReferencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,true,true,false);
             if(heapReferencedCols!=null){
                 indexReferencedCols.xor(heapReferencedCols);

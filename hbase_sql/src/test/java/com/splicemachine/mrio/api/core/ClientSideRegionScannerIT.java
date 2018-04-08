@@ -105,7 +105,7 @@ public class ClientSideRegionScannerIT extends BaseMRIOTest{
             scan.setAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY,HConstants.EMPTY_BYTE_ARRAY);
             try(SkeletonClientSideRegionScanner clientSideRegionScanner=
                         new HBase10ClientSideRegionScanner(htable,
-                                FSUtils.getCurrentFileSystem(htable.getConfiguration()),
+                                htable.getConfiguration(), FSUtils.getCurrentFileSystem(htable.getConfiguration()),
                                 FSUtils.getRootDir(htable.getConfiguration()),
                                 htable.getTableDescriptor(),
                                 htable.getRegionLocation(scan.getStartRow()).getRegionInfo(),
@@ -142,7 +142,7 @@ public class ClientSideRegionScannerIT extends BaseMRIOTest{
 
             try(SkeletonClientSideRegionScanner clientSideRegionScanner=
                         new HBase10ClientSideRegionScanner(htable,
-                                FSUtils.getCurrentFileSystem(htable.getConfiguration()),
+                                htable.getConfiguration(), FSUtils.getCurrentFileSystem(htable.getConfiguration()),
                                 FSUtils.getRootDir(htable.getConfiguration()),
                                 htable.getTableDescriptor(),
                                 htable.getRegionLocation(scan.getStartRow()).getRegionInfo(),

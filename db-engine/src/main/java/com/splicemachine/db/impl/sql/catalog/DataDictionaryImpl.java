@@ -67,6 +67,7 @@ import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Function;
@@ -8155,7 +8156,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         RoutinePermsDescriptor routinePermDesc=
                 new RoutinePermsDescriptor(this,"PUBLIC",authorizationID,routineUUID);
 
-        addDescriptor(routinePermDesc,null,DataDictionary.SYSROUTINEPERMS_CATALOG_NUM,false,tc);
+        // add if this permission has not been granted before
+        if (getUncachedRoutinePermsDescriptor(routinePermDesc) == null)
+            addDescriptor(routinePermDesc,null,DataDictionary.SYSROUTINEPERMS_CATALOG_NUM,false,tc);
     }
 
     /**
@@ -9316,6 +9319,15 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return getUncachedRoutinePermsDescriptor(key);
     }
 
+    @Override
+    public RoutinePermsDescriptor getRoutinePermissions(UUID routineUUID,
+                                                 List<RoutinePermsDescriptor> permsList) throws StandardException{
+        RoutinePermsDescriptor key=new RoutinePermsDescriptor(this,null,null,routineUUID);
+        TabInfoImpl ti=getNonCoreTI(SYSROUTINEPERMS_CATALOG_NUM);
+        PermissionsCatalogRowFactory rowFactory=(PermissionsCatalogRowFactory)ti.getCatalogRowFactory();
+        ExecIndexRow keyRow=rowFactory.buildIndexKeyRow(SYSROUTINEPERMSRowFactory.ALIASID_INDEX_NUM,key);
+        return (RoutinePermsDescriptor)getDescriptorViaIndex(SYSROUTINEPERMSRowFactory.ALIASID_INDEX_NUM,keyRow,null,ti,null,permsList,false);
+    } // end of getRoutinePermissions
     /**
      * Add or remove a permission to/from the permission database.
      *
@@ -9514,7 +9526,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         ExecIndexRow keyRow=rowFactory.buildIndexKeyRow(indexNumber,key);
         return getDescriptorViaIndex(indexNumber,keyRow,null,ti,null,null,false);
     } // end of getUncachedPermissionsDescriptor
-
     /**
      * Get a routine permissions descriptor from the system tables, without going through the cache.
      * This method is called to fill the permissions cache.
@@ -10229,10 +10240,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     @Override
-    public void addBackupItem(TupleDescriptor descriptor, TransactionController tc) throws StandardException {
+    public void addBackupItems(TupleDescriptor[] descriptor, TransactionController tc) throws StandardException {
         TabInfoImpl ti=getNonCoreTI(SYSBACKUPITEMS_CATALOG_NUM);
-        ExecRow row = ti.getCatalogRowFactory().makeRow(descriptor, null);
-        int insertRetCode=ti.insertRow(row,tc);
+        ExecRow[] rows = new ValueRow[descriptor.length];
+        for (int i = 0; i < descriptor.length; ++i) {
+            rows[i] = ti.getCatalogRowFactory().makeRow(descriptor[i], null);
+        }
+
+        ti.insertRowList(rows,tc);
     }
 
     @Override

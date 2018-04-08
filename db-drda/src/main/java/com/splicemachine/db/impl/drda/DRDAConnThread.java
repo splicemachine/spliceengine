@@ -354,7 +354,7 @@ class DRDAConnThread extends Thread {
 						agentError("Session in invalid state:" + session.state);
 				}
 			} catch (Exception e) {
-				if (e instanceof DRDAProtocolException && 
+				if (e instanceof DRDAProtocolException &&
 						((DRDAProtocolException)e).isDisconnectException())
 				{
 				 	// client went away - this is O.K. here
@@ -3253,9 +3253,9 @@ class DRDAConnThread extends Thread {
                                     securityCheckCode = CodePoint.SECCHKCD_0F;
                             }
                             database.password = database.decryptedPassword;
-                            if (SanityManager.DEBUG)
-                                trace("**decrypted password is: " +
-                                      database.password);
+//                            if (SanityManager.DEBUG)
+//                                trace("**decrypted password is: " +
+//                                      database.password);
                         }
                     }
                     else if (database.securityMechanism ==
@@ -3316,7 +3316,7 @@ class DRDAConnThread extends Thread {
 				//optional - depending on security Mechanism
 				case CodePoint.PASSWORD:
 					database.password = reader.readString();
-					if (SanityManager.DEBUG) trace("PASSWORD " + database.password);
+//					if (SanityManager.DEBUG) trace("PASSWORD " + database.password);
 					break;
 				//optional - depending on security Mechanism
 				//we are not supporting this method so we'll skip bytes

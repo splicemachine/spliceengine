@@ -59,6 +59,9 @@ public class AuthenticationConfiguration implements ConfigurationDefault {
     public static final String AUTHENTICATION_CUSTOM_PROVIDER = "splice.authentication.custom.provider";
     public static final String DEFAULT_AUTHENTICATION_CUSTOM_PROVIDER = "com.splicemachine.derby.authentication.SpliceUserAuthentication";
 
+    public static final String AUTHENTICATION_LDAP_MAPGROUPATTR = "splice.authentication.ldap.mapGroupAttr";
+    private static final String DEFAULT_AUTHENTICATION_LDAP_MAPGROUPATTR = "";
+
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         builder.authentication = configurationSource.getString(AUTHENTICATION, DEFAULT_AUTHENTICATION);
@@ -69,6 +72,7 @@ public class AuthenticationConfiguration implements ConfigurationDefault {
             builder.authenticationLdapSearchauthpw = configurationSource.getString(AUTHENTICATION_LDAP_SEARCHAUTHPW, DEFAULT_AUTHENTICATION_LDAP_SEARCHAUTHPW);
             builder.authenticationLdapSearchbase = configurationSource.getString(AUTHENTICATION_LDAP_SEARCHBASE, DEFAULT_AUTHENTICATION_LDAP_SEARCHBASE);
             builder.authenticationLdapSearchfilter = configurationSource.getString(AUTHENTICATION_LDAP_SEARCHFILTER, DEFAULT_AUTHENTICATION_LDAP_SEARCHFILTER);
+            builder.authenticationLdapMapGroupAttr = configurationSource.getString(AUTHENTICATION_LDAP_MAPGROUPATTR, DEFAULT_AUTHENTICATION_LDAP_MAPGROUPATTR);
         } else {
             builder.authenticationNativeAlgorithm = configurationSource.getString(AUTHENTICATION_NATIVE_ALGORITHM,
                                                                                   DEFAULT_AUTHENTICATION_NATIVE_ALGORITHM);

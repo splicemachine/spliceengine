@@ -146,8 +146,11 @@ public class PipelineConfiguration implements ConfigurationDefault {
     public static final String MAX_DEPENDENT_WRITES = "splice.client.write.maxDependentWrites";
     public static final int DEFAULT_MAX_DEPENDENT_WRITES = 40000;
 
-    public static final String IPC_THREADS="hbase.regionserver.handler.count";
-    public static final int DEFAULT_IPC_THREADS = 200;
+    public static final String MAX_INDEPENDENT_WRITE_THREADS="splice.independent.write.threads";
+    public static final int DEFAULT_MAX_INDEPENDENT_WRITE_THREADS = 50;
+
+    public static final String MAX_DEPENDENT_WRITE_THREADS="splice.dependent.write.threads";
+    public static final int DEFAULT_MAX_DEPENDENT_WRITE_THREADS = 50;
 
     public static final String PIPELINE_KRYO_POOL_SIZE= "splice.writer.kryoPoolSize";
     private static final int DEFAULT_PIPELINE_KRYO_POOL_SIZE=1024;
@@ -164,7 +167,9 @@ public class PipelineConfiguration implements ConfigurationDefault {
 
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
-        builder.ipcThreads = configurationSource.getInt(IPC_THREADS, DEFAULT_IPC_THREADS);
+        builder.maxIndependentWriteThreads = configurationSource.getInt(MAX_INDEPENDENT_WRITE_THREADS, DEFAULT_MAX_INDEPENDENT_WRITE_THREADS);
+        builder.maxDependentWriteThreads = configurationSource.getInt(MAX_DEPENDENT_WRITE_THREADS, DEFAULT_MAX_DEPENDENT_WRITE_THREADS);
+
         builder.maxIndependentWrites = configurationSource.getInt(MAX_INDEPENDENT_WRITES, DEFAULT_MAX_INDEPENDENT_WRITES);
         builder.maxDependentWrites = configurationSource.getInt(MAX_DEPENDENT_WRITES, DEFAULT_MAX_DEPENDENT_WRITES);
         builder.coreWriterThreads = configurationSource.getInt(CORE_WRITER_THREADS, DEFAULT_WRITE_THREADS_CORE);

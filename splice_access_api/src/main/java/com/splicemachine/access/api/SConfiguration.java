@@ -14,9 +14,9 @@
 
 package com.splicemachine.access.api;
 
-import java.util.Map;
-
 import com.splicemachine.access.configuration.ConfigurationSource;
+
+import java.util.Map;
 
 /**
  * The Splice configuration interface.
@@ -65,6 +65,8 @@ public interface SConfiguration {
 
     String getAuthenticationLdapServer();
 
+    String getAuthenticationLdapMapGroupAttr();
+
     String getAuthenticationNativeAlgorithm();
 
     // DDLConfiguration
@@ -109,7 +111,9 @@ public interface SConfiguration {
     // PipelineConfiguration
     int getCoreWriterThreads();
 
-    int getIpcThreads();
+    int getMaxDependentWriteThreads();
+
+    int getMaxIndependentWriteThreads();
 
     int getMaxBufferEntries();
 

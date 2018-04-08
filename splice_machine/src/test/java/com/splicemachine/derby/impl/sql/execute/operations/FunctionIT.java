@@ -14,10 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.pipeline.ErrorState;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -28,27 +25,29 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceFunctionWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 /**
  * @author Scott Fines
  *         Created on: 2/22/13
  */
 public class FunctionIT extends SpliceUnitTest {
+	protected static final String USER1 = "XIAYI";
+	protected static final String PASSWORD1 = "xiayi";
+
     private static final Logger LOG = Logger.getLogger(FunctionIT.class);
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(FunctionIT.class.getSimpleName());	
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(FunctionIT.class.getSimpleName());
+	private static SpliceUserWatcher spliceUserWatcher1 = new SpliceUserWatcher(USER1, PASSWORD1);
 	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("A",FunctionIT.class.getSimpleName(),"(data double)");
 	protected static SpliceFunctionWatcher spliceFunctionWatcher = new SpliceFunctionWatcher("SIN",FunctionIT.class.getSimpleName(),"( data double) returns double external name 'java.lang.Math.sin' language java parameter style java");
 	
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 		.around(spliceSchemaWatcher)
+		.around(spliceUserWatcher1)
 		.around(spliceTableWatcher)
 		.around(spliceFunctionWatcher)
 		.around(new SpliceDataWatcher(){
@@ -67,7 +66,7 @@ public class FunctionIT extends SpliceUnitTest {
 			}
 			
 		});
-	
+
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
 
@@ -111,6 +110,30 @@ public class FunctionIT extends SpliceUnitTest {
 
 	}
 
+	@Test
+	public void testCallToSystemFunctionFromUserWithoutDefaultSchema() throws Exception {
+		TestConnection user1Conn = spliceClassWatcher.createConnection(USER1, PASSWORD1);
+
+		PreparedStatement ps = user1Conn.prepareStatement("VALUES rand(10)");
+		ResultSet rs = ps.executeQuery();
+		int count = 0;
+		while (rs.next()) {
+			count++;
+		}
+		Assert.assertEquals(1, count);
+		rs.close();
+
+
+		ps = user1Conn.prepareStatement("VALUES random()");
+		rs = ps.executeQuery();
+		count = 0;
+		while (rs.next()) {
+			count++;
+		}
+		Assert.assertEquals(1, count);
+		rs.close();
+
+	}
 		private void vetThreeArgCoalesce(String sql) throws Exception {
 		// First three values in each row are arguments to COALESCE. The
 				// last value is the expected return value.

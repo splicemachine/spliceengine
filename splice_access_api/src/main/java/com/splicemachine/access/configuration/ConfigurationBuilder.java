@@ -57,6 +57,7 @@ public class ConfigurationBuilder {
     public String authenticationLdapSearchbase;
     public String authenticationLdapSearchfilter;
     public String authenticationLdapServer;
+    public String authenticationLdapMapGroupAttr;
     public String authenticationNativeAlgorithm;
 
     // StatsConfiguration
@@ -131,10 +132,11 @@ public class ConfigurationBuilder {
 
     // PipelineConfiguration
     public int coreWriterThreads;
-    public int ipcThreads;
     public int maxBufferEntries;
     public int maxDependentWrites;
     public int maxIndependentWrites;
+    public int maxDependentWriteThreads;
+    public int maxIndependentWriteThreads;
     public int maxRetries;
     public int maxWriterThreads;
     public int pipelineKryoPoolSize;
