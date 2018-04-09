@@ -644,6 +644,96 @@ public interface Property {
 	int		LANG_SEQGEN_CACHE_SIZE_DEFAULT =32;
 
 	/**
+	 * The size of the partition statistics cache
+	 * used by the data dictionary.  Database.  Static.
+	 * <p>
+	 * Undocumented.
+	 */
+	String	LANG_PARTSTAT_CACHE_SIZE = "derby.language.partitionStatisticsCacheSize";
+	int		LANG_PARTSTAT_CACHE_SIZE_DEFAULT =8092;
+
+	/**
+	 * The size of the conglomerate cache
+	 * used by the data dictionary.  Database.  Static.
+	 * <p>
+	 * Undocumented.
+	 */
+	String	LANG_CONGLOMERATE_CACHE_SIZE = "derby.language.conglomerateCacheSize";
+	int		LANG_CONGLOMERATE_CACHE_SIZE_DEFAULT =1024;
+
+	/**
+	 * The size of the statement cache
+	 * used by the data dictionary.  Database.  Static.
+	 * <p>
+	 * Undocumented.
+	 */
+	String	LANG_STATEMENT_CACHE_SIZE = "derby.language.statementDataDictCacheSize";
+	int		LANG_STATEMENT_CACHE_SIZE_DEFAULT =1024;
+
+	/**
+	 * The size of the schema cache
+	 * used by the data dictionary.  Database.  Static.
+	 * <p>
+	 * Undocumented.
+	 */
+	String	LANG_SCHEMA_CACHE_SIZE = "derby.language.schemaCacheSize";
+	int		LANG_SCHEMA_CACHE_SIZE_DEFAULT =1024;
+
+	/**
+	 * The size of the alias descriptor cache
+	 * used by the data dictionary.  Database.  Static.
+	 * <p>
+	 * Undocumented.
+	 */
+	String	LANG_ALIAS_DESCRIPTOR_CACHE_SIZE = "derby.language.aliasDescriptorCacheSize";
+	int		LANG_ALIAS_DESCRIPTOR_CACHE_SIZE_DEFAULT =1024;
+
+	/**
+	 * The size of the role cache
+	 * used by the data dictionary.  Database.  Static.
+	 * <p>
+	 * Undocumented.
+	 */
+	String	LANG_ROLE_CACHE_SIZE = "derby.language.roleCacheSize";
+	int		LANG_ROLE_CACHE_SIZE_DEFAULT =100;
+
+	/**
+	 * The size of the default role cache
+	 * used by the data dictionary.  Database.  Static.
+	 * <p>
+	 * Undocumented.
+	 */
+	String	LANG_DEFAULT_ROLE_CACHE_SIZE = "derby.language.defaultRoleCacheSize";
+	int		LANG_DEFAULT_ROLE_CACHE_SIZE_DEFAULT =1024;
+
+	/**
+	 * The size of the role grant cache
+	 * used by the data dictionary.  Database.  Static.
+	 * <p>
+	 * Undocumented.
+	 */
+	String	LANG_ROLE_GRANT_CACHE_SIZE = "derby.language.roleGrantCacheSize";
+	int		LANG_ROLE_GRANT_CACHE_SIZE_DEFAULT =1024;
+
+	/**
+	 * The size of the token cache
+	 * used by the data dictionary.  Database.  Static.
+	 * <p>
+	 * Undocumented.
+	 */
+	String	LANG_TOKEN_CACHE_SIZE = "derby.language.tokenCacheSize";
+	int		LANG_TOKEN_CACHE_SIZE_DEFAULT =1024;
+
+	/**
+	 * The size of the property cache
+	 * used by the data dictionary.  Database.  Static.
+	 * <p>
+	 * Undocumented.
+	 */
+	String	LANG_PROPERTY_CACHE_SIZE = "derby.language.propertyCacheSize";
+	int		LANG_PROPERTY_CACHE_SIZE_DEFAULT =128;
+
+	/**
 	 * Name of the implementation of SequencePreallocator which is used
      * to tune how many values Derby pre-allocates for identity columns
      * and sequences. Database.  Static.
