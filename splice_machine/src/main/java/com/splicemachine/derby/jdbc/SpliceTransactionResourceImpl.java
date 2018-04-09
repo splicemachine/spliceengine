@@ -43,6 +43,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
     private String drdaID;
     protected SpliceDatabase database;
     protected LanguageConnectionContext lcc;
+    protected String ipAddress;
 
     public SpliceTransactionResourceImpl() throws SQLException{
         this("jdbc:splice:"+ SQLConfiguration.SPLICE_DB+";create=true", new Properties());
@@ -54,6 +55,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
         dbname=InternalDriver.getDatabaseName(url,info); // Singleton - Not Needed
         username=IdUtil.getUserNameFromURLProps(info); // Static
         drdaID=info.getProperty(Attribute.DRDAID_ATTR,null); // Static
+        ipAddress = info.getProperty(Property.IP_ADDRESS,null);
 
         database=(SpliceDatabase)Monitor.findService(Property.DATABASE_MODULE,dbname);
         if(database==null){
@@ -78,7 +80,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
         cm=csf.newContextManager();
         csf.setCurrentContextManager(cm);
 
-        lcc=database.generateLanguageConnectionContext(txn, cm, username,username,drdaID, dbname, CompilerContext.DataSetProcessorType.DEFAULT_CONTROL,false, -1);
+        lcc=database.generateLanguageConnectionContext(txn, cm, username,username,drdaID, dbname, CompilerContext.DataSetProcessorType.DEFAULT_CONTROL,false, -1, ipAddress);
 
         return true;
     }

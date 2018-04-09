@@ -32,10 +32,7 @@
 
 package com.splicemachine.db.jdbc;
 
-import com.splicemachine.db.iapi.reference.Attribute;
-import com.splicemachine.db.iapi.reference.Module;
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.reference.MessageId;
+import com.splicemachine.db.iapi.reference.*;
 import com.splicemachine.db.iapi.services.io.FormatableProperties;
 
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;
@@ -202,7 +199,7 @@ public abstract class InternalDriver implements ModuleControl {
 		try {
             
             finfo = getAttributes(url, info);
-            info = null; // ensure we don't use this reference directly again.
+			info = null; // ensure we don't use this reference directly again.
 
 			/*
 			** A property "shutdown=true" means shut the system or database down
@@ -376,7 +373,6 @@ public abstract class InternalDriver implements ModuleControl {
 		// of the clearDefaults, method.
 		FormatableProperties finfo = new FormatableProperties(info);
 		info = null; // ensure we don't use this reference directly again.
-
 
 		StringTokenizer st = new StringTokenizer(url, ";");
 		st.nextToken(); // skip the first part of the url
