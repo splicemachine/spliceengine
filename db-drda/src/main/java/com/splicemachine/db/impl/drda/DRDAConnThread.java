@@ -4815,6 +4815,15 @@ class DRDAConnThread extends Thread {
         return gmtCalendar;
     }
 
+	private Calendar calendar;
+
+	private Calendar getCalendar() {
+		if (calendar == null) {
+			calendar = Calendar.getInstance();
+		}
+		return calendar;
+	}
+
 	/**
 	 * Read different types of input parameters and set them in
 	 * PreparedStatement
@@ -7543,7 +7552,7 @@ class DRDAConnThread extends Thread {
         int ndrdaType = drdaType | 1;
         switch (ndrdaType) {
             case DRDAConstants.DRDA_TYPE_NDATE:
-                return rs.getDate(index, getGMTCalendar());
+                return rs.getDate(index, getCalendar());
             case DRDAConstants.DRDA_TYPE_NTIME:
                 return rs.getTime(index, getGMTCalendar());
             case DRDAConstants.DRDA_TYPE_NTIMESTAMP:
@@ -7583,7 +7592,7 @@ class DRDAConnThread extends Thread {
         int ndrdaType = drdaType | 1;
         switch (ndrdaType) {
             case DRDAConstants.DRDA_TYPE_NDATE:
-                return cs.getDate(index, getGMTCalendar());
+                return cs.getDate(index, getCalendar());
             case DRDAConstants.DRDA_TYPE_NTIME:
                 return cs.getTime(index, getGMTCalendar());
             case DRDAConstants.DRDA_TYPE_NTIMESTAMP:
@@ -8279,7 +8288,7 @@ class DRDAConnThread extends Thread {
      * @see com.splicemachine.db.client.am.DateTime#dateBytesToDate
      */
     private String formatDate(java.sql.Date date) {
-        Calendar cal = getGMTCalendar();
+        Calendar cal = getCalendar();
         cal.clear();
         cal.setTime(date);
 
