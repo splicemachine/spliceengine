@@ -22,9 +22,6 @@ import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.utils.ByteSlice;
 import com.yahoo.sketches.theta.UpdateSketch;
-import org.apache.hadoop.hbase.util.Order;
-import org.apache.hadoop.hbase.util.OrderedBytes;
-import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
@@ -276,27 +273,6 @@ public class HBaseRowLocation extends DataType implements RowLocation {
             setToNull();
         else
             slice = ByteSlice.wrap((byte[]) row.get(ordinal));
-    }
-
-    @Override
-    public int encodedKeyLength() throws StandardException {
-        return isNull()?1:9;
-    }
-
-    @Override
-    public void encodeIntoKey(PositionedByteRange src, Order order) throws StandardException {
-        if (isNull())
-            OrderedBytes.encodeNull(src, order);
-        else
-            OrderedBytes.encodeBlobVar(src, slice.getByteCopy(), order);
-    }
-
-    @Override
-    public void decodeFromKey(PositionedByteRange src) throws StandardException {
-        if (OrderedBytes.isNull(src))
-            setToNull();
-        else
-            slice = ByteSlice.wrap(OrderedBytes.decodeBlobVar(src));
     }
 
     @Override

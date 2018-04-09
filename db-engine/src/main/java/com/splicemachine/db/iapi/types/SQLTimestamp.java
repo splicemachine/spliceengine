@@ -43,9 +43,6 @@ import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.yahoo.sketches.theta.UpdateSketch;
-import org.apache.hadoop.hbase.util.Order;
-import org.apache.hadoop.hbase.util.OrderedBytes;
-import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
@@ -1668,54 +1665,6 @@ public final class SQLTimestamp extends DataType
 		}
 	}
 
-	/**
-	 *
-	 * Get Encoded Key Length.  if null then 1 else 15.
-	 * @return
-	 * @throws StandardException
-     */
-		@Override
-	    public int encodedKeyLength() throws StandardException {
-	        return isNull()?1:15;
-	    }
-
-	/**
-	 *
-	 * Encode into key 3 int32s.
-	 *
-	 * @param src
-	 * @param order
-	 * @throws StandardException
-     */
-		@Override
-	    public void encodeIntoKey(PositionedByteRange src, Order order) throws StandardException {
-	        if (isNull())
-				OrderedBytes.encodeNull(src, order);
-	        else {
-				OrderedBytes.encodeInt32(src, encodedDate, order);
-				OrderedBytes.encodeInt32(src, encodedTime, order);
-				OrderedBytes.encodeInt32(src, nanos, order);
-			}
-	    }
-
-	/**
-	 *
-	 * Decode from key 3 int32's
-	 *
-	 * @param src
-	 * @throws StandardException
-     */
-	    @Override
-	    public void decodeFromKey(PositionedByteRange src) throws StandardException {
-	        if (OrderedBytes.isNull(src))
-				setToNull();
-	        else {
-				encodedDate = OrderedBytes.decodeInt32(src);
-				encodedTime = OrderedBytes.decodeInt32(src);
-				nanos = OrderedBytes.decodeInt32(src);
-				setIsNull(false);
-			}
-	    }
 	@Override
 	public StructField getStructField(String columnName) {
 		return DataTypes.createStructField(columnName, DataTypes.TimestampType, true);

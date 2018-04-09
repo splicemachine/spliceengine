@@ -34,8 +34,6 @@ package com.splicemachine.db.iapi.types;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.yahoo.sketches.theta.UpdateSketch;
-import org.apache.hadoop.hbase.util.Order;
-import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
@@ -1066,28 +1064,6 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 * @param ordinal
 	 */
 	void read(Row row, int ordinal) throws StandardException;
-
-
-	/**
-	*
-	* Length for generating buffer
-	*
-	*/
-	int encodedKeyLength() throws StandardException;
-
-	/**
-	*
-    * Encode Value into Key (PK,etc.).  This follows the current hbase ordering mechanism.
-	*
-	*/
-	void encodeIntoKey(PositionedByteRange builder, Order order) throws StandardException;
-
-	/**
-	*
-	* Decode value from key.  This follows the current hbase ordering mechanism.
-	*
-	*/
-	void decodeFromKey(PositionedByteRange builder) throws StandardException;
 
 	/**
 	 *
