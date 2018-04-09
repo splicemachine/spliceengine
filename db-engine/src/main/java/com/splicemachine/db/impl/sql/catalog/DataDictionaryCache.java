@@ -83,29 +83,51 @@ public class DataDictionaryCache {
     private ManagedCache<Triple<String, String, String>, Optional<RoleGrantDescriptor>> roleGrantCache;
     private ManagedCache<ByteSlice,TokenDescriptor> tokenCache;
     private ManagedCache<String, Optional<String>> propertyCache;
-    private int tdCacheSize;
-    private int stmtCacheSize;
-    private int permissionsCacheSize;
     private DataDictionary dd;
     public static final String [] cacheNames = new String[] {"oidTdCache", "nameTdCache", "spsNameCache", "sequenceGeneratorCache", "permissionsCache", "partitionStatisticsCache",
             "storedPreparedStatementCache", "conglomerateCache", "statementCache", "schemaCache", "aliasDescriptorCache", "roleCache", "defaultRoleCache", "roleGrantCache", "tokenCache", "propertyCache"};
 
+    private int getCacheSize(Properties startParams, String propertyName, int defaultValue) throws StandardException {
+        String value = startParams.getProperty(propertyName);
+        return PropertyUtil.intPropertyValue(propertyName, value,
+                0, Integer.MAX_VALUE, defaultValue);
+    }
+
     public DataDictionaryCache(Properties startParams,DataDictionary dd) throws StandardException {
-        String value=startParams.getProperty(Property.LANG_TD_CACHE_SIZE);
-        tdCacheSize= PropertyUtil.intPropertyValue(Property.LANG_TD_CACHE_SIZE, value,
-                0, Integer.MAX_VALUE, Property.LANG_TD_CACHE_SIZE_DEFAULT);
-
-        value=startParams.getProperty(Property.LANG_SPS_CACHE_SIZE);
-        stmtCacheSize=PropertyUtil.intPropertyValue(Property.LANG_SPS_CACHE_SIZE,value,
-                0,Integer.MAX_VALUE,Property.LANG_SPS_CACHE_SIZE_DEFAULT);
-
-        value=startParams.getProperty(Property.LANG_SEQGEN_CACHE_SIZE);
-        int seqgenCacheSize=PropertyUtil.intPropertyValue(Property.LANG_SEQGEN_CACHE_SIZE,value,
-                0,Integer.MAX_VALUE,Property.LANG_SEQGEN_CACHE_SIZE_DEFAULT);
-
-        value=startParams.getProperty(Property.LANG_PERMISSIONS_CACHE_SIZE);
-        permissionsCacheSize=PropertyUtil.intPropertyValue(Property.LANG_PERMISSIONS_CACHE_SIZE, value,
-                0, Integer.MAX_VALUE, Property.LANG_PERMISSIONS_CACHE_SIZE_DEFAULT);
+        /* These properties are database properties which can set by
+        SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY, but will only take effect after the
+        database restarted.
+         */
+        int tdCacheSize = getCacheSize(startParams, Property.LANG_TD_CACHE_SIZE,
+                Property.LANG_TD_CACHE_SIZE_DEFAULT);
+        int stmtCacheSize = getCacheSize(startParams, Property.LANG_SPS_CACHE_SIZE,
+                Property.LANG_SPS_CACHE_SIZE_DEFAULT);
+        int seqgenCacheSize = getCacheSize(startParams, Property.LANG_SEQGEN_CACHE_SIZE,
+                Property.LANG_SEQGEN_CACHE_SIZE_DEFAULT);
+        int permissionsCacheSize = getCacheSize(startParams, Property.LANG_PERMISSIONS_CACHE_SIZE,
+                Property.LANG_PERMISSIONS_CACHE_SIZE_DEFAULT);
+        int partstatCacheSize = getCacheSize(startParams, Property.LANG_PARTSTAT_CACHE_SIZE,
+                Property.LANG_PARTSTAT_CACHE_SIZE_DEFAULT);
+        int conglomerateCacheSize = getCacheSize(startParams,
+                Property.LANG_CONGLOMERATE_CACHE_SIZE,
+                Property.LANG_CONGLOMERATE_CACHE_SIZE_DEFAULT);
+        int statementCacheSize = getCacheSize(startParams, Property.LANG_STATEMENT_CACHE_SIZE,
+                Property.LANG_STATEMENT_CACHE_SIZE_DEFAULT);
+        int schemaCacheSize = getCacheSize(startParams, Property.LANG_SCHEMA_CACHE_SIZE,
+                Property.LANG_SCHEMA_CACHE_SIZE_DEFAULT);
+        int aliasDescriptorCacheSize = getCacheSize(startParams,
+                Property.LANG_ALIAS_DESCRIPTOR_CACHE_SIZE,
+                Property.LANG_ALIAS_DESCRIPTOR_CACHE_SIZE_DEFAULT);
+        int roleCacheSize = getCacheSize(startParams, Property.LANG_ROLE_CACHE_SIZE,
+                Property.LANG_ROLE_CACHE_SIZE_DEFAULT);
+        int defaultRoleCacheSize = getCacheSize(startParams, Property.LANG_DEFAULT_ROLE_CACHE_SIZE,
+                Property.LANG_DEFAULT_ROLE_CACHE_SIZE_DEFAULT);
+        int roleGrantCacheSize = getCacheSize(startParams, Property.LANG_ROLE_GRANT_CACHE_SIZE,
+                Property.LANG_ROLE_GRANT_CACHE_SIZE_DEFAULT);
+        int tokenCacheSize = getCacheSize(startParams, Property.LANG_TOKEN_CACHE_SIZE,
+                Property.LANG_TOKEN_CACHE_SIZE_DEFAULT);
+        int propertyCacheSize = getCacheSize(startParams, Property.LANG_PROPERTY_CACHE_SIZE,
+                Property.LANG_PROPERTY_CACHE_SIZE_DEFAULT);
 
         RemovalListener<Object,Dependent> dependentInvalidator = new RemovalListener<Object, Dependent>() {
             @Override
@@ -126,17 +148,28 @@ public class DataDictionaryCache {
             storedPreparedStatementCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(stmtCacheSize).removalListener(dependentInvalidator).build());
         }
         sequenceGeneratorCache=new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(seqgenCacheSize).build());
-        partitionStatisticsCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(8092).build());
-        conglomerateCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(1024).build());
-        statementCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(1024).removalListener(dependentInvalidator).build());
-        schemaCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(1024).build());
-        aliasDescriptorCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(1024).build());
-        roleCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(100).build());
-        tokenCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(1024).build());
-        permissionsCache=new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(permissionsCacheSize).build());
-        defaultRoleCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(1024).build());
-        roleGrantCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(1024).build());
-        propertyCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(128).build());
+        partitionStatisticsCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats()
+                .maximumSize(partstatCacheSize).build());
+        conglomerateCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats()
+                .maximumSize(conglomerateCacheSize).build());
+        statementCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize
+                (statementCacheSize).removalListener(dependentInvalidator).build());
+        schemaCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(
+                schemaCacheSize).build());
+        aliasDescriptorCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats()
+                .maximumSize(aliasDescriptorCacheSize).build());
+        roleCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(
+                roleCacheSize).build());
+        tokenCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(
+                tokenCacheSize).build());
+        permissionsCache=new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(
+                permissionsCacheSize).build());
+        defaultRoleCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize
+                (defaultRoleCacheSize).build());
+        roleGrantCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize
+                (roleGrantCacheSize).build());
+        propertyCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize
+                (propertyCacheSize).build());
         this.dd = dd;
     }
 
