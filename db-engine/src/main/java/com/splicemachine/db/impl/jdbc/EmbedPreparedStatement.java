@@ -1396,7 +1396,7 @@ public abstract class EmbedPreparedStatement extends EmbedStatement implements E
      * Set a parameter to a java.sql.Date value.  The driver converts this
      * to a SQL DATE value when it sends it to the database.
      *
-     * @param parameterIndex the first par ameter is 1, the second is 2, ...
+     * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param x the parameter value
      * @exception SQLException Feature not implemented for now.
      */
