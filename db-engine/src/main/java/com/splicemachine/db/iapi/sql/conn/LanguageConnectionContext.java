@@ -1390,4 +1390,6 @@ public interface LanguageConnectionContext extends Context {
 	boolean getSkipStats();
 
 	double getDefaultSelectivityFactor();
+
+	String getClientIPAddress();
 }

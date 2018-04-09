@@ -117,7 +117,8 @@ public interface LanguageConnectionFactory {
 								String dbname,
                                 CompilerContext.DataSetProcessorType type,
 								boolean skipStats,
-								double defaultSelectivityFactor)
+								double defaultSelectivityFactor,
+								 String ipAddress)
 
 		throws StandardException;
 
