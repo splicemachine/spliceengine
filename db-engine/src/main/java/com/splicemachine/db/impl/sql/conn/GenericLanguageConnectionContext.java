@@ -136,6 +136,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private boolean skipStats;
     private double defaultSelectivityFactor;
 
+    private final String ipAddress;
     private Database db;
 
     private final int instanceNumber;
@@ -330,12 +331,14 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             String dbname,
             CompilerContext.DataSetProcessorType type,
             boolean skipStats,
-            double defaultSelectivityFactor
+            double defaultSelectivityFactor,
+            String ipAddress
             ) throws StandardException{
         super(cm,ContextId.LANG_CONNECTION);
         acts=new ArrayList<>();
         tran=tranCtrl;
         this.type = type;
+        this.ipAddress = ipAddress;
         dataFactory=lcf.getDataValueFactory();
         tcf=lcf.getTypeCompilerFactory();
         of=lcf.getOptimizerFactory();
@@ -3630,5 +3633,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public double getDefaultSelectivityFactor() {
         return defaultSelectivityFactor;
+    }
+
+    @Override
+    public String getClientIPAddress() {
+        return ipAddress;
     }
 }
