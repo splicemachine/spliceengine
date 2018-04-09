@@ -48,8 +48,6 @@
             <artifactId>db-tools-i18n</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-        </dependency>
     </dependencies>
     <build>
         <plugins>
