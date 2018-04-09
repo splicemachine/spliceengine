@@ -52,6 +52,7 @@ import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
@@ -863,7 +864,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             byte[] splitKey = encoder.encode();
             if (LOG.isDebugEnabled()) {
                 SpliceLogUtils.debug(LOG, "execRow = %s, splitKey = %s", execRow,
-                        org.apache.hadoop.hbase.util.Bytes.toStringBinary(splitKey));
+                        Bytes.toStringBinary(splitKey));
             }
             admin.splitTable(new Long(conglomId).toString(), splitKey);
         }

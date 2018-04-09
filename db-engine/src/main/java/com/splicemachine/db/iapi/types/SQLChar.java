@@ -47,10 +47,6 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.iapi.util.UTF8Util;
 import com.yahoo.sketches.theta.UpdateSketch;
-import org.apache.hadoop.hbase.types.OrderedString;
-import org.apache.hadoop.hbase.util.Order;
-import org.apache.hadoop.hbase.util.OrderedBytes;
-import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
@@ -3349,50 +3345,6 @@ public class SQLChar
             isNull = false;
             value = row.getString(ordinal);
         }
-    }
-
-    /**
-    *
-    * Get the encodedLength of the string.
-    *
-    * @return
-    * @throws StandardException
-    */
-    @Override
-    public int encodedKeyLength() throws StandardException {
-        return OrderedString.ASCENDING.encodedLength(value); // Order Does Not Matter for Length
-    }
-
-    /**
-     *
-     * Performs null check and then encodes.
-     *
-     * @see OrderedBytes#encodeString(PositionedByteRange, String, Order)
-     *
-     * @param src
-     * @param order
-     * @throws StandardException
-     */
-    @Override
-    public void encodeIntoKey(PositionedByteRange src, Order order) throws StandardException {
-        if (isNull())
-            OrderedBytes.encodeNull(src, order);
-        else
-            OrderedBytes.encodeString(src, value, order);
-    }
-
-    /**
-     *
-     * Performs null check and then decodes.
-     *
-     * @see OrderedBytes#decodeString(PositionedByteRange)
-     *
-     * @param src
-     * @throws StandardException
-     */
-    @Override
-    public void decodeFromKey(PositionedByteRange src) throws StandardException {
-        value = OrderedBytes.decodeString(src);
     }
 
     @Override

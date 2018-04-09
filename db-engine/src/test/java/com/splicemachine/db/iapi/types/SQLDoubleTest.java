@@ -34,10 +34,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Order;
-import org.apache.hadoop.hbase.util.PositionedByteRange;
-import org.apache.hadoop.hbase.util.SimplePositionedMutableByteRange;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
@@ -106,25 +102,7 @@ public class SQLDoubleTest extends SQLDataValueDescriptorTest {
                 value.read(row, 0);
                 Assert.assertTrue("SerdeIncorrect", valueA.isNull());
             }
-    
-                @Test
-        public void serdeKeyData() throws Exception {
-                SQLDouble value1 = new SQLDouble(100.0d);
-                SQLDouble value2 = new SQLDouble(200.0d);
-                SQLDouble value1a = new SQLDouble();
-                SQLDouble value2a = new SQLDouble();
-                PositionedByteRange range1 = new SimplePositionedMutableByteRange(value1.encodedKeyLength());
-                PositionedByteRange range2 = new SimplePositionedMutableByteRange(value2.encodedKeyLength());
-                value1.encodeIntoKey(range1, Order.ASCENDING);
-                value2.encodeIntoKey(range2, Order.ASCENDING);
-                Assert.assertTrue("Positioning is Incorrect", Bytes.compareTo(range1.getBytes(), 0, 9, range2.getBytes(), 0, 9) < 0);
-                range1.setPosition(0);
-                range2.setPosition(0);
-                value1a.decodeFromKey(range1);
-                value2a.decodeFromKey(range2);
-                Assert.assertEquals("1 incorrect",value1.getDouble(),value1a.getDouble(),0.0d);
-                Assert.assertEquals("2 incorrect",value2.getDouble(),value2a.getDouble(),0.0d);
-            }
+
         @Test
         public void testColumnStatistics() throws Exception {
                 SQLDouble value1 = new SQLDouble();

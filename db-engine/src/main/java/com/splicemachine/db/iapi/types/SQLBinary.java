@@ -47,9 +47,6 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.yahoo.sketches.theta.UpdateSketch;
-import org.apache.hadoop.hbase.util.Order;
-import org.apache.hadoop.hbase.util.OrderedBytes;
-import org.apache.hadoop.hbase.util.PositionedByteRange;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
@@ -1431,54 +1428,6 @@ abstract class SQLBinary
 	}
 
 
-
-	/**
-	 *
-	 * Gets the encoded key length
-	 *
-	 * @see OrderedBytes#blobVarEncodedLength(int)
-	 *
-	 * @throws StandardException
-	 */
-	@Override
-	public int encodedKeyLength() throws StandardException {
-		return isNull()?1:OrderedBytes.blobVarEncodedLength(dataValue.length);
-	}
-
-	/**
-	 *
-	 * Performs null check and then encodes
-	 *
-	 * @see OrderedBytes#decodeBlobVar(PositionedByteRange)
-	 *
-	 * @param src
-	 * @param order
-	 * @throws StandardException
-     */
-	@Override
-	public void encodeIntoKey(PositionedByteRange src, Order order) throws StandardException {
-		if (isNull())
-			OrderedBytes.encodeNull(src, order);
-		else
-			OrderedBytes.encodeBlobVar(src, dataValue, order);
-	}
-
-	/**
-	 *
-	 * Performs null check and then decodes
-	 *
-	 * @see OrderedBytes#decodeBlobVar(PositionedByteRange)
-	 *
-	 * @param src
-	 * @throws StandardException
-     */
-	@Override
-	public void decodeFromKey(PositionedByteRange src) throws StandardException {
-		if (OrderedBytes.isNull(src))
-			setToNull();
-		else
-			dataValue = OrderedBytes.decodeBlobVar(src);
-	}
 
 	@Override
 	public StructField getStructField(String columnName) {

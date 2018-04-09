@@ -34,10 +34,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Order;
-import org.apache.hadoop.hbase.util.PositionedByteRange;
-import org.apache.hadoop.hbase.util.SimplePositionedMutableByteRange;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
@@ -75,25 +71,6 @@ public class SQLTinyIntTest extends SQLDataValueDescriptorTest {
                 value.read(row, 0);
                 Assert.assertTrue("SerdeIncorrect", valueA.isNull());
             }
-    
-        @Test
-        public void serdeKeyData() throws Exception {
-                SQLTinyint value1 = new SQLTinyint(Byte.valueOf("1"));
-                SQLTinyint value2 = new SQLTinyint(Byte.valueOf("2"));
-                SQLTinyint value1a = new SQLTinyint();
-                SQLTinyint value2a = new SQLTinyint();
-                PositionedByteRange range1 = new SimplePositionedMutableByteRange(value1.encodedKeyLength());
-                PositionedByteRange range2 = new SimplePositionedMutableByteRange(value2.encodedKeyLength());
-                value1.encodeIntoKey(range1, Order.ASCENDING);
-                value2.encodeIntoKey(range2, Order.ASCENDING);
-                Assert.assertTrue("Positioning is Incorrect", Bytes.compareTo(range1.getBytes(), 0, 9, range2.getBytes(), 0, 9) < 0);
-                range1.setPosition(0);
-                range2.setPosition(0);
-                value1a.decodeFromKey(range1);
-                value2a.decodeFromKey(range2);
-                Assert.assertEquals("1 incorrect",value1.getByte(),value1a.getByte());
-                Assert.assertEquals("2 incorrect",value2.getByte(),value2a.getByte());
-        }
 
         @Test
         public void testColumnStatistics() throws Exception {

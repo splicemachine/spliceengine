@@ -72,7 +72,6 @@ import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.db.iapi.jdbc.EnginePreparedStatement;
 import com.sun.security.jgss.GSSUtil;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSException;
@@ -192,7 +191,7 @@ class DRDAConnThread extends Thread {
 
 	// contexts for Kerberos authentication
 	private GSSContext gssContext;
-	private UserGroupInformation user;
+	private User user;
 
     // generated target seed to be used to generate the password substitute
     // as part of SECMEC_USRSSBPWD security mechanism
@@ -2004,9 +2003,7 @@ class DRDAConnThread extends Thread {
 
 
 								try {
-
-
-									user = UserGroupInformation.getCurrentUser();
+									user = UserManagerService.loadPropertyManager().getCurrentUser();
 
 									Exception exception = user.doAs(new PrivilegedAction<Exception>() {
 										@Override
