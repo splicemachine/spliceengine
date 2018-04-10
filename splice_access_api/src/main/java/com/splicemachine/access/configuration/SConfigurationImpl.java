@@ -222,7 +222,7 @@ public final class SConfigurationImpl implements SConfiguration {
         return authenticationLdapSearchauthdn;
     }
     @Override
-    public String getAuthenticationLdapSearchauthpw() {
+    public String getAuthenticationLdapSearchauthPassword() {
         return authenticationLdapSearchauthpw;
     }
     @Override
@@ -800,7 +800,8 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public void traceConfig() {
         for (Map.Entry<String, Object> entry : getConfigMap().entrySet()) {
-            if (entry.getKey().toLowerCase().contains("searchauthpw"))
+            if (entry.getKey().toLowerCase().contains("searchauthpw")
+                    || entry.getKey().toLowerCase().contains("password"))
                 continue;
             LOG.info(String.format(" %s = [%s]", entry.getKey(), entry.getValue()));
         }
