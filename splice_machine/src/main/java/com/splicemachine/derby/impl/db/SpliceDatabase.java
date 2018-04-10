@@ -239,7 +239,7 @@ public class SpliceDatabase extends BasicDatabase{
         System.setProperty("derby.connection.requireAuthentication","true");
         System.setProperty("derby.database.sqlAuthorization","true");
         String authenticationLDAPSearchAuthDN = config.getAuthenticationLdapSearchauthdn();
-        String authenticationLDAPSearchAuthPW = config.getAuthenticationLdapSearchauthpw();
+        String authenticationLDAPSearchAuthPW = config.getAuthenticationLdapSearchauthPassword();
         String authenticationLDAPSearchBase = config.getAuthenticationLdapSearchbase();
         String authenticationLDAPSearchFilter = config.getAuthenticationLdapSearchfilter();
         String authenticationLDAPServer = config.getAuthenticationLdapServer();

@@ -37,7 +37,7 @@ public class AuthenticationConfiguration implements ConfigurationDefault {
     public static final String AUTHENTICATION_LDAP_SEARCHAUTHDN = "splice.authentication.ldap.searchAuthDN";
     private static final String DEFAULT_AUTHENTICATION_LDAP_SEARCHAUTHDN = "";
 
-    public static final String AUTHENTICATION_LDAP_SEARCHAUTHPW = "splice.authentication.ldap.searchAuthPW";
+    public static final String AUTHENTICATION_LDAP_SEARCHAUTH_PASSWORD = "splice.authentication.ldap.searchAuth.password";
     private static final String DEFAULT_AUTHENTICATION_LDAP_SEARCHAUTHPW = "";
 
     public static final String AUTHENTICATION_LDAP_SEARCHBASE = "splice.authentication.ldap.searchBase";
@@ -69,7 +69,7 @@ public class AuthenticationConfiguration implements ConfigurationDefault {
         if (builder.authentication.equals(Property.AUTHENTICATION_PROVIDER_LDAP)) {
             builder.authenticationLdapServer = configurationSource.getString(AUTHENTICATION_LDAP_SERVER, DEFAULT_AUTHENTICATION_LDAP_SERVER);
             builder.authenticationLdapSearchauthdn = configurationSource.getString(AUTHENTICATION_LDAP_SEARCHAUTHDN, DEFAULT_AUTHENTICATION_LDAP_SEARCHAUTHDN);
-            builder.authenticationLdapSearchauthpw = configurationSource.getString(AUTHENTICATION_LDAP_SEARCHAUTHPW, DEFAULT_AUTHENTICATION_LDAP_SEARCHAUTHPW);
+            builder.authenticationLdapSearchauthpw = configurationSource.getString(AUTHENTICATION_LDAP_SEARCHAUTH_PASSWORD, DEFAULT_AUTHENTICATION_LDAP_SEARCHAUTHPW);
             builder.authenticationLdapSearchbase = configurationSource.getString(AUTHENTICATION_LDAP_SEARCHBASE, DEFAULT_AUTHENTICATION_LDAP_SEARCHBASE);
             builder.authenticationLdapSearchfilter = configurationSource.getString(AUTHENTICATION_LDAP_SEARCHFILTER, DEFAULT_AUTHENTICATION_LDAP_SEARCHFILTER);
             builder.authenticationLdapMapGroupAttr = configurationSource.getString(AUTHENTICATION_LDAP_MAPGROUPATTR, DEFAULT_AUTHENTICATION_LDAP_MAPGROUPATTR);
