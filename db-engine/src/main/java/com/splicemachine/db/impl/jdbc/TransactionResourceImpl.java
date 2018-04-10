@@ -163,7 +163,6 @@ public final class TransactionResourceImpl
 
 		drdaID = info.getProperty(Attribute.DRDAID_ATTR, null);
 		ipAddress = info.getProperty(Property.IP_ADDRESS, null);
-		assert ipAddress!=null:"IP Address from Client is null, breaks audit capability";
         String useSparkString = info.getProperty("useSpark",null);
         if (useSparkString != null) {
             try {
