@@ -51,7 +51,14 @@ package com.splicemachine.db.iapi.reference;
 	are public, static and final since they are declared in an interface.
 */
 
-public interface Property { 
+public interface Property {
+
+	/**
+	 *
+	 * Property that holds the client   IP Address
+	 *
+	 */
+	public static final String IP_ADDRESS = "ip_address";
 
 	/**
 	 * Name of the file that contains system wide properties. Has to be located

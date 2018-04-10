@@ -110,10 +110,11 @@ public class SpliceDatabase extends BasicDatabase{
     public LanguageConnectionContext setupConnection(ContextManager cm,String user, String groupuser, String drdaID,String dbname,
                                                      CompilerContext.DataSetProcessorType dspt,
                                                      boolean skipStats,
-                                                     double defaultSelectivityFactor)
+                                                     double defaultSelectivityFactor,
+                                                     String ipAddress)
             throws StandardException{
 
-        final LanguageConnectionContext lctx=super.setupConnection(cm, user, groupuser, drdaID, dbname, dspt, skipStats, defaultSelectivityFactor);
+        final LanguageConnectionContext lctx=super.setupConnection(cm, user, groupuser, drdaID, dbname, dspt, skipStats, defaultSelectivityFactor, ipAddress);
 
         // If you add a visitor, be careful of ordering.
 
@@ -137,27 +138,6 @@ public class SpliceDatabase extends BasicDatabase{
     }
 
     /**
-     * This is the light creation of languageConnectionContext that removes 4 rpc calls per context creation.
-     */
-    public LanguageConnectionContext generateLanguageConnectionContext(TxnView txn,
-                                                                       ContextManager cm,
-                                                                       String user,
-                                                                       String drdaID,
-                                                                       String dbname,
-                                                                       String sessionUserName,
-                                                                       SchemaDescriptor defaultSchemaDescriptor) throws StandardException{
-        TransactionController tc=((SpliceAccessManager)af).marshallTransaction(cm,txn);
-        cm.setLocaleFinder(this);
-        pushDbContext(cm);
-        LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,user,drdaID,dbname,CompilerContext.DataSetProcessorType.DEFAULT_CONTROL, false, -1);
-        pushClassFactoryContext(cm,lcf.getClassFactory());
-        ExecutionFactory ef=lcf.getExecutionFactory();
-        ef.newExecutionContext(cm);
-        lctx.initializeSplice(sessionUserName, defaultSchemaDescriptor);
-        return lctx;
-    }
-
-    /**
      * This will perform a lookup of the user (index and main table) and the default schema (index and main table)
      * <p/>
      * This method should only be used by start() methods in coprocessors.  Do not use for sinks or observers.
@@ -165,11 +145,12 @@ public class SpliceDatabase extends BasicDatabase{
     public LanguageConnectionContext generateLanguageConnectionContext(TxnView txn,ContextManager cm,String user, String groupuser, String drdaID,String dbname,
                                                                        CompilerContext.DataSetProcessorType type,
                                                                        boolean skipStats,
-                                                                       double defaultSelectivityFactor) throws StandardException{
+                                                                       double defaultSelectivityFactor,
+                                                                       String ipAddress) throws StandardException{
         TransactionController tc=((SpliceAccessManager)af).marshallTransaction(cm,txn);
         cm.setLocaleFinder(this);
         pushDbContext(cm);
-        LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,groupuser,drdaID,dbname,type,skipStats, defaultSelectivityFactor);
+        LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,groupuser,drdaID,dbname,type,skipStats, defaultSelectivityFactor, ipAddress);
 
         pushClassFactoryContext(cm,lcf.getClassFactory());
         ExecutionFactory ef=lcf.getExecutionFactory();

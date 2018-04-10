@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.db.Database;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Attribute;
+import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
@@ -132,7 +133,7 @@ public final class TransactionResourceImpl
     private CompilerContext.DataSetProcessorType useSpark;
     private boolean skipStats;
     private double defaultSelectivityFactor;
-
+	private String ipAddress;
 	// set these up after constructor, called by EmbedConnection
 	protected Database database;
 	protected LanguageConnectionContext lcc;
@@ -141,6 +142,7 @@ public final class TransactionResourceImpl
 	protected String groupuser;
 
 	/**
+	 *
 	 * create a brand new connection for a brand new transaction
 	 */
 	TransactionResourceImpl(
@@ -160,6 +162,8 @@ public final class TransactionResourceImpl
 		username = IdUtil.getUserNameFromURLProps(info);
 
 		drdaID = info.getProperty(Attribute.DRDAID_ATTR, null);
+		ipAddress = info.getProperty(Property.IP_ADDRESS, null);
+		assert ipAddress!=null:"IP Address from Client is null, breaks audit capability";
         String useSparkString = info.getProperty("useSpark",null);
         if (useSparkString != null) {
             try {
@@ -230,7 +234,7 @@ public final class TransactionResourceImpl
 	void startTransaction() throws StandardException, SQLException
 	{
 		// setting up local connection
-		lcc = database.setupConnection(cm, username, groupuser, drdaID, dbname,useSpark, skipStats, defaultSelectivityFactor);
+		lcc = database.setupConnection(cm, username, groupuser, drdaID, dbname,useSpark, skipStats, defaultSelectivityFactor, ipAddress);
 	}
 
 	/**

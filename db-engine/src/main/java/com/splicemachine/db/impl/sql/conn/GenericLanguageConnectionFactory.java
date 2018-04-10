@@ -146,7 +146,8 @@ public class GenericLanguageConnectionFactory
 		String dbname,
         CompilerContext.DataSetProcessorType type,
 		boolean skipStats,
-		double defaultSelectvityFactor) throws StandardException {
+		double defaultSelectvityFactor,
+		String ipAddresss) throws StandardException {
 		
 		return new GenericLanguageConnectionContext(cm,
 													tc,
@@ -160,7 +161,8 @@ public class GenericLanguageConnectionFactory
 													dbname,
                                                     type,
 				                                    skipStats,
-				                                    defaultSelectvityFactor
+				                                    defaultSelectvityFactor,
+													ipAddresss
 				);
 	}
 
