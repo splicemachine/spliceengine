@@ -111,6 +111,7 @@ public class IndexTransformer {
         if ( index.hasDefaultValues() && excludeDefaultValues) {
             defaultValue = (DataValueDescriptor) SerializationUtils.deserialize(index.getDefaultValues().toByteArray());
             defaultValuesExecRow = new ValueRow(new DataValueDescriptor[]{defaultValue.cloneValue(true)});
+
         }
     }
 
@@ -448,15 +449,6 @@ public class IndexTransformer {
                             byte[] array, int offset, int length) throws IOException {
         byte[] data = array;
         int off = offset;
-        if (reverseOrder) {
-            //TODO -sf- could we cache these byte[] somehow?
-            data = new byte[length];
-            System.arraycopy(array, offset, data, 0, length);
-            for (int i = 0; i < data.length; i++) {
-                data[i] ^= 0xff;
-            }
-            off = 0;
-        }
         if (excludeDefaultValues && pos == 0 && defaultValue != null) { // Exclude Default Values
             ExecRowAccumulator era =  getExecRowAccumulator();
             era.reset();
@@ -469,15 +461,25 @@ public class IndexTransformer {
             else
                 era.add(pos, data, off, length);
             try {
-            if (defaultValue != null && !defaultValue.isNull() &&
-                    defaultValue.equals(defaultValue,defaultValuesExecRow.getColumn(1)).getBoolean()) {
-                ignore = true;
-            } } catch (StandardException se) {
+                if (defaultValue != null && !defaultValue.isNull() &&
+                        defaultValue.equals(defaultValue,defaultValuesExecRow.getColumn(1)).getBoolean()) {
+                    ignore = true;
+                } } catch (StandardException se) {
                 throw new IOException(se);
             }
 
         }
 
+
+        if (reverseOrder) {
+            //TODO -sf- could we cache these byte[] somehow?
+            data = new byte[length];
+            System.arraycopy(array, offset, data, 0, length);
+            for (int i = 0; i < data.length; i++) {
+                data[i] ^= 0xff;
+            }
+            off = 0;
+        }
         if (typeProvider.isScalar(type))
             keyAccumulator.addScalar(pos, data, off, length);
         else if (typeProvider.isDouble(type))
