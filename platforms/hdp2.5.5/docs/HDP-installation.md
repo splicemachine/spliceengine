@@ -169,6 +169,7 @@ To edit the HDFS configuration, click `HDFS` in the Ambari *Services* sidebar. T
 
    ````
    dfs.datanode.handler.count=20
+   fs.s3a.impl=com.splicemachine.fs.s3.PrestoS3FileSystem
    ````
 
 3. Save Changes
