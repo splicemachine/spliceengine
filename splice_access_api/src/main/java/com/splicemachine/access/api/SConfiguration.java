@@ -57,7 +57,7 @@ public interface SConfiguration {
 
     String getAuthenticationLdapSearchauthdn();
 
-    String getAuthenticationLdapSearchauthpw();
+    String getAuthenticationLdapSearchauthPassword();
 
     String getAuthenticationLdapSearchbase();
 
