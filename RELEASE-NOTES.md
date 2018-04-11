@@ -238,11 +238,8 @@ _**Critical Issues**_
 *  DB-6825 hdp2.6.3 installation doc using custom ambari service
 *  DB-6878 Add support for CDH 5.12.2
 *  SPLICE-1098 prevent nonnull selectivity from being 0
-*  SPLICE-1327  Create Janus 2.5 branches , SPLICE-1328  Create Janus 2.6 branches
 *  SPLICE-1817 adding support for CDH 5.12.0
 *  SPLICE-1818 - fix compilation errors for cdh5.12.0
-*  SPLICE-2078 Cleanup logs
-*  SPLICE-2118 update copyright period
 *  SPLICE-8 make CTAS work with case sensitive names
 
 For a full list of JIRA's for the Community/Open Source software, see <https://splice.atlassian.net>
