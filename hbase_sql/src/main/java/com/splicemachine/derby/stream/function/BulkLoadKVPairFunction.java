@@ -20,10 +20,7 @@ import scala.Tuple2;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 
 /**
  * Created by jyuan on 10/9/17.
@@ -41,19 +38,7 @@ public class BulkLoadKVPairFunction<Op extends SpliceOperation>
 
     @Override
     public Iterator<Tuple2<Long, Tuple2<byte[], byte[]>>> call(Iterator<KVPair> kvPairIterator) throws Exception {
-        if (!kvPairIterator.hasNext())
-            return Collections.EMPTY_LIST.iterator();
-
-        List<Tuple2<Long, Tuple2<byte[], byte[]>>> outList = new ArrayList<>();
-        while (kvPairIterator.hasNext()) {
-            KVPair kvPair = kvPairIterator.next();
-            if (kvPair == null)
-                continue;
-            Tuple2<byte[], byte[]> kv = new Tuple2(kvPair.getRowKey(), kvPair.getValue());
-            outList.add(new Tuple2(conglomerateId, kv));
-        }
-
-        return outList.iterator();
+        return new NullFilterKVPairIterator(conglomerateId, kvPairIterator);
     }
 
     @Override
@@ -66,5 +51,40 @@ public class BulkLoadKVPairFunction<Op extends SpliceOperation>
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
         conglomerateId = in.readLong();
+    }
+}
+
+class NullFilterKVPairIterator<K,V> implements Iterator<Tuple2<Long, Tuple2<byte[], byte[]>>> {
+    Iterator<KVPair> delegate;
+    long conglomerateId;
+    KVPair kvPair;
+    boolean rowConsumed = true;
+
+    public NullFilterKVPairIterator(long cId, Iterator<KVPair> delegate) {
+        this.delegate = delegate;
+        this.conglomerateId = cId;
+    }
+
+    @Override
+    public boolean hasNext() {
+        // we need to check rowConsumed to make sure the same result is return in case hasNext() is called multiple times
+        // before a call of next()
+        if (!rowConsumed)
+            return true;
+        while (delegate.hasNext()) {
+            kvPair = delegate.next();
+            if (kvPair != null) {
+                rowConsumed = false;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public Tuple2<Long, Tuple2<byte[], byte[]>> next() {
+        rowConsumed = true;
+        Tuple2<byte[], byte[]> kv = new Tuple2(kvPair.getRowKey(), kvPair.getValue());
+        return new Tuple2(conglomerateId, kv);
     }
 }
