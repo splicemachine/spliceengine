@@ -30,6 +30,7 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.si.impl.driver.SIDriver;
 
 import java.util.Iterator;
 import java.util.List;
@@ -60,7 +61,8 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
      * @exception StandardException     Thrown on failure
      */
     public void executeConstantAction(Activation activation) throws StandardException {
-        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        checkAuthorizationScheme(SQLState.NO_GRANT_PERMISSIONS_WITH_RANGER);
+       LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
         TransactionController tc = lcc.getTransactionExecute();
         DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();

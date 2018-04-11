@@ -48,8 +48,17 @@ import java.util.List;
  * This class describes a permission require by a statement.
  */
 
-public abstract class StatementPermission
-{
+public abstract class StatementPermission {
+	public enum Type {
+		COLUMN,
+		TABLE,
+		GENERIC,
+		SCHEMA,
+		ROUTINE,
+		ROLE;
+	}
+
+
 	public static final int UNAUTHORIZED = 0;
 	public static final int AUTHORIZED = 1;
 	public static final int NONE = 2;
@@ -242,4 +251,6 @@ public abstract class StatementPermission
 
 	} // end of genericCheck
 
+
+	public abstract Type getType() ;
 }

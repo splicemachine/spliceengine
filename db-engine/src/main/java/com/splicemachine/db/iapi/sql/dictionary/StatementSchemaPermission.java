@@ -308,8 +308,27 @@ public class StatementSchemaPermission extends StatementPermission
         }
     }
 
+	public UUID getSchemaUUID() {
+		return schemaUUID;
+	}
+
+	public int getPrivType() {
+		return privType;
+	}
+
+
 	public String toString() {
 		return "StatementSchemaPermission: " + schemaName + " owner:" +
 			aid + " " + getPrivName();
 	}
+
+	@Override
+	public Type getType() {
+		return Type.SCHEMA;
+	}
+
+	public String getSchemaName() {
+		return schemaName;
+	}
+
 }

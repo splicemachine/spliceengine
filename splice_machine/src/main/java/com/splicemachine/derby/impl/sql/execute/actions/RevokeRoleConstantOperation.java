@@ -29,6 +29,7 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.si.impl.driver.SIDriver;
 
 import java.util.Iterator;
 import java.util.List;
@@ -63,6 +64,7 @@ public class RevokeRoleConstantOperation extends DDLConstantOperation {
      * @see com.splicemachine.db.iapi.sql.execute.ConstantAction#executeConstantAction
      */
     public void executeConstantAction(Activation activation) throws StandardException {
+        checkAuthorizationScheme(SQLState.NO_REVOKE_PERMISSIONS_WITH_RANGER);
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
         TransactionController tc = lcc.getTransactionExecute();

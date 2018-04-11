@@ -107,4 +107,10 @@ public final class StatementRoutinePermission extends StatementPermission
 	{
 		return "StatementRoutinePermission: " + routineUUID;
 	}
+
+	@Override
+	public Type getType() {
+		return Type.ROUTINE;
+	}
+
 }
