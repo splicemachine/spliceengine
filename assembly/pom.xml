@@ -514,6 +514,25 @@
                     <value>installer</value>
                 </property>
             </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>splice_ranger_service-${envClassifier}</artifactId>
+                    <version>2.5.0.1815-SNAPSHOT</version>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>splice_ranger_admin-${envClassifier}</artifactId>
+                    <version>2.5.0.1815-SNAPSHOT</version>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>splice_ranger_admin-${envClassifier}</artifactId>
+                    <version>2.5.0.1815-SNAPSHOT</version>
+                </dependency>
+
+
+            </dependencies>
             <build>
                 <plugins>
                     <plugin>
@@ -522,6 +541,7 @@
                         <version>2.10</version>
                         <executions>
                             <execution>
+
                                 <id>copy</id>
                                 <phase>package</phase>
                                 <goals>
@@ -560,7 +580,9 @@
                                         splice_encryption,
                                         akka-remote_${scala.binary.version},
                                         splicemachine-${envClassifier}-${spark.version}_${scala.binary.version},
-                                        super-csv
+                                        super-csv,
+                                        splice_ranger_admin-${envClassifier},
+                                        splice_ranger_service-${envClassifier}
                                     </includeArtifactIds>
                                 </configuration>
                             </execution>

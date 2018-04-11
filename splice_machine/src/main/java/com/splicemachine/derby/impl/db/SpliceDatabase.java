@@ -96,6 +96,9 @@ public class SpliceDatabase extends BasicDatabase{
 
         configureAuthentication();
 
+        // setup authorization
+
+
         create=Boolean.TRUE.equals(EngineLifecycleService.isCreate.get()); //written like this to avoid autoboxing
 
         if(create){
@@ -173,6 +176,12 @@ public class SpliceDatabase extends BasicDatabase{
     public void checkpoint() throws SQLException{
         throw new SQLException("Unsupported Exception");
     }
+/*
+    protected void configureAuthorization() {
+        SConfiguration configuration = SIDriver.driver().getConfiguration();
+        System.setProperty("splice.authorization.scheme",configuration.getAuthorizationScheme());
+    }
+*/
 
     protected void configureAuthentication(){
         SConfiguration configuration =SIDriver.driver().getConfiguration();

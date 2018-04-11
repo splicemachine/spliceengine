@@ -1636,7 +1636,11 @@ public abstract class EmbedConnection implements EngineConnection
     public final boolean isReadOnly() throws SQLException
 	{
 		checkIfClosed();
-		return getLanguageConnection().isReadOnly();
+		try {
+			return getLanguageConnection().isReadOnly();
+		} catch (StandardException se) {
+			throw new SQLException(se);
+		}
 	}
 
     /**

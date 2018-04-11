@@ -42,6 +42,7 @@ import com.splicemachine.derby.stream.iapi.ScopeNamed;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -956,6 +957,15 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
 			StringUtils.splitByCharacterTypeCamelCase(
 				this.getClass().getSimpleName().
 					replace("ConstantOperation", "")), ' ');
+	}
+
+	public static void checkAuthorizationScheme(String exceptionCode) throws StandardException {
+		if (SIDriver.driver().getConfiguration().getAuthorizationScheme().equals("RANGER")) {
+			throw StandardException.
+					newException(exceptionCode);
+		}
+
+
 	}
 }
 

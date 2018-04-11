@@ -22,6 +22,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.ServiceDiscovery;
+import com.splicemachine.db.iapi.services.authorization.AuthorizationFactory;
+import com.splicemachine.db.iapi.services.authorization.AuthorizationFactoryService;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
@@ -97,6 +99,7 @@ public class EngineDriver{
                     }
                 }).build();
         this.serviceDiscovery = environment.serviceDiscovery();
+
     }
 
     public DatabaseAdministrator dbAdministrator(){
@@ -156,5 +159,6 @@ public class EngineDriver{
     public ServiceDiscovery getServiceDiscovery() {
         return serviceDiscovery;
     }
+
 
 }

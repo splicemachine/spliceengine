@@ -60,6 +60,11 @@ public class ConfigurationBuilder {
     public String authenticationLdapMapGroupAttr;
     public String authenticationNativeAlgorithm;
 
+    // Authorization Configuration
+    public String authorizationScheme;
+    public String rangerServiceName;
+    public int sentryPollingInterval;
+
     // StatsConfiguration
     public double fallbackNullFraction;
     public double optimizerExtraQualifierMultiplier;

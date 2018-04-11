@@ -1532,6 +1532,9 @@ class DRDAConnThread extends Thread {
 		}
             
 	 	try {
+			System.out.println("Remote --> " + ((InetSocketAddress)this.getSession().clientSocket.getRemoteSocketAddress()).getAddress().toString().replace("/",""));
+			System.out.println("Local --> " + ((InetSocketAddress)this.getSession().clientSocket.getLocalSocketAddress()).getAddress().toString().replace("/",""));
+
 			p.put(Property.IP_ADDRESS, ((InetSocketAddress)this.getSession().clientSocket.getRemoteSocketAddress()).getAddress().toString().replace("/",""));
 			database.makeConnection(p);
 	  	} catch (SQLException se) {

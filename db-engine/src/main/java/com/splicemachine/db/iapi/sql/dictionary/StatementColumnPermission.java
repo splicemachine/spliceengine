@@ -268,6 +268,10 @@ public class StatementColumnPermission extends StatementTablePermission
 		TableDescriptor td = getTableDescriptor(dd);
 		//if we are still here, then that means that we didn't find any select
 		//privilege on the table or any column in the table
+		if (td.getTableType() == TableDescriptor.VIEW_TYPE) {
+			ViewDescriptor vd = dd.getViewDescriptor(td);
+			vd.getViewText();
+		}
 		if (privType == Authorizer.MIN_SELECT_PRIV)
 			throw StandardException.newException( forGrant ? SQLState.AUTH_NO_TABLE_PERMISSION_FOR_GRANT
 					  : SQLState.AUTH_NO_TABLE_PERMISSION,
@@ -513,5 +517,10 @@ public class StatementColumnPermission extends StatementTablePermission
 	{
 		return "StatementColumnPermission: " + getPrivName() + " " +
 			tableUUID + " columns: " + columns;
+	}
+
+	@Override
+	public Type getType() {
+		return Type.COLUMN;
 	}
 }
