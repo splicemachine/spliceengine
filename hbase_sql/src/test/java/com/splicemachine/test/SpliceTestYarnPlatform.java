@@ -106,6 +106,7 @@ public class SpliceTestYarnPlatform {
             // save the server config to classpath so yarn clients can read it
             Configuration yarnClusterConfig = yarnCluster.getConfig();
             yarnClusterConfig.set("yarn.application.classpath", new File(yarnSiteConfigURL.getPath()).getParent());
+            yarnClusterConfig.set("fs.s3a.impl",com.splicemachine.fs.s3.PrestoS3FileSystem.class.getCanonicalName());
             //write the document to a buffer (not directly to the file, as that
             //can cause the file being written to get read -which will then fail.
             ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
