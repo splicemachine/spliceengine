@@ -76,27 +76,27 @@ Follow the steps to install splicemachine server.
 
 1.click the action button on the left buttom of the ambari page,then click on 'Add Services'
 
-<img src="docs/add_services.jpg" alt="Add Service" width="400" height="200">
+<img src="images/add_services.jpg" alt="Add Service" width="400" height="200">
 
 2.choose splice machine from the 'add service wizard'
 
-<img src="docs/add_service_wizard.jpg" alt="Add Service Wizard" width="400" height="200">
+<img src="images/add_service_wizard.jpg" alt="Add Service Wizard" width="400" height="200">
 
 3.choose hosts needed to install splice machine,only choose hosts that have hbase region server installed.Then click next.
 
-<img src="docs/choose_hosts.jpeg" alt="Choose hosts" width="400" height="200">
+<img src="images/choose_hosts.jpeg" alt="Choose hosts" width="400" height="200">
 
 4.O On the page of custom services,no properties need to customize by hand.
 
-<img src="docs/custom_services.jpeg" alt="Custom Services" width="400" height="200">
+<img src="images/custom_services.jpeg" alt="Custom Services" width="400" height="200">
 
 5.please review all the configuration change made by ambari and click OK to continue.
 
-<img src="docs/dependent_config.jpeg" alt="dependent_config.jpeg" width="400" height="200">
+<img src="images/dependent_config.jpeg" alt="dependent_config.jpeg" width="400" height="200">
 
 6.please click next all the way down to this page ,then click 'deploy',after that finishes,splice machine is installed.
 
-<img src="docs/review.jpeg" alt="dependent_config.jpeg" width="400" height="200">
+<img src="images/review.jpeg" alt="dependent_config.jpeg" width="400" height="200">
 
 7.restart all the services affected to start splice machine!
 
