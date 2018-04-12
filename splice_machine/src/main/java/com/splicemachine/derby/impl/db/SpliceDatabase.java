@@ -96,6 +96,9 @@ public class SpliceDatabase extends BasicDatabase{
 
         configureAuthentication();
 
+        // setup authorization
+
+
         create=Boolean.TRUE.equals(EngineLifecycleService.isCreate.get()); //written like this to avoid autoboxing
 
         if(create){

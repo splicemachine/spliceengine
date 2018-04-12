@@ -397,8 +397,18 @@ public class StatementTablePermission extends StatementSchemaPermission
 		return "?";
 	} // end of getPrivName
 
+	public UUID getSchemaUUID() {
+		return schemaUUID;
+	}
+
 	public String toString()
 	{
 		return "StatementTablePermission: " + getPrivName() + " " + tableUUID;
 	}
+
+	@Override
+	public Type getType() {
+		return Type.TABLE;
+	}
+
 }
