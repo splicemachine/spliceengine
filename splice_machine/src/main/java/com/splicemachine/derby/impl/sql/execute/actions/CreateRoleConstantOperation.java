@@ -59,6 +59,7 @@ public class CreateRoleConstantOperation extends DDLConstantOperation {
      */
     public void executeConstantAction(Activation activation) throws StandardException {
     	SpliceLogUtils.trace(LOG, "executeConstantAction with activation {%s}",activation);
+        checkAuthorizationScheme(SQLState.NO_GRANT_PERMISSIONS_WITH_RANGER);
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
         TransactionController tc = lcc.getTransactionExecute();

@@ -399,10 +399,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public void initialize() throws StandardException{
         interruptedException=null;
         sessionUser=IdUtil.getUserAuthorizationId(userName);
-        //
-        //Creating the authorizer authorizes the connection.
-        authorizer=new GenericAuthorizer(this);
-
         /*
         ** Set the authorization id.  User shouldn't
         ** be null or else we are going to blow up trying
@@ -434,9 +430,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public void initializeSplice(String sessionUser,SchemaDescriptor defaultSchemaDescriptor) throws StandardException{
         interruptedException=null;
         this.sessionUser=sessionUser;
-        //
-        //Creating the authorizer authorizes the connection.
-        authorizer=new GenericAuthorizer(this);
 
             /*
             ** Set the authorization id.  User shouldn't
@@ -3010,16 +3003,19 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public void setReadOnly(boolean on) throws StandardException{
         if(!tran.isPristine())
             throw StandardException.newException(SQLState.AUTH_SET_CONNECTION_READ_ONLY_IN_ACTIVE_XACT);
-        authorizer.setReadOnlyConnection(on,true);
+        getAuthorizer().setReadOnlyConnection(on,true);
     }
 
     @Override
-    public boolean isReadOnly(){
-        return authorizer.isReadOnlyConnection();
+    public boolean isReadOnly() throws StandardException {
+        return getAuthorizer().isReadOnlyConnection();
     }
 
     @Override
-    public Authorizer getAuthorizer(){
+    public Authorizer getAuthorizer() throws StandardException {
+        if (authorizer == null) {
+            authorizer = getLanguageConnectionFactory().getAuthorizationFactory().getAuthorizer(this);
+        }
         return authorizer;
     }
 
