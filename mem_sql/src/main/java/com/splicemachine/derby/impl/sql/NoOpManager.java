@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql;
 
+import java.lang.reflect.Constructor;
 import java.sql.SQLException;
 import java.util.Properties;
 import com.splicemachine.backup.BackupManager;
@@ -31,13 +32,18 @@ import com.splicemachine.management.Manager;
  * Fake manager impl for mem db
  */
 public class NoOpManager implements Manager {
+    private boolean enterpriseEnabled;
     private static NoOpManager ourInstance=new NoOpManager();
 
     public static NoOpManager getInstance(){
         return ourInstance;
     }
 
-    private NoOpManager(){ }
+    private NoOpManager(){
+        if (System.getProperty("test.column.security") != null && System.getProperty("test.column.security").toLowerCase().equals("true")) {
+            enterpriseEnabled = true;
+        }
+    }
 
     @Override
     public void enableEnterprise(char[] value) throws StandardException {
@@ -56,6 +62,18 @@ public class NoOpManager implements Manager {
 
     @Override
     public ColPermsManager getColPermsManager() throws StandardException {
+        try {
+        if (enterpriseEnabled) {
+
+            Class clazz =Class.forName("com.splicemachine.colperms.EEColPermsManager");
+            Constructor ctor = clazz.getConstructor(null);
+            return (ColPermsManager) ctor.newInstance(new Object[]{});
+
+            }
+        } catch (Exception exception) {
+                throw StandardException.plainWrapException(exception);
+        }
+
         return new ColPermsManager() {
             @Override
             public ColPermsDescriptor getColumnPermissions(DataDictionaryImpl dd, UUID colPermsUUID) throws StandardException {
@@ -76,6 +94,6 @@ public class NoOpManager implements Manager {
 
     @Override
     public boolean isEnabled() {
-        return false;
+        return enterpriseEnabled;
     }
 }

@@ -57,6 +57,12 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  String authenticationLdapMapGroupAttr;
     private final  String authenticationNativeAlgorithm;
 
+    // Authorization Configuration
+    private final String authorizationScheme;
+    private final String rangerServiceName;
+    private final int sentryPollingInterval;
+
+
     // DDLConfiguration
     private final  long ddlDrainingInitialWait;
     private final  long ddlDrainingMaximumWait;
@@ -458,6 +464,20 @@ public final class SConfigurationImpl implements SConfiguration {
         return olapServerSubmitAttempts;
     }
     @Override
+    public String getAuthorizationScheme() {
+        return authorizationScheme;
+    }
+    @Override
+    public String getRangerServiceName() {
+        return rangerServiceName;
+    }
+    @Override
+    public int getSentryPollingInterval() {
+        return sentryPollingInterval;
+    }
+
+
+    @Override
     public int getOlapServerMemory() {
         return olapServerMemory;
     }
@@ -707,6 +727,9 @@ public final class SConfigurationImpl implements SConfiguration {
         authenticationLdapServer = builder.authenticationLdapServer;
         authenticationLdapMapGroupAttr = builder.authenticationLdapMapGroupAttr;
         authenticationNativeAlgorithm = builder.authenticationNativeAlgorithm;
+        authorizationScheme = builder.authorizationScheme;
+        rangerServiceName = builder.rangerServiceName;
+        sentryPollingInterval = builder.sentryPollingInterval;
         fallbackNullFraction = builder.fallbackNullFraction;
         optimizerExtraQualifierMultiplier = builder.optimizerExtraQualifierMultiplier;
         cardinalityPrecision = builder.cardinalityPrecision;

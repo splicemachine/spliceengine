@@ -9198,6 +9198,30 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <name>TSS01</name>
 	       <text>Timestamp server connection exception, see next exception for more details.</text>
            </msg>
+
+           <msg>
+               <name>EXT35</name>
+               <text>Cannot grant permissions when Splice Machine is attached to Ranger.  Please use the Ranger UI.</text>
+           </msg>
+
+           <msg>
+               <name>EXT36</name>
+               <text>Cannot revoke permissions when Splice Machine is attached to Ranger.  Please use the Ranger UI.</text>
+           </msg>
+
+           <msg>
+               <name>EXT37</name>
+               <text>Access Denied for Sentry, user '{0}' does not have privileges to execute: {1}</text>
+               <arg>userName</arg>
+               <arg>execute</arg>
+           </msg>
+
+           <msg>
+               <name>EXT38</name>
+               <text>Role {0} already exists in Sentry.</text>
+               <arg>role</arg>
+           </msg>
+
        </family>
     </section>
 

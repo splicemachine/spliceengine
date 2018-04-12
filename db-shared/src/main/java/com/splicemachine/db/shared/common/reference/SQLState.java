@@ -2014,5 +2014,10 @@ public interface SQLState {
 
 	String OLAP_SERVER_CONNECTION                                   = "OS001";
 	String TIMESTAMP_SERVER_CONNECTION                              = "TSS01";
+	String NO_GRANT_PERMISSIONS_WITH_RANGER                                = "EXT35";
+	String NO_REVOKE_PERMISSIONS_WITH_RANGER                                = "EXT36";
+	String ACCESS_DENIED_SENTRY                                = "EXT37";
+	String ROLE_ALREADY_EXISTS_SENTRY                                = "EXT38";
+
 }
 

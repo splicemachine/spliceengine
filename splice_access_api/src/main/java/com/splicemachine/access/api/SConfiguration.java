@@ -145,6 +145,12 @@ public interface SConfiguration {
 
     double getBulkImportSampleFraction();
 
+    String getAuthorizationScheme();
+
+    String getRangerServiceName();
+
+    int getSentryPollingInterval();
+
     int getBulkImportTasksPerRegion();
 
     int getRegionToLoadPerTask();

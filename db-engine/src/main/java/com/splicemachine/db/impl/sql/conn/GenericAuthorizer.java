@@ -48,9 +48,7 @@ import com.splicemachine.db.iapi.sql.dictionary.StatementPermission;
 import java.util.List;
 import java.util.Iterator;
 
-class GenericAuthorizer
-implements Authorizer
-{
+public class GenericAuthorizer implements Authorizer {
 	//
 	//Enumerations for user access levels.
 	private static final int NO_ACCESS = 0;
@@ -68,7 +66,7 @@ implements Authorizer
 
 	private final LanguageConnectionContext lcc;
 	
-    GenericAuthorizer(LanguageConnectionContext lcc)
+    public GenericAuthorizer(LanguageConnectionContext lcc)
 		 throws StandardException
 	{
 		this.lcc = lcc;
@@ -205,7 +203,7 @@ implements Authorizer
         }
     }
 
-	private static StandardException externalRoutineException(int operation, int sqlAllowed) {
+	public static StandardException externalRoutineException(int operation, int sqlAllowed) {
 
 		String sqlState;
 		if (sqlAllowed == RoutineAliasInfo.READS_SQL_DATA)

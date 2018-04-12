@@ -49,6 +49,16 @@ public class AuthenticationConfiguration implements ConfigurationDefault {
     public static final String AUTHENTICATION_NATIVE_ALGORITHM = "splice.authentication.native.algorithm";
     private static final String DEFAULT_AUTHENTICATION_NATIVE_ALGORITHM = "SHA-512";
 
+    public static final String AUTHORIZATION_SCHEME = "splice.authorization.scheme";
+    public static final String DEFAULT_AUTHORIZATION_SCHEME = "NATIVE";
+
+    public static final String RANGER_SERVICE_NAME = "splice.authorization.ranger.service.name";
+    public static final String DEFAULT_RANGER_SERVICE_NAME = "splicemachine";
+
+    public static final String SENTRY_POLLING_INTERVAL = "splice.authorization.sentry.polling.interval";
+    public static final int DEFAULT_SENTRY_POLLING_INTERVAL = 60;
+
+
     // Property to force the creation of the native credentials database.
     // Generally, this is only done at the time of the creation of the whole Splice/Derby database.
     // In this particular instance, there are Splice beta customers with AnA disabled and they want to
@@ -65,7 +75,12 @@ public class AuthenticationConfiguration implements ConfigurationDefault {
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         builder.authentication = configurationSource.getString(AUTHENTICATION, DEFAULT_AUTHENTICATION);
-
+        builder.rangerServiceName = configurationSource.getString(RANGER_SERVICE_NAME,DEFAULT_RANGER_SERVICE_NAME);
+        builder.sentryPollingInterval = configurationSource.getInt(SENTRY_POLLING_INTERVAL,DEFAULT_SENTRY_POLLING_INTERVAL);
+        if (System.getProperty(AUTHORIZATION_SCHEME) != null)
+            builder.authorizationScheme = System.getProperty(AUTHORIZATION_SCHEME);
+        else
+            builder.authorizationScheme = configurationSource.getString(AUTHORIZATION_SCHEME, DEFAULT_AUTHORIZATION_SCHEME);
         if (builder.authentication.equals(Property.AUTHENTICATION_PROVIDER_LDAP)) {
             builder.authenticationLdapServer = configurationSource.getString(AUTHENTICATION_LDAP_SERVER, DEFAULT_AUTHENTICATION_LDAP_SERVER);
             builder.authenticationLdapSearchauthdn = configurationSource.getString(AUTHENTICATION_LDAP_SEARCHAUTHDN, DEFAULT_AUTHENTICATION_LDAP_SEARCHAUTHDN);
