@@ -71,11 +71,10 @@ _**Improvements**_
 * SPLICE-2107 SnappyPipelineCompressor generates too much garbage
 * SPLICE-2109 SYSCS_UTIL.VACUUM - Add log message in a finally clause to indicate the vacuum job is complete
 
-_**Bug Fixes**_
+_**Major Bug Fixes**_
 
 * DB-6194 After changing DB Property on ANALYZE default, cannot collect stats on "non-indexed cols that are explicitly enabled"
 * DB-6262 cluster/RS's do not come up after HBase restart due to existence of SPLICE_INIT
-* DB-6277 Full backup cleaned up incremental changes from a region if the region was taken offline during full backup
 * DB-6278 Capture incremental changes from bulk import
 * DB-6284 Backups could be inconsistent
 * DB-6295 Minor compaction generating a storm of several hundred spark jobs within a very short duration
@@ -83,11 +82,8 @@ _**Bug Fixes**_
 * DB-6345 Left-Outer Join results in NPE during parsing 
 * DB-6391 HFile IMPORT with Sampling ON results in IllegalFormatConversionException
 * DB-6440 SELECT with INlist elements and Index hint failed with StackOverflow when executing for 2 partitions
-* DB-6464  ERROR XCL16: Multiple execute statement through Spark generates this error
-* DB-6511 Discrepancy between internal and external Nexus repos
 * DB-6516 Spark Streaming with Splice Adapter: long running executors fail with out of memory error after 40+ hours of execution.
 * DB-6517 Backup fails if keytab file is a full path name
-* DB-6534 Intermittent IT failure in RowCountOperationIT
 * DB-6537 Cetera GP 2.5 - Export command exports different number of rows
 * DB-6541 User defined function does not work on spark
 * DB-6558 HBVOCC: Host CPU Saturation - Heavily loaded RegionServer causing degradation in forward loading throughput from 25K/sec to 4K/sec
@@ -95,27 +91,17 @@ _**Bug Fixes**_
 * DB-6574 Splice spark adapter still sends write requests to a unreachable region server
 * DB-6594 Illegal merge join and NPE for FMC query
 * DB-6600 Case When not matching or clause
-* DB-6603 Incremental backup changes lost
 * DB-6610 Restore completed when replace a data file with an empty file
 * DB-6662 Splice Machine Query Timeout Not working
 * DB-6684 Build failures because of VM Crash
 * DB-6685 After running call syscs_utils.syscs_update_schema_owner() data dictionary cache not invalidated
 * DB-6707 Restore should only delete splice tables
-* DB-6721 hdp2.5.5 1808 package missing
 * DB-6722 Hbase log missing after executing flatten script
 * DB-6735 Fix HDP 2.6.3 Service Install now that OLAP Server is in play
-* DB-6740 SerDe issue in regression test
 * DB-6745 Make sure Spark job resilient to region server failure ("no route to host" exception handling)
-* DB-6754 hdp2.6.3 package names are not correct.
 * DB-6759 Split key with null column values not correctly encoded
-* DB-6778 Fix Null Dereferences in source code
-* DB-6790 Database connection corrupted after a SQL parsing error 
 * DB-6816 Backup called getAllPartition info twice
-* DB-6817 Call syscs_util.syscs_get_version_info() throws exception
 * DB-6831 splice groupowner cannot run some operations 
-* DB-6833 Index Creation failing
-* DB-6839 After Kerberizing SM, running SQL with rand(<colname>) failed with java.lang.NullPointerExceptionXJ001.U
-* DB-6853 Remove clear text sensitive information 
 * DB-6872 tpch1 timed out after 90 mins on mapr platform
 * DB-6875 NPE for select on table with schema change
 * SPLICE-1717 Compaction jobs take too long (blocking RPC)
@@ -139,20 +125,6 @@ _**Bug Fixes**_
 * SPLICE-2120 Permissions granted for system procedures become invalid after each system restart
 * SPLICE-2134 Column Position Sequencing is 1 greater than it should be, causes column level permissions on views to fail.
 * Splice-5 Wrong error message in case of write conflict that results in FK violation
-
-_**Critical Issues**_
-
-* DB-6330 Document new installation procedures on CDH after DB-6066 change
-* DB-6599 Clean up maven build profiles
-* DB-6619 Test / Verify Splice 2.5 on CDH 5.13.2 - Needed for Anthem
-* DB-6679 Merge 2.5.0.1806S branch to branch-2.5 (review/approval/test/merge)
-* DB-6743 Remove MapR 5.1 Support: Not tested.
-* DB-6825 hdp installation doc for hdp2.6.3 using custom ambari service
-* DB-6878 Add support for CDH 5.12.2 for Anthem
-* Db-6619 Test / Verify Splice 2.5 on CDH 5.13.2 - Needed for Anthem
-* SPLICE-2118 Update source code copyright terms to 2018
-* splice-2 Test issue before release .....
-* SPLICE-1998 Splice derby timestamp format not compliant with Hadoop (Splice 2.5.x version)
 
 
 What's New in 2.5.0.1749 - Jan. 19, 2018
@@ -191,7 +163,7 @@ _**Improvements**_
 * SPLICE-1973 Exclude Kafka jars from splice-uber.jar for all platforms
 * SPLICE-1984 Parallelize MultiProbeScan and Union operations
 
-_**Bug Fixes**_
+_**Major Bug Fixes**_
 
 * DB-4300 TPCH query 20 fails
 * DB-5914 LIKE query on ACCT_NUM6 - Tablescan is chosen unless Index is hinted
@@ -201,30 +173,18 @@ _**Bug Fixes**_
 * DB-6075 [Kerberos] unable to backup database
 * DB-6113 Regression: Backup will fail if someone else tries to run another backup in parallel
 * DB-6124 optimizer not choosing Index after upgrading Splice to a version > 2.5.0.1722 and causes query failure / exception on SortMergeJoin
-* DB-6127 syscs_util.syscs_delete_old_backups gives ERROR 40XC0: Dead statement.
-* DB-6134 Fixed value widths inserted with union 
 * DB-6155 Cost estimation difference in plans compared to actual row counts - queries with long IN list
 * DB-6157 Error when deleting backup
 * DB-6164 NULLS FIRST needs to work fully within window functions
 * DB-6167 Regression in query optimization where indexes are not used (2.5.0.1729)
-* DB-6183 Clean up rpc for backup
-* DB-6187 sqlshell no return
-* DB-6191 SYSCS_DELETE_OLD_BACKUPS failed to delete backup stored in S3
 * DB-6203 Collected statistics severely worsen query execution time
-* DB-6214 SYSCS_UTIL.SYSCS_DELETE_OLD_BACKUPS() should prevent breaking backup chain
-* DB-6228 intermittent wrong result for TPCH1 Q9
-* DB-6230 API call 'SYSCS_UTIL.SYSCS_RESTORE_DATABASE()' no return
 * DB-6231 Optimizer - RKV2 DQ Query Changes: #1 Unable to push down IN-List of ACCTNUMs to MultiProbe scan #2. New plan running large TABLESCAN at Hbase "control"
 * DB-6234 Incremental backup failed
-* DB-6248 Intermittent failure in DefaultIndexIT.estBulkHFileImport() with NonTransientConnectionException
 * DB-6252 Add back synchronous backup/restore
 * DB-6267 Modify code using SPLICE_TXN to be resilient to missing data
 * DB-6269 Handle transactions not in SPLICE_TXN
-* DB-6270 Backup deletes wrong directory for cleanup when it fails 
-* DB-6315 Keep alive long running backup
 * DB-6349 Splice spark adapter is not allowed to choose SparkDataSetProcessor if it is run by spark_submit
 * DB-6350 Fix parquet dependency in splice_machine
-* DB-6360 HFile Index creation for AU fact is failing to complete
 * DB-6367 Most region based operations throw NPE if schema or table is null
 * DB-6373 NPE during bulk delete with Index hint
 * DB-6399 Splice spark adapter fails Kerberos authentication
@@ -232,8 +192,6 @@ _**Bug Fixes**_
 * DB-6409 Backup: backup cancellation is not checked before backup is launched to spark
 * DB-6410 MERGE_DATA_FROM_FILE omits references to SCHEMA NAME
 * DB-6411 MERGE_DATA_FROM_FILE encounters ClassCastException
-* DB-6412 Outer join's result row count not less than left table 
-* DB-6416 Additional cases with region based operations which throw NPE if any parameter is null
 * DB-6418 Backup times out
 * DB-6438 Standard Queries Fail when used CPD-DT & INDEX in conjunction	
 * DBAAS-780 Test full Backup and Restore
@@ -258,21 +216,6 @@ _**Bug Fixes**_
 * SPLICE-1983 OOM in Spark executors while running TPCH1 repeatedly
 * SPLICE-865 [Authorization] REVOKE after GRANT can throw NullPointerException
 * Splice-1784 Query does not scale on 4000 regions
-
-_**Critical Issues**_
-
-* DB-1908 Document STarting/Stopping DB topics in Getting Started
-* DB-6042 Cloudera certification requirements for 2.5
-* DB-6066 Splice install should not make changes to yarn-site.xml , or add jars in yarn/lib, in shared environment
-* DB-6102 Max old Transaction ID needs to be included in backup metadata
-* DB-6136 Restore hanging with "Failed to start database 'splice db' " exception, when first restore was aborted and restarted restore.
-* DB-6233 Need backup ID/number in the server logs
-* DB-6299 TPCH query 21 failure
-* DB-6342 Extension of SPLICE-1372 - Centralized monitor/kill query
-* DB-6352 Fixing spark2.2 with branch 2.5
-* DB-6354 Temporary tables don't go completely away upon session end
-* DB-6456 Fix ITs for HDP platform, enable builds in Jenkins
-* DB-6484 Regression: class not found error after metrics jar taken out
 
 
 What's New in 2.5.0.1729 - Aug. 1, 2017
