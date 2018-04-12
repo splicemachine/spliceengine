@@ -40,6 +40,7 @@ import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
+import java.net.InetSocketAddress;
 import java.security.PrivilegedAction;
 import java.sql.*;
 import java.util.ArrayList;
@@ -51,6 +52,7 @@ import java.util.Vector;
 import java.util.regex.Pattern;
 
 import com.splicemachine.db.catalog.SystemProcedures;
+import com.splicemachine.db.drda.NetworkServerControl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.reference.Attribute;
@@ -1537,6 +1539,7 @@ class DRDAConnThread extends Thread {
 		}
             
 	 	try {
+			p.put(Property.IP_ADDRESS, ((InetSocketAddress)this.getSession().clientSocket.getRemoteSocketAddress()).getAddress().toString().replace("/",""));
 			database.makeConnection(p);
 	  	} catch (SQLException se) {
 			String sqlState = se.getSQLState();

@@ -270,7 +270,8 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 	public LanguageConnectionContext setupConnection(ContextManager cm, String user, String groupuser, String drdaID, String dbname,
 													 CompilerContext.DataSetProcessorType type,
 													 boolean skipStats,
-													 double defaultSelectivityFactor)
+													 double defaultSelectivityFactor,
+													 String ipAddress)
 		throws StandardException {
 
 		TransactionController tc = getConnectionTransaction(cm);
@@ -281,7 +282,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 		// push a database shutdown context
 		// we also need to push a language connection context.
 		LanguageConnectionContext lctx = lcf.newLanguageConnectionContext(cm, tc, lf, this, user, groupuser, drdaID, dbname,
-                type,skipStats,defaultSelectivityFactor);
+                type,skipStats,defaultSelectivityFactor, ipAddress);
 
 		// push the context that defines our class factory
 		pushClassFactoryContext(cm, lcf.getClassFactory());
