@@ -33,6 +33,7 @@ package com.splicemachine.db.iapi.sql.conn;
 
 import com.splicemachine.db.iapi.db.Database;
 
+import com.splicemachine.db.iapi.services.authorization.AuthorizationFactory;
 import com.splicemachine.db.iapi.services.property.PropertyFactory;
 
 import com.splicemachine.db.iapi.sql.compile.OptimizerFactory;
@@ -152,6 +153,14 @@ public interface LanguageConnectionFactory {
 		Get the PropertyFactory to use with this language connection
 	 */
 	PropertyFactory	getPropertyFactory();
+
+	/**
+	 *
+	 * GetAuthorizationFactory
+	 *
+	 * @return
+     */
+	AuthorizationFactory getAuthorizationFactory();
 
 	/**
 		Get the OptimizerFactory to use with this language connection

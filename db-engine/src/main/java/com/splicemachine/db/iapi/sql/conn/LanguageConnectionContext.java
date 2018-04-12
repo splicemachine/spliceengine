@@ -872,12 +872,12 @@ public interface LanguageConnectionContext extends Context {
 	/**
 	  * Get the readOnly status for the current connection. 
 	  */
-	boolean isReadOnly();
+	boolean isReadOnly() throws StandardException;
 
 	/**
 	 * Get an Authorizer for this connection.
 	 */
-	Authorizer getAuthorizer();
+	Authorizer getAuthorizer() throws StandardException;
 
 	/**
 	 *	Get the current StatementContext.
