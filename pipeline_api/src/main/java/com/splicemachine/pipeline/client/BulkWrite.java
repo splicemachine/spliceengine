@@ -19,6 +19,7 @@ import com.splicemachine.kvpair.KVPair;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author Scott Fines
@@ -131,4 +132,10 @@ public class BulkWrite {
     }
 
     public boolean skipWAL() { return skipWAL; }
+
+    public void addTypes(Set<KVPair.Type> types) {
+        for (KVPair kvPair : mutations) {
+            types.add(kvPair.getType());
+        }
+    }
 }

@@ -232,7 +232,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
             else if(ctx.nextWriteSet!=null &&ctx.nextWriteSet.size()>0){
                 ctx.failed();
                 //rebuild a new buffer to retry from any records that need retrying
-                addToRetryCallBuffer(ctx.nextWriteSet,bulkWrites.getTxn(),ctx.refreshCache);
+                addToRetryCallBuffer(ctx.nextWriteSet,bulkWrites.getTxn(),bulkWrites.getToken(),ctx.refreshCache);
             }
 
             if(retryPipingCallBuffer!=null){
@@ -462,7 +462,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
         return first;
     }
 
-    private void addToRetryCallBuffer(Collection<KVPair> retryBuffer,TxnView txn,boolean refreshCache) throws Exception{
+    private void addToRetryCallBuffer(Collection<KVPair> retryBuffer,TxnView txn,byte[] token,boolean refreshCache) throws Exception{
         if(retryBuffer==null) return; //actually nothing to do--probably doesn't happen, but just to be safe
         if(RETRY_LOG.isDebugEnabled())
             SpliceLogUtils.debug(RETRY_LOG,"[%d] addToRetryCallBuffer %d rows, refreshCache=%s",id,retryBuffer.size(),refreshCache);
@@ -470,7 +470,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
             writerFactory.invalidateCache(tableName);
         }
         if(retryPipingCallBuffer==null)
-            retryPipingCallBuffer=new PipingCallBuffer(partitionFactory.getTable(Bytes.toString(tableName)),txn,null,PipelineUtils.noOpFlushHook,writeConfiguration,null,false);
+            retryPipingCallBuffer=new PipingCallBuffer(partitionFactory.getTable(Bytes.toString(tableName)),txn,token,null,PipelineUtils.noOpFlushHook,writeConfiguration,null,false);
         if (refreshCache)
             retryPipingCallBuffer.rebuild();
         retryPipingCallBuffer.addAll(retryBuffer);

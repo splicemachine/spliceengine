@@ -2019,5 +2019,10 @@ public interface SQLState {
 	String ACCESS_DENIED_SENTRY                                = "EXT37";
 	String ROLE_ALREADY_EXISTS_SENTRY                                = "EXT38";
 
+
+	String TOKEN_NOT_FOUND											= "ST001";
+	String TOKEN_EXPIRED											= "ST002";
+
+	String HBASE_OPERATION_ERROR									= "HO001";
 }
 

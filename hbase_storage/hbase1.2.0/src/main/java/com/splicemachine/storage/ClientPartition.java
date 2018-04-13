@@ -171,7 +171,7 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
         List<Partition> partitions=new ArrayList<>(tableLocations.size());
         for(HRegionLocation location : tableLocations){
             HRegionInfo regionInfo=location.getRegionInfo();
-            partitions.add(new RangedClientPartition(connection,tableName,table,regionInfo,new RLServer(location),clock,partitionInfoCache));
+            partitions.add(new RangedClientPartition(this,regionInfo,new RLServer(location)));
         }
         return partitions;
     }
@@ -295,5 +295,10 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
     @Override
     public BitSet getBloomInMemoryCheck(boolean hasConstraintChecker,Pair<KVPair, Lock>[] dataAndLocks) throws IOException {
         return null;
+    }
+
+    @Override
+    public PartitionDescriptor getDescriptor() throws IOException {
+        return new HPartitionDescriptor(table.getTableDescriptor());
     }
 }

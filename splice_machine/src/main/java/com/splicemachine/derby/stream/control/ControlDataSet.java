@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.stream.control;
 
-import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -568,7 +567,7 @@ public class ControlDataSet<V> implements DataSet<V> {
             @Override
             public DataSetWriter build() throws StandardException{
                 assert txn!=null:"Txn is null";
-                DeletePipelineWriter dpw = new DeletePipelineWriter(txn,heapConglom,operationContext);
+                DeletePipelineWriter dpw = new DeletePipelineWriter(txn,token,heapConglom,operationContext);
                 return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,dpw,operationContext);
             }
         };
@@ -589,7 +588,7 @@ public class ControlDataSet<V> implements DataSet<V> {
                         spliceSequences,
                         heapConglom,
                         txn,
-                        operationContext,
+                        token, operationContext,
                         isUpsert);
                 return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,ipw,operationContext);
             }
@@ -606,7 +605,7 @@ public class ControlDataSet<V> implements DataSet<V> {
                 assert txn!=null: "Txn is null";
                 UpdatePipelineWriter upw =new UpdatePipelineWriter(heapConglom,
                         formatIds,columnOrdering,pkCols,pkColumns,tableVersion,
-                        txn,execRowDefinition,heapList,operationContext);
+                        txn,token,execRowDefinition,heapList,operationContext);
 
                 return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,upw,operationContext);
             }

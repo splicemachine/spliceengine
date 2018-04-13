@@ -463,7 +463,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation, this);
             uuid = EngineDriver.driver().getOperationManager().registerOperation(this, Thread.currentThread(), new Date(), dsp.getType());
             activation.getLanguageConnectionContext().getStatementContext().registerExpirable(this, Thread.currentThread());
-            if (dsp.getType() == DataSetProcessor.Type.SPARK && !isOlapServer() && !SpliceClient.isClient) {
+            if (dsp.getType() == DataSetProcessor.Type.SPARK && !isOlapServer() && !SpliceClient.isClient()) {
                 openDistributed();
             } else {
                 openCore(dsp);

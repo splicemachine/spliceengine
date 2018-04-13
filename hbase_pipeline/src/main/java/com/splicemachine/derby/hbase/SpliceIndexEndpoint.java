@@ -14,6 +14,13 @@
 
 package com.splicemachine.derby.hbase;
 
+import com.google.common.primitives.Ints;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.conn.Authorizer;
+import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.pipeline.AclCheckerService;
+import com.splicemachine.pipeline.security.AclChecker;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.spark_project.guava.base.Function;
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
@@ -50,6 +57,9 @@ import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Endpoint to allow special batch operations that the HBase API doesn't explicitly enable
@@ -64,8 +74,11 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
     private PartitionWritePipeline writePipeline;
     private PipelineWriter pipelineWriter;
     private PipelineCompressor compressor;
+    private boolean tokenEnabled;
 
     private volatile PipelineLoadService<TableName> service;
+    private long conglomId = -1;
+
 
     @Override
     @SuppressWarnings("unchecked")
@@ -73,10 +86,10 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
         RegionCoprocessorEnvironment rce=((RegionCoprocessorEnvironment)env);
         final ServerControl serverControl=new RegionServerControl((HRegion) rce.getRegion(),rce.getRegionServerServices());
 
+        tokenEnabled = SIDriver.driver().getConfiguration().getAuthenticationTokenEnabled();
         String tableName=rce.getRegion().getTableDesc().getTableName().getQualifierAsString();
         TableType table=EnvUtils.getTableType(HConfiguration.getConfiguration(),(RegionCoprocessorEnvironment)env);
         if(table.equals(TableType.USER_TABLE) || table.equals(TableType.DERBY_SYS_TABLE)){ // DERBY SYS TABLE is temporary (stats)
-            long conglomId;
             try{
                 conglomId=Long.parseLong(tableName);
             }catch(NumberFormatException nfe){
@@ -168,12 +181,63 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
             }
     }
 
-//    @Override
-    public BulkWritesResult bulkWrite(BulkWrites bulkWrites) throws IOException{
-        return pipelineWriter.bulkWrite(bulkWrites);
+    private boolean useToken(BulkWrites bulkWrites) {
+        if (!tokenEnabled)
+            return false;
+        byte[] token  = bulkWrites.getToken();
+        if (token == null || token.length == 0)
+            return false;
+        return true;
     }
 
 //    @Override
+    public BulkWritesResult bulkWrite(BulkWrites bulkWrites) throws IOException{
+        if (useToken(bulkWrites)) {
+            try {
+                int[] privileges = typesToPrivileges(bulkWrites.getTypes());
+                AclCheckerService.getService().checkPermission(bulkWrites.getToken(), conglomId, privileges);
+                return SIDriver.driver().getExecutorService().submit(() -> pipelineWriter.bulkWrite(bulkWrites)).get();
+            } catch (InterruptedException | StandardException e) {
+                throw new IOException(e);
+            } catch (ExecutionException e) {
+                Throwable cause = e.getCause();
+                if (cause instanceof IOException) {
+                    throw (IOException) cause;
+                } else {
+                    throw new IOException(cause);
+                }
+            }
+
+        }
+
+        return pipelineWriter.bulkWrite(bulkWrites);
+    }
+
+    private int[] typesToPrivileges(Set<KVPair.Type> types) {
+        Set<Integer> privileges = new HashSet<>();
+        for (KVPair.Type type : types) {
+            switch (type) {
+                case INSERT:
+                    privileges.add(Authorizer.INSERT_PRIV);
+                    break;
+                case UPDATE:
+                    privileges.add(Authorizer.UPDATE_PRIV);
+                    break;
+                case UPSERT:
+                    privileges.add(Authorizer.INSERT_PRIV);
+                    privileges.add(Authorizer.UPDATE_PRIV);
+                    break;
+                case DELETE:
+                    privileges.add(Authorizer.DELETE_PRIV);
+                    break;
+                default:
+                    break;
+            }
+        }
+        return Ints.toArray(privileges);
+    }
+
+    //    @Override
     public byte[] bulkWrites(byte[] bulkWriteBytes) throws IOException{
         assert bulkWriteBytes!=null;
         BulkWrites bulkWrites=compressor.decompress(bulkWriteBytes,BulkWrites.class);

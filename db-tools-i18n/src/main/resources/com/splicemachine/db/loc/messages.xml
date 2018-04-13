@@ -9222,6 +9222,23 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <arg>role</arg>
            </msg>
 
+           <msg>
+               <name>ST001</name>
+	       <text>Token '{0}' not found </text>
+               <arg>token</arg>
+           </msg>
+           <msg>
+               <name>ST002</name>
+	       <text>Token '{0}' has expired on '{1}'</text>
+               <arg>token</arg>
+               <arg>expiredTime</arg>
+           </msg>
+           <msg>
+               <name>HO001</name>
+	       <text>HBase operation error for table '{0}' and operation '{1}'</text>
+               <arg>tableName</arg>
+               <arg>operation</arg>
+           </msg>
        </family>
     </section>
 

@@ -239,6 +239,11 @@ public class Procedure {
             return this;
         }
 
+        public Builder blob(String name){
+            this.args.add(Arg.blob(name));
+            return this;
+        }
+
         public Builder charType(String name, int length){
             this.args.add(Arg.newArg(name,DataTypeDescriptor.getCatalogType(Types.CHAR,length)));
             return this;
@@ -303,6 +308,9 @@ public class Procedure {
 
         public static Arg varchar(String name, int length){
             return new Arg(name, DataTypeDescriptor.getCatalogType(Types.VARCHAR, length));
+        }
+        public static Arg blob(String name){
+            return new Arg(name, DataTypeDescriptor.getCatalogType(Types.BLOB));
         }
 
         public boolean equals(Object o) {

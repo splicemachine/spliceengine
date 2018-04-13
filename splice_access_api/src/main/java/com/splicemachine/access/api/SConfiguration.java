@@ -69,6 +69,11 @@ public interface SConfiguration {
 
     String getAuthenticationNativeAlgorithm();
 
+    int getAuthenticationTokenLength();
+    int getAuthenticationTokenMaxLifetime();
+    int getAuthenticationTokenRenewInterval();
+    boolean getAuthenticationTokenEnabled();
+
     // DDLConfiguration
     long getDdlDrainingInitialWait();
 

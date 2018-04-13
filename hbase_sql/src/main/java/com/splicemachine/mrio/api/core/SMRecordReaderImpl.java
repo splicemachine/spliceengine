@@ -14,7 +14,9 @@
 
 package com.splicemachine.mrio.api.core;
 
+import com.splicemachine.access.client.ClientRegionConstants;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
+import com.splicemachine.client.SpliceClient;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -30,8 +32,10 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
+import com.splicemachine.storage.util.NoPartitionInfoCache;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.SerializationUtils;
@@ -49,6 +53,8 @@ import org.apache.spark.TaskContext;
 import org.apache.spark.util.TaskFailureListener;
 
 import java.io.IOException;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.*;
 
 public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> implements TaskFailureListener {
@@ -69,7 +75,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 	private volatile boolean closed = false;
 	private String closeExceptionString;
 	private InputSplit split;
-
+	private byte[] token = null;
 
 	public SMRecordReaderImpl(Configuration config) {
 		this.config = config;
@@ -104,6 +110,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 			if (LOG.isTraceEnabled())
 				SpliceLogUtils.trace(LOG, "config loaded builder=%s", builder);
 			TableSplit tSplit = ((SMSplit) split).getSplit();
+			token = builder.getToken();
 			DataScan scan = builder.getScan();
 			scanStartKey = scan.getStartKey();
 			scanStopKey = scan.getStopKey();
@@ -239,7 +246,18 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
             // Hack added to fix statistics run... DB-4752
             if (statisticsRun)
                 driver.getPartitionInfoCache().invalidate(htable.getName());
-            Partition clientPartition = new ClientPartition(instance.getConnection(),htable.getName(),htable,clock,driver.getPartitionInfoCache());
+            Partition clientPartition;
+            if (SpliceClient.isClient() && validToken()) {
+            	scan.setAttribute(SIConstants.TOKEN_ACL_NAME, token);
+				try {
+					ClientPartition delegate = new ClientPartition(instance.getConnection(), htable.getName(), htable, clock, NoPartitionInfoCache.getInstance());
+					clientPartition = new AdapterPartition(delegate, instance.getConnection(), DriverManager.getConnection(SpliceClient.connectionString),htable.getName(), NoPartitionInfoCache.getInstance());
+				} catch (SQLException e) {
+					throw new IOException(e);
+				}
+			} else {
+            	clientPartition = new ClientPartition(instance.getConnection(),htable.getName(),htable,clock,driver.getPartitionInfoCache());
+			}
 			SplitRegionScanner srs = new SplitRegionScanner(scan,
 					htable,
 					clock,
@@ -269,8 +287,12 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 		}
 	}
 
+	private boolean validToken() {
+		return token != null && token.length > 0;
+	}
 
-    public ExecRow getExecRow() {
+
+	public ExecRow getExecRow() {
 		if (builder == null) {
 			String tableScannerAsString = config.get(MRConstants.SPLICE_SCAN_INFO);
 			if (tableScannerAsString == null)

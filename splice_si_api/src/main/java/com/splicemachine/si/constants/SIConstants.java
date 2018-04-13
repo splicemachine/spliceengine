@@ -90,6 +90,8 @@ public class SIConstants {
     public static final byte[] SUPPRESS_INDEXING_ATTRIBUTE_VALUE = new byte[]{};
     public static final String CHECK_BLOOM_ATTRIBUTE_NAME = "cb";
 
+    public static final String TOKEN_ACL_NAME = "ta";
+
     public static final String ENTRY_PREDICATE_LABEL= "p";
 
     public static final int DEFAULT_CACHE_SIZE=1<<10;

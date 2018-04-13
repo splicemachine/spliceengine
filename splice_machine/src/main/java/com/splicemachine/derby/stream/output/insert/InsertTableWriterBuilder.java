@@ -33,6 +33,8 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.lang.reflect.Array;
+
 import org.apache.commons.codec.binary.Base64;
 
 /**
@@ -49,6 +51,7 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
     protected SpliceSequence[] spliceSequences;
     protected long heapConglom;
     protected TxnView txn;
+    protected byte[] token;
     protected OperationContext operationContext;
     protected boolean isUpsert;
 
@@ -125,6 +128,17 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
     }
 
     @Override
+    public DataSetWriterBuilder token(byte[] token) {
+        this.token = token;
+        return this;
+    }
+
+    @Override
+    public byte[] getToken() {
+        return token;
+    }
+
+    @Override
     public byte[] getDestinationTable(){
         return Bytes.toBytes(Long.toString(heapConglom));
     }
@@ -134,7 +148,7 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
         return new InsertPipelineWriter(pkCols,
                 tableVersion,
                 execRowDefinition,autoIncrementRowLocationArray,spliceSequences,heapConglom,
-                txn,operationContext,isUpsert);
+                txn,token,operationContext,isUpsert);
     }
 
     @Override
@@ -151,6 +165,7 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
             if (operationContext!=null)
                 out.writeObject(operationContext);
             SIDriver.driver().getOperationFactory().writeTxn(txn, out);
+            ArrayUtil.writeByteArray(out, token);
             ArrayUtil.writeIntArray(out, pkCols);
             out.writeUTF(tableVersion);
             ArrayUtil.writeIntArray(out,execRowTypeFormatIds);
@@ -175,6 +190,7 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
         if (in.readBoolean())
             operationContext = (OperationContext) in.readObject();
         txn = SIDriver.driver().getOperationFactory().readTxn(in);
+        token = ArrayUtil.readByteArray(in);
         pkCols = ArrayUtil.readIntArray(in);
         tableVersion = in.readUTF();
         execRowTypeFormatIds = ArrayUtil.readIntArray(in);

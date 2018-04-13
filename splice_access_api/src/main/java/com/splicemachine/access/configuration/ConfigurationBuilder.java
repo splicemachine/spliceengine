@@ -59,6 +59,10 @@ public class ConfigurationBuilder {
     public String authenticationLdapServer;
     public String authenticationLdapMapGroupAttr;
     public String authenticationNativeAlgorithm;
+    public int authenticationTokenLength;
+    public int authenticationTokenMaxLifetime;
+    public int authenticationTokenRenewInterval;
+    public boolean authenticationTokenEnabled;
 
     // Authorization Configuration
     public String authorizationScheme;

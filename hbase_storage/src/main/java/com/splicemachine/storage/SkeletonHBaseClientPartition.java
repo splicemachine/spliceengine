@@ -216,4 +216,6 @@ public abstract class SkeletonHBaseClientPartition implements Partition{
     protected abstract void doPut(List<Put> puts) throws IOException;
 
     protected abstract long doIncrement(Increment incr) throws IOException;
+
+    public abstract Table unwrapDelegate();
 }

@@ -60,15 +60,18 @@ class ServerCallBuffer implements CallBuffer<Pair<byte[], PartitionBuffer>> {
     private final WriteConfiguration writeConfiguration;
     private final byte[] tableName;
     private final TxnView txn;
+    private final byte[] token;
     private Pair<byte[], PartitionBuffer> lastElement;
 
     public ServerCallBuffer(byte[] tableName,
                             TxnView txn,
+                            byte[] token,
                             WriteConfiguration writeConfiguration,
                             PartitionServer server,
                             Writer writer,
                             final MergingWriteStats writeStats) {
         this.txn = txn;
+        this.token = token;
         this.writeConfiguration = writeConfiguration;
         this.tableName = tableName;
         this.writeStats = writeStats;
@@ -160,7 +163,7 @@ class ServerCallBuffer implements CallBuffer<Pair<byte[], PartitionBuffer>> {
         }
         if(bws.size()==0) return null;
         else
-            return new BulkWrites(bws, this.txn, this.buffers.lastKey());
+            return new BulkWrites(bws, this.txn, this.buffers.lastKey(),token);
     }
 
     public int getHeapSize() {
