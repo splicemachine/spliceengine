@@ -105,7 +105,7 @@ public class SMInputFormatIT extends BaseMRIOTest {
     @Test
     public void testSparkIntegrationWithInputFormat() throws IOException {
     	config.set(MRConstants.SPLICE_TABLE_NAME, tableWatcherA.toString());
-    	Job job = new Job(config, "Test Scan");	
+    	Job job = Job.getInstance(config, "Test Scan");
         JavaPairRDD<RowLocation, ExecRow> table = sparkWatcher.jsc.newAPIHadoopRDD(job.getConfiguration(), SMInputFormat.class, RowLocation.class, ExecRow.class);
         List<Tuple2<RowLocation, ExecRow>> data = table.collect();
         int i = 0;
@@ -120,7 +120,7 @@ public class SMInputFormatIT extends BaseMRIOTest {
     @Test
     public void testCountOverMultipleRegionsInSpark() throws IOException {
     	config.set(MRConstants.SPLICE_TABLE_NAME, tableWatcherB.toString());
-    	Job job = new Job(config, "Test Scan");	
+    	Job job = Job.getInstance(config, "Test Scan");
         JavaPairRDD<RowLocation, ExecRow> table = sparkWatcher.jsc.newAPIHadoopRDD(job.getConfiguration(), SMInputFormat.class, RowLocation.class, ExecRow.class);
         List<Tuple2<RowLocation, ExecRow>> data = table.collect();
         int i = 0;

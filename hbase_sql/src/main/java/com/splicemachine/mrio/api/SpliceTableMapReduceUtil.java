@@ -518,7 +518,7 @@ public class SpliceTableMapReduceUtil{
                         +clazz);
                 continue;
             }
-            jars.add(path.makeQualified(localFs).toString());
+            jars.add(path.makeQualified(localFs.getUri(), localFs.getWorkingDirectory()).toString());
         }
         if(jars.isEmpty()) return;
 

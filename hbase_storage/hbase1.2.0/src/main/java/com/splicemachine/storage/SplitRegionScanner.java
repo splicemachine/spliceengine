@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.pipeline.utils.PipelineUtils;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.regionserver.ScannerContext;
 import org.spark_project.guava.base.Throwables;
 import com.splicemachine.access.client.HBase10ClientSideRegionScanner;
@@ -159,7 +160,7 @@ public class SplitRegionScanner implements RegionScanner {
                 scanExceptionCount++;
                 Cell topCell = ((SkeletonClientSideRegionScanner) this.currentScanner).getTopCell();
                 if (topCell != null) {
-                    scan.setStartRow(Bytes.add(topCell.getRow(), new byte[]{0})); // set to previous start row
+                    scan.setStartRow(Bytes.add(CellUtil.cloneRow(topCell), new byte[]{0})); // set to previous start row
         	}
                 close();
                 SpliceLogUtils.warn(LOG, "re-init split scanner with scan=%s, table=%s",scan,htable);
