@@ -63,6 +63,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
     private final Writer writer;
     private final boolean skipIndexWrites;
     private final TxnView txn;
+    private final byte[] token;
     //private final RegionCache regionCache;
     private long totalElementsAdded = 0l;
     private long totalBytesAdded = 0l;
@@ -80,6 +81,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
 
     public PipingCallBuffer(Partition table,
                             TxnView txn,
+                            byte[] token,
                             Writer writer,
                             PreFlushHook preFlushHook,
                             WriteConfiguration writeConfiguration,
@@ -87,6 +89,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
                             boolean skipIndexWrites) {
         this.writer = writer;
         this.table = table;
+        this.token = token;
         this.skipIndexWrites = skipIndexWrites;
         this.txn = txn;
         this.writeConfiguration = new UpdatingWriteConfiguration(writeConfiguration,this);
@@ -201,6 +204,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
                 SpliceLogUtils.debug(LOG, "adding ServerCallBuffer for server %s and table %s", server, table.getTableName());
                 regionServerCB = new ServerCallBuffer(Bytes.toBytes(table.getName()),
                         txn,
+                        token,
                         writeConfiguration,
                         server,
                         (writer != null ? new RegulatedWriter(writer) : null),

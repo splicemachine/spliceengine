@@ -53,11 +53,11 @@ public class SharedCallBufferFactory{
                                              ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap,
                                              int maxSize,
                                              boolean useAsyncWriteBuffers,
-                                             TxnView txn) throws Exception {
+                                             TxnView txn, byte[] token) throws Exception {
 
         CallBuffer<KVPair> writeBuffer = sharedCallBufferMap.get(conglomBytes);
         if (writeBuffer == null) {
-            writeBuffer = createKvPairCallBuffer(conglomBytes, context, indexToMainMutationMap, maxSize, useAsyncWriteBuffers, txn);
+            writeBuffer = createKvPairCallBuffer(conglomBytes, context, indexToMainMutationMap, maxSize, useAsyncWriteBuffers, txn, token);
         } else {
             ((SharedPreFlushHook) writeBuffer.getPreFlushHook()).registerContext(context, indexToMainMutationMap);
             writeBuffer.getWriteConfiguration().registerContext(context, indexToMainMutationMap);
@@ -70,7 +70,7 @@ public class SharedCallBufferFactory{
                                                       ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap,
                                                       int maxSize,
                                                       boolean useAsyncWriteBuffers,
-                                                      TxnView txn) throws IOException{
+                                                      TxnView txn, byte[] token) throws IOException{
         SharedPreFlushHook hook = new SharedPreFlushHook();
         WriteConfiguration writeConfiguration=writerPool.defaultWriteConfiguration();
         WriteConfiguration wc = new SharedWriteConfiguration(writeConfiguration.getMaximumRetries(),
@@ -83,9 +83,9 @@ public class SharedCallBufferFactory{
         wc.registerContext(context, indexToMainMutationMap);
         CallBuffer<KVPair> writeBuffer;
         if (useAsyncWriteBuffers) {
-            writeBuffer = writerPool.writeBuffer(partitionFactory.getTable(conglomBytes), txn, hook, wc);
+            writeBuffer = writerPool.writeBuffer(partitionFactory.getTable(conglomBytes), txn,token, hook, wc);
         } else {
-            writeBuffer = writerPool.synchronousWriteBuffer(partitionFactory.getTable(conglomBytes), txn, hook, wc, maxSize);
+            writeBuffer = writerPool.synchronousWriteBuffer(partitionFactory.getTable(conglomBytes), txn, token, hook, wc, maxSize);
         }
         sharedCallBufferMap.put(conglomBytes, writeBuffer);
         return writeBuffer;

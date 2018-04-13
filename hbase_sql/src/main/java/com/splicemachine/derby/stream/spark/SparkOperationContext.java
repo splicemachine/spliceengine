@@ -16,6 +16,7 @@ package com.splicemachine.derby.stream.spark;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ZeroCopyLiteralByteString;
+import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -140,6 +141,12 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         } else {
             out.writeBoolean(false);
         }
+        if (SpliceClient.isClient()) {
+            out.writeBoolean(true);
+            out.writeUTF(SpliceClient.connectionString);
+        } else {
+            out.writeBoolean(false);
+        }
         out.writeLong(badRecordsSeen);
         out.writeLong(badRecordThreshold);
         out.writeBoolean(permissive);
@@ -178,6 +185,10 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
             // we've got credentials to apply
             Broadcast<SerializableWritable<Credentials>> bcast = (Broadcast<SerializableWritable<Credentials>>) in.readObject();
             credentials = bcast.getValue().value();
+        }
+        if (in.readBoolean()) {
+            SpliceClient.connectionString = in.readUTF();
+            SpliceClient.setClient();
         }
         badRecordsSeen = in.readLong();
         badRecordThreshold = in.readLong();

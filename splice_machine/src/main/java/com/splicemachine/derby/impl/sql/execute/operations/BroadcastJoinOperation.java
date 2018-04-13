@@ -190,7 +190,7 @@ public class BroadcastJoinOperation extends JoinOperation{
 
         SConfiguration configuration= EngineDriver.driver().getConfiguration();
 
-        boolean useDataset = SpliceClient.isClient ||
+        boolean useDataset = SpliceClient.isClient() ||
                 rightResultSet.getEstimatedCost() / 1000 > configuration.getBroadcastDatasetCostThreshold() ||
                         rightResultSet.accessExternalTable();
         /** For semi-join, it is possible that the right side is a result from complex operations, like a sequence

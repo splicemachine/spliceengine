@@ -14,11 +14,15 @@
 
 package com.splicemachine.pipeline.client;
 
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.txn.TxnView;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Extension of BulkWrites to wrap for a region server.
@@ -34,20 +38,22 @@ public class BulkWrites{
      * any region which is present on the destination region server
      */
     private transient byte[] regionKey;
+    private byte[] token;
 
     public BulkWrites(){
         bulkWrites=new ArrayList<>(0);
     }
 
     public BulkWrites(Collection<BulkWrite> bulkWrites,TxnView txn){
-        this(bulkWrites,txn,null);
+        this(bulkWrites,txn,null, null);
     }
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
-    public BulkWrites(Collection<BulkWrite> bulkWrites,TxnView txn,byte[] regionKey){
+    public BulkWrites(Collection<BulkWrite> bulkWrites,TxnView txn,byte[] regionKey,byte[] token){
         this.bulkWrites=bulkWrites;
         this.txn=txn;
         this.regionKey=regionKey;
+        this.token=token;
     }
 
     @SuppressFBWarnings(value="EI_EXPOSE_REP", justification="Intentional")
@@ -120,4 +126,19 @@ public class BulkWrites{
         return bulkWrites.hashCode();
     }
 
+    public byte[] getToken() {
+        return token;
+    }
+
+    public void setToken(byte[] token) {
+        this.token = token;
+    }
+
+    public Set<KVPair.Type> getTypes() {
+        Set<KVPair.Type> result = new HashSet<>();
+        for (BulkWrite bw : bulkWrites) {
+            bw.addTypes(result);
+        }
+        return result;
+    }
 }

@@ -161,6 +161,7 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
                                     "SYSTABLESTATS",
                                     "SYSSOURCECODE",
 									"SYSSNAPSHOTS",
+									"SYSTOKENS",
                                     "SYSDUMMY1"
     };
 

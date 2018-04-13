@@ -103,8 +103,8 @@ public class WriteNode implements WriteContext {
     @Override
     public CallBuffer<KVPair> getSharedWriteBuffer(byte[] conglomBytes,
                                                    ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap,
-                                                   int maxSize, boolean useAsyncWriteBuffers, TxnView txn) throws Exception {
-        return pipelineWriteContext.getSharedWriteBuffer(conglomBytes, indexToMainMutationMap, maxSize, useAsyncWriteBuffers, txn);
+                                                   int maxSize, boolean useAsyncWriteBuffers, TxnView txn, byte[] token) throws Exception {
+        return pipelineWriteContext.getSharedWriteBuffer(conglomBytes, indexToMainMutationMap, maxSize, useAsyncWriteBuffers, txn, token);
     }
 
     @Override
@@ -120,6 +120,11 @@ public class WriteNode implements WriteContext {
     @Override
     public TxnView getTxn() {
         return pipelineWriteContext.getTxn();
+    }
+
+    @Override
+    public byte[] getToken() {
+        return pipelineWriteContext.getToken();
     }
 
     @Override
