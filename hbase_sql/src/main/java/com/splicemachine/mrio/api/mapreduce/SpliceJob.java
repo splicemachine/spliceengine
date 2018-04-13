@@ -38,7 +38,7 @@ public class SpliceJob extends Job {
 	private Configuration conf = null;
 
 	public SpliceJob() throws IOException {
-		super();
+		getInstance();
 	}
 
 	/**
@@ -48,7 +48,7 @@ public class SpliceJob extends Job {
 	 * @throws IOException
 	 */
 	public SpliceJob(Configuration conf) throws IOException {
-		super(conf, null);
+		getInstance(conf, null);
 		this.conf = conf;
 	}
 
@@ -60,7 +60,7 @@ public class SpliceJob extends Job {
 	 * @throws IOException
 	 */
 	public SpliceJob(Configuration conf, String jobName) throws IOException {
-		super(conf, jobName);
+		getInstance(conf, jobName);
 		this.conf = conf;
 	}
 

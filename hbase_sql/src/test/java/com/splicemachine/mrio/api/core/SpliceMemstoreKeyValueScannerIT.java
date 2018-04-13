@@ -14,12 +14,14 @@
 
 package com.splicemachine.mrio.api.core;
 
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.si.constants.SIConstants;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.log4j.Logger;
 import org.junit.*;
@@ -89,18 +91,16 @@ public class SpliceMemstoreKeyValueScannerIT extends BaseMRIOTest{
 	@Ignore
 	public void testFlushHandling() throws SQLException, IOException, InterruptedException {
     	int i = 0;
-    	HBaseAdmin admin = null;
-    	ResultScanner rs = null;
-    	HTable htable = null;
-		try {
-			String tableName = sqlUtil.getConglomID(SCHEMA_NAME+".A");
-	    	htable = new HTable(config,tableName);
+		ResultScanner rs = null;
+		try (Connection connection = ConnectionFactory.createConnection(HConfiguration.unwrapDelegate())) {
+				TableName tableName = TableName.valueOf(sqlUtil.getConglomID(SCHEMA_NAME+".A"));
+	    	Table table = connection.getTable(tableName);
 	    	Scan scan = new Scan();
 	    	scan.setCaching(50);
 	    	scan.setBatch(50);
 	    	scan.setMaxVersions();
 	    	scan.setAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY, SIConstants.EMPTY_BYTE_ARRAY);
-	    	rs = htable.getScanner(scan);
+	    	rs = table.getScanner(scan);
 	    	Result result;
 	    	boolean flush = false;
 	    	while (  ((result = rs.next()) != null) && !result.isEmpty() && !flush) {
@@ -114,13 +114,9 @@ public class SpliceMemstoreKeyValueScannerIT extends BaseMRIOTest{
 		    	if (i==200)
 		    		flushTable(SCHEMA_NAME+".A");
 	    	}	    	
+		} finally {
+			if (rs != null)
+			rs.close();
 		}
-    	finally {
-			if (htable != null)
-    			htable.close();
-    		if (rs != null)
-   			rs.close();
-    	}
 	}
-	
 }

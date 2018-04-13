@@ -24,6 +24,8 @@ import com.splicemachine.test.SerialTest;
 import com.splicemachine.test.SlowTest;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -223,20 +225,22 @@ public class StressSparkIT {
     private void doMove(HBaseAdmin admin, TableName tableName) throws IOException {
         LOG.trace("Preparing region move");
         Collection<ServerName> servers = admin.getClusterStatus().getServers();
-        List<HRegionLocation> locations = new HTable(HConfiguration.unwrapDelegate(), tableName).getAllRegionLocations();
-        int r = new Random().nextInt(locations.size());
-        HRegionLocation location = locations.get(r);
-        location.getServerName().getServerName();
-        ServerName pick = null;
-        for (ServerName sn : servers) {
-            if (!sn.equals(location.getServerName())) {
-                pick = sn;
-                break;
+        try (Connection connection = ConnectionFactory.createConnection(HConfiguration.unwrapDelegate())) {
+            List<HRegionLocation> locations = connection.getRegionLocator(tableName).getAllRegionLocations();
+            int r = new Random().nextInt(locations.size());
+            HRegionLocation location = locations.get(r);
+            location.getServerName().getServerName();
+            ServerName pick = null;
+            for (ServerName sn : servers) {
+                if (!sn.equals(location.getServerName())) {
+                    pick = sn;
+                    break;
+                }
             }
-        }
-        if (pick != null) {
-            LOG.trace("Moving region");
-            admin.move(location.getRegionInfo().getEncodedNameAsBytes(), Bytes.toBytes(pick.getServerName()));
+            if (pick != null) {
+                LOG.trace("Moving region");
+                admin.move(location.getRegionInfo().getEncodedNameAsBytes(), Bytes.toBytes(pick.getServerName()));
+            }
         }
     }
 

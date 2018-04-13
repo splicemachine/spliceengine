@@ -22,9 +22,13 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 import org.apache.commons.lang.math.RandomUtils;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Table;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -137,13 +141,15 @@ public class TableScanOperation_LargeRegionCount_IT extends SpliceUnitTest {
 
     private List<byte[]> getRowKeys(String hbaseTableName) throws IOException {
         List<byte[]> rowKeys = Lists.newArrayList();
-        HTable hTable = new HTable(HConfiguration.unwrapDelegate(), hbaseTableName);
-        ResultScanner resultScanner = hTable.getScanner(Bytes.toBytes("V"));
-        Result result;
-        while ((result = resultScanner.next()) != null) {
-            rowKeys.add(result.getRow());
+        try (Connection connection = ConnectionFactory.createConnection(HConfiguration.unwrapDelegate())) {
+            Table table = connection.getTable(TableName.valueOf(hbaseTableName));
+            ResultScanner resultScanner = table.getScanner(Bytes.toBytes("V"));
+            Result result;
+            while ((result = resultScanner.next()) != null) {
+                rowKeys.add(result.getRow());
+            }
+            return rowKeys;
         }
-        return rowKeys;
     }
 
 }
