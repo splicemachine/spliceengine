@@ -14,6 +14,7 @@
 
 package com.splicemachine.mrio.api.core;
 
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.client.HBase10ClientSideRegionScanner;
 import com.splicemachine.access.client.SkeletonClientSideRegionScanner;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
@@ -22,10 +23,15 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.mrio.MRConstants;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Admin;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.log4j.Logger;
 import org.junit.*;
@@ -46,6 +52,8 @@ public class ClientSideRegionScannerIT extends BaseMRIOTest{
     protected static SpliceWatcher spliceClassWatcher=new SpliceWatcher();
     protected static SpliceSchemaWatcher spliceSchemaWatcher=new SpliceSchemaWatcher(SCHEMA_NAME);
     protected static SpliceTableWatcher spliceTableWatcherA=new SpliceTableWatcher("A",SCHEMA_NAME,"(col1 int, col2 varchar(56), primary key (col1))");
+
+    protected static Connection connection;
 
     @ClassRule
     public static TestRule chain=RuleChain.outerRule(spliceClassWatcher)
@@ -92,26 +100,36 @@ public class ClientSideRegionScannerIT extends BaseMRIOTest{
     @Rule
     public SpliceWatcher methodWatcher=new SpliceWatcher();
 
+    @BeforeClass
+    public void setup() throws Exception {
+        connection = ConnectionFactory.createConnection(HConfiguration.unwrapDelegate());
+    }
+
+    @AfterClass
+    public void tearDown() throws Exception {
+        connection.close();
+    }
+
     @Test
     @Ignore
     public void validateAccurateRecordsWithStoreFileAndMemstore() throws SQLException, IOException, InterruptedException{
         int i=0;
-        String tableName=sqlUtil.getConglomID(SCHEMA_NAME+".A");
-        try(HTable htable=new HTable(config,tableName)){
+        TableName tableName=TableName.valueOf(sqlUtil.getConglomID(SCHEMA_NAME+".A"));
+        try(Admin admin = connection.getAdmin()) {
+            Table table = connection.getTable(tableName);
             Scan scan=new Scan();
             scan.setCaching(50);
             scan.setBatch(50);
             scan.setMaxVersions();
             scan.setAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY,HConstants.EMPTY_BYTE_ARRAY);
             try(SkeletonClientSideRegionScanner clientSideRegionScanner=
-                        new HBase10ClientSideRegionScanner(htable,
-                                htable.getConfiguration(), FSUtils.getCurrentFileSystem(htable.getConfiguration()),
-                                FSUtils.getRootDir(htable.getConfiguration()),
-                                htable.getTableDescriptor(),
-                                htable.getRegionLocation(scan.getStartRow()).getRegionInfo(),
-                                scan,
-                                htable.getRegionLocation(scan.getStartRow()).getHostnamePort()
-                                )){
+                        new HBase10ClientSideRegionScanner(table,
+                              table.getConfiguration(), FSUtils.getCurrentFileSystem(table.getConfiguration()),
+                              FSUtils.getRootDir(table.getConfiguration()),
+                              table.getTableDescriptor(),
+                              connection.getRegionLocator(tableName).getRegionLocation(scan.getStartRow()).getRegionInfo(),
+                              scan,
+                              connection.getRegionLocator(tableName).getRegionLocation(scan.getStartRow()).getHostnamePort())){
                 List results=new ArrayList();
                 while(clientSideRegionScanner.nextRaw(results)){
                     i++;
@@ -127,44 +145,32 @@ public class ClientSideRegionScannerIT extends BaseMRIOTest{
     @Ignore
     public void validateAccurateRecordsWithRegionFlush() throws SQLException, IOException, InterruptedException{
         int i=0;
-        HBaseAdmin admin=null;
-        ResultScanner rs=null;
-        HTable htable=null;
-        try{
-            String tableName=sqlUtil.getConglomID(SCHEMA_NAME+".A");
-            htable=new HTable(config,tableName);
-            Scan scan=new Scan();
-            admin=new HBaseAdmin(config);
+        TableName tableName=TableName.valueOf(sqlUtil.getConglomID(SCHEMA_NAME+".A"));
+        try (Admin admin = connection.getAdmin()) {
+            Table table = connection.getTable(tableName);
+            Scan scan = new Scan();
             scan.setCaching(50);
             scan.setBatch(50);
             scan.setMaxVersions();
-            scan.setAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY,HConstants.EMPTY_BYTE_ARRAY);
+            scan.setAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY, HConstants.EMPTY_BYTE_ARRAY);
 
-            try(SkeletonClientSideRegionScanner clientSideRegionScanner=
-                        new HBase10ClientSideRegionScanner(htable,
-                                htable.getConfiguration(), FSUtils.getCurrentFileSystem(htable.getConfiguration()),
-                                FSUtils.getRootDir(htable.getConfiguration()),
-                                htable.getTableDescriptor(),
-                                htable.getRegionLocation(scan.getStartRow()).getRegionInfo(),
-                                scan,
-                                htable.getRegionLocation(scan.getStartRow()).getHostnamePort())){
-                List results=new ArrayList();
-                while(clientSideRegionScanner.nextRaw(results)){
+            try (SkeletonClientSideRegionScanner clientSideRegionScanner =
+                       new HBase10ClientSideRegionScanner(table,
+                             table.getConfiguration(), FSUtils.getCurrentFileSystem(table.getConfiguration()),
+                             FSUtils.getRootDir(table.getConfiguration()),
+                             table.getTableDescriptor(),
+                             connection.getRegionLocator(tableName).getRegionLocation(scan.getStartRow()).getRegionInfo(),
+                             scan,
+                             connection.getRegionLocator(tableName).getRegionLocation(scan.getStartRow()).getHostnamePort())) {
+                List results = new ArrayList();
+                while (clientSideRegionScanner.nextRaw(results)) {
                     i++;
-                    if(i==100)
+                    if (i == 100)
                         admin.flush(tableName);
                     results.clear();
                 }
             }
-            Assert.assertEquals("Results Returned Are Not Accurate",500,i);
-        }finally{
-            if(admin!=null)
-                admin.close();
-            if(htable!=null)
-                htable.close();
-            if(rs!=null)
-                rs.close();
+            Assert.assertEquals("Results Returned Are Not Accurate", 500, i);
         }
     }
-
 }

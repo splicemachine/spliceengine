@@ -20,7 +20,6 @@ import com.splicemachine.storage.PartitionServerLoad;
 import org.apache.hadoop.hbase.ClusterStatus;
 import org.apache.hadoop.hbase.ServerLoad;
 import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.client.Admin;
 
 import java.io.IOException;
 

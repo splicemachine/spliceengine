@@ -165,7 +165,7 @@ public class SplitRegionScanner implements RegionScanner {
                     scanExceptionCount++;
                     Cell topCell = ((SkeletonClientSideRegionScanner) this.currentScanner).getTopCell();
                     if (topCell != null) {
-                        scan.setStartRow(Bytes.add(topCell.getRow(), new byte[]{0})); // set to previous start row
+                        scan.setStartRow(Bytes.add(CellUtil.cloneRow(topCell), new byte[]{0})); // set to previous start row
                     }
                     close();
                     LOG.warn(String.format("re-init split scanner with scan=%s, table=%s", scan, htable), ioe);

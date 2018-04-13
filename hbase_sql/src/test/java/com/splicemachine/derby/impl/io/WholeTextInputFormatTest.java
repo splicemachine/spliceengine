@@ -67,7 +67,7 @@ public class WholeTextInputFormatTest{
         long totalRecords = 0;
 
         for(InputSplit is:splits){
-            TaskAttemptContext tac = new TaskAttemptContextImpl(configuration,new TaskAttemptID("test",1,true,i,1));
+            TaskAttemptContext tac = new TaskAttemptContextImpl(configuration,new TaskAttemptID("test",1,TaskType.MAP,i,1));
             RecordReader<String, InputStream> recordReader=wtif.createRecordReader(is,tac);
             CombineFileSplit cfs = (CombineFileSplit)is;
             System.out.println(cfs);

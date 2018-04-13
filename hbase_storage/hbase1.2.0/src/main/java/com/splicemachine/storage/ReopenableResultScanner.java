@@ -15,6 +15,7 @@
 package com.splicemachine.storage;
 
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
 
@@ -182,7 +183,7 @@ public class ReopenableResultScanner implements ResultScanner{
             /*
              * We need to adjust the start key to the row that we've last seen.
              */
-            byte[] startKey=lastVisitedCell.getRow();
+            byte[] startKey=CellUtil.cloneRow(lastVisitedCell);
             Scan newScan = new Scan(baseScan);
             newScan.setStartRow(startKey);
             table.getScanner(baseScan);

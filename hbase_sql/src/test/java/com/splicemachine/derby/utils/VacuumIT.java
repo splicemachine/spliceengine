@@ -22,6 +22,9 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test.SerialTest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Admin;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -77,7 +80,7 @@ public class VacuumIT extends SpliceUnitTest{
             ps.execute();
         }
 
-        try(HBaseAdmin admin=new HBaseAdmin(new Configuration())){
+        try(Admin admin=ConnectionFactory.createConnection(new Configuration()).getAdmin()){
             Set<String> beforeTables=getConglomerateSet(admin.listTables());
             try(CallableStatement callableStatement=methodRule.prepareCall("call SYSCS_UTIL.VACUUM()")){
                 callableStatement.execute();
@@ -103,8 +106,8 @@ public class VacuumIT extends SpliceUnitTest{
             ps.execute();
         }
 
-        try(HBaseAdmin admin=new HBaseAdmin(new Configuration())){
-            admin.disableTable("splice:"+conglomerateString);
+        try(Admin admin=ConnectionFactory.createConnection(new Configuration()).getAdmin()){
+            admin.disableTable(TableName.valueOf("splice:"+conglomerateString));
             Set<String> beforeTables=getConglomerateSet(admin.listTables());
             try(CallableStatement callableStatement=methodRule.prepareCall("call SYSCS_UTIL.VACUUM()")){
                 callableStatement.execute();

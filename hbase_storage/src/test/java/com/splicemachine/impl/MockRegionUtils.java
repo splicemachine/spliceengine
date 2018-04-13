@@ -19,6 +19,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.KeyValue;
@@ -62,9 +63,9 @@ public class MockRegionUtils{
                         @Override
                         public boolean apply(@Nullable Cell input){
                             Map<byte[], NavigableSet<byte[]>> familyMap=get.getFamilyMap();
-                            if(!familyMap.containsKey(input.getFamily())) return false;
-                            NavigableSet<byte[]> qualifiers=familyMap.get(input.getFamily());
-                            return qualifiers.contains(input.getQualifier());
+                            if(!familyMap.containsKey(CellUtil.cloneFamily(input))) return false;
+                            NavigableSet<byte[]> qualifiers=familyMap.get(CellUtil.cloneFamily(input));
+                            return qualifiers.contains(CellUtil.cloneQualifier(input));
                         }
                     });
                     List<Cell> kvs=Lists.newArrayList(filtered);
@@ -84,11 +85,11 @@ public class MockRegionUtils{
                     keyValues=Sets.newTreeSet(new KeyValue.KVComparator());
                     rowMap.put(put.getRow(),keyValues);
                 }
-                Map<byte[], List<KeyValue>> familyMap=put.getFamilyMap();
-                for(List<KeyValue> kvs : familyMap.values()){
-                    for(KeyValue kv : kvs){
-                        boolean ts=!kv.isLatestTimestamp();
-                        kv=ts?kv:new KeyValue(kv.getRow(),kv.getFamily(),kv.getQualifier(),System.currentTimeMillis(),kv.getValue());
+                Map<byte[], List<Cell>> familyMap=put.getFamilyCellMap();
+                for(List<Cell> kvs : familyMap.values()){
+                    for(Cell kv : kvs){
+                        boolean ts=!((KeyValue)kv).isLatestTimestamp();
+                        kv=ts?kv:new KeyValue(CellUtil.cloneRow(kv),CellUtil.cloneFamily(kv),CellUtil.cloneQualifier(kv),System.currentTimeMillis(),CellUtil.cloneValue(kv));
                         if(keyValues.contains(kv)){
                             keyValues.remove(kv);
                         }
@@ -117,22 +118,22 @@ public class MockRegionUtils{
                             iter.remove();
                     }
                 }else{
-                    Map<byte[], List<KeyValue>> deleteFamilyMap=delete.getFamilyMap();
+                    Map<byte[], List<Cell>> deleteFamilyMap=delete.getFamilyCellMap();
                     Iterator<Cell> iter=keyValues.iterator();
                     while(iter.hasNext()){
                         Cell kv=iter.next();
-                        if(!deleteFamilyMap.containsKey(kv.getFamily()))
+                        if(!deleteFamilyMap.containsKey(CellUtil.cloneFamily(kv)))
                             continue;
-                        List<KeyValue> toDelete=deleteFamilyMap.get(kv.getFamily());
+                        List<Cell> toDelete=deleteFamilyMap.get(CellUtil.cloneFamily(kv));
                         if(toDelete.size()>0){
-                            for(KeyValue toDeleteKv : toDelete){
-                                if(toDeleteKv.getQualifier().length<=0){
+                            for(Cell toDeleteKv : toDelete){
+                                if(CellUtil.cloneQualifier(toDeleteKv).length<=0){
                                     //delete everything
                                     if(kv.getTimestamp()==toDeleteKv.getTimestamp()){
                                         iter.remove();
                                         break;
                                     }
-                                }else if(Bytes.equals(kv.getQualifier(),toDeleteKv.getQualifier())){
+                                }else if(Bytes.equals(CellUtil.cloneQualifier(kv),CellUtil.cloneQualifier(toDeleteKv))){
                                     if(kv.getTimestamp()==toDeleteKv.getTimestamp()){
                                         iter.remove();
                                         break;

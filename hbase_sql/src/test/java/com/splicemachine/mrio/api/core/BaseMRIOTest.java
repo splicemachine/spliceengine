@@ -19,6 +19,7 @@ import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 
+import com.splicemachine.db.client.am.Connection;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -26,7 +27,10 @@ import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.MetaTableAccessor;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Admin;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.log4j.Logger;
 import org.junit.Ignore;
 
 import com.splicemachine.access.HConfiguration;
@@ -36,8 +40,10 @@ import com.splicemachine.mrio.MRConstants;
 
 @Ignore("Breaks stuff")
 public class BaseMRIOTest extends SpliceUnitTest{
+	private static final Logger LOG = Logger.getLogger(BaseMRIOTest.class);
 	protected static Configuration config;
 	protected static SMSQLUtil sqlUtil;
+	protected static org.apache.hadoop.hbase.client.Connection connection;
 	
 	static {
 		config = HConfiguration.unwrapDelegate();
@@ -52,52 +58,36 @@ public class BaseMRIOTest extends SpliceUnitTest{
     	System.setProperty("hive.exec.mode.local.auto","true");
     	System.setProperty("javax.jdo.option.ConnectionURL", "jdbc:derby:;databaseName=target/metastore_db;create=true");
 		sqlUtil = SMSQLUtil.getInstance(SpliceNetConnection.getDefaultLocalURL());
+		try {
+			connection = ConnectionFactory.createConnection(config);
+		} catch (IOException e) {
+			LOG.error(e.getMessage());
+		}
 	}
 
-    protected static HBaseAdmin getHBaseAdmin() throws IOException {
-        return new HBaseAdmin(config);
-    }
-	
 	protected static void flushTable(String tableName) throws SQLException, IOException, InterruptedException {
-		String conglomId = sqlUtil.getConglomID(tableName);
-		HBaseAdmin admin = null;
-		try {
-			admin = new HBaseAdmin(config);
+		TableName conglomId = TableName.valueOf(sqlUtil.getConglomID(tableName));
+		try (Admin admin = connection.getAdmin()) {
 			admin.flush(conglomId);
-		} finally { 
-    		if (admin != null)
-    			admin.close();
-    		
-			}
+		}
 	}
 
 	
 	protected static void compactTable(String tableName) throws SQLException, IOException, InterruptedException {
-		String conglomId = sqlUtil.getConglomID(tableName);
-		HBaseAdmin admin = null;
-		try {
-			admin = new HBaseAdmin(config);
+		TableName conglomId = TableName.valueOf(sqlUtil.getConglomID(tableName));
+		try (Admin admin = connection.getAdmin()) {
 			admin.majorCompact(conglomId);
-		} finally { 
-    		if (admin != null)
-    			admin.close();    		
-			}
+		}
 	}
 
 	protected static void splitTable(String tableName) throws SQLException, IOException, InterruptedException {
-		String conglomId = sqlUtil.getConglomID(tableName);
-		HBaseAdmin admin = null;
-		try {
-			admin = new HBaseAdmin(config);
+		TableName conglomId = TableName.valueOf(sqlUtil.getConglomID(tableName));
+		try (Admin admin = connection.getAdmin()) {
 			admin.split(conglomId);
-		} finally { 
-    		if (admin != null)
-    			admin.close();
- 
-			}
+		}
 	}
 
-    protected static HRegionLocation getRegionLocation(String conglomId, HBaseAdmin hBaseAdmin) throws IOException, SQLException {
+    protected static HRegionLocation getRegionLocation(String conglomId, Admin hBaseAdmin) throws IOException, SQLException {
         TableName tableName = TableName.valueOf("splice",conglomId);
         List<HRegionInfo> tableRegions = hBaseAdmin.getTableRegions(tableName);
         if (tableRegions == null || tableRegions.isEmpty()) {
@@ -107,7 +97,7 @@ public class BaseMRIOTest extends SpliceUnitTest{
         return MetaTableAccessor.getRegionLocation(hBaseAdmin.getConnection(), encodedRegionNameBytes);
     }
 
-    protected static Collection<ServerName> getAllServers(HBaseAdmin hBaseAdmin) throws IOException, SQLException {
+    protected static Collection<ServerName> getAllServers(Admin hBaseAdmin) throws IOException, SQLException {
         return hBaseAdmin.getClusterStatus().getServers();
     }
 
