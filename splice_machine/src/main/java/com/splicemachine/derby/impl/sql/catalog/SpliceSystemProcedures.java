@@ -632,16 +632,50 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
 
 
                     /*
-                     * Procedure to get HDFS delegation tokens
+                     * Procedure to delegate HDFS operations
                      */
-                    Procedure delegationTokens = Procedure.newBuilder().name("SYSCS_HDFS_OPERATION")
+                    Procedure hdfsOperation = Procedure.newBuilder().name("SYSCS_HDFS_OPERATION")
                             .numOutputParams(0)
                             .varchar("path",128)
                             .varchar("op", 64)
                             .numResultSets(1)
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
-                    procedures.add(delegationTokens);
+                    procedures.add(hdfsOperation);
+
+                    /*
+                     * Procedure to delegate HBase operations
+                     */
+                    Procedure hbaseOperation = Procedure.newBuilder().name("SYSCS_HBASE_OPERATION")
+                            .numOutputParams(0)
+                            .varchar("table",128)
+                            .varchar("op", 64)
+                            .blob("request")
+                            .numResultSets(1)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(hbaseOperation);
+
+                    /*
+                     * Procedure to get Splice Token
+                     */
+                    Procedure getToken = Procedure.newBuilder().name("SYSCS_GET_SPLICE_TOKEN")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(getToken);
+
+                    /*
+                     * Procedure to cancel a Splice Token
+                     */
+                    Procedure cancelToken = Procedure.newBuilder().name("SYSCS_CANCEL_SPLICE_TOKEN")
+                            .numOutputParams(0)
+                            .blob("request")
+                            .numResultSets(0)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(cancelToken);
 
                     /*
                      * Procedure to elevate a transaction

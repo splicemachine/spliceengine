@@ -188,6 +188,7 @@ public class SplitRegionScanner implements RegionScanner {
             rs.close();
         }
         regionScanners.clear();
+        clientPartition.close();
         currentScanner = null;
 
     }
@@ -225,7 +226,7 @@ public class SplitRegionScanner implements RegionScanner {
                         jobConfig,
                         FSUtils.getCurrentFileSystem(conf),
                         FSUtils.getRootDir(conf),
-                        table.getTableDescriptor(),
+                        ((HPartitionDescriptor)partition.getDescriptor()).getDescriptor(),
                         ((RangedClientPartition) partition).getRegionInfo(),
                         newScan, partition.owningServer().getHostAndPort());
         this.region = skeletonClientSideRegionScanner.getRegion();

@@ -19,6 +19,7 @@ import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.api.PipelineMeter;
 import com.splicemachine.pipeline.api.WritePipelineFactory;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
+import com.splicemachine.pipeline.security.AclChecker;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
 import com.splicemachine.si.impl.driver.SIEnvironment;
 

@@ -38,6 +38,7 @@ import java.util.concurrent.Callable;
  */
 public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableWriter<T> {
     protected TxnView txn;
+    protected byte[] token;
     protected byte[] destinationTable;
     protected long heapConglom;
     protected  TriggerHandler triggerHandler;
@@ -47,8 +48,9 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
     protected DMLWriteOperation operation;
     protected OperationContext operationContext;
 
-    public AbstractPipelineWriter(TxnView txn,long heapConglom,OperationContext operationContext) {
+    public AbstractPipelineWriter(TxnView txn, byte[] token, long heapConglom, OperationContext operationContext) {
         this.txn = txn;
+        this.token = token;
         this.heapConglom = heapConglom;
         this.destinationTable = Bytes.toBytes(Long.toString(heapConglom));
         this.operationContext = operationContext;
@@ -71,6 +73,11 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
     @Override
     public TxnView getTxn() {
         return txn;
+    }
+
+    @Override
+    public byte[] getToken() {
+        return token;
     }
 
     @Override

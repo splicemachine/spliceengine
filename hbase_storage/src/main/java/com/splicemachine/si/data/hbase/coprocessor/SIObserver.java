@@ -24,6 +24,10 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.conn.Authorizer;
+import com.splicemachine.pipeline.AclCheckerService;
+import com.splicemachine.pipeline.security.AclChecker;
 import com.splicemachine.si.data.hbase.ExtendedOperationStatus;
 import com.splicemachine.si.impl.server.CompactionContext;
 import com.splicemachine.si.impl.server.SimpleCompactionContext;
@@ -83,6 +87,8 @@ import com.splicemachine.utils.SpliceLogUtils;
 public class SIObserver extends BaseRegionObserver{
     private static Logger LOG=Logger.getLogger(SIObserver.class);
     private boolean tableEnvMatch=false;
+    private boolean txnTable=false;
+    private long conglomId;
     private TxnOperationFactory txnOperationFactory;
     private OperationStatusFactory operationStatusFactory;
     private TransactionalRegion region;
@@ -92,8 +98,15 @@ public class SIObserver extends BaseRegionObserver{
         try {
             SpliceLogUtils.trace(LOG, "starting %s", SIObserver.class);
             RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment) e;
-            tableEnvMatch = doesTableNeedSI(rce.getRegion().getTableDesc().getTableName());
+            TableName tableName = rce.getRegion().getTableDesc().getTableName();
+            doesTableNeedSI(tableName);
             if (tableEnvMatch) {
+                try{
+                    conglomId=Long.parseLong(tableName.getQualifierAsString());
+                }catch(NumberFormatException nfe){
+                    SpliceLogUtils.warn(LOG,"Unable to parse conglomerate id for table %s",tableName);
+                    conglomId=-1;
+                }
                 HBaseSIEnvironment env = HBaseSIEnvironment.loadEnvironment(new SystemClock(), ZkUtils.getRecoverableZooKeeper());
                 SIDriver driver = env.getSIDriver();
                 operationStatusFactory = driver.getOperationStatusLib();
@@ -137,6 +150,9 @@ public class SIObserver extends BaseRegionObserver{
                 addSIFilterToGet(get);
             }
             SpliceLogUtils.trace(LOG,"preGet after %s",get);
+
+            if (txnTable)
+                e.complete(); // skip AccessController checks
             super.preGetOp(e,get,results);
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
@@ -154,10 +170,28 @@ public class SIObserver extends BaseRegionObserver{
                 assert (scan.getMaxVersions()==Integer.MAX_VALUE);
                 addSIFilterToScan(scan);
             }
+            if (tableEnvMatch && hasToken(scan)) {
+                aclCheck(scan);
+                e.complete(); // Avoid extra AccessController checks
+            }
             return super.preScannerOpen(e,scan,s);
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
+    }
+
+    private boolean hasToken(Scan scan) {
+        if (!SIDriver.driver().getConfiguration().getAuthenticationTokenEnabled())
+            return false;
+        byte[] token=scan.getAttribute(SIConstants.TOKEN_ACL_NAME);
+        return token != null && token.length > 0;
+    }
+
+    private boolean aclCheck(Scan scan) throws IOException, StandardException {
+        byte[] token=scan.getAttribute(SIConstants.TOKEN_ACL_NAME);
+
+        AclCheckerService.getService().checkPermission(token, conglomId, Authorizer.SELECT_PRIV);
+        return true;
     }
 
     @Override
@@ -236,6 +270,8 @@ public class SIObserver extends BaseRegionObserver{
 		 * This is relatively expensive--it's better to use the write pipeline when you need to load a lot of rows.
 		 */
             if (!tableEnvMatch || put.getAttribute(SIConstants.SI_NEEDED) == null) {
+                if (txnTable)
+                    e.complete(); // skip AccessController checks
                 super.prePut(e, put, edit, writeToWAL);
                 return;
             }
@@ -345,17 +381,24 @@ public class SIObserver extends BaseRegionObserver{
     }
 
     @SuppressWarnings("RedundantIfStatement") //we keep it this way for clarity
-    private static boolean doesTableNeedSI(TableName tableName){
+    private void doesTableNeedSI(TableName tableName){
         TableType tableType=EnvUtils.getTableType(HConfiguration.getConfiguration(),tableName);
         SpliceLogUtils.trace(LOG,"table %s has Env %s",tableName,tableType);
         switch(tableType){
             case TRANSACTION_TABLE:
+                txnTable = true;
+                tableEnvMatch = false;
+                return;
             case ROOT_TABLE:
             case META_TABLE:
             case HBASE_TABLE:
-                return false;
+                tableEnvMatch = false;
+                return;
+            default:
+                tableEnvMatch = true;
+                return;
+
         }
-        return true;
     }
 
     private Filter makeSIFilter(TxnView txn,Filter currentFilter,EntryPredicateFilter predicateFilter,boolean countStar) throws IOException{

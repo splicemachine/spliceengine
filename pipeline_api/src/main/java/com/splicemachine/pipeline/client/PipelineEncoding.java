@@ -52,10 +52,14 @@ public class PipelineEncoding {
          *
          */
         byte[] txnBytes = operationFactory.encode(bulkWrites.getTxn());
+        byte[] token = bulkWrites.getToken();
+        if (token == null)
+            token = new byte[0];
 
         int heapSize = bulkWrites.getBufferHeapSize();
-        ExpandingEncoder buffer = new ExpandingEncoder(heapSize+txnBytes.length);
+        ExpandingEncoder buffer = new ExpandingEncoder(heapSize+txnBytes.length+token.length);
         buffer.rawEncode(txnBytes);
+        buffer.rawEncode(token);
 
         //encode BulkWrite metadata
         Collection<BulkWrite> bws = bulkWrites.getBulkWrites();
@@ -85,6 +89,7 @@ public class PipelineEncoding {
     public static BulkWrites decode(TxnOperationFactory operationFactory,byte[] data){
         ExpandedDecoder decoder = new ExpandedDecoder(data);
         byte[] txnBytes = decoder.rawBytes();
+        byte[] token = decoder.rawBytes();
         TxnView txn = operationFactory.decode(txnBytes,0,txnBytes.length);
         int bwSize = decoder.decodeInt();
         List<String> stringNames = new ArrayList<>(bwSize);
@@ -96,7 +101,7 @@ public class PipelineEncoding {
             flags[i] = decoder.decodeByte();
         }
 
-        return new BulkWrites(new BulkWriteCol(flags,data,decoder.currentOffset(),stringNames),txn);
+        return new BulkWrites(new BulkWriteCol(flags,data,decoder.currentOffset(),stringNames),txn,null,token);
     }
 
 

@@ -62,6 +62,18 @@ public class AuthenticationConfiguration implements ConfigurationDefault {
     public static final String AUTHENTICATION_LDAP_MAPGROUPATTR = "splice.authentication.ldap.mapGroupAttr";
     private static final String DEFAULT_AUTHENTICATION_LDAP_MAPGROUPATTR = "";
 
+    public static final String AUTHENTICATION_TOKEN_LENGTH = "splice.authentication.token.length";
+    public static final int DEFAULT_AUTHENTICATION_TOKEN_LENGTH = 32;
+
+    public static final String AUTHENTICATION_TOKEN_MAX_LIFETIME = "splice.authentication.token.max-lifetime";
+    public static final int DEFAULT_AUTHENTICATION_TOKEN_MAX_LIFETIME = 604800;
+
+    public static final String AUTHENTICATION_TOKEN_RENEW_INTERVAL = "splice.authentication.token.renew-interval";
+    public static final int DEFAULT_AUTHENTICATION_TOKEN_RENEW_INTERVAL = 86400;
+
+    public static final String AUTHENTICATION_TOKEN_ENABLED = "splice.authentication.token.enabled";
+    public static final boolean DEFAULT_AUTHENTICATION_TOKEN_ENABLED = false;
+
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         builder.authentication = configurationSource.getString(AUTHENTICATION, DEFAULT_AUTHENTICATION);
@@ -80,5 +92,10 @@ public class AuthenticationConfiguration implements ConfigurationDefault {
                 configurationSource.getBoolean(AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE,
                                                DEFAULT_AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE);
         }
+
+        builder.authenticationTokenLength =  configurationSource.getInt(AUTHENTICATION_TOKEN_LENGTH, DEFAULT_AUTHENTICATION_TOKEN_LENGTH);
+        builder.authenticationTokenRenewInterval =  configurationSource.getInt(AUTHENTICATION_TOKEN_RENEW_INTERVAL, DEFAULT_AUTHENTICATION_TOKEN_RENEW_INTERVAL);
+        builder.authenticationTokenMaxLifetime =  configurationSource.getInt(AUTHENTICATION_TOKEN_MAX_LIFETIME, DEFAULT_AUTHENTICATION_TOKEN_MAX_LIFETIME);
+        builder.authenticationTokenEnabled =  configurationSource.getBoolean(AUTHENTICATION_TOKEN_ENABLED, DEFAULT_AUTHENTICATION_TOKEN_ENABLED);
     }
 }

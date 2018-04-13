@@ -14,8 +14,11 @@
 
 package com.splicemachine.access.hbase;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InterruptedIOException;
+import java.sql.Blob;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.ArrayList;
@@ -26,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.splicemachine.access.client.ReadOnlyTableDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -44,6 +48,8 @@ import org.apache.hadoop.fs.HdfsBlockLocation;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.exceptions.ConnectionClosingException;
+import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
+import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.hbase.regionserver.StoreFile;
@@ -253,7 +259,8 @@ public class H10PartitionAdmin implements PartitionAdmin{
         Table table = connection.getTable(tn);
         for(HRegionInfo info : tableRegions){
             LazyPartitionServer owningServer=new LazyPartitionServer(connection,info,tn);
-            partitions.add(new RangedClientPartition(connection,tn,table,info,owningServer,timeKeeper,partitionInfoCache));
+            ClientPartition clientPartition = new ClientPartition(connection, table.getName(), table, timeKeeper, partitionInfoCache);
+            partitions.add(new RangedClientPartition(clientPartition,info,owningServer));
         }
         return partitions;
     }
@@ -343,4 +350,62 @@ public class H10PartitionAdmin implements PartitionAdmin{
         return admin.tableExists(tableInfoFactory.getTableInfo(tableName));
     }
 
+    @Override
+    public List<byte[]> hbaseOperation(String tableName, String operation, byte[] bytes) throws IOException {
+        try {
+            switch (operation) {
+                case "get": {
+                    ClientProtos.Get getRequest = ClientProtos.Get.parseFrom(bytes);
+                    Get get = ProtobufUtil.toGet(getRequest);
+                    try (Table table = admin.getConnection().getTable(TableName.valueOf(tableName))) {
+                        Result result = table.get(get);
+                        ClientProtos.Result pbr = ProtobufUtil.toResult(result);
+                        return Arrays.asList(pbr.toByteArray());
+                    }
+                }
+                case "batchGet": {
+                    InputStream is = new ByteArrayInputStream(bytes);
+                    List<Get> gets = new ArrayList<>();
+                    while (is.available() > 0) {
+                        ClientProtos.Get getRequest = ClientProtos.Get.parseDelimitedFrom(is);
+                        gets.add(ProtobufUtil.toGet(getRequest));
+                    }
+                    is.close();
+
+                    List<byte[]> results = new ArrayList<>(gets.size());
+                    try (Table table = admin.getConnection().getTable(TableName.valueOf(tableName))) {
+                        Result[] result = table.get(gets);
+                        for (Result r : result) {
+                            ClientProtos.Result pbr = ProtobufUtil.toResult(r);
+                            results.add(pbr.toByteArray());
+                        }
+                    }
+                    return results;
+                }
+                case "scan":
+                    ClientProtos.Scan scanRequest = ClientProtos.Scan.parseFrom(bytes);
+                    Scan scan = ProtobufUtil.toScan(scanRequest);
+                    try (Table table = admin.getConnection().getTable(TableName.valueOf(tableName));
+                         ResultScanner result = table.getScanner(scan)) {
+                        List<byte[]> results = new ArrayList<>();
+                        for (Result r : result) {
+                            ClientProtos.Result pbr = ProtobufUtil.toResult(r);
+                            results.add(pbr.toByteArray());
+                        }
+                        return results;
+                    }
+                case "descriptor":
+                    try (Table table = admin.getConnection().getTable(TableName.valueOf(tableName))) {
+                        HTableDescriptor descriptor = table.getTableDescriptor();
+                        return Arrays.asList(descriptor.convert().toByteArray());
+                    }
+                default:
+                    throw new UnsupportedOperationException(operation);
+
+            }
+        } catch (InvalidProtocolBufferException e) {
+            e.printStackTrace();
+            throw new IOException(e);
+        }
+    }
 }

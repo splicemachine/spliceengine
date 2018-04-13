@@ -56,6 +56,10 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  String authenticationLdapServer;
     private final  String authenticationLdapMapGroupAttr;
     private final  String authenticationNativeAlgorithm;
+    public int authenticationTokenLength;
+    public int authenticationTokenMaxLifetime;
+    public int authenticationTokenRenewInterval;
+    public boolean authenticationTokenEnabled;
 
     // DDLConfiguration
     private final  long ddlDrainingInitialWait;
@@ -244,6 +248,22 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public String getAuthenticationNativeAlgorithm() {
         return authenticationNativeAlgorithm;
+    }
+    @Override
+    public int getAuthenticationTokenLength() {
+        return authenticationTokenLength;
+    }
+    @Override
+    public int getAuthenticationTokenMaxLifetime() {
+        return authenticationTokenMaxLifetime;
+    }
+    @Override
+    public int getAuthenticationTokenRenewInterval() {
+        return authenticationTokenRenewInterval;
+    }
+    @Override
+    public boolean getAuthenticationTokenEnabled() {
+        return authenticationTokenEnabled;
     }
 
     // DDLConfiguration
@@ -712,6 +732,10 @@ public final class SConfigurationImpl implements SConfiguration {
         authenticationLdapServer = builder.authenticationLdapServer;
         authenticationLdapMapGroupAttr = builder.authenticationLdapMapGroupAttr;
         authenticationNativeAlgorithm = builder.authenticationNativeAlgorithm;
+        authenticationTokenLength = builder.authenticationTokenLength;
+        authenticationTokenRenewInterval = builder.authenticationTokenRenewInterval;
+        authenticationTokenEnabled = builder.authenticationTokenEnabled;
+        authenticationTokenMaxLifetime = builder.authenticationTokenMaxLifetime;
         fallbackNullFraction = builder.fallbackNullFraction;
         optimizerExtraQualifierMultiplier = builder.optimizerExtraQualifierMultiplier;
         cardinalityPrecision = builder.cardinalityPrecision;
