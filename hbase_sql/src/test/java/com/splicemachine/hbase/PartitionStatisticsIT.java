@@ -23,6 +23,8 @@ import com.splicemachine.test.SlowTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Admin;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.*;
@@ -45,101 +47,102 @@ import static com.splicemachine.test_tools.Rows.rows;
  */
 @Category({SerialTest.class,SlowTest.class})
 public class PartitionStatisticsIT {
-    private static final String SCHEMA=PartitionStatisticsIT.class.getSimpleName().toUpperCase();
-    private static final SpliceWatcher spliceClassWatcher=new SpliceWatcher(SCHEMA);
-    private static final SpliceSchemaWatcher spliceSchemaWatcher=new SpliceSchemaWatcher(SCHEMA);
+    private static final String SCHEMA = PartitionStatisticsIT.class.getSimpleName().toUpperCase();
+    private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
+    private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
-    private static final String TABLE="T";
+    private static final String TABLE = "T";
     private static TableName hTableName;
     private static List<HRegionInfo> regionInfoList;
 
     @ClassRule
-    public static TestRule chain= RuleChain.outerRule(spliceClassWatcher)
-            .around(spliceSchemaWatcher);
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+          .around(spliceSchemaWatcher);
 
     @Rule
-    public final SpliceWatcher methodWatcher=new SpliceWatcher(SCHEMA);
+    public final SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
     @Rule
     public Timeout globalTimeout = Timeout.seconds(60);
 
 
     @BeforeClass
-    public static void createTables() throws Exception{
+    public static void createTables() throws Exception {
 
-        Connection conn=spliceClassWatcher.getOrCreateConnection();
+        Connection conn = spliceClassWatcher.getOrCreateConnection();
 
         new TableCreator(conn)
-                .withCreate("create table "+TABLE+" (a int, b int)")
-                .withInsert("insert into " + TABLE + " (a, b) values (?, ?)")
-                .withRows(rows(row(1, 1), row(2,2), row(3,3), row(4,4)))
-                .create();
+              .withCreate("create table " + TABLE + " (a int, b int)")
+              .withInsert("insert into " + TABLE + " (a, b) values (?, ?)")
+              .withRows(rows(row(1, 1), row(2, 2), row(3, 3), row(4, 4)))
+              .create();
 
-        try(PreparedStatement ps = conn.prepareStatement("insert into t select * from t")){
-            for(int i=0;i<5;++i){
+        try (PreparedStatement ps = conn.prepareStatement("insert into t select * from t")) {
+            for (int i = 0; i < 5; ++i) {
                 ps.execute();
             }
         }
 
         //split the table
         long[] conglomId = SpliceAdmin.getConglomNumbers(conn, SCHEMA, TABLE);
-        hTableName = TableName.valueOf("splice" ,Long.toString(conglomId[0]));
+        hTableName = TableName.valueOf("splice", Long.toString(conglomId[0]));
         syncSplit(null);
     }
 
 
     @Test
     public void testStatisticsCorrectAfterRegionSplit() throws Exception {
-        Connection conn=spliceClassWatcher.getOrCreateConnection();
+        Connection conn = spliceClassWatcher.getOrCreateConnection();
         // collect statistics
-        try(PreparedStatement ps = conn.prepareStatement("analyze table t")){
+        try (PreparedStatement ps = conn.prepareStatement("analyze table t")) {
             ps.execute();
         }
 
         // run the query to populate partition cache
-        try(PreparedStatement ps = conn.prepareStatement("explain select count(a) from t")){
-            try(ResultSet rs=ps.executeQuery()){
-                while(rs.next()){
-                    String s=rs.getString(1);
+        try (PreparedStatement ps = conn.prepareStatement("explain select count(a) from t")) {
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String s = rs.getString(1);
                 }
             }
         }
 
         // split a region
-        syncSplit(regionInfoList.get(1).getEncodedName());
+        syncSplit(regionInfoList.get(1).getEncodedNameAsBytes());
         // collect statistics again on new partitions
-        try(PreparedStatement ps = conn.prepareStatement("analyze table t")){
+        try (PreparedStatement ps = conn.prepareStatement("analyze table t")) {
             ps.execute();
         }
 
         // now partition cache has two paritions, make sure the query can run
-        try(PreparedStatement ps = conn.prepareStatement("explain select count(a) from t")){
-            try(ResultSet rs=ps.executeQuery()){
-                while(rs.next()){
-                    String s=rs.getString(1);
+        try (PreparedStatement ps = conn.prepareStatement("explain select count(a) from t")) {
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String s = rs.getString(1);
                 }
             }
         }
     }
 
-    private static void syncSplit(String regionName) throws IOException, InterruptedException{
-        try(HBaseAdmin admin = new HBaseAdmin(HConfiguration.unwrapDelegate())){
-            regionInfoList=admin.getTableRegions(hTableName);
-            int startSize=regionInfoList.size();
-            if(regionName==null){
+    private static void syncSplit(byte[] regionName) throws IOException, InterruptedException {
+        try (org.apache.hadoop.hbase.client.Connection connection = ConnectionFactory.createConnection(HConfiguration.unwrapDelegate());
+            Admin admin=connection.getAdmin()) {
+            regionInfoList = admin.getTableRegions(hTableName);
+            int startSize = regionInfoList.size();
+            if (regionName == null) {
                 admin.flush(hTableName);
                 admin.split(hTableName);
-            }else{
-                admin.flush(regionName);
-                admin.split(regionName);
+            } else {
+                admin.flushRegion(regionName);
+                admin.splitRegion(regionName);
             }
 
             int s;
-            do{
+            do {
                 Thread.sleep(200);
-                regionInfoList=admin.getTableRegions(hTableName);
-                s=regionInfoList.size();
-                System.out.printf("origSize=%d,newSize=%d%n",startSize,s);
-            }while(s==startSize);
+                regionInfoList = admin.getTableRegions(hTableName);
+                s = regionInfoList.size();
+                System.out.printf("origSize=%d,newSize=%d%n", startSize, s);
+            } while (s == startSize);
         }
     }
 }

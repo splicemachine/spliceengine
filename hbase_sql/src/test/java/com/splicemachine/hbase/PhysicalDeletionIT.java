@@ -74,40 +74,39 @@ public class PhysicalDeletionIT extends SpliceUnitTest {
         methodWatcher.executeUpdate("delete from A");
         methodWatcher.executeUpdate("insert into a values(1,1), (2,2)");
 
-        Configuration config = HConfiguration.unwrapDelegate();
-        HBaseAdmin admin = new HBaseAdmin(config);
-        long[] conglomId = SpliceAdmin.getConglomNumbers(conn, SCHEMA, "A");
-        String hTableName = "splice:" + Long.toString(conglomId[0]);
-        methodWatcher.execute("CALL SYSCS_UTIL.SYSCS_FLUSH_TABLE('PHYSICALDELETIONIT','A')");
-        methodWatcher.execute("CALL SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE('PHYSICALDELETIONIT','A')");
+        try (Connection connection = ConnectionFactory.createConnection(HConfiguration.unwrapDelegate())) {
+            long[] conglomId = SpliceAdmin.getConglomNumbers(conn, SCHEMA, "A");
+            TableName hTableName = TableName.valueOf("splice:" + Long.toString(conglomId[0]));
+            methodWatcher.execute("CALL SYSCS_UTIL.SYSCS_FLUSH_TABLE('PHYSICALDELETIONIT','A')");
+            methodWatcher.execute("CALL SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE('PHYSICALDELETIONIT','A')");
 
-        HTable table = new HTable(config, hTableName);
+            Table table = connection.getTable(hTableName);
 
-        Scan s = new Scan();
-        ResultScanner scanner = table.getScanner(s);
-        int count = 0;
-        for (Result rr = scanner.next(); rr != null; rr = scanner.next()) {
-            count++;
+            Scan s = new Scan();
+            ResultScanner scanner = table.getScanner(s);
+            int count = 0;
+            for (Result rr = scanner.next(); rr != null; rr = scanner.next()) {
+                count++;
+            }
+            Assert.assertTrue(count == 4); // rows were not physically deleted from HFile
+
+
+            // Make sure rows are physically deleted from storage
+            methodWatcher.execute("CALL SYSCS_UTIL.SET_PURGE_DELETED_ROWS('PHYSICALDELETIONIT','A',true)");
+
+            rs = methodWatcher.executeQuery(sql);
+            assert rs.next();
+            purgeDeletedRows = rs.getBoolean(1);
+            Assert.assertTrue(purgeDeletedRows);
+
+            methodWatcher.execute("CALL SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE('PHYSICALDELETIONIT','A')");
+
+            scanner = table.getScanner(s);
+            count = 0;
+            for (Result rr = scanner.next(); rr != null; rr = scanner.next()) {
+                count++;
+            }
+            Assert.assertTrue(count == 2);
         }
-        Assert.assertTrue(count == 4); // rows were not physically deleted from HFile
-
-
-        // Make sure rows are physically deleted from storage
-        methodWatcher.execute("CALL SYSCS_UTIL.SET_PURGE_DELETED_ROWS('PHYSICALDELETIONIT','A',true)");
-
-        rs = methodWatcher.executeQuery(sql);
-        assert rs.next();
-        purgeDeletedRows = rs.getBoolean(1);
-        Assert.assertTrue(purgeDeletedRows);
-
-        methodWatcher.execute("CALL SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE('PHYSICALDELETIONIT','A')");
-
-        scanner = table.getScanner(s);
-        count = 0;
-        for (Result rr = scanner.next(); rr != null; rr = scanner.next()) {
-            count++;
-        }
-        Assert.assertTrue(count == 2);
-
     }
 }

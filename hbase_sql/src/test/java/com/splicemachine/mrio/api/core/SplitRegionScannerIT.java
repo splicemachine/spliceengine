@@ -30,8 +30,10 @@ import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.SplitRegionScanner;
 
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.junit.Assert;
 import org.apache.hadoop.hbase.Cell;
@@ -160,7 +162,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
                     clock,subPartition, driver.getConfiguration(), htable.getConfiguration());
             while (srs.next(newCells)) {
                 i++;
-                simpleScan.add(CellUtils.toHex(newCells.get(0).getRow()));
+                simpleScan.add(CellUtils.toHex(CellUtil.cloneRow(newCells.get(0))));
                 newCells.clear();
             }
             srs.close();
@@ -410,7 +412,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
         Table htable = ((ClientPartition) partition).unwrapDelegate();
 
         int i = 0;
-        try (HBaseAdmin admin = getHBaseAdmin()) {
+        try (Admin admin = connection.getAdmin()) {
             HRegionLocation regionLocation = getRegionLocation(tableNameStr, admin);
             Collection<ServerName> allServers = getAllServers(admin);
             ServerName newServer = getNotIn(allServers, regionLocation.getServerName());
