@@ -98,7 +98,7 @@ public class BulkLoadIndexDataSetWriter extends BulkDataSetWriter implements Dat
         DataSet rowAndIndexes = dataSet
                 .map(new IndexTransformFunction(tentativeIndex), null, false, true,
                         String.format("Create Index %s: Generate HFiles", indexName))
-                .map(new BulkLoadKVPairFunction(heapConglom), null, false, true,
+                .mapPartitions(new BulkLoadKVPairFunction(heapConglom), false, true,
                         String.format("Create Index %s: Generate HFiles", indexName));
 
         partitionUsingRDDSortUsingDataFrame(bulkLoadPartitions, rowAndIndexes, hfileGenerationFunction);
@@ -116,7 +116,7 @@ public class BulkLoadIndexDataSetWriter extends BulkDataSetWriter implements Dat
         DataSet sampleRowAndIndexes = sampledDataSet
                 .map(new IndexTransformFunction(tentativeIndex), null, false, true,
                         String.format("Create Index %s: Sample Data", indexName))
-                .map(new BulkLoadKVPairFunction(heapConglom), null, false, true,
+                .mapPartitions(new BulkLoadKVPairFunction(heapConglom), false, true,
                         String.format("Create Index %s: Sample Data", indexName));
 
         // collect statistics for encoded key/value, include size and histgram
