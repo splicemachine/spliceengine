@@ -13,18 +13,20 @@
  */
 package com.splicemachine.derby.stream.function;
 
-import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.kvpair.KVPair;
 import scala.Tuple2;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Iterator;
 
 /**
  * Created by jyuan on 10/9/17.
  */
-public class BulkLoadKVPairFunction extends SpliceFunction<SpliceBaseOperation, KVPair, Tuple2<Long, Tuple2<byte[], byte[]>>> {
+public class BulkLoadKVPairFunction<Op extends SpliceOperation>
+        extends SpliceFlatMapFunction<Op, Iterator<KVPair>, Tuple2<Long, Tuple2<byte[], byte[]>>> {
 
     private long conglomerateId;
 
@@ -35,10 +37,8 @@ public class BulkLoadKVPairFunction extends SpliceFunction<SpliceBaseOperation, 
     }
 
     @Override
-    public Tuple2<Long,Tuple2<byte[], byte[]>> call(KVPair kvPair) throws Exception {
-
-        Tuple2<byte[], byte[]> kv = new Tuple2(kvPair.getRowKey(), kvPair.getValue());
-        return new Tuple2(conglomerateId, kv);
+    public Iterator<Tuple2<Long, Tuple2<byte[], byte[]>>> call(Iterator<KVPair> kvPairIterator) throws Exception {
+        return new NullFilterKVPairIterator(conglomerateId, kvPairIterator);
     }
 
     @Override
@@ -51,5 +51,40 @@ public class BulkLoadKVPairFunction extends SpliceFunction<SpliceBaseOperation, 
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
         conglomerateId = in.readLong();
+    }
+}
+
+class NullFilterKVPairIterator<K,V> implements Iterator<Tuple2<Long, Tuple2<byte[], byte[]>>> {
+    Iterator<KVPair> delegate;
+    long conglomerateId;
+    KVPair kvPair;
+    boolean rowConsumed = true;
+
+    public NullFilterKVPairIterator(long cId, Iterator<KVPair> delegate) {
+        this.delegate = delegate;
+        this.conglomerateId = cId;
+    }
+
+    @Override
+    public boolean hasNext() {
+        // we need to check rowConsumed to make sure the same result is return in case hasNext() is called multiple times
+        // before a call of next()
+        if (!rowConsumed)
+            return true;
+        while (delegate.hasNext()) {
+            kvPair = delegate.next();
+            if (kvPair != null) {
+                rowConsumed = false;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public Tuple2<Long, Tuple2<byte[], byte[]>> next() {
+        rowConsumed = true;
+        Tuple2<byte[], byte[]> kv = new Tuple2(kvPair.getRowKey(), kvPair.getValue());
+        return new Tuple2(conglomerateId, kv);
     }
 }

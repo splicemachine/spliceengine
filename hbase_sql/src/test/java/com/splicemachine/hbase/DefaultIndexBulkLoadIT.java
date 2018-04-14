@@ -31,6 +31,7 @@ public class DefaultIndexBulkLoadIT extends SpliceUnitTest {
     private static SpliceIndexWatcher T1_IX_D1_EXCL_DEFAULTS = new SpliceIndexWatcher(T1.tableName, schemaWatcher.schemaName, "T1_IX_D1_EXCL_DEFAULTS", schemaWatcher.schemaName, "(d1)", false, false, true);
     private static SpliceIndexWatcher T1_IX_E1_EXCL_NULL = new SpliceIndexWatcher(T1.tableName, schemaWatcher.schemaName, "T1_IX_E1_EXCL_NULL", schemaWatcher.schemaName, "(e1)", false, true, false);
     private static SpliceIndexWatcher T1_IX_D1_DESC_E1_EXCL_DEFAULTS = new SpliceIndexWatcher(T1.tableName, schemaWatcher.schemaName, "T1_IX_D1_DESC_E1_EXCL_DEFAULTS", schemaWatcher.schemaName, "(d1 desc, e1)", false, false, true);
+    private static SpliceTableWatcher T2 = new SpliceTableWatcher("T2", schemaWatcher.schemaName, "(a2 int, b2 int, c2 varchar(6) default ' ', d2 int)");
 
 
 
@@ -49,7 +50,8 @@ public class DefaultIndexBulkLoadIT extends SpliceUnitTest {
             .around(T1_IX_C1_EXCL_NULL)
             .around(T1_IX_D1_EXCL_DEFAULTS)
             .around(T1_IX_E1_EXCL_NULL)
-            .around(T1_IX_D1_DESC_E1_EXCL_DEFAULTS);
+            .around(T1_IX_D1_DESC_E1_EXCL_DEFAULTS)
+            .around(T2);
 
     private Connection conn;
 
@@ -139,6 +141,48 @@ public class DefaultIndexBulkLoadIT extends SpliceUnitTest {
             rs = methodWatcher.executeQuery(String.format("SELECT * FROM T1 --SPLICE-PROPERTIES index=T1_IX_D1_DESC_E1_EXCL_DEFAULTS\n where d1 <> 'NNN'"));
 
             Assert.assertEquals("", TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+        catch (Exception e) {
+            java.lang.Throwable ex = Throwables.getRootCause(e);
+            if (ex.getMessage().contains("bulk load not supported")) {
+                // swallow (Control Tests)
+            } else {
+                throw e;
+            }
+        }
+    }
+
+    @Test
+    public void testBulkIndexCreation() throws Exception {
+        try {
+            // load data
+            methodWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s',',','\"',null,null,null,0,null,true,null, '%s', false)", schemaWatcher.schemaName, T2.tableName
+                    , getResourceDirectory() + "data_t2.csv", getResourceDirectory() + "data")).execute();
+
+            // create index from hfile
+            methodWatcher.prepareStatement(format("create index ix_t2 on %s.%s(c2 desc, b2 desc) exclude default keys \n" +
+                    "splitkeys auto \n" +
+                    "hfile location '%s'", schemaWatcher.schemaName, T2.tableName, getResourceDirectory() + "data")).execute();
+
+            // query
+            ResultSet rs = methodWatcher.executeQuery("select count(*) from t2");
+
+            Assert.assertEquals("1 |\n" +
+                    "----\n" +
+                    " 4 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+            rs = methodWatcher.executeQuery(String.format("SELECT * FROM T2 --SPLICE-PROPERTIES index=IX_T2\n where c2 <> ' '"));
+
+            Assert.assertEquals("A2 |B2 |C2  |D2 |\n" +
+                    "-----------------\n" +
+                    " 3 | 3 |xyz |33 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+            try {
+                methodWatcher.executeQuery(String.format("SELECT * FROM T2 --SPLICE-PROPERTIES index=IX_T2\n where c2 = ' '"));
+                Assert.fail("did not throw exception");
+            } catch (SQLException sqle) {
+                Assert.assertEquals("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.", sqle.getMessage());
+            }
         }
         catch (Exception e) {
             java.lang.Throwable ex = Throwables.getRootCause(e);
