@@ -57,7 +57,11 @@ public class GrantRevokeConstantOperation implements ConstantAction {
 	 * @exception StandardException		Thrown on failure
 	 */
 	public void executeConstantAction( Activation activation ) throws StandardException {
-        DDLConstantOperation.checkAuthorizationScheme(grant?SQLState.NO_GRANT_PERMISSIONS_WITH_RANGER:SQLState.NO_REVOKE_PERMISSIONS_WITH_RANGER);
+        if (grant)
+            DDLConstantOperation.noGrantCheck();
+        else
+            DDLConstantOperation.noRevokeCheck();
+
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         TransactionController tc = lcc.getTransactionExecute();
 

@@ -64,7 +64,7 @@ public class RevokeRoleConstantOperation extends DDLConstantOperation {
      * @see com.splicemachine.db.iapi.sql.execute.ConstantAction#executeConstantAction
      */
     public void executeConstantAction(Activation activation) throws StandardException {
-        checkAuthorizationScheme(SQLState.NO_REVOKE_PERMISSIONS_WITH_RANGER);
+        noRevokeCheck();
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
         TransactionController tc = lcc.getTransactionExecute();

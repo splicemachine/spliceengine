@@ -2018,6 +2018,9 @@ public interface SQLState {
 	String NO_REVOKE_PERMISSIONS_WITH_RANGER                                = "EXT36";
 	String ACCESS_DENIED_SENTRY                                = "EXT37";
 	String ROLE_ALREADY_EXISTS_SENTRY                                = "EXT38";
+	String NO_GRANT_PERMISSIONS_WITH_SENTRY                                = "EXT39";
+	String NO_REVOKE_PERMISSIONS_WITH_SENTRY                               = "EXT40";
+
 
 }
 

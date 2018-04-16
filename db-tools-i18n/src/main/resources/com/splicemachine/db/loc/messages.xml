@@ -9222,6 +9222,26 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <arg>role</arg>
            </msg>
 
+           <msg>
+               <name>EXT35</name>
+               <text>Cannot grant permissions when Splice Machine is attached to Ranger.  Please use the Ranger UI.</text>
+           </msg>
+
+           <msg>
+               <name>EXT36</name>
+               <text>Cannot revoke permissions when Splice Machine is attached to Ranger.  Please use the Ranger UI.</text>
+           </msg>
+
+           <msg>
+               <name>EXT39</name>
+               <text>Cannot grant permissions when Splice Machine is attached to Sentry.  Please use the Sentry CLI.</text>
+           </msg>
+
+           <msg>
+               <name>EXT40</name>
+               <text>Cannot revoke permissions when Splice Machine is attached to Sentry.  Please use the Sentry CLI.</text>
+           </msg>
+
        </family>
     </section>
 
