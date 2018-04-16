@@ -2015,6 +2015,8 @@ public interface SQLState {
 	String ACCESS_DENIED_SENTRY                                     = "EXT39";
 	String ROLE_ALREADY_EXISTS_SENTRY                               = "EXT40";
 	String EXTERNAL_TABLES_LOCATION_NOT_EXIST		   			    = "EXT41";
+	String NO_GRANT_PERMISSIONS_WITH_SENTRY                                = "EXT42";
+	String NO_REVOKE_PERMISSIONS_WITH_SENTRY                               = "EXT43";
 
 	String SNAPSHOT_EXISTS											= "SNA01";
 	String SNAPSHOT_NOT_EXISTS										= "SNA02";
@@ -2037,6 +2039,7 @@ public interface SQLState {
 	String TOKEN_EXPIRED											= "ST002";
 
 	String HBASE_OPERATION_ERROR									= "HO001";
+
 
 }
 
