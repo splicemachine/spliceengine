@@ -959,13 +959,28 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
 					replace("ConstantOperation", "")), ' ');
 	}
 
-	public static void checkAuthorizationScheme(String exceptionCode) throws StandardException {
+	public static void noGrantCheck() throws StandardException {
 		if (SIDriver.driver().getConfiguration().getAuthorizationScheme().equals("RANGER")) {
 			throw StandardException.
-					newException(exceptionCode);
+					newException(SQLState.NO_GRANT_PERMISSIONS_WITH_RANGER);
+		}
+		if (SIDriver.driver().getConfiguration().getAuthorizationScheme().equals("SENTRY")) {
+			throw StandardException.
+					newException(SQLState.NO_GRANT_PERMISSIONS_WITH_SENTRY);
 		}
 
-
 	}
+
+	public static void noRevokeCheck() throws StandardException {
+		if (SIDriver.driver().getConfiguration().getAuthorizationScheme().equals("RANGER")) {
+			throw StandardException.
+					newException(SQLState.NO_REVOKE_PERMISSIONS_WITH_RANGER);
+		}
+		if (SIDriver.driver().getConfiguration().getAuthorizationScheme().equals("SENTRY")) {
+			throw StandardException.
+					newException(SQLState.NO_REVOKE_PERMISSIONS_WITH_SENTRY);
+		}
+	}
+
 }
 

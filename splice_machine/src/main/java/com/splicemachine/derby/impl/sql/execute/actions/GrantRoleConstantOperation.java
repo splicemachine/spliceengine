@@ -61,7 +61,7 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
      * @exception StandardException     Thrown on failure
      */
     public void executeConstantAction(Activation activation) throws StandardException {
-        checkAuthorizationScheme(SQLState.NO_GRANT_PERMISSIONS_WITH_RANGER);
+        noGrantCheck();
        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
         TransactionController tc = lcc.getTransactionExecute();
