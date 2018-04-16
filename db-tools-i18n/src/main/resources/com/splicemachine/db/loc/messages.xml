@@ -9314,6 +9314,15 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <text>Location does not exist: {0}</text>
                <arg>location</arg>
            </msg>
+           <msg>
+               <name>EXT42</name>
+               <text>Cannot grant permissions when Splice Machine is attached to Sentry.  Please use the Sentry CLI.</text>
+           </msg>
+
+           <msg>
+               <name>EXT43</name>
+               <text>Cannot revoke permissions when Splice Machine is attached to Sentry.  Please use the Sentry CLI.</text>
+           </msg>
        </family>
     </section>
 
