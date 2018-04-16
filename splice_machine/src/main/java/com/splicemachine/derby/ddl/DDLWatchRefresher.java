@@ -46,14 +46,12 @@ import java.util.concurrent.atomic.AtomicReference;
 public class DDLWatchRefresher{
     private static final Logger LOG=Logger.getLogger(DDLWatchRefresher.class);
     private final Set<String> seenDDLChanges;
-    private final Map<String, Long> changeTimeouts;
+    private final Set<String> changeTimeouts;
     private final Map<String, DDLChange> currentDDLChanges;
     private final Map<String, DDLChange> tentativeDDLS;
     private final AtomicReference<DDLFilter> ddlDemarcationPoint;
     private final DDLWatchChecker watchChecker;
-    private final Clock clock;
     private final TransactionReadController txController;
-    private final long maxDdlWaitMs;
     private final AtomicInteger currChangeCount= new AtomicInteger(0);
     private final SqlExceptionFactory exceptionFactory;
     private final TxnSupplier txnSupplier;
@@ -61,16 +59,11 @@ public class DDLWatchRefresher{
 
     public DDLWatchRefresher(DDLWatchChecker watchChecker,
                              TransactionReadController txnController,
-                             Clock clock,
                              SqlExceptionFactory exceptionFactory,
-                             long maxDdlWaitMs,
                              TxnSupplier txnSupplier){
-        assert clock!=null;
-        this.clock=clock;
         this.txController = txnController;
-        this.maxDdlWaitMs=maxDdlWaitMs;
         this.seenDDLChanges=new ConcurrentHashSet<>();
-        this.changeTimeouts=new ConcurrentHashMap<>();
+        this.changeTimeouts=new ConcurrentHashSet<>();
         this.currentDDLChanges=new ConcurrentHashMap<>();
         this.tentativeDDLS=new ConcurrentHashMap<>();
         this.watchChecker=watchChecker;
@@ -107,7 +100,7 @@ public class DDLWatchRefresher{
 
                 //inform the server of the first time we see this change
                 String cId=change.getChangeId();
-                changeTimeouts.put(cId,clock.currentTimeMillis());
+                changeTimeouts.add(cId);
                 SpliceLogUtils.info(LOG,"New change with id=%s, and change=%s",changeId,change);
                 try {
                     processPreCommitChange(change, callbacks);
@@ -231,10 +224,9 @@ public class DDLWatchRefresher{
          * Kill transactions which have been timed out.
          */
         int numKilled = 0;
-        Iterator<Map.Entry<String,Long>> timeoutsIter = changeTimeouts.entrySet().iterator();
+        Iterator<String> timeoutsIter = changeTimeouts.iterator();
         while(timeoutsIter.hasNext()){
-            Map.Entry<String,Long> entry = timeoutsIter.next();
-            String changeId = entry.getKey();
+            String changeId = timeoutsIter.next();
             DDLChange ddlChange = watchChecker.getChange(changeId);
             if (ddlChange != null && isTimeout(ddlChange)) {
                 SpliceLogUtils.info(LOG, "DDLChange %s timed out.", ddlChange);
@@ -245,7 +237,7 @@ public class DDLWatchRefresher{
                  * them to stop dealing with a specified change
                  */
                 for(DDLWatcher.DDLListener listener:listeners){
-                    listener.changeFailed(entry.getKey());
+                    listener.changeFailed(changeId);
                 }
                 numKilled++;
                 timeoutsIter.remove();

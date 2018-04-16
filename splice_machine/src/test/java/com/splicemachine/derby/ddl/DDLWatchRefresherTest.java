@@ -80,7 +80,7 @@ public class DDLWatchRefresherTest{
 
         TxnStore supplier = new TestingTxnStore(clock,new TestingTimestampSource(),null,100l);
         supplier.recordNewTransaction(txn);
-        TestDDLWatchRefresher refresher = new TestDDLWatchRefresher(checker,null,clock,ef,10l,supplier);
+        TestDDLWatchRefresher refresher = new TestDDLWatchRefresher(checker,null,ef,supplier);
         refresher.setTimeout(false);
 
         //add a new change
@@ -110,7 +110,7 @@ public class DDLWatchRefresherTest{
         TxnStore supplier = new TestingTxnStore(clock,new TestingTimestampSource(),null,100l);
         supplier.recordNewTransaction(txn);
         SITransactionReadController txnController=new SITransactionReadController(supplier);
-        TestDDLWatchRefresher refresher = new TestDDLWatchRefresher(checker,txnController,clock,ef,10l,supplier );
+        TestDDLWatchRefresher refresher = new TestDDLWatchRefresher(checker,txnController,ef,supplier);
         refresher.setTimeout(false);
         CountingListener assertionListener = new CountingListener();
 
@@ -145,7 +145,7 @@ public class DDLWatchRefresherTest{
         TxnStore supplier = new TestingTxnStore(clock,new TestingTimestampSource(),null,100l);
         supplier.recordNewTransaction(txn);
         SITransactionReadController txnController=new SITransactionReadController(supplier);
-        TestDDLWatchRefresher refresher = new TestDDLWatchRefresher(checker,txnController,clock,ef,10l,supplier);
+        TestDDLWatchRefresher refresher = new TestDDLWatchRefresher(checker,txnController,ef,supplier);
         refresher.setTimeout(false);
         CountingListener assertionListener = new CountingListener();
 
@@ -179,7 +179,7 @@ public class DDLWatchRefresherTest{
         TxnStore supplier = new TestingTxnStore(clock,new TestingTimestampSource(),null,100l);
         supplier.recordNewTransaction(txn);
         SITransactionReadController txnController=new SITransactionReadController(supplier);
-        TestDDLWatchRefresher refresher = new TestDDLWatchRefresher(checker,txnController,clock,ef,10l,supplier);
+        TestDDLWatchRefresher refresher = new TestDDLWatchRefresher(checker,txnController,ef,supplier);
         refresher.setTimeout(true);
         //add a new change
         DDLChange testChange  = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),"change",DDLMessage.DDLChangeType.CHANGE_PK );
@@ -225,7 +225,7 @@ public class DDLWatchRefresherTest{
         TxnStore supplier = new TestingTxnStore(clock,new TestingTimestampSource(),null,100l);
         supplier.recordNewTransaction(txn);
         long timeoutMs=10l;
-        TestDDLWatchRefresher refresher = new TestDDLWatchRefresher(checker,null,clock,ef,timeoutMs,supplier);
+        TestDDLWatchRefresher refresher = new TestDDLWatchRefresher(checker,null,ef,supplier);
         refresher.setTimeout(false);
         //add a new change
         final DDLChange testChange  = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),"change",DDLMessage.DDLChangeType.ADD_PRIMARY_KEY );
@@ -300,11 +300,9 @@ public class DDLWatchRefresherTest{
 
         public TestDDLWatchRefresher(DDLWatchChecker watchChecker,
                                      TransactionReadController txnController,
-                                     Clock clock,
                                      SqlExceptionFactory exceptionFactory,
-                                     long maxDdlWaitMs,
                                      TxnSupplier txnSupplier) {
-            super(watchChecker, txnController, clock, exceptionFactory, maxDdlWaitMs, txnSupplier);
+            super(watchChecker, txnController, exceptionFactory, txnSupplier);
         }
 
         public void setTimeout(boolean timeout) {
