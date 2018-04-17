@@ -228,7 +228,7 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         "splice.txn.activeTxns.cacheSize" : "10240",
         "splice.txn.completedTxns.concurrency" : "128",
         "splice.txn.concurrencyLevel" : "4096",
-        "splice.olap.server.memory" : "8192",
+        "splice.olap_server.memory" : "8192",
         "splice.olap_server.memoryOverhead" : "2048",
         "splice.olap_server.virtualCores" : "2"
     }
