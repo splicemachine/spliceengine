@@ -72,7 +72,8 @@ public class SpliceTestClusterParticipant {
                 regionServerPort,
                 regionServerInfoPort,
                 derbyPort,
-                false
+                false,
+                null
         );
 
         MiniHBaseCluster miniHBaseCluster = new MiniHBaseCluster(config, 0, 1);

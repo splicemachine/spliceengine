@@ -32,7 +32,7 @@ import java.io.IOException;
 public class SpliceTestPlatform {
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 7) {
+        if (args.length != 8) {
             SpliceTestPlatformUsage.usage("Unknown argument(s)", null);
         }
         try {
@@ -44,6 +44,7 @@ public class SpliceTestPlatform {
             Integer regionServerInfoPort = Integer.valueOf(args[4]);
             Integer derbyPort = Integer.valueOf(args[5]);
             boolean failTasksRandomly = Boolean.valueOf(args[6]);
+            String olapLog4jConfig = args[7];
 
             Configuration config = SpliceTestPlatformConfig.create(
                     hbaseRootDirUri,
@@ -52,7 +53,8 @@ public class SpliceTestPlatform {
                     regionServerPort,
                     regionServerInfoPort,
                     derbyPort,
-                    failTasksRandomly);
+                    failTasksRandomly,
+                    olapLog4jConfig);
 
             // clean-up zookeeper
             try {

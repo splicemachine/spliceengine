@@ -109,6 +109,9 @@ public class OlapConfigurations implements ConfigurationDefault {
     public static final String SPARK_COMPACTION_BLOCKING = "spark.compaction.blocking";
     public static final boolean DEFAULT_SPARK_COMPACTION_BLOCKING = true;
 
+    // Log4j config file for OLAP server
+    public static final String OLAP_LOG4J_CONFIG = "splice.olap.log4j.configuration";
+    public static final String DEFAULT_OLAP_LOG4J_CONFIG = null;
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         builder.activeTransactionCacheSize  = configurationSource.getInt(ACTIVE_TRANSACTION_CACHE_SIZE, DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE);
@@ -134,5 +137,6 @@ public class OlapConfigurations implements ConfigurationDefault {
 
         builder.olapCompactionResolutionBufferSize = configurationSource.getInt(SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE, DEFAULT_SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE);
         builder.olapCompactionBlocking = configurationSource.getBoolean(SPARK_COMPACTION_BLOCKING, DEFAULT_SPARK_COMPACTION_BLOCKING);
+        builder.olapLog4jConfig = configurationSource.getString(OLAP_LOG4J_CONFIG, DEFAULT_OLAP_LOG4J_CONFIG);
     }
 }
