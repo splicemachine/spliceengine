@@ -138,88 +138,80 @@ public class SetOpOperationIT extends SpliceUnitTest {
     @Test
     public void testSPLICE2079() throws Exception {
         ResultSet rs;
-/*        rs = methodWatcher.executeQuery(
-                format("select count(*) from \n" +
-                        "(select col1, col2 from foo4 --splice-properties index=foo4_ix\n" +
-                        "intersect\n" +
-                        "select col1, col2 from foo4 --splice-properties index=null\n" +
-                        ") dtab\n",useSpark));
-        Assert.assertTrue("One row expected.",rs.next());
-        Assert.assertEquals("SPLICE-2079 test 1 failed.", 3, rs.getInt(1));*/
 
         rs = methodWatcher.executeQuery(
-                "select count(*) from \n" +
+                format("select count(*) from \n" +
                         "(select col1, col2 from foo4 --splice-properties index=null\n" +
                         "except\n" +
-                        "select col1, col2 from foo4 --splice-properties index=foo4_ix\n" +
-                        ") dtab\n");
+                        "select col1, col2 from foo4 --splice-properties index=foo4_ix, useSpark=%s\n" +
+                        ") dtab\n",useSpark));
 
         Assert.assertTrue("One row expected.",rs.next());
         Assert.assertEquals("SPLICE-2079 test 1 failed.", 0, rs.getInt(1));
 
         rs = methodWatcher.executeQuery(
-                "select count(*) from \n" +
+                format("select count(*) from \n" +
                         "(select col1, col2 from foo4 --splice-properties index=foo4_ix\n" +
                         "except\n" +
-                        "select col1, col2 from foo4 --splice-properties index=null\n" +
-                        ") dtab\n");
+                        "select col1, col2 from foo4 --splice-properties index=null, useSpark=%s\n" +
+                        ") dtab\n",useSpark));
 
         Assert.assertTrue("One row expected.",rs.next());
         Assert.assertEquals("SPLICE-2079 test 2 failed.", 0, rs.getInt(1));
 
         rs = methodWatcher.executeQuery(
-                "select count(*) from \n" +
+                format("select count(*) from \n" +
                         "(select col1, col2 from foo4 --splice-properties index=null\n" +
                         "intersect\n" +
-                        "select col1, col2 from foo4 --splice-properties index=foo4_ix\n" +
-                        ") dtab\n");
+                        "select col1, col2 from foo4 --splice-properties index=foo4_ix, useSpark=%s\n" +
+                        ") dtab\n",useSpark));
 
         Assert.assertTrue("One row expected.",rs.next());
         Assert.assertEquals("SPLICE-2079 test 3 failed.", 3, rs.getInt(1));
 
         rs = methodWatcher.executeQuery(
-                "select count(*) from \n" +
+                format("select count(*) from \n" +
                         "(select col1, col2 from foo4 --splice-properties index=foo4_ix\n" +
                         "intersect\n" +
-                        "select col1, col2 from foo4 --splice-properties index=null\n" +
-                        ") dtab\n");
+                        "select col1, col2 from foo4 --splice-properties index=null, useSpark=%s\n" +
+                        ") dtab\n",useSpark));
 
         Assert.assertTrue("One row expected.",rs.next());
         Assert.assertEquals("SPLICE-2079 test 4 failed.", 3, rs.getInt(1));
 
 
         rs = methodWatcher.executeQuery(
-                "select count(*) from \n" +
+                format("select count(*) from \n" +
                         "(select col1, col2 from foo4 --splice-properties index=null\n" +
                         "intersect\n" +
                         "select col1, col2 from foo4 --splice-properties index=null\n" +
                         "except\n" +
-                        "select col1, col2 from foo4 --splice-properties index=foo4_ix\n" +
-                        ") dtab\n");
+                        "select col1, col2 from foo4 --splice-properties index=foo4_ix, useSpark=%s\n" +
+                        ") dtab\n",useSpark));
 
         Assert.assertTrue("One row expected.",rs.next());
         Assert.assertEquals("SPLICE-2079 test 5 failed.", 0, rs.getInt(1));
 
         rs = methodWatcher.executeQuery(
-                "select count(*) from \n" +
+                format("select count(*) from \n" +
                         "(select col1, col2 from foo4 --splice-properties index=null\n" +
                         "except\n" +
                         "select col1, col2 from foo4 --splice-properties index=foo4_ix\n" +
                         "intersect\n" +
-                        "select col1, col2 from foo4 --splice-properties index=null\n" +
-                        ") dtab\n");
+                        "select col1, col2 from foo4 --splice-properties index=null, useSpark=%s\n" +
+                        ") dtab\n",useSpark));
 
         Assert.assertTrue("One row expected.",rs.next());
         Assert.assertEquals("SPLICE-2079 test 6 failed.", 0, rs.getInt(1));
 
         rs = methodWatcher.executeQuery(
-                "select count(*) from \n" +
+                format("select count(*) from \n" +
                         "(select col1, col2 from foo4 --splice-properties index=null\n" +
                         "except\n" +
                         "select col1, col2 from foo4 --splice-properties index=foo4_ix\n" +
                         "except\n" +
-                        "select col1, col2 from foo4 --splice-properties index=foo4_ix\n" +
-                        ") dtab\n");
+                        "select col1, col2 from foo4 --splice-properties index=foo4_ix, useSpark=%s\n" +
+                        ") dtab\n",useSpark));
 
         Assert.assertTrue("One row expected.",rs.next());
         Assert.assertEquals("SPLICE-2079 test 7 failed.", 0, rs.getInt(1));
