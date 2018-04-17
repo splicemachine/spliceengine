@@ -90,6 +90,12 @@ public class SetOpOperationIT extends SpliceUnitTest {
                     .withCreate("create table FOO3 (col1 int primary key, col2 int)")
                     .withInsert("insert into FOO3 values(?,?)")
                     .withRows(rows(row(2, 1), row(3, 2), row(1, 5))).create();
+
+            new TableCreator(connection)
+                    .withCreate("create table FOO4 (col1 int primary key, col2 int)")
+                    .withInsert("insert into FOO4 values(?,?)")
+                    .withIndex("create index foo4_ix on FOO4(col1, col2)")
+                    .withRows(rows(row(2, 1), row(3, 2), row(1, 5))).create();
         }
 
     @Test
@@ -121,6 +127,104 @@ public class SetOpOperationIT extends SpliceUnitTest {
         Assert.assertEquals("Wrong Count", 2, rs.getInt(1));
         Assert.assertEquals("Wrong Max", 4, rs.getInt(2));
         Assert.assertEquals("Wrong Min", 2, rs.getInt(3));
+    }
+
+    /**
+     *
+     *     Test wrong results cases where one SetOp branch uses a covered index and the other
+     *     branch uses a base table access.
+     *
+     */
+    @Test
+    public void testSPLICE2079() throws Exception {
+        ResultSet rs;
+/*        rs = methodWatcher.executeQuery(
+                format("select count(*) from \n" +
+                        "(select col1, col2 from foo4 --splice-properties index=foo4_ix\n" +
+                        "intersect\n" +
+                        "select col1, col2 from foo4 --splice-properties index=null\n" +
+                        ") dtab\n",useSpark));
+        Assert.assertTrue("One row expected.",rs.next());
+        Assert.assertEquals("SPLICE-2079 test 1 failed.", 3, rs.getInt(1));*/
+
+        rs = methodWatcher.executeQuery(
+                "select count(*) from \n" +
+                        "(select col1, col2 from foo4 --splice-properties index=null\n" +
+                        "except\n" +
+                        "select col1, col2 from foo4 --splice-properties index=foo4_ix\n" +
+                        ") dtab\n");
+
+        Assert.assertTrue("One row expected.",rs.next());
+        Assert.assertEquals("SPLICE-2079 test 1 failed.", 0, rs.getInt(1));
+
+        rs = methodWatcher.executeQuery(
+                "select count(*) from \n" +
+                        "(select col1, col2 from foo4 --splice-properties index=foo4_ix\n" +
+                        "except\n" +
+                        "select col1, col2 from foo4 --splice-properties index=null\n" +
+                        ") dtab\n");
+
+        Assert.assertTrue("One row expected.",rs.next());
+        Assert.assertEquals("SPLICE-2079 test 2 failed.", 0, rs.getInt(1));
+
+        rs = methodWatcher.executeQuery(
+                "select count(*) from \n" +
+                        "(select col1, col2 from foo4 --splice-properties index=null\n" +
+                        "intersect\n" +
+                        "select col1, col2 from foo4 --splice-properties index=foo4_ix\n" +
+                        ") dtab\n");
+
+        Assert.assertTrue("One row expected.",rs.next());
+        Assert.assertEquals("SPLICE-2079 test 3 failed.", 3, rs.getInt(1));
+
+        rs = methodWatcher.executeQuery(
+                "select count(*) from \n" +
+                        "(select col1, col2 from foo4 --splice-properties index=foo4_ix\n" +
+                        "intersect\n" +
+                        "select col1, col2 from foo4 --splice-properties index=null\n" +
+                        ") dtab\n");
+
+        Assert.assertTrue("One row expected.",rs.next());
+        Assert.assertEquals("SPLICE-2079 test 4 failed.", 3, rs.getInt(1));
+
+
+        rs = methodWatcher.executeQuery(
+                "select count(*) from \n" +
+                        "(select col1, col2 from foo4 --splice-properties index=null\n" +
+                        "intersect\n" +
+                        "select col1, col2 from foo4 --splice-properties index=null\n" +
+                        "except\n" +
+                        "select col1, col2 from foo4 --splice-properties index=foo4_ix\n" +
+                        ") dtab\n");
+
+        Assert.assertTrue("One row expected.",rs.next());
+        Assert.assertEquals("SPLICE-2079 test 5 failed.", 0, rs.getInt(1));
+
+        rs = methodWatcher.executeQuery(
+                "select count(*) from \n" +
+                        "(select col1, col2 from foo4 --splice-properties index=null\n" +
+                        "except\n" +
+                        "select col1, col2 from foo4 --splice-properties index=foo4_ix\n" +
+                        "intersect\n" +
+                        "select col1, col2 from foo4 --splice-properties index=null\n" +
+                        ") dtab\n");
+
+        Assert.assertTrue("One row expected.",rs.next());
+        Assert.assertEquals("SPLICE-2079 test 6 failed.", 0, rs.getInt(1));
+
+        rs = methodWatcher.executeQuery(
+                "select count(*) from \n" +
+                        "(select col1, col2 from foo4 --splice-properties index=null\n" +
+                        "except\n" +
+                        "select col1, col2 from foo4 --splice-properties index=foo4_ix\n" +
+                        "except\n" +
+                        "select col1, col2 from foo4 --splice-properties index=foo4_ix\n" +
+                        ") dtab\n");
+
+        Assert.assertTrue("One row expected.",rs.next());
+        Assert.assertEquals("SPLICE-2079 test 7 failed.", 0, rs.getInt(1));
+
+
     }
 
     @Test
