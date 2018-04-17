@@ -317,7 +317,7 @@ using it!
 
 3. Install Splice Machine:
 
-   Unpack the tarball `gz` file that you downloaded: <a href="https://s3.amazonaws.com/splice-releases/2.5.0.1802/standalone/splicemachine-2.5.0.1729.tar.gz">https://s3.amazonaws.com/splice-releases/2.5.0.1802/standalone/splicemachine-2.5.0.1729.tar.gz</a>
+   Unpack the tarball `gz` file that you downloaded, for example: <a href="https://s3.amazonaws.com/splice-releases/2.7.0.1815/standalone/SPLICEMACHINE-2.7.0.1815.standalone.tar.gz">https://s3.amazonaws.com/splice-releases/2.7.0.1815/standalone/SPLICEMACHINE-2.7.0.1815.standalone.tar.gz</a>
 
    This creates a `splicemachine` subdirectory and installs Splice Machine software in it.
 
