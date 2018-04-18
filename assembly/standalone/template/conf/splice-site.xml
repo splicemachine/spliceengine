@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+  <property>
+    <name>splice.authentication</name>
+    <value>NATIVE</value>
+  </property>
+  <property>
+    <name>splice.authentication.native.algorithm</name>
+    <value>SHA-512</value>
+  </property>
+  <property>
+    <name>splice.authentication.native.create.credentials.database</name>
+    <value>true</value>
+  </property>
+</configuration>

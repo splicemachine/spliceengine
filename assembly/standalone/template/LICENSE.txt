@@ -1,0 +1,395 @@
+Splice Machine License
+
+SPLICE MACHINE TERMS OF USE
+
+Welcome!
+
+Welcome to the Splice Machine website! Please read these Terms of Use (“Terms”) carefully,
+as they form a contract between you and us. (“We” or “Splice Machine” refers to Splice Machine, Inc.)
+
+Terms of Use
+
+The Terms apply when you access or use any of our online products, services, materials,
+software, or content, including our website (“Site”), our community forum, support forum,
+or other services (“Services”), and the documents, images, or other content accessible through
+our Site (“Content”). By accessing or using the Site, Services, or Content, you acknowledge and
+agree that you have read, understood, and agree to be bound by these Terms. If you do not agree,
+then do not access or use our Site or any Content or Services. If you are an individual acting
+on behalf of any other entity, you represent that you are authorized to accept these Terms on
+its behalf. If you do not have that authority, or if you or the entity you represent do not
+agree with these Terms, then neither you nor the entity should use our Site, Services, or Content.
+
+Other Agreements
+
+You may have other agreements with us for specific products or services, such as software or
+support. (For example, the Community Open Source edition of our software is made available under
+the terms of the AGPL 3.0 license.) These Terms do not alter those agreements, and if there is
+a conflict between these Terms and the applicable agreement or terms, then the more specific
+agreement or terms will govern your use of or access to that product or service.
+
+Privacy Policy
+
+Please refer to our Privacy Policy for information on our privacy practices. You acknowledge
+that Splice Machine is located in the United States; if you are a resident of any other country,
+you understand and agree that we will store and process your personal information on computers
+located in the United State, and that your provision of any information to us constitutes your
+consent to the transfer of that information to the United States.
+
+Updates
+
+We may revise these Terms at any time, with or without specific notice to you; unless otherwise
+noted, the revised Terms will be effective when posted.
+
+Use of Site, Content, and Services
+
+We make our Site, and the Content and Services accessed through our Site, available to you for
+your personal non-commercial informational use. You may download and use the Content available
+through the Site or Services for that purpose; however, you may not redistribute it or use it
+for any purpose other than as specifically authorized here, and the collection or use of personal
+information from or about other users is specifically prohibited. “Non-commercial use” means that
+you or your employer cannot make a business out of your use of our Content or Services. Incidental
+use of our Content or Services as needed to perform your individual job (for example, reviewing
+our Site to research whether Splice Machine products or services are appropriate for your company,
+or using the Splice Machine user forum as a resource for a technical issue you are encountering)
+is not only permitted, but encouraged. Scraping, “deep linking” or other automated access to or
+copying of our Site, Services, or Content is not allowed.
+
+We offer Services, including our support forum, user forum and tutorials, as a convenience to the
+Splice Machine community. None of the Services is an official support channel, and we are not obliged
+to participate in any of the Services or offer support to users through them.
+
+Your Content and Responsibilities
+
+Our Services may include interactive features, such as a user forum or the ability to upload and
+share tutorials, where you and other Users can post, transmit, or share Content that will be publicly
+viewable by others. You are solely responsible for your Content and your use of our Services, and you
+understand that your posting of Content and other use of our Services is at your own risk. (Your use of
+any third-party services (for example, if we offer you the ability to join a Splice Machine community
+channel on Slack), is subject to the third party’s legal terms and policies.) You retain all ownership
+rights to Content posted by you; you grant us a broad nonexclusive, perpetual, irrevocable, royalty-free,
+sublicenseable worldwide license to your Content, including but not limited to the rights to use, copy,
+publish, modify, perform, display, and make derivative works based on it.
+
+We expect our users to be professional and appropriate in their use of our Site and Services; we can
+suspend, delete or deactivate your account or other privileges, or otherwise refuse service to you,
+if you violate these Terms or our other policies, or infringe intellectual property, or otherwise
+engage in behavior that we believe is harmful. Do not provide us with any Content that is confidential,
+that you don’t have the right to publish, that is defamatory, infringing, illegal or otherwise tortious,
+or that we otherwise deem harmful or inappropriate.  We have no obligation to monitor your or others’
+use of our Site or Services, including posting of Content; nonetheless, we reserve the right to do so,
+and we may remove Content posted by you or others in our sole discretion.
+
+Please do not provide any confidential information through or in connection with the Site or Services;
+notwithstanding anything that you may note or state in connection with Content provided by you through
+our Site or Services, we will not consider it confidential (unless it is provided in accordance with a
+more specific agreement between you and us that contains confidentiality provisions), and we will receive
+it and handle it on a non-confidential and unrestricted basis (except to the extent specified in our Privacy
+Policy). By providing us with any feedback, suggestions, or other comments about our products and services,
+you waive all rights to it and acknowledge that we are free to use it as we see fit, without compensation or
+attribution to you.
+
+Your Account
+
+If we require you to open an account to use any of the Services, you must provide accurate and complete
+information. Account credentials are personal in nature and may be used only by you; you are solely responsible
+for all use of your account credentials, and you will notify us immediately if your credentials are lost, stolen
+or otherwise compromised.
+
+Copyright Infringement Claims (DMCA Notice)
+
+If you believe Content on our Site infringes your copyright, you can reach our notification agent at Splice Machine,
+Inc., 612 Howard Street, Suite 300, San Francisco, CA 94105. Phone: (415) 857-2111. Fax: (415) 801-2967.
+Email: legal@splicemachine.com. If you are in the US, your notice must satisfy the requirements enumerated in 17 U.S.C.
+§512(c)(3).
+
+Intellectual Property
+
+Our Site, the Services, and the Content provided by us on or through the Site, are the intellectual property
+and copyrighted works of Splice Machine or our suppliers; we and our suppliers reserve all rights, title and
+interest not expressly granted to you in these Terms. “Splice Machine” is our registered trademark. Other names
+appearing on the Site may be trademarks of their respective owners. Please adhere to any applicable trademark,
+copyright, or other proprietary notices.
+
+Third Parties
+
+We are not responsible for any third-party Content accessed on or through the Site, even if our Site contains a
+link to it. You bear all risk in connection with the use of third-party content, products, websites, or services.
+
+Disclaimer
+
+We and our suppliers provide the Site, Services, and all Content to you on an "As Is" and "As Available" basis;
+we make no promises and assume no responsibility regarding the function of the Site or Services or the accuracy of
+Content, and we may add, change, or discontinue features at any time; if you are dissatisfied, your remedy is to stop
+using the Site or the affected Service. All use is at your own risk. Some jurisdictions do not allow warranty exclusions,
+so they may not apply to you.
+
+Limitation of Liability
+
+IN NO EVENT SHALL WE BE LIABLE TO YOU OR ANY THIRD PARTY FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, OR CONSEQUENTIAL
+DAMAGES, OR DAMAGES FOR LOSS OF PROFITS, BUSINESS INTERRUPTION, LOSS OF DATA, OR UNDER ANY OTHER THEORY, INCURRED BY YOU
+OR ANY THIRD PARTY, WHETHER IN AN ACTION IN CONTRACT OR TORT, ARISING FROM YOUR ACCESS TO, OR USE OF, THE SITE, SERVICES,
+OR ANY CONTENT ACCESSED ON OR THROUGH THE SITE. Some jurisdictions do not allow damages exclusions, so they may not apply
+to you.
+
+Indemnification
+
+You agree to indemnify and hold us harmless, including our officers, directors, employees and agents, from and against any
+and all claims, liabilities, damages, losses or expenses, including reasonable attorneys' fees and costs, due to or arising
+out of any Content provided by you; your violation of these Terms or any other applicable terms; your violation or infringement
+of any intellectual property or other rights of a third party; or otherwise attributable to your use of the Site, Services, or Content.
+
+Termination
+
+Subject to any other more specific agreement we may have with you, we may terminate your right to access and use our Site,
+Services, and Content at any time, without notice or liability to you, entirely at our discretion.
+
+Minors
+
+If you are a minor between the ages of 13 to 18, you are not eligible to use our Site, Services, or Content without the
+specific permission of your parent/guardian. Minors under the age of 13 are not eligible under any circumstances to use our
+Site, Services, or Content.
+
+Miscellaneous
+
+These Terms, and any dispute arising from or relating to your interaction with the Site, Services, Content, or these Terms,
+are governed by the laws of the State of California without regard to principles of conflicts of laws. Any legal action must
+be brought in a state or federal court in San Francisco, California, and you and Splice Machine consent to the exclusive
+jurisdiction of and venue in such courts. These Terms do not create any agency, partnership, joint venture, employment or
+franchise relationship. You may not assign your rights or obligations under these Terms without our prior written consent,
+and any attempted transfer, assignment or delegation without such consent will be void and without effect. We may freely
+transfer, assign or delegate our rights and obligations under these Terms. Subject to the foregoing, these Terms will be
+binding upon and will inure to the benefit of the parties and their respective representatives, heirs, administrators,
+successors and permitted assigns. If any provision of these Terms is invalid, illegal or incapable of being enforced by
+any rule of law or public policy, all other provisions of these Terms will nonetheless remain in full force and effect so
+long as the economic or legal substance of the transactions contemplated by these Terms is not affected in any manner adverse
+to any party. Upon such determination that any provision is invalid, illegal or incapable of being enforced, the parties will
+negotiate in good faith to modify the Terms so as to effect the original intent of the parties as closely as possible in an
+acceptable manner to the end that the transactions contemplated hereby are fulfilled. Our failure to act in a particular
+circumstance does not waive our right to act with respect to that or other circumstances. Section headings are for convenience
+of reference only, and are not intended to affect the interpretation of those sections.
+
+Contact Us
+
+If you have any questions regarding these Terms, please contact us at info@splicemachine.com. If you have any other questions,
+contact information is available at the “Contact Us” page of the Site.
+
+
+
+Last Updated: July 14, 2016
+
+
+
+Open Source Software Licenses, including License URLs:
+
+AntLR Parser Generator, BSD License, antlr:antlr:2.7.7 - http://www.antlr.org/
+AOP alliance, Public Domain, aopalliance:aopalliance:1.0 - http://aopalliance.sourceforge.net
+ASM Core, OW2 License (http://asm.ow2.org/license.html), asm:asm:3.1 - http://asm.objectweb.org/asm/
+ASM Commons, OW2 License (http://asm.ow2.org/license.html), asm:asm-commons:3.1 - http://asm.objectweb.org/asm-commons/
+ASM Tree, OW2 License (http://asm.ow2.org/license.html), asm:asm-tree:3.1 - http://asm.objectweb.org/asm-tree/
+ZkClient, The Apache Software License Version 2.0, com.101tec:zkclient:0.3 - https://github.com/sgroschupf/zkclient
+HPPC Collections, The Apache Software License Version 2.0, com.carrotsearch:hppc:0.5.2 - http://labs.carrotsearch.com/hppc.html/hppc
+CDH Hadoop Maven Wrapper, The Apache Software License Version 2.0, com.cloudera.cdh:hadoop-ant:2.6.0-mr1-cdh5.5.2 - no url defined
+Metrics Core, Apache License 2.0, com.codahale.metrics:metrics-core:3.0.2 - http://metrics.codahale.com/metrics-core/
+Jackson Integration for Metrics, Apache License 2.0, com.codahale.metrics:metrics-json:3.0.2 - http://metrics.codahale.com/metrics-json/
+JVM Integration for Metrics, Apache License 2.0, com.codahale.metrics:metrics-jvm:3.0.2 - http://metrics.codahale.com/metrics-jvm/
+Kryo, New BSD License, com.esotericsoftware.kryo:kryo:2.21 - http://code.google.com/p/kryo/
+MinLog, New BSD License, com.esotericsoftware.minlog:minlog:1.2 - http://code.google.com/p/minlog/
+ReflectASM, New BSD License, com.esotericsoftware.reflectasm:reflectasm:1.07 - http://code.google.com/p/reflectasm/
+Jackson Annotations, Apache License 2.0,The Apache Software License Version 2.0 Jackson-annotations com.fasterxml.jackson.core:jackson-annotations:2.2.2 - http://wiki.fasterxml.com/JacksonHome
+Jackson Core, Apache License 2.0,The Apache Software License Version 2.0 Jackson-core com.fasterxml.jackson.core:jackson-core:2.2.2 - http://wiki.fasterxml.com/JacksonHome
+Jackson Databind, Apache License 2.0,The Apache Software License Version 2.0 jackson-databind com.fasterxml.jackson.core:jackson-databind:2.2.2 - http://wiki.fasterxml.com/JacksonHome
+Highly Scalable Java, Public Domain, com.github.stephenc.high-scale-lib:high-scale-lib:1.1.1 - http://nexus.sonatype.org/oss-repository-hosting.html/high-scale-lib-parent/high-scale-lib
+Gson, The Apache Software License Version 2.0, com.google.code.gson:gson:2.2.2 - http://code.google.com/p/google-gson/
+Guava: Google Core Libraries for Java, The Apache Software License Version 2.0, com.google.guava:guava:12.0.1 - http://code.google.com/p/guava-libraries/guava
+Google Guice - Core Library, The Apache Software License Version 2.0, com.google.inject:guice:3.0 - http://code.google.com/p/google-guice/guice/
+Google Guice - Extensions - Servlet, The Apache Software License Version 2.0, com.google.inject.extensions:guice-servlet:3.0 - http://code.google.com/p/google-guice/extensions-parent/guice-servlet/
+Protocol Buffer Java API, New BSD license, com.google.protobuf:protobuf-java:2.5.0 - http://code.google.com/p/protobuf
+ConcurrentLinkedHashMap, The Apache Software License Version 2.0, com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2 - http://code.google.com/p/concurrentlinkedhashmap
+java-xmlbuilder, Apache License Version 2.0, com.jamesmurty.utils:java-xmlbuilder:0.4 - http://code.google.com/p/java-xmlbuilder/
+JSch, BSD, com.jcraft:jsch:0.1.42 - http://www.jcraft.com/jsch/
+BoneCP :: Core Library, Apache v2, com.jolbox:bonecp:0.8.0.RELEASE - http://jolbox.com/bonecp
+Disruptor Framework, The Apache Software License Version 2.0, com.lmax:disruptor:3.2.1 - http://lmax-exchange.github.com/disruptor
+Jersey Client, CDDL 1.1,GPL2 w/ CPE jersey-client com.sun.jersey:jersey-client:1.9 - https://jersey.java.net/jersey-client/
+Jersey Core, CDDL 1.1,GPL2 w/ CPE jersey-core com.sun.jersey:jersey-core:1.8 - https://jersey.dev.java.net/jersey-core/
+Jersey Core, CDDL 1.1,GPL2 w/ CPE jersey-core com.sun.jersey:jersey-core:1.9 - https://jersey.java.net/jersey-core/
+Jersey JSON, CDDL 1.1,GPL2 w/ CPE jersey-json com.sun.jersey:jersey-json:1.9 - https://jersey.java.net/jersey-json/
+Jersey Server, CDDL 1.1,GPL2 w/ CPE jersey-server com.sun.jersey:jersey-server:1.9 - https://jersey.java.net/jersey-server/
+Jersey Servlet, CDDL 1.1,GPL2 w/ CPE jersey-servlet com.sun.jersey:jersey-servlet:1.14 - https://jersey.java.net/jersey-servlet/
+Jersey Contribs, CDDL 1.1,GPL2 w/ CPE jersey-guice com.sun.jersey.contribs:jersey-guice:1.9 - https://jersey.java.net/jersey-contribs/jersey-guice/
+JAXB, CDDL 1.1,GPL2 w/ CPE JAXB RI com.sun.xml.bind:jaxb-impl:2.2.3-1 - http://jaxb.java.net/
+ParaNamer Core, BSD, com.thoughtworks.paranamer:paranamer:2.3 - http://paranamer.codehaus.org/paranamer
+Apache Parquet Hadoop Bundle, The Apache Software License Version 2.0, com.twitter:parquet-hadoop-bundle:1.5.0-cdh5.5.2 - https://parquet.apache.org
+Metrics Core Library, Apache License 2.0, com.yammer.metrics:metrics-core:2.1.2 - http://metrics.codahale.com/metrics-core/
+commons-beanutils, Apache License 2.0, commons-beanutils:commons-beanutils:1.7.0 - no url defined
+Commons BeanUtils Core, The Apache Software License Version 2.0, commons-beanutils:commons-beanutils-core:1.8.0 - http://commons.apache.org/beanutils/
+Commons CLI, The Apache Software License Version 2.0, commons-cli:commons-cli:1.2 - http://commons.apache.org/cli/
+Apache Commons Codec, Apache License Version 2.0, commons-codec:commons-codec:1.10 - http://commons.apache.org/proper/commons-codec/
+Apache Commons Codec, The Apache Software License Version 2.0, commons-codec:commons-codec:1.9 - http://commons.apache.org/proper/commons-codec/
+Apache Commons Collections, Apache License Version 2.0, commons-collections:commons-collections:3.2.2 - http://commons.apache.org/collections/
+Commons Configuration, The Apache Software License Version 2.0, commons-configuration:commons-configuration:1.6 - http://commons.apache.org/${pom.artifactId.substring8}/
+Commons Daemon, The Apache Software License Version 2.0, commons-daemon:commons-daemon:1.0.13 - http://commons.apache.org/daemon/
+Commons DBCP, The Apache Software License Version 2.0, commons-dbcp:commons-dbcp:1.4 - http://commons.apache.org/dbcp/
+Commons DbUtils, The Apache Software License Version 2.0, commons-dbutils:commons-dbutils:1.5 - http://commons.apache.org/dbutils/
+Digester, The Apache Software License Version 2.0, commons-digester:commons-digester:1.8 - http://jakarta.apache.org/commons/digester/
+EL, The Apache Software License Version 2.0, commons-el:commons-el:1.0 - http://jakarta.apache.org/commons/el/
+HttpClient, The Apache Software License Version 2.0, commons-httpclient:commons-httpclient:3.1 - http://jakarta.apache.org/httpcomponents/httpclient-3.x/
+Commons IO, The Apache Software License Version 2.0, commons-io:commons-io:2.1 - http://commons.apache.org/io/
+Commons Lang, The Apache Software License Version 2.0, commons-lang:commons-lang:2.5 - http://commons.apache.org/lang/
+Commons Logging, The Apache Software License Version 2.0, commons-logging:commons-logging:1.1.1 - http://commons.apache.org/logging
+Commons Net, The Apache Software License Version 2.0, commons-net:commons-net:3.1 - http://commons.apache.org/net/
+Commons Pool, The Apache Software License Version 2.0, commons-pool:commons-pool:1.5.4 - http://commons.apache.org/pool/
+kryo serializers, The Apache Software License Version 2.0, de.javakaffee:kryo-serializers:0.26 - https://github.com/magro/kryo-serializers
+eigenbase-properties, The Apache Software License Version 2.0, eigenbase:eigenbase-properties:1.1.4 - no url defined
+HSQLDB, HSQLDB License, hsqldb:hsqldb:1.8.0.10 - http://hsqldb.org/
+The Netty Project, Apache License Version 2.0, io.netty:netty:3.6.6.Final - http://netty.io/
+Netty/All-in-One, Apache License Version 2.0, io.netty:netty-all:4.0.23.Final - http://netty.io/netty-all/
+v1.0 JavaBeans Activation Framework, Common Development and Distribution License CDDL, JAF javax.activation:activation:1.1 - http://java.sun.com/products/javabeans/jaf/index.jsp
+javax.inject, The Apache Software License Version 2.0, javax.inject:javax.inject:1 - http://code.google.com/p/atinject/
+JDO API, Apache 2, javax.jdo:jdo-api:3.0.1 - http://db.apache.org/jdo
+v1.0 JavaMail API, Common Development and Distribution License CDDL, javax.mail:mail:1.4.1 - https://glassfish.dev.java.net/javaee5/mail/
+servlet-api, Unknown license, javax.servlet:servlet-api:2.5 - no url defined
+jsp-api, Unknown license, javax.servlet.jsp:jsp-api:2.1 - no url defined
+Java Transaction API, Unknown license, javax.transaction:jta:1.1 - http://java.sun.com/products/jta
+jaxb-api, Unknown license, javax.xml.bind:jaxb-api:2.1 - no url defined
+JLine, The BSD License, jline:jline:2.12 - http://nexus.sonatype.org/oss-repository-hosting.html/jline
+Joda-Time, Apache 2, joda-time:joda-time:2.3 - http://www.joda.org/joda-time/
+JUnit, Eclipse Public License 1.0, junit:junit:4.12 - http://junit.org
+Apache Extras峨｢ for Apache log4j峨｢., The Apache Software License Version 2.0, log4j:apache-log4j-extras:1.2.17 - http://logging.apache.org/log4j/extras
+Apache Log4j, The Apache Software License Version 2.0, log4j:log4j:1.2.17 - http://logging.apache.org/log4j/1.2/
+An open source Java toolkit for Amazon S3, Apache License Version 2.0, net.java.dev.jets3t:jets3t:0.9.0 - http://www.jets3t.org
+LZ4 and xxHash, The Apache Software License Version 2.0, net.jpountz.lz4:lz4:1.2.0 - https://github.com/jpountz/lz4-java
+JOpt Simple, The MIT License, net.sf.jopt-simple:jopt-simple:3.2 - http://jopt-simple.sourceforge.net
+JPam, The Apache Software License Version 2.0, net.sf.jpam:jpam:1.1 - http://jpam.sf.net
+opencsv, Apache 2, net.sf.opencsv:opencsv:2.3 - http://opencsv.sf.net
+Super CSV Core, Apache License Version 2.0, net.sf.supercsv:super-csv:2.4.0 - https://github.com/super-csv/super-csv/super-csv
+ANTLR ST4 4.0.4, BSD licence, org.antlr:ST4:4.0.4 - http://www.stringtemplate.org
+Antlr 3.4 Runtime, BSD licence, org.antlr:antlr-runtime:3.4 - http://www.antlr.org
+ANTLR StringTemplate, BSD licence, org.antlr:stringtemplate:3.2.1 - http://www.stringtemplate.org
+Apache Ant Core, The Apache Software License Version 2.0, org.apache.ant:ant:1.9.1 - http://ant.apache.org/
+Apache Ant Launcher, The Apache Software License Version 2.0, org.apache.ant:ant-launcher:1.9.1 - http://ant.apache.org/
+Apache Avro, The Apache Software License Version 2.0, org.apache.avro:avro:1.7.6-cdh5.5.2 - http://avro.apache.org
+Calcite Avatica, Apache License Version 2.0, org.apache.calcite:calcite-avatica:1.0.0-incubating - http://calcite.incubator.apache.org/calcite-avatica
+Calcite Core, Apache License Version 2.0, org.apache.calcite:calcite-core:1.0.0-incubating - http://calcite.incubator.apache.org/calcite-core
+Calcite Linq4j, Apache License Version 2.0, org.apache.calcite:calcite-linq4j:1.0.0-incubating - http://calcite.incubator.apache.org/calcite-linq4j
+Commons Compress, The Apache Software License Version 2.0, org.apache.commons:commons-compress:1.4.1 - http://commons.apache.org/compress/
+Commons Lang, The Apache Software License Version 2.0, org.apache.commons:commons-lang3:3.1 - http://commons.apache.org/lang/
+Commons Math, The Apache Software License Version 2.0, org.apache.commons:commons-math:2.1 - http://commons.apache.org/math/
+Commons Math, The Apache Software License Version 2.0, org.apache.commons:commons-math3:3.1.1 - http://commons.apache.org/math/
+Apache Curator, The Apache Software License Version 2.0, org.apache.curator:apache-curator:2.6.0 - http://curator.apache.org
+Curator Client, The Apache Software License Version 2.0, org.apache.curator:curator-client:2.7.1 - http://curator.apache.org/curator-client
+Curator Framework, The Apache Software License Version 2.0, org.apache.curator:curator-framework:2.6.0 - http://curator.apache.org/curator-framework
+Curator Framework, The Apache Software License Version 2.0, org.apache.curator:curator-framework:2.7.1 - http://curator.apache.org/curator-framework
+Curator Recipes, The Apache Software License Version 2.0, org.apache.curator:curator-recipes:2.7.1 - http://curator.apache.org/curator-recipes
+Apache Derby Database Engine and Embedded JDBC Driver, Apache 2, org.apache.derby:derby:10.11.1.1 - http://db.apache.org/derby/derby/
+Apache Directory API ASN.1 API, The Apache Software License Version 2.0, org.apache.directory.api:api-asn1-api:1.0.0-M20 - http://directory.apache.org/api-parent/api-asn1-parent/api-asn1-api/
+Apache Directory LDAP API Utilities, The Apache Software License Version 2.0, org.apache.directory.api:api-util:1.0.0-M20 - http://directory.apache.org/api-parent/api-util/
+ApacheDS I18n, The Apache Software License Version 2.0, org.apache.directory.server:apacheds-i18n:2.0.0-M15 - http://directory.apache.org/apacheds/1.5/apacheds-i18n
+ApacheDS Protocol Kerberos Codec, The Apache Software License Version 2.0, org.apache.directory.server:apacheds-kerberos-codec:2.0.0-M15 - http://directory.apache.org/apacheds/1.5/apacheds-kerberos-codec
+Apache Ftplet API, Apache 2.0 License, org.apache.ftpserver:ftplet-api:1.0.0 - http://mina.apache.org/ftpserver
+Apache FtpServer Core, Apache 2.0 License, org.apache.ftpserver:ftpserver-core:1.0.0 - http://mina.apache.org/ftpserver/ftpserver-core
+Apache FtpServer Deprecated classes, Apache 2.0 License, org.apache.ftpserver:ftpserver-deprecated:1.0.0-M2 - http://mina.apache.org/ftpserver/ftpserver-deprecated
+Annotation 1.0, The Apache Software License Version 2.0, org.apache.geronimo.specs:geronimo-annotation_1.0_spec:1.1.1 - http://geronimo.apache.org/specs/geronimo-annotation_1.0_spec
+Java Authentication SPI for Containers, The Apache Software License Version 2.0, org.apache.geronimo.specs:geronimo-jaspic_1.0_spec:1.0 - http://geronimo.apache.org/maven/specs/geronimo-jaspic_1.0_spec/1.0
+JTA 1.1, The Apache Software License Version 2.0, org.apache.geronimo.specs:geronimo-jta_1.1_spec:1.1.1 - http://geronimo.apache.org/specs/geronimo-jta_1.1_spec
+Apache Hadoop Annotations, The Apache Software License Version 2.0, org.apache.hadoop:hadoop-annotations:2.6.0-cdh5.5.2 - no url defined
+Apache Hadoop Auth, The Apache Software License Version 2.0, org.apache.hadoop:hadoop-auth:2.6.0-cdh5.5.2 - no url defined
+Apache Hadoop Common, The Apache Software License Version 2.0, org.apache.hadoop:hadoop-common:2.6.0-cdh5.5.2 - no url defined
+hadoop-core, The Apache Software License Version 2.0, org.apache.hadoop:hadoop-core:2.6.0-mr1-cdh5.5.2 - no url defined
+Apache Hadoop HDFS, The Apache Software License Version 2.0, org.apache.hadoop:hadoop-hdfs:2.6.0-cdh5.5.2 - no url defined
+hadoop-mapreduce-client-common, The Apache Software License Version 2.0, org.apache.hadoop:hadoop-mapreduce-client-common:2.6.0-cdh5.5.2 - no url defined
+hadoop-mapreduce-client-core, The Apache Software License Version 2.0, org.apache.hadoop:hadoop-mapreduce-client-core:2.6.0-cdh5.5.2 - no url defined
+hadoop-mapreduce-client-shuffle, The Apache Software License Version 2.0, org.apache.hadoop:hadoop-mapreduce-client-shuffle:2.6.0-cdh5.5.2 - no url defined
+Apache Hadoop Mini-Cluster, The Apache Software License Version 2.0, org.apache.hadoop:hadoop-minicluster:2.6.0-mr1-cdh5.5.2 - no url defined
+hadoop-test, The Apache Software License Version 2.0, org.apache.hadoop:hadoop-test:2.6.0-mr1-cdh5.5.2 - no url defined
+hadoop-tools, The Apache Software License Version 2.0, org.apache.hadoop:hadoop-tools:2.6.0-mr1-cdh5.5.2 - no url defined
+hadoop-yarn-api, The Apache Software License Version 2.0, org.apache.hadoop:hadoop-yarn-api:2.6.0-cdh5.5.2 - no url defined
+hadoop-yarn-client, The Apache Software License Version 2.0, org.apache.hadoop:hadoop-yarn-client:2.6.0-cdh5.5.2 - no url defined
+hadoop-yarn-common, The Apache Software License Version 2.0, org.apache.hadoop:hadoop-yarn-common:2.6.0-cdh5.5.2 - no url defined
+hadoop-yarn-server-applicationhistoryservice, The Apache Software License Version 2.0, org.apache.hadoop:hadoop-yarn-server-applicationhistoryservice:2.6.0-cdh5.5.2 - no url defined
+hadoop-yarn-server-common, The Apache Software License Version 2.0, org.apache.hadoop:hadoop-yarn-server-common:2.6.0-cdh5.5.2 - no url defined
+hadoop-yarn-server-nodemanager, The Apache Software License Version 2.0, org.apache.hadoop:hadoop-yarn-server-nodemanager:2.6.0-cdh5.5.2 - no url defined
+hadoop-yarn-server-resourcemanager, The Apache Software License Version 2.0, org.apache.hadoop:hadoop-yarn-server-resourcemanager:2.6.0-cdh5.5.2 - no url defined
+hadoop-yarn-server-tests, The Apache Software License Version 2.0, org.apache.hadoop:hadoop-yarn-server-tests:2.6.0-cdh5.5.2 - no url defined
+hadoop-yarn-server-web-proxy, The Apache Software License Version 2.0, org.apache.hadoop:hadoop-yarn-server-web-proxy:2.6.0-cdh5.5.2 - no url defined
+HBase - Annotations, The Apache Software License Version 2.0, org.apache.hbase:hbase-annotations:1.0.0-cdh5.5.2 - http://hbase.apache.org/hbase-annotations
+HBase - Client, The Apache Software License Version 2.0, org.apache.hbase:hbase-client:1.0.0-cdh5.5.2 - http://hbase.apache.org/hbase-client
+HBase - Common, The Apache Software License Version 2.0, org.apache.hbase:hbase-common:1.0.0-cdh5.5.2 - http://hbase.apache.org/hbase-common
+HBase - Hadoop Compatibility, The Apache Software License Version 2.0, org.apache.hbase:hbase-hadoop-compat:1.0.0-cdh5.5.2 - http://hbase.apache.org/hbase-hadoop-compat
+HBase - Hadoop Two Compatibility, The Apache Software License Version 2.0, org.apache.hbase:hbase-hadoop2-compat:1.0.0-cdh5.5.2 - http://hbase.apache.org/hbase-hadoop2-compat
+HBase - Prefix Tree, The Apache Software License Version 2.0, org.apache.hbase:hbase-prefix-tree:1.0.0-cdh5.5.2 - http://hbase.apache.org/hbase-prefix-tree
+HBase - Protocol, The Apache Software License Version 2.0, org.apache.hbase:hbase-protocol:1.0.0-cdh5.5.2 - http://hbase.apache.org/hbase-protocol
+HBase - Server, The Apache Software License Version 2.0, org.apache.hbase:hbase-server:1.0.0-cdh5.5.2 - http://hbase.apache.org/hbase-server
+HBase - Testing Util, The Apache Software License Version 2.0, org.apache.hbase:hbase-testing-util:1.0.0-cdh5.5.2 - http://hbase.apache.org/hbase-testing-util
+Hive Ant Utilities, The Apache Software License Version 2.0, org.apache.hive:hive-ant:1.1.0-cdh5.5.2 - http://hive.apache.org/hive-ant
+Hive Beeline, The Apache Software License Version 2.0, org.apache.hive:hive-beeline:1.1.0-cdh5.5.2 - http://hive.apache.org/hive-beeline
+Hive CLI, The Apache Software License Version 2.0, org.apache.hive:hive-cli:1.1.0-cdh5.5.2 - http://hive.apache.org/hive-cli
+Hive Common, The Apache Software License Version 2.0, org.apache.hive:hive-common:1.1.0-cdh5.5.2 - http://hive.apache.org/hive-common
+Hive Contrib, The Apache Software License Version 2.0, org.apache.hive:hive-contrib:1.1.0-cdh5.5.2 - http://hive.apache.org/hive-contrib
+Hive Query Language, The Apache Software License Version 2.0, org.apache.hive:hive-exec:1.1.0-cdh5.5.2 - http://hive.apache.org/hive-exec
+Hive HBase Handler, The Apache Software License Version 2.0, org.apache.hive:hive-hbase-handler:1.1.0-cdh5.5.2 - http://hive.apache.org/hive-hbase-handler
+Hive HWI, The Apache Software License Version 2.0, org.apache.hive:hive-hwi:1.1.0-cdh5.5.2 - http://hive.apache.org/hive-hwi
+Hive JDBC, The Apache Software License Version 2.0, org.apache.hive:hive-jdbc:1.1.0-cdh5.5.2 - http://hive.apache.org/hive-jdbc
+Hive Metastore, The Apache Software License Version 2.0, org.apache.hive:hive-metastore:1.1.0-cdh5.5.2 - http://hive.apache.org/hive-metastore
+Hive Serde, The Apache Software License Version 2.0, org.apache.hive:hive-serde:1.1.0-cdh5.5.2 - http://hive.apache.org/hive-serde
+Hive Service, The Apache Software License Version 2.0, org.apache.hive:hive-service:1.1.0-cdh5.5.2 - http://hive.apache.org/hive-service
+Hive Shims, The Apache Software License Version 2.0, org.apache.hive:hive-shims:1.1.0-cdh5.5.2 - http://hive.apache.org/hive-shims
+Hive Shims 0.23, The Apache Software License Version 2.0, org.apache.hive.shims:hive-shims-0.23:1.1.0-cdh5.5.2 - http://hive.apache.org/hive-shims-0.23
+Hive Shims Common, The Apache Software License Version 2.0, org.apache.hive.shims:hive-shims-common:1.1.0-cdh5.5.2 - http://hive.apache.org/hive-shims-common
+Hive Shims Scheduler, The Apache Software License Version 2.0, org.apache.hive.shims:hive-shims-scheduler:1.1.0-cdh5.5.2 - http://hive.apache.org/hive-shims-scheduler
+htrace-core, The Apache Software License Version 2.0, org.apache.htrace:htrace-core:3.2.0-incubating - http://incubator.apache.org/projects/htrace.html
+htrace-core4, The Apache Software License Version 2.0, org.apache.htrace:htrace-core4:4.0.1-incubating - http://incubator.apache.org/projects/htrace.html
+HttpClient, Apache License, org.apache.httpcomponents:httpclient:4.2.5 - http://hc.apache.org/httpcomponents-client
+HttpCore, Apache License, org.apache.httpcomponents:httpcore:4.1.2 - http://hc.apache.org/httpcomponents-core-ga
+Apache HttpCore, Apache License, org.apache.httpcomponents:httpcore:4.2.5 - http://hc.apache.org/httpcomponents-core-ga
+Apache Kafka, The Apache Software License Version 2.0, org.apache.kafka:kafka-clients:0.8.2.0-kafka-1.2.0 - http://kafka.apache.org
+Apache Kafka, The Apache Software License Version 2.0, org.apache.kafka:kafka_2.10:0.8.2.0-kafka-1.2.0 - http://kafka.apache.org
+Lucene Core, Apache 2, org.apache.lucene:lucene-core:4.3.1 - http://lucene.apache.org/lucene-parent/lucene-core
+Apache MINA Core, Apache 2.0 License, org.apache.mina:mina-core:2.0.0-M5 - http://mina.apache.org/mina-core
+Apache Thrift, The Apache Software License Version 2.0, org.apache.thrift:libfb303:0.9.2 - http://thrift.apache.org
+Apache Thrift, The Apache Software License Version 2.0, org.apache.thrift:libthrift:0.9.2 - http://thrift.apache.org
+Apache Velocity, The Apache Software License Version 2.0, org.apache.velocity:velocity:1.5 - http://velocity.apache.org/engine/releases/velocity-1.5/
+zookeeper, The Apache Software License Version 2.0, org.apache.zookeeper:zookeeper:3.4.5-cdh5.5.2 - no url defined
+Log Redactor, The Apache Software License Version 2.0, org.cloudera.logredactor:logredactor:1.0.3 - no url defined
+Apache Groovy, The Apache Software License Version 2.0, org.codehaus.groovy:groovy-all:2.4.4 - http://groovy-lang.org
+Jackson, The Apache Software License Version 2.0, org.codehaus.jackson:jackson-core-asl:1.8.8 - http://jackson.codehaus.org
+Version 2.1, GNU Lesser General Public License LGPL, The Apache Software License Version 2.0 JAX-RS provider for JSON content type org.codehaus.jackson:jackson-jaxrs:1.8.8 - http://jackson.codehaus.org
+Data Mapper for Jackson, The Apache Software License Version 2.0, org.codehaus.jackson:jackson-mapper-asl:1.8.8 - http://jackson.codehaus.org
+Version 2.1, GNU Lesser General Public License LGPL, The Apache Software License Version 2.0 Xml Compatibility extensions for Jackson org.codehaus.jackson:jackson-xc:1.8.3 - http://jackson.codehaus.org
+Version 2.1, GNU Lesser General Public License LGPL, The Apache Software License Version 2.0 Xml Compatibility extensions for Jackson org.codehaus.jackson:jackson-xc:1.8.8 - http://jackson.codehaus.org
+Commons Compiler, New BSD License, org.codehaus.janino:commons-compiler:2.7.6 - http://docs.codehaus.org/display/JANINO/Home/commons-compiler
+Janino, New BSD License, org.codehaus.janino:janino:2.7.6 - http://docs.codehaus.org/display/JANINO/Home/janino
+Jettison, The Apache Software License Version 2.0, org.codehaus.jettison:jettison:1.1 - no url defined
+DataNucleus JDO API plugin, The Apache Software License Version 2.0, org.datanucleus:datanucleus-api-jdo:3.2.6 - http://www.datanucleus.org
+DataNucleus Core, The Apache Software License Version 2.0, org.datanucleus:datanucleus-core:3.2.10 - http://www.datanucleus.org
+DataNucleus RDBMS, The Apache Software License Version 2.0, org.datanucleus:datanucleus-rdbms:3.2.9 - http://www.datanucleus.org
+leveldbjni-all, The BSD 3-Clause License, org.fusesource.leveldbjni:leveldbjni-all:1.8 - http://leveldbjni.fusesource.org/leveldbjni-all
+Hamcrest Core, New BSD License, org.hamcrest:hamcrest-core:1.3 - https://github.com/hamcrest/JavaHamcrest/hamcrest-core
+jamon-runtime, Mozilla Public License Version 1.1, org.jamon:jamon-runtime:2.3.1 - http://www.jamon.org/jamon-runtime/
+JCodings, MIT License, org.jruby.jcodings:jcodings:1.0.8 - no url defined
+Joni, MIT License, org.jruby.joni:joni:2.1.2 - http://nexus.sonatype.org/oss-repository-hosting.html/joni
+Mockito, The MIT License, org.mockito:mockito-all:1.9.5 - http://www.mockito.org
+Jetty SSLEngine, Apache License Version 2, org.mortbay.jetty:jetty-sslengine:6.1.26.cloudera.4 - http://jetty.mortbay.org
+Glassfish Jasper, CDDL 1.0, org.mortbay.jetty:jsp-2.1:6.1.14 - http://jetty.mortbay.org/project/modules/jsp-2.1
+Glassfish Jasper API, Apache License Version 2.0, org.mortbay.jetty:jsp-api-2.1:6.1.14 - http://jetty.mortbay.org/project/modules/jsp-api-2.1
+Servlet Specification 2.5 API, CDDL 1.0, org.mortbay.jetty:servlet-api-2.5:6.1.14 - http://jetty.mortbay.org/project/modules/servlet-api-2.5
+Objenesis, Apache 2, org.objenesis:objenesis:1.2 - http://objenesis.googlecode.com/svn/docs/index.html
+ASM Core, BSD, org.ow2.asm:asm:4.0 - http://asm.objectweb.org/asm/
+pentaho-aggdesigner-algorithm, The Apache Software License Version 2.0, org.pentaho:pentaho-aggdesigner-algorithm:5.1.5-jhyde - no url defined
+Scala Library, BSD-like, org.scala-lang:scala-library:2.10.4 - http://www.scala-lang.org/
+SLF4J API Module, MIT License, org.slf4j:slf4j-api:1.7.13 - http://www.slf4j.org
+SLF4J API Module, MIT License, org.slf4j:slf4j-api:1.7.5 - http://www.slf4j.org
+SLF4J LOG4J-12 Binding, MIT License, org.slf4j:slf4j-log4j12:1.7.13 - http://www.slf4j.org
+SLF4J LOG4J-12 Binding, MIT License, org.slf4j:slf4j-log4j12:1.7.5 - http://www.slf4j.org
+XZ for Java, Public Domain, org.tukaani:xz:1.0 - http://tukaani.org/xz/java.html
+Snappy for Java, The Apache Software License Version 2.0, org.xerial.snappy:snappy-java:1.0.4.1 - http://code.google.com/p/snappy-java/
+snappy-java, The Apache Software License Version 2.0, org.xerial.snappy:snappy-java:1.1.1.6 - https://github.comm/xerial/snappy-java
+oro, The Apache Software License Version 2.0, oro:oro:2.0.8 - https://attic.apache.org/projects/jakarta-oro.html
+StAX API, The Apache Software License Version 2.0, stax:stax-api:1.0.1 - http://stax.codehaus.org/
+jasper-compiler, The Apache Software License Version 2.0, tomcat:jasper-compiler:5.5.23 - http://tomcat.apache.org/jasper-compiler
+jasper-runtime, The Apache Software License Version 2.0, tomcat:jasper-runtime:5.5.23 - http://tomcat.apache.org/jasper-runtime
+Xerces2 Java Parser, The Apache Software License Version 2.0, xerces:xercesImpl:2.9.1 - http://xerces.apache.org/xerces2-j
+XML Commons External Components XML APIs, The Apache Software License Version 2.0, xml-apis:xml-apis:1.3.04 - http://xml.apache.org/commons/components/external/
+xmlenc Library, The BSD License, xmlenc:xmlenc:0.52 - http://xmlenc.sourceforge.net
+
+
+
