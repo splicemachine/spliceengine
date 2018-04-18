@@ -68,9 +68,8 @@ public class AsynchronousDDLWatcher implements DDLWatcher,CommunicationListener{
         this.checker = ddlWatchChecker;
         this.refresher = new DDLWatchRefresher(checker,
                 txnController,
-                clock,
                 exceptionFactory,
-                maxDdlWait,txnSupplier );
+                txnSupplier );
     }
 
     @Override
