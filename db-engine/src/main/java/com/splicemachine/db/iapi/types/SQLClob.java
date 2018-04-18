@@ -263,7 +263,18 @@ public class SQLClob
 
 	public int	getInt() throws StandardException
 	{
-		throw dataTypeConversion("int");
+        if (isNull())
+            return 0;
+
+        try
+        {
+            return Integer.parseInt(getString().trim());
+        }
+        catch (NumberFormatException nfe)
+        {
+            throw StandardException.newException(
+                    com.splicemachine.db.iapi.reference.SQLState.LANG_FORMAT_EXCEPTION, "int");
+        }
 	}
 
     /**
@@ -324,21 +335,54 @@ public class SQLClob
 
 	public long	getLong() throws StandardException
 	{
-		throw dataTypeConversion("long");
+        if (isNull())
+            return 0;
+
+        try
+        {
+            return Long.parseLong(getString().trim());
+
+        }
+        catch (NumberFormatException nfe)
+        {
+            throw StandardException.newException(
+                    com.splicemachine.db.iapi.reference.SQLState.LANG_FORMAT_EXCEPTION, "long");
+        }
 	}
 
 	public float	getFloat() throws StandardException
 	{
-		throw dataTypeConversion("float");
+        if (isNull())
+            return 0;
+
+        try
+        {
+            return new Float(getString().trim());
+        }
+        catch (NumberFormatException nfe)
+        {
+            throw StandardException.newException(
+                    com.splicemachine.db.iapi.reference.SQLState.LANG_FORMAT_EXCEPTION, "float");
+        }
 	}
 
 	public double	getDouble() throws StandardException
 	{
-		throw dataTypeConversion("double");
+        if (isNull())
+            return 0;
+        try
+        {
+            return new Double(getString().trim());
+        }
+        catch (NumberFormatException nfe)
+        {
+            throw StandardException.newException(
+                    com.splicemachine.db.iapi.reference.SQLState.LANG_FORMAT_EXCEPTION, "double");
+        }
 	}
 	public int typeToBigDecimal() throws StandardException
 	{
-		throw dataTypeConversion("java.math.BigDecimal");
+        return java.sql.Types.CHAR;
 	}
 	public byte[]	getBytes() throws StandardException
 	{
@@ -347,7 +391,7 @@ public class SQLClob
 
 	public Date	getDate(java.util.Calendar cal) throws StandardException
 	{
-		throw dataTypeConversion("java.sql.Date");
+        return getDate(cal, getString(), getLocaleFinder());
 	}
 
     /**
