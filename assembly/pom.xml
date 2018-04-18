@@ -191,6 +191,9 @@
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta">
                                             <fileset dir="target/classes/meta" includes="**/*"/>
                                         </copy>
+                                        <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/conf">
+                                            <fileset dir="target/classes/conf" includes="**/*"/>
+                                        </copy>
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin">
                                             <fileset dir="target/classes/bin" includes="**/*"/>
                                         </copy>
@@ -207,6 +210,7 @@
                                             <tarfileset username="root" group="root" filemode="755" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts"/>
                                             <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib"/>
                                             <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta"/>
+                                            <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/conf" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/conf"/>
                                         </tar>
                                         <!-- el7 -->
                                         <replace token="FULL_VERSION" value="${project.version}.${envClassifier}.${parcel.patch}-el7" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta">
@@ -217,6 +221,7 @@
                                             <tarfileset username="root" group="root" filemode="755" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts"/>
                                             <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib"/>
                                             <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta"/>
+                                            <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/conf" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/conf"/>
                                         </tar>
                                         <!-- sles11 -->
                                         <replace token="FULL_VERSION" value="${project.version}.${envClassifier}.${parcel.patch}-sles11" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta">
@@ -227,6 +232,7 @@
                                             <tarfileset username="root" group="root" filemode="755" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts"/>
                                             <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib"/>
                                             <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta"/>
+                                            <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/conf" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/conf"/>
                                         </tar>
                                         <!-- precise -->
                                         <replace token="FULL_VERSION" value="${project.version}.${envClassifier}.${parcel.patch}-precise" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta">
@@ -237,6 +243,7 @@
                                             <tarfileset username="root" group="root" filemode="755" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts"/>
                                             <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib"/>
                                             <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta"/>
+                                            <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/conf" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/conf"/>
                                         </tar>
                                         <!-- wheezy -->
                                         <replace token="FULL_VERSION" value="${project.version}.${envClassifier}.${parcel.patch}-wheezy" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta">
@@ -247,6 +254,7 @@
                                             <tarfileset username="root" group="root" filemode="755" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts"/>
                                             <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib"/>
                                             <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta"/>
+                                            <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/conf" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/conf"/>
                                         </tar>
                                         <!-- trusty -->
                                         <replace token="FULL_VERSION" value="${project.version}.${envClassifier}.${parcel.patch}-trusty" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta">
@@ -257,6 +265,7 @@
                                             <tarfileset username="root" group="root" filemode="755" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts"/>
                                             <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib"/>
                                             <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/meta"/>
+                                            <tarfileset username="root" group="root" filemode="644" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/conf" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/conf"/>
                                         </tar>
                                         <exec executable="python2.7" failonerror="true" dir="target/parcels">
                                             <arg line="${project.build.directory}/classes/python/make_manifest.py"/>
