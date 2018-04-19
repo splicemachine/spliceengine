@@ -96,6 +96,7 @@ public class ControlUtils {
             @Nullable
             @Override
             public E apply(@Nullable E v) {
+                System.out.println("isCancelled?" + context.isCancelled());
                 if (context.isCancelled())
                     throw new CancellationException("Operation was cancelled");
                 return v;
