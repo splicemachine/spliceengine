@@ -111,20 +111,6 @@ public abstract class BackupBaseRegionObserver extends SpliceMessage.BackupCopro
     public void postCompleteSplit(ObserverContext<RegionCoprocessorEnvironment> ctx) throws IOException {
     }
 
-    public void postSplit(ObserverContext<RegionCoprocessorEnvironment> e, HRegion l, HRegion r) throws IOException {
-        try {
-            if (LOG.isDebugEnabled()) {
-                HRegion region = (HRegion)e.getEnvironment().getRegion();
-                SpliceLogUtils.debug(LOG, "split %s:%s into %s and %s",
-                        region.getRegionInfo().getTable().getNameAsString(),
-                        region.getRegionInfo().getEncodedName(), l.getRegionInfo().getEncodedName(),
-                        r.getRegionInfo().getEncodedName());
-            }
-        } catch (Throwable t) {
-            throw CoprocessorUtils.getIOException(t);
-        }
-    }
-
     public void preCompactSelection(ObserverContext<RegionCoprocessorEnvironment> c, Store store, List<StoreFile> candidates) throws IOException {
     }
 
@@ -159,7 +145,6 @@ public abstract class BackupBaseRegionObserver extends SpliceMessage.BackupCopro
     }
 
     public void postCompact(ObserverContext<RegionCoprocessorEnvironment> e, Store store, StoreFile resultFile, CompactionRequest request) throws IOException {
-        this.postCompact(e, store, resultFile);
     }
 
     public void preGetClosestRowBefore(ObserverContext<RegionCoprocessorEnvironment> e, byte[] row, byte[] family, Result result) throws IOException {

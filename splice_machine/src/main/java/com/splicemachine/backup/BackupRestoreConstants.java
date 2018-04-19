@@ -18,8 +18,6 @@ package com.splicemachine.backup;
  * Created by jyuan on 8/8/16.
  */
 
-import java.nio.charset.Charset;
-
 public class BackupRestoreConstants {
     public static final String BACKUP_DIR = "backup";
     public static final String BACKUP_DATA_DIR = "data";
