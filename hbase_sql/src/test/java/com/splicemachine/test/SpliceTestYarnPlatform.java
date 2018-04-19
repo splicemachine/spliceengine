@@ -95,7 +95,6 @@ public class SpliceTestYarnPlatform {
     public void start(int nodeCount) throws Exception {
         if (yarnCluster == null) {
             LOG.info("Starting up YARN cluster with "+nodeCount+" nodes. Server yarn-site.xml is: "+yarnSiteConfigURL);
-            conf.set(YarnConfiguration.RM_WEBAPP_ADDRESS, "localhost:0");
             yarnCluster = new MiniYARNClusterSplice(SpliceTestYarnPlatform.class.getSimpleName(), nodeCount, 1, 1);
             yarnCluster.init(conf);
             yarnCluster.start();
