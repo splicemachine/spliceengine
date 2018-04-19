@@ -82,10 +82,6 @@ public class SpliceDatabase extends BasicDatabase{
             System.setProperty("derby.drda.timeSlice","60000");
 
         //  System.setProperty("derby.language.logQueryPlan", Boolean.toString(true));
-        if(config.debugLogStatementContext()) {
-            System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
-            System.setProperty("derby.language.logStatementText",Boolean.toString(true));
-        }
         if(config.debugDumpClassFile()) {
             System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
             SanityManager.DEBUG_SET("DumpClassFile");

@@ -88,7 +88,6 @@ public class PropertyUtil {
             // Additional Derby properties that Splice considers as "service" properties.
             Property.PROPERTIES_CONGLOM_ID,
             Property.ROW_LOCKING,
-            "derby.language.logStatementText",
             "derby.language.logQueryPlan",
             Property.LOCKS_ESCALATION_THRESHOLD,
             Property.DATABASE_PROPERTIES_ONLY,
