@@ -130,6 +130,10 @@ public class OlapServerSubmitter implements Runnable {
             } else {
                 this.appStagingBaseDir = FileSystem.get(conf).getHomeDirectory();
             }
+            String yarnQueue = System.getProperty("splice.olapServer.yarn.queue");
+            if (yarnQueue == null) {
+                yarnQueue = System.getProperty("splice.spark.yarn.queue", "default");
+            }
 
             for (int i = 0; i<maxAttempts; ++i) {
                 // Clear ZooKeeper path
@@ -223,7 +227,7 @@ public class OlapServerSubmitter implements Runnable {
                 appContext.setApplicationName("OlapServer"); // application name
                 appContext.setAMContainerSpec(amContainer);
                 appContext.setResource(capability);
-                appContext.setQueue("default"); // queue
+                appContext.setQueue(yarnQueue);
                 appContext.setMaxAppAttempts(1);
                 appContext.setAttemptFailuresValidityInterval(10000);
 
