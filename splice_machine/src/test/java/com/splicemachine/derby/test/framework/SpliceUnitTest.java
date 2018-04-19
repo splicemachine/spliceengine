@@ -142,14 +142,14 @@ public class SpliceUnitTest {
          *
          * Of course, if we are in the correct location to begin with, then we are good to go.
          */
-        if(userDir.endsWith("hbase_sql")) return userDir;
+        if(userDir.endsWith("platform_it")) return userDir;
 
         Path nioPath = Paths.get(userDir);
         while(nioPath!=null){
             /*
              * Look for splice_machine in our parent hierarchy. If we can find it, then we are good
              */
-            if(nioPath.endsWith("hbase_sql")) break;
+            if(nioPath.endsWith("platform_it")) break;
             nioPath = nioPath.getParent();
         }
         if(nioPath==null){
@@ -158,13 +158,13 @@ public class SpliceUnitTest {
              * directory of us, so look around at it directly
              */
             Path us = Paths.get(userDir);
-            nioPath = Paths.get(us.toString(),"hbase_sql");
+            nioPath = Paths.get(us.toString(),"platform_it");
             if(!Files.exists(nioPath)){
              /* Try to go up and to the left. If it's not
              * there, then we are screwed anyway, so just go with it
              */
                 Path parent=Paths.get(userDir).getParent();
-                nioPath=Paths.get(parent.toString(),"hbase_sql");
+                nioPath=Paths.get(parent.toString(),"platform_it");
             }
         }
         return nioPath.toString();
