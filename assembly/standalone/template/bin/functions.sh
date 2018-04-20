@@ -5,7 +5,7 @@ UNAME=$(uname -s)
 
 _kill_em_all () {
   SIG=$1
-   local P=$(ps -ef | awk '/SpliceTestPlatform|SpliceSinglePlatform|SpliceTestClusterParticipant/ && !/awk/ {print $2}')
+   local P=$(ps -ef | awk '/SpliceTestPlatform|SpliceSinglePlatform|SpliceTestClusterParticipant|OlapServerMaster/ && !/awk/ {print $2}')
    [[ -n $P ]] && echo "Found Splice. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
 
    P=$(ps -ef | awk '/spliceYarn|SpliceTestYarnPlatform|CoarseGrainedScheduler|ExecutorLauncher/ && !/awk/ {print $2}')
