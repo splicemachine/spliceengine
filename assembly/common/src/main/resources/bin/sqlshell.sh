@@ -5,7 +5,9 @@ HOST="localhost"
 PORT="1527"
 USER="splice"
 PASS="admin"
+declare -i WIDTH=128
 SCRIPT=""
+OUTPUT=""
 QUIET=0
 
 # Splice Machine SQL Shell
@@ -18,21 +20,26 @@ message() {
    fi
 }
 
-show_help()
-{
+show_help() {
         echo "Splice Machine SQL client wrapper script"
-        echo "Usage: $(basename $BASH_SOURCE) [-h host] [-p port ] [-u username] [-s password] [-f scriptfile] [-q]"
-        echo -e "\t-h IP addreess or hostname of Splice Machine (HBase RegionServer)"
+        echo "Usage: $(basename $BASH_SOURCE) [-U url] [-h host] [-p port] [-u username] [-s password] [-w width] [-f scriptfile] [-o outputfile] [-q]"
+        echo -e "\t-U full JDBC URL for Splice Machine database"
+        echo -e "\t-h IP address or hostname of Splice Machine (HBase RegionServer)"
         echo -e "\t-p Port which Splice Machine is listening on, defaults to 1527"
         echo -e "\t-u username for Splice Machine database"
         echo -e "\t-s password for Splice Machine database"
+        echo -e "\t-w width of output lines. defaults to 128"
         echo -e "\t-f sql file to be executed"
+        echo -e "\t-o file for output"
         echo -e "\t-q quiet mode"
 }
 
 # Process command line args
-while getopts "h:p:u:s:f:q" opt; do
+while getopts "U:h:p:u:s:w:f:o:q" opt; do
     case $opt in
+        U)
+                URL="${OPTARG}"
+                ;;
         h)
                 HOST="${OPTARG}"
                 ;;
@@ -45,8 +52,14 @@ while getopts "h:p:u:s:f:q" opt; do
         s)
                 PASS="${OPTARG}"
                 ;;
+        w)
+                WIDTH="${OPTARG}"
+                ;;
         f)
                 SCRIPT="${OPTARG}"
+                ;;
+        o)
+                OUTPUT="${OPTARG}"
                 ;;
         q)
                 QUIET=1
@@ -85,7 +98,30 @@ export CLASSPATH="${SPLICE_LIB_DIR}/*"
 
 GEN_SYS_ARGS="-Djava.awt.headless=true"
 
-IJ_SYS_ARGS="-Djdbc.drivers=com.splicemachine.db.jdbc.ClientDriver -Dij.connection.splice=jdbc:splice://${HOST}:${PORT}/splicedb;user=${USER};password=${PASS}"
+# Setup IJ_SYS_ARGS based on input options
+IJ_SYS_ARGS="-Djdbc.drivers=com.splicemachine.db.jdbc.ClientDriver"
+
+# add width via ij.maximumDisplayWidth
+if [[ "$WIDTH" != "128" ]]; then
+   IJ_SYS_ARGS+=" -Dij.maximumDisplayWidth=${WIDTH}"
+fi
+
+if [[ "$OUTPUT" != "" ]]; then
+   # figure out if OUTPUT directory exists
+   outpath=$(dirname $OUTPUT)
+   if [[ ! -d $outpath ]]; then
+      echo Error: you specified a non-existant directory for output $OUTPUT
+      exit 2
+   fi
+   IJ_SYS_ARGS+=" -Dij.outfile=${OUTPUT}"
+fi
+
+if [[ "$URL" != "" ]]; then
+   IJ_SYS_ARGS+=" -Dij.connection.splice=${URL}"
+else
+   IJ_SYS_ARGS+=" -Dij.connection.splice=jdbc:splice://${HOST}:${PORT}/splicedb;user=${USER};password=${PASS}"
+fi
+
 
 if [ ! -z "${CLIENT_SSL_KEYSTORE}" ]; then
 SSL_ARGS="-Djavax.net.ssl.keyStore=${CLIENT_SSL_KEYSTORE} \
