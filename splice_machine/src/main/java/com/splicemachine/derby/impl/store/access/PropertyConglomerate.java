@@ -56,7 +56,7 @@ public class PropertyConglomerate {
 
     /* Constructors for This class: */
 
-	public PropertyConglomerate(TransactionController tc, boolean create, Properties properties, PropertyFactory pf) throws StandardException {
+	public PropertyConglomerate(TransactionController tc, boolean create, Properties startParams, PropertyFactory pf) throws StandardException {
 		serviceProperties = new Properties();
 		PropertyManager propertyManager=PropertyManagerService.loadPropertyManager();
 		this.pf = pf;
@@ -106,8 +106,11 @@ public class PropertyConglomerate {
 			serviceProperties.put(Property.DEFAULT_CONNECTION_MODE_PROPERTY, "fullAccess");
 			serviceProperties.put(Property.AUTHENTICATION_BUILTIN_ALGORITHM, Property.AUTHENTICATION_BUILTIN_ALGORITHM_DEFAULT);
 			serviceProperties.put(Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED, "false");
-            for (Object key: serviceProperties.keySet()) {
-				propertyManager.addProperty((String)key,serviceProperties.getProperty((String)key));
+            for (Object object: serviceProperties.keySet()) {
+            	String key = (String)object;
+            	String defaultValue = serviceProperties.getProperty(key);
+            	String value = startParams != null ? startParams.getProperty(key, defaultValue) : defaultValue;
+				propertyManager.addProperty(key, value);
 			}
 		}
 
