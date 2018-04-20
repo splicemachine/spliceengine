@@ -782,6 +782,7 @@
 				<delete dir="../assembly/standalone/target"/>
 				<mkdir  dir="../assembly/standalone/target"/>
 				<copydir src="../assembly/standalone/template" dest="../assembly/standalone/target/splicemachine" includes="**/*"/>
+				<chmod file="../assembly/standalone/target/splicemachine/bin/*.sh" perm="ugo+rx"/>
                             </tasks>
                         </configuration>
                         <goals>
