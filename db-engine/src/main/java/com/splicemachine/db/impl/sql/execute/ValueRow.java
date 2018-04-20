@@ -355,7 +355,7 @@ public class ValueRow implements ExecRow, Externalizable {
             return true;
         if (obj == null)
             return false;
-        if (getClass() != obj.getClass())
+        if (!(obj instanceof ValueRow))
             return false;
         ValueRow other = (ValueRow) obj;
         if (!Arrays.equals(column, other.column))

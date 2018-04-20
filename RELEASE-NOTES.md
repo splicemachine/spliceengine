@@ -1,4 +1,4 @@
-Splice Machine 2.5 Release Notes (2.5.0.1729)  
+Splice Machine 2.5 Release Notes (2.5.0.1815)  
 ---------------------------------------------
 
 Welcome to 2.5 of Splice Machine! The product is available to build from open source (see https:github.com/splicemachine/spliceengine), as well as prebuilt packages for use on a cluster or cloud.
@@ -7,9 +7,9 @@ See the documentation (http://doc.splicemachine.com) for the setup and use of th
 
 Supported platforms with 2.5:
 
-* Cloudera CDH 5.7.2, 5.8.0, 5.8.3
-* MapR 5.1.0 and 5.2.0
-* HortonWorks HDP 2.4.2 and 2.5
+* Cloudera 5.8.3, 5.12.0, 5.12.2, 5.13.2, 5.14.0
+* HortonWorks HDP 2.5.5, 2.6.3
+* MapR 5.2.0
 
 Reminder that the following features will NOT work on the Community Edition of Splice Machine.  You will need to upgrade to the Enterprise version:
 
@@ -26,6 +26,206 @@ Supported hardware for the STANDALONE release:
 
 * Mac OS X (10.8 or greater)
 * Centos (6.4 or equivalent)
+
+
+What's New in 2.5.0.1815 - April 15, 2018
+------------------------------------------
+
+_**New Features**_
+
+* DB-6523 Stable plans without stats collection on fact tables
+* DB-6635 Support Group as the Authenticated User
+* DB-6636 Make "splice" user configurable and test it as a group
+* DB-6639 Spark Adapter, Import, and Hive Security Model
+* DB-6670 Cache Role Grant Permission to avoid frequent data dictionary lookup
+* SPLICE-137 Allow Default Role specification to Users, and automatically set on connecting
+* SPLICE-1883 Make the row count threshold to determine spark or control execution path a tunable
+* SPLICE-2102 Add Stats, truncate, and open ended execute and executeUpdate to Spark Adapter
+
+_**Improvements**_
+
+* DB-6463 Graceful exit of a query after a timeout
+* DB-6478 Add column to indicate 'CONTROL' or 'SPARK' mode for SYSCS_GET_RUNNING_OPERATIONS
+* DB-6543 Vacuum not handling disabled hbase tables
+* DB-6567 Decrease DEFAULT_BROADCAST_REGION_ROW_THRESHOLD
+* DB-6582 Inconsistent Export speed 
+* DB-6640 LDAP Password show up in Plain Text in Region Server log when Splice is started/initialized
+* DB-6720 Restore: speed up table delete and recreation
+* DB-6751 Clean up backup logging for better diagnosability
+* DB-6815 Backup: long time to insert into sys.sysbackupitems for 5000+ tables
+* DB-6629 Cloudera Manager: change ldap password property
+* SPLICE-1587 Include CREATE TABLE for GRANT ALL PRIVILEGES ON SCHEMA 
+* SPLICE-175 Run Olap server in separate YARN instance
+* SPLICE-1936 Improve Sqlshell.sh to accept kerberos properties as argument
+* SPLICE-1987 Add fully qualified table name into HBASE "TableDisplayName" Attribute 
+* SPLICE-1991 Add info to Spark UI for Compaction jobs to indicate presence of Reference Files
+* SPLICE-2008 Resolve (roll forward) transactions on flush
+* SPLICE-2022 Improve spark job description for compaction
+* SPLICE-2081 Excessive creation of Kryo instances
+* SPLICE-2083 Remove Dead Folders for non-supported versions
+* SPLICE-2085 Remove HDP 2.5.0 and HDP 2.5.3 From Build
+* SPLICE-2086 CDH 5.14.0 support
+* SPLICE-2096 Role Handling on Connection: Always performs scan
+* SPLICE-2103 Explain Plan Generation in the Hot Path
+* SPLICE-2104 Dictionary Scans Should Use HBase Small Scans vs. the network heavy regular scan.
+* SPLICE-2105 Spark Datasource requires PK for Updates and Deletes
+* SPLICE-2106 Buffered Aggregators missing from the transient kryo registrator
+* SPLICE-2107 SnappyPipelineCompressor generates too much garbage
+* SPLICE-2109 SYSCS_UTIL.VACUUM - Add log message in a finally clause to indicate the vacuum job is complete
+
+_**Bug Fixes**_
+
+* DB-6194 After changing DB Property on ANALYZE default, cannot collect stats on "non-indexed cols that are explicitly enabled"
+* DB-6262 cluster/RS's do not come up after HBase restart due to existence of SPLICE_INIT
+* DB-6278 Capture incremental changes from bulk import
+* DB-6284 Backups could be inconsistent
+* DB-6295 Minor compaction generating a storm of several hundred spark jobs within a very short duration
+* DB-6343 Bulk load transaction was not able to commit
+* DB-6345 Left-Outer Join results in NPE during parsing 
+* DB-6391 HFile IMPORT with Sampling ON results in IllegalFormatConversionException
+* DB-6440 SELECT with INlist elements and Index hint failed with StackOverflow when executing for 2 partitions
+* DB-6516 Spark Streaming with Splice Adapter: long running executors fail with out of memory error after 40+ hours of execution.
+* DB-6517 Backup fails if keytab file is a full path name
+* DB-6537 Export command exports different number of rows
+* DB-6541 User defined function does not work on spark
+* DB-6558 Host CPU Saturation - Heavily loaded RegionServer causing degradation in forward loading throughput from 25K/sec to 4K/sec
+* DB-6569 Cannot restore database from s3a when using 'SYSCS_UTIL.SYSCS_RESTORE_DATABASE'
+* DB-6574 Splice spark adapter still sends write requests to a unreachable region server
+* DB-6594 Illegal merge join and NPE for FMC query
+* DB-6600 Case When not matching or clause
+* DB-6610 Restore completed when replace a data file with an empty file
+* DB-6662 Splice Machine Query Timeout Not working
+* DB-6684 Build failures because of VM Crash
+* DB-6685 After running call syscs_utils.syscs_update_schema_owner() data dictionary cache not invalidated
+* DB-6707 Restore should only delete splice tables
+* DB-6722 Hbase log missing after executing flatten script
+* DB-6735 Fix HDP 2.6.3 Service Install now that OLAP Server is in play
+* DB-6745 Make sure Spark job resilient to region server failure ("no route to host" exception handling)
+* DB-6759 Split key with null column values not correctly encoded
+* DB-6816 Backup called getAllPartition info twice
+* DB-6831 splice group owner cannot run some operations 
+* DB-6872 tpch1 timed out after 90 mins on mapr platform
+* DB-6875 NPE for select on table with schema change
+* SPLICE-5 Wrong error message in case of write conflict that results in FK violation
+* SPLICE-1717 Compaction jobs take too long (blocking RPC)
+* SPLICE-1870 Incorrect result with update using index
+* SPLICE-1900 [External Table]: Incorrect error message while reading data from Empty external table of AVRO file format.
+* SPLICE-1927 Restart is freezing on hdp2.5.5
+* SPLICE-1995 Bulk import reports wrong number of rows
+* SPLICE-2004 Plan dumped in log file is not consistent with what the Explain statement returns
+* SPLICE-2012 HMaster doesn't exit after shutdown
+* SPLICE-2032 Reenable OlapServerIT when it's more robust
+* SPLICE-2057 Killing Spark tasks doesn't relase resources when ResulStreamer is blocked
+* SPLICE-2062 External OlapServer is broken in unkerberized clusters
+* SPLICE-2063 Exceptions.parseException sometimes removes relevant stack traces
+* SPLICE-2066 Duplicate create connection in Splicemachine context
+* SPLICE-2067 Exception during External Olap Server initialization
+* SPLICE-2092 Bulk import fails after kerberos token expiry
+* SPLICE-2094 Wrong result with prepare statement that uses multi-probe index scan
+* SPLICE-2095 default value for column with fixed char type is not padded with extra spaces
+* SPLICE-2112 Configure org.xerial.snappy.Snappy to avoid extracting its native library to /tmp 
+* SPLICE-2115 UnsatisfiedLinkError: org.xerial.snappy.SnappyNative.maxCompressedLength on Mac 
+* SPLICE-2120 Permissions granted for system procedures become invalid after each system restart
+* SPLICE-2134 Column Position Sequencing is 1 greater than it should be, causes column level permissions on views to fail.
+* SPLICE-2125 Remove hadoop/hbase dependencies from core modules
+* SPLICE-2128 Kryo dependency is missing in hbase_pipeline
+* SPLICE-2136 Index excluding defaults does not suppress rows with default values
+* SPLICE-2138 ArrayIndexOutOfBound exception with create index on a non-empty table
+* SPLICE-2139 NullPointerException when create index excluding defaults from hfile on a non-empty table
+* SPLICE-2140 Adding IP Address for Client, needed for future audit work
+
+
+
+What's New in 2.5.0.1749 - Jan. 19, 2018
+------------------------------------------
+
+_**New Features**_
+
+* DB-6140 Support Major Compaction by Region
+* DB-6146 Delete data by region without scanning
+* DB-6217 Revoke SELECT on column not working
+* DB-6428 Selectivity estimate change for parameterized value 
+* SPLICE-1617 Index on skewed column - not to load DEFAULT values when creating index (a.k.a., null suppression)
+* SPLICE-1700 Add new columns with DEFAULT values without materialization of existing rows
+* SPLICE-1802 Create Index on Existing Table Using HFile Bulk Loading
+* SPLICE-1920 Tooling to fix data dictionary corruption
+
+_**Improvements**_
+
+* DB-6016 Eliminate unnecessary order by clause
+* DB-6165 Speed up hbase table drop and recreation for database restore
+* DB-6186 Inadequate Job description in Compaction Jobs
+* DB-6202 Backup: read metadata more efficiently
+* DB-6332 Relax restriction to allow flattening of non-correlated subquery in where clause
+* DB-6346 Allow correlated SSQ flattening for more scenarios
+* DB-6362 Large variance in simple select query execution time
+* DB-6385 Update 2.5 branch with kafka 0.10.0 to ensure compatibility with kafka streaming client used by customers
+* DB-6453 Propagate SORT elimination to outer joins
+* SPLICE-1351 Update Data Sketches to 0.8.4
+* SPLICE-1372 Control-side query management
+* SPLICE-1714 Ignore 'should not give a splitkey which equals to startkey' exception
+* SPLICE-1760 Enhancement to provide corresponding Spark JobID when Splice jobs or queries are submitted through Spark
+* SPLICE-1785 Too many tasks are launched in the last stage of bulk import
+* SPLICE-1852 Make SpliceAdmin_OperationsIT more robust
+* SPLICE-1948 Pass the SparkContext from an outside Spark Application into Splice Spark Adapter
+* SPLICE-1951 Remove protobuf installation instructions from GETTING-STARTED
+* SPLICE-1973 Exclude Kafka jars from splice-uber.jar for all platforms
+* SPLICE-1984 Parallelize MultiProbeScan and Union operations
+
+_**Bug Fixes**_
+
+* DB-4300 TPCH query 20 fails
+* DB-5914 LIKE query on ACCT_NUM6 - Tablescan is chosen unless Index is hinted
+* DB-5953 Database fails to initialize on first boot with Kerberos authentication
+* DB-5974 Spark jobs fail to run in multi-Master environment if there is a Master fail-over
+* DB-6047 Backup intermittently gives error Java exception: 'org.apache.zookeeper.KeeperException$NotEmptyException: KeeperErrorCode = Directory not empty for /backup'.
+* DB-6075 [Kerberos] unable to backup database
+* DB-6113 Regression: Backup will fail if someone else tries to run another backup in parallel
+* DB-6124 optimizer not choosing Index after upgrading Splice to a version > 2.5.0.1722 and causes query failure / exception on SortMergeJoin
+* DB-6155 Cost estimation difference in plans compared to actual row counts - queries with long IN list
+* DB-6157 Error when deleting backup
+* DB-6164 NULLS FIRST needs to work fully within window functions
+* DB-6167 Regression in query optimization where indexes are not used (2.5.0.1729)
+* DB-6203 Collected statistics severely worsen query execution time
+* DB-6231 Optimizer - RKV2 DQ Query Changes: #1 Unable to push down IN-List of ACCTNUMs to MultiProbe scan #2. New plan running large TABLESCAN at Hbase "control"
+* DB-6234 Incremental backup failed
+* DB-6252 Add back synchronous backup/restore
+* DB-6267 Modify code using SPLICE_TXN to be resilient to missing data
+* DB-6269 Handle transactions not in SPLICE_TXN
+* DB-6349 Splice spark adapter is not allowed to choose SparkDataSetProcessor if it is run by spark_submit
+* DB-6350 Fix parquet dependency in splice_machine
+* DB-6367 Most region based operations throw NPE if schema or table is null
+* DB-6373 NPE during bulk delete with Index hint
+* DB-6399 Splice spark adapter fails Kerberos authentication
+* DB-6408 Backup: no current connection
+* DB-6409 Backup: backup cancellation is not checked before backup is launched to spark
+* DB-6410 MERGE_DATA_FROM_FILE omits references to SCHEMA NAME
+* DB-6411 MERGE_DATA_FROM_FILE encounters ClassCastException
+* DB-6418 Backup times out
+* DB-6438 Standard Queries Fail when used CPD-DT & INDEX in conjunction	
+* DBAAS-780 Test full Backup and Restore
+* SPLICE-1349 Update query fails with exception
+* SPLICE-1813 Transaction are not popped from transaction stack when releasing savepoints
+* SPLICE-1850 Couldn't find subpartitions in range exception with external tables
+* SPLICE-1860 Error analyzing table when columns contains zero length data
+* SPLICE-1867 SHOW TABLES is broken
+* SPLICE-1874 Large table scan runs on control with predicate of high selectivity
+* SPLICE-1895 CancellationException shows up in log after running query in Spark
+* SPLICE-1906 Prevent unexpected exceptions from removing Splice coprocessors
+* SPLICE-1921 wrong result with sort merge join that takes spark path
+* SPLICE-1928 System procedure get_region() throws ArrayIndexOutOfBounds exception
+* SPLICE-1930 Unable to compile spliceengine
+* SPLICE-1934 WordUtils.wrap() from commons-lang3 3.5 is broken, affects Splice
+* SPLICE-1937 Add support for cdh 5.12.0 platform
+* SPLICE-1961 Missing splice_spark module in pom.xml
+* SPLICE-1970 Exclude metrics jars from splice-uber.jar to avoid class loader issues when using Spark Adapter
+* SPLICE-1971 Spurious jenkins failures due to SpliceAdmin_OperationsIT
+* SPLICE-1976 OlapClientTest intermittent failure in Jenkins
+* SPLICE-1978 NPE in GET_RUNNING_OPERATIONS
+* SPLICE-1983 OOM in Spark executors while running TPCH1 repeatedly
+* SPLICE-865 [Authorization] REVOKE after GRANT can throw NullPointerException
+* Splice-1784 Query does not scale on 4000 regions
+
 
 What's New in 2.5.0.1729 - Aug. 1, 2017
 -----------------------------------------------
