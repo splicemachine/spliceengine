@@ -123,8 +123,19 @@ if [[ "$jversion" < "1.8" ]]; then
    exit 1
 fi
 
-# set splice lib dir here to keep it in one place.
+# set splice lib dir
 SPLICE_LIB_DIR="##SPLICELIBDIR##"
+
+if [[ "$SPLICE_LIB_DIR" == *"##"* ]]; then
+   CURDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+   # ends in bin, go up and over to lib
+   if [[ "$CURDIR" = *"bin" ]]; then
+      SPLICE_LIB_DIR="${CURDIR}/../lib"
+   else #subdir
+      SPLICE_LIB_DIR="${CURDIR}/lib"
+   fi
+fi
 
 # set up classpath to point to splice jars
 export CLASSPATH="${SPLICE_LIB_DIR}/*"
