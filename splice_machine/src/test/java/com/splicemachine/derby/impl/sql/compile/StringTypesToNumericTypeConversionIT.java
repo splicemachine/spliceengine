@@ -27,9 +27,9 @@ import static org.junit.Assert.assertEquals;
  *
  *
  */
-public class StringTypesToNumericTypeConversion extends SpliceUnitTest {
+public class StringTypesToNumericTypeConversionIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    private static final String CLASS_NAME = StringTypesToNumericTypeConversion.class.getSimpleName().toUpperCase();
+    private static final String CLASS_NAME = StringTypesToNumericTypeConversionIT.class.getSimpleName().toUpperCase();
 
     protected  static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     private static SpliceTableWatcher T1 = new SpliceTableWatcher("T1", schemaWatcher.schemaName,"(col1 int)");
