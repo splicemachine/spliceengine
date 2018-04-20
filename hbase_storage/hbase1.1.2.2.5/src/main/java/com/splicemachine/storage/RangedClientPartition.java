@@ -14,33 +14,49 @@
 
 package com.splicemachine.storage;
 
+import com.google.protobuf.Service;
 import com.splicemachine.access.util.ByteComparisons;
 import com.splicemachine.concurrent.Clock;
+import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.primitives.ByteComparator;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.utils.Pair;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Increment;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.client.coprocessor.Batch;
+
+import java.io.IOException;
+import java.util.BitSet;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.locks.Lock;
 
 /**
  * @author Scott Fines
  *         Date: 12/28/15
  */
-public class RangedClientPartition extends ClientPartition implements Comparable<RangedClientPartition>{
+public class RangedClientPartition implements Partition, Comparable<RangedClientPartition>{
     private final HRegionInfo regionInfo;
     private final PartitionServer owningServer;
+    private final Partition delegate;
 
-    public RangedClientPartition(Connection connection,
-                                 TableName tableName,
-                                 Table table,
+    public RangedClientPartition(Partition delegate,
                                  HRegionInfo regionInfo,
-                                 PartitionServer owningServer,
-                                 Clock clock, PartitionInfoCache partitionInfoCache){
-        super(connection,tableName,table,clock,partitionInfoCache);
+                                 PartitionServer owningServer){
+        this.delegate = delegate;
         this.regionInfo=regionInfo;
         this.owningServer=owningServer;
     }
@@ -61,8 +77,38 @@ public class RangedClientPartition extends ClientPartition implements Comparable
     }
 
     @Override
+    public List<Partition> subPartitions(boolean refresh) {
+        return delegate.subPartitions(refresh);
+    }
+
+    @Override
     public PartitionServer owningServer(){
         return owningServer;
+    }
+
+    @Override
+    public List<Partition> subPartitions(byte[] startRow, byte[] stopRow) {
+        return delegate.subPartitions(startRow, stopRow);
+    }
+
+    @Override
+    public List<Partition> subPartitions(byte[] startRow, byte[] stopRow, boolean refresh) {
+        return delegate.subPartitions(startRow, stopRow, refresh);
+    }
+
+    @Override
+    public PartitionLoad getLoad() throws IOException {
+        return delegate.getLoad();
+    }
+
+    @Override
+    public void compact(boolean isMajor) throws IOException {
+        delegate.compact(isMajor);
+    }
+
+    @Override
+    public void flush() throws IOException {
+        delegate.flush();
     }
 
     @Override
@@ -103,6 +149,16 @@ public class RangedClientPartition extends ClientPartition implements Comparable
                 return false; //start happens after the region end
             return true;
         }
+    }
+
+    @Override
+    public void writesRequested(long writeRequests) {
+        delegate.writesRequested(writeRequests);
+    }
+
+    @Override
+    public void readsRequested(long readRequests) {
+        delegate.readsRequested(readRequests);
     }
 
     @Override
@@ -152,5 +208,126 @@ public class RangedClientPartition extends ClientPartition implements Comparable
         return "RangedClientPartition{" +
                 "regionInfo=" + regionInfo.toString() +
                 '}';
+    }
+
+    @Override
+    public Iterator<DataResult> batchGet(Attributable attributes, List<byte[]> rowKeys) throws IOException {
+        return delegate.batchGet(attributes, rowKeys);
+    }
+
+    @Override
+    public boolean checkAndPut(byte[] key, byte[] family, byte[] qualifier, byte[] expectedValue, DataPut put) throws IOException {
+        return delegate.checkAndPut(key, family, qualifier, expectedValue, put);
+    }
+
+    @Override
+    public BitSet getBloomInMemoryCheck(boolean hasConstraintChecker, Pair<KVPair, Lock>[] dataAndLocks) throws IOException {
+        return delegate.getBloomInMemoryCheck(hasConstraintChecker, dataAndLocks);
+    }
+
+    @Override
+    public PartitionDescriptor getDescriptor() throws IOException {
+        return delegate.getDescriptor();
+    }
+
+
+    @Override
+    public String getTableName() {
+        return delegate.getTableName();
+    }
+
+    @Override
+    public void close() throws IOException {
+        delegate.close();
+    }
+
+    @Override
+    public DataResult get(DataGet get, DataResult previous) throws IOException {
+        return delegate.get(get, previous);
+    }
+
+    @Override
+    public DataResult getFkCounter(byte[] key, DataResult previous) throws IOException {
+        return delegate.getFkCounter(key, previous);
+    }
+
+    @Override
+    public DataResult getLatest(byte[] key, DataResult previous) throws IOException {
+        return delegate.getLatest(key, previous);
+    }
+
+    @Override
+    public DataResult getLatest(byte[] rowKey, byte[] family, DataResult previous) throws IOException {
+        return delegate.getLatest(rowKey, family, previous);
+    }
+
+    @Override
+    public DataScanner openScanner(DataScan scan) throws IOException {
+        return delegate.openScanner(scan);
+    }
+
+    @Override
+    public DataResultScanner openResultScanner(DataScan scan) throws IOException {
+        return delegate.openResultScanner(scan);
+    }
+
+    @Override
+    public DataScanner openScanner(DataScan scan, MetricFactory metricFactory) throws IOException {
+        return delegate.openScanner(scan, metricFactory);
+    }
+
+    @Override
+    public DataResultScanner openResultScanner(DataScan scan, MetricFactory metricFactory) throws IOException {
+        return delegate.openResultScanner(scan, metricFactory);
+    }
+
+    @Override
+    public void put(DataPut put) throws IOException {
+        delegate.put(put);
+    }
+
+    @Override
+    public void delete(DataDelete delete) throws IOException {
+        delegate.delete(delete);
+    }
+
+    @Override
+    public void mutate(DataMutation put) throws IOException {
+        delegate.mutate(put);
+    }
+
+    @Override
+    public Iterator<MutationStatus> writeBatch(DataPut[] toWrite) throws IOException {
+        return delegate.writeBatch(toWrite);
+    }
+
+    @Override
+    public void closeOperation() throws IOException {
+        delegate.closeOperation();
+    }
+
+    @Override
+    public void startOperation() throws IOException {
+        delegate.startOperation();
+    }
+
+    @Override
+    public boolean isClosed() {
+        return delegate.isClosed();
+    }
+
+    @Override
+    public boolean isClosing() {
+        return delegate.isClosing();
+    }
+
+    @Override
+    public long increment(byte[] rowKey, byte[] family, byte[] qualifier, long amount) throws IOException {
+        return delegate.increment(rowKey, family, qualifier, amount);
+    }
+
+    @Override
+    public Lock getRowLock(byte[] key, int keyOff, int keyLen) throws IOException {
+        return delegate.getRowLock(key, keyOff, keyLen);
     }
 }
