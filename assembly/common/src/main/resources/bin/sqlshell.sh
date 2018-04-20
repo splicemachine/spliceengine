@@ -46,7 +46,7 @@ while getopts "h:p:u:s:f:" opt; do
 done
 
 # set hbase lib dir here to keep it in one place.
-SPLICE_LIB_DIR="/opt/cloudera/parcels/SPLICEMACHINE/lib"
+SPLICE_LIB_DIR="##SPLICELIBDIR##"
 
 # set up classpath to point to splice jars
 export CLASSPATH="${SPLICE_LIB_DIR}/*"
