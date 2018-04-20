@@ -37,6 +37,16 @@ PROFILE=$DEFAULT_PROFILE
 IN_MEM_PROFILE="mem"
 RUN_DIR="${BASE_DIR}/log"
 
+if [ ! -d $RUN_DIR ]; then
+	mkdir -p $RUN_DIR
+fi
+
+if [ ! -d $BASE_DIR/db ]; then
+	mkdir -p $BASE_DIR/db
+fi
+
+chmod -R 777 $BASE_DIR/demodata
+
 # never building
 BUILD="0"
 CHAOS="false"
