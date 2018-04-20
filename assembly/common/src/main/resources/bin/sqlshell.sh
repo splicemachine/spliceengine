@@ -43,6 +43,11 @@ show_help() {
    echo -e "\t-q \t\t quiet mode"
 }
 
+HOSTARG=""
+PORTARG=""
+USERARG=""
+PASSARG=""
+
 # Process command line args
 while getopts "U:h:p:u:s:PSk:K:w:f:o:q" opt; do
    case $opt in
@@ -50,16 +55,16 @@ while getopts "U:h:p:u:s:PSk:K:w:f:o:q" opt; do
          URL="${OPTARG}"
          ;;
       h)
-         HOST="${OPTARG}"
+         HOSTARG="${OPTARG}"
          ;;
       p)
-         PORT="${OPTARG}"
+         PORTARG="${OPTARG}"
          ;;
       u)
-         USER="${OPTARG}"
+         USERARG="${OPTARG}"
          ;;
       s)
-         PASS="${OPTARG}"
+         PASSARG="${OPTARG}"
          ;;
       P)
          PROMPT=1
@@ -68,10 +73,10 @@ while getopts "U:h:p:u:s:PSk:K:w:f:o:q" opt; do
          SECURE=1
          ;;
       k)
-         PRINCIPAL=${OPTARG}
+         PRINCIPAL="${OPTARG}"
          ;;
       K)
-         KEYTAB=${OPTARG}
+         KEYTAB="${OPTARG}"
          ;;
       w)
          WIDTH="${OPTARG}"
@@ -93,16 +98,32 @@ while getopts "U:h:p:u:s:PSk:K:w:f:o:q" opt; do
 done
 
 # Validate options
-if [[ "$URL" != "" && $SSL ]]; then
-   echo "Error: you cannot supply both a URL and the -S ssl flag
-   exit 1
+if [[ "$URL" != "" ]]; then
+    if [[ "$HOSTARG" != "" ]]; then
+      echo "Error: you cannot supply both a URL and the -h host option"
+      exit 1
+    elif [[ "$PORTARG" != "" ]]; then
+      echo "Error: you cannot supply both a URL and the -p port option"
+      exit 1
+    elif [[ "$USERARG" != "" ]]; then
+      echo "Error: you cannot supply both a URL and the -u user option"
+      exit 1
+    elif [[ "$PASSARG" != "" ]]; then
+      echo "Error: you cannot supply both a URL and the -s password option"
+      exit 1
+    elif (( $SECURE )); then
+      echo "Error: you cannot supply both a URL and the -S ssl flag
+      exit 1
+    elif [[ "$PRINCIPAL" != "" ]]; then
+      echo "Error: you cannot supply both a URL and the -k principal option"
+      exit 1
+    elif [[ "$KEYTAB" != "" ]]; then
+      echo "Error: you cannot supply both a URL and the -K keytab option"
+      exit 1
+    fi
 fi
 
-if [[ "$URL" != "" && $ ]]; then
-   echo "Error: you cannot supply both a URL and the -S ssl flag
-   exit 1
-fi
-
+# TODO: check password and passarg and prompt
 
 # check for jdk1.8 and exit if not found
 if ( type -p java >/dev/null); then
@@ -140,9 +161,21 @@ fi
 # set up classpath to point to splice jars
 export CLASSPATH="${SPLICE_LIB_DIR}/*"
 
-# prompt silently for user password
+if [[ "$HOSTARG" != "" ]]; then
+   HOST=$HOSTARG
+fi
+if [[ "$PORTARG" != "" ]]; then
+   PORT=$PORTARG
+fi
+if [[ "$USERARG" != "" ]]; then
+   USER=$USERARG
+fi
+
+# prompt securely for user password
 if (( $PROMPT )); then
    read -s -p "Enter Password: " PASS
+elif [[ "${PASSARG}" != "" ]];
+   PASS=$PASSARG
 fi
 
 # Setup IJ_SYS_ARGS based on input options
