@@ -89,13 +89,9 @@ public class SpliceDatabase extends BasicDatabase{
         //  System.setProperty("derby.language.logQueryPlan", Boolean.toString(true));
         String logStatementText = System.getProperty("derby.language.logStatementText");
         if (logStatementText == null) {
-            if (config.debugLogStatementContext()) {
-                System.setProperty("com.splicemachine.enableLegacyAsserts", Boolean.TRUE.toString());
-                startParams.put("derby.language.logStatementText", Boolean.TRUE.toString());
-            } else {
-                startParams.put("derby.language.logStatementText", Boolean.FALSE.toString());
-            }
+            startParams.put("derby.language.logStatementText", Boolean.toString(config.debugLogStatementContext()));
         }
+
         if (config.debugDumpClassFile()) {
             System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
             SanityManager.DEBUG_SET("DumpClassFile");
