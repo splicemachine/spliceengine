@@ -77,23 +77,30 @@ public class SpliceDatabase extends BasicDatabase{
     public void boot(boolean create,Properties startParams) throws StandardException{
         Configuration.setConfiguration(null);
         SConfiguration config = SIDriver.driver().getConfiguration();
+
+        if (startParams == null) {
+            startParams = new Properties();
+        }
+
         // Set 60 Second Default if Missing from startup parameters
         if (System.getProperty("derby.drda.timeSlice") == null)
             System.setProperty("derby.drda.timeSlice","60000");
 
         //  System.setProperty("derby.language.logQueryPlan", Boolean.toString(true));
-        if(config.debugLogStatementContext()) {
-            System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
-            System.setProperty("derby.language.logStatementText",Boolean.toString(true));
+        String logStatementText = System.getProperty("derby.language.logStatementText");
+        if (logStatementText == null) {
+            startParams.put("derby.language.logStatementText", Boolean.toString(config.debugLogStatementContext()));
         }
-        if(config.debugDumpClassFile()) {
+
+        if (config.debugDumpClassFile()) {
             System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
             SanityManager.DEBUG_SET("DumpClassFile");
         }
-    if(config.debugDumpBindTree()) {
+        if (config.debugDumpBindTree()) {
             System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
             SanityManager.DEBUG_SET("DumpBindTree");
-        }if(config.debugDumpOptimizedTree()) {
+        }
+        if (config.debugDumpOptimizedTree()) {
             System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
             SanityManager.DEBUG_SET("DumpOptimizedTree");
         }
