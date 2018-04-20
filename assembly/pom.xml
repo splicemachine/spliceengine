@@ -195,9 +195,6 @@
                                             <fileset dir="target/classes/meta" includes="**/*"/>
                                         </copy>
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin">
-                                            <fileset dir="target/classes/bin" includes="**/*"/>
-                                        </copy>
-                                        <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin">
                                             <fileset dir="common/src/main/resources/bin" includes="sqlshell.sh"/>
                                         </copy>
                                         <replace token="##SPLICELIBDIR##" value="${splice.lib.dir}" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin">
@@ -475,9 +472,6 @@
                                 <phase>pre-integration-test</phase>
                                 <configuration>
                                     <target>
-                                        <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin">
-                                            <fileset dir="target/classes/bin" includes="**/*"/>
-                                        </copy>
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/conf">
                                             <fileset dir="target/classes/conf" includes="**/*"/>
                                         </copy>
