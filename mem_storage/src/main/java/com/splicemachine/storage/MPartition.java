@@ -569,4 +569,9 @@ public class MPartition implements Partition{
     public BitSet getBloomInMemoryCheck(boolean hasConstraintChecker, Pair<KVPair, Lock>[] dataAndLocks) throws IOException {
         return null;
     }
+
+    @Override
+    public PartitionDescriptor getDescriptor() throws IOException {
+        throw new UnsupportedOperationException("Operation not supported in mem storage engine");
+    }
 }
