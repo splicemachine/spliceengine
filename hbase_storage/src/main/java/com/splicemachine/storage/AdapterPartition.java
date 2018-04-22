@@ -382,7 +382,7 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
     }
 
     public <T extends Service,V> Map<byte[],V> coprocessorExec(Class<T> serviceClass,Batch.Call<T,V> call) throws Throwable{
-        throw new UnsupportedOperationException("Coprocessors not supported");
+        return delegate.coprocessorExec(serviceClass,call);
     }
 
     public Table unwrapDelegate(){

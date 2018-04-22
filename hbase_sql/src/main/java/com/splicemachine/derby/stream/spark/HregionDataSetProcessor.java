@@ -66,7 +66,7 @@ public class HregionDataSetProcessor extends ControlDataSetProcessor {
                     Clock clock = driver.getClock();
                     Scan hscan = ((HScan)scan).unwrapDelegate();
 
-                    Table table = ((ClientPartition) partition).unwrapDelegate();
+                    Table table = ((SkeletonHBaseClientPartition) partition).unwrapDelegate();
                     SplitRegionScanner srs = new SplitRegionScanner(hscan,
                             table,
                             clock,

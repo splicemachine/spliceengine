@@ -184,10 +184,13 @@ public class SpliceSpark {
             if (!spliceStaticComponentsSetup && isRunningOnSpark()) {
                 SynchronousReadResolver.DISABLED_ROLLFORWARD = true;
 
+                boolean tokenEnabled = HConfiguration.getConfiguration().getAuthenticationTokenEnabled();
+
                 //boot SI components
-                SIEnvironment env = SpliceClient.isClient() ?
+                SIEnvironment env = SpliceClient.isClient() && tokenEnabled ?
                         AdapterSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper(),SpliceClient.connectionString) :
                         HBaseSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper());
+                
                 SIDriver driver = env.getSIDriver();
 
                 //make sure the configuration is correct
@@ -216,7 +219,7 @@ public class SpliceSpark {
                 final Clock clock = driver.getClock();
                 ContextFactoryDriver cfDriver =ContextFactoryDriverService.loadDriver();
                 //we specify rsServices = null here because we don't actually use the receiving side of the Pipeline environment
-                PipelineEnvironment pipelineEnv= SpliceClient.isClient() ?
+                PipelineEnvironment pipelineEnv= SpliceClient.isClient() && tokenEnabled ?
                         AdapterPipelineEnvironment.loadEnvironment(clock,cfDriver,SpliceClient.connectionString) :
                         HBasePipelineEnvironment.loadEnvironment(clock,cfDriver);
                 PipelineDriver.loadDriver(pipelineEnv);

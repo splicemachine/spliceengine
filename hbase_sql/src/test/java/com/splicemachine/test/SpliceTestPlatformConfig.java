@@ -220,7 +220,6 @@ class SpliceTestPlatformConfig {
         config.setLong("splice.ddl.maxWaitSeconds",120000);
         config.setInt("splice.olap_server.memory", 4096);
         config.setInt("splice.authentication.token.renew-interval",120);
-        config.setBoolean("splice.authentication.token.enabled",true);
         if (derbyPort > SQLConfiguration.DEFAULT_NETWORK_BIND_PORT) {
             // we are a member, let's ignore transactions for testing
             config.setBoolean("splice.ignore.missing.transactions", true);
