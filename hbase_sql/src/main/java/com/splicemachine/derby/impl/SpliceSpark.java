@@ -100,6 +100,14 @@ public class SpliceSpark {
         } else if (session.sparkContext().isStopped() && !SpliceClient.isClient) {
             // Try to reinitialize the SparkContext, unless this is SpliceClient, in that case let the user handle the SparkContext
             LOG.warn("SparkContext is stopped, reinitializing...");
+            try {
+                if (UserGroupInformation.isSecurityEnabled() && UserGroupInformation.isLoginKeytabBased()) {
+                    UserGroupInformation.getLoginUser().checkTGTAndReloginFromKeytab();
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            System.exit(0);
             session = initializeSparkSession();
             ctx =  new JavaSparkContext(session.sparkContext());
         }
