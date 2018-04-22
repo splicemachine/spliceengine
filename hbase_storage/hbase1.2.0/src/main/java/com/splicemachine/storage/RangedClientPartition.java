@@ -33,6 +33,7 @@ import java.util.List;
 public class RangedClientPartition extends ClientPartition implements Comparable<RangedClientPartition>{
     private final HRegionInfo regionInfo;
     private final PartitionServer owningServer;
+    private String regionName;
 
     public RangedClientPartition(Connection connection,
                                  TableName tableName,
@@ -47,7 +48,10 @@ public class RangedClientPartition extends ClientPartition implements Comparable
 
     @Override
     public String getName(){
-        return regionInfo.getRegionNameAsString();
+        if (regionName == null) {
+            regionName = regionInfo.getRegionNameAsString();
+        }
+        return regionName;
     }
 
     @Override
