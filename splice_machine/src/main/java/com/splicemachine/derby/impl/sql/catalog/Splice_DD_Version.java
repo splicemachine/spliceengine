@@ -49,7 +49,7 @@ public class Splice_DD_Version extends DD_Version {
     }
 
     public Splice_DD_Version (DataDictionaryImpl bootingDictionary, String versionString) throws StandardException {
-    	if (versionString.matches("\\d(\\.\\d)?(\\.\\d)?(\\.\\d)?")) {
+    	if (versionString.matches("\\d(\\.\\d)?(\\.\\d)?(\\.\\d+)?")) {
             this.majorVersionNumber = 0;
             this.minorVersionNumber = 0;
             this.patchVersionNumber = 0;

@@ -583,14 +583,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             SpliceLogUtils.info(LOG, "Catalog upgraded: added SYS.SYSSNAPSHOTS table.");
         }
 
-        td = getTableDescriptor(SYSTOKENSRowFactory.TABLENAME_STRING, sd, tc);
-        if (td == null)
-        {
-            tc.elevate("dictionary");
-            createTokenTable(tc);
-            SpliceLogUtils.info(LOG, "Catalog upgraded: added SYS.SYSTOKENS table.");
-        }
-
         upgradeSysStatsTable(tc);
 
         updateSysTableStatsView1(tc);
@@ -789,6 +781,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         if(configuration.upgradeForced()) {
             LOG.info(String.format("Upgrade has been manually forced from version %s",
                     configuration.getUpgradeForcedFrom()));
+            return true;
         }
 
         // Not sure about the current version, do not upgrade
