@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import com.google.common.collect.Maps;
 import com.google.protobuf.ZeroCopyLiteralByteString;
+import com.splicemachine.storage.SkeletonHBaseClientPartition;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
@@ -180,7 +181,7 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
 
     public static Map<String, PartitionLoad> getCostWhenNoCachedRegionLoadsFound(String tableName){
         try (Partition p =  SIDriver.driver().getTableFactory().getTable(tableName)){
-            Map<byte[], Pair<String, Long>> ret = ((ClientPartition)p).coprocessorExec(SpliceMessage.SpliceDerbyCoprocessorService.class,
+            Map<byte[], Pair<String, Long>> ret = ((SkeletonHBaseClientPartition)p).coprocessorExec(SpliceMessage.SpliceDerbyCoprocessorService.class,
                      new Batch.Call<SpliceMessage.SpliceDerbyCoprocessorService, Pair<String, Long>>() {
                         @Override
                         public Pair<String, Long> call(SpliceMessage.SpliceDerbyCoprocessorService inctance) throws IOException {
