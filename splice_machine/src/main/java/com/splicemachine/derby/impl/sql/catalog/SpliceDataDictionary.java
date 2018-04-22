@@ -540,14 +540,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     public void upgradeSystablesFor260(TransactionController tc) throws StandardException {
         addNewColumToSystables(tc);
-        SchemaDescriptor sd = getSystemSchemaDescriptor();
-        TableDescriptor td = getTableDescriptor(SYSTOKENSRowFactory.TABLENAME_STRING, sd, tc);
-        if (td == null)
-        {
-            tc.elevate("dictionary");
-            createTokenTable(tc);
-            SpliceLogUtils.info(LOG, "Catalog upgraded: added SYS.SYSTOKENS table.");
-        }
     }
 
     private void addNewColumToSystables(TransactionController tc) throws StandardException {
@@ -695,6 +687,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         if(configuration.upgradeForced()) {
             LOG.info(String.format("Upgrade has been manually forced from version %s",
                     configuration.getUpgradeForcedFrom()));
+            return true;
         }
 
         // Not sure about the current version, do not upgrade
