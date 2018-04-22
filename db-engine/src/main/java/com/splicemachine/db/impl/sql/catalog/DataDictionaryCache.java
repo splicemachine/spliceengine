@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import com.splicemachine.utils.ByteSlice;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.cache.CacheBuilder;
@@ -55,6 +56,7 @@ import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanServer;
 import javax.management.MXBean;
 import javax.management.ObjectName;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -80,7 +82,7 @@ public class DataDictionaryCache {
     private ManagedCache<String,Optional<RoleGrantDescriptor>> roleCache;
     private ManagedCache<String,List<String>> defaultRoleCache;
     private ManagedCache<Triple<String, String, String>, Optional<RoleGrantDescriptor>> roleGrantCache;
-    private ManagedCache<byte[],TokenDescriptor> tokenCache;
+    private ManagedCache<ByteSlice,TokenDescriptor> tokenCache;
     private int tdCacheSize;
     private int stmtCacheSize;
     private int permissionsCacheSize;
@@ -504,17 +506,17 @@ public class DataDictionaryCache {
     public void tokenCacheAdd(byte[] token, TokenDescriptor tokenDescriptor) throws StandardException {
         if (!dd.canUseCache(null))
             return;
-        tokenCache.put(token,tokenDescriptor);
+        tokenCache.put(ByteSlice.wrap(token),tokenDescriptor);
     }
 
     public TokenDescriptor tokenCacheFind(byte[] token) throws StandardException {
         if (!dd.canUseCache(null))
             return null;
-        return tokenCache.getIfPresent(token);
+        return tokenCache.getIfPresent(ByteSlice.wrap(token));
     }
 
     public void tokenCacheRemove(byte[] token) throws StandardException {
-        tokenCache.invalidate(token);
+        tokenCache.invalidate(ByteSlice.wrap(token));
     }
 
     @MXBean

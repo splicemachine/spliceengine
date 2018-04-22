@@ -14,17 +14,20 @@
 
 package com.splicemachine.storage;
 
+import com.google.protobuf.Service;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.util.MeasuredResultScanner;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.coprocessor.Batch;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.Lock;
 
 /**
@@ -218,4 +221,6 @@ public abstract class SkeletonHBaseClientPartition implements Partition{
     protected abstract long doIncrement(Increment incr) throws IOException;
 
     public abstract Table unwrapDelegate();
+
+    public abstract  <T extends Service,V> Map<byte[],V> coprocessorExec(Class<T> serviceClass, Batch.Call<T,V> call) throws Throwable;
 }
