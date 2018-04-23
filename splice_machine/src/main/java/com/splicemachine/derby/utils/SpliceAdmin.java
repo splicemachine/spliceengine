@@ -1826,7 +1826,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             int renewInterval = config.getAuthenticationTokenRenewInterval();
 
             byte[] token = new byte[length];
-            SecureRandom.getInstanceStrong().nextBytes(token);
+            new SecureRandom().nextBytes(token);
 
             String username = lcc.getCurrentUserId(lastActivation);
             DateTime creationTime = new DateTime(System.currentTimeMillis());
