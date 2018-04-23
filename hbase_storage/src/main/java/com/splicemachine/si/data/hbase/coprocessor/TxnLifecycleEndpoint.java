@@ -25,6 +25,8 @@ import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.ipc.RpcServer;
+import org.apache.hadoop.hbase.ipc.RpcUtils;
 import org.apache.hadoop.hbase.protobuf.ResponseConverter;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
@@ -118,7 +120,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
 
     @Override
     public void beginTransaction(RpcController controller,TxnMessage.TxnInfo request,RpcCallback<TxnMessage.VoidResponse> done){
-        try{
+        try (RpcUtils.RootEnv env = RpcUtils.getRootEnv()) {
             lifecycleStore.beginTransaction(request);
             done.run(TxnMessage.VoidResponse.getDefaultInstance());
         }catch(IOException ioe){
@@ -132,7 +134,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
             LOG.warn("Attempting to elevate a transaction with no destination table. This is probably a waste of a network call");
             return;
         }
-        try{
+        try (RpcUtils.RootEnv env = RpcUtils.getRootEnv()) {
             lifecycleStore.elevateTransaction(request.getTxnId(),request.getNewDestinationTable().toByteArray());
             done.run(TxnMessage.VoidResponse.getDefaultInstance());
         }catch(IOException ioe){
@@ -148,7 +150,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
     @Override
     @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT",justification = "Intentional")
     public void lifecycleAction(RpcController controller,TxnMessage.TxnLifecycleMessage request,RpcCallback<TxnMessage.ActionResponse> done){
-        try{
+        try (RpcUtils.RootEnv env = RpcUtils.getRootEnv()) {
             TxnMessage.ActionResponse response=null;
             switch(request.getAction()){
                 case COMMIT:
@@ -177,7 +179,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
 
     @Override
     public void getTransaction(RpcController controller,TxnMessage.TxnRequest request,RpcCallback<TxnMessage.Txn> done){
-        try{
+        try (RpcUtils.RootEnv env = RpcUtils.getRootEnv()) {
             long txnId=request.getTxnId();
             boolean isOld = request.hasIsOld() && request.getIsOld();
             TxnMessage.Txn transaction;
@@ -196,7 +198,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
     public void getActiveTransactionIds(RpcController controller,TxnMessage.ActiveTxnRequest request,RpcCallback<TxnMessage.ActiveTxnIdResponse> done){
         long endTxnId=request.getEndTxnId();
         long startTxnId=request.getStartTxnId();
-        try{
+        try (RpcUtils.RootEnv env = RpcUtils.getRootEnv()) {
             byte[] destTables=null;
             if(request.hasDestinationTables())
                 destTables=request.getDestinationTables().toByteArray();
@@ -216,7 +218,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
     public void getActiveTransactions(RpcController controller,TxnMessage.ActiveTxnRequest request,RpcCallback<TxnMessage.ActiveTxnResponse> done){
         long endTxnId=request.getEndTxnId();
         long startTxnId=request.getStartTxnId();
-        try{
+        try (RpcUtils.RootEnv env = RpcUtils.getRootEnv()) {
             byte[] destTables=null;
             if(request.hasDestinationTables())
                 destTables=request.getDestinationTables().toByteArray();
@@ -233,25 +235,32 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
     }
 
     public long commit(long txnId) throws IOException{
-        return lifecycleStore.commitTransaction(txnId);
+        try (RpcUtils.RootEnv env = RpcUtils.getRootEnv()) {
+            return lifecycleStore.commitTransaction(txnId);
+        }
     }
 
     public void rollbackSubtransactions(long txnId, long[] subIds) throws IOException {
-        lifecycleStore.rollbackSubtransactions(txnId, subIds);
+        try (RpcUtils.RootEnv env = RpcUtils.getRootEnv()) {
+            lifecycleStore.rollbackSubtransactions(txnId, subIds);
+        }
     }
 
     public void rollback(long txnId) throws IOException{
-        lifecycleStore.rollbackTransaction(txnId);
+        try (RpcUtils.RootEnv env = RpcUtils.getRootEnv()) {
+            lifecycleStore.rollbackTransaction(txnId);
+        }
     }
 
     public boolean keepAlive(long txnId) throws IOException{
-        return lifecycleStore.keepAlive(txnId);
+        try (RpcUtils.RootEnv env = RpcUtils.getRootEnv()) {
+            return lifecycleStore.keepAlive(txnId);
+        }
     }
 
     @Override
     public void rollbackTransactionsAfter(RpcController controller, TxnMessage.TxnRequest request, RpcCallback<TxnMessage.VoidResponse> done) {
-
-        try{
+        try (RpcUtils.RootEnv env = RpcUtils.getRootEnv()) {
             lifecycleStore.rollbackTransactionsAfter(request.getTxnId());
             done.run(TxnMessage.VoidResponse.getDefaultInstance());
         }catch(IOException ioe){
