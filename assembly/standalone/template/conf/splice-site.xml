@@ -13,4 +13,8 @@
     <name>splice.authentication.native.create.credentials.database</name>
     <value>true</value>
   </property>
+  <property>
+    <name>splice.olap_server.external</name>
+    <value>false</value>
+  </property>
 </configuration>
