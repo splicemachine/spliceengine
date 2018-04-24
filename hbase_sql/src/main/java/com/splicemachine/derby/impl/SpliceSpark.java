@@ -188,7 +188,7 @@ public class SpliceSpark {
 
                 //boot SI components
                 SIEnvironment env = SpliceClient.isClient() && tokenEnabled ?
-                        AdapterSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper(),SpliceClient.connectionString) :
+                        AdapterSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper(),SpliceClient.getConnectionPool()) :
                         HBaseSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper());
                 
                 SIDriver driver = env.getSIDriver();
@@ -220,7 +220,7 @@ public class SpliceSpark {
                 ContextFactoryDriver cfDriver =ContextFactoryDriverService.loadDriver();
                 //we specify rsServices = null here because we don't actually use the receiving side of the Pipeline environment
                 PipelineEnvironment pipelineEnv= SpliceClient.isClient() && tokenEnabled ?
-                        AdapterPipelineEnvironment.loadEnvironment(clock,cfDriver,SpliceClient.connectionString) :
+                        AdapterPipelineEnvironment.loadEnvironment(clock,cfDriver,SpliceClient.getConnectionPool()) :
                         HBasePipelineEnvironment.loadEnvironment(clock,cfDriver);
                 PipelineDriver.loadDriver(pipelineEnv);
                 HBaseRegionLoads.INSTANCE.startWatching();
