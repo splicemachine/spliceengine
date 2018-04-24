@@ -18,7 +18,6 @@ import com.splicemachine.test_dao.TableDAO;
 import org.apache.commons.dbutils.DbUtils;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
-
 import java.sql.*;
 
 public class SpliceTableWatcher extends TestWatcher {
@@ -27,11 +26,25 @@ public class SpliceTableWatcher extends TestWatcher {
     protected String createString;
     protected String userName;
     protected String password;
+    protected Connection connection;
+    private boolean shouldClose = true;
+
 
     public SpliceTableWatcher(String tableName,String schemaName, String createString) {
         this.tableName = tableName.toUpperCase();
         this.schemaName = schemaName.toUpperCase();
         this.createString = createString;
+    }
+
+    public SpliceTableWatcher(String tableName,String schemaName, String createString, Connection connection) {
+        this(tableName,schemaName,createString);
+        this.connection = connection;
+    }
+
+    public SpliceTableWatcher(String tableName,String schemaName, String createString, Connection connection, boolean shouldClose) {
+        this(tableName,schemaName,createString);
+        this.connection = connection;
+        this.shouldClose = shouldClose;
     }
 
     public SpliceTableWatcher(String tableName, String schemaName, String createString, String userName, String password) {
@@ -48,14 +61,14 @@ public class SpliceTableWatcher extends TestWatcher {
 
     @Override
     protected void finished(Description description) {
+        if (shouldClose)
+            DbUtils.commitAndCloseQuietly(connection);
     }
 
     public void importData(String filename) {
-        Connection connection = null;
         PreparedStatement ps = null;
         try {
-            connection = SpliceNetConnection.getConnection();
-            ps = connection.prepareStatement("call SYSCS_UTIL.IMPORT_DATA (?, ?, null,?,',',null,null,null,null,1,null,true,'utf-8')");
+            ps = getConnection().prepareStatement("call SYSCS_UTIL.IMPORT_DATA (?, ?, null,?,',',null,null,null,null,1,null,true,'utf-8')");
             ps.setString(1,schemaName);
             ps.setString(2,tableName);
             ps.setString(3,filename);
@@ -68,16 +81,13 @@ public class SpliceTableWatcher extends TestWatcher {
             throw new RuntimeException(e);
         } finally {
             DbUtils.closeQuietly(ps);
-            DbUtils.commitAndCloseQuietly(connection);
         }
     }
 
     public void importData(String filename, String timestamp) {
-        Connection connection = null;
         PreparedStatement ps = null;
         try {
-            connection = SpliceNetConnection.getConnection();
-            ps = connection.prepareStatement("call SYSCS_UTIL.IMPORT_DATA (?, ?, null,?,',',null,?,null,null,0,null,true,null)");
+            ps = getConnection().prepareStatement("call SYSCS_UTIL.IMPORT_DATA (?, ?, null,?,',',null,?,null,null,0,null,true,null)");
             ps.setString(1,schemaName);
             ps.setString(2,tableName);
             ps.setString(3,filename);
@@ -87,7 +97,6 @@ public class SpliceTableWatcher extends TestWatcher {
             throw new RuntimeException(e);
         } finally {
             DbUtils.closeQuietly(ps);
-            DbUtils.commitAndCloseQuietly(connection);
         }
     }
 
@@ -106,13 +115,18 @@ public class SpliceTableWatcher extends TestWatcher {
     //-----------------------------------------------------------------------------------------
 
     public void start() {
+        try {
+            createTable();
+            return; // bail
+        } catch (Exception e) {
+            // Swallow, issue
+        }
+
         Statement statement = null;
         ResultSet rs;
-        Connection connection;
         synchronized(SpliceTableWatcher.class){
             try{
-                connection=(userName==null)?SpliceNetConnection.getConnection():SpliceNetConnection.getConnectionAs(userName,password);
-                rs=connection.getMetaData().getTables(null,schemaName,tableName,null);
+                rs=getConnection().getMetaData().getTables(null,schemaName,tableName,null);
             }catch(Exception e){
                 throw new RuntimeException(e);
             }
@@ -126,18 +140,31 @@ public class SpliceTableWatcher extends TestWatcher {
             connection.commit();
         } catch (SQLException e) {
             throw new RuntimeException(e);
-        }
-
-        try{
-            statement = connection.createStatement();
-            statement.execute(String.format("create table %s.%s %s",schemaName,tableName,createString));
-            connection.commit();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         } finally {
             DbUtils.closeQuietly(rs);
-            DbUtils.closeQuietly(statement);
-            DbUtils.commitAndCloseQuietly(connection);
+        }
+        try {
+            createTable();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
+
+    private void createTable() throws Exception {
+        Statement statement = null;
+        try{
+            statement = getConnection().createStatement();
+            statement.execute(String.format("create table %s.%s %s",schemaName,tableName,createString));
+            connection.commit();
+        } finally {
+            DbUtils.closeQuietly(statement);
+        }
+    }
+
+    private Connection getConnection() throws SQLException {
+        if (connection == null)
+            connection=(userName==null)?SpliceNetConnection.getConnection():SpliceNetConnection.getConnectionAs(userName,password);
+        return connection;
+    }
+
 }
