@@ -142,6 +142,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         if (SpliceClient.isClient()) {
             out.writeBoolean(true);
             out.writeUTF(SpliceClient.connectionString);
+            LOG.warn("Writing Connection string: " + SpliceClient.connectionString);
         } else {
             out.writeBoolean(false);
         }
@@ -185,6 +186,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
             credentials = bcast.getValue().value();
         }
         if (in.readBoolean()) {
+            LOG.warn("Connection string setting in read: " + SpliceClient.connectionString);
             SpliceClient.connectionString = in.readUTF();
             SpliceClient.setClient();
         }

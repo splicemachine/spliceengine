@@ -33,6 +33,7 @@ import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.SMInputFormat;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 
@@ -49,6 +50,7 @@ import java.sql.SQLException;
  *         Date: 1/25/16
  */
 public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
+    private static final Logger LOG = Logger.getLogger(SparkScanSetBuilder.class);
     private String tableName;
     private SparkDataSetProcessor dsp;
     private SpliceOperation op;
@@ -97,8 +99,10 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         JavaSparkContext ctx = SpliceSpark.getContext();
         Configuration conf = new Configuration(HConfiguration.unwrapDelegate());
         conf.set(MRConstants.SPLICE_INPUT_CONGLOMERATE, tableName);
-        if (SpliceClient.isClient())
+        if (SpliceClient.isClient()) {
+            LOG.warn("Connection string for scan: " + SpliceClient.connectionString);
             conf.set(MRConstants.SPLICE_CONNECTION_STRING, SpliceClient.connectionString);
+        }
         if (oneSplitPerRegion) {
             conf.set(MRConstants.ONE_SPLIT_PER_REGION, "true");
         }

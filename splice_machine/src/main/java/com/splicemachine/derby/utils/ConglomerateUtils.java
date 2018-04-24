@@ -102,6 +102,7 @@ public class ConglomerateUtils{
                 entryDecoder.close();
             }
         }catch(Exception e){
+            LOG.error("caught exception " , e);
             SpliceLogUtils.logAndThrow(LOG,"readConglomerateException",Exceptions.parseException(e));
         }
         return null;
