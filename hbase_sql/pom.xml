@@ -806,7 +806,7 @@
 				<copy todir="../assembly/standalone/target/splicemachine/jdbc-driver">
 					<fileset dir="target/dependency" includes="db-client*.jar"/>
                                 </copy>
-				<tar compression="gzip" destfile="../assembly/standalone/target/SPLICEMACHINE-standalone.tar.gz">
+				<tar compression="gzip" destfile="../assembly/standalone/target/SPLICEMACHINE-${project.version}.standalone.tar.gz">
 					<tarfileset username="root" group="root" filemode="755" dir="../assembly/standalone/target/splicemachine" prefix="splicemachine"/>
                                 </tar>
                             </target>
