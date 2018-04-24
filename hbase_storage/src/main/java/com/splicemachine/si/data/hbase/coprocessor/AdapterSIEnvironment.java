@@ -63,6 +63,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 
+import javax.sql.DataSource;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -92,13 +93,13 @@ public class AdapterSIEnvironment implements SIEnvironment{
     private SIDriver siDriver;
 
 
-    public static AdapterSIEnvironment loadEnvironment(Clock clock, RecoverableZooKeeper rzk, String connectionString) throws IOException{
+    public static AdapterSIEnvironment loadEnvironment(Clock clock, RecoverableZooKeeper rzk, DataSource connectionPool) throws IOException{
         AdapterSIEnvironment env = INSTANCE;
         if(env==null){
             synchronized(AdapterSIEnvironment.class){
                 env = INSTANCE;
                 if(env==null){
-                    env = INSTANCE = new AdapterSIEnvironment(rzk,clock,connectionString);
+                    env = INSTANCE = new AdapterSIEnvironment(rzk,clock,connectionPool);
                 }
             }
         }
@@ -109,12 +110,12 @@ public class AdapterSIEnvironment implements SIEnvironment{
         INSTANCE = siEnv;
     }
 
-    public AdapterSIEnvironment(TimestampSource timeSource, Clock clock, String connectionString) throws IOException{
+    public AdapterSIEnvironment(TimestampSource timeSource, Clock clock, DataSource connectionPool) throws IOException{
         ByteComparisons.setComparator(HBaseComparator.INSTANCE);
         this.config=HConfiguration.getConfiguration();
         this.timestampSource =timeSource;
         this.partitionCache = PartitionCacheService.loadPartitionCache(config);
-        this.partitionFactory = new AdapterTableFactory(connectionString);
+        this.partitionFactory = new AdapterTableFactory(connectionPool);
         this.partitionFactory.initialize(clock, this.config, partitionCache);
         TxnNetworkLayerFactory txnNetworkLayerFactory= TableFactoryService.loadTxnNetworkLayer(this.config);
         this.txnStore = new CoprocessorTxnStore(txnNetworkLayerFactory,timestampSource,null);
@@ -139,13 +140,13 @@ public class AdapterSIEnvironment implements SIEnvironment{
     }
 
     @SuppressWarnings("unchecked")
-    public AdapterSIEnvironment(RecoverableZooKeeper rzk, Clock clock, String connectionString) throws IOException{
+    public AdapterSIEnvironment(RecoverableZooKeeper rzk, Clock clock, DataSource connectionPool) throws IOException{
         ByteComparisons.setComparator(HBaseComparator.INSTANCE);
         this.config=HConfiguration.getConfiguration();
 
         this.timestampSource =new ZkTimestampSource(config,rzk);
         this.partitionCache = PartitionCacheService.loadPartitionCache(config);
-        this.partitionFactory = new AdapterTableFactory(connectionString);
+        this.partitionFactory = new AdapterTableFactory(connectionPool);
         this.partitionFactory.initialize(clock, this.config, partitionCache);
         TxnNetworkLayerFactory txnNetworkLayerFactory= TableFactoryService.loadTxnNetworkLayer(this.config);
         this.txnStore = new CoprocessorTxnStore(txnNetworkLayerFactory,timestampSource,null);
