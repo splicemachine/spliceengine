@@ -57,6 +57,7 @@ import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.utils.kryo.KryoPool;
 
+import javax.sql.DataSource;
 import java.io.IOException;
 import java.net.URISyntaxException;
 
@@ -76,13 +77,13 @@ public class AdapterPipelineEnvironment implements PipelineEnvironment{
     private final PipelineMeter meter = new CountingPipelineMeter();
     private final WritePipelineFactory pipelineFactory;
 
-    public static AdapterPipelineEnvironment loadEnvironment(Clock systemClock, ContextFactoryDriver ctxFactoryLoader, String connectionString) throws IOException{
+    public static AdapterPipelineEnvironment loadEnvironment(Clock systemClock, ContextFactoryDriver ctxFactoryLoader, DataSource connectionPool) throws IOException{
         AdapterPipelineEnvironment env = INSTANCE;
         if(env==null){
             synchronized(AdapterPipelineEnvironment.class){
                 env = INSTANCE;
                 if(env==null){
-                    SIEnvironment siEnv = AdapterSIEnvironment.loadEnvironment(systemClock,ZkUtils.getRecoverableZooKeeper(),connectionString);
+                    SIEnvironment siEnv = AdapterSIEnvironment.loadEnvironment(systemClock,ZkUtils.getRecoverableZooKeeper(),connectionPool);
                     env = new AdapterPipelineEnvironment(siEnv,ctxFactoryLoader,HPipelineExceptionFactory.INSTANCE);
                     PipelineDriver.loadDriver(env);
                     INSTANCE = env;

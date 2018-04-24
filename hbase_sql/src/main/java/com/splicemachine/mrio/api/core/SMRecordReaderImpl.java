@@ -251,7 +251,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
             	scan.setAttribute(SIConstants.TOKEN_ACL_NAME, token);
 				try {
 					ClientPartition delegate = new ClientPartition(instance.getConnection(), htable.getName(), htable, clock, NoPartitionInfoCache.getInstance());
-					clientPartition = new AdapterPartition(delegate, instance.getConnection(), DriverManager.getConnection(SpliceClient.connectionString),htable.getName(), NoPartitionInfoCache.getInstance());
+					clientPartition = new AdapterPartition(delegate, instance.getConnection(), SpliceClient.getConnectionPool().getConnection(),htable.getName(), NoPartitionInfoCache.getInstance());
 				} catch (SQLException e) {
 					throw new IOException(e);
 				}

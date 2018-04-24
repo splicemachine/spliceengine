@@ -21,6 +21,8 @@ import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.AclCheckerService;
 import com.splicemachine.pipeline.security.AclChecker;
 import com.splicemachine.si.impl.driver.SIDriver;
+import org.apache.hadoop.hbase.ipc.RpcUtils;
+import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.spark_project.guava.base.Function;
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
@@ -158,7 +160,7 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
             done.run(response);
         }catch(IOException e){
             LOG.error("Unexpected exception performing bulk write: ",e);
-            controller.setFailed(StringUtils.stringifyException(e));
+            ((ServerRpcController)controller).setFailedOn(e);
         }
     }
 
@@ -193,21 +195,13 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
 //    @Override
     public BulkWritesResult bulkWrite(BulkWrites bulkWrites) throws IOException{
         if (useToken(bulkWrites)) {
-            try {
+            try (RpcUtils.RootEnv env = RpcUtils.getRootEnv()){
                 int[] privileges = typesToPrivileges(bulkWrites.getTypes());
                 AclCheckerService.getService().checkPermission(bulkWrites.getToken(), conglomId, privileges);
-                return SIDriver.driver().getExecutorService().submit(() -> pipelineWriter.bulkWrite(bulkWrites)).get();
-            } catch (InterruptedException | StandardException e) {
+                return pipelineWriter.bulkWrite(bulkWrites);
+            } catch (StandardException e) {
                 throw new IOException(e);
-            } catch (ExecutionException e) {
-                Throwable cause = e.getCause();
-                if (cause instanceof IOException) {
-                    throw (IOException) cause;
-                } else {
-                    throw new IOException(cause);
-                }
-            }
-
+            } 
         }
 
         return pipelineWriter.bulkWrite(bulkWrites);
