@@ -1,6 +1,7 @@
 package com.splicemachine.client;
 
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.execution.datasources.jdbc.JDBCOptions;
 import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
@@ -48,8 +49,9 @@ public class SpliceClient {
         byte[] oldToken = token;
         long cancellationWait;
         try (Connection conn = DriverManager.getConnection(connectionString)) {
-            try (Statement statement = conn.createStatement()) {
-                ResultSet rs = statement.executeQuery("call SYSCS_UTIL.SYSCS_GET_SPLICE_TOKEN()");
+            try (PreparedStatement statement = conn.prepareStatement("call SYSCS_UTIL.SYSCS_GET_SPLICE_TOKEN(?)")) {
+                statement.setString(1, UserGroupInformation.getCurrentUser().getShortUserName());
+                ResultSet rs = statement.executeQuery();
                 rs.next();
                 token = rs.getBytes(1);
                 Timestamp expiration = rs.getTimestamp(2);

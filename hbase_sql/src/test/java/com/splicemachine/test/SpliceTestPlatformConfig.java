@@ -57,20 +57,20 @@ class SpliceTestPlatformConfig {
     );
 
     private static final List<Class<?>> REGION_COPROCESSORS = ImmutableList.<Class<?>>of(
+            TokenProvider.class,
+            AccessController.class,
             MemstoreAwareObserver.class,
             SpliceIndexObserver.class,
             SpliceIndexEndpoint.class,
             RegionSizeEndpoint.class,
             TxnLifecycleEndpoint.class,
             SIObserver.class,
-            BackupEndpointObserver.class ,
-            TokenProvider.class,
-            AccessController.class
+            BackupEndpointObserver.class
     );
 
     private static final List<Class<?>> MASTER_COPROCESSORS = ImmutableList.<Class<?>>of(
-            SpliceMasterObserver.class,
-            AccessController.class);
+            AccessController.class,
+            SpliceMasterObserver.class);
 
     private static final List<Class<?>> HFILE_CLEANERS = ImmutableList.<Class<?>>of(
             SpliceHFileCleaner.class,

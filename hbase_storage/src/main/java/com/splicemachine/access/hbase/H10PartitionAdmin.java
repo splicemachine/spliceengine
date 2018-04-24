@@ -24,6 +24,7 @@ import java.sql.SQLWarning;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +54,8 @@ import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.hbase.regionserver.StoreFile;
+import org.apache.hadoop.hbase.security.access.AccessControlClient;
+import org.apache.hadoop.hbase.security.access.Permission;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.hbase.util.HBaseFsckRepair;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
@@ -399,6 +402,14 @@ public class H10PartitionAdmin implements PartitionAdmin{
                         HTableDescriptor descriptor = table.getTableDescriptor();
                         return Arrays.asList(descriptor.convert().toByteArray());
                     }
+                case "grant":
+                    String userName = Bytes.toString(bytes);
+                    AccessControlClient.grant(admin.getConnection(), "splice", userName,
+                            Permission.Action.WRITE
+                            ,Permission.Action.READ
+                            ,Permission.Action.EXEC
+                    );
+                    return Collections.emptyList();
                 default:
                     throw new UnsupportedOperationException(operation);
 
@@ -406,6 +417,8 @@ public class H10PartitionAdmin implements PartitionAdmin{
         } catch (InvalidProtocolBufferException e) {
             e.printStackTrace();
             throw new IOException(e);
+        } catch (Throwable t) {
+            throw new IOException(t);
         }
     }
 }
