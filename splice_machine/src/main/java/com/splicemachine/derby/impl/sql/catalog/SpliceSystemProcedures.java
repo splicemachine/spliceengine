@@ -661,6 +661,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                      */
                     Procedure getToken = Procedure.newBuilder().name("SYSCS_GET_SPLICE_TOKEN")
                             .numOutputParams(0)
+                            .varchar("username",256)
                             .numResultSets(1)
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
