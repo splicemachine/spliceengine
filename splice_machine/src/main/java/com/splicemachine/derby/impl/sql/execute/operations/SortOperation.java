@@ -212,19 +212,10 @@ public class SortOperation extends SpliceBaseOperation{
             }
         }
 
-        //operationContext.pushScopeForOp(OperationContext.Scope.SORT_KEYER);
-        KeyerFunction f=new KeyerFunction(operationContext,keyColumns);
-        PairDataSet pair=dataSet.keyBy(f);
-        //operationContext.popScope();
 
-        //operationContext.pushScopeForOp(OperationContext.Scope.SHUFFLE);
-        PairDataSet sortedByKey=pair.sortByKey(new RowComparator(descColumns,nullsOrderedLow),
-            OperationContext.Scope.SORT.displayName(), operationContext);
-        //operationContext.popScope();
+        DataSet sortedValues = dataSet.orderBy(operationContext, keyColumns,descColumns,nullsOrderedLow);
 
-        //operationContext.pushScopeForOp(OperationContext.Scope.READ_SORTED);
-        DataSet sortedValues=sortedByKey.values(OperationContext.Scope.READ_SORTED.displayName());
-        //operationContext.popScope();
+
 
         try{
             //operationContext.pushScopeForOp(OperationContext.Scope.LOCATE);

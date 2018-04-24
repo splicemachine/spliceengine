@@ -62,6 +62,7 @@ import java.util.concurrent.Future;
 import java.util.zip.GZIPOutputStream;
 
 import static org.apache.spark.sql.functions.broadcast;
+import static org.apache.spark.sql.functions.col;
 
 /**
  *
@@ -314,6 +315,33 @@ public class SparkDataSet<V> implements DataSet<V> {
             return new SparkDataSet<>(rdd1);
         } finally {
             if (pushScope) SpliceSpark.popScope();
+        }
+    }
+
+    @Override
+    public DataSet<V> orderBy(OperationContext operationContext, int[] keyColumns, boolean[] descColumns, boolean[] nullsOrderedLow) {
+        try {
+            Dataset<Row> ds = toSparkRow(this, operationContext);
+            for (int i = 0; i < keyColumns.length; i++) {
+                Column orderCol = col(ValueRow.getNamedColumn(keyColumns[i]));
+                if (descColumns[i]) {
+                    if (nullsOrderedLow[i])
+                        orderCol = orderCol.desc_nulls_last();
+                    else
+                        orderCol =orderCol.desc_nulls_first();
+                }
+                else {
+                    if (nullsOrderedLow[i])
+                        orderCol =orderCol.asc_nulls_last();
+                    else
+                        orderCol =orderCol.asc_nulls_first();
+                }
+                ds = ds.orderBy(orderCol);
+            }
+            return toSpliceLocatedRow(ds,operationContext);
+        }
+        catch (Exception se){
+            throw new RuntimeException(se);
         }
     }
 

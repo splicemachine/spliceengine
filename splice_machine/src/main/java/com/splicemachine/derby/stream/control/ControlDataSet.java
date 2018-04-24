@@ -24,14 +24,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.control.output.ControlExportDataSetWriter;
-import com.splicemachine.derby.stream.function.KeyerFunction;
-import com.splicemachine.derby.stream.function.MergeWindowFunction;
-import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
-import com.splicemachine.derby.stream.function.SpliceFunction;
-import com.splicemachine.derby.stream.function.SpliceFunction2;
-import com.splicemachine.derby.stream.function.SplicePairFunction;
-import com.splicemachine.derby.stream.function.SplicePredicateFunction;
-import com.splicemachine.derby.stream.function.TakeFunction;
+import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
@@ -112,6 +105,23 @@ public class ControlDataSet<V> implements DataSet<V> {
         } catch (Exception e) {
             throw Exceptions.getRuntimeException(e);
         }
+    }
+
+    @Override
+    public DataSet<V> orderBy(OperationContext operationContext, int[] keyColumns, boolean[] descColumns, boolean[] nullsOrderedLow) {
+        //operationContext.pushScopeForOp(OperationContext.Scope.SORT_KEYER);
+        KeyerFunction f=new KeyerFunction(operationContext,keyColumns);
+        PairDataSet pair=keyBy(f);
+        //operationContext.popScope();
+
+        //operationContext.pushScopeForOp(OperationContext.Scope.SHUFFLE);
+        PairDataSet sortedByKey=pair.sortByKey(new RowComparator(descColumns,nullsOrderedLow),
+                OperationContext.Scope.SORT.displayName(), operationContext);
+        //operationContext.popScope();
+
+        //operationContext.pushScopeForOp(OperationContext.Scope.READ_SORTED);
+        return sortedByKey.values(OperationContext.Scope.READ_SORTED.displayName());
+        //operationContext.popScope();
     }
 
     @Override
