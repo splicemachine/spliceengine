@@ -1179,13 +1179,15 @@ public class SelectNode extends ResultSetNode{
                 null,
                 getContextManager());
 
-        int numPruned = prnRSN.getResultColumns().doProjection(false);
-        if (numPruned > 0) {
-            // we need to adjust the columnPosition in orderbylist and groupByList
-            if (orderByList != null) {
-                for (int i = 0; i < orderByList.size(); i++) {
-                    OrderByColumn oCol = (OrderByColumn) orderByList.elementAt(i);
-                    oCol.columnPosition = oCol.getResultColumn().getVirtualColumnId();
+        if (getCompilerContext().isProjectionPruningEnabled()) {
+            int numPruned = prnRSN.getResultColumns().doProjection(false);
+            if (numPruned > 0) {
+                // we need to adjust the columnPosition in orderbylist and groupByList
+                if (orderByList != null) {
+                    for (int i = 0; i < orderByList.size(); i++) {
+                        OrderByColumn oCol = (OrderByColumn) orderByList.elementAt(i);
+                        oCol.columnPosition = oCol.getResultColumn().getVirtualColumnId();
+                    }
                 }
             }
         }

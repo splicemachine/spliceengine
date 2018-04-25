@@ -1902,10 +1902,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                 }
 
                 if ((resultColumn.getExpression() instanceof VirtualColumnNode)
-                        && !(((VirtualColumnNode) resultColumn.getExpression()).getSourceColumn().isReferenced())
-                        ||
-                        (resultColumn.getExpression() instanceof ColumnReference)
-                                && !(((ColumnReference) resultColumn.getExpression()).getSource().isReferenced())) {
+                        && !(((VirtualColumnNode) resultColumn.getExpression()).getSourceColumn().isReferenced())) {
                     // Remember the RC to delete when done
                     deletedRCL.addElement(resultColumn);
 

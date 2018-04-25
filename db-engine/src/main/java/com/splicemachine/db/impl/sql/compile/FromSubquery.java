@@ -314,7 +314,10 @@ public class FromSubquery extends FromTable
          * Create RCL based on subquery, adding a level of VCNs.
          */
          ResultColumnList newRcl = subqueryRCL.copyListAndObjects();
-         newRcl.genVirtualColumnNodes(subquery, subquery.getResultColumns(), false);
+         if (getCompilerContext().isProjectionPruningEnabled())
+         	newRcl.genVirtualColumnNodes(subquery, subquery.getResultColumns(), false);
+         else
+			 newRcl.genVirtualColumnNodes(subquery, subquery.getResultColumns());
          resultColumns = newRcl;
 
 		/* Propagate the name info from the derived column list */

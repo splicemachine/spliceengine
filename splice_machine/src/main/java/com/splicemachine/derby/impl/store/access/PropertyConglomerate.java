@@ -104,6 +104,7 @@ public class PropertyConglomerate {
 			serviceProperties.put(Property.DEFAULT_CONNECTION_MODE_PROPERTY, "fullAccess");
 			serviceProperties.put(Property.AUTHENTICATION_BUILTIN_ALGORITHM, Property.AUTHENTICATION_BUILTIN_ALGORITHM_DEFAULT);
 			serviceProperties.put(Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED, "false");
+			serviceProperties.put(Property.ENABLE_PROJECTION_PRUNING, "true");
             for (Object object: serviceProperties.keySet()) {
             	String key = (String)object;
             	String defaultValue = serviceProperties.getProperty(key);

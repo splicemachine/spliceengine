@@ -134,7 +134,8 @@ public abstract class DMLStatementNode extends StatementNode {
     public void optimizeStatement() throws StandardException {
 
         //prune projection list
-        accept(new ProjectionPruningVisitor());
+        if (getCompilerContext().isProjectionPruningEnabled())
+            accept(new ProjectionPruningVisitor());
 
         /* Perform subquery flattening if applicable. */
         SubqueryFlattening.flatten(this);
