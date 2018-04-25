@@ -64,7 +64,6 @@ public class SMOutputFormat extends OutputFormat<RowLocation,Either<Exception, E
             dsWriter.txn(outputCommitter.getChildTransaction(taskAttemptContext.getTaskAttemptID()));
             return new SMRecordWriter(dsWriter.buildTableWriter(), outputCommitter);
         } catch (Exception e) {
-            LOG.error("Exception " + e);
             throw new IOException(e);
         }
     }

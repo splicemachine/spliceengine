@@ -186,7 +186,6 @@ public class SpliceSpark {
 
                 boolean tokenEnabled = HConfiguration.getConfiguration().getAuthenticationTokenEnabled();
 
-                LOG.warn("Connection string for env: " + SpliceClient.connectionString);
                 //boot SI components
                 SIEnvironment env = SpliceClient.isClient() && tokenEnabled ?
                         AdapterSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper(),SpliceClient.connectionString) :

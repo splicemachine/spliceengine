@@ -28,7 +28,6 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.sql.DriverManager;
@@ -40,7 +39,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Created by jleach on 11/18/15.
  */
 public class AdapterTableFactory implements PartitionFactory<TableName>{
-    private static final Logger LOG = Logger.getLogger(AdapterTableFactory.class);
     private Connection connection;
     private Clock timeKeeper;
     private volatile AtomicBoolean initialized = new AtomicBoolean(false);
@@ -77,7 +75,6 @@ public class AdapterTableFactory implements PartitionFactory<TableName>{
             ClientPartition delegate = new ClientPartition(connection, tableName, table, timeKeeper, NoPartitionInfoCache.getInstance());
             return new AdapterPartition(delegate, connection,DriverManager.getConnection(connectionString),tableName,NoPartitionInfoCache.getInstance());
         } catch (SQLException e) {
-            LOG.error("Got exception with connection string  " +  connectionString, e);
             throw new IOException(e);
         }
     }

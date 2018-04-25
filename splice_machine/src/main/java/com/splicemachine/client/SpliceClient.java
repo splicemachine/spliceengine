@@ -48,7 +48,6 @@ public class SpliceClient {
     private static synchronized void initializeTokenInternal() {
         byte[] oldToken = token;
         long cancellationWait;
-        LOG.warn("Connection string for token: " + SpliceClient.connectionString);
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             try (PreparedStatement statement = conn.prepareStatement("call SYSCS_UTIL.SYSCS_GET_SPLICE_TOKEN(?)")) {
                 statement.setString(1, UserGroupInformation.getCurrentUser().getShortUserName());
@@ -98,7 +97,6 @@ public class SpliceClient {
     }
 
     private static void cancelToken(byte[] token) {
-        LOG.warn("Connection string for token: " + SpliceClient.connectionString);
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             try (PreparedStatement statement = conn.prepareStatement("call SYSCS_UTIL.SYSCS_CANCEL_SPLICE_TOKEN(?)")) {
                 statement.setBlob(1, new ArrayInputStream(token));
