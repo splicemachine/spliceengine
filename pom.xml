@@ -75,6 +75,7 @@
         <jacoco_out/>
         <!-- run chaos monkey -->
         <log4j.config.uri>file:${basedir}/src/main/resources/info-log4j.properties</log4j.config.uri>
+        <olap.log4j.config.uri>file:${basedir}/src/main/resources/olap-log4j.properties</olap.log4j.config.uri>
         <skip.integration.tests>true</skip.integration.tests>
         <obfuscate.si/>
         <obfuscate.si.tag/>
