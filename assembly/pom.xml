@@ -155,7 +155,8 @@
                                         akka-remote_${scala.binary.version},
                                         splicemachine-${envClassifier}-${spark.version}_${scala.binary.version},
 					super-csv,
-					c3p0
+					c3p0,
+					mchange-commons-java
                                     </includeArtifactIds>
                                 </configuration>
                             </execution>
