@@ -29,6 +29,7 @@ import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import javax.sql.DataSource;
 import java.io.IOException;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -46,10 +47,10 @@ public class AdapterTableFactory implements PartitionFactory<TableName>{
     private byte[] namespaceBytes;
     private HBaseTableInfoFactory tableInfoFactory;
     private PartitionInfoCache<TableName> partitionInfoCache;
-    private String connectionString;
+    private DataSource connectionPool;
 
-    public AdapterTableFactory(String connectionString){
-        this.connectionString = connectionString;
+    public AdapterTableFactory(DataSource connectionPool){
+        this.connectionPool = connectionPool;
     }
 
     @Override
@@ -73,7 +74,7 @@ public class AdapterTableFactory implements PartitionFactory<TableName>{
         try {
             Table table = connection.getTable(tableName);
             ClientPartition delegate = new ClientPartition(connection, tableName, table, timeKeeper, NoPartitionInfoCache.getInstance());
-            return new AdapterPartition(delegate, connection,DriverManager.getConnection(connectionString),tableName,NoPartitionInfoCache.getInstance());
+            return new AdapterPartition(delegate, connection,connectionPool.getConnection(),tableName,NoPartitionInfoCache.getInstance());
         } catch (SQLException e) {
             throw new IOException(e);
         }

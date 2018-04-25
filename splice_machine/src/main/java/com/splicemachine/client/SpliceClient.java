@@ -1,21 +1,20 @@
 package com.splicemachine.client;
 
+import com.mchange.v2.c3p0.ComboPooledDataSource;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
-import org.apache.spark.sql.execution.datasources.jdbc.JDBCOptions;
 import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
 
+import javax.sql.DataSource;
+import java.beans.PropertyVetoException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.TimeZone;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -105,5 +104,29 @@ public class SpliceClient {
         } catch (Throwable t) {
             LOG.error("Error while cancelling old Splice token", t);
         }
+    }
+
+    private static volatile ComboPooledDataSource pool;
+    public static DataSource getConnectionPool() {
+        if (pool == null) {
+            synchronized (SpliceClient.class) {
+                if (pool == null) {
+                    pool = new ComboPooledDataSource();
+                    try {
+                        pool.setDriverClass("com.splicemachine.db.jdbc.Driver40");
+                        pool.setJdbcUrl(connectionString);
+
+                        pool.setMinPoolSize(5);
+                        pool.setAcquireIncrement(5);
+                        pool.setMaxPoolSize(100);
+                        pool.setDebugUnreturnedConnectionStackTraces(true);
+                        pool.setUnreturnedConnectionTimeout(30);
+                    } catch (PropertyVetoException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+        return pool;
     }
 }

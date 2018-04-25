@@ -79,12 +79,22 @@ public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
                 throw new RuntimeException(e);
             }
         }
+        SkeletonHBaseClientPartition partition = null;
         try {
             if (SIDriver.driver() == null) SpliceSpark.setupSpliceStaticComponents();
             PartitionFactory tableFactory=SIDriver.driver().getTableFactory();
-            setHTable(((SkeletonHBaseClientPartition)tableFactory.getTable(conglomerate)).unwrapDelegate());
+            partition = ((SkeletonHBaseClientPartition) tableFactory.getTable(conglomerate));
+            setHTable(partition.unwrapDelegate());
         } catch (Exception e) {
             LOG.error(StringUtils.stringifyException(e));
+        } finally {
+            if (partition != null) {
+                try {
+                    partition.close();
+                } catch (IOException e) {
+                    // ignore
+                }
+            }
         }
         if (tableScannerAsString == null) {
             if (jdbcString == null) {
