@@ -223,6 +223,12 @@ public class SelectivityIT extends SpliceUnitTest {
         new TableCreator(conn)
                 .withCreate("create table t1s (a1 char(10), b1 int, c1 int, primary key(a1, b1))").create();
 
+        new TableCreator(conn)
+                .withCreate("create table t1a (a1 int)").create();
+
+        new TableCreator(conn)
+                .withCreate("create table t1b (a1 int)").create();
+
         PreparedStatement ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
                         "'%s'," +  // schema name
                         "'%s'," +  // table name
@@ -269,6 +275,14 @@ public class SelectivityIT extends SpliceUnitTest {
 
         spliceClassWatcher.executeQuery(format(
                 "call SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','T1S', false)",
+                spliceSchemaWatcher.schemaName));
+
+        spliceClassWatcher.executeQuery(format(
+                "call SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','T1A', false)",
+                spliceSchemaWatcher.schemaName));
+
+        spliceClassWatcher.executeQuery(format(
+                "call SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','T1B', false)",
                 spliceSchemaWatcher.schemaName));
 
         conn.commit();
@@ -554,5 +568,10 @@ public class SelectivityIT extends SpliceUnitTest {
         double rowCount1 = parseOutputRows(getExplainMessage(4,
                 "explain select * from t_range_test --splice-properties index=ix_t_range_test\n where a1=1 and d1 >='bbbb' and d1 < 'cccc'", methodWatcher));
         Assert.assertTrue(rowCount == rowCount);
+    }
+
+    @Test
+    public void testZeroRowAntiJoinSelectivity() throws  Exception {
+        rowContainsQuery(8,"explain select t1a.a1 from t1a,t1b where not exists (select 1 from t1b where t1a.a1 = t1b.a1)","outputRows=1,",methodWatcher);
     }
 }
