@@ -130,6 +130,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final int olapServerMemory;
     private final int olapServerMemoryOverhead;
     private final int olapServerVirtualCores;
+    private final String olapLog4jConfig;
 
     // SIConfigurations
     private final  int activeTransactionCacheSize;
@@ -822,6 +823,7 @@ public final class SConfigurationImpl implements SConfiguration {
         flushResolutionShare = builder.flushResolutionShare;
         olapCompactionResolutionBufferSize = builder.olapCompactionResolutionBufferSize;
         olapCompactionBlocking = builder.olapCompactionBlocking;
+        olapLog4jConfig = builder.olapLog4jConfig;
         resolutionOnFlushes = builder.resolutionOnFlushes;
         reservedSlotsTimeout = builder.reservedSlotsTimeout;
         storageFactoryHome = builder.storageFactoryHome;
@@ -897,6 +899,11 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public boolean getOlapCompactionBlocking() {
         return olapCompactionBlocking;
+    }
+
+    @Override
+    public String getOlapLog4jConfig() {
+        return olapLog4jConfig;
     }
 
     @Override

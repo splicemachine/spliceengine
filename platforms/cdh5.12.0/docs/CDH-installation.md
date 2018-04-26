@@ -532,6 +532,7 @@ com.splicemachine.hbase.BackupEndpointObserver</code>
    <property><name>splice.authentication.native.algorithm</name><value>SHA-512</value></property>
    <property><name>splice.authentication</name><value>NATIVE</value></property>
    <property><name>splice.olap_server.memory</name><value>8196</value></property>   
+   <property><name>splice.olap.log4j.configuration</name><value>file:/opt/cloudera/parcels/SPLICEMACHINE/conf/olap-log4j.properties</value></property>   
    ````
 
 3. Set the value of Java Configuration Options for HBase Master
@@ -578,6 +579,8 @@ You can use <a href="https://www.cloudera.com/documentation/enterprise/5-8-x/top
 
 ### Modify the Log Location
 
+#### Query Statement log
+
 Splice Machine logs all SQL statements by default, storing the log
 entries in your region server's logs, as described in our [Using
 Logging](developers_tuning_logging) topic. You can modify where Splice
@@ -603,6 +606,13 @@ Configuration:
    # Uncomment to not replicate statements to the spliceDerby file:
    #log4j.additivity.splice-derby.statement=false
    ```
+   
+#### OLAP Server Log
+
+Splice Machine uses log4j to config OLAP server's log. There is a default configuration at `conf/` directory in Splice Machine's 
+parcel. It default to write logs to `/var/log/hadoop-yarn`.
+If you want to change the log behavior of OLAP server, config `splice.olap.log4j.configuration` in `hbase-site.xml`.
+It specifies the log4j.properties file you want to use. This file needs to be available on HBase master server.
 
 ## Deploy the Client Configuration
 
