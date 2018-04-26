@@ -15,7 +15,6 @@
 
 package com.splicemachine.olap;
 
-import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.HBaseConfiguration;
@@ -55,6 +54,7 @@ import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.spark.util.ShutdownHookManager;
 import org.apache.zookeeper.CreateMode;
@@ -65,10 +65,7 @@ import scala.runtime.BoxedUnit;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.HashMap;
@@ -175,6 +172,41 @@ public class OlapServerSubmitter implements Runnable {
                     localResources.put(name, amJarRsrc);
                 }
 
+                SConfiguration config = SIDriver.driver().getConfiguration();
+                String log4jConfig = config.getOlapLog4jConfig();
+                String log4jDefault = LogManager.DEFAULT_CONFIGURATION_FILE;
+                URI log4jURI = null;
+                if (log4jConfig != null) {
+                    File log4jFile = new File(new URI(log4jConfig).getPath());
+                    if (log4jFile.exists()) {
+                        log4jURI = log4jFile.toURI();
+                    } else {
+                        URL log4jURL = this.getClass().getResource(log4jConfig);
+                        if (log4jURL != null) {
+                            log4jURI = log4jURL.toURI();
+                        }
+                    }
+                }
+                if (log4jURI != null) {
+                    LOG.info("Got log4j config for OLAP server: " + log4jURI);
+                    Path log4jPath = getQualifiedLocalPath(log4jURI, conf);
+                    FileSystem srcFs = log4jPath.getFileSystem(conf);
+                    Path log4jHPath = new Path(appStagingDirPath, log4jDefault);
+                    FileUtil.copy(srcFs, log4jPath, fs, log4jHPath, false, conf);
+                    LOG.info("Copy log4j config file from " + log4jURI + " to "
+                            + log4jHPath.toUri());
+                    FileStatus destStatus = fs.getFileStatus(log4jHPath);
+                    LocalResource log4jRsrc = Records.newRecord(LocalResource.class);
+                    log4jRsrc.setType(LocalResourceType.FILE);
+                    log4jRsrc.setVisibility(LocalResourceVisibility.APPLICATION);
+                    log4jRsrc.setResource(ConverterUtils.getYarnUrlFromPath(log4jHPath));
+                    log4jRsrc.setTimestamp(destStatus.getModificationTime());
+                    log4jRsrc.setSize(destStatus.getLen());
+                    localResources.put(log4jDefault, log4jRsrc);
+                } else {
+                    LOG.warn("Log4j config for OLAP server not found.");
+                }
+
                 // Set up the container launch context for the application master
                 ContainerLaunchContext amContainer =
                         Records.newRecord(ContainerLaunchContext.class);
@@ -191,6 +223,11 @@ public class OlapServerSubmitter implements Runnable {
 
                 // Setup CLASSPATH for ApplicationMaster
                 Map<String, String> appMasterEnv = new HashMap<String, String>();
+                // add log4j.properties to the classpath
+                if (log4jURI != null) {
+                    addPathToEnvironment(appMasterEnv, ApplicationConstants.Environment.CLASSPATH.name(),
+                            ApplicationConstants.Environment.PWD.$() + File.separator);
+                }
                 setupAppMasterEnv(appMasterEnv, conf);
                 amContainer.setEnvironment(appMasterEnv);
                 amContainer.setLocalResources(localResources);
@@ -470,7 +507,7 @@ public class OlapServerSubmitter implements Runnable {
                     ApplicationConstants.Environment.CLASSPATH.name(), path.trim());
         }
 
-        LOG.debug("CLASSPATH: + " + appMasterEnv.get(ApplicationConstants.Environment.CLASSPATH.name()));
+        LOG.debug("CLASSPATH: " + appMasterEnv.get(ApplicationConstants.Environment.CLASSPATH.name()));
 
     }
     

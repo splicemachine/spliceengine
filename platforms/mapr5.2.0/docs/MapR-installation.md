@@ -252,6 +252,8 @@ that Splice Machine uses to LDAP by following the simple instructions in
 
 ### Modify the Log Location
 
+#### Query Statement log
+
 Splice Machine logs all SQL statements by default, storing the log
 entries in your region server's logs, as described in our [Using
 Logging](developers_tuning_logging) topic. You can modify where Splice
@@ -293,6 +295,13 @@ Machine stores logs as follows:
       sudo -su mapr maprcli node services -hbmaster restart -nodes **&lt;master node&gt;** <br />
       sudo -su mapr maprcli node services -hbregionserver restart -nodes  **&lt;regional node 1&gt; &lt;regional node 2&gt; ... &lt;regional node n&gt;**
       ````
+      
+#### OLAP Server Log
+
+Splice Machine uses log4j to config OLAP server's log.  If you want to change the default log behavior of OLAP server,
+config `splice.olap.log4j.configuration` in `hbase-site.xml`. It specifies the log4j.properties file you want to use.
+This file needs to be available on HBase master server.
+
 
 ### Adjust the Replication Factor
 
