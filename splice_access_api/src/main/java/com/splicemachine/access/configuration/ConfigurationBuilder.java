@@ -167,6 +167,7 @@ public class ConfigurationBuilder {
     public int bulkImportTasksPerRegion;
     public int regionToLoadPerTask;
     public long controlExecutionRowLimit;
+    public String olapLog4jConfig;
 
     /**
      * Build the {@link SConfiguration} given the list of subsystem defaults and the configuration source.<br/>

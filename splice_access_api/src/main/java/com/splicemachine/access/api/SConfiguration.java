@@ -317,4 +317,6 @@ public interface SConfiguration {
     int getOlapServerTickLimit();
 
     long getControlExecutionRowLimit();
+
+    String getOlapLog4jConfig();
 }

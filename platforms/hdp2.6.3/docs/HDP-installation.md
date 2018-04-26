@@ -141,6 +141,8 @@ If you're using Kerberos, you need to add this option to your HBase Master Java 
 
 ### Modify the Log Location
 
+#### Query Statement log
+
 Splice Machine logs all SQL statements by default, storing the log
 entries in your region server's logs, as described in our [Using
 Logging](developers_tuning_logging) topic. You can modify where Splice
@@ -167,6 +169,13 @@ Configuration:
    # Uncomment to not replicate statements to the spliceDerby file:
    #log4j.additivity.splice-derby.statement=false
    ````
+   
+#### OLAP Server Log
+   
+Splice Machine uses log4j to config OLAP server's log.  If you want to change the default log behavior of OLAP server,
+config `splice.olap.log4j.configuration` in `hbase-site.xml`. It specifies the log4j.properties file you want to use.
+This file needs to be available on HBase master server.
+
 
 ## Verify your Splice Machine Installation
 

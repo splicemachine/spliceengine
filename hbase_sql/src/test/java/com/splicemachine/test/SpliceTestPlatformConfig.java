@@ -19,6 +19,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.spark_project.guava.collect.Lists.transform;
 import java.util.List;
 
+import com.splicemachine.access.configuration.OlapConfigurations;
 import com.splicemachine.compactions.SpliceDefaultCompactor;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import org.spark_project.guava.base.Function;
@@ -79,7 +80,8 @@ class SpliceTestPlatformConfig {
                                        Integer regionServerPort,
                                        Integer regionServerInfoPort,
                                        Integer derbyPort,
-                                       boolean failTasksRandomly) {
+                                       boolean failTasksRandomly,
+                                       String olapLog4jConfig) {
 
         Configuration config = HConfiguration.unwrapDelegate();
 
@@ -105,6 +107,7 @@ class SpliceTestPlatformConfig {
         config.setClass(DefaultStoreEngine.DEFAULT_COMPACTOR_CLASS_KEY, SpliceDefaultCompactor.class, Compactor.class);
        // config.setClass(ConsistencyControlUtils.MVCC_IMPL, SIMultiVersionConsistencyControl.class, ConsistencyControl.class);
         config.setClass(DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS_KEY, SpliceDefaultCompactionPolicy.class, CompactionPolicy.class);
+        config.setStrings(OlapConfigurations.OLAP_LOG4J_CONFIG, olapLog4jConfig);
 
 
 
