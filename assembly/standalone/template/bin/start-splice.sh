@@ -111,7 +111,6 @@ echo "Starting Zoo. Log file is ${ZOO_LOG}"
 
 
 # TODO eventually move - need cp script to consolidate as part of prepare package
-#CP="${BASE_DIR}/lib":"${BASE_DIR}/lib/*"
 CP="${BASE_DIR}/lib":"${BASE_DIR}/lib/*:${BASE_DIR}/conf"
 LOG4J_FILE="file://${BASE_DIR}/conf/info-log4j.properties"
 
@@ -168,16 +167,5 @@ echo -n "  Waiting. "
  while ! echo exit | nc localhost 1527; do echo -n ". " ; sleep 5; done
 echo
 
-#if [[ ${MEMBERS} -gt 0 ]]; then
-#  for (( MEMBER=1; MEMBER<${MEMBERS}; MEMBER++ )); do
-#    REGION_SVR_LOG="${RUN_DIR}/spliceRegionSvr$(($MEMBER +1)).log"
-#    echo "Starting Region Server ${REGION_SVR_LOG}"
-#    ## (region server, splice on 1528, 1529, ...)
-#    (${MVN} exec:exec -P${PROFILE},spliceClusterMember ${SYSTEM_PROPS} -DmemberNumber=${MEMBER} -Dxml.plan.debug.path=${DEBUG_PATH} > ${REGION_SVR_LOG} 2>&1) &
-#    echo -n "  Waiting. "
-#    while ! echo exit | nc localhost $(( 1527 + ${MEMBER} )); do echo -n ". " ; sleep 5; done
-#    echo
-#  done
-#fi
 echo "done."
 popd > /dev/null
