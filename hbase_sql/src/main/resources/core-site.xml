@@ -33,4 +33,45 @@
         <value>file:///</value>
     </property>
 
+    <property>
+        <name>splice.authentication</name>
+        <value>LDAP</value>
+    </property>
+
+    <property>
+        <name>splice.authentication.ldap.server</name>
+        <value>ldap://localhost:1234</value>
+    </property>
+
+    <!--property>
+        <name>splice.authentication.ldap.server</name>
+        <value>ldap://stl-colo-srv056.splicemachine.colo:389</value>
+    </property>
+    <property>
+        <name>splice.authentication.ldap.searchAuthDN</name>
+        <value>cn=Resource Account,ou=Users,dc=splicemachine,dc=colo</value>
+    </property>
+    <property>
+        <name>splice.authentication.ldap.searchAuth.password</name>
+        <value>resource</value>
+    </property-->
+
+    <property>
+        <name>splice.authentication.ldap.searchBase</name>
+        <value>ou=Users,dc=splicemachine,dc=colo</value>
+    </property>
+    <property>
+        <name>splice.authentication.ldap.searchFilter</name>
+        <value>(&amp;(objectClass=*)(uid=%USERNAME%))</value>
+    </property>
+    <property>
+        <name>splice.authentication.ldap.mapGroupAttr</name>
+        <value>admin_group=splice</value>
+    </property>
+
+    <property>
+        <name>splicemachine.enterprise.key</name>
+        <value>65548115-0155-c60e-b10c-000039ae56b0</value>
+    </property>
+
     </configuration>
