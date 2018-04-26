@@ -589,10 +589,10 @@
                                     <goal>attached-rpm</goal>
                                 </goals>
                                 <configuration>
-                                    <name>splicemachine</name>
+                                    <name>SPLICEMACHINE</name>
                                     <targetOS>linux</targetOS>
                                     <classifier>splicemachine</classifier>
-                                    <version>${envClassifier}.${project.version}.${parcel.patch}</version>
+                                    <version>${project.version}.${envClassifier}.${parcel.patch}</version>
                                     <group>Applications/Internet</group>
                                     <licence>Copyright © 2018 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</licence>
                                     <requires>
@@ -618,8 +618,8 @@
                                 <configuration>
                                     <targetOS>linux</targetOS>
                                     <classifier>splicemachine_ambari_service</classifier>
-                                    <name>splicemachine_ambari_service</name>
-                                    <version>${envClassifier}.${project.version}.${parcel.patch}</version>
+                                    <name>SPLICEMACHINE_ambari_service</name>
+                                    <version>${project.version}.${envClassifier}.${parcel.patch}</version>
                                     <group>Applications/Internet</group>
                                     <licence>Copyright © 2018 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</licence>
                                     <requires>
