@@ -775,7 +775,7 @@
                 <artifactId>maven-antrun-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>############### clean jars ###############</id>
+                        <id>############### standalone build ###############</id>
                         <phase>test</phase>
                         <configuration>
                             <tasks>
