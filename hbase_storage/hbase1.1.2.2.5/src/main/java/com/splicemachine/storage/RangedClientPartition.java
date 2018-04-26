@@ -52,6 +52,7 @@ public class RangedClientPartition implements Partition, Comparable<RangedClient
     private final HRegionInfo regionInfo;
     private final PartitionServer owningServer;
     private final Partition delegate;
+    private String regionName;
 
     public RangedClientPartition(Partition delegate,
                                  HRegionInfo regionInfo,
@@ -63,9 +64,11 @@ public class RangedClientPartition implements Partition, Comparable<RangedClient
 
     @Override
     public String getName(){
-        return regionInfo.getRegionNameAsString();
+        if (regionName == null) {
+            regionName = regionInfo.getRegionNameAsString();
+        }
+        return regionName;
     }
-
     @Override
     public String getEncodedName() {
         return regionInfo.getEncodedName();

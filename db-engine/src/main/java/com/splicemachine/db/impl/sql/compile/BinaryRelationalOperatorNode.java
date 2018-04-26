@@ -1497,7 +1497,7 @@ public class BinaryRelationalOperatorNode
         } else { // No Right ColumnReference
             selectivity = super.joinSelectivity(optTable, currentCd, innerRowCount, outerRowCount, selectivityJoinType);
         }
-        assert selectivity > 0.0d:"selectivity is out of bounds " + selectivity + this + " right-> " + rightOperand + " left -> " + leftOperand;
+        assert selectivity >= 0.0d:"selectivity is out of bounds " + selectivity + this + " right-> " + rightOperand + " left -> " + leftOperand;
         return selectivity;
     }
 

@@ -93,7 +93,7 @@ public class SQLConfiguration implements ConfigurationDefault {
      * For logging sql statements.  This is off by default. Turning on will hurt you in the case of an OLTP workload.
      */
     public static final String DEBUG_LOG_STATEMENT_CONTEXT = "splice.debug.logStatementContext";
-    private static final boolean DEFAULT_LOG_STATEMENT_CONTEXT=false;
+    private static final boolean DEFAULT_LOG_STATEMENT_CONTEXT=true;
 
     /**
      * Threshold in megabytes for the broadcast join region size.
