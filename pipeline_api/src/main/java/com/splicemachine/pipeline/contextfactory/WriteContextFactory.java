@@ -33,7 +33,7 @@ public interface WriteContextFactory<T> {
                         ServerControl env) throws IOException, InterruptedException;
 
     WriteContext create(SharedCallBufferFactory indexSharedCallBuffer,
-                        TxnView txn,
+                        TxnView txn, byte[] token,
                         T key,
                         int expectedWrites,
                         boolean skipIndexWrites,

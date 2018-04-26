@@ -63,6 +63,7 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,2,6,0),new UpgradeScriptFor260(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,1), new UpgradeScriptForModifySchemaPermissionAndDefaultRole(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1812), new UpgradeScriptToCleanSysRoutinePerms(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,2,8,0, 1817), new UpgradeScriptForSysTokens(sdd,tc));
     }
 
     public void run() throws StandardException{

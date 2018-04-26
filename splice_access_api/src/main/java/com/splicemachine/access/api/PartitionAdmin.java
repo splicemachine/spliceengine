@@ -67,4 +67,7 @@ public interface PartitionAdmin extends AutoCloseable{
     void assign(Partition partition) throws IOException, InterruptedException;
 
     boolean tableExists(String tableName) throws IOException;
+
+    List<byte[]> hbaseOperation(String table, String operation, byte[] bytes) throws IOException;
+
 }

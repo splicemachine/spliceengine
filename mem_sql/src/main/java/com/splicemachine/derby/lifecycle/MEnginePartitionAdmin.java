@@ -143,4 +143,9 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
     {
         return admin.tableExists(tableName);
     }
+
+    @Override
+    public List<byte[]> hbaseOperation(String table, String operation, byte[] bytes) throws IOException {
+        throw new UnsupportedOperationException("Operation not supported in mem storage engine");
+    }
 }

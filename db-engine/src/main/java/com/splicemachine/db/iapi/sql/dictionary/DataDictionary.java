@@ -240,6 +240,7 @@ public interface DataDictionary{
     int SYSSCHEMAPERMS_CATALOG_NUM=30;
     int SYSSOURCECODE_CATALOG_NUM=31;
     int SYSSNAPSHOT_NUM=32;
+    int SYSTOKENS_NUM=33;
     /* static finals for constraints
      * (Here because they are needed by parser, compilation and execution.)
 	 */
@@ -2140,4 +2141,10 @@ public interface DataDictionary{
      * @throws StandardException
      */
     RoutinePermsDescriptor getRoutinePermissions(UUID routineUUID, List<RoutinePermsDescriptor> permsList) throws StandardException;
+
+    void addToken(TokenDescriptor descriptor, TransactionController tc) throws StandardException;
+
+    void deleteToken(byte[] token) throws StandardException;
+
+    TokenDescriptor getToken(byte[] token) throws StandardException;
 }

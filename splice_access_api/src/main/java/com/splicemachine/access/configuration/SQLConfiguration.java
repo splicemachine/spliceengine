@@ -255,6 +255,7 @@ public class SQLConfiguration implements ConfigurationDefault {
         builder.debugDumpClassFile = configurationSource.getBoolean(DEBUG_DUMP_CLASS_FILE, DEFAULT_DUMP_CLASS_FILE);
         builder.ignoreSavePoints = configurationSource.getBoolean(IGNORE_SAVE_POINTS, DEFAULT_IGNORE_SAVEPTS);
         builder.upgradeForced = configurationSource.getBoolean(UPGRADE_FORCED, DEFAULT_UPGRADE_FORCED);
+        builder.upgradeForcedFrom = configurationSource.getString(UPGRADE_FORCED_FROM, DEFAULT_UPGRADE_FORCED_FROM);
 
 //        builder.controlSideCostThreshold = configurationSource.getDouble(CONTROL_SIDE_COST_THRESHOLD, DEFAULT_CONTROL_SIDE_COST_THRESHOLD);
 //        builder.controlSideRowcountThreshold = configurationSource.getDouble(CONTROL_SIDE_ROWCOUNT_THRESHOLD, DEFAULT_CONTROL_SIDE_ROWCOUNT_THRESHOLD);

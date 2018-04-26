@@ -310,7 +310,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
             public DataSetWriter build() throws StandardException{
                 assert txn!=null: "Txn is null";
                 DirectPipelineWriter writer = new DirectPipelineWriter(destConglomerate,
-                        txn, opCtx,skipIndex);
+                        txn, token, opCtx,skipIndex);
 
                 return new DirectDataSetWriter<>((ControlPairDataSet<K,KVPair>)ControlPairDataSet.this,writer);
             }

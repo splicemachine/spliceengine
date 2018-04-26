@@ -21,6 +21,7 @@ import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.SkeletonHBaseClientPartition;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -61,7 +62,7 @@ public class BulkImportFunction implements VoidFunction<BulkImportPartition>, Ex
         try(Partition partition=tableFactory.getTable(Long.toString(conglomerateId))){
             Path path = new Path(importPartition.getFilePath()).getParent();
             if (fs.exists(path)) {
-                loader.doBulkLoad(path,(HTable) ((ClientPartition)partition).unwrapDelegate());
+                loader.doBulkLoad(path,(HTable) ((SkeletonHBaseClientPartition)partition).unwrapDelegate());
                 fs.delete(path, true);
             } else {
                 LOG.warn("Path doesn't exist, nothing to load into this partition? " + path);

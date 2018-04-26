@@ -108,7 +108,7 @@ public abstract class RoutingWriteHandler implements WriteHandler {
     protected abstract void doClose(WriteContext ctx) throws Exception;
 
     protected final CallBuffer<KVPair> getRoutedWriteBuffer(final WriteContext ctx,int expectedSize) throws Exception {
-        return ctx.getSharedWriteBuffer(destination,routedToBaseMutationMap, expectedSize * 2 + 10, true, ctx.getTxn()); //make sure we don't flush before we can
+        return ctx.getSharedWriteBuffer(destination,routedToBaseMutationMap, expectedSize * 2 + 10, true, ctx.getTxn(), ctx.getToken()); //make sure we don't flush before we can
     }
 
     protected final void fail(KVPair mutation,WriteContext ctx,Exception e){

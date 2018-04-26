@@ -36,6 +36,7 @@ import java.util.Properties;
 
 public final class SpliceTransactionResourceImpl implements AutoCloseable{
     private static final Logger LOG=Logger.getLogger(SpliceTransactionResourceImpl.class);
+    public static String CONNECTION_STRING = "jdbc:splice:"+ SQLConfiguration.SPLICE_DB+";create=true";
     protected ContextManager cm;
     protected ContextService csf;
     protected String username;
@@ -46,7 +47,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
     protected String ipAddress;
 
     public SpliceTransactionResourceImpl() throws SQLException{
-        this("jdbc:splice:"+ SQLConfiguration.SPLICE_DB+";create=true", new Properties());
+        this(CONNECTION_STRING, new Properties());
     }
 
     public SpliceTransactionResourceImpl(String url,Properties info) throws SQLException{

@@ -475,7 +475,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     public void openCore() throws StandardException{
         DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation, this);
         activation.getLanguageConnectionContext().getStatementContext().registerExpirable(this, Thread.currentThread());
-        if (dsp.getType() == DataSetProcessor.Type.SPARK && !isOlapServer() && !SpliceClient.isClient) {
+        if (dsp.getType() == DataSetProcessor.Type.SPARK && !isOlapServer() && !SpliceClient.isClient()) {
             openDistributed();
         } else {
             openCore(dsp);
@@ -488,7 +488,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             String xactId = lccToUse.getTransactionExecute().getActiveStateTxIdString();
             EngineDriver.driver().getStatementLogger().logExecutionStart(xactId, lccToUse.getInstanceNumber(), lccToUse.getDbname(), lccToUse.getDrdaID(), lccToUse.getCurrentUserId(activation), uuid.toString(), dsp.getType(), activation.getPreparedStatement(), activation.getParameterValueSet());
         }
-
     }
 
     private void logExecutionEnd() {
