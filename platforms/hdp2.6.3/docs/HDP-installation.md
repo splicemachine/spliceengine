@@ -56,7 +56,7 @@ the content is as below
   enabled=1
   gpgcheck=0
   ````
-  
+
 6. rum yum list | grep splicemachine to make sure the custom repo is up and running.  
 
 Perform the following steps **on each node** in your cluster:
@@ -101,7 +101,6 @@ Follow the steps to install splicemachine server.
 7.restart all the services affected to start splice machine!
 
 
-
 ## Start any Additional Services
 
 We started this installation by shutting down your cluster services, and
@@ -110,6 +109,24 @@ Machine.
 
 If you had any additional services running, such as Ambari Metrics, you
 need to restart each of those services.
+
+## Required Configuration Checking
+
+Some configurations are required by SPLICE MACHINE, please make sure these properties are properly set.
+
+* YARN
+
+These directories should be included in "yarn.application.classpath" setting in "Advanced yarn-site".
+
+```
+/var/lib/splicemachine/*,
+/usr/hdp/current/ext/hadoop/*,
+/usr/hdp/current/hadoop-hdfs-client/*,/usr/hdp/current/hadoop-hdfs-client/lib/*,
+/usr/hdp/current/hadoop-yarn-client/*,/usr/hdp/current/hadoop-yarn-client/lib/*,
+/usr/hdp/current/hadoop-mapreduce-client/*,/usr/hdp/current/hadoop-mapreduce-client/lib/*,
+/usr/hdp/current/hbase-regionserver/*,/usr/hdp/current/hbase-regionserver/lib/*
+```
+(Note: The prefix */usr/hdp/current* is an example directory that may be different with actual environment.)
 
 ## Optional Configuration Modifications
 
@@ -169,9 +186,9 @@ Configuration:
    # Uncomment to not replicate statements to the spliceDerby file:
    #log4j.additivity.splice-derby.statement=false
    ````
-   
+
 #### OLAP Server Log
-   
+
 Splice Machine uses log4j to config OLAP server's log.  If you want to change the default log behavior of OLAP server,
 config `splice.olap.log4j.configuration` in `hbase-site.xml`. It specifies the log4j.properties file you want to use.
 This file needs to be available on HBase master server.
