@@ -21,6 +21,9 @@ import com.splicemachine.test.HBaseTestUtils;
 import com.splicemachine.test.SlowTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Admin;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
 import org.junit.*;
@@ -92,20 +95,22 @@ public class HalfMergeSortSparkIT {
         LOG.trace("Flushing table");
         String conglomerateNumber = TestUtils.lookupConglomerateNumber(CLASS_NAME, table, methodWatcher);
         TableName tableName = TableName.valueOf("splice", conglomerateNumber);
-        HBaseAdmin hBaseAdmin = new HBaseAdmin(HConfiguration.unwrapDelegate());
-        hBaseAdmin.flush(tableName);
+        try (Connection connection = ConnectionFactory.createConnection(HConfiguration.unwrapDelegate());
+            Admin admin = connection.getAdmin()) {
+            admin.flush(tableName);
 
-        Thread.sleep(5000); // let it flush
+            Thread.sleep(5000); // let it flush
 
-        LOG.trace("Splitting table");
-        hBaseAdmin.split(tableName);
-        LOG.trace("Waiting for split");
+            LOG.trace("Splitting table");
+            admin.split(tableName);
+            LOG.trace("Waiting for split");
 
-        while (hBaseAdmin.getTableRegions(tableName).size() < 2) {
-            Thread.sleep(1000); // wait for split to complete
-            hBaseAdmin.split(tableName); // just in case
+            while (admin.getTableRegions(tableName).size() < 2) {
+                Thread.sleep(1000); // wait for split to complete
+                admin.split(tableName); // just in case
+            }
+            LOG.trace("Split visible");
         }
-        LOG.trace("Split visible");
 
         try (PreparedStatement ps = methodWatcher.prepareStatement(
                 "select count(*) from half a --splice-properties joinStrategy=HALFSORTMERGE, useSpark=true \n" +

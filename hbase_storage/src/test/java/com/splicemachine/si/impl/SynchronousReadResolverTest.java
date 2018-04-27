@@ -82,7 +82,7 @@ public class SynchronousReadResolverTest {
 
         byte[] rowKey = Encoding.encode("hello");
         Put testPut = new Put(rowKey);
-        testPut.add(SIConstants.DEFAULT_FAMILY_BYTES,
+        testPut.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,
                 SIConstants.PACKED_COLUMN_BYTES,
                 rolledBackTxn.getTxnId(), Encoding.encode("hello2"));
 
@@ -128,7 +128,7 @@ public class SynchronousReadResolverTest {
 
         byte[] rowKey = Encoding.encode("hello");
         Put testPut = new Put(rowKey);
-        testPut.add(SIConstants.DEFAULT_FAMILY_BYTES,
+        testPut.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,
                 SIConstants.PACKED_COLUMN_BYTES,
                 committedTxn.getTxnId(), Encoding.encode("hello2"));
 
@@ -173,7 +173,7 @@ public class SynchronousReadResolverTest {
 
         byte[] rowKey = Encoding.encode("hello");
         Put testPut = new Put(rowKey);
-        testPut.add(SIConstants.DEFAULT_FAMILY_BYTES,
+        testPut.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,
                 SIConstants.PACKED_COLUMN_BYTES,
                 childTxn.getTxnId(), Encoding.encode("hello2"));
 
