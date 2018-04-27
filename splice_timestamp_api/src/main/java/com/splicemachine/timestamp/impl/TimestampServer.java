@@ -93,6 +93,10 @@ public class TimestampServer {
         return port;
     }
 
+    int getBoundPort() {
+        return ((InetSocketAddress) channel.getLocalAddress()).getPort();
+    }
+
     public void stopServer() {
         try {
             this.channel.close().await(5000);
