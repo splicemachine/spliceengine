@@ -175,28 +175,37 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
             shouldContinue = !state.compareAndSet(s,State.CONNECTING);
         }
 
-        if (LOG.isInfoEnabled()) {
-            SpliceLogUtils.info(LOG, "Attempting to connect to server (host %s, port %s)", timestampHostProvider.getHost(), getPort());
-        }
+        try {
 
-        ChannelFuture futureConnect = bootstrap.connect(new InetSocketAddress(timestampHostProvider.getHost(), getPort()));
-        final CountDownLatch latchConnect = new CountDownLatch(1);
-        futureConnect.addListener(new ChannelFutureListener() {
-                                      public void operationComplete(ChannelFuture cf) throws Exception {
-                                          if (cf.isSuccess()) {
-                                              channel = cf.getChannel();
-                                              latchConnect.countDown();
-                                          } else {
-                                              latchConnect.countDown();
-                                              doClientErrorThrow(LOG, "TimestampClient unable to connect to TimestampServer", cf.getCause());
+            if (LOG.isInfoEnabled()) {
+                SpliceLogUtils.info(LOG, "Attempting to connect to server (host %s, port %s)", timestampHostProvider.getHost(), getPort());
+            }
+
+            ChannelFuture futureConnect = bootstrap.connect(new InetSocketAddress(timestampHostProvider.getHost(), getPort()));
+            final CountDownLatch latchConnect = new CountDownLatch(1);
+            futureConnect.addListener(new ChannelFutureListener() {
+                                          public void operationComplete(ChannelFuture cf) throws Exception {
+                                              if (cf.isSuccess()) {
+                                                  channel = cf.getChannel();
+                                                  latchConnect.countDown();
+                                              } else {
+                                                  latchConnect.countDown();
+                                                  doClientErrorThrow(LOG, "TimestampClient unable to connect to TimestampServer", cf.getCause());
+                                              }
                                           }
                                       }
-                                  }
-        );
+            );
 
-        CountDownLatches.uncheckedAwait(latchConnect);
-        if(channel == null) {
-            throw new TimestampIOException("Unable to connect to TimestampServer");
+            CountDownLatches.uncheckedAwait(latchConnect);
+            if (channel == null) {
+                throw new TimestampIOException("Unable to connect to TimestampServer");
+            }
+        } finally {
+            if (channel == null) {
+                LOG.error("We couldn't connect to the TimestampServer, reset the state to DISCONNECTED");
+                // Set state to disconnected so that the next call to connectIfNeeded() has a chance to try to reconnect
+                state.set(State.DISCONNECTED);
+            }
         }
 
         // Can only assume connecting (not connected) until channelConnected method is invoked
