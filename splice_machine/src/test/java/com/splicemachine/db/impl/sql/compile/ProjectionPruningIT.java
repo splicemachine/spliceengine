@@ -168,9 +168,9 @@ public class ProjectionPruningIT extends SpliceUnitTest {
     @AfterClass
     public static void restoreProperty() throws Exception {
         if (savedPropertyValue == null || savedPropertyValue.equals("NULL"))
-            spliceClassWatcher.execute("call syscs_util.syscs_set_database_property('derby.database.enableProjectionPruning', NULL)");
+            spliceClassWatcher.execute("call syscs_util.syscs_set_global_database_property('derby.database.enableProjectionPruning', NULL)");
         else
-            spliceClassWatcher.execute(format("call syscs_util.syscs_set_database_property('derby.database.enableProjectionPruning', '%s')", savedPropertyValue));
+            spliceClassWatcher.execute(format("call syscs_util.syscs_set_global_database_property('derby.database.enableProjectionPruning', '%s')", savedPropertyValue));
     }
 
     private void assertPruneResult(String query,
@@ -192,7 +192,7 @@ public class ProjectionPruningIT extends SpliceUnitTest {
 
     @Test
     public void testProjectPruningWithDT() throws Exception {
-        methodWatcher.execute(format("call syscs_util.syscs_set_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
+        methodWatcher.execute(format("call syscs_util.syscs_set_global_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
 
         /* case 1: index should be picked up */
         String sqlText = "select b1 from (select * from t1 --splice-properties index=idx_t1\n) dt where b1='ccc'";
@@ -267,7 +267,7 @@ public class ProjectionPruningIT extends SpliceUnitTest {
 
     @Test
     public void testDerivedTableWithOrderByAndLimitN() throws Exception {
-        methodWatcher.execute(format("call syscs_util.syscs_set_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
+        methodWatcher.execute(format("call syscs_util.syscs_set_global_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
 
         /* case 1: index should not be picked up */
         String sqlText = "select b1 from (select b1 from t1 order by d1 desc {limit 2}) dt";
@@ -303,7 +303,7 @@ public class ProjectionPruningIT extends SpliceUnitTest {
 
     @Test
     public void testMultipleLevelOfDTs() throws Exception {
-        methodWatcher.execute(format("call syscs_util.syscs_set_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
+        methodWatcher.execute(format("call syscs_util.syscs_set_global_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
 
         /* case 1: nested DT */
         String sqlText = "select * from (select b1 from (select * from t1  --splice-properties index=idx_t1\n order by b1 desc {limit 2}) dt) dt1";
@@ -330,7 +330,7 @@ public class ProjectionPruningIT extends SpliceUnitTest {
 
     @Test
     public void testOuterJoinInDT() throws Exception {
-        methodWatcher.execute(format("call syscs_util.syscs_set_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
+        methodWatcher.execute(format("call syscs_util.syscs_set_global_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
 
         /* case 1: DT projects just b1 */
         String sqlText = "select d3, b1 from t3, (select b1, a4 from t1  --splice-properties index=idx_t1\n left join t4 on b1=b4) dt where d3=1";
@@ -391,7 +391,7 @@ public class ProjectionPruningIT extends SpliceUnitTest {
 
     @Test
     public void testAggregationInDT() throws Exception {
-        methodWatcher.execute(format("call syscs_util.syscs_set_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
+        methodWatcher.execute(format("call syscs_util.syscs_set_global_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
 
         /* case 1: group by column in the select list of the DT */
         String sqlText = "select CC from (select b1, count(*) as CC from t1  --splice-properties index=idx_t1\n group by b1) dt";
@@ -471,7 +471,7 @@ public class ProjectionPruningIT extends SpliceUnitTest {
 
     @Test
     public void testWindowFunctionInDT() throws Exception {
-        methodWatcher.execute(format("call syscs_util.syscs_set_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
+        methodWatcher.execute(format("call syscs_util.syscs_set_global_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
 
         /* case 1 */
         String sqlText = "select a5 from (select a5, sum(d5) over (partition by b5 order by a5) from (select * from t5  --splice-properties index=idx_t5\n ) dt0 ) dt";
@@ -518,7 +518,7 @@ public class ProjectionPruningIT extends SpliceUnitTest {
 
     @Test
     public void testDistinctInDT() throws Exception {
-        methodWatcher.execute(format("call syscs_util.syscs_set_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
+        methodWatcher.execute(format("call syscs_util.syscs_set_global_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
 
         /* case 1: group by column in the select list of the DT */
         String sqlText = "select count(*) from (select distinct a3 from t3) dt";
@@ -550,7 +550,7 @@ public class ProjectionPruningIT extends SpliceUnitTest {
 
     @Test
     public void testSetOperation() throws Exception {
-        methodWatcher.execute(format("call syscs_util.syscs_set_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
+        methodWatcher.execute(format("call syscs_util.syscs_set_global_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
 
         /* case 1: DT in set operation  */
         String sqlText = "select b1 from (select * from t1  --splice-properties index=idx_t1\n ) dt union all select b2 from t2";
@@ -620,7 +620,7 @@ public class ProjectionPruningIT extends SpliceUnitTest {
 
     @Test
     public void testSubquery() throws Exception {
-        methodWatcher.execute(format("call syscs_util.syscs_set_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
+        methodWatcher.execute(format("call syscs_util.syscs_set_global_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
 
         /* case 1: view in subquery, we should see index scan being picked up  */
         String sqlText = "select b3 from t3 where 'bbb' in (select b1 from (select * from t1 --splice-properties index=idx_t1\n) v1)";
@@ -740,7 +740,7 @@ public class ProjectionPruningIT extends SpliceUnitTest {
 
     @Test
     public void testInsertSelect() throws Exception {
-        methodWatcher.execute(format("call syscs_util.syscs_set_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
+        methodWatcher.execute(format("call syscs_util.syscs_set_global_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
 
         TestConnection conn = methodWatcher.getOrCreateConnection();
         boolean oldAutoCommit = conn.getAutoCommit();
@@ -797,7 +797,7 @@ public class ProjectionPruningIT extends SpliceUnitTest {
 
     @Test
     public void testDelete() throws Exception {
-        methodWatcher.execute(format("call syscs_util.syscs_set_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
+        methodWatcher.execute(format("call syscs_util.syscs_set_global_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
 
         TestConnection conn = methodWatcher.getOrCreateConnection();
         boolean oldAutoCommit = conn.getAutoCommit();
@@ -850,7 +850,7 @@ public class ProjectionPruningIT extends SpliceUnitTest {
 
     @Test
     public void testUpdate() throws Exception {
-        methodWatcher.execute(format("call syscs_util.syscs_set_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
+        methodWatcher.execute(format("call syscs_util.syscs_set_global_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
 
         TestConnection conn = methodWatcher.getOrCreateConnection();
         boolean oldAutoCommit = conn.getAutoCommit();
@@ -916,7 +916,7 @@ public class ProjectionPruningIT extends SpliceUnitTest {
 
     @Test
     public void testUpdateThroughSubquery() throws Exception {
-        methodWatcher.execute(format("call syscs_util.syscs_set_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
+        methodWatcher.execute(format("call syscs_util.syscs_set_global_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
 
         TestConnection conn = methodWatcher.getOrCreateConnection();
         boolean oldAutoCommit = conn.getAutoCommit();
@@ -984,7 +984,7 @@ public class ProjectionPruningIT extends SpliceUnitTest {
      * path from that of queries in testUpdateThroughSubquery() */
     @Test
     public void testUpdateThroughFromSubquery() throws Exception {
-        methodWatcher.execute(format("call syscs_util.syscs_set_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
+        methodWatcher.execute(format("call syscs_util.syscs_set_global_database_property('derby.database.enableProjectionPruning', '%s')", projectionPruningEnabled));
 
         TestConnection conn = methodWatcher.getOrCreateConnection();
         boolean oldAutoCommit = conn.getAutoCommit();

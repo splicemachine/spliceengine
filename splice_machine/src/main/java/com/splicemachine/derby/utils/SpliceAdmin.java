@@ -23,6 +23,7 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.access.util.NetworkUtils;
 import com.splicemachine.db.catalog.SystemProcedures;
+import com.splicemachine.db.iapi.db.PropertyInfo;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -1033,7 +1034,23 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     public static void SYSCS_SET_GLOBAL_DATABASE_PROPERTY(final String key,final String value) throws SQLException{
-        EngineDriver.driver().dbAdministrator().setGlobalDatabaseProperty(key,value);
+      //  EngineDriver.driver().dbAdministrator().setGlobalDatabaseProperty(key,value);
+
+        try {
+            EmbedConnection defaultConn = (EmbedConnection)getDefaultConn();
+            LanguageConnectionContext lcc = defaultConn.getLanguageConnection();
+            SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute();
+            DataDictionary dd = lcc.getDataDictionary();
+            dd.startWriting(lcc);
+            PropertyInfo.setDatabaseProperty(key, value);
+            DDLMessage.DDLChange ddlChange = ProtoUtil.createSetDatabaseProperty(tc.getActiveStateTxn().getTxnId(), key);
+            tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        } catch (Exception e) {
+            throw new SQLException(e);
+        }
+
     }
 
     public static void SYSCS_ENABLE_ENTERPRISE(final String value) throws SQLException{

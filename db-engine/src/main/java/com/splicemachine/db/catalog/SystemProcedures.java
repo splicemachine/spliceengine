@@ -669,7 +669,7 @@ public class SystemProcedures{
         LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
 
         try{
-            return PropertyUtil.getDatabaseProperty(lcc.getTransactionExecute(),key);
+            return PropertyUtil.getCachedDatabaseProperty(lcc.getTransactionExecute(),key);
         }catch(StandardException se){
             throw PublicAPI.wrapStandardException(se);
         }
