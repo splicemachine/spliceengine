@@ -138,7 +138,7 @@ public class HRegionUtil extends BaseHRegionUtil{
                     sizeCounter = 0;
                     KeyValue tentative = KeyValue.createKeyValueFromKey(indexReader.getRootBlockKey(i));
                     if (CellUtils.isKeyValueInRange(tentative, range)) {
-                        cutpoints.add(tentative.getRow());
+                        cutpoints.add(CellUtil.cloneRow(tentative));
                     }
                 }
                 sizeCounter += incrementalSize;
@@ -243,9 +243,9 @@ public class HRegionUtil extends BaseHRegionUtil{
                 KeyValue tentative = KeyValue.createKeyValueFromKey(dup.slice());
                 if (CellUtils.isKeyValueInRange(tentative, range)) {
                     if (LOG.isTraceEnabled()) {
-                        LOG.trace("Adding cutpoint " + CellUtils.toHex(tentative.getRow()));
+                        LOG.trace("Adding cutpoint " + CellUtils.toHex(CellUtil.cloneRow(tentative)));
                     }
-                    cutpoints.add(tentative.getRow());
+                    cutpoints.add(CellUtil.cloneRow(tentative));
                 }
             }
             return (numEntries - previous) * incrementalSize + carriedSize;

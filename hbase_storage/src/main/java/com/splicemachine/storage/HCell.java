@@ -17,6 +17,7 @@ package com.splicemachine.storage;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.util.Bytes;
 
@@ -102,13 +103,13 @@ public class HCell implements DataCell{
     @Override
     public byte[] family(){
         if(delegate==null) return null;
-        return delegate.getFamily();
+        return CellUtil.cloneFamily(delegate);
     }
 
     @Override
     public byte[] qualifier(){
         if(delegate==null) return null;
-        return delegate.getQualifier();
+        return CellUtil.cloneQualifier(delegate);
     }
 
     @Override
@@ -175,7 +176,7 @@ public class HCell implements DataCell{
     @Override
     public byte[] value(){
         if(delegate==null)  return null;
-        else return delegate.getValue();
+        else return CellUtil.cloneValue(delegate);
     }
 
     @Override
@@ -205,7 +206,7 @@ public class HCell implements DataCell{
     @Override
     public byte[] key(){
         if(delegate==null) return null;
-        return delegate.getRow();
+        return CellUtil.cloneRow(delegate);
     }
 
     @Override

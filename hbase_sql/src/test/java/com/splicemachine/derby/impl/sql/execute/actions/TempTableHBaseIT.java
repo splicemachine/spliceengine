@@ -17,6 +17,9 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Admin;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -70,31 +73,32 @@ public class TempTableHBaseIT{
     @Test
     public void testTempHBaseTableGetsDropped() throws Exception {
         long start = System.currentTimeMillis();
-        HBaseAdmin hBaseAdmin = new HBaseAdmin(HConfiguration.unwrapDelegate());
-        String tempConglomID;
-        boolean hbaseTempExists;
-        final String tmpCreate = "DECLARE GLOBAL TEMPORARY TABLE %s.%s %s not logged on commit preserve rows";
-        try (Connection connection = methodWatcher.createConnection()) {
-            SQLClosures.execute(connection,new SQLClosures.SQLAction<Statement>(){
-                @Override
-                public void execute(Statement statement) throws Exception{
-                    statement.execute(String.format(tmpCreate,tableSchema.schemaName,SIMPLE_TEMP_TABLE,simpleDef));
-                    SpliceUnitTest.loadTable(statement,tableSchema.schemaName+"."+SIMPLE_TEMP_TABLE,empNameVals);
-                }
-            });
-            tempConglomID = TestUtils.lookupConglomerateNumber(tableSchema.schemaName,SIMPLE_TEMP_TABLE,methodWatcher);
-            connection.commit();
+        try (org.apache.hadoop.hbase.client.Connection conn = ConnectionFactory.createConnection(HConfiguration.unwrapDelegate());
+             Admin admin = conn.getAdmin()) {
+            TableName tempConglomID;
+            boolean hbaseTempExists;
+            final String tmpCreate = "DECLARE GLOBAL TEMPORARY TABLE %s.%s %s not logged on commit preserve rows";
+            try (Connection connection = methodWatcher.createConnection()) {
+                SQLClosures.execute(connection, new SQLClosures.SQLAction<Statement>() {
+                    @Override
+                    public void execute(Statement statement) throws Exception {
+                        statement.execute(String.format(tmpCreate, tableSchema.schemaName, SIMPLE_TEMP_TABLE, simpleDef));
+                        SpliceUnitTest.loadTable(statement, tableSchema.schemaName + "." + SIMPLE_TEMP_TABLE, empNameVals);
+                    }
+                });
+                tempConglomID = TableName.valueOf(TestUtils.lookupConglomerateNumber(tableSchema.schemaName, SIMPLE_TEMP_TABLE, methodWatcher));
+                connection.commit();
 
-        }  finally {
-            methodWatcher.closeAll();
+            } finally {
+                methodWatcher.closeAll();
+            }
+            hbaseTempExists = admin.tableExists(tempConglomID);
+            if (hbaseTempExists) {
+                // HACK: wait a sec, try again.  It's going away, just takes some time.
+                Thread.sleep(1000);
+                hbaseTempExists = admin.tableExists(tempConglomID);
+            }
+            Assert.assertFalse("HBase temp table [" + tempConglomID + "] still exists.", hbaseTempExists);
         }
-        hbaseTempExists = hBaseAdmin.tableExists(tempConglomID);
-        if (hbaseTempExists) {
-            // HACK: wait a sec, try again.  It's going away, just takes some time.
-            Thread.sleep(1000);
-            hbaseTempExists = hBaseAdmin.tableExists(tempConglomID);
-        }
-        hBaseAdmin.close();
-        Assert.assertFalse("HBase temp table [" + tempConglomID + "] still exists.", hbaseTempExists);
     }
 }

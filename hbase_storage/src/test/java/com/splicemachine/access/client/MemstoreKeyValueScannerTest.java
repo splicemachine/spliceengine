@@ -70,7 +70,7 @@ public class MemstoreKeyValueScannerTest {
         KeyValue[] sortedKvs = new KeyValue[set.size()];
         set.toArray(sortedKvs);
 
-        final Result result = new Result(kvs);
+        final Result result = Result.create(kvs);
 
         return new ResultScanner() {
             @Override

@@ -144,7 +144,7 @@ public class HBaseConnectionFactory{
     }
 
     public static void deleteTable(HBaseAdmin admin,HTableDescriptor table) throws IOException{
-        deleteTable(admin,table.getName());
+        deleteTable(admin,table.getTableName().getName());
     }
 
     public static void deleteTable(HBaseAdmin admin,long conglomerateID) throws IOException{

@@ -305,12 +305,12 @@ public class V2TxnDecoder implements TxnDecoder{
 
         Txn.State state=Txn.State.ACTIVE;
 
-        put.add(FAMILY,DATA_QUALIFIER_BYTES,metaFieldEncoder.build());
-        put.add(FAMILY,KEEP_ALIVE_QUALIFIER_BYTES,Encoding.encode(System.currentTimeMillis()));
-        put.add(FAMILY,STATE_QUALIFIER_BYTES,state.encode());
+        put.addColumn(FAMILY,DATA_QUALIFIER_BYTES,metaFieldEncoder.build());
+        put.addColumn(FAMILY,KEEP_ALIVE_QUALIFIER_BYTES,Encoding.encode(System.currentTimeMillis()));
+        put.addColumn(FAMILY,STATE_QUALIFIER_BYTES,state.encode());
         ByteString destTableBuffer=txnInfo.getDestinationTables();
         if(destTableBuffer!=null && !destTableBuffer.isEmpty())
-            put.add(FAMILY,DESTINATION_TABLE_QUALIFIER_BYTES,destTableBuffer.toByteArray());
+            put.addColumn(FAMILY,DESTINATION_TABLE_QUALIFIER_BYTES,destTableBuffer.toByteArray());
         return put;
     }
 

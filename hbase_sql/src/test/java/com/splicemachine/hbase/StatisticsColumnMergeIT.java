@@ -23,9 +23,13 @@ import com.splicemachine.test.SlowTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Admin;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -52,8 +56,8 @@ public class StatisticsColumnMergeIT extends SpliceUnitTest{
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static final String TABLE="T";
-    private static HBaseAdmin admin;
-    private static String hTableName;
+    private static org.apache.hadoop.hbase.client.Connection connection;
+    private static TableName hTableName;
     private static List<HRegionInfo> regionInfoList;
 
     @ClassRule
@@ -91,22 +95,23 @@ public class StatisticsColumnMergeIT extends SpliceUnitTest{
         }
 
         //split the table
-        Configuration config = HConfiguration.unwrapDelegate();
-        admin = new HBaseAdmin(config);
-        long[] conglomId = SpliceAdmin.getConglomNumbers(conn, CLASS_NAME, TABLE);
-        hTableName = "splice:" + Long.toString(conglomId[0]);
-        admin.split(hTableName);
-        regionInfoList = admin.getTableRegions(Bytes.toBytes(hTableName));
-        long totalWaitingTime = 1000 * 60;
-        long waitUnit = 2000;
-        while(regionInfoList.size() == 1 && totalWaitingTime > 0) {
+        connection = ConnectionFactory.createConnection(HConfiguration.unwrapDelegate());
+        try (Admin admin = connection.getAdmin()) {
+          long[] conglomId = SpliceAdmin.getConglomNumbers(conn, CLASS_NAME, TABLE);
+          hTableName = TableName.valueOf("splice:" + Long.toString(conglomId[0]));
+          admin.split(hTableName);
+          regionInfoList = admin.getTableRegions(hTableName);
+          long totalWaitingTime = 1000 * 60;
+          long waitUnit = 2000;
+          while (regionInfoList.size() == 1 && totalWaitingTime > 0) {
             totalWaitingTime -= waitUnit;
             Thread.sleep(waitUnit);
-            regionInfoList = admin.getTableRegions(Bytes.toBytes(hTableName));
-        }
+            regionInfoList = admin.getTableRegions(hTableName);
+          }
 
-        ps = methodWatcher.prepareStatement("analyze schema " + CLASS_NAME);
-        ps.execute();
+          ps = methodWatcher.prepareStatement("analyze schema " + CLASS_NAME);
+          ps.execute();
+        }
     }
 
     @BeforeClass
@@ -114,29 +119,35 @@ public class StatisticsColumnMergeIT extends SpliceUnitTest{
         createData(spliceClassWatcher.getOrCreateConnection());
     }
 
+    @AfterClass
+    public static void tearDown() throws Exception{
+      connection.close();
+    }
+
     @Test
     public void testColumnStatsMerge() throws Exception {
 
         // split a region
-        HRegionInfo regionInfo = regionInfoList.get(1);
-        String regionName = regionInfo.getEncodedName();
-        admin.split(regionName);
+        try (Admin admin = connection.getAdmin()) {
+          HRegionInfo regionInfo = regionInfoList.get(1);
+          admin.splitRegion(regionInfo.getEncodedNameAsBytes());
 
-        regionInfoList = admin.getTableRegions(Bytes.toBytes(hTableName));
-        long totalWaitingTime = 1000 * 60;
-        long waitUnit = 2000;
-        while(regionInfoList.size() == 2 && totalWaitingTime > 0) {
+          regionInfoList = admin.getTableRegions(hTableName);
+          long totalWaitingTime = 1000 * 60;
+          long waitUnit = 2000;
+          while (regionInfoList.size() == 2 && totalWaitingTime > 0) {
             totalWaitingTime -= waitUnit;
             Thread.sleep(waitUnit);
-            regionInfoList = admin.getTableRegions(Bytes.toBytes(hTableName));
-        }
+            regionInfoList = admin.getTableRegions(hTableName);
+          }
 
-        PreparedStatement ps = methodWatcher.prepareStatement("explain select * from t a, t b where a.c2=b.c2");
-        ResultSet rs = ps.executeQuery();
-        int count = 0;
-        while(rs.next()) {
+          PreparedStatement ps = methodWatcher.prepareStatement("explain select * from t a, t b where a.c2=b.c2");
+          ResultSet rs = ps.executeQuery();
+          int count = 0;
+          while (rs.next()) {
             count++;
+          }
+          Assert.assertTrue(count > 0);
         }
-        Assert.assertTrue(count>0);
     }
 }

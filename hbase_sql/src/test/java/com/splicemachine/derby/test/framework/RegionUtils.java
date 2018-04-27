@@ -16,6 +16,9 @@ package com.splicemachine.derby.test.framework;
 
 import com.splicemachine.access.HConfiguration;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Admin;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 
 import java.io.IOException;
@@ -28,9 +31,10 @@ public class RegionUtils{
 
     public static void splitTable(long conglomId) throws IOException, InterruptedException{
         TableName tn =TableName.valueOf("splice",Long.toString(conglomId));
-        try(HBaseAdmin admin = new HBaseAdmin(HConfiguration.unwrapDelegate())){
+        try(Connection connection = ConnectionFactory.createConnection(HConfiguration.unwrapDelegate());
+            Admin admin = connection.getAdmin()) {
             int startSize = admin.getTableRegions(tn).size();
-            admin.split(Long.toString(conglomId));
+            admin.split(tn);
             while(admin.getTableRegions(tn).size()<startSize){
                 Thread.sleep(200);
             }

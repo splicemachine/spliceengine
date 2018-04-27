@@ -18,6 +18,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.PeekingIterator;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -124,14 +125,14 @@ public abstract class AbstractIteratorRegionScanner implements RegionScanner{
         int rowLength = kv.getRowLength();
         if(Bytes.compareTo(scan.getStartRow(),0,scan.getStartRow().length,rowArray,rowOffset,rowLength)>0) return false;
         if(Bytes.compareTo(scan.getStopRow(),0,scan.getStopRow().length,rowArray,rowOffset,rowLength)<=0) return false;
-        byte[] family = kv.getFamily();
+        byte[] family = CellUtil.cloneFamily(kv);
         Map<byte[], NavigableSet<byte[]>> familyMap = scan.getFamilyMap();
         if(familyMap.size()<=0) return true;
 
         if(!familyMap.containsKey(family)) return false;
         NavigableSet<byte[]> qualifiersToFetch = familyMap.get(family);
         if(qualifiersToFetch.size()<=0) return true;
-        return qualifiersToFetch.contains(kv.getQualifier());
+        return qualifiersToFetch.contains(CellUtil.cloneQualifier(kv));
     }
 
 
