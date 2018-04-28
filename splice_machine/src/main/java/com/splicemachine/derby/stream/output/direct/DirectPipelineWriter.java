@@ -42,15 +42,17 @@ import java.util.Iterator;
  */
 public class DirectPipelineWriter implements TableWriter<KVPair>,AutoCloseable{
     private final long destConglomerate;
+    private final byte[] token;
     private TxnView txn;
     private final OperationContext opCtx;
     private final boolean skipIndex;
 
     private RecordingCallBuffer<KVPair> writeBuffer;
 
-    public DirectPipelineWriter(long destConglomerate,TxnView txn,OperationContext opCtx,boolean skipIndex){
+    public DirectPipelineWriter(long destConglomerate, TxnView txn, byte[] token, OperationContext opCtx, boolean skipIndex){
         this.destConglomerate=destConglomerate;
         this.txn=txn;
+        this.token=token;
         this.opCtx=opCtx;
         this.skipIndex=skipIndex;
     }
@@ -62,7 +64,7 @@ public class DirectPipelineWriter implements TableWriter<KVPair>,AutoCloseable{
         try{
             this.writeBuffer = wc.writeBuffer(
                     Bytes.toBytes(Long.toString(destConglomerate)),
-                    txn,
+                    txn, null,
                     PipelineUtils.noOpFlushHook,
                     writeConfiguration,
                     Metrics.basicMetricFactory());
@@ -127,6 +129,11 @@ public class DirectPipelineWriter implements TableWriter<KVPair>,AutoCloseable{
     @Override
     public TxnView getTxn(){
         return txn;
+    }
+
+    @Override
+    public byte[] getToken() {
+        return token;
     }
 
     @Override

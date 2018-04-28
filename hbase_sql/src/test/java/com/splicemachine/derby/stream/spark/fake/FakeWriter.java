@@ -69,6 +69,11 @@ public class FakeWriter implements TableWriter {
     }
 
     @Override
+    public byte[] getToken() {
+        return new byte[0];
+    }
+
+    @Override
     public byte[] getDestinationTable() {
         return new byte[0];
     }

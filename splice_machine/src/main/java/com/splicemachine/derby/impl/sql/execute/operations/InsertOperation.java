@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
@@ -394,6 +395,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                     .destConglomerate(heapConglom)
                     .operationContext(operationContext)
                     .txn(txn)
+                    .token(SpliceClient.token)
                     .build();
             return writer.write();
 

@@ -2023,5 +2023,10 @@ public interface SQLState {
 	String NO_REVOKE_PERMISSIONS_WITH_SENTRY                               = "EXT40";
 
 
+
+	String TOKEN_NOT_FOUND											= "ST001";
+	String TOKEN_EXPIRED											= "ST002";
+
+	String HBASE_OPERATION_ERROR									= "HO001";
 }
 

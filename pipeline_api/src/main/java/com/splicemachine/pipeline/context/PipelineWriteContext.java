@@ -49,6 +49,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     private final TransactionalRegion rce;
     private final CachedPartitionFactory partitionFactory;
     private final TxnView txn;
+    private final byte[] token;
     private final SharedCallBufferFactory indexSharedCallBuffer;
     private final int id = idGen.incrementAndGet();
     private final boolean skipIndexWrites;
@@ -63,6 +64,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     public PipelineWriteContext(SharedCallBufferFactory indexSharedCallBuffer,
                                  CachedPartitionFactory partitionFactory,
                                  TxnView txn,
+                                 byte[] token,
                                  TransactionalRegion rce,
                                  boolean skipIndexWrites,
                                  boolean skipConflictDetection,
@@ -74,6 +76,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
         this.rce = rce;
         this.resultsMap = Maps.newIdentityHashMap();
         this.txn = txn;
+        this.token = token;
         this.skipIndexWrites = skipIndexWrites;
         this.head = this.tail = new WriteNode(null, this);
         this.partitionFactory = partitionFactory;
@@ -139,9 +142,9 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     @Override
     public CallBuffer<KVPair> getSharedWriteBuffer(byte[] conglomBytes,
                                                    ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap,
-                                                   int maxSize, boolean useAsyncWriteBuffers, TxnView txn) throws Exception {
+                                                   int maxSize, boolean useAsyncWriteBuffers, TxnView txn, byte[] token) throws Exception {
         assert indexSharedCallBuffer != null;
-        return indexSharedCallBuffer.getWriteBuffer(conglomBytes, this, indexToMainMutationMap, maxSize, useAsyncWriteBuffers, txn);
+        return indexSharedCallBuffer.getWriteBuffer(conglomBytes, this, indexToMainMutationMap, maxSize, useAsyncWriteBuffers, txn, token);
     }
 
     @Override
@@ -185,6 +188,11 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     @Override
     public TxnView getTxn() {
         return txn;
+    }
+
+    @Override
+    public byte[] getToken() {
+        return token;
     }
 
     @Override

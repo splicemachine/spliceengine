@@ -32,8 +32,8 @@ public class SimplePipelineWriter extends AbstractPipelineWriter<KVPair>{
     private long rowsWritten;
     private boolean skipIndex;
 
-    public SimplePipelineWriter(TxnView txn,long heapConglom,boolean skipIndex){
-        super(txn,heapConglom,null);
+    public SimplePipelineWriter(TxnView txn,byte[]token,long heapConglom,boolean skipIndex){
+        super(txn, token, heapConglom,null);
         this.skipIndex=skipIndex;
     }
 
@@ -45,7 +45,7 @@ public class SimplePipelineWriter extends AbstractPipelineWriter<KVPair>{
                 writeBuffer=writeCoordinator.noIndexWriteBuffer(destinationTable,txn,Metrics.noOpMetricFactory());
             }else{
                 writeBuffer=writeCoordinator.writeBuffer(destinationTable,
-                        txn,Metrics.noOpMetricFactory());
+                        txn,null,Metrics.noOpMetricFactory());
             }
         }catch(Exception e){
             throw Exceptions.parseException(e);

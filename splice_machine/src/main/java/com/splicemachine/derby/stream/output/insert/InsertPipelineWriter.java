@@ -66,9 +66,9 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
                                 SpliceSequence[] spliceSequences,
                                 long heapConglom,
                                 TxnView txn,
-                                OperationContext operationContext,
+                                byte[] token, OperationContext operationContext,
                                 boolean isUpsert) {
-        super(txn,heapConglom,operationContext);
+        super(txn,token,heapConglom,operationContext);
         assert txn !=null:"txn not supplied";
         this.pkCols = pkCols;
         this.tableVersion = tableVersion;
@@ -102,7 +102,7 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
 
             writeConfiguration.setRecordingContext(operationContext);
             this.table =SIDriver.driver().getTableFactory().getTable(Long.toString(heapConglom));
-            writeBuffer = writeCoordinator.writeBuffer(table,txn,writeConfiguration);
+            writeBuffer = writeCoordinator.writeBuffer(table,txn,token,writeConfiguration);
             if (insertOperation != null)
                 insertOperation.tableWriter = this;
             flushCallback = triggerHandler == null ? null : TriggerHandler.flushCallback(writeBuffer);

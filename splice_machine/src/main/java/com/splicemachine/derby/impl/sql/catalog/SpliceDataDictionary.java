@@ -71,6 +71,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     private volatile TabInfoImpl columnStatsTable=null;
     private volatile TabInfoImpl physicalStatsTable=null;
     private volatile TabInfoImpl snapshotTable = null;
+    private volatile TabInfoImpl tokenTable = null;
     private Splice_DD_Version spliceSoftwareVersion;
 
     public static final String SPLICE_DATA_DICTIONARY_VERSION="SpliceDataDictionaryVersion";
@@ -164,6 +165,20 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         // insert row into catalog and all its indices
         ti.insertRow(row,tc);
+    }
+
+    public void createTokenTable(TransactionController tc) throws StandardException {
+        SchemaDescriptor systemSchema=getSystemSchemaDescriptor();
+        TabInfoImpl tokenTableInfo=getTokenTable();
+        addTableIfAbsent(tc,systemSchema,tokenTableInfo,null);
+    }
+
+    private TabInfoImpl getTokenTable() throws StandardException{
+        if(tokenTable==null){
+            tokenTable=new TabInfoImpl(new SYSTOKENSRowFactory(uuidFactory,exFactory,dvf));
+        }
+        initSystemIndexVariables(tokenTable);
+        return tokenTable;
     }
 
     public void createSnapshotTable(TransactionController tc) throws StandardException {
@@ -354,6 +369,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         // TODO - this needs to be included into an upgrade script (JY)
         createSnapshotTable(tc);
+
+        createTokenTable(tc);
 
     }
 
@@ -764,6 +781,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         if(configuration.upgradeForced()) {
             LOG.info(String.format("Upgrade has been manually forced from version %s",
                     configuration.getUpgradeForcedFrom()));
+            return true;
         }
 
         // Not sure about the current version, do not upgrade
@@ -908,7 +926,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     @Override
     public boolean canUseDependencyManager() {
-        return !SpliceClient.isClient;
+        return !SpliceClient.isClient();
     }
 
     @Override

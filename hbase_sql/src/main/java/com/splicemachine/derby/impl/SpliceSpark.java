@@ -25,7 +25,11 @@ import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.client.SpliceClient;
+import com.splicemachine.derby.hbase.AdapterPipelineEnvironment;
+import com.splicemachine.pipeline.PipelineEnvironment;
 import com.splicemachine.si.data.hbase.ZkUpgradeK2;
+import com.splicemachine.si.data.hbase.coprocessor.AdapterSIEnvironment;
+import com.splicemachine.si.impl.driver.SIEnvironment;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.SecurityUtil;
@@ -75,7 +79,7 @@ public class SpliceSpark {
     // Sets both ctx and session
     public static synchronized SparkSession getSession() {
         String threadName = Thread.currentThread().getName();
-        if (!SpliceClient.isClient && !threadName.startsWith("olap-worker-")) {
+        if (!SpliceClient.isClient() && !threadName.startsWith("olap-worker-")) {
              // Not running on the Olap Server... raise exception. Use getSessionUnsafe() if you know what you are doing.
             throw new RuntimeException("Trying to get a SparkSession from outside the OlapServer");
         }
@@ -98,7 +102,7 @@ public class SpliceSpark {
             session = initializeSparkSession();
             ctx =  new JavaSparkContext(session.sparkContext());
             initialized = true;
-        } else if (session.sparkContext().isStopped() && !SpliceClient.isClient) {
+        } else if (session.sparkContext().isStopped() && !SpliceClient.isClient()) {
             // Try to reinitialize the SparkContext, unless this is SpliceClient, in that case let the user handle the SparkContext
             LOG.warn("SparkContext is stopped, reinitializing...");
             try {
@@ -188,14 +192,19 @@ public class SpliceSpark {
             if (!spliceStaticComponentsSetup && isRunningOnSpark()) {
                 SynchronousReadResolver.DISABLED_ROLLFORWARD = true;
 
+                boolean tokenEnabled = HConfiguration.getConfiguration().getAuthenticationTokenEnabled();
+
                 //boot SI components
-                HBaseSIEnvironment env=HBaseSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper());
+                SIEnvironment env = SpliceClient.isClient() && tokenEnabled ?
+                        AdapterSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper(),SpliceClient.getConnectionPool()) :
+                        HBaseSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper());
+                
                 SIDriver driver = env.getSIDriver();
 
                 //make sure the configuration is correct
                 SConfiguration config=driver.getConfiguration();
 
-                LOG.info("Splice Client in SpliceSpark "+SpliceClient.isClient);
+                LOG.info("Splice Client in SpliceSpark "+SpliceClient.isClient());
                 
                 //boot derby components
                 new EngineLifecycleService(new DistributedDerbyStartup(){
@@ -222,7 +231,9 @@ public class SpliceSpark {
                 final Clock clock = driver.getClock();
                 ContextFactoryDriver cfDriver =ContextFactoryDriverService.loadDriver();
                 //we specify rsServices = null here because we don't actually use the receiving side of the Pipeline environment
-                HBasePipelineEnvironment pipelineEnv=HBasePipelineEnvironment.loadEnvironment(clock,cfDriver);
+                PipelineEnvironment pipelineEnv= SpliceClient.isClient() && tokenEnabled ?
+                        AdapterPipelineEnvironment.loadEnvironment(clock,cfDriver,SpliceClient.getConnectionPool()) :
+                        HBasePipelineEnvironment.loadEnvironment(clock,cfDriver);
                 PipelineDriver.loadDriver(pipelineEnv);
                 HBaseRegionLoads.INSTANCE.startWatching();
 

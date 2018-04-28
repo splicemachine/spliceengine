@@ -33,6 +33,7 @@ public interface TableWriter <T> {
     void write(Iterator<T> rows) throws StandardException;
     void setTxn(TxnView txn);
     TxnView getTxn();
+    byte[] getToken();
     byte[] getDestinationTable();
     OperationContext getOperationContext();
 }

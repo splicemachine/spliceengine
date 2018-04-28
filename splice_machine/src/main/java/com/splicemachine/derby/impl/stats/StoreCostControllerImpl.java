@@ -361,11 +361,19 @@ public class StoreCostControllerImpl implements StoreCostController {
     }
 
     public static int getPartitions(byte[] table, List<Partition> partitions, boolean refresh) throws StandardException {
+        Partition root = null;
         try {
-            partitions.addAll(SIDriver.driver().getTableFactory().getTable(table).subPartitions(refresh));
+            root = SIDriver.driver().getTableFactory().getTable(table);
+            partitions.addAll(root.subPartitions(refresh));
             return partitions.size();
         } catch (Exception ioe) {
             throw StandardException.plainWrapException(ioe);
+        } finally {
+            try {
+                root.close();
+            } catch (IOException e) {
+                // ignore
+            }
         }
     }
 
@@ -374,11 +382,19 @@ public class StoreCostControllerImpl implements StoreCostController {
     }
 
     public static int getPartitions(String table, List<Partition> partitions, boolean refresh) throws StandardException {
+        Partition root = null;
         try {
-            partitions.addAll(SIDriver.driver().getTableFactory().getTable(table).subPartitions(refresh));
+            root = SIDriver.driver().getTableFactory().getTable(table);
+            partitions.addAll(root.subPartitions(refresh));
             return partitions.size();
         } catch (Exception ioe) {
             throw StandardException.plainWrapException(ioe);
+        } finally {
+            try {
+                root.close();
+            } catch (IOException e) {
+                // ignore
+            }
         }
     }
 

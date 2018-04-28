@@ -9227,17 +9227,6 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <text>Role {0} already exists in Sentry.</text>
                <arg>role</arg>
            </msg>
-
-           <msg>
-               <name>EXT35</name>
-               <text>Cannot grant permissions when Splice Machine is attached to Ranger.  Please use the Ranger UI.</text>
-           </msg>
-
-           <msg>
-               <name>EXT36</name>
-               <text>Cannot revoke permissions when Splice Machine is attached to Ranger.  Please use the Ranger UI.</text>
-           </msg>
-
            <msg>
                <name>EXT39</name>
                <text>Cannot grant permissions when Splice Machine is attached to Sentry.  Please use the Sentry CLI.</text>
@@ -9246,6 +9235,24 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
            <msg>
                <name>EXT40</name>
                <text>Cannot revoke permissions when Splice Machine is attached to Sentry.  Please use the Sentry CLI.</text>
+           </msg>
+
+           <msg>
+               <name>ST001</name>
+	       <text>Token '{0}' not found </text>
+               <arg>token</arg>
+           </msg>
+           <msg>
+               <name>ST002</name>
+	       <text>Token '{0}' has expired on '{1}'</text>
+               <arg>token</arg>
+               <arg>expiredTime</arg>
+           </msg>
+           <msg>
+               <name>HO001</name>
+	       <text>HBase operation error for table '{0}' and operation '{1}'</text>
+               <arg>tableName</arg>
+               <arg>operation</arg>
            </msg>
 
        </family>

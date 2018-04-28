@@ -97,7 +97,7 @@ public class AlterTableInterceptWriteHandler implements WriteHandler{
     /* Only need to create the CallBuffer once, but not until we have a WriteContext */
     private RecordingCallBuffer<KVPair> initTargetCallBuffer(WriteContext ctx) throws IOException{
         if (recordingCallBuffer == null) {
-            recordingCallBuffer = writeCoordinator.writeBuffer(ctx.remotePartition(newTableName), ctx.getTxn());
+            recordingCallBuffer = writeCoordinator.writeBuffer(ctx.remotePartition(newTableName), ctx.getTxn(), null);
         }
         return recordingCallBuffer;
     }

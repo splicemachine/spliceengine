@@ -7348,6 +7348,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 case SYSSNAPSHOT_NUM:
                     retval=new TabInfoImpl(new SYSSNAPSHOTSRowFactory(luuidFactory,exFactory,dvf));
                     break;
+                case SYSTOKENS_NUM:
+                    retval=new TabInfoImpl(new SYSTOKENSRowFactory(luuidFactory,exFactory,dvf));
+                    break;
             }
             initSystemIndexVariables(retval);
             noncoreInfo[nonCoreNum]=retval;
@@ -10317,6 +10320,53 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         roleList = FluentIterable.from(roleGrantDescriptors).filter(rgd -> rgd.isDefaultRole()).transform(rgd -> rgd.getRoleName()).toList();
         dataDictionaryCache.defaultRoleCacheAdd(username, roleList);
         return roleList;
+    }
 
+    public void addToken(TokenDescriptor descriptor, TransactionController tc) throws StandardException {
+        TabInfoImpl ti=getNonCoreTI(SYSTOKENS_NUM);
+        ExecRow row = ti.getCatalogRowFactory().makeRow(descriptor, null);
+        int insertRetCode=ti.insertRow(row,tc);
+        dataDictionaryCache.tokenCacheAdd(descriptor.getToken(), descriptor);
+    }
+
+    @Override
+    public void deleteToken(byte[] token) throws StandardException {
+        TabInfoImpl ti=getNonCoreTI(SYSTOKENS_NUM);
+
+        /* Set up the start/stop position for the scan */
+        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        keyRow.setColumn(1, new SQLBit(token));
+
+        ti.deleteRow(getTransactionCompile(), keyRow, SYSTOKENSRowFactory.SYSTOKENS_INDEX1_ID);
+        dataDictionaryCache.tokenCacheRemove(token);
+    }
+
+    @Override
+    public TokenDescriptor getToken(byte[] token) throws StandardException {
+        TokenDescriptor result = dataDictionaryCache.tokenCacheFind(token);
+        if (result != null) {
+            return result;
+        }
+
+        TabInfoImpl ti=getNonCoreTI(SYSTOKENS_NUM);
+
+        /* Set up the start/stop position for the scan */
+        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        keyRow.setColumn(1, new SQLBit(token));
+
+        result = (TokenDescriptor)
+                getDescriptorViaIndex(
+                        SYSTOKENSRowFactory.SYSTOKENS_INDEX1_ID,
+                        keyRow,
+                        null,
+                        ti,
+                        null,
+                        null,
+                        false,
+                        TransactionController.ISOLATION_REPEATABLE_READ,
+                        getTransactionCompile());
+        if (result != null)
+            dataDictionaryCache.tokenCacheAdd(token, result);
+        return result;
     }
 }

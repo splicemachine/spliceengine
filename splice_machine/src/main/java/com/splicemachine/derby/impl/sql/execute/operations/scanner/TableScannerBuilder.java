@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 
+import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -83,6 +84,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     protected double sampleFraction = 0;
     protected ExecRow defaultRow;
     protected FormatableBitSet defaultValueMap;
+    protected byte[] token = SpliceClient.token;
 
     @Override
     public ScanSetBuilder<V> metricFactory(MetricFactory metricFactory){
@@ -414,6 +416,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                 }
             }
             writeTxn(out);
+            ArrayUtil.writeByteArray(out, token);
             ArrayUtil.writeIntArray(out,keyColumnEncodingOrder);
             out.writeBoolean(keyColumnSortOrder!=null);
             if(keyColumnSortOrder!=null){
@@ -496,6 +499,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                 }
             }
             txn=readTxn(in);
+            token=ArrayUtil.readByteArray(in);
             keyColumnEncodingOrder=ArrayUtil.readIntArray(in);
             if(in.readBoolean()){
                 keyColumnSortOrder=ArrayUtil.readBooleanArray(in);
@@ -580,6 +584,10 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     @Override
     public TxnView getTxn(){
         return txn;
+    }
+
+    public byte[] getToken(){
+        return token;
     }
 
     @Override

@@ -14,6 +14,7 @@
 
 package com.splicemachine.lifecycle;
 
+import com.splicemachine.pipeline.security.AclChecker;
 import org.spark_project.guava.base.Function;
 import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.pipeline.*;

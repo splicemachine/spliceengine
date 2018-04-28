@@ -31,11 +31,15 @@ public interface DataSetWriterBuilder{
 
     DataSetWriterBuilder txn(TxnView txn);
 
+    DataSetWriterBuilder token(byte[] token);
+
     DataSetWriterBuilder operationContext(OperationContext operationContext);
 
     DataSetWriterBuilder skipIndex(boolean skipIndex);
 
     TxnView getTxn();
+
+    byte[] getToken();
 
     byte[] getDestinationTable();
 

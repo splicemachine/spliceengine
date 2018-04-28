@@ -80,7 +80,7 @@ public class PartitionWritePipeline{
     }
 
 
-    public BulkWriteResult submitBulkWrite(TxnView txn,
+    public BulkWriteResult submitBulkWrite(TxnView txn, byte[] token,
                                            BulkWrite toWrite,
                                            SharedCallBufferFactory writeBufferFactory,
                                            ServerControl rce) throws IOException{
@@ -99,7 +99,7 @@ public class PartitionWritePipeline{
 
         WriteContext context;
         try{
-            context=ctxFactory.create(writeBufferFactory,txn,txnRegion,toWrite.getSize(),
+            context=ctxFactory.create(writeBufferFactory,txn,token,txnRegion,toWrite.getSize(),
                     toWrite.skipIndexWrite(),toWrite.skipConflictDetection(),toWrite.skipWAL(),rce);
         }catch(InterruptedException e){
             return INTERRUPTED;

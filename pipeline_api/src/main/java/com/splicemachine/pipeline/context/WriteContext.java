@@ -79,7 +79,7 @@ public interface WriteContext {
                                             ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap,
                                             int maxSize,
                                             boolean useAsyncWriteBuffers,
-                                            TxnView txn) throws Exception;
+                                            TxnView txn, byte[] token) throws Exception;
 
     /**
      * Retrieve the coprocessor environment
@@ -106,6 +106,8 @@ public interface WriteContext {
      * Retrieve Transaction
      */
     TxnView getTxn();
+
+    byte[] getToken();
 
     boolean skipIndexWrites();
 
