@@ -238,7 +238,8 @@ public class BroadcastJoinOperation extends JoinOperation{
                         .flatMap(new OuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
                         .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext));
             } else {
-                leftDataSet = leftDataSet.filter(new InnerJoinNullFilterFunction(operationContext,this.leftHashKeys));
+                if (this.leftHashKeys.length != 0)
+                    leftDataSet = leftDataSet.filter(new InnerJoinNullFilterFunction(operationContext,this.leftHashKeys));
                 if (this.notExistsRightSide) { // antijoin
                     if (restriction != null) { // with restriction
                         result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))

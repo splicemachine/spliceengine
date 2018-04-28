@@ -20,11 +20,14 @@ import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiter;
 import com.splicemachine.db.iapi.sql.conn.ResubmitDistributedException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.JoinTable;
 import com.splicemachine.derby.impl.sql.execute.operations.BroadcastJoinCache;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOperation;
 import com.splicemachine.derby.stream.function.InnerJoinNullFilterFunction;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
+import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -100,10 +103,21 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
             ControlExecutionLimiter limiter = operation.getActivation().getLanguageConnectionContext().getControlExecutionLimiter();
             Callable<Stream<ExecRow>> rhsLoader = () -> {
                 DataSetProcessorFactory dataSetProcessorFactory=EngineDriver.driver().processorFactory();
-                final DataSetProcessor dsp =dataSetProcessorFactory.bulkProcessor(getActivation(),operation.getRightOperation());
+                SpliceOperation rightOperation = operation.getRightOperation();
+                final DataSetProcessor dsp =
+                        (rightOperation instanceof MultiProbeTableScanOperation &&
+                         rightOperation.getEstimatedRowCount() <
+                         operation.getActivation().getLanguageConnectionContext().
+                                                   getOptimizerFactory().getDetermineSparkRowThreshold()) ?
+                       dataSetProcessorFactory.localProcessor(getActivation(), rightOperation) :
+                       dataSetProcessorFactory.bulkProcessor(getActivation(), rightOperation);
+
                 return Streams.wrap(FluentIterable.from(() -> {
                     try{
-                        return operation.getRightOperation().getDataSet(dsp).filter(new InnerJoinNullFilterFunction(operationContext,operation.getRightHashKeys())).toLocalIterator();
+                        DataSet<ExecRow> rightDataSet = operation.getRightOperation().getDataSet(dsp);
+                        if (operation.getRightHashKeys().length != 0)
+                            rightDataSet = rightDataSet.filter(new InnerJoinNullFilterFunction(operationContext,operation.getRightHashKeys()));
+                        return rightDataSet.toLocalIterator();
                     }catch(StandardException e){
                         throw new RuntimeException(e);
                     }

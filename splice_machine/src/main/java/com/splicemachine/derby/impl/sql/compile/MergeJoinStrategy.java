@@ -58,7 +58,8 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
                             OptimizablePredicateList predList,
                             Optimizer optimizer,
                             CostEstimate outerCost,
-                            boolean wasHinted) throws StandardException{
+                            boolean wasHinted,
+                            boolean skipKeyCheck) throws StandardException{
         //we can't work if the outer table isn't sorted, regardless of what else happens
         if(outerCost==null) return false;
         RowOrdering outerRowOrdering=outerCost.getRowOrdering();
@@ -68,7 +69,7 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         if(JoinStrategyUtil.isNonCoveringIndex(innerTable)){
             return false;
         }
-        boolean hashFeasible=super.feasible(innerTable, predList, optimizer, outerCost, wasHinted);
+        boolean hashFeasible=super.feasible(innerTable, predList, optimizer, outerCost, wasHinted, skipKeyCheck);
         if(!hashFeasible) return false;
 
         /*
