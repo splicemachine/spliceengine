@@ -163,6 +163,9 @@ public class Level2OptimizerTrace implements OptimizerTrace{
             case HJ_SKIP_NO_JOIN_COLUMNS:
                 traceString="Skipping HASH JOIN because there are no hash key columns";
                 break;
+            case HJ_NO_EQUIJOIN_COLUMNS:
+                traceString="Warning: Applying HASH JOIN with no hash key columns";
+                break;
             case HJ_HASH_KEY_COLUMNS:
                 int[] hashKeyColumns=(int[]) objectParam1;
                 StringBuilder buf = new StringBuilder("# hash key columns = ").append(hashKeyColumns.length)

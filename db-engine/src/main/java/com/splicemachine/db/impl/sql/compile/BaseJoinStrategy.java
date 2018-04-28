@@ -262,4 +262,6 @@ public abstract class BaseJoinStrategy implements JoinStrategy{
     public boolean isMemoryUsageUnderLimit(double totalMemoryConsumed) {
         return true;
     }
+
+    public boolean isMissingHashKeyOK() {return false;}
 }

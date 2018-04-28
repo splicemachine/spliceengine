@@ -21,10 +21,14 @@ import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.spark_project.guava.collect.Lists;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.Collection;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -34,7 +38,23 @@ import static org.junit.Assert.assertEquals;
  * @author Scott Fines
  *         Date: 5/20/15
  */
-public class BroadcastJoinIT{
+
+
+@RunWith(Parameterized.class)
+public class BroadcastJoinIT extends SpliceUnitTest {
+
+    private Boolean useSpark;
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        Collection<Object[]> params = Lists.newArrayListWithCapacity(4);
+        params.add(new Object[]{true});
+        params.add(new Object[]{false});
+        return params;
+    }
+    public BroadcastJoinIT(Boolean useSpark) {
+        this.useSpark = useSpark;
+    }
+
     public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(BroadcastJoinIT.class.getSimpleName().toUpperCase());
 
     public static final SpliceTableWatcher a= new SpliceTableWatcher("A",schemaWatcher.schemaName,"(c1 int, c2 int)");
@@ -153,6 +173,56 @@ public class BroadcastJoinIT{
             factor = factor * 2;
         }
 
+        new TableCreator(conn)
+        .withCreate("create table tab1 (a int, b int, primary key(a))")
+        .withInsert("insert into tab1 values(?,?)")
+        .withRows(rows(
+        row(1,1),
+        row(2,2),
+        row(3,3),
+        row(4,4),
+        row(5,5),
+        row(6,6),
+        row(7,7),
+        row(8,8),
+        row(9,9),
+        row(10,10)))
+        .create();
+
+        new TableCreator(conn)
+        .withCreate("create table tab2 (a int, b int, primary key(a))")
+        .withInsert("insert into tab2 values(?,?)")
+        .withRows(rows(
+        row(1,1),
+        row(2,2),
+        row(3,3),
+        row(4,4),
+        row(5,5),
+        row(6,6),
+        row(7,7),
+        row(8,8),
+        row(9,9),
+        row(10,10)))
+        .create();
+
+        new TableCreator(conn)
+        .withCreate("create table tab3 (a int, b int)")
+        .withIndex("create index ix on tab3(a)")
+        .withInsert("insert into tab3 values(?,?)")
+        .withRows(rows(
+        row(5,5),
+        row(6,6),
+        row(7,7),
+        row(8,8),
+        row(9,9),
+        row(10,10)))
+        .create();
+
+        factor = 10;
+        for (int i = 1; i <= 8; i++) {
+            classWatcher.executeUpdate(SpliceUnitTest.format("insert into tab1 select a+%d,b from tab1", factor));
+            factor = factor * 2;
+        }
         conn.commit();
     }
 
@@ -164,9 +234,9 @@ public class BroadcastJoinIT{
     @Test
     @Ignore("Takes a super long time to work, and then knocks over the region server with an OOM")
     public void testBroadcastJoinDoesNotCauseRegionServerToCollapse() throws Exception{
-        String querySQL = "select count(*) from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
-                " "+a+" l,"+ b+" r --SPLICE-PROPERTIES joinStrategy=BROADCAST\n" +
-                " where l.c2 = r.c2";
+        String querySQL = format("select count(*) from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
+                " "+a+" l,"+ b+" r --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s)\n" +
+                " where l.c2 = r.c2", useSpark);
         String insertSQL = "insert into "+ b+"(c2,c3) select * from "+b;
         try(PreparedStatement queryStatement = conn.prepareStatement(querySQL)){
             try(PreparedStatement insertStatement = conn.prepareStatement(insertSQL)){
@@ -182,8 +252,8 @@ public class BroadcastJoinIT{
 
     @Test
     public void testInClauseBroadCastJoin() throws Exception {
-        String sqlText = "select count(*) from " + date_dim + " d --SPLICE-PROPERTIES useSpark = true \n" +
-                "where d.d_qoy in (select d_qoy from " + date_dim + " )" ;
+        String sqlText = format("select count(*) from " + date_dim + " d --SPLICE-PROPERTIES useSpark = %s \n" +
+                "where d.d_qoy in (select d_qoy from " + date_dim + " )", useSpark) ;
         ResultSet rs = classWatcher.executeQuery(sqlText);
 
         Assert.assertTrue("rs.next() failed", rs.next());
@@ -191,11 +261,11 @@ public class BroadcastJoinIT{
         Assert.assertTrue("count(*) returned incorrect number of rows:", (c == 12));
         rs.close();
 
-        sqlText = "with ws_wh as (select * from " + date_dim + " dim " +
+        sqlText = format("with ws_wh as (select * from " + date_dim + " dim " +
         " where dim.d_qoy > 2 ) " +
         " select count(*) " +
-        "   from  "+ date_dim + " d --SPLICE-PROPERTIES useSpark = true \n" +
-        "   where d.d_qoy in (select d_qoy from ws_wh)";
+        "   from  "+ date_dim + " d --SPLICE-PROPERTIES useSpark = %s \n" +
+        "   where d.d_qoy in (select d_qoy from ws_wh)", useSpark);
 
         rs = classWatcher.executeQuery(sqlText);
         Assert.assertTrue("rs.next() failed", rs.next());
@@ -206,8 +276,8 @@ public class BroadcastJoinIT{
 
     @Test
     public void testRightOuterJoinViaBroadCastJoin() throws Exception {
-        String sqlText = "select a1,a2,b1,b2,c1 from " + t1 + " right join " + t2 +" --SPLICE-PROPERTIES useSpark = true \n" +
-                "on a1 = a2 order by 2 desc" ;
+        String sqlText = format("select a1,a2,b1,b2,c1 from " + t1 + " right join " + t2 +" --SPLICE-PROPERTIES useSpark = %s \n" +
+                "on a1 = a2 order by 2 desc", useSpark) ;
         ResultSet rs = classWatcher.executeQuery(sqlText);
 
         Assert.assertTrue("rs.next() failed", rs.next());
@@ -220,10 +290,10 @@ public class BroadcastJoinIT{
 
     @Test
     public void testBroadCastJoinWithIntToNumericCast() throws Exception {
-        String sqlText = "select c4 from --splice-properties joinOrder=fixed\n" +
-                "t4 t --splice-properties useSpark=true\n" +
+        String sqlText = format("select c4 from --splice-properties joinOrder=fixed\n" +
+                "t4 t --splice-properties useSpark=%s\n" +
                 ",t3 c --splice-properties joinStrategy=broadcast\n" +
-                "where c.c3=t.c4 and t.c4 >=37770 and t.c4 <37771";
+                "where c.c3=t.c4 and t.c4 >=37770 and t.c4 <37771", useSpark);
         String expected = "C4   |\n" +
                 "-------\n" +
                 "37770 |";
@@ -231,6 +301,117 @@ public class BroadcastJoinIT{
         ResultSet rs = classWatcher.executeQuery(sqlText);
         String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
         assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+    }
+
+    @Test
+    public void testInequalityBroadCastJoin() throws Exception {
+        String sqlText = format("select count(*) from --splice-properties joinOrder=fixed\n" +
+        "tab1 tt1 --splice-properties useSpark=%s\n" +
+        "inner join tab1 tt2 --splice-properties useSpark=%s,joinStrategy=broadcast\n" +
+        "on tt1.a between tt2.a - 5 and tt2.a + 5 and tt1.a in (10, 20, 30, 40)", useSpark, useSpark);
+
+
+        ResultSet rs = classWatcher.executeQuery(sqlText);
+        Assert.assertTrue("count(*) did not return the correct number of records!",rs.next());
+        Assert.assertEquals("Wrong Count", 44, rs.getInt(1));
+
+        sqlText = format("select count(*) from\n" +
+        "tab1 tt1 --splice-properties useSpark=%s\n" +
+        "inner join tab1 tt2 --splice-properties useSpark=%s,joinStrategy=broadcast\n" +
+        "on tt1.a between tt2.a - 5 and tt2.a + 5 and tt1.a in (10, 20, 30, 40)", useSpark, useSpark);
+
+        rs = classWatcher.executeQuery(sqlText);
+        Assert.assertTrue("count(*) did not return the correct number of records!",rs.next());
+        Assert.assertEquals("Wrong Count", 44, rs.getInt(1));
+
+        sqlText = format("explain select count(*) from\n" +
+        "tab1 tt1 --splice-properties useSpark=%s\n" +
+        "inner join tab1 tt2 --splice-properties useSpark=%s\n" +
+        "on tt1.a between tt2.a - 5 and tt2.a + 5 and tt1.a in (10, 20, 30, 40)", useSpark, useSpark);
+
+        rs = classWatcher.executeQuery(sqlText);
+
+        String explainPlanText = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+
+        boolean broadcastJoinPresent = explainPlanText.contains("BroadcastJoin");
+        if (useSpark)
+            Assert.assertTrue("Query is expected to pick BroadcastJoin, the current plan is: " + explainPlanText, broadcastJoinPresent);
+        else
+            Assert.assertTrue("Query is not expected to pick BroadcastJoin,, the current plan is: " + explainPlanText, !broadcastJoinPresent);
+
+
+        sqlText = format("explain select count(*) from\n" +
+        "tab1 tt1 --splice-properties useSpark=%s\n" +
+        "inner join tab1 tt2 --splice-properties useSpark=%s,joinStrategy=nestedloop\n" +
+        "on tt1.a between tt2.a - 5 and tt2.a + 5 and tt1.a in (10, 20, 30, 40)", useSpark, useSpark);
+
+        rs = classWatcher.executeQuery(sqlText);
+        explainPlanText = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+
+        boolean nestedLoopJoinPresent = explainPlanText.contains("NestedLoop");
+        // To be enabled by SPLICE-2159, once it's fixed.
+        //Assert.assertTrue("Query is expected to pick nested loop join, the current plan is: " + explainPlanText, nestedLoopJoinPresent);
+
+        sqlText = format("select count(*) from --splice-properties joinOrder=fixed\n" +
+        "tab2 --splice-properties useSpark=%s\n" +
+        "left outer join tab3 --splice-properties useSpark=%s,joinStrategy=broadcast\n" +
+        "on tab2.a between tab3.a - 1 and tab3.a and tab2.a in (1, 3, 5)", useSpark, useSpark);
+
+
+        rs = classWatcher.executeQuery(sqlText);
+        Assert.assertTrue("count(*) did not return the correct number of records!",rs.next());
+        Assert.assertEquals("Wrong Count", 11, rs.getInt(1));
+
+        sqlText = format("select count(*) from --splice-properties joinOrder=fixed\n" +
+        "tab2 --splice-properties useSpark=%s,joinStrategy=broadcast\n" +
+        "right outer join tab3 --splice-properties useSpark=%s\n" +
+        "on tab2.a between tab3.a - 1 and tab3.a and tab2.a in (1, 3, 5)", useSpark, useSpark);
+
+        rs = classWatcher.executeQuery(sqlText);
+        Assert.assertTrue("count(*) did not return the correct number of records!",rs.next());
+        Assert.assertEquals("Wrong Count", 6, rs.getInt(1));
+
+        sqlText = format("select count(*) from\n" +
+        "tab1 --splice-properties useSpark=%s\n" +
+        "where tab1.a in (1, 3, 5) and\n" +
+        "        exists (select * from tab3 --splice-properties useSpark=%s\n" +
+        "                where tab1.a between tab3.a - 1 and tab3.a)", useSpark, useSpark);
+
+        rs = classWatcher.executeQuery(sqlText);
+        Assert.assertTrue("count(*) did not return the correct number of records!",rs.next());
+        Assert.assertEquals("Wrong Count", 1, rs.getInt(1));
+
+        sqlText = format("select count(*) from\n" +
+        "tab1 --splice-properties useSpark=%s\n" +
+        "where tab1.a in (1, 3, 5) and\n" +
+        "    not exists (select * from tab3 --splice-properties useSpark=%s\n" +
+        "                where tab1.a between tab3.a - 1 and tab3.a)", useSpark, useSpark);
+
+        rs = classWatcher.executeQuery(sqlText);
+        Assert.assertTrue("count(*) did not return the correct number of records!",rs.next());
+        Assert.assertEquals("Wrong Count", 2, rs.getInt(1));
+
+        sqlText = format("select count(*) from\n" +
+        "        tab1 --splice-properties useSpark=%s\n" +
+        "        where tab1.b in\n" +
+        "         (select b from tab3 --splice-properties useSpark=%s\n" +
+        "                   where tab1.a between tab3.a - 1 and tab3.a)", useSpark, useSpark);
+
+        rs = classWatcher.executeQuery(sqlText);
+        Assert.assertTrue("count(*) did not return the correct number of records!",rs.next());
+        Assert.assertEquals("Wrong Count", 6, rs.getInt(1));
+
+        sqlText = format("select count(*) from\n" +
+        "        tab1 --splice-properties useSpark=%s\n" +
+        "        where tab1.b not in\n" +
+        "         (select b from tab3 --splice-properties useSpark=%s\n" +
+        "                   where tab1.a between tab3.a - 1 and tab3.a)", useSpark, useSpark);
+
+        rs = classWatcher.executeQuery(sqlText);
+        Assert.assertTrue("count(*) did not return the correct number of records!",rs.next());
+        Assert.assertEquals("Wrong Count", 2554, rs.getInt(1));
+
         rs.close();
     }
 }
