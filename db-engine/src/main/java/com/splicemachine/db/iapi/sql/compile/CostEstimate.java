@@ -281,4 +281,11 @@ public interface CostEstimate extends StoreCostResult {
     double getAccumulatedMemory();
 
     void setAccumulatedMemory(double memorySize);
+
+    /**
+     * @return True, if this is a single-row relation, otherwise false
+     */
+    public boolean isSingleRow();
+
+    public void setSingleRow(boolean singleRowInRelation);
 }

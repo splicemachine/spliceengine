@@ -82,6 +82,7 @@ public interface JoinStrategy {
 	 * @param optimizer        The optimizer to use
 	 * @param outerCost the cost to scan the outer table
 	 * @param wasHinted {@code true} if the join strategy was chosen by the user as a hint, {@code false} otherwise
+     * @param skipKeyCheck {@code true} if any checks for equality join conditions on which a hash key can be built should be bypassed, {@code false} otherwise
 	 * @return	true means the strategy is feasible, false means it isn't
 	 *
 	 * @exception StandardException		Thrown on error
@@ -90,7 +91,8 @@ public interface JoinStrategy {
 					 OptimizablePredicateList predList,
 					 Optimizer optimizer,
 					 CostEstimate outerCost,
-					 boolean wasHinted) throws StandardException;
+					 boolean wasHinted,
+                     boolean skipKeyCheck) throws StandardException;
 
 	/**
 	 * Is it OK to use bulk fetch with this join strategy?
@@ -374,4 +376,15 @@ public interface JoinStrategy {
 	 * @param totalMemoryConsumed the memory consumed by consecutive joins in bytes
 	 */
 	boolean isMemoryUsageUnderLimit(double totalMemoryConsumed);
+
+	/**
+	 * Is it OK for a hash-based join strategy to execute without
+	 * a hash key (without any equality join conditions).
+	 *
+	 * @return Whether or not the current join strategy being considered
+	 * is hashable with no hash key (no equijoin conditions).
+	 * @notes Currently broadcast join is the only hashable join strategy
+	 * that supports non-equijoin.
+	 */
+	public boolean isMissingHashKeyOK();
 }
