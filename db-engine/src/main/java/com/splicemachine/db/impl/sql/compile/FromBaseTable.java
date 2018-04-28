@@ -3394,14 +3394,34 @@ public class FromBaseTable extends FromTable {
 
     public void determineSpark() {
         // Set Spark Baby...
+        dataSetProcessorType = getdataSetProcessorTypeForAccessPath(getTrulyTheBestAccessPath());
+    }
+
+    /**
+     * Return the data set processor type for a given access path.
+     *
+     * @param accessPath the access path
+     */
+    public CompilerContext.DataSetProcessorType getdataSetProcessorTypeForAccessPath(AccessPath accessPath) {
+        CompilerContext.DataSetProcessorType dspt = dataSetProcessorType;
         long sparkRowThreshold = getLanguageConnectionContext().getOptimizerFactory().getDetermineSparkRowThreshold();
-        if (dataSetProcessorType.equals(CompilerContext.DataSetProcessorType.DEFAULT_CONTROL) &&
-            // we need to check not only the number of row scanned, but also the number of output rows for the
-            // join result
-            (getTrulyTheBestAccessPath().getCostEstimate().getScannedBaseTableRows() > sparkRowThreshold ||
-             getTrulyTheBestAccessPath().getCostEstimate().getEstimatedRowCount() > sparkRowThreshold)) {
-            dataSetProcessorType = CompilerContext.DataSetProcessorType.SPARK;
+        if (dspt.equals(CompilerContext.DataSetProcessorType.DEFAULT_CONTROL) &&
+                // we need to check not only the number of row scanned, but also the number of output rows for the
+                // join result
+            (accessPath.getCostEstimate().getScannedBaseTableRows() > sparkRowThreshold ||
+             accessPath.getCostEstimate().getEstimatedRowCount() > sparkRowThreshold)) {
+            dspt = CompilerContext.DataSetProcessorType.SPARK;
         }
+        return dspt;
+    }
+    /**
+     * Is this a spark data set processor type?
+     *
+     * @param dspt the data set processor to test.
+     */
+    public boolean isSpark (CompilerContext.DataSetProcessorType dspt) {
+        return dspt == CompilerContext.DataSetProcessorType.SPARK ||
+               dspt == CompilerContext.DataSetProcessorType.FORCED_SPARK;
     }
 
     private boolean hasConstantPredicate(int tableNum, int colNum, OptimizablePredicateList predList) {

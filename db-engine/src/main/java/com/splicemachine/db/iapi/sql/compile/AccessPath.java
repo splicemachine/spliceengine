@@ -162,4 +162,18 @@ public interface AccessPath {
 	 * @param memoryAlreadyConsumed the memory consumed before the join specified in the current access path
 	 */
 	boolean isJoinPathMemoryUsageUnderLimit(double memoryAlreadyConsumed);
+
+	/**
+	 * @return {@code true} if the join strategy in this access path is hashable and is allowed to have a missing hash key,
+	 * {@code false} otherwise
+	 */
+	boolean isMissingHashKeyOK();
+
+	/**
+	 * Mark in the access path that the join strategy chosen is hashable, but there are no equijoin conditions
+	 * to use for generating a hash key.
+	 *
+	 * @param missingHashKeyOK {@code true} if the join strategy was is hashable with no hash key, {@code false} otherwise.
+	 */
+	void setMissingHashKeyOK(boolean missingHashKeyOK);
 }

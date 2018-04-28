@@ -29,8 +29,9 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
 	public boolean feasible(Optimizable innerTable,
                             OptimizablePredicateList predList,
                             Optimizer optimizer,
-                            CostEstimate outerCost,boolean wasHinted) throws StandardException {
-		return super.feasible(innerTable, predList, optimizer,outerCost,wasHinted);
+                            CostEstimate outerCost,boolean wasHinted,
+                            boolean skipKeyCheck) throws StandardException {
+		return super.feasible(innerTable, predList, optimizer,outerCost,wasHinted,skipKeyCheck);
 	}
 
     @Override
