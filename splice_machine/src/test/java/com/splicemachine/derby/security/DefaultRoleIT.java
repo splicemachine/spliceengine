@@ -27,6 +27,11 @@ import org.junit.rules.TestRule;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_ROLE_NOT_REVOKED;
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.assertFailed;
@@ -176,7 +181,7 @@ public class DefaultRoleIT {
         user1Conn = spliceClassWatcherAdmin.createConnection(USER1, PASSWORD1);
         ps = user1Conn.prepareStatement("values current_role");
         rs = ps.executeQuery();
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        assertEqualDefaultRoleSet(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
         // we should be able to select from schema1, schema2, schema3, but not schema4 and schema5
@@ -186,7 +191,7 @@ public class DefaultRoleIT {
         user1Conn2 = spliceClassWatcherAdmin.createConnection(remoteURLTemplate, USER1, PASSWORD1);
         ps = user1Conn2.prepareStatement("values current_role");
         rs = ps.executeQuery();
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        assertEqualDefaultRoleSet(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
         testPrivileges(user1Conn2, new boolean[] {false, false, false, true, true});
@@ -225,7 +230,7 @@ public class DefaultRoleIT {
         user1Conn = spliceClassWatcherAdmin.createConnection(USER1, PASSWORD1);
         ps = user1Conn.prepareStatement("values current_role");
         rs = ps.executeQuery();
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        assertEqualDefaultRoleSet(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
         // we should be able to select from schema1 but not schema2, schema3, schema4 and schema5
@@ -235,7 +240,7 @@ public class DefaultRoleIT {
         user1Conn2 = spliceClassWatcherAdmin.createConnection(remoteURLTemplate, USER1, PASSWORD1);
         ps = user1Conn2.prepareStatement("values current_role");
         rs = ps.executeQuery();
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        assertEqualDefaultRoleSet(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
         testPrivileges(user1Conn2, new boolean[] {false, true, true, true, true});
@@ -258,7 +263,7 @@ public class DefaultRoleIT {
         user1Conn = spliceClassWatcherAdmin.createConnection(USER1, PASSWORD1);
         PreparedStatement ps = user1Conn.prepareStatement("values current_role");
         ResultSet rs = ps.executeQuery();
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        assertEqualDefaultRoleSet(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
         // we should be able to select from schema1, schema2, schema3, but not schema4 and schema5
@@ -276,14 +281,14 @@ public class DefaultRoleIT {
                 "\"ADMIN3\", \"ADMIN1\" |";
         ps = user1Conn.prepareStatement("values current_role");
         rs = ps.executeQuery();
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        assertEqualDefaultRoleSet(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
         // 4. check current_role(remote) and privilege/permisssion
         user1Conn2 = spliceClassWatcherAdmin.createConnection(remoteURLTemplate, USER1, PASSWORD1);
         ps = user1Conn2.prepareStatement("values current_role");
         rs = ps.executeQuery();
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        assertEqualDefaultRoleSet(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
         testPrivileges(user1Conn2, new boolean[] {false, true, false, true, true});
@@ -306,7 +311,7 @@ public class DefaultRoleIT {
         user1Conn = spliceClassWatcherAdmin.createConnection(USER1, PASSWORD1);
         PreparedStatement ps = user1Conn.prepareStatement("values current_role");
         ResultSet rs = ps.executeQuery();
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        assertEqualDefaultRoleSet(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
         // we should be able to select from schema1, schema2, schema3, but not schema4 and schema5
@@ -324,7 +329,7 @@ public class DefaultRoleIT {
                 "\"ADMIN3\", \"ADMIN4\", \"ADMIN1\" |";
         ps = user1Conn.prepareStatement("values current_role");
         rs = ps.executeQuery();
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        assertEqualDefaultRoleSet(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
         testPrivileges(user1Conn, new boolean[] {false, true, false, false, true});
@@ -333,7 +338,7 @@ public class DefaultRoleIT {
         user1Conn2 = spliceClassWatcherAdmin.createConnection(remoteURLTemplate, USER1, PASSWORD1);
         ps = user1Conn2.prepareStatement("values current_role");
         rs = ps.executeQuery();
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        assertEqualDefaultRoleSet(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
         testPrivileges(user1Conn2, new boolean[] {false, true, false, false, true});
@@ -356,7 +361,7 @@ public class DefaultRoleIT {
         user1Conn = spliceClassWatcherAdmin.createConnection(USER1, PASSWORD1);
         PreparedStatement ps = user1Conn.prepareStatement("values current_role");
         ResultSet rs = ps.executeQuery();
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        assertEqualDefaultRoleSet(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
         // we should be able to select from schema1, schema2, schema3, but not schema4 and schema5
@@ -371,7 +376,7 @@ public class DefaultRoleIT {
                 "\"ADMIN2\", \"ADMIN3\", \"ADMIN1\", \"ADMIN4\" |";
         ps = user1Conn.prepareStatement("values current_role");
         rs = ps.executeQuery();
-        assertEquals(expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        assertEqualDefaultRoleSet(expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
         // we should be able to select from admin4 too
@@ -384,7 +389,7 @@ public class DefaultRoleIT {
                 "NULL |";
         ps = user1Conn.prepareStatement("values current_role");
         rs = ps.executeQuery();
-        assertEquals(expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        assertEqualDefaultRoleSet(expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
         // we are not able to select from any schema
@@ -394,7 +399,7 @@ public class DefaultRoleIT {
         user1Conn2 = spliceClassWatcherAdmin.createConnection(remoteURLTemplate, USER1, PASSWORD1);
         ps = user1Conn2.prepareStatement("values current_role");
         rs = ps.executeQuery();
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        assertEqualDefaultRoleSet(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
         testPrivileges(user1Conn2, new boolean[] {false, false, false, true, true});
@@ -417,7 +422,7 @@ public class DefaultRoleIT {
         user1Conn = spliceClassWatcherAdmin.createConnection(USER1, PASSWORD1);
         PreparedStatement ps = user1Conn.prepareStatement("values current_role");
         ResultSet rs = ps.executeQuery();
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        assertEqualDefaultRoleSet(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
         // we should be able to select from schema1, schema2, schema3, but not schema4 and schema5
@@ -428,7 +433,7 @@ public class DefaultRoleIT {
         user1Conn2 = spliceClassWatcherAdmin.createConnection(remoteURLTemplate, USER1, PASSWORD1);
         ps = user1Conn2.prepareStatement("values current_role");
         rs = ps.executeQuery();
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        assertEqualDefaultRoleSet(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
         testPrivileges(user1Conn2, new boolean[] {false, false, false, true, true});
@@ -492,5 +497,40 @@ public class DefaultRoleIT {
                 assertFailed(conn, sql[i], SQLState.AUTH_NO_COLUMN_PERMISSION);
             }
         }
+    }
+
+    private void assertEqualDefaultRoleSet(String expectedResult, String actualResult) {
+        Pattern pattern = Pattern.compile("\"\\w+\"");
+
+        List<String> expectedList = new ArrayList<>();
+        Matcher m1 = pattern.matcher(expectedResult);
+        while (m1.find()) {
+            expectedList.add(m1.group());
+        }
+
+        List<String> actualList = new ArrayList<>();
+        Matcher m2 = pattern.matcher(actualResult);
+        while (m2.find()) {
+            actualList.add(m2.group());
+        }
+
+        boolean isMatch = true;
+
+        if (expectedList.size() == actualList.size()) {
+            //sort the two list and compare
+            Collections.sort(expectedList);
+            Collections.sort(actualList);
+            for (int i = 0; i < expectedList.size(); i++) {
+                if (!expectedList.get(i).equals(actualList.get(i)))
+                {
+                    isMatch = false;
+                    break;
+                }
+            }
+        } else {
+            isMatch = false;
+        }
+
+        assertTrue("Expected: " + expectedResult +", actual is: " + actualResult, isMatch);
     }
 }
