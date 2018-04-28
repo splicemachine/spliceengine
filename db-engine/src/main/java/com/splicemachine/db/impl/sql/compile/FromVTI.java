@@ -31,32 +31,26 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.services.loader.ClassInspector;
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.*;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.reference.ClassName;
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
-import com.splicemachine.db.vti.DeferModification;
-import com.splicemachine.db.vti.RestrictedVTI;
-import com.splicemachine.db.vti.Restriction;
-import com.splicemachine.db.vti.VTICosting;
-import com.splicemachine.db.vti.VTIEnvironment;
-import com.splicemachine.db.iapi.util.JBitSet;
-import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.ClassName;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.io.FormatableHashtable;
+import com.splicemachine.db.iapi.services.loader.ClassInspector;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.vti.*;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -64,7 +58,6 @@ import java.lang.reflect.Modifier;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
-import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 
 /**
  * A FromVTI represents a VTI in the FROM list of a DML statement.
@@ -1006,7 +999,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 		/* Project out any unreferenced columns.  If there are no referenced 
 		 * columns, generate and bind a single ResultColumn whose expression is 1.
 		 */
-        prRCList.doProjection();
+        prRCList.doProjection(true);
 
 		/* Finally, we create the new ProjectRestrictNode */
         return (ResultSetNode) getNodeFactory().getNode(

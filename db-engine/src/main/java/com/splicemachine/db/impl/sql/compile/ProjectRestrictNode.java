@@ -574,6 +574,12 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 				 */
                 getTableNumberHere=true;
             }else{
+                if (getCompilerContext().isProjectionPruningEnabled()) {
+                    /* after building the optimized tree bottom-up, we know which fields are not referenced
+                     * and can be pruned
+                     */
+                    resultColumns.doProjection(false);
+                }
 				/* We consider materialization into a temp table as a last step.
 				 * Currently, we only materialize VTIs that are inner tables
 				 * and can't be instantiated multiple times.  In the future we
@@ -637,7 +643,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
 		/*
 		** Replace this PRN with a HTN if a hash join
-		** is being done at this node.  (Hash join on a scan
+		** is being done at this node.  (hash join on a scan
 		** is a special case and is handled at the FBT.)
 		*/
         if(trulyTheBestAccessPath.getJoinStrategy()!=null &&
@@ -1745,4 +1751,5 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         }
         return childResult.isOneRowResultSet();
     }
+
 }

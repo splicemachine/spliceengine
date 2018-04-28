@@ -31,21 +31,12 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
 import com.splicemachine.db.iapi.error.StandardException;
-
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
-
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-
 import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.util.HashMap;
@@ -1126,4 +1117,33 @@ abstract class SetOperatorNode extends TableOperatorNode
 		return rightOptPredicates;
 	}
 
+	/**
+	 * prune the unreferenced result columns of FromSubquery node and FromBaseTable node
+	 */
+	public Visitable projectionListPruning(boolean considerAllRCs) throws StandardException {
+		/**
+		 * 	unconditionally mark all result columns as referenced, so that the size of RCL for the set operation
+		 * 	and its two sources will be consistent. If we don't set all as referenced, there will be inconsistency
+		 * 	for the following cases where the outer block does not reference any specific columns in the SET operation
+		 * 	select count(*) from (select a1 from t1 union all select a3 from t3) dt;
+		 * 	select count(*) from (select a1 from t1 intersect select a3 from t3) dt;
+ 		 */
+
+		resultColumns.setColumnReferences(true, true);
+
+		/**
+		 * 	Since the SET operation's RCs points to the left source's RCs, and both left and right source's RCL should
+		 * 	be consistent with the SET operation's RCL, just propagate the isReferenced property from set operation directly
+		 * 	to the left and right source.
+ 		 */
+		for (int i=0; i<resultColumns.size(); i++) {
+			ResultColumn rc = resultColumns.elementAt(i);
+			if (rc.isReferenced()) {
+				leftResultSet.resultColumns.elementAt(i).setReferenced();
+				rightResultSet.resultColumns.elementAt(i).setReferenced();
+			}
+		}
+
+		return this;
+	}
 }

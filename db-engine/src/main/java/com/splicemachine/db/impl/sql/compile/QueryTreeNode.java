@@ -63,10 +63,12 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.impl.ast.CollectingVisitor;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.execute.GenericConstantActionFactory;
 import com.splicemachine.db.impl.sql.execute.GenericExecutionFactory;
 import org.apache.commons.lang3.SystemUtils;
+import org.spark_project.guava.base.Predicates;
 import org.spark_project.guava.base.Strings;
 
 import java.sql.Types;
@@ -1885,4 +1887,52 @@ public abstract class QueryTreeNode implements Node, Visitable{
         }
     }
 
+    @Override
+    public List<QueryTreeNode> collectReferencedColumns() throws StandardException {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public Visitable projectionListPruning(boolean considerAllRCs) throws StandardException {
+        return this;
+    }
+
+    @Override
+    public void markReferencedResultColumns(List<QueryTreeNode> list) throws StandardException {
+        for (QueryTreeNode col : list) {
+            if (col instanceof ColumnReference) {
+                ResultColumn rc = ((ColumnReference)col).getSource();
+                if (rc != null)
+                    rc.setReferenced();
+            } else if (col instanceof VirtualColumnNode) {
+                VirtualColumnNode vc = (VirtualColumnNode) col;
+                if (vc != null)
+                    vc.getSourceResultColumn().setReferenced();
+            } else { //OrderedColumn
+                if (col instanceof OrderByColumn) {
+                    ResultColumn rc = ((OrderByColumn) col).getResultColumn();
+                    if (rc != null)
+                        rc.setReferenced();
+
+                    ValueNode groupByExpression = ((OrderByColumn) col).getColumnExpression();
+                    CollectingVisitor<ColumnReference> collectingVisitor = new CollectingVisitor<ColumnReference>(Predicates.instanceOf(ColumnReference.class));
+                    groupByExpression.accept(collectingVisitor);
+                    for (ColumnReference cr: collectingVisitor.getCollected()) {
+                        rc = cr.getSource();
+                        if (rc != null)
+                            rc.setReferenced();
+                    }
+                } else { // GroupbyColumn
+                    ValueNode groupByExpression = ((GroupByColumn) col).getColumnExpression();
+                    CollectingVisitor<ColumnReference> collectingVisitor = new CollectingVisitor<ColumnReference>(Predicates.instanceOf(ColumnReference.class));
+                    groupByExpression.accept(collectingVisitor);
+                    for (ColumnReference cr: collectingVisitor.getCollected()) {
+                        ResultColumn rc = cr.getSource();
+                        if (rc != null)
+                            rc.setReferenced();
+                    }
+                }
+            }
+        }
+    }
 }

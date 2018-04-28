@@ -385,6 +385,8 @@ public class SpliceDatabase extends BasicDatabase{
                     case GRANT_REVOKE_ROLE:
                         DDLUtils.preGrantRevokeRole(change, dataDictionary, dependencyManager);
                         break;
+                    case SET_DATABASE_PROPERTY:
+                        DDLUtils.preSetDatabaseProperty(change, dataDictionary, dependencyManager);
                 }
                 final List<DDLAction> ddlActions = new ArrayList<>();
                 ddlActions.add(new AddIndexToPipeline());
