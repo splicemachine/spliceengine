@@ -97,6 +97,7 @@ public class OptimizerImpl implements Optimizer{
     private boolean desiredJoinOrderFound;
     private int permuteState;
     private int[] firstLookOrder;
+	private boolean singleRow = false;
 
     protected boolean ruleBasedOptimization;
 
@@ -950,6 +951,10 @@ public class OptimizerImpl implements Optimizer{
                     tracer.trace(OptimizerFlag.COST_OF_SORTING,0,0,0.0);
                     tracer.trace(OptimizerFlag.TOTAL_COST_WITH_SORTING,0,0,0.0);
                 }
+
+                // Mark whether the current query block (e.g. SelectNode) is
+				// known to return a single row.
+				bestCostEstimate.setSingleRow(isSingleRow());
 
 				/*
 				** Is the cost of this join order lower than the best one we've
@@ -2367,7 +2372,13 @@ public class OptimizerImpl implements Optimizer{
         }
     }
 
-    private boolean isPushable(OptimizablePredicate pred){
+
+	public boolean isSingleRow() {return singleRow;}
+
+	public void setSingleRow(boolean singleRowInRelation) { singleRow = singleRowInRelation;}
+
+
+	private boolean isPushable(OptimizablePredicate pred){
 		/* Predicates which contain subqueries that are not materializable are
 		 * not currently pushable.
 		 */

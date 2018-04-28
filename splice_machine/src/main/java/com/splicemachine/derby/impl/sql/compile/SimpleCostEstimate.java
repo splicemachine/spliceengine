@@ -54,6 +54,7 @@ public class SimpleCostEstimate implements CostEstimate{
     private double localCostPerPartition;
     /* consecutive broadcast joins memory used in bytes */
     private double accumulatedMemory = 0.0d;
+    private boolean singleRow = false;
 
     public SimpleCostEstimate(){ }
 
@@ -119,6 +120,7 @@ public class SimpleCostEstimate implements CostEstimate{
         this.scannedBaseTableRows = other.getScannedBaseTableRows();
         this.localCostPerPartition = other.localCostPerPartition();
         this.accumulatedMemory = other.getAccumulatedMemory();
+        this.setSingleRow(other.isSingleRow());
     }
 
     @Override
@@ -297,6 +299,7 @@ public class SimpleCostEstimate implements CostEstimate{
         clone.setProjectionRows(projectionRows);
         clone.setScannedBaseTableRows(scannedBaseTableRows);
         clone.setLocalCostPerPartition(localCostPerPartition);
+        clone.setSingleRow(singleRow);
         return clone;
     }
 
@@ -525,4 +528,8 @@ public class SimpleCostEstimate implements CostEstimate{
     public void setAccumulatedMemory(double memorySize) {
         accumulatedMemory = memorySize;
     }
+
+    public boolean isSingleRow() {return singleRow;}
+
+    public void setSingleRow(boolean singleRowInRelation) { singleRow = singleRowInRelation;}
 }

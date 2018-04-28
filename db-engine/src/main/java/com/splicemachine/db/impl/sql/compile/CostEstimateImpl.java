@@ -44,6 +44,8 @@ public class CostEstimateImpl implements CostEstimate {
     public boolean isOuterJoin;
     public boolean isAntiJoin;
 
+    private boolean singleRow = false;
+
     public CostEstimateImpl() {
     }
 
@@ -586,4 +588,8 @@ public class CostEstimateImpl implements CostEstimate {
 
     @Override
     public void setAccumulatedMemory(double memorySize) { }
+
+    public boolean isSingleRow() {return singleRow;}
+
+    public void setSingleRow(boolean singleRowInRelation) { singleRow = singleRowInRelation;}
 }

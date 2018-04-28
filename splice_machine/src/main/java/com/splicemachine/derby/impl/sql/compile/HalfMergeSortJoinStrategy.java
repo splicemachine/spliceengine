@@ -31,8 +31,9 @@ public class HalfMergeSortJoinStrategy extends HashableJoinStrategy {
     public boolean feasible(Optimizable innerTable,
                             OptimizablePredicateList predList,
                             Optimizer optimizer,
-                            CostEstimate outerCost, boolean wasHinted) throws StandardException {
-        if (!super.feasible(innerTable, predList, optimizer, outerCost, wasHinted))
+                            CostEstimate outerCost, boolean wasHinted,
+                            boolean skipKeyCheck) throws StandardException {
+        if (!super.feasible(innerTable, predList, optimizer, outerCost, wasHinted, skipKeyCheck))
             return false;
 
         /*

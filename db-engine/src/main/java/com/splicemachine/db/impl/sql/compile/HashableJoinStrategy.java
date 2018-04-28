@@ -48,6 +48,9 @@ import java.util.Vector;
  * Date: 6/10/13
  */
 public abstract class HashableJoinStrategy extends BaseJoinStrategy {
+
+    protected boolean missingHashKeyOK = false;
+
     public HashableJoinStrategy() {
     }
 
@@ -56,10 +59,12 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
                             OptimizablePredicateList predList,
                             Optimizer optimizer,
                             CostEstimate outerCost,
-                            boolean wasHinted) throws StandardException {
+                            boolean wasHinted,
+                            boolean skipKeyCheck) throws StandardException {
         int[] hashKeyColumns;
         ConglomerateDescriptor cd = null;
-        OptimizerTrace tracer=optimizer.tracer();
+        OptimizerTrace tracer = optimizer.tracer();
+        this.missingHashKeyOK = false;
 
 		/* If the innerTable is a VTI, then we must check to see if there are any
 		 * join columns in the VTI's parameters.  If so, then hash join is not feasible.
@@ -133,19 +138,61 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         }
         */
         if (innerTable.isBaseTable()) {
-			/* Must have an equijoin on a column in the conglomerate */
+            /* Must have an equijoin on a column in the conglomerate */
             cd = innerTable.getCurrentAccessPath().getConglomerateDescriptor();
         }
 
-		/* Look for equijoins in the predicate list */
-        hashKeyColumns = findHashKeyColumns(innerTable,cd,predList);
+        /* Look for equijoins in the predicate list */
+        hashKeyColumns = findHashKeyColumns(innerTable, cd, predList);
 
         if (SanityManager.DEBUG) {
             if (hashKeyColumns == null) {
-                tracer.trace(OptimizerFlag.HJ_SKIP_NO_JOIN_COLUMNS,0,0,0.0,null);
+                if (skipKeyCheck)
+                    tracer.trace(OptimizerFlag.HJ_NO_EQUIJOIN_COLUMNS, 0, 0, 0.0, null);
+                else
+                    tracer.trace(OptimizerFlag.HJ_SKIP_NO_JOIN_COLUMNS, 0, 0, 0.0, null);
+            } else {
+                tracer.trace(OptimizerFlag.HJ_HASH_KEY_COLUMNS, 0, 0, 0.0, hashKeyColumns);
             }
-            else {
-                tracer.trace(OptimizerFlag.HJ_HASH_KEY_COLUMNS,0,0,0.0,hashKeyColumns);
+        }
+        // Allow inequality join if we're skipping the key check and this is
+        // truly a join (we have a predList with join terms).
+        // Also don't allow a VALUES list, eg.,
+        //       select * from (values ('a'), ('b') ... ('z')) mytab,
+        // constructed with UnionNodes and RowResultSetNodes, to be misconstrued as a join.
+        // The same conditions as in NestedLoopJoinStrategy.feasible are added for safety.
+        // Could these be removed in the future?
+        if (hashKeyColumns == null && skipKeyCheck) {
+            if (innerTable instanceof FromTable                               &&
+                predList != null                                              &&
+                !outerCost.isSingleRow()                                      &&
+                (innerTable.isMaterializable() ||
+                 innerTable.supportsMultipleInstantiations())                 &&
+                optimizer instanceof OptimizerImpl                            &&
+                !(innerTable instanceof RowResultSetNode)                     &&
+                !(innerTable instanceof SetOperatorNode)) {
+
+                // Base tables only supported for inequality broadcast
+                // join in the first pass to reduce risk.
+                FromTable prn = (FromTable)innerTable;
+                while (prn instanceof ProjectRestrictNode &&
+                       ((ProjectRestrictNode)prn).childResult instanceof FromTable)
+                    prn = (FromTable)((ProjectRestrictNode)prn).childResult;
+                if (!(prn instanceof FromBaseTable))
+                    return false;
+
+                Predicate pred = null;
+                // If we do not currently have a join predicate, it may just
+                // be because the predicate can't be applied given the current
+                // access path, so for now don't consider joins that have
+                // no join predicates.
+                for (int i = 0; i < predList.size(); i++) {
+                    pred = (Predicate)predList.getOptPredicate(i);
+                    if (pred.isJoinPredicate()) {
+                        missingHashKeyOK = true;
+                        return true;
+                    }
+                }
             }
         }
 
@@ -412,22 +459,29 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
                 hashTableFor = (Optimizable) (prn.getChildResult());
         }
         int[] hashKeyColumns = findHashKeyColumns(hashTableFor, cd, nonStoreRestrictionList);
-        if (hashKeyColumns != null) {
-            innerTable.setHashKeyColumns(hashKeyColumns);
-        }
-        else {
-            String name;
-            if (cd != null && cd.isIndex()) {
-                name = cd.getConglomerateName();
+
+        if (hashKeyColumns == null) {
+            if (!innerTable.getTrulyTheBestAccessPath().isMissingHashKeyOK()) {
+                String name;
+                if (cd != null && cd.isIndex()) {
+                    name = cd.getConglomerateName();
+                } else {
+                    name = innerTable.getBaseTableName();
+                }
+                throw StandardException.newException(SQLState.LANG_HASH_NO_EQUIJOIN_FOUND, name, innerTable.getBaseTableName());
             }
-            else {
-                name = innerTable.getBaseTableName();
-            }
-            throw StandardException.newException(SQLState.LANG_HASH_NO_EQUIJOIN_FOUND, name, innerTable.getBaseTableName());
+            else
+                hashKeyColumns = new int[0];  // To designate there is no hash key: inequality join
         }
+
+        innerTable.setHashKeyColumns(hashKeyColumns);
 
         // Mark all of the predicates in the probe list as qualifiers
         nonStoreRestrictionList.markAllPredicatesQualifiers();
+
+        // The remaining logic deals with hash key columns, so exit if none were found.
+        if (hashKeyColumns.length == 0)
+            return;
 
         int[] conglomColumn = new int[hashKeyColumns.length];
         if (cd != null && cd.isIndex()) {
@@ -558,4 +612,5 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 
     /** @see JoinStrategy#halfOuterJoinResultSetMethodName */
     public abstract String halfOuterJoinResultSetMethodName();
+
 }

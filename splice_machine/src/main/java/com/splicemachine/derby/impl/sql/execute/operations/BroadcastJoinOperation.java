@@ -207,9 +207,10 @@ public class BroadcastJoinOperation extends JoinOperation{
         }
 
         /** TODO don't know how to let spark report SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION error,
-         * so route to the rdd implementation for now for SSQ
+         * so route to the rdd implementation for now for SSQ.  Also, spark join can't handle a zero length
+         * hash key, so it will use rdd as well.
          */
-        if (rightFromSSQ)
+        if (rightFromSSQ || leftHashKeys.length == 0)
             useDataset = false;
 
         DataSet<ExecRow> result;
@@ -238,7 +239,8 @@ public class BroadcastJoinOperation extends JoinOperation{
                         .flatMap(new OuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
                         .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext));
             } else {
-                leftDataSet = leftDataSet.filter(new InnerJoinNullFilterFunction(operationContext,this.leftHashKeys));
+                if (this.leftHashKeys.length != 0)
+                    leftDataSet = leftDataSet.filter(new InnerJoinNullFilterFunction(operationContext,this.leftHashKeys));
                 if (this.notExistsRightSide) { // antijoin
                     if (restriction != null) { // with restriction
                         result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
