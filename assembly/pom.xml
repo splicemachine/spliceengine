@@ -157,9 +157,18 @@
                                         splice_encryption,
                                         akka-remote_${scala.binary.version},
                                         splicemachine-${envClassifier}-${spark.version}_${scala.binary.version},
-					super-csv,
-					c3p0,
-					mchange-commons-java
+					                    super-csv,
+					                    c3p0,
+					                    mchange-commons-java,
+                                        splice_aws,
+                                        units,
+                                        log,
+                                        stats,
+                                        HdrHistogram,
+                                        jmxutils,
+                                        jol-core,
+                                        slice,
+                                        orc-protobuf
                                     </includeArtifactIds>
                                 </configuration>
                             </execution>
