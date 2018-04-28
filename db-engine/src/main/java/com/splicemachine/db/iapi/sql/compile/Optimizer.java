@@ -394,4 +394,12 @@ public interface Optimizer{
     double getAccumulatedMemory();
 
     RowOrdering getCurrentRowOrdering();
+
+    /**
+     * Does this nested Optimizer (subquery) represent a single-row relation?
+     */
+    public boolean isSingleRow();
+
+    public void setSingleRow(boolean singleRowInRelation);
+
 }

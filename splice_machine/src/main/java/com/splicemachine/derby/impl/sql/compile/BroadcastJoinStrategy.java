@@ -19,6 +19,7 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.impl.sql.compile.FromBaseTable;
 import com.splicemachine.db.impl.sql.compile.HashableJoinStrategy;
 import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
 
@@ -76,13 +77,17 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
                             OptimizablePredicateList predList,
                             Optimizer optimizer,
                             CostEstimate outerCost,
-                            boolean wasHinted) throws StandardException {
-        boolean hashFeasible = super.feasible(innerTable,predList,optimizer,outerCost,wasHinted);
-        if(!hashFeasible) return false;
-
+                            boolean wasHinted,
+                            boolean skipKeyCheck) throws StandardException {
         /* Currently BroadcastJoin does not work with a right side IndexRowToBaseRowOperation */
-        return !JoinStrategyUtil.isNonCoveringIndex(innerTable);
-    }
+        if (JoinStrategyUtil.isNonCoveringIndex(innerTable))
+            return false;
+
+        boolean hashFeasible = super.feasible(innerTable,predList,optimizer,outerCost,wasHinted,true);
+
+        return hashFeasible;
+
+	}
 
     @Override
     public void estimateCost(Optimizable innerTable,
@@ -126,7 +131,10 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
         long rowCountThreshold = configuration.getBroadcastRegionRowThreshold();
         AccessPath currentAccessPath = innerTable.getCurrentAccessPath();
         boolean isHinted = currentAccessPath.isHintedJoinStrategy();
-        if (isHinted || estimatedMemoryMB<regionThreshold && estimatedRowCount<rowCountThreshold) {
+
+        if (isHinted || estimatedMemoryMB<regionThreshold && estimatedRowCount<rowCountThreshold &&
+                (!missingHashKeyOK || (innerTable instanceof FromBaseTable &&  // non-equality broadcast join only costed if using spark
+                ((FromBaseTable)innerTable).isSpark(((FromBaseTable)innerTable).getdataSetProcessorTypeForAccessPath(currentAccessPath))))) {
             double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost);
             double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity, outerCost.rowCount(), innerCost.rowCount());
             innerCost.setNumPartitions(outerCost.partitionCount());
@@ -163,5 +171,15 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
 
         return (totalMemoryinMB < regionThreshold);
     }
+
+    /**
+     *
+     * Is it OK for the current broadcast join to execute without a hash key (without any equality join conditions).
+     * This determination is made in HashableJoinStrategy.feasible().
+     * If true, all rows in the hash table have the same hash key.
+     *
+     */
+    @Override
+    public boolean isMissingHashKeyOK() {return missingHashKeyOK;}
 }
 
