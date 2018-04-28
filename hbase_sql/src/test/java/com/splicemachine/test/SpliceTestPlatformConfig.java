@@ -22,6 +22,9 @@ import java.util.List;
 import com.splicemachine.access.configuration.OlapConfigurations;
 import com.splicemachine.compactions.SpliceDefaultCompactor;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
+import org.apache.hadoop.hbase.security.access.AccessController;
+import org.apache.hadoop.hbase.security.token.TokenProvider;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.base.Joiner;
 import org.spark_project.guava.collect.ImmutableList;
@@ -53,6 +56,8 @@ class SpliceTestPlatformConfig {
     );
 
     private static final List<Class<?>> REGION_COPROCESSORS = ImmutableList.<Class<?>>of(
+            TokenProvider.class,
+            AccessController.class,
             MemstoreAwareObserver.class,
             SpliceIndexObserver.class,
             SpliceIndexEndpoint.class,
@@ -63,6 +68,7 @@ class SpliceTestPlatformConfig {
     );
 
     private static final List<Class<?>> MASTER_COPROCESSORS = ImmutableList.<Class<?>>of(
+            AccessController.class,
             SpliceMasterObserver.class);
 
     private static final List<Class<?>> HFILE_CLEANERS = ImmutableList.<Class<?>>of(
@@ -216,6 +222,7 @@ class SpliceTestPlatformConfig {
         config.setLong("splice.ddl.drainingWait.maximum", SECONDS.toMillis(15)); // wait 15 seconds before bailing on bad ddl statements
         config.setLong("splice.ddl.maxWaitSeconds",120000);
         config.setInt("splice.olap_server.memory", 4096);
+        config.setInt("splice.authentication.token.renew-interval",120);
         if (derbyPort > SQLConfiguration.DEFAULT_NETWORK_BIND_PORT) {
             // we are a member, let's ignore transactions for testing
             config.setBoolean("splice.ignore.missing.transactions", true);

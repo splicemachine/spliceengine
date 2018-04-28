@@ -38,6 +38,7 @@ public abstract class DirectTableWriterBuilder implements Externalizable,DataSet
     protected TxnView txn;
     protected OperationContext opCtx;
     protected boolean skipIndex;
+    protected byte[] token;
 
     @Override
     public DataSetWriterBuilder destConglomerate(long heapConglom){
@@ -75,7 +76,7 @@ public abstract class DirectTableWriterBuilder implements Externalizable,DataSet
 
     @Override
     public TableWriter buildTableWriter() throws StandardException{
-        return new DirectPipelineWriter(destConglomerate,txn,opCtx,skipIndex);
+        return new DirectPipelineWriter(destConglomerate,txn,token,opCtx,skipIndex);
     }
 
     @Override
@@ -101,5 +102,16 @@ public abstract class DirectTableWriterBuilder implements Externalizable,DataSet
     public static DirectTableWriterBuilder decodeBase64(String base64){
         byte[] bytes=Base64.decodeBase64(base64);
         return (DirectTableWriterBuilder)SerializationUtils.deserialize(bytes);
+    }
+
+    @Override
+    public DataSetWriterBuilder token(byte[] token) {
+        this.token = token;
+        return this;
+    }
+
+    @Override
+    public byte[] getToken() {
+        return token;
     }
 }

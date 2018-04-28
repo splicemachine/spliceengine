@@ -167,4 +167,6 @@ public interface Partition extends AutoCloseable{
      * @throws IOException
      */
     BitSet getBloomInMemoryCheck(boolean hasConstraintChecker, Pair<KVPair, Lock>[] dataAndLocks) throws IOException;
+
+    PartitionDescriptor getDescriptor() throws IOException;
 }

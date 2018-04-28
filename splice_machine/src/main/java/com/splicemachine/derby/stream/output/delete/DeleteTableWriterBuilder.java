@@ -36,6 +36,7 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
     protected long heapConglom;
     protected TxnView txn;
     protected OperationContext operationContext;
+    protected byte[] token;
 
     public DeleteTableWriterBuilder heapConglom(long heapConglom) {
         this.heapConglom = heapConglom;
@@ -70,7 +71,7 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
     @Override
     public TableWriter buildTableWriter() throws StandardException{
         long conglom = Long.parseLong(Bytes.toString(((DMLWriteOperation)operationContext.getOperation()).getDestinationTable()));
-        return new DeletePipelineWriter(txn,conglom,operationContext);
+        return new DeletePipelineWriter(txn,token,conglom,operationContext);
     }
 
     @Override
@@ -110,6 +111,17 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
     }
     public String getDeleteTableWriterBuilderBase64String() throws IOException, StandardException {
         return Base64.encodeBase64String(SerializationUtils.serialize(this));
+    }
+
+    @Override
+    public DataSetWriterBuilder token(byte[] token) {
+        this.token = token;
+        return this;
+    }
+
+    @Override
+    public byte[] getToken() {
+        return token;
     }
 
 //    public DataSetWriter build() throws StandardException {

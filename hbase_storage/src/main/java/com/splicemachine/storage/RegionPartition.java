@@ -479,6 +479,11 @@ public class RegionPartition implements Partition{
     }
 
     @Override
+    public PartitionDescriptor getDescriptor() throws IOException {
+        throw new UnsupportedOperationException("getDescriptor not supported on RegionPartition");
+    }
+
+    @Override
     public String toString() {
         return "RegionPartition{" +
                 "region=" + region +

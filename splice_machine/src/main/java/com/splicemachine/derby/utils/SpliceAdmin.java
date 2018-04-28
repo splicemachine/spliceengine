@@ -31,6 +31,7 @@ import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
@@ -42,14 +43,17 @@ import com.splicemachine.db.iapi.sql.dictionary.SnapshotDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SourceCodeDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.StatementTablePermission;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TokenDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLBit;
 import com.splicemachine.db.iapi.types.SQLBlob;
 import com.splicemachine.db.iapi.types.SQLBoolean;
 import com.splicemachine.db.iapi.types.SQLChar;
+import com.splicemachine.db.iapi.types.SQLDate;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.iapi.types.SQLReal;
@@ -68,6 +72,7 @@ import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
 import com.splicemachine.db.impl.sql.catalog.ManagedCacheMBean;
+import com.splicemachine.db.impl.sql.catalog.SYSTOKENSRowFactory;
 import com.splicemachine.db.impl.sql.catalog.SYSUSERSRowFactory;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
@@ -80,8 +85,11 @@ import com.splicemachine.hbase.JMXThreadPool;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.pipeline.SimpleActivation;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.DataMutation;
 import com.splicemachine.storage.Partition;
@@ -101,6 +109,8 @@ import org.spark_project.guava.net.HostAndPort;
 import javax.management.MalformedObjectNameException;
 import javax.management.remote.JMXConnector;
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -1707,10 +1717,15 @@ public class SpliceAdmin extends BaseAdminProcedures{
             ConglomerateDescriptor conglomerate = lcc.getDataDictionary().getConglomerateDescriptor(conglomId);
 
             // Check generic table permission
-            new StatementTablePermission(conglomerate.getSchemaID(), conglomerate.getTableID(), 0).check(lcc, false, lastActivation);
+            Activation activation = new SimpleActivation(Arrays.asList(new StatementTablePermission(conglomerate.getSchemaID(), conglomerate.getTableID(), Authorizer.SELECT_PRIV)));
+            lcc.getAuthorizer().authorize(activation, Authorizer.SELECT_PRIV);
 
             // Special check for SYSUSERS which contains the user/passwords
             if (conglomerate.getTableID().toString().equals(SYSUSERSRowFactory.SYSUSERS_UUID)) {
+                throw StandardException.newException(SQLState.DBO_ONLY);
+            }
+            // Special check for SYSTOKENS which contains the user/passwords
+            if (conglomerate.getTableID().toString().equals(SYSTOKENSRowFactory.SYSTOKENS_UUID)) {
                 throw StandardException.newException(SQLState.DBO_ONLY);
             }
 
@@ -1735,5 +1750,163 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
     }
 
+    public static void SYSCS_HBASE_OPERATION(final String tableName, final String operation, final Blob request, final ResultSet[] resultSet) throws SQLException {
+        try {
+            EmbedConnection conn = (EmbedConnection)getDefaultConn();
+            LanguageConnectionContext lcc = conn.getLanguageConnection();
+            Activation lastActivation = conn.getLanguageConnection().getLastActivation();
 
+            String[] splits = tableName.split(":");
+            if (splits.length != 2) {
+                throw StandardException.newException(
+                                SQLState.HBASE_OPERATION_ERROR,
+                        tableName,
+                        operation);
+            }
+            String schema = splits[0];
+            String table = splits[1];
+
+            if (!schema.equals(EngineDriver.driver().getConfiguration().getNamespace())) {
+                throw StandardException.newException(
+                        SQLState.HBASE_OPERATION_ERROR,
+                        tableName,
+                        operation);
+            }
+
+            long conglomerateId = -1;
+            try {
+                conglomerateId = Long.parseLong(table);
+            } catch (NumberFormatException ex) {
+                //ignore
+            }
+
+
+            if (conglomerateId > 16) { // splice:16 doesn't have an entry on the dictionary
+                ConglomerateDescriptor conglomerate = lcc.getDataDictionary().getConglomerateDescriptor(conglomerateId);
+
+                // Check generic table permission
+                Activation activation = new SimpleActivation(Arrays.asList(new StatementTablePermission(conglomerate.getSchemaID(), conglomerate.getTableID(), Authorizer.SELECT_PRIV)));
+                lcc.getAuthorizer().authorize(activation, Authorizer.SELECT_PRIV);
+
+                // Special check for SYSUSERS which contains the user/passwords
+                if (conglomerate.getTableID().toString().equals(SYSUSERSRowFactory.SYSUSERS_UUID)) {
+                    throw StandardException.newException(SQLState.DBO_ONLY);
+                }
+                // Special check for SYSTOKENS which contains the user/passwords
+                if (conglomerate.getTableID().toString().equals(SYSTOKENSRowFactory.SYSTOKENS_UUID)) {
+                    throw StandardException.newException(SQLState.DBO_ONLY);
+                }
+            }
+
+            final GenericColumnDescriptor[] descriptors = {
+                    new GenericColumnDescriptor("RESPONSE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BLOB)),
+            };
+
+            List<ExecRow> rows = new ArrayList<>();
+
+            try(PartitionAdmin admin=SIDriver.driver().getTableFactory().getAdmin()) {
+                List<byte[]> results = admin.hbaseOperation(tableName, operation, request != null ? request.getBytes(1, (int) request.length()) : null);
+                for (byte[] result : results) {
+                    ExecRow row = new ValueRow(1);
+                    row.setColumn(1, new SQLBlob(result));
+                    rows.add(row);
+                }
+            }
+            IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, descriptors, lastActivation);
+            resultsToWrap.openCore();
+            resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+    }
+
+
+    public static void SYSCS_GET_SPLICE_TOKEN(final String userName, final ResultSet[] resultSet) throws SQLException {
+        try {
+            EmbedConnection conn = (EmbedConnection)getDefaultConn();
+            LanguageConnectionContext lcc = conn.getLanguageConnection();
+            Activation lastActivation = conn.getLanguageConnection().getLastActivation();
+
+            // Grant HBase access to splice schema for user
+            try(PartitionAdmin admin=SIDriver.driver().getTableFactory().getAdmin()) {
+                byte[] encoding = Bytes.toBytes(userName);
+                admin.hbaseOperation(null, "grant", encoding);
+            }
+
+            DataDictionary dd = lcc.getDataDictionary();
+            dd.startWriting(lcc);
+
+            final GenericColumnDescriptor[] descriptors = {
+                    new GenericColumnDescriptor("TOKEN", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BINARY)),
+                    new GenericColumnDescriptor("EXPIRETIME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIMESTAMP)),
+                    new GenericColumnDescriptor("MAXIMUMTIME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIMESTAMP)),
+            };
+
+
+            List<ExecRow> rows = new ArrayList<>();
+
+            SConfiguration config=EngineDriver.driver().getConfiguration();
+            String hostname = NetworkUtils.getHostname(config);
+            int length = config.getAuthenticationTokenLength();
+            int maxLifetime = config.getAuthenticationTokenMaxLifetime();
+            int renewInterval = config.getAuthenticationTokenRenewInterval();
+
+            byte[] token = new byte[length];
+            new SecureRandom().nextBytes(token);
+
+            String username = lcc.getCurrentUserId(lastActivation);
+            DateTime creationTime = new DateTime(System.currentTimeMillis());
+            DateTime expireTime = creationTime.plusSeconds(renewInterval);
+            DateTime maxTime = creationTime.plusSeconds(maxLifetime);
+
+            TokenDescriptor descriptor =
+                    new TokenDescriptor(token, username, creationTime, expireTime, maxTime);
+            lcc.getDataDictionary().addToken(descriptor, lcc.getTransactionExecute());
+
+            ExecRow row = new ValueRow(3);
+            row.setColumn(1, new SQLBit(token));
+            row.setColumn(2, new SQLTimestamp(expireTime));
+            row.setColumn(3, new SQLTimestamp(maxTime));
+            rows.add(row);
+
+            IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, descriptors, lastActivation);
+            resultsToWrap.openCore();
+            resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        } catch (Exception e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+    }
+
+    public static void SYSCS_CANCEL_SPLICE_TOKEN(final Blob token) throws SQLException {
+        try {
+            EmbedConnection conn = (EmbedConnection)getDefaultConn();
+            LanguageConnectionContext lcc = conn.getLanguageConnection();
+            Activation lastActivation = conn.getLanguageConnection().getLastActivation();
+
+            DataDictionary dd = lcc.getDataDictionary();
+            dd.startWriting(lcc);
+
+            byte[] tokenBytes = token.getBytes(1, (int) token.length());
+
+            String username = lcc.getCurrentUserId(lastActivation);
+            TokenDescriptor descriptor = lcc.getDataDictionary().getToken(tokenBytes);
+            if (descriptor == null) {
+                return;
+            }
+
+            if (!descriptor.getUserName().equals(username)) {
+                return;
+            }
+
+            lcc.getDataDictionary().deleteToken(tokenBytes);
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        } catch (Exception e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+    }
 }

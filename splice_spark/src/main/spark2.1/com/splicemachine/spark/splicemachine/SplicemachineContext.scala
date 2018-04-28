@@ -57,7 +57,7 @@ class SplicemachineContext(url: String) extends Serializable {
 
   private[this] def initConnection() = {
     Holder.log.info(f"Creating internal connection")
-    
+
     SpliceSpark.setupSpliceStaticComponents()
     val engineDriver = EngineDriver.driver
     assert(engineDriver != null, "Not booted yet!")
@@ -74,9 +74,9 @@ class SplicemachineContext(url: String) extends Serializable {
   }
 
   @transient lazy val internalConnection : Connection = {
-    SpliceClient.isClient = true
+    Holder.log.debug("Splice Client in SplicemachineContext "+SpliceClient.isClient())
     SpliceClient.connectionString = url
-    Holder.log.debug("Splice Client in SplicemachineContext "+SpliceClient.isClient)
+    SpliceClient.setClient()
 
     val principal = System.getProperty("spark.yarn.principal")
     val keytab = System.getProperty("spark.yarn.keytab")
@@ -90,7 +90,7 @@ class SplicemachineContext(url: String) extends Serializable {
 
       ugi.doAs(new PrivilegedExceptionAction[Connection] {
         override def run(): Connection = {
-          
+
           def getUniqueAlias(token: Token[AuthenticationTokenIdentifier]) =
             new Text(f"${token.getKind}_${token.getService}_${System.currentTimeMillis}")
 
@@ -114,7 +114,7 @@ class SplicemachineContext(url: String) extends Serializable {
       })
     } else {
       Holder.log.info(f"Authentication disabled, principal=${principal}; keytab=${keytab}")
-      
+
       initConnection()
     }
   }

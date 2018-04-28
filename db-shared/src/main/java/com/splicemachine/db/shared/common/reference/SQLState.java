@@ -2019,5 +2019,10 @@ public interface SQLState {
 
 	String OLAP_SERVER_CONNECTION                                   = "OS001";
 	String TIMESTAMP_SERVER_CONNECTION                              = "TSS01";
+
+	String TOKEN_NOT_FOUND											= "ST001";
+	String TOKEN_EXPIRED											= "ST002";
+
+	String HBASE_OPERATION_ERROR									= "HO001";
 }
 

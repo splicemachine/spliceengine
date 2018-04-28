@@ -22,6 +22,7 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.ClientPartition;
+import com.splicemachine.storage.SkeletonHBaseClientPartition;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
@@ -79,12 +80,22 @@ public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
                 throw new RuntimeException(e);
             }
         }
+        SkeletonHBaseClientPartition partition = null;
         try {
             if (SIDriver.driver() == null) SpliceSpark.setupSpliceStaticComponents();
             PartitionFactory tableFactory=SIDriver.driver().getTableFactory();
-            setHTable(((ClientPartition)tableFactory.getTable(conglomerate)).unwrapDelegate());
+            partition = ((SkeletonHBaseClientPartition) tableFactory.getTable(conglomerate));
+            setHTable(partition.unwrapDelegate());
         } catch (Exception e) {
             LOG.error(StringUtils.stringifyException(e));
+        } finally {
+            if (partition != null) {
+                try {
+                    partition.close();
+                } catch (IOException e) {
+                    // ignore
+                }
+            }
         }
         if (tableScannerAsString == null) {
             if (jdbcString == null) {
