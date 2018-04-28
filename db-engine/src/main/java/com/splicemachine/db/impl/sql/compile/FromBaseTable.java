@@ -58,6 +58,7 @@ import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
+import com.splicemachine.db.impl.sql.catalog.SYSTOKENSRowFactory;
 import com.splicemachine.db.impl.sql.catalog.SYSUSERSRowFactory;
 import org.spark_project.guava.base.Joiner;
 import org.spark_project.guava.collect.Lists;
@@ -1163,11 +1164,13 @@ public class FromBaseTable extends FromTable {
         }
 
         //
-        // Only the DBO can select from SYS.SYSUSERS.
+        // Only the DBO can select from SYS.SYSUSERS or SYS.SYSTOKENS
         //
         authorizeSYSUSERS= dataDictionary.usesSqlAuthorization() &&
                 tableDescriptor.getUUID().toString().equals(SYSUSERSRowFactory.SYSUSERS_UUID);
-        if(authorizeSYSUSERS){
+        boolean authorizeSYSTOKENS= dataDictionary.usesSqlAuthorization() &&
+                tableDescriptor.getUUID().toString().equals(SYSTOKENSRowFactory.SYSTOKENS_UUID);
+        if(authorizeSYSUSERS || authorizeSYSTOKENS){
             String databaseOwner=dataDictionary.getAuthorizationDatabaseOwner();
             String currentUser=getLanguageConnectionContext().getStatementContext().getSQLSessionContext().getCurrentUser();
             String groupuser = getLanguageConnectionContext().getStatementContext().getSQLSessionContext().getCurrentGroupUser();

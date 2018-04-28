@@ -130,11 +130,11 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
 
     private boolean allowsDistributedExecution(){ // corresponds to master_dataset isRunningOnSpark
         if (isHBase()) return true;
-        if (SpliceClient.isClient) return true;
+        if (SpliceClient.isClient()) return true;
         else if(Thread.currentThread().getName().startsWith("olap-worker")) return true; //we are on the OlapServer thread
         else if(Thread.currentThread().getName().contains("ScalaTest")) return true; //we are on the OlapServer thread
         else if(Thread.currentThread().getName().contains("Executor task launch worker")) return false; //we are definitely in spark
-        else return SpliceClient.isClient; //we can run in spark as long as are in the HBase JVM
+        else return SpliceClient.isClient(); //we can run in spark as long as are in the HBase JVM
     }
 
     @Override

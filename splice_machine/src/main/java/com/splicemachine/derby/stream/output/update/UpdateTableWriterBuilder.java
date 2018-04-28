@@ -50,6 +50,7 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
     protected ExecRow execRowDefinition;
     protected int[] execRowTypeFormatIds;
     protected OperationContext operationContext;
+    protected byte[] token;
 
 
     @Override
@@ -158,7 +159,7 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
     @Override
     public TableWriter buildTableWriter() throws StandardException{
         return new UpdatePipelineWriter(heapConglom,formatIds,columnOrdering,pkCols,pkColumns,tableVersion,
-                txn, execRowDefinition,heapList,operationContext);
+                txn,token, execRowDefinition,heapList,operationContext);
     }
 
     public long getHeapConglom() {
@@ -208,4 +209,14 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
 //                execRowDefinition,heapList,operationContext);
 //    }
 
+    @Override
+    public DataSetWriterBuilder token(byte[] token) {
+        this.token = token;
+        return this;
+    }
+
+    @Override
+    public byte[] getToken() {
+        return token;
+    }
 }

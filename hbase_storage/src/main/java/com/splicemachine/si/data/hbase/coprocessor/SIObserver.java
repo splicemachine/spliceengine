@@ -21,31 +21,43 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executors;
 
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.conn.Authorizer;
+import com.splicemachine.pipeline.AclCheckerService;
 import com.splicemachine.si.data.hbase.ExtendedOperationStatus;
-import com.splicemachine.si.impl.server.CompactionContext;
 import com.splicemachine.si.impl.server.SimpleCompactionContext;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Append;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Increment;
+import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.filter.ByteArrayComparable;
+import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.hadoop.hbase.ipc.RpcServer;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
+import org.apache.hadoop.hbase.security.AccessDeniedException;
+import org.apache.hadoop.hbase.security.User;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.Iterables;
 import org.spark_project.guava.collect.Maps;
@@ -83,6 +95,8 @@ import com.splicemachine.utils.SpliceLogUtils;
 public class SIObserver extends BaseRegionObserver{
     private static Logger LOG=Logger.getLogger(SIObserver.class);
     private boolean tableEnvMatch=false;
+    private boolean spliceTable=false;
+    private long conglomId;
     private TxnOperationFactory txnOperationFactory;
     private OperationStatusFactory operationStatusFactory;
     private TransactionalRegion region;
@@ -92,8 +106,15 @@ public class SIObserver extends BaseRegionObserver{
         try {
             SpliceLogUtils.trace(LOG, "starting %s", SIObserver.class);
             RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment) e;
-            tableEnvMatch = doesTableNeedSI(rce.getRegion().getTableDesc().getTableName());
+            TableName tableName = rce.getRegion().getTableDesc().getTableName();
+            doesTableNeedSI(tableName);
             if (tableEnvMatch) {
+                try{
+                    conglomId=Long.parseLong(tableName.getQualifierAsString());
+                }catch(NumberFormatException nfe){
+                    SpliceLogUtils.warn(LOG,"Unable to parse conglomerate id for table %s",tableName);
+                    conglomId=-1;
+                }
                 HBaseSIEnvironment env = HBaseSIEnvironment.loadEnvironment(new SystemClock(), ZkUtils.getRecoverableZooKeeper());
                 SIDriver driver = env.getSIDriver();
                 operationStatusFactory = driver.getOperationStatusLib();
@@ -128,6 +149,8 @@ public class SIObserver extends BaseRegionObserver{
 
     @Override
     public void preGetOp(ObserverContext<RegionCoprocessorEnvironment> e,Get get,List<Cell> results) throws IOException{
+        checkAccess();
+
         try {
             SpliceLogUtils.trace(LOG,"preGet %s",get);
             if(tableEnvMatch && shouldUseSI(get)){
@@ -137,6 +160,7 @@ public class SIObserver extends BaseRegionObserver{
                 addSIFilterToGet(get);
             }
             SpliceLogUtils.trace(LOG,"preGet after %s",get);
+
             super.preGetOp(e,get,results);
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
@@ -150,14 +174,32 @@ public class SIObserver extends BaseRegionObserver{
             if(tableEnvMatch && shouldUseSI(scan)){
                 scan.setMaxVersions();
                 scan.setTimeRange(0L,Long.MAX_VALUE);
-    //            txnReadController.preProcessScan(scan);
                 assert (scan.getMaxVersions()==Integer.MAX_VALUE);
                 addSIFilterToScan(scan);
+            }
+            if (tableEnvMatch && hasToken(scan)) {
+                aclCheck(scan);
+            } else {
+                checkAccess();
             }
             return super.preScannerOpen(e,scan,s);
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
+    }
+
+    private boolean hasToken(Scan scan) {
+        if (!SIDriver.driver().getConfiguration().getAuthenticationTokenEnabled())
+            return false;
+        byte[] token=scan.getAttribute(SIConstants.TOKEN_ACL_NAME);
+        return token != null && token.length > 0;
+    }
+
+    private boolean aclCheck(Scan scan) throws IOException, StandardException {
+        byte[] token=scan.getAttribute(SIConstants.TOKEN_ACL_NAME);
+
+        AclCheckerService.getService().checkPermission(token, conglomId, Authorizer.SELECT_PRIV);
+        return true;
     }
 
     @Override
@@ -174,6 +216,8 @@ public class SIObserver extends BaseRegionObserver{
     @Override
     public void preDelete(ObserverContext<RegionCoprocessorEnvironment> e,Delete delete,WALEdit edit,
                           Durability writeToWAL) throws IOException{
+        checkAccess();
+        
         try {
             if(tableEnvMatch){
                 if(delete.getAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)==null){
@@ -231,6 +275,8 @@ public class SIObserver extends BaseRegionObserver{
 
     @Override
     public void prePut(ObserverContext<RegionCoprocessorEnvironment> e,Put put,WALEdit edit,Durability writeToWAL) throws IOException{
+        checkAccess();
+
         try {
         /*
 		 * This is relatively expensive--it's better to use the write pipeline when you need to load a lot of rows.
@@ -239,6 +285,7 @@ public class SIObserver extends BaseRegionObserver{
                 super.prePut(e, put, edit, writeToWAL);
                 return;
             }
+
             byte[] attribute = put.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
             assert attribute != null : "Transaction not specified!";
 
@@ -313,6 +360,21 @@ public class SIObserver extends BaseRegionObserver{
         }
     }
 
+    private void checkAccess() throws AccessDeniedException {
+        if (!spliceTable)
+            return;
+        
+        if (!UserGroupInformation.isSecurityEnabled())
+            return;
+
+        User user = RpcServer.getRequestUser();
+        if (user == null || user.getShortName().equalsIgnoreCase("hbase"))
+            return;
+
+        throw new AccessDeniedException("Insufficient permissions for user " +
+                user.getShortName());
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private void addSIFilterToGet(Get get) throws IOException{
@@ -345,17 +407,24 @@ public class SIObserver extends BaseRegionObserver{
     }
 
     @SuppressWarnings("RedundantIfStatement") //we keep it this way for clarity
-    private static boolean doesTableNeedSI(TableName tableName){
-        TableType tableType=EnvUtils.getTableType(HConfiguration.getConfiguration(),tableName);
+    private void doesTableNeedSI(TableName tableName){
+        SConfiguration config = HConfiguration.getConfiguration();
+        TableType tableType=EnvUtils.getTableType(config,tableName);
+        spliceTable = tableName.getNamespaceAsString().equals(config.getNamespace());
+
         SpliceLogUtils.trace(LOG,"table %s has Env %s",tableName,tableType);
         switch(tableType){
             case TRANSACTION_TABLE:
             case ROOT_TABLE:
             case META_TABLE:
             case HBASE_TABLE:
-                return false;
+                tableEnvMatch = false;
+                return;
+            default:
+                tableEnvMatch = true;
+                return;
+
         }
-        return true;
     }
 
     private Filter makeSIFilter(TxnView txn,Filter currentFilter,EntryPredicateFilter predicateFilter,boolean countStar) throws IOException{
@@ -379,4 +448,53 @@ public class SIObserver extends BaseRegionObserver{
     private FilterList composeFilters(Filter[] filters){
         return new FilterList(FilterList.Operator.MUST_PASS_ALL,filters[0],filters[1]);
     }
+
+    @Override
+    public Result preAppend(ObserverContext<RegionCoprocessorEnvironment> e, Append append) throws IOException {
+        checkAccess();
+        return super.preAppend(e, append);
+    }
+
+    @Override
+    public boolean preCheckAndDelete(ObserverContext<RegionCoprocessorEnvironment> e, byte[] row, byte[] family, byte[] qualifier, CompareFilter.CompareOp compareOp, ByteArrayComparable comparator, Delete delete, boolean result) throws IOException {
+        checkAccess();
+        return super.preCheckAndDelete(e, row, family, qualifier, compareOp, comparator, delete, result);
+    }
+
+    @Override
+    public boolean preCheckAndPut(ObserverContext<RegionCoprocessorEnvironment> e, byte[] row, byte[] family, byte[] qualifier, CompareFilter.CompareOp compareOp, ByteArrayComparable comparator, Put put, boolean result) throws IOException {
+        checkAccess();
+        return super.preCheckAndPut(e, row, family, qualifier, compareOp, comparator, put, result);
+    }
+
+    @Override
+    public boolean preExists(ObserverContext<RegionCoprocessorEnvironment> e, Get get, boolean exists) throws IOException {
+        checkAccess();
+        return super.preExists(e, get, exists);
+    }
+
+    @Override
+    public Result preIncrement(ObserverContext<RegionCoprocessorEnvironment> e, Increment increment) throws IOException {
+        checkAccess();
+        return super.preIncrement(e, increment);
+    }
+
+    @Override
+    public void preGetClosestRowBefore(ObserverContext<RegionCoprocessorEnvironment> e, byte[] row, byte[] family, Result result) throws IOException {
+        checkAccess();
+        super.preGetClosestRowBefore(e, row, family, result);
+    }
+
+    @Override
+    public void preBatchMutate(ObserverContext<RegionCoprocessorEnvironment> c, MiniBatchOperationInProgress<Mutation> miniBatchOp) throws IOException {
+        checkAccess();
+        super.preBatchMutate(c, miniBatchOp);
+    }
+
+    @Override
+    public void preBulkLoadHFile(ObserverContext<RegionCoprocessorEnvironment> ctx, List<Pair<byte[], String>> familyPaths) throws IOException {
+        checkAccess();
+        super.preBulkLoadHFile(ctx, familyPaths);
+    }
+    
 }

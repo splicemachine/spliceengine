@@ -68,9 +68,9 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
 
     @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public UpdatePipelineWriter(long heapConglom,int[] formatIds,int[] columnOrdering,
-                                int[] pkCols,FormatableBitSet pkColumns,String tableVersion,TxnView txn,
+                                int[] pkCols,FormatableBitSet pkColumns,String tableVersion,TxnView txn,byte[] token,
                                 ExecRow execRowDefinition,FormatableBitSet heapList,OperationContext operationContext) throws StandardException{
-        super(txn,heapConglom,operationContext);
+        super(txn, token, heapConglom,operationContext);
         assert pkCols!=null && columnOrdering!=null:"Primary Key Information is null";
         this.formatIds=formatIds;
         this.columnOrdering=columnOrdering;
@@ -122,7 +122,7 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
 
         RecordingCallBuffer<KVPair> bufferToTransform=null;
         try{
-            bufferToTransform=writeCoordinator.writeBuffer(destinationTable,txn,Metrics.noOpMetricFactory());
+            bufferToTransform=writeCoordinator.writeBuffer(destinationTable,txn,null,Metrics.noOpMetricFactory());
         }catch(IOException e){
             throw Exceptions.parseException(e);
         }
@@ -184,7 +184,7 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
                 }
             };
             try{
-                return new ForwardRecordingCallBuffer<KVPair>(writeCoordinator.writeBuffer(getDestinationTable(),txn,preFlushHook)){
+                return new ForwardRecordingCallBuffer<KVPair>(writeCoordinator.writeBuffer(getDestinationTable(),txn,null,preFlushHook)){
                     @Override
                     public void add(KVPair element) throws Exception{
                         byte[] oldLocation=((RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();

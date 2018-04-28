@@ -194,5 +194,10 @@ public class MPartitionFactory implements PartitionFactory<Object>{
         public boolean tableExists(String tableName) throws IOException {
             return partitionMap.containsKey(tableName);
         }
+
+        @Override
+        public List<byte[]> hbaseOperation(String table, String operation, byte[] bytes) throws IOException {
+            throw new UnsupportedOperationException("Operation not supported in mem storage engine");
+        }
     }
 }
