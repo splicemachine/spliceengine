@@ -404,7 +404,18 @@ public class H10PartitionAdmin implements PartitionAdmin{
                     }
                 case "grant":
                     String userName = Bytes.toString(bytes);
-                    AccessControlClient.grant(admin.getConnection(), "splice", userName,
+                    String spliceNamespace = SIDriver.driver().getConfiguration().getNamespace();
+                    AccessControlClient.grant(admin.getConnection(), spliceNamespace, userName,
+                            Permission.Action.WRITE
+                            ,Permission.Action.READ
+                            ,Permission.Action.EXEC
+                    );
+                    AccessControlClient.grant(admin.getConnection(), spliceNamespace, userName.toLowerCase(),
+                            Permission.Action.WRITE
+                            ,Permission.Action.READ
+                            ,Permission.Action.EXEC
+                    );
+                    AccessControlClient.grant(admin.getConnection(), spliceNamespace, userName.toUpperCase(),
                             Permission.Action.WRITE
                             ,Permission.Action.READ
                             ,Permission.Action.EXEC
