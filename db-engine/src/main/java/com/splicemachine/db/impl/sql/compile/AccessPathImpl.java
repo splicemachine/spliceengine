@@ -52,10 +52,14 @@ class AccessPathImpl implements AccessPath{
     Optimizer optimizer;
     private CostEstimate costEstimate=null;
     private boolean isJoinStrategyHinted = false;
+    private boolean missingHashKeyOK = false;
 
     AccessPathImpl(Optimizer optimizer){
         this.optimizer=optimizer;
     }
+
+    public boolean isMissingHashKeyOK(){ return missingHashKeyOK; }
+    public void setMissingHashKeyOK(boolean missingHashKeyOK){ this.missingHashKeyOK=missingHashKeyOK; }
 
     @Override public ConglomerateDescriptor getConglomerateDescriptor(){ return cd; }
 
@@ -103,6 +107,7 @@ class AccessPathImpl implements AccessPath{
         setJoinStrategy(copyFrom.getJoinStrategy());
         setHintedJoinStrategy(copyFrom.isHintedJoinStrategy());
         setLockMode(copyFrom.getLockMode());
+        setMissingHashKeyOK(copyFrom.isMissingHashKeyOK());
     }
 
     @Override public Optimizer getOptimizer(){ return optimizer; }
@@ -116,7 +121,8 @@ class AccessPathImpl implements AccessPath{
                     ", nonMatchingIndexScan == "+nonMatchingIndexScan+
                     ", joinStrategy == "+joinStrategy+
                     ", lockMode == "+lockMode+
-                    ", optimizer level == "+optimizer.getLevel();
+                    ", optimizer level == "+optimizer.getLevel()+
+                    ", missingHashKeyOK == "+isMissingHashKeyOK();
         }else{
             return "";
         }
