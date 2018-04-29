@@ -179,6 +179,11 @@ public class VirtualColumnNode extends ValueNode
 		return sourceColumn;
 	}
 
+	public void setSourceResultColumn(ResultColumn rc) {
+		sourceColumn = rc;
+		columnId = sourceColumn.getVirtualColumnId();
+	}
+
 	/**
 	 * Mark this VCN as a reference to a correlated column.
 	 * (It's source resultSet is an outer ResultSet.

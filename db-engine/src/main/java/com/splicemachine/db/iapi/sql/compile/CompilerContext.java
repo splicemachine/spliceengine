@@ -648,4 +648,8 @@ public interface CompilerContext extends Context
 
 	public void setSelectivityEstimationIncludingSkewedDefault(boolean onOff);
 
+	public boolean isProjectionPruningEnabled();
+
+	public void setProjectionPruningEnabled(boolean onOff);
+
 }

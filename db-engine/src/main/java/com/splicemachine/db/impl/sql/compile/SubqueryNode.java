@@ -2481,7 +2481,13 @@ public class SubqueryNode extends ValueNode{
         for (ResultColumn rc: resultColumns) {
             if (rc.isGroupingColumn()) {
                 rc.isGenerated = false;
-                rc.isReferenced = false;
+                /**
+                 * We've determined whether a RC is referenced or not at the beginning of optimization stage
+                 * through ProjectionPruningVisitor, and rely on this setting to determine if an RC need to
+                 * be pruned or preserved, so do not overwrite it
+                 */
+
+         //       rc.isReferenced = false;
             }
         }
 

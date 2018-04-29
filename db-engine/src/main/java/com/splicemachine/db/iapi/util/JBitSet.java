@@ -235,5 +235,9 @@ public final class JBitSet{
     public int size(){
         return size;
     }
+
+    public int cardinality() {
+        return bitSet.cardinality();
+    }
 }
 

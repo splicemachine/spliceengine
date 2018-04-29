@@ -31,20 +31,23 @@
 
 package com.splicemachine.db.iapi.services.property;
 
-import com.splicemachine.db.iapi.reference.Property;
-import com.splicemachine.db.iapi.reference.SQLState;
+import com.google.common.base.Optional;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Attribute;
 import com.splicemachine.db.iapi.reference.EngineType;
-import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.monitor.ModuleFactory;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.util.StringUtil;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.util.IdUtil;
+import com.splicemachine.db.iapi.util.StringUtil;
 
-import java.util.Properties;
 import java.io.Serializable;
 import java.util.Dictionary;
 import java.util.Enumeration;
+import java.util.Properties;
 
 /**
 	There are 5 property objects within a JBMS system.
@@ -305,6 +308,31 @@ public class PropertyUtil {
  		return obj.toString();
 	}
 
+	/**
+	 Get a property from data dictionary cache, if not found, look in the Persistent Transactional (database) set.
+
+	 @exception StandardException Standard Derby error handling.
+	 */
+	public static String getCachedDatabaseProperty(PersistentSet set, String key)
+			throws StandardException {
+		if (set == null)
+			return null;
+		//look in dictionary cache first
+		try {
+			LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+			Optional<String> optional = lcc.getDataDictionary().getDataDictionaryCache().propertyCacheFind(key);
+			if (optional!=null) {
+				return optional.orNull();
+			}
+
+			Object obj = set.getProperty(key);
+
+			// save in cache
+			lcc.getDataDictionary().getDataDictionaryCache().propertyCacheAdd(key, obj==null? Optional.<String>absent():Optional.of(obj.toString()));
+			if (obj == null) { return null; }
+			return obj.toString();
+		} catch (java.sql.SQLException se) { throw StandardException.plainWrapException( se ); }
+	}
 	/**
 		Find a service wide property with a default. Search order is
 
