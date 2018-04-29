@@ -21,7 +21,6 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.crypto.key.KeyProvider;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -36,9 +35,7 @@ import org.apache.hadoop.hdfs.protocol.LocatedBlock;
 import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos;
 import org.apache.hadoop.hdfs.protocolPB.PBHelper;
 import org.apache.hadoop.io.DataOutputBuffer;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
-import org.apache.spark.SerializableWritable;
 
 import java.io.IOException;
 import java.net.URI;
@@ -98,11 +95,6 @@ public class HFilesystemAdmin implements FilesystemAdmin {
             }
             case "blocks": {
                 return Arrays.asList(PBHelper.convert(HDFSUtil.getBlocks((DistributedFileSystem)fs, spath)).toByteArray());
-            }
-            case "decrypt": {
-                KeyProvider.KeyVersion decrypted = HDFSUtil.decrypt((DistributedFileSystem) fs, spath);
-                byte[] bytes = toByteArray(new Text(decrypted.getName()), new Text(decrypted.getVersionName()));  // deserialize with Writables.copyWritable
-                return Arrays.asList(bytes, decrypted.getMaterial());
             }
         }
         return null;
