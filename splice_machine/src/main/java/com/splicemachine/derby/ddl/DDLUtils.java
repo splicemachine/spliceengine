@@ -1047,4 +1047,27 @@ public class DDLUtils {
         }
 
     }
+
+    public static void preSetDatabaseProperty(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preSetDatabaseProperty with change=%s",change);
+        SpliceTransactionResourceImpl transactionResource = null;
+        boolean prepared = false;
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            transactionResource = new SpliceTransactionResourceImpl();
+            prepared = transactionResource.marshallTransaction(txn);
+            //remove corresponding defaultRole entry
+            dd.getDataDictionaryCache().propertyCacheRemove(change.getSetDatabaseProperty().getPropertyName());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw StandardException.plainWrapException(e);
+        } finally {
+            if (prepared) {
+                transactionResource.close();
+            }
+        }
+
+    }
 }

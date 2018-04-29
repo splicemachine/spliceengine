@@ -184,6 +184,10 @@ message GrantRevokeRole {
         required string granteeName = 3;
         required string grantorName = 4;
 }
+
+message SetDatabaseProperty {
+        required string propertyName = 1;
+}
 message TentativeFK {
         optional int64 baseConglomerate = 1;
         optional int64 conglomerate = 2;
@@ -337,6 +341,7 @@ enum DDLChangeType {
     CREATE_ROLE = 37;
     UPDATE_SCHEMA_OWNER=38;
     GRANT_REVOKE_ROLE = 39;
+    SET_DATABASE_PROPERTY = 40;
 }
 
 message DDLChange {
@@ -376,4 +381,5 @@ message DDLChange {
     optional CreateRole createRole = 34;
     optional UpdateSchemaOwner updateSchemaOwner = 35;
     optional GrantRevokeRole grantRevokeRole = 36;
+    optional SetDatabaseProperty setDatabaseProperty = 37;
 }

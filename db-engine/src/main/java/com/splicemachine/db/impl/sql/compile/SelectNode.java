@@ -43,6 +43,11 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.impl.ast.CollectingVisitor;
+import com.splicemachine.db.impl.ast.ColumnCollectingVisitor;
+import org.spark_project.guava.base.Predicates;
+
+import java.util.*;
 
 import java.util.*;
 
@@ -948,6 +953,11 @@ public class SelectNode extends ResultSetNode{
             isDistinct=true;
             groupByList=null;
             wasGroupBy=true;
+            /**
+             *  We need to mark all columns in RCL as referenced, as they are the columns where distinct will be
+             *  applied on
+             */
+            resultColumns.setColumnReferences(true,true);
         }
 
 		/* Consider distinct elimination based on a uniqueness condition.
@@ -1161,6 +1171,19 @@ public class SelectNode extends ResultSetNode{
                 whereSubquerys,	/* Subquerys in Restriction */
                 null,
                 getContextManager());
+
+        if (getCompilerContext().isProjectionPruningEnabled()) {
+            int numPruned = prnRSN.getResultColumns().doProjection(false);
+            if (numPruned > 0) {
+                // we need to adjust the columnPosition in orderbylist and groupByList
+                if (orderByList != null) {
+                    for (int i = 0; i < orderByList.size(); i++) {
+                        OrderByColumn oCol = (OrderByColumn) orderByList.elementAt(i);
+                        oCol.columnPosition = oCol.getResultColumn().getVirtualColumnId();
+                    }
+                }
+            }
+        }
 
         /*
 		** If we have aggregates OR a select list we want
@@ -2519,6 +2542,88 @@ public class SelectNode extends ResultSetNode{
         whereSubquerys.removeAllElements();
 
         //if query contains aggregation and group by
+        return this;
+    }
+
+    public List<QueryTreeNode> collectReferencedColumns() throws StandardException {
+        CollectingVisitor<QueryTreeNode> cnVisitor = new ColumnCollectingVisitor(
+                Predicates.or(Predicates.instanceOf(ColumnReference.class),
+                              Predicates.instanceOf(VirtualColumnNode.class),
+                              Predicates.instanceOf(OrderedColumn.class)));
+        // collect column references from different components
+
+        if (whereClause != null)
+            whereClause.accept(cnVisitor);
+        if (groupByList != null)
+            groupByList.accept(cnVisitor);
+        if (orderByList != null)
+            orderByList.accept(cnVisitor);
+
+        if (selectAggregates != null && !selectAggregates.isEmpty()) {
+            for (AggregateNode aggrNode: selectAggregates)
+                aggrNode.accept(cnVisitor);
+        }
+
+        /**
+         * Currently, this code will not be triggered as we don't support aggregate in where.
+         * If it is not empty, it should have errored out in binding phase.
+         */
+        if (whereAggregates != null && !whereAggregates.isEmpty()) {
+            for (AggregateNode aggrNode: whereAggregates)
+                aggrNode.accept(cnVisitor);
+        }
+
+        if (havingAggregates != null && !havingAggregates.isEmpty()) {
+            for (AggregateNode aggrNode: havingAggregates)
+                aggrNode.accept(cnVisitor);
+        }
+
+        /**
+         * we do not really need to check for having clause as all column references in having clause
+         * should either appear in GroupBy or aggregate expression
+         */
+
+        /* where predicates should not have been populated before preprocess(), so no need to check here */
+
+        /* we don't need to explicitly check for window function as it will appear in resultcolumns also */
+
+        /** we don't need to explicitly check for whereSubquery as it is covered in whereClause,
+         *  we don't need to explicitly check for havingSubquery for the same reason as havingClause mentioned above
+         *  we don't need to explicit check for selectSubquery as it is covered in SelectClause
+         */
+
+        /* check for column references in select list */
+        for (int i=0; i<resultColumns.size(); i++) {
+            ResultColumn rc = resultColumns.elementAt(i);
+
+            if (rc.isReferenced())
+                rc.accept(cnVisitor);
+        }
+
+        return cnVisitor.getCollected();
+
+    }
+
+    /**
+     * prune the unreferenced result columns of FromSubquery node and FromBaseTable node
+     */
+    public Visitable projectionListPruning(boolean considerAllRCs) throws StandardException {
+        // mark all result columns as referenced
+        if (considerAllRCs || isDistinct)
+            resultColumns.setColumnReferences(true, true);
+
+        // clear the referenced fields for all tables
+        for (int i=0; i<fromList.size(); i++) {
+            FromTable fromTable = (FromTable) fromList.elementAt(i);
+
+            ResultColumnList rcl = fromTable.getResultColumns();
+            rcl.setColumnReferences(false, true);
+        }
+
+        List<QueryTreeNode> refedcolmnList = collectReferencedColumns();
+
+        markReferencedResultColumns(refedcolmnList);
+
         return this;
     }
 }

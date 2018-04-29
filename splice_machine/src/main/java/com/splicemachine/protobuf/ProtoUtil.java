@@ -89,6 +89,14 @@ public class ProtoUtil {
                 .build();
     }
 
+    public static DDLChange createSetDatabaseProperty(long txnId, String key) {
+        return DDLChange.newBuilder().setTxnId(txnId).setSetDatabaseProperty(SetDatabaseProperty.newBuilder()
+                 .setPropertyName(key)
+                 .build())
+                 .setDdlChangeType(DDLChangeType.SET_DATABASE_PROPERTY)
+                 .build();
+    }
+
     public static DDLChange createRefreshEnterpriseFeatures(long txnId) {
         return DDLChange.newBuilder().setTxnId(txnId).setRefreshEnterpriseFeatures(RefreshEnterpriseFeatures.newBuilder().build())
                 .setDdlChangeType(DDLChangeType.REFRESH_ENTRPRISE_FEATURES)
