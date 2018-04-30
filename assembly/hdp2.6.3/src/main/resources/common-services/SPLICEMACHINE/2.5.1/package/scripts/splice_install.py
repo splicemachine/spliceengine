@@ -4,6 +4,7 @@ from resource_management.libraries.script.script import Script
 from resource_management.core.resources import Directory
 from resource_management.libraries.resources import XmlConfig
 from resource_management import *
+from urlparse import urlparse
 
 reload(sys)
 sys.setdefaultencoding('utf8')
@@ -13,15 +14,7 @@ class SpliceInstall(Script):
     import params
     self.install_packages(env)
     env.set_params(params)
-    print 'Before Print';
-    print(params.config)
-    print 'Install the client';
     self.configure(env)
-
-#    dir = '/var/lib/splicemachine'
-#    if os.path.exists(dir):
-#      shutil.rmtree(dir)
-#    os.makedirs(dir)
 
   def configure(self, env):
     import params
@@ -29,18 +22,34 @@ class SpliceInstall(Script):
     hbase_user = params.config['configurations']['hbase-env']['hbase_user']
     user_group = params.config['configurations']['cluster-env']["user_group"]
     splicemachine_conf_dir = '/etc/splicemachine/conf'
+    hdfs_audit_spool = params.config['configurations']['ranger-splicemachine-audit']['xasecure.audit.destination.hdfs.batch.filespool.dir']
+    solr_audit_spool = params.config['configurations']['ranger-splicemachine-audit']['xasecure.audit.destination.solr.batch.filespool.dir']
+    policy_cache_dir = params.config['configurations']['ranger-splicemachine-security']['ranger.plugin.splicemachine.policy.cache.dir']
+    hdfs_audit_dir = params.config['configurations']['ranger-splicemachine-audit']['xasecure.audit.destination.hdfs.dir']
 
     Directory( splicemachine_conf_dir,
                owner = hbase_user,
                group = user_group,
                create_parents = True
                )
-    Directory( splicemachine_conf_dir,
+
+    Directory( hdfs_audit_spool,
                owner = hbase_user,
                group = user_group,
                create_parents = True
                )
 
+    Directory( solr_audit_spool,
+               owner = hbase_user,
+               group = user_group,
+               create_parents = True
+               )
+
+    Directory( policy_cache_dir,
+               owner = hbase_user,
+               group = user_group,
+               create_parents = True
+               )
 
     XmlConfig( "ranger-splicemachine-security.xml",
                conf_dir = splicemachine_conf_dir,
@@ -56,6 +65,12 @@ class SpliceInstall(Script):
                owner = hbase_user,
                group = user_group,
                )
+
+    params.HdfsResource(hdfs_audit_dir,
+                        type="directory",
+                        action="create_on_execute",
+                        owner=hbase_user
+                        )
 
 def somethingcustom(self, env):
     print 'Something custom';

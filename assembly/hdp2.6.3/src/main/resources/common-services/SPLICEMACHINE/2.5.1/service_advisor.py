@@ -54,17 +54,21 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         hbase_env = services["configurations"]["hbase-env"]["properties"]
         if "content" in hbase_env:
           content = hbase_env["content"]
-          HBASE_CLASSPATH_PREFIX = "export HBASE_CLASSPATH_PREFIX=/var/lib/splicemachine/*:/usr/hdp/2.6.3.0-235/spark2/jars/*"
+          HBASE_CLASSPATH_PREFIX = "export HBASE_CLASSPATH_PREFIX=/var/lib/splicemachine/*:/usr/hdp/2.6.3.0-235/spark2/jars/*:/usr/hdp/2.6.3.0-235/hadoop/lib/ranger-hdfs-plugin-impl/*"
           HBASE_MASTER_OPTS = "export HBASE_MASTER_OPTS=\"${HBASE_MASTER_OPTS} -D"+ " -D".join(self.getMasterDashDProperties()) + "\""
           HBASE_REGIONSERVER_OPTS = "export HBASE_REGIONSERVER_OPTS=\"${HBASE_REGIONSERVER_OPTS} -D"+ " -D".join(self.getRegionServerDashDProperties()) + "\""
+          HBASE_CONF_DIR = "export HBASE_CONF_DIR=${HBASE_CONF_DIR}:/etc/splicemachine/conf/"
+
           if "splicemachine" not in content:
             print "Updating Hbase Env Items"
             HBASE_CLASSPATH_PREFIX = "#Add Splice Jars to HBASE_PREFIX_CLASSPATH\n" + HBASE_CLASSPATH_PREFIX
             HBASE_MASTER_OPTS = "#Add Splice Specific Information to HBase Master\n" + HBASE_MASTER_OPTS
             HBASE_REGIONSERVER_OPTS = "#Add Splice Specific Information to Region Server\n" + HBASE_REGIONSERVER_OPTS
+            HBASE_CONF_DIR = "#Add Splice Specific Information to Region Server\n" + HBASE_CONF_DIR
             content = "\n\n".join((content, HBASE_CLASSPATH_PREFIX))
             content = "\n\n".join((content, HBASE_MASTER_OPTS))
             content = "\n\n".join((content, HBASE_REGIONSERVER_OPTS))
+            content = "\n\n".join((content, HBASE_CONF_DIR))
             print "content: " + content
             putHbaseEnvProperty = self.putProperty(configurations, "hbase-env", services)
             putHbaseEnvProperty("content", content)
@@ -230,7 +234,8 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         "splice.txn.concurrencyLevel" : "4096",
         "splice.olap_server.memory" : "8192",
         "splice.olap_server.memoryOverhead" : "2048",
-        "splice.olap_server.virtualCores" : "2"
+        "splice.olap_server.virtualCores" : "2",
+        "splice.authorization.scheme" : "NATIVE"
     }
     return hbase_site_desired_values
 
