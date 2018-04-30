@@ -649,18 +649,18 @@
                                     </requires>
                                     <mappings>
                                         <mapping>
-                                            <directory>/var/lib/ambari-server/resources/common-services</directory>
+                                            <directory>/var/lib/ambari-server/resources/common-services/SPLICEMACHINE</directory>
                                             <sources>
                                                 <source>
-                                                    <location>${project.build.directory}/classes/common-services</location>
+                                                    <location>${project.build.directory}/classes/common-services/SPLICEMACHINE</location>
                                                 </source>
                                             </sources>
                                         </mapping>
                                         <mapping>
-                                            <directory>/var/lib/ambari-server/resources/stacks</directory>
+                                            <directory>/var/lib/ambari-server/resources/stacks/HDP/2.6/services/SPLICEMACHINE</directory>
                                             <sources>
                                                 <source>
-                                                    <location>${project.build.directory}/classes/stacks</location>
+                                                    <location>${project.build.directory}/classes/stacks/HDP/2.6/services/SPLICEMACHINE</location>
                                                 </source>
                                             </sources>
                                         </mapping>
