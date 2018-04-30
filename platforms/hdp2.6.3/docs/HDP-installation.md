@@ -86,7 +86,7 @@ Follow the steps to install splicemachine server.
 
 <img src="docs/choose_hosts.jpeg" alt="Choose hosts" width="400" height="200">
 
-4.O On the page of custom services,no properties need to customize by hand.
+4.O On the page of custom services,no properties need to customize by hand unless you would like to add Apache Ranger Support.
 
 <img src="docs/custom_services.jpeg" alt="Custom Services" width="400" height="200">
 
@@ -138,8 +138,48 @@ If you're using Kerberos, you need to add this option to your HBase Master Java 
    ````
    -Dsplice.spark.hadoop.fs.hdfs.impl.disable.cache=true
    ````
+### Enabling Ranger for Authorization
 
-### Modify the Log Location
+Splice Machine installs with Native authorization configured; native
+authorization uses the Splice Machine dictionary tables to determine permissions on database objects.
+
+Before changing the authorization scheme, the Splice Machine ranger service needs to be installed.  As part of the Splice Machine Ambari Service, 
+the admin plugin for Splice Machine is added to the Ranger web application.
+
+The service can be installed by executing the following from a command line on the machine where the Ambari Service resides.
+
+```
+curl -sS -u admin:admin -H "Content-Type: application/json" -X POST http://localhost:6080/service/plugins/definitions -d @/home/splice/ranger-servicedef-splicemachine.json
+```
+
+
+The configuration of Ranger occurs as part of the configuration for the Splice Machine service.  There are two key configurations for the audit and the security settings.
+
+<img src="docs/ranger_splicemachine_audit.jpeg" alt="ranger_splicemachine_audit.jpeg" width="400" height="200">
+
+Audit functionality in the xml is **off** by default.  To configure, select the _xasecure.audit.is.enabled_ box and then select whether you want SOLR, HDFS, or both.  The properties will need to modified by hand.
+
+<img src="docs/ranger_splicemachine_security.jpeg" alt="ranger_splicemachine_security.jpeg" width="400" height="200">
+
+The security configuration requires that _ranger.plugin.splicemachine.service.name_ be set to the name of the service in the Ranger UI.
+
+
+The following policy is required so SYSIBM routines can support database connectivity.
+
+| Required Policy Name | Logic | Users |
+|--------------|------|------|
+| SYSIBM| `Schema=SYSIBM,routine=*,permissions=execute` | `All users/groups that will use the database`
+
+
+##### Configurations
+
+Once this is done, you can change the authorization scheme to RANGER by adding this option to your HBase Region Server Java Configuration Options:
+
+   ````
+   -Dsplice.authorization.scheme=RANGER
+   ````
+
+It is set to **NATIVE** by default.
 
 #### Query Statement log
 

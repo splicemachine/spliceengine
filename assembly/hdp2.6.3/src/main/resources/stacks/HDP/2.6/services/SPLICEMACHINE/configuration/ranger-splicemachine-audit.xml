@@ -33,6 +33,9 @@
   <property>
     <name>xasecure.audit.is.enabled</name>
     <value>false</value>
+    <value-attributes>
+      <type>boolean</type>
+    </value-attributes>
     <description>Is Audit enabled?</description>
     <on-ambari-upgrade add="false"/>
   </property>
@@ -54,7 +57,7 @@
   </property>
   <property>
     <name>xasecure.audit.destination.hdfs.dir</name>
-    <value>hdfs://localhost:8020/ranger/audit</value>
+    <value>/ranger/audit</value>
     <description>HDFS folder to write audit to, make sure the service user has requried permissions</description>
     <depends-on>
       <property>
