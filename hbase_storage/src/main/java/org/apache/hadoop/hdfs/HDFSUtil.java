@@ -15,12 +15,39 @@
 
 package org.apache.hadoop.hdfs;
 
+import org.apache.hadoop.crypto.key.KeyProvider;
+import org.apache.hadoop.crypto.key.KeyProviderCryptoExtension;
+import org.apache.hadoop.fs.FileEncryptionInfo;
 import org.apache.hadoop.hdfs.protocol.LocatedBlocks;
 
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 
 public class HDFSUtil {
     public static LocatedBlocks getBlocks(DistributedFileSystem dfs, String path) throws IOException {
         return dfs.dfs.getLocatedBlocks(path, 0);
     }
+
+    public static KeyProvider.KeyVersion decrypt(DistributedFileSystem dfs, String path) throws IOException {
+        return decryptEncryptedDataEncryptionKey(dfs, dfs.dfs.getLocatedBlocks(path, 0).getFileEncryptionInfo());
+    }
+
+    private static KeyProvider.KeyVersion decryptEncryptedDataEncryptionKey(DistributedFileSystem dfs, FileEncryptionInfo feInfo) throws IOException {
+        KeyProvider provider = dfs.dfs.getKeyProvider();
+        if (provider == null) {
+            throw new IOException("No KeyProvider is configured, cannot access" +
+                    " an encrypted file");
+        }
+        KeyProviderCryptoExtension.EncryptedKeyVersion ekv = KeyProviderCryptoExtension.EncryptedKeyVersion.createForDecryption(
+                feInfo.getKeyName(), feInfo.getEzKeyVersionName(), feInfo.getIV(),
+                feInfo.getEncryptedDataEncryptionKey());
+        try {
+            KeyProviderCryptoExtension cryptoProvider = KeyProviderCryptoExtension
+                    .createKeyProviderCryptoExtension(provider);
+            return cryptoProvider.decryptEncryptedKey(ekv);
+        } catch (GeneralSecurityException e) {
+            throw new IOException(e);
+        }
+    }
+
 }
