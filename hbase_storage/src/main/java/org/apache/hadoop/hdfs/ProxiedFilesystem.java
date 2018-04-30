@@ -133,7 +133,6 @@ public class ProxiedFilesystem extends DistributedFileSystem {
 
     @Override
     public void close() throws IOException {
-        super.close();
         try {
             connection.close();
         } catch (SQLException e) {
