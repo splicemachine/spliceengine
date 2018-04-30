@@ -179,6 +179,8 @@ public final class UpdateNode extends DMLModStatementNode
 
 	public void bindStatement() throws StandardException
 	{
+		// Bind and Optimize Real Time Views (OK, That is a made up name).
+		bindAndOptimizeRealTimeViews();
 		// We just need select privilege on the expressions
 		getCompilerContext().pushCurrentPrivType( Authorizer.SELECT_PRIV);
 

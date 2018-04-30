@@ -154,6 +154,8 @@ public class DeleteNode extends DMLModStatementNode
 
 	public void bindStatement() throws StandardException
 	{
+		// Bind and Optimize Real Time Views (OK, That is a made up name).
+		bindAndOptimizeRealTimeViews();
 		// We just need select privilege on the where clause tables
 		getCompilerContext().pushCurrentPrivType( Authorizer.SELECT_PRIV);
 		try

@@ -3864,10 +3864,13 @@ StatementNode
 preparableDeleteStatement() throws StandardException :
 {
 	StatementNode qtn;
+		Vector parameterList = new Vector();
 }
 {
+    [ <WITH> withClauseList(parameterList) ]
 	<DELETE> qtn = deleteBody()
 	{
+	    qtn.setWithVector(parameterList.size()>0?parameterList:null);
 		return qtn;
 	}
 }
@@ -4115,17 +4118,18 @@ targetTable() throws StandardException :
 StatementNode
 preparableUpdateStatement() throws StandardException :
 {
+	Vector parameterList = new Vector();
 	StatementNode qtn;
 }
 {
 	// NOTE: It only makes sense to have a property list if there is a
 	// table name, so I moved it into the [] for qualifiedName(). 
-
+    [ <WITH> withClauseList(parameterList) ]
 	<UPDATE> qtn = updateBody()
 	{
+	    qtn.setWithVector(parameterList.size()>0?parameterList:null);
 		return qtn;
 	}
-
 }
 
 boolean
