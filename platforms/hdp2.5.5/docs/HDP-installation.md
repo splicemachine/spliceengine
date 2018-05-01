@@ -211,7 +211,7 @@ To edit the YARN configuration, click `YARN` in the Ambari *Services* sidebar. T
     <tbody>
         <tr>
             <td><code>yarn.application.classpath </code></td>
-            <td><code>   $HADOOP_CONF_DIR,/usr/hdp/current/hadoop-client/*,/usr/hdp/current/hadoop-client/lib/*,/usr/hdp/current/hadoop-hdfs-client/*,/usr/hdp/current/hadoop-hdfs-client/lib/*,/usr/hdp/current/hadoop-yarn-client/*,/usr/hdp/current/hadoop-yarn-client/lib/*,/usr/hdp/current/hadoop-mapreduce-client/*,/usr/hdp/current/hadoop-mapreduce-client/lib/*,/usr/hdp/current/hbase-regionserver/*,/usr/hdp/current/hbase-regionserver/lib/*,/opt/splice/default/lib/*</code></td>
+            <td><code>   $HADOOP_CONF_DIR,/usr/hdp/current/hadoop-client/*,/usr/hdp/current/hadoop-client/lib/*,/usr/hdp/current/hadoop-hdfs-client/*,/usr/hdp/current/hadoop-hdfs-client/lib/*,/usr/hdp/current/hadoop-yarn-client/*,/usr/hdp/current/hadoop-yarn-client/lib/*,/usr/hdp/current/hadoop-mapreduce-client/*,/usr/hdp/current/hadoop-mapreduce-client/lib/*</code></td>
         </tr>
         <tr>
             <td><code>yarn.nodemanager.aux-services.spark2_shuffle.classpath</code></td>
