@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<allocations>
+    <pool name="import">
+        <schedulingMode>FAIR</schedulingMode>
+        <weight>10</weight>
+    </pool>
+    <pool name="query">
+        <schedulingMode>FAIR</schedulingMode>
+        <weight>20</weight>
+    </pool>
+    <pool name="admin">
+        <schedulingMode>FAIR</schedulingMode>
+        <weight>1</weight>
+    </pool>
+    <pool name="compaction">
+        <schedulingMode>FAIR</schedulingMode>
+        <weight>15</weight>
+	<minShare>2</minShare>
+    </pool>
+    <pool name="urgent">
+        <schedulingMode>FAIR</schedulingMode>
+        <weight>1000</weight>
+    </pool>
+</allocations>
