@@ -119,12 +119,10 @@ Some configurations are required by SPLICE MACHINE, please make sure these prope
 These directories should be included in "yarn.application.classpath" setting in "Advanced yarn-site".
 
 ```
-/var/lib/splicemachine/*,
 /usr/hdp/current/ext/hadoop/*,
 /usr/hdp/current/hadoop-hdfs-client/*,/usr/hdp/current/hadoop-hdfs-client/lib/*,
 /usr/hdp/current/hadoop-yarn-client/*,/usr/hdp/current/hadoop-yarn-client/lib/*,
 /usr/hdp/current/hadoop-mapreduce-client/*,/usr/hdp/current/hadoop-mapreduce-client/lib/*,
-/usr/hdp/current/hbase-regionserver/*,/usr/hdp/current/hbase-regionserver/lib/*
 ```
 (Note: The prefix */usr/hdp/current* is an example directory that may be different with actual environment.)
 
