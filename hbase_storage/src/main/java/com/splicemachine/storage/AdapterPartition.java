@@ -393,8 +393,12 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
     private List<HRegionLocation> getAllRegionLocations(boolean refresh) throws IOException {
         if (refresh)
            ((HConnection) connection).clearRegionCache(tableName);
-        try(RegionLocator regionLocator=connection.getRegionLocator(tableName)){
-            return regionLocator.getAllRegionLocations();
+        while (true) {
+            try (RegionLocator regionLocator = connection.getRegionLocator(tableName)) {
+                return regionLocator.getAllRegionLocations();
+            } catch (Exception e) {
+                SpliceLogUtils.error(LOG,String.format("getAllRegionLocations for tablename=%s failing",tableName),e);
+            }
         }
     }
 
