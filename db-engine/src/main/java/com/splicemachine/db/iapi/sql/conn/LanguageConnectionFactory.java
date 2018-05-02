@@ -32,22 +32,7 @@
 package com.splicemachine.db.iapi.sql.conn;
 
 import com.splicemachine.db.iapi.db.Database;
-
-import com.splicemachine.db.iapi.services.property.PropertyFactory;
-
-import com.splicemachine.db.iapi.sql.compile.OptimizerFactory;
-import com.splicemachine.db.iapi.sql.compile.NodeFactory;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-
-import com.splicemachine.db.iapi.types.DataValueFactory;
-import com.splicemachine.db.iapi.sql.compile.TypeCompilerFactory;
-import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
-import com.splicemachine.db.iapi.sql.Statement;
-import com.splicemachine.db.iapi.sql.compile.Parser;
-
-import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.authorization.AuthorizationFactory;
 import com.splicemachine.db.iapi.services.compiler.JavaFactory;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
