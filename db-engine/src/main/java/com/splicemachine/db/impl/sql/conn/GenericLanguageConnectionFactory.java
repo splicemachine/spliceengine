@@ -66,6 +66,7 @@ import com.splicemachine.db.impl.sql.GenericStatement;
 
 import java.io.Serializable;
 import java.util.Dictionary;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -144,7 +145,7 @@ public class GenericLanguageConnectionFactory
 		LanguageFactory lf,
 		Database db,
 		String userName,
-		String groupuser,
+		List<String> groupuserlist,
 		String drdaID,
 		String dbname,
         CompilerContext.DataSetProcessorType type,
@@ -158,7 +159,7 @@ public class GenericLanguageConnectionFactory
 													this,
 													db,
 													userName,
-													groupuser,
+													groupuserlist,
 													getNextLCCInstanceNumber(),
 													drdaID,
 													dbname,

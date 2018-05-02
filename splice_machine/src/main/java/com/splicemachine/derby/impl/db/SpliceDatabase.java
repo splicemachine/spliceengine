@@ -117,14 +117,14 @@ public class SpliceDatabase extends BasicDatabase{
     }
 
     @Override
-    public LanguageConnectionContext setupConnection(ContextManager cm,String user, String groupuser, String drdaID,String dbname,
+    public LanguageConnectionContext setupConnection(ContextManager cm,String user, List<String> groupuserlist, String drdaID,String dbname,
                                                      CompilerContext.DataSetProcessorType dspt,
                                                      boolean skipStats,
                                                      double defaultSelectivityFactor,
                                                      String ipAddress)
             throws StandardException{
 
-        final LanguageConnectionContext lctx=super.setupConnection(cm, user, groupuser, drdaID, dbname, dspt, skipStats, defaultSelectivityFactor, ipAddress);
+        final LanguageConnectionContext lctx=super.setupConnection(cm, user, groupuserlist, drdaID, dbname, dspt, skipStats, defaultSelectivityFactor, ipAddress);
 
         // If you add a visitor, be careful of ordering.
 
@@ -152,7 +152,7 @@ public class SpliceDatabase extends BasicDatabase{
      * <p/>
      * This method should only be used by start() methods in coprocessors.  Do not use for sinks or observers.
      */
-    public LanguageConnectionContext generateLanguageConnectionContext(TxnView txn,ContextManager cm,String user, String groupuser, String drdaID,String dbname,
+    public LanguageConnectionContext generateLanguageConnectionContext(TxnView txn,ContextManager cm,String user, List<String> groupuserlist, String drdaID,String dbname,
                                                                        CompilerContext.DataSetProcessorType type,
                                                                        boolean skipStats,
                                                                        double defaultSelectivityFactor,
@@ -160,7 +160,7 @@ public class SpliceDatabase extends BasicDatabase{
         TransactionController tc=((SpliceAccessManager)af).marshallTransaction(cm,txn);
         cm.setLocaleFinder(this);
         pushDbContext(cm);
-        LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,groupuser,drdaID,dbname,type,skipStats, defaultSelectivityFactor, ipAddress);
+        LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,groupuserlist,drdaID,dbname,type,skipStats, defaultSelectivityFactor, ipAddress);
 
         pushClassFactoryContext(cm,lcf.getClassFactory());
         ExecutionFactory ef=lcf.getExecutionFactory();
