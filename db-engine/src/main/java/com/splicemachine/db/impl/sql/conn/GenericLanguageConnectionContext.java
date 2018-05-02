@@ -200,7 +200,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     protected Authorizer authorizer;
     protected String userName=null; //The name the user connects with.
-    protected String groupuser = null; // name of ldap user group
+    protected List<String> groupuserlist = null; // name of ldap user group
 
     //May still be quoted.
     /**
@@ -325,7 +325,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             LanguageConnectionFactory lcf,
             Database db,
             String userName,
-            String groupuser,
+            List<String> groupuserlist,
             int instanceNumber,
             String drdaID,
             String dbname,
@@ -346,7 +346,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         connFactory=lcf;
         this.db=db;
         this.userName=userName;
-        this.groupuser=groupuser;
+        this.groupuserlist=groupuserlist;
         this.instanceNumber=instanceNumber;
         this.drdaID=drdaID;
         this.dbname=dbname;
@@ -486,10 +486,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             List<String> publicRoles =
                     dd.getDefaultRoles("PUBLIC", getTransactionCompile());
             defaultRoles.addAll(publicRoles);
-            if (groupuser != null) {
-                List<String> groupRoles =
-                        dd.getDefaultRoles(groupuser, getTransactionCompile());
-                defaultRoles.addAll(groupRoles);
+            if (groupuserlist != null) {
+                for (String groupuser : groupuserlist) {
+                    List<String> groupRoles =
+                            dd.getDefaultRoles(groupuser, getTransactionCompile());
+                    defaultRoles.addAll(groupRoles);
+                }
             }
 
         }
@@ -3244,7 +3246,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public String getCurrentGroupUser(Activation a) {
+    public List<String> getCurrentGroupUser(Activation a) {
         return getCurrentSQLSessionContext(a).getCurrentGroupUser();
     }
 
@@ -3461,7 +3463,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             topLevelSSC=new SQLSessionContextImpl(
                     getInitialDefaultSchemaDescriptor(),
                     getSessionUserId(),
-                    defaultRoles, groupuser);
+                    defaultRoles, groupuserlist);
         }
         return topLevelSSC;
     }
@@ -3472,7 +3474,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         return new SQLSessionContextImpl(
                 getInitialDefaultSchemaDescriptor(),
                 getSessionUserId() /* a priori */,
-                defaultRoles, groupuser);
+                defaultRoles, groupuserlist);
     }
 
     /**

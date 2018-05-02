@@ -48,6 +48,8 @@ import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.jdbc.InternalDriver;
 
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 
 /** 
@@ -139,7 +141,7 @@ public final class TransactionResourceImpl
 	protected LanguageConnectionContext lcc;
 
 	// Set this when LDAP has groupname
-	protected String groupuser;
+	protected List<String> groupuserlist;
 
 	/**
 	 *
@@ -233,7 +235,7 @@ public final class TransactionResourceImpl
 	void startTransaction() throws StandardException, SQLException
 	{
 		// setting up local connection
-		lcc = database.setupConnection(cm, username, groupuser, drdaID, dbname,useSpark, skipStats, defaultSelectivityFactor, ipAddress);
+		lcc = database.setupConnection(cm, username, groupuserlist, drdaID, dbname,useSpark, skipStats, defaultSelectivityFactor, ipAddress);
 	}
 
 	/**
@@ -500,11 +502,11 @@ public final class TransactionResourceImpl
 	}
 
 	void setGroupUserName(String user) {
-		groupuser = user;
+		groupuserlist = Arrays.asList(user.split(","));
 	}
 
-	String getGroupUserName() {
-		return groupuser;
+	List<String> getGroupUserName() {
+		return groupuserlist;
 	}
 
     /**
