@@ -452,7 +452,7 @@ public interface LanguageConnectionContext extends Context {
 	 * @param a activation
 	 * @return String current group user
 	 */
-	public String getCurrentGroupUser(Activation a);
+	public List<String> getCurrentGroupUser(Activation a);
 
     /**
      *  Get the Authorization Id of the session user

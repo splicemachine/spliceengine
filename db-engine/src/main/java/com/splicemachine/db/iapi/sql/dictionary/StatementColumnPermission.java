@@ -114,7 +114,7 @@ public class StatementColumnPermission extends StatementTablePermission
 		}
 
         String currentUserId = lcc.getCurrentUserId(activation);
-		String currentGroupuser = lcc.getCurrentGroupUser(activation);
+		List<String> currentGroupuserlist = lcc.getCurrentGroupUser(activation);
 
 			FormatableBitSet permittedColumns = null;
 		if( ! forGrant)
@@ -127,11 +127,13 @@ public class StatementColumnPermission extends StatementTablePermission
 													false /* non-grantable permissions */,
                                                     currentUserId,
 													permittedColumns);
-			if (currentGroupuser != null) {
-				permittedColumns = addPermittedColumns( dd,
-						false /* non-grantable permissions */,
-						currentGroupuser,
-						permittedColumns);
+			if (currentGroupuserlist != null) {
+				for (String currentGroupuser : currentGroupuserlist) {
+					permittedColumns = addPermittedColumns(dd,
+							false /* non-grantable permissions */,
+							currentGroupuser,
+							permittedColumns);
+				}
 			}
 		}
 		permittedColumns = addPermittedColumns( dd,
@@ -142,11 +144,13 @@ public class StatementColumnPermission extends StatementTablePermission
 												true /* grantable permissions */,
                                                 currentUserId,
 												permittedColumns);
-		if (currentGroupuser != null) {
-			permittedColumns = addPermittedColumns( dd,
-					true /* grantable permissions */,
-					currentGroupuser,
-					permittedColumns);
+		if (currentGroupuserlist != null) {
+			for (String currentGroupuser : currentGroupuserlist) {
+				permittedColumns = addPermittedColumns(dd,
+						true /* grantable permissions */,
+						currentGroupuser,
+						permittedColumns);
+			}
 		}
 		
 		//DERBY-4191
@@ -196,8 +200,12 @@ public class StatementColumnPermission extends StatementTablePermission
 					 Authorizer.PUBLIC_AUTHORIZATION_ID,
 					 dbo);
 			}
-			if (rd == null && currentGroupuser != null) {
-				rd = dd.getRoleGrantDescriptor(role, currentGroupuser, dbo);
+			if (rd == null && currentGroupuserlist != null) {
+				for (String currentGroupuser : currentGroupuserlist) {
+					rd = dd.getRoleGrantDescriptor(role, currentGroupuser, dbo);
+					if (rd != null)
+						break;
+				}
 			}
 
 			if (rd == null) {

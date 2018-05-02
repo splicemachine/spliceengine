@@ -32,6 +32,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Properties;
 
 public final class SpliceTransactionResourceImpl implements AutoCloseable{
@@ -80,7 +81,9 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
         cm=csf.newContextManager();
         csf.setCurrentContextManager(cm);
 
-        lcc=database.generateLanguageConnectionContext(txn, cm, username,username,drdaID, dbname, CompilerContext.DataSetProcessorType.DEFAULT_CONTROL,false, -1, ipAddress);
+        ArrayList<String> grouplist = new ArrayList<>();
+        grouplist.add(username);
+        lcc=database.generateLanguageConnectionContext(txn, cm, username,grouplist,drdaID, dbname, CompilerContext.DataSetProcessorType.DEFAULT_CONTROL,false, -1, ipAddress);
 
         return true;
     }
