@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.iapi.sql.conn.ResubmitDistributedException;
+import com.splicemachine.derby.stream.function.CloneFunction;
 import org.spark_project.guava.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -194,7 +195,6 @@ public class OnceOperation extends SpliceBaseOperation {
 						switch (cardinalityCheck) {
 								case DO_CARDINALITY_CHECK:
 								case NO_CARDINALITY_CHECK:
-										row = row.getClone();
 										if (cardinalityCheck == DO_CARDINALITY_CHECK) {
                     				/* Raise an error if the subquery returns > 1 row
                      				 * We need to make a copy of the current candidateRow since
@@ -210,7 +210,6 @@ public class OnceOperation extends SpliceBaseOperation {
 										break;
 								case UNIQUE_CARDINALITY_CHECK:
 										//TODO -sf- I don't think that this will work unless there's a sort order on the first column..
-										row = row.getClone();
 										DataValueDescriptor orderable1 = row.getColumn(1);
 
 										ExecRow secondRow = rowSource.next();
@@ -240,7 +239,7 @@ public class OnceOperation extends SpliceBaseOperation {
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         // We are consuming the dataset, get a resultDataSet
-        DataSet<ExecRow> raw = source.getResultDataSet(dsp);
+        DataSet<ExecRow> raw = source.getResultDataSet(dsp).map(new CloneFunction<>(dsp.createOperationContext(this)));
         final Iterator<ExecRow> iterator = raw.toLocalIterator();
         ExecRow result;
         try {

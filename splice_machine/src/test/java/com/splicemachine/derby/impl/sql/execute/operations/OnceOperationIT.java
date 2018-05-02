@@ -14,20 +14,22 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.homeless.TestUtils;
+import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
+
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import org.apache.log4j.Logger;
-import org.junit.*;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
-import org.junit.runner.Description;
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import static org.junit.Assert.assertEquals;
 
 public class OnceOperationIT extends SpliceUnitTest { 
 	private static Logger LOG = Logger.getLogger(OnceOperationIT.class);
@@ -106,4 +108,47 @@ public class OnceOperationIT extends SpliceUnitTest {
         rs.next();
         Assert.assertEquals(rs.getLong(1), 7725070);
     }
+
+    @Test
+	public void testDifferentProcessingPath() throws Exception {
+    	/* Q1: Scalar subquery in SELECT */
+    	/* test spark path */
+    	String query = format("select (select k from %s where k=1) as X from %s --splice-properties useSpark=true", this.getTableReference(TABLE1_NAME), this.getTableReference(TABLE1_NAME));
+    	String expected = "X |\n" +
+				"----\n" +
+				" 1 |\n" +
+				" 1 |\n" +
+				" 1 |";
+
+		ResultSet rs = methodWatcher.executeQuery(query);
+		assertEquals("\n" + query + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+		rs.close();
+
+		/* test control path */
+		query= format("select (select k from %s where k=1) as X from %s --splice-properties useSpark=false", this.getTableReference(TABLE1_NAME), this.getTableReference(TABLE1_NAME));
+
+		rs = methodWatcher.executeQuery(query);
+		assertEquals("\n" + query + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+		rs.close();
+
+    	/* Q1: Scalar subquery in WHERE */
+    	/* test spark path */
+		query = format("select * from %s--splice-properties useSpark=true\n where k > (select k from %s where k=1)",
+				this.getTableReference(TABLE1_NAME), this.getTableReference(TABLE1_NAME));
+		expected = "K | L |\n" +
+				"--------\n" +
+				" 3 | 4 |\n" +
+				" 3 | 4 |";
+
+		rs = methodWatcher.executeQuery(query);
+		assertEquals("\n" + query + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+		rs.close();
+
+		/* test control path */
+		query= format("select * from %s--splice-properties useSpark=false\n where k > (select k from %s where k=1)",
+				this.getTableReference(TABLE1_NAME), this.getTableReference(TABLE1_NAME));
+		rs = methodWatcher.executeQuery(query);
+		assertEquals("\n" + query + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+		rs.close();
+	}
 }
