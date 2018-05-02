@@ -14,8 +14,14 @@
 
 package com.splicemachine.mrio.api.core;
 
+import com.google.common.base.Charsets;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.lib.input.LineRecordReader;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import java.io.IOException;
 import java.util.Collections;
@@ -40,5 +46,17 @@ public class SMTextInputFormat extends TextInputFormat {
         List<InputSplit> inputSplits = super.getSplits(job);
         Collections.shuffle(inputSplits);
         return inputSplits;
+    }
+
+    @Override
+    public RecordReader<LongWritable, Text>
+    createRecordReader(InputSplit split,
+                       TaskAttemptContext context) {
+        String delimiter = context.getConfiguration().get(
+                "textinputformat.record.delimiter");
+        byte[] recordDelimiterBytes = null;
+        if (null != delimiter)
+            recordDelimiterBytes = delimiter.getBytes(Charsets.UTF_8);
+        return new SMLineRecordReader(recordDelimiterBytes);
     }
 }

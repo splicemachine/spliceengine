@@ -140,6 +140,7 @@ public final class TransactionResourceImpl
 
 	// Set this when LDAP has groupname
 	protected String groupuser;
+    protected String password;
 
 	/**
 	 *
@@ -160,7 +161,7 @@ public final class TransactionResourceImpl
 		// interface is used.  Thus, we look there first.
 		// Default to SPLICE.
 		username = IdUtil.getUserNameFromURLProps(info);
-
+        password = info.getProperty(Attribute.PASSWORD_ATTR);
 		drdaID = info.getProperty(Attribute.DRDAID_ATTR, null);
 		ipAddress = info.getProperty(Property.IP_ADDRESS, null);
         String useSparkString = info.getProperty("useSpark",null);
@@ -233,7 +234,7 @@ public final class TransactionResourceImpl
 	void startTransaction() throws StandardException, SQLException
 	{
 		// setting up local connection
-		lcc = database.setupConnection(cm, username, groupuser, drdaID, dbname,useSpark, skipStats, defaultSelectivityFactor, ipAddress);
+		lcc = database.setupConnection(cm, username, groupuser, password, drdaID, dbname,useSpark, skipStats, defaultSelectivityFactor, ipAddress);
 	}
 
 	/**

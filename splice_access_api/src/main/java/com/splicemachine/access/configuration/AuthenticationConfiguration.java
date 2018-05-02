@@ -29,7 +29,7 @@ public class AuthenticationConfiguration implements ConfigurationDefault {
      * Defaults to none
      */
     public static final String AUTHENTICATION = "splice.authentication";
-    private static final String DEFAULT_AUTHENTICATION = "NATIVE";
+    public static final String DEFAULT_AUTHENTICATION = "NATIVE";
 
     public static final String AUTHENTICATION_LDAP_SERVER = "splice.authentication.ldap.server";
     private static final String DEFAULT_AUTHENTICATION_LDAP_SERVER = "localhost:389";

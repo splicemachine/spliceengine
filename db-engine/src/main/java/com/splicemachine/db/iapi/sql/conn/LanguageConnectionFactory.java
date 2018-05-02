@@ -107,19 +107,20 @@ public interface LanguageConnectionFactory {
 		@return a language connection context for the context stack.
 		@exception StandardException the usual
 	 */
-	LanguageConnectionContext
-	newLanguageConnectionContext(ContextManager cm,
-								TransactionController tc,
-								LanguageFactory lf,
-								Database db,
-								String userName,
-								String groupuser,
-								String drdaID,
-								String dbname,
-                                CompilerContext.DataSetProcessorType type,
-								boolean skipStats,
-								double defaultSelectivityFactor,
-								 String ipAddress)
+    LanguageConnectionContext
+    newLanguageConnectionContext(ContextManager cm,
+                                 TransactionController tc,
+                                 LanguageFactory lf,
+                                 Database db,
+                                 String userName,
+                                 String groupuser,
+                                 String password,
+                                 String drdaID,
+                                 String dbname,
+                                 CompilerContext.DataSetProcessorType type,
+                                 boolean skipStats,
+                                 double defaultSelectivityFactor,
+                                 String ipAddress)
 
 		throws StandardException;
 

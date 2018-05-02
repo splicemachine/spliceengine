@@ -40,6 +40,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
     protected ContextManager cm;
     protected ContextService csf;
     protected String username;
+    protected String password;
     private String dbname;
     private String drdaID;
     protected SpliceDatabase database;
@@ -55,6 +56,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
         csf=ContextService.getFactory(); // Singleton - Not Needed
         dbname=InternalDriver.getDatabaseName(url,info); // Singleton - Not Needed
         username=IdUtil.getUserNameFromURLProps(info); // Static
+        password = (String)info.get(Attribute.PASSWORD_ATTR);
         drdaID=info.getProperty(Attribute.DRDAID_ATTR,null); // Static
         ipAddress = info.getProperty(Property.IP_ADDRESS,null);
 
@@ -81,7 +83,8 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
         cm=csf.newContextManager();
         csf.setCurrentContextManager(cm);
 
-        lcc=database.generateLanguageConnectionContext(txn, cm, username,username,drdaID, dbname, CompilerContext.DataSetProcessorType.DEFAULT_CONTROL,false, -1, ipAddress);
+        lcc=database.generateLanguageConnectionContext(txn, cm, username,username,password,drdaID,dbname,
+                CompilerContext.DataSetProcessorType.DEFAULT_CONTROL,false, -1, ipAddress);
 
         return true;
     }

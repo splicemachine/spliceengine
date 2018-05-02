@@ -267,7 +267,8 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 	}
 
     @Override
-	public LanguageConnectionContext setupConnection(ContextManager cm, String user, String groupuser, String drdaID, String dbname,
+	public LanguageConnectionContext setupConnection(ContextManager cm, String user, String groupuser, String password,
+													 String drdaID, String dbname,
 													 CompilerContext.DataSetProcessorType type,
 													 boolean skipStats,
 													 double defaultSelectivityFactor,
@@ -281,8 +282,8 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 
 		// push a database shutdown context
 		// we also need to push a language connection context.
-		LanguageConnectionContext lctx = lcf.newLanguageConnectionContext(cm, tc, lf, this, user, groupuser, drdaID, dbname,
-                type,skipStats,defaultSelectivityFactor, ipAddress);
+		LanguageConnectionContext lctx = lcf.newLanguageConnectionContext(cm, tc, lf, this, user, groupuser, password,
+				drdaID, dbname, type,skipStats,defaultSelectivityFactor, ipAddress);
 
 		// push the context that defines our class factory
 		pushClassFactoryContext(cm, lcf.getClassFactory());

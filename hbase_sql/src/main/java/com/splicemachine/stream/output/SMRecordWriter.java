@@ -14,24 +14,28 @@
 
 package com.splicemachine.stream.output;
 
-import com.splicemachine.db.iapi.error.ExceptionSeverity;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.spark.SparkOperationContext;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.stream.SecurityUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
 import scala.util.Either;
 
 import java.io.IOException;
+import java.security.PrivilegedExceptionAction;
 
 /**
  * Created by jleach on 5/18/15.
@@ -44,6 +48,8 @@ public class SMRecordWriter extends RecordWriter<RowLocation,Either<Exception, E
     private boolean failure = false;
     private ActivationHolder activationHolder;
 
+    private UserGroupInformation ugi;
+
     public SMRecordWriter(TableWriter tableWriter, OutputCommitter outputCommitter) throws StandardException{
         try {
             SpliceLogUtils.trace(LOG, "init");
@@ -53,6 +59,14 @@ public class SMRecordWriter extends RecordWriter<RowLocation,Either<Exception, E
             if (context != null) {
                 activationHolder = context.getActivationHolder();
                 activationHolder.reinitialize(tableWriter.getTxn());
+                SConfiguration conf = SIDriver.driver().getConfiguration();
+                String authentication = conf.getAuthentication();
+                if (authentication.compareToIgnoreCase(Property.AUTHENTICATION_PROVIDER_LDAP) == 0) {
+                    SpliceBaseOperation op = (SpliceBaseOperation)context.getOperation();
+                    String user = op.getUser();
+                    String password = op.getPassword();
+                    ugi = SecurityUtils.loginAndReturnUGI("SMRecordWriter", user, password);
+                }
             }
         }
         catch (Exception e) {
@@ -62,25 +76,16 @@ public class SMRecordWriter extends RecordWriter<RowLocation,Either<Exception, E
 
     @Override
     public void write(RowLocation rowLocation, Either<Exception, ExecRow> value) throws IOException, InterruptedException {
-        if (value.isLeft()) {
-            Exception e = value.left().get();
-            // failure
-            failure = true;
-            SpliceLogUtils.error(LOG,"Error Reading",e);
-            throw new IOException(e);
+        if (ugi != null) {
+            ugi.doAs(new PrivilegedExceptionAction<Void>() {
+                public Void run() throws Exception {
+                    doWrite(rowLocation, value);
+                    return null;
+                }
+            });
         }
-        assert value.isRight();
-        ExecRow execRow = value.right().get();
-        try {
-            if (!initialized) {
-                initialized = true;
-                tableWriter.open();
-            }
-            tableWriter.write(execRow);
-        } catch (Exception se) {
-            SpliceLogUtils.error(LOG,"Error Writing",se);
-            failure = true;
-            throw new IOException(se);
+        else {
+            doWrite(rowLocation, value);
         }
     }
 
@@ -100,6 +105,29 @@ public class SMRecordWriter extends RecordWriter<RowLocation,Either<Exception, E
             }
             if (failure)
                 outputCommitter.abortTask(taskAttemptContext);
+        }
+    }
+
+    private void doWrite(RowLocation rowLocation, Either<Exception, ExecRow> value) throws IOException, InterruptedException {
+        if (value.isLeft()) {
+            Exception e = value.left().get();
+            // failure
+            failure = true;
+            SpliceLogUtils.error(LOG,"Error Reading",e);
+            throw new IOException(e);
+        }
+        assert value.isRight();
+        ExecRow execRow = value.right().get();
+        try {
+            if (!initialized) {
+                initialized = true;
+                tableWriter.open();
+            }
+            tableWriter.write(execRow);
+        } catch (Exception se) {
+            SpliceLogUtils.error(LOG,"Error Writing",se);
+            failure = true;
+            throw new IOException(se);
         }
     }
 }

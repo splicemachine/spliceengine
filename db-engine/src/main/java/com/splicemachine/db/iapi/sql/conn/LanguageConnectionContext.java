@@ -466,6 +466,12 @@ public interface LanguageConnectionContext extends Context {
     public String getSessionUserId();
 
 
+    /**
+     * Get password
+     * @return
+     */
+    String getPassword();
+
 	/**
 	 * Get the default schema (used at compile-time when no activation
 	 * is yet available, cf. the activation argument overload version.

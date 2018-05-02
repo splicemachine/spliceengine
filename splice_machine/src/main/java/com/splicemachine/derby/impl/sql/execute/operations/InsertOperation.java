@@ -18,8 +18,11 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import com.splicemachine.access.configuration.AuthenticationConfiguration;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
@@ -184,6 +187,15 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                             SIDriver.driver().getTableFactory(),
                             SIDriver.driver().getOperationFactory());
                     spliceSequences[i]=EngineDriver.driver().sequencePool().get(key);
+                }
+            }
+            SConfiguration conf = SIDriver.driver().getConfiguration();
+            String authentication = conf.getAuthentication();
+            if (authentication.compareToIgnoreCase(Property.AUTHENTICATION_PROVIDER_LDAP) == 0) {
+                LanguageConnectionContext lcc = context.getLanguageConnectionContext();
+                if (user == null && password == null) {
+                    user = lcc.getSessionUserId();
+                    password = lcc.getPassword();
                 }
             }
         }catch(Exception e){

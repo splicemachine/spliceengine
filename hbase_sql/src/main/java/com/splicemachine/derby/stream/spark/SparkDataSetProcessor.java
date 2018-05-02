@@ -17,7 +17,9 @@ package com.splicemachine.derby.stream.spark;
 import com.google.common.collect.Lists;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.FileInfo;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -32,6 +34,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.spark.WholeTextInputFormat;
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
@@ -39,6 +42,8 @@ import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.mrio.api.core.SMTextInputFormat;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.stream.SecurityUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.LongWritable;
@@ -205,12 +210,23 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 displayString = op.getScopeName()+": "+OperationContext.Scope.READ_TEXT_FILE.displayName();
 
             SpliceSpark.pushScope(displayString);
+            Configuration conf = new Configuration(HConfiguration.unwrapDelegate());
+
+            String authentication = SIDriver.driver().getConfiguration().getAuthentication();
+            if (authentication.compareToIgnoreCase(Property.AUTHENTICATION_PROVIDER_LDAP) == 0) {
+                SpliceBaseOperation bop = (SpliceBaseOperation)op;
+                String user = bop.getUser();
+                String password = bop.getPassword();
+                conf.set("splice.user", user);
+                conf.set("splice.password", password);
+            }
+
             JavaPairRDD<LongWritable, Text> pairRdd=SpliceSpark.getContext().newAPIHadoopFile(
                     path,
                     SMTextInputFormat.class,
                     LongWritable.class,
                     Text.class,
-                    new Configuration(HConfiguration.unwrapDelegate()));
+                    conf);
 
             JavaRDD rdd =pairRdd.values()
                     .map(new Function<Text,String>() {

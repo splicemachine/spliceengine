@@ -15,8 +15,10 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -51,6 +53,7 @@ import com.splicemachine.derby.stream.iapi.RemoteQueryClient;
 import com.splicemachine.derby.stream.iapi.ScopeNamed;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -101,6 +104,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     private volatile boolean isKilled = false;
     private volatile boolean isTimedout = false;
     private long startTime = System.nanoTime();
+    protected String user;
+    protected String password;
 
     public SpliceBaseOperation(){
         super();
@@ -137,6 +142,16 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         this.optimizerEstimatedRowCount=in.readDouble();
         this.operationInformation=(OperationInformation)in.readObject();
         isTopResultSet=in.readBoolean();
+        SConfiguration conf = SIDriver.driver().getConfiguration();
+        String authentication = conf.getAuthentication();
+        if (authentication.compareToIgnoreCase(Property.AUTHENTICATION_PROVIDER_LDAP) == 0) {
+            if (in.readBoolean()) {
+                user = in.readUTF();
+            }
+            if (in.readBoolean()) {
+                password = in.readUTF();
+            }
+        }
     }
 
     @Override
@@ -146,6 +161,18 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         out.writeDouble(optimizerEstimatedRowCount);
         out.writeObject(operationInformation);
         out.writeBoolean(isTopResultSet);
+        SConfiguration conf = SIDriver.driver().getConfiguration();
+        String authentication = conf.getAuthentication();
+        if (authentication.compareToIgnoreCase(Property.AUTHENTICATION_PROVIDER_LDAP) == 0) {
+            out.writeBoolean(user != null);
+            if (user != null) {
+                out.writeUTF(user);
+            }
+            out.writeBoolean(password != null);
+            if (password != null) {
+                out.writeUTF(password);
+            }
+        }
     }
 
     @Override
@@ -339,6 +366,11 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         this.activation=context.getActivation();
         this.operationInformation.initialize(context);
         this.resultSetNumber=operationInformation.getResultSetNumber();
+        if (user == null && password == null) {
+            LanguageConnectionContext lcc = context.getLanguageConnectionContext();
+            user = lcc.getSessionUserId();
+            password = lcc.getPassword();
+        }
     }
 
     protected ExecRow getFromResultDescription(ResultDescription resultDescription) throws StandardException{
@@ -958,4 +990,11 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         return uuid;
     }
 
+    public String getUser() {
+        return user;
+    }
+
+    public String getPassword() {
+        return password;
+    }
 }

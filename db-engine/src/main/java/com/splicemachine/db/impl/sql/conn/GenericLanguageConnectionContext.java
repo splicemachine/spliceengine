@@ -206,6 +206,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     protected Authorizer authorizer;
     protected String userName=null; //The name the user connects with.
     protected String groupuser = null; // name of ldap user group
+    protected String password = null;
 
     //May still be quoted.
     /**
@@ -332,6 +333,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             Database db,
             String userName,
             String groupuser,
+            String password,
             int instanceNumber,
             String drdaID,
             String dbname,
@@ -353,6 +355,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         this.db=db;
         this.userName=userName;
         this.groupuser=groupuser;
+        this.password = password;
         this.instanceNumber=instanceNumber;
         this.drdaID=drdaID;
         this.dbname=dbname;
@@ -2041,6 +2044,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      */
     public String getSessionUserId(){
         return sessionUser;
+    }
+
+    @Override
+    public String getPassword() {
+        return password;
     }
 
     @Override
