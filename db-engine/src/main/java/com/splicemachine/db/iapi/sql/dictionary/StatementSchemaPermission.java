@@ -160,14 +160,18 @@ public class StatementSchemaPermission extends StatementPermission
                                         boolean forGrant) throws StandardException {
         String currentUserId = lcc.getCurrentUserId(activation);
         ExecPreparedStatement ps = activation.getPreparedStatement();
-		String currentGroupuser = lcc.getCurrentGroupUser(activation);
+		List<String> currentGroupuserlist = lcc.getCurrentGroupUser(activation);
 
         int authorization = oneAuthHasPermissionOnSchema(dd, Authorizer.PUBLIC_AUTHORIZATION_ID, forGrant);
 
         if(authorization == NONE || authorization == UNAUTHORIZED )
             authorization = oneAuthHasPermissionOnSchema(dd, currentUserId, forGrant);
-		if((authorization == NONE || authorization == UNAUTHORIZED) && currentGroupuser != null ) {
-			authorization = oneAuthHasPermissionOnSchema(dd, currentGroupuser, forGrant);
+		if((authorization == NONE || authorization == UNAUTHORIZED) && currentGroupuserlist != null ) {
+			for (String currentGroupuser : currentGroupuserlist) {
+				authorization = oneAuthHasPermissionOnSchema(dd, currentGroupuser, forGrant);
+				if (authorization != NONE)
+					break;
+			}
 		}
 
         if (authorization == NONE) {
@@ -190,8 +194,12 @@ public class StatementSchemaPermission extends StatementPermission
 							Authorizer.PUBLIC_AUTHORIZATION_ID,
 							dbo);
 				}
-				if (rd == null && currentGroupuser != null) {
-					rd = dd.getRoleGrantDescriptor(role, currentGroupuser, dbo);
+				if (rd == null && currentGroupuserlist != null) {
+					for (String currentGroupuser : currentGroupuserlist) {
+						rd = dd.getRoleGrantDescriptor(role, currentGroupuser, dbo);
+						if (rd != null)
+							break;
+					}
 				}
 
 				if (rd == null) {
