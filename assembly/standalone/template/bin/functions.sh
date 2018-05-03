@@ -106,7 +106,7 @@ SYS_ARGS2="-Dsplice.spark.executor.extraJavaOptions=-Dhbase.rootdir=$HBASE_ROOT_
     HBASE_REGIONSERVER_INFO_PORT=60030
     SPLICE_PORT=1527
 
-    (java ${SYS_ARGS} "${SYS_ARGS2}" com.splicemachine.test.SpliceTestPlatform file://${HBASE_ROOT_DIR_URI} ${HBASE_MASTER_PORT} ${HBASE_MASTER_INFO_PORT} ${HBASE_REGIONSERVER_PORT} ${HBASE_REGIONSERVER_INFO_PORT} ${SPLICE_PORT} false >> "${LOGFILE}" 2>&1 ) &
+    (java ${SYS_ARGS} "${SYS_ARGS2}" com.splicemachine.test.SpliceTestPlatform file://${HBASE_ROOT_DIR_URI} ${HBASE_MASTER_PORT} ${HBASE_MASTER_INFO_PORT} ${HBASE_REGIONSERVER_PORT} ${HBASE_REGIONSERVER_INFO_PORT} ${SPLICE_PORT} false ${LOG4J_PATH} >> "${LOGFILE}" 2>&1 ) &
 
 }
 
