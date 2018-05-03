@@ -31,14 +31,15 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.catalog.UUID;
 import org.spark_project.guava.collect.Lists;
+
 import java.util.Iterator;
 import java.util.List;
 
@@ -126,7 +127,7 @@ public class GenericPrivilegeInfo extends PrivilegeInfo
 			// warning.
 			boolean privileges_revoked = false;
 			String grantee = (String) itr.next();
-			if (dd.addRemovePermissionsDescriptor( grant, permDesc, grantee, tc)) 
+			if (dd.addRemovePermissionsDescriptor( grant, permDesc, grantee, tc) < 0)
 			{
                 //
                 // We fall in here if we are performing REVOKE.

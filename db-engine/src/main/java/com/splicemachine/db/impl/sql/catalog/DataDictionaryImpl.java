@@ -9338,12 +9338,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @param perm    the permission to deal with
      * @param grantee who the permission is granted to
      * @param tc      the transaction to use
-     * @return True means revoke has removed a privilege from system
-     * table and hence the caller of this method should send invalidation
-     * actions to PermssionDescriptor's dependents.
+     * @return 3 values: 0: no change, 1: add permission; -1: remove permission
+     *  hence the caller of this method know whether to send invalidation
+     * actions to PermssionDescriptor's dependents and dictionary cache.
      */
     @Override
-    public boolean addRemovePermissionsDescriptor(boolean add,
+    public int addRemovePermissionsDescriptor(boolean add,
                                                   PermissionsDescriptor perm,
                                                   String grantee,
                                                   TransactionController tc) throws StandardException{
@@ -9382,7 +9382,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 //No need to reset permission descriptor's uuid because
                 //no row was ever found in system catalog for the given
                 //permission and hence uuid can't be non-null
-                return false;
+                return 0;
             }else{
                 //We didn't find an entry in system catalog and this is grant so 
                 //so that means we have to enter a new row in system catalog for
@@ -9408,7 +9408,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             if(changedColCount==0){
                 //grant/revoke privilege didn't change anything and hence 
                 //just return
-                return false;
+                return 0;
             }
             if(!add){
                 //set the uuid of the passed permission descriptor to 
@@ -9439,9 +9439,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         // permissions
         removePermEntryInCache(perm);
 
-        //If we are dealing with grant, then the caller does not need to send 
-        //any invalidation actions to anyone and hence return false
-        return !add;
+        return add?1:(-1);
     } // end of addPermissionsDescriptor
 
     /**

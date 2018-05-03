@@ -100,7 +100,7 @@ public class SchemaPrivilegeInfo extends BasicPrivilegeInfo
 			String grantee = (String) itr.next();
 			if( schemaPermsDesc != null)
 			{
-				if (dd.addRemovePermissionsDescriptor( grant, schemaPermsDesc, grantee, tc))
+				if (dd.addRemovePermissionsDescriptor( grant, schemaPermsDesc, grantee, tc) < 0)
 				{
 					privileges_revoked = true;
 					dd.getDependencyManager().invalidateFor

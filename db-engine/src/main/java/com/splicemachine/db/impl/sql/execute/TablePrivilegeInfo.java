@@ -31,16 +31,17 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import org.spark_project.guava.collect.Lists;
-import java.util.List;
+
 import java.util.Iterator;
+import java.util.List;
 
 public class TablePrivilegeInfo extends BasicPrivilegeInfo
 {
@@ -123,7 +124,7 @@ public class TablePrivilegeInfo extends BasicPrivilegeInfo
 
 		dd.startWriting(lcc);
 		// Add or remove the privileges to/from the SYS.SYSTABLEPERMS and SYS.SYSCOLPERMS tables
-		for( Iterator itr = grantees.iterator(); itr.hasNext();)
+		for(Iterator itr = grantees.iterator(); itr.hasNext();)
 		{
 			// Keep track to see if any privileges are revoked by a revoke 
 			// statement. If a privilege is not revoked, we need to raise a 
@@ -138,7 +139,7 @@ public class TablePrivilegeInfo extends BasicPrivilegeInfo
 			String grantee = (String) itr.next();
 			if( tablePermsDesc != null)
 			{
-				if (dd.addRemovePermissionsDescriptor( grant, tablePermsDesc, grantee, tc))
+				if (dd.addRemovePermissionsDescriptor( grant, tablePermsDesc, grantee, tc) < 0)
 				{
 					privileges_revoked = true;
 					dd.getDependencyManager().invalidateFor
@@ -161,14 +162,12 @@ public class TablePrivilegeInfo extends BasicPrivilegeInfo
                                     tablePermsDesc.getReferencesPriv(), tablePermsDesc.getTriggerPriv());
                     tablePermsDescriptor.setUUID(tablePermsDesc.getUUID());
                     result.add(tablePermsDescriptor);
-				}
-			}
-			for( int i = 0; i < columnBitSets.length; i++)
-			{
-				if( colPermsDescs[i] != null)
-				{
-					if (dd.addRemovePermissionsDescriptor( grant, colPermsDescs[i], grantee, tc)) 
-					{
+                }
+            }
+            for (int i = 0; i < columnBitSets.length; i++) {
+                if (colPermsDescs[i] != null) {
+                	int action = dd.addRemovePermissionsDescriptor(grant, colPermsDescs[i], grantee, tc);
+                    if (action == -1) {
 						privileges_revoked = true;
 						dd.getDependencyManager().invalidateFor(colPermsDescs[i], DependencyManager.REVOKE_PRIVILEGE, lcc);
 						// When revoking a privilege from a Table we need to
@@ -178,21 +177,29 @@ public class TablePrivilegeInfo extends BasicPrivilegeInfo
 						// INTERNAL_RECOMPILE_REQUEST to the TableDescriptor's
 						// Dependents.
 						dd.getDependencyManager().invalidateFor
-							(td,
-							 DependencyManager.INTERNAL_RECOMPILE_REQUEST,
-							 lcc);
-                        ColPermsDescriptor colPermsDescriptor =
-                                new ColPermsDescriptor(dd, grantee, colPermsDescs[i].getGrantor(),
-                                        colPermsDescs[i].getTableUUID(), colPermsDescs[i].getType(),
-                                        colPermsDescs[i].getColumns());
-                        colPermsDescriptor.setUUID(colPermsDescs[i].getUUID());
-                        result.add(colPermsDescriptor);
+								(td,
+										DependencyManager.INTERNAL_RECOMPILE_REQUEST,
+										lcc);
 					}
-				}
-			}
-			
-			addWarningIfPrivilegeNotRevoked(activation, grant, privileges_revoked, grantee);
-		}
+					if (action != 0) {
+						/* we need to add the colPermDescriptor to result for both grant and revoke case, so that we can invalidate cache
+						 * later in a distributed way for both cases.
+						 * an example where cache needs to be invalidated for grant statement is:
+						 * For a t1 of 3 columns (a1,b1,c1), suppose we've cached the permission of select(a1,b1) on a different region server,
+						 * after we grant select(c1), the cached entry on that region server should be invalidated, so that a select on c1 can go through
+						 */
+						ColPermsDescriptor colPermsDescriptor =
+								new ColPermsDescriptor(dd, grantee, colPermsDescs[i].getGrantor(),
+										colPermsDescs[i].getTableUUID(), colPermsDescs[i].getType(),
+										colPermsDescs[i].getColumns());
+						colPermsDescriptor.setUUID(colPermsDescs[i].getUUID());
+						result.add(colPermsDescriptor);
+					}
+                }
+            }
+
+            addWarningIfPrivilegeNotRevoked(activation, grant, privileges_revoked, grantee);
+        }
         return result;
 	} // end of executeConstantAction
 

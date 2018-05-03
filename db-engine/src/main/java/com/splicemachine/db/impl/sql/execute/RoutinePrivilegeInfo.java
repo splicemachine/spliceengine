@@ -31,13 +31,14 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.error.StandardException;
 import org.spark_project.guava.collect.Lists;
+
 import java.util.Iterator;
 import java.util.List;
 
@@ -83,14 +84,14 @@ public class RoutinePrivilegeInfo extends PrivilegeInfo
 		RoutinePermsDescriptor routinePermsDesc = ddg.newRoutinePermsDescriptor( aliasDescriptor, currentUser);
 
 		dd.startWriting(lcc);
-		for( Iterator itr = grantees.iterator(); itr.hasNext();)
+		for(Iterator itr = grantees.iterator(); itr.hasNext();)
 		{
 			// Keep track to see if any privileges are revoked by a revoke 
 			// statement. If a privilege is not revoked, we need to raise a
 			// warning.
 			boolean privileges_revoked = false;
 			String grantee = (String) itr.next();
-			if (dd.addRemovePermissionsDescriptor( grant, routinePermsDesc, grantee, tc)) 
+			if (dd.addRemovePermissionsDescriptor( grant, routinePermsDesc, grantee, tc) < 0)
 			{
 				privileges_revoked = true;	
 				//Derby currently supports only restrict form of revoke execute
