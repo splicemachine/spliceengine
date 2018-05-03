@@ -69,12 +69,12 @@ public class GrantRevokeConstantOperation implements ConstantAction {
 
         List <PermissionsDescriptor> permissionsDescriptors = privileges.executeGrantRevoke( activation, grant, grantees);
 		for (PermissionsDescriptor permissionsDescriptor : permissionsDescriptors) {
-            DDLMessage.DDLChange ddlChange = createDDLChange(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), permissionsDescriptor);
+            DDLMessage.DDLChange ddlChange = createDDLChange(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), permissionsDescriptor, grant);
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
         }
 	}
 
-    private DDLMessage.DDLChange  createDDLChange(long txnId, PermissionsDescriptor permissionsDescriptor) throws StandardException {
+    private DDLMessage.DDLChange  createDDLChange(long txnId, PermissionsDescriptor permissionsDescriptor, boolean grant) throws StandardException {
         if (permissionsDescriptor instanceof SchemaPermsDescriptor) {
             SchemaPermsDescriptor schemaPermsDescriptor = (SchemaPermsDescriptor) permissionsDescriptor;
             return ProtoUtil.createRevokeSchemaPrivilege(txnId, schemaPermsDescriptor);
@@ -92,7 +92,7 @@ public class GrantRevokeConstantOperation implements ConstantAction {
             }
 
             ColPermsDescriptor colPermsDescriptor = (ColPermsDescriptor) permissionsDescriptor;
-            return ProtoUtil.createRevokeColumnPrivilege(txnId, colPermsDescriptor);
+            return ProtoUtil.createRevokeColumnPrivilege(txnId, colPermsDescriptor, grant);
         }
         else if (permissionsDescriptor instanceof RoutinePermsDescriptor) {
             RoutinePermsDescriptor routinePermsDescriptor = (RoutinePermsDescriptor)permissionsDescriptor;
