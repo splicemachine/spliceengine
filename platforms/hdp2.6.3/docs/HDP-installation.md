@@ -122,7 +122,7 @@ These directories should be included in "yarn.application.classpath" setting in 
 /usr/hdp/current/ext/hadoop/*,
 /usr/hdp/current/hadoop-hdfs-client/*,/usr/hdp/current/hadoop-hdfs-client/lib/*,
 /usr/hdp/current/hadoop-yarn-client/*,/usr/hdp/current/hadoop-yarn-client/lib/*,
-/usr/hdp/current/hadoop-mapreduce-client/*,/usr/hdp/current/hadoop-mapreduce-client/lib/*,
+/usr/hdp/current/hadoop-mapreduce-client/*,/usr/hdp/current/hadoop-mapreduce-client/lib/*
 ```
 (Note: The prefix */usr/hdp/current* is an example directory that may be different with actual environment.)
 
