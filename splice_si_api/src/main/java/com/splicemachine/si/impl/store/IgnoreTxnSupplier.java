@@ -70,30 +70,26 @@ public class IgnoreTxnSupplier {
         if (ignoreTxnTableExists) {
             if (entryDecoder == null)
                 entryDecoder = new EntryDecoder();
-            DataResultScanner scanner = null;
-            try {
-                scanner = openScanner();
-                DataResult r = null;
-                while ((r = scanner.next()) != null) {
-                    DataCell cell = r.userData();
-                    byte[] buffer = cell.valueArray();
-                    int offset = cell.valueOffset();
-                    int length = cell.valueLength();
-                    entryDecoder.set(buffer, offset, length);
-                    MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
-                    long startTxnId = decoder.decodeNextLong();
-                    long endTxnId = decoder.decodeNextLong();
-                    cache.add(new Pair<Long, Long>(startTxnId, endTxnId));
+            try (Partition table = partitionFactory.getTable(HBaseConfiguration.IGNORE_TXN_TABLE_NAME)){
+                try (DataResultScanner scanner = openScanner(table)){
+                    DataResult r = null;
+                    while ((r = scanner.next()) != null) {
+                        DataCell cell = r.userData();
+                        byte[] buffer = cell.valueArray();
+                        int offset = cell.valueOffset();
+                        int length = cell.valueLength();
+                        entryDecoder.set(buffer, offset, length);
+                        MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
+                        long startTxnId = decoder.decodeNextLong();
+                        long endTxnId = decoder.decodeNextLong();
+                        cache.add(new Pair<Long, Long>(startTxnId, endTxnId));
+                    }
                 }
-            } finally {
-                if (scanner != null)
-                    scanner.close();
             }
         }
     }
 
-    private DataResultScanner openScanner() throws IOException {
-        Partition table = partitionFactory.getTable(HBaseConfiguration.IGNORE_TXN_TABLE_NAME);
+    private DataResultScanner openScanner(Partition table) throws IOException {
         DataScan scan = txnOperationFactory.newDataScan(null);
         return table.openResultScanner(scan);
     }
