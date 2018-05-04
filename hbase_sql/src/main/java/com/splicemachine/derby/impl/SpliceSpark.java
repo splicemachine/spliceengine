@@ -19,13 +19,11 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Iterator;
-import java.security.PrivilegedAction;
 
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
-import com.splicemachine.client.SpliceClient;
 import com.splicemachine.derby.hbase.AdapterPipelineEnvironment;
 import com.splicemachine.pipeline.PipelineEnvironment;
 import com.splicemachine.si.data.hbase.coprocessor.AdapterSIEnvironment;
@@ -193,10 +191,11 @@ public class SpliceSpark {
                 SynchronousReadResolver.DISABLED_ROLLFORWARD = true;
 
                 boolean tokenEnabled = HConfiguration.getConfiguration().getAuthenticationTokenEnabled();
+                boolean debugConnections = HConfiguration.getConfiguration().getAuthenticationTokenDebugConnections();
 
                 //boot SI components
                 SIEnvironment env = SpliceClient.isClient() && tokenEnabled ?
-                        AdapterSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper(),SpliceClient.getConnectionPool()) :
+                        AdapterSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper(),SpliceClient.getConnectionPool(debugConnections)) :
                         HBaseSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper());
                 
                 SIDriver driver = env.getSIDriver();
@@ -228,7 +227,7 @@ public class SpliceSpark {
                 ContextFactoryDriver cfDriver =ContextFactoryDriverService.loadDriver();
                 //we specify rsServices = null here because we don't actually use the receiving side of the Pipeline environment
                 PipelineEnvironment pipelineEnv= SpliceClient.isClient() && tokenEnabled ?
-                        AdapterPipelineEnvironment.loadEnvironment(clock,cfDriver,SpliceClient.getConnectionPool()) :
+                        AdapterPipelineEnvironment.loadEnvironment(clock,cfDriver,SpliceClient.getConnectionPool(debugConnections)) :
                         HBasePipelineEnvironment.loadEnvironment(clock,cfDriver);
                 PipelineDriver.loadDriver(pipelineEnv);
                 HBaseRegionLoads.INSTANCE.startWatching();
