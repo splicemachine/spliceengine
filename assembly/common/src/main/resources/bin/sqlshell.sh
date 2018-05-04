@@ -45,6 +45,25 @@ while getopts "h:p:u:s:f:" opt; do
     esac
 done
 
+# check for jdk1.8 and exit if not found
+if ( type -p java >/dev/null); then
+    _java=java
+elif [[ -n "$JAVA_HOME" ]] && [[ -x "$JAVA_HOME/bin/java" ]];  then
+    _java="$JAVA_HOME/bin/java"
+else
+    echo "Error: no java found. $0 requires java."
+    show_help
+    exit 1
+fi
+
+jversion=$("$_java" -version 2>&1 | awk -F '"' '/version/ {print $2}')
+echo -e "java version ${jversion}\n"
+if [[ "$jversion" < "1.8" ]]; then
+    echo "Error: java is older than 1.8.  $0 requires java 1.8"
+    show_help
+    exit 1
+fi
+
 # set hbase lib dir here to keep it in one place.
 SPLICE_LIB_DIR="##SPLICELIBDIR##"
 
