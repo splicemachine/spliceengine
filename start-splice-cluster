@@ -34,6 +34,19 @@ _kill_em_all () {
 }
 export -f _kill_em_all
 
+wait_for () {
+	LOG_FILE=$1
+	shift
+	NEEDLE=$*
+
+	echo -n "  Waiting. "
+	while ! grep -q "$NEEDLE" $LOG_FILE 
+		do echo -n ". " 
+		sleep 2
+	done
+	echo
+}
+
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 DEFAULT_PROFILE="cdh5.8.3"  # default hbase platform profile
 PROFILE=$DEFAULT_PROFILE
@@ -55,10 +68,11 @@ usage() {
     if [[ -n "${1}" ]]; then
         echo "Error: ${1}"
     fi
-    echo "Usage: $0 -p [<hbase_profile>] [-s <n>] [-c] [-k] -h[elp]"
+    echo "Usage: $0 -p [<hbase_profile>] [-s <n>] [-c] [-k] -f -h[elp]"
     echo "Where: "
     echo "  -b is an optional argument specifying to NOT ${MVN} clean install -DskipTest -Dspark-prepare first. The default is to build first."
     echo "  -l is an optional argument specifying to NOT run clean the environment."
+    echo "  -f is an optional argument specifying to run a fully distributed, secure environment, with Kerberos and HDFS."
     echo "  -s <n> is an optional number of additional cluster RegionServer members to start. The default is 1 master and 2 region servers."
     echo "  -c is an optional flag determining random task failures. Default is that the chaos monkey NOT run. To see if you have the chaos monkey running, execute: grep 'task fail' <hbase_profile>/splice_machine_test/splice-derby.log"
     echo "  -p <hbase_profile> is the optional splice hbase platform to run. Default is ${DEFAULT_PROFILE}. (available options are in the top level pom.xml file)"
@@ -66,7 +80,7 @@ usage() {
     echo "  -h => print this message"
 }
 
-while getopts "chkp:s:bld:" flag ; do
+while getopts "chkp:s:bld:f" flag ; do
     case $flag in
         h* | \?)
             usage
@@ -84,6 +98,10 @@ while getopts "chkp:s:bld:" flag ; do
         # DO NOT clean first
             CLEAN="0"
         ;;
+	f)
+	# Fully distributed & secure
+		DISTRIBUTED="1"
+	;;
         p)
         # the hbase profile
             PROFILE="${OPTARG}"
@@ -110,6 +128,7 @@ done
 
 SYSTEM_PROPS="-Dlog4j.configuration=hbase-log4j.properties -DfailTasksRandomly=${CHAOS}"
 
+
 #=============================================================================
 # Run...
 #=============================================================================
@@ -117,6 +136,11 @@ _kill_em_all 9
 
 if [[ ${PROFILE} == ${IN_MEM_PROFILE} ]]; then
   RUN_DIR="${BASE_DIR}/mem_sql"
+# Otherwise, set (in)secure option
+elif [[ "${DISTRIBUTED}" == "1" ]]; then
+    PROFILE="secure,${PROFILE}"
+else
+    PROFILE="insecure,${PROFILE}"
 fi
 
 echo "Running Splice $PROFILE master and ${MEMBERS} regionservers with CHAOS = ${CHAOS} in:"
@@ -174,6 +198,20 @@ if [ ${COUNT} -eq 0 ]; then
     exit 5
 fi
 
+if [[ "${DISTRIBUTED}" == "1" ]]; then
+    KDC_LOG="${RUN_DIR}/kdc.log"
+    echo "Starting KDC. Log file is ${KDC_LOG}"
+    (${MVN} exec:java -P${PROFILE},spliceKDC > ${KDC_LOG} 2>&1) &  ## KDC
+    wait_for ${KDC_LOG} "KDC cluster started" 
+    
+    export MAVEN_OPTS="$MAVEN_OPTS -Djava.security.krb5.conf=${RUN_DIR}/target/krb5.conf -Dsun.security.krb5.debug=true"
+    
+    HDFS_LOG="${RUN_DIR}/hdfs.log"
+    echo "Starting HDFS. Log file is ${HDFS_LOG}"
+    (${MVN} exec:java -P${PROFILE},spliceHdfs > ${HDFS_LOG} 2>&1) &  ## HDFS
+    wait_for ${HDFS_LOG} "HDFS cluster started"
+fi 
+  
 YARN_LOG="${RUN_DIR}/yarn.log"
 echo "Starting YARN. Log file is ${YARN_LOG}"
 (${MVN} exec:java -P${PROFILE},spliceYarn > ${YARN_LOG} 2>&1) &  ## YARN
@@ -194,7 +232,7 @@ else
 fi
 
 echo -n "  Waiting. "
-while ! echo exit | nc localhost 1527; do echo -n ". " ; sleep 5; done
+while ! echo exit | nc localhost 1527; do echo -n ". " ; sleep 2; done
 echo
 
 if [[ ${MEMBERS} -gt 0 ]]; then
@@ -204,7 +242,7 @@ if [[ ${MEMBERS} -gt 0 ]]; then
     ## (region server, splice on 1528, 1529, ...)
     (${MVN} exec:exec -P${PROFILE},spliceClusterMember ${SYSTEM_PROPS} -DmemberNumber=${MEMBER} -Dxml.plan.debug.path=${DEBUG_PATH} > ${REGION_SVR_LOG} 2>&1) &
     echo -n "  Waiting. "
-    while ! echo exit | nc localhost $(( 1527 + ${MEMBER} )); do echo -n ". " ; sleep 5; done
+    while ! echo exit | nc localhost $(( 1527 + ${MEMBER} )); do echo -n ". " ; sleep 2; done
     echo
   done
 fi
