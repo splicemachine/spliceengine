@@ -715,6 +715,25 @@
            </distributionManagement>
         </profile>
         <profile>
+            <id>insecure</id>
+            <properties>
+                <secure>false</secure>
+		<spark.warehouse>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse</spark.warehouse>
+		<hbase.rootdir>-Dhbase.rootdir=${project.build.directory}/hbase</hbase.rootdir>
+            </properties>
+        </profile>
+        <profile>
+            <id>secure</id>
+            <properties>
+                <secure>true</secure>
+		<spark.keytab>-Dsplice.spark.yarn.keytab=${project.build.directory}/splice.keytab</spark.keytab>
+		<spark.principal>-Dsplice.spark.yarn.principal=hbase/example.com@EXAMPLE.COM</spark.principal>
+		<spark.warehouse>-Dsplice.spark.sql.warehouse.dir=/user/hbase/spark-warehouse</spark.warehouse>
+		<spark.defaultfs>-Dsplice.spark.hadoop.fs.defaultFS=hdfs://localhost:58878/</spark.defaultfs>
+		<hbase.rootdir>-Dhbase.rootdir=/hbase</hbase.rootdir>
+            </properties>
+        </profile>
+        <profile>
             <!-- When jacoco is disabled,the jacocoAgent property still needs to exist -->
             <id>noJacoco</id>
             <activation>
