@@ -20,6 +20,7 @@ import java.net.UnknownHostException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Iterator;
 
+import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
@@ -192,10 +193,11 @@ public class SpliceSpark {
 
                 boolean tokenEnabled = HConfiguration.getConfiguration().getAuthenticationTokenEnabled();
                 boolean debugConnections = HConfiguration.getConfiguration().getAuthenticationTokenDebugConnections();
+                int maxConnections = HConfiguration.getConfiguration().getAuthenticationTokenMaxConnections();
 
                 //boot SI components
                 SIEnvironment env = SpliceClient.isClient() && tokenEnabled ?
-                        AdapterSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper(),SpliceClient.getConnectionPool(debugConnections)) :
+                        AdapterSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper(),SpliceClient.getConnectionPool(debugConnections,maxConnections)) :
                         HBaseSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper());
                 
                 SIDriver driver = env.getSIDriver();
@@ -231,7 +233,7 @@ public class SpliceSpark {
                 ContextFactoryDriver cfDriver =ContextFactoryDriverService.loadDriver();
                 //we specify rsServices = null here because we don't actually use the receiving side of the Pipeline environment
                 PipelineEnvironment pipelineEnv= SpliceClient.isClient() && tokenEnabled ?
-                        AdapterPipelineEnvironment.loadEnvironment(clock,cfDriver,SpliceClient.getConnectionPool(debugConnections)) :
+                        AdapterPipelineEnvironment.loadEnvironment(clock,cfDriver,SpliceClient.getConnectionPool(debugConnections, maxConnections)) :
                         HBasePipelineEnvironment.loadEnvironment(clock,cfDriver);
                 PipelineDriver.loadDriver(pipelineEnv);
                 HBaseRegionLoads.INSTANCE.startWatching();

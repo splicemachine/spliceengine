@@ -87,6 +87,9 @@ public class AuthenticationConfiguration implements ConfigurationDefault {
     public static final String AUTHENTICATION_TOKEN_DEBUG_CONNECTIONS = "splice.authentication.debug.connections";
     public static final boolean DEFAULT_AUTHENTICATION_DEBUG_CONNECTIONS = false;
 
+    public static final String AUTHENTICATION_TOKEN_MAX_CONNECTIONS = "splice.authentication.max.connections";
+    public static final int DEFAULT_AUTHENTICATION_MAX_CONNECTIONS = 100;
+
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         builder.authentication = configurationSource.getString(AUTHENTICATION, DEFAULT_AUTHENTICATION);
@@ -116,5 +119,6 @@ public class AuthenticationConfiguration implements ConfigurationDefault {
         builder.authenticationTokenMaxLifetime =  configurationSource.getInt(AUTHENTICATION_TOKEN_MAX_LIFETIME, DEFAULT_AUTHENTICATION_TOKEN_MAX_LIFETIME);
         builder.authenticationTokenEnabled =  configurationSource.getBoolean(AUTHENTICATION_TOKEN_ENABLED, DEFAULT_AUTHENTICATION_TOKEN_ENABLED);
         builder.authenticationTokenDebugConnections =  configurationSource.getBoolean(AUTHENTICATION_TOKEN_DEBUG_CONNECTIONS, DEFAULT_AUTHENTICATION_DEBUG_CONNECTIONS);
+        builder.authenticationTokenMaxConnections =  configurationSource.getInt(AUTHENTICATION_TOKEN_MAX_CONNECTIONS, DEFAULT_AUTHENTICATION_MAX_CONNECTIONS);
     }
 }
