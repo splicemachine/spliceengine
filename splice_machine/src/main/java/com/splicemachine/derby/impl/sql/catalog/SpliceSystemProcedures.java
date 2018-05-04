@@ -1118,6 +1118,20 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(deleteRegion);
 
+                    Procedure invalidateLocalCache = Procedure.newBuilder().name("INVALIDATE_DICTIONARY_CACHE")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(invalidateLocalCache);
+
+                    Procedure invalidateGlobalCache = Procedure.newBuilder().name("INVALIDATE_GLOBAL_DICTIONARY_CACHE")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(invalidateGlobalCache);
+
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)

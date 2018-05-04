@@ -1901,4 +1901,26 @@ public class SpliceAdmin extends BaseAdminProcedures{
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }
     }
+
+    public static void INVALIDATE_DICTIONARY_CACHE() throws Exception {
+        EmbedConnection conn = (EmbedConnection)getDefaultConn();
+        LanguageConnectionContext lcc = conn.getLanguageConnection();
+        DataDictionary dd = lcc.getDataDictionary();
+        dd.getDataDictionaryCache().clearAll();
+    }
+
+    public static void INVALIDATE_GLOBAL_DICTIONARY_CACHE() throws Exception {
+        List<HostAndPort> servers;
+        try {
+            servers = EngineDriver.driver().getServiceDiscovery().listServers();
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+
+        for (HostAndPort server : servers) {
+            try (Connection connection = RemoteUser.getConnection(server.toString())) {
+                connection.createStatement().execute("call SYSCS_UTIL.INVALIDATE_DICTIONARY_CACHE()");
+            }
+        }
+    }
 }
