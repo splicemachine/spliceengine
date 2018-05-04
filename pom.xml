@@ -810,6 +810,7 @@
                 <spark.major.version>spark2.1</spark.major.version>
                 <kafka.version>0.9.0.2.4.2.0-258</kafka.version>
                 <!-- <kafka.version>0.10.0.2.5.5.7-1</kafka.version> -->
+                <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
             </properties>
             <modules>
                 <module>hbase_storage</module>
@@ -837,6 +838,7 @@
                 <spark.version>2.2.0.2.6.3.0-235</spark.version>
                 <spark.major.version>spark2.2</spark.major.version>
                 <kafka.version>0.10.1.2.6.3.0-235</kafka.version>
+                <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
             </properties>
             <modules>
                 <module>hbase_storage</module>
@@ -865,6 +867,7 @@
                 <zookeeper.version>3.4.5-cdh5.8.3</zookeeper.version>
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <kafka.version>0.10.2-kafka-2.2.0</kafka.version>
+                <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
             </properties>
             <modules>
                 <module>hbase_storage</module>
@@ -892,6 +895,7 @@
                 <zookeeper.version>3.4.5-cdh5.9.0</zookeeper.version>
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <kafka.version>0.10.2-kafka-2.2.0</kafka.version>
+                <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
             </properties>
             <modules>
                 <module>hbase_storage</module>
@@ -918,6 +922,7 @@
                 <zookeeper.version>3.4.5-cdh5.12.0</zookeeper.version>
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <kafka.version>0.10.2-kafka-2.2.0</kafka.version>
+                <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
             </properties>
             <modules>
                 <module>hbase_storage</module>
@@ -945,6 +950,7 @@
                 <zookeeper.version>3.4.5-cdh5.12.2</zookeeper.version>
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <kafka.version>0.10.2-kafka-2.2.0</kafka.version>
+                <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
             </properties>
             <modules>
                 <module>hbase_storage</module>
@@ -972,6 +978,7 @@
                 <zookeeper.version>3.4.5-cdh5.13.0</zookeeper.version>
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <kafka.version>0.10.2-kafka-2.2.0</kafka.version>
+                <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
             </properties>
             <modules>
                 <module>hbase_storage</module>
@@ -999,6 +1006,7 @@
                 <zookeeper.version>3.4.5-cdh5.13.2</zookeeper.version>
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <kafka.version>0.10.2-kafka-2.2.0</kafka.version>
+                <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
             </properties>
             <modules>
                 <module>hbase_storage</module>
@@ -1026,6 +1034,7 @@
                 <zookeeper.version>3.4.5-cdh5.14.0</zookeeper.version>
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <kafka.version>0.10.2-kafka-2.2.0</kafka.version>
+                <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
             </properties>
             <modules>
                 <module>hbase_storage</module>
@@ -1055,6 +1064,7 @@
                 <spark.version>2.1.0-mapr-1710</spark.version>
                 <kafka.version>0.9.0.0-mapr-1607</kafka.version>
                 <netty.version>3.6.2.Final</netty.version>
+                <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
             </properties>
             <modules>
                 <module>hbase_storage</module>
@@ -1084,6 +1094,7 @@
                 <spark.major.version>spark2.1</spark.major.version>
                 <kafka.version>0.9.0.0-mapr-1710</kafka.version>
                 <netty.version>3.6.2.Final</netty.version>
+                <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
             </properties>
             <modules>
                 <module>hbase_storage</module>
