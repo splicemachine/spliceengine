@@ -220,14 +220,16 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     @Override
     public void reset(){
 //        impl.resetContextManager();
-        BadRecordsRecorder oldRecorder = this.badRecordsAccumulator.value();
-        BadRecordsRecorder badRecordsRecorder = new BadRecordsRecorder(
-                oldRecorder.getStatusDirectory(),
-                importFileName,
-                badRecordThreshold);
-        this.badRecordsAccumulator=SpliceSpark.getContext().accumulable(badRecordsRecorder,
-                badRecordsRecorder.getUniqueName(),
-                new BadRecordsAccumulator());
+        if (this.permissive) {
+            BadRecordsRecorder oldRecorder = this.badRecordsAccumulator.value();
+            BadRecordsRecorder badRecordsRecorder = new BadRecordsRecorder(
+                    oldRecorder.getStatusDirectory(),
+                    importFileName,
+                    badRecordThreshold);
+            this.badRecordsAccumulator = SpliceSpark.getContext().accumulable(badRecordsRecorder,
+                    badRecordsRecorder.getUniqueName(),
+                    new BadRecordsAccumulator());
+        }
         badRecordsSeen = 0;
         String baseName="";
         if (op != null) {
