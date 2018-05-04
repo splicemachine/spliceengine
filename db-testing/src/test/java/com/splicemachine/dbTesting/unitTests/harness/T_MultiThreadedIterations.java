@@ -200,8 +200,7 @@ public abstract class T_MultiThreadedIterations extends T_MultiIterations implem
 		}
 		catch (ThreadDeath death) // some other thread has died and want to see my stack 
 		{
-			out.println(threadName + "caught thread death, printing stack");
-			death.printStackTrace(out.getPrintWriter());
+			out.printThrowable(threadName + "caught thread death, printing stack", death);
 			Thread.dumpStack();
 
 			throw death;
@@ -217,7 +216,7 @@ public abstract class T_MultiThreadedIterations extends T_MultiIterations implem
 		{
 			inError = true;
 
-			error.printStackTrace(out.getPrintWriter());
+			out.printThrowable(error);
 			for (int i = 0; i < numThreads; i++)
 			{
 				if (this != TestObjects[i]) // don't kill myself again
