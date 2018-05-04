@@ -5,6 +5,7 @@ HOST="localhost"
 PORT="1527"
 USER="splice"
 PASS="admin"
+SECURE=0
 PROMPT=0
 declare -i WIDTH=128
 SCRIPT=""
@@ -23,12 +24,13 @@ message() {
 
 show_help() {
         echo "Splice Machine SQL client wrapper script"
-        echo "Usage: $(basename $BASH_SOURCE) [-U url|-h host] [-p port] [-u username] [-s password] [-P] [-w width] [-f scriptfile] [-o output] [-q]"
+        echo "Usage: $(basename $BASH_SOURCE) [-U url|-h host] [-p port] [-u username] [-s password] [-S] [-P] [-w width] [-f scriptfile] [-o output] [-q]"
         echo -e "\t-U full JDBC URL for Splice Machine database"
         echo -e "\t-h IP address or hostname of Splice Machine (HBase RegionServer)"
         echo -e "\t-p Port which Splice Machine is listening on, defaults to 1527"
         echo -e "\t-u username for Splice Machine database"
         echo -e "\t-s password for Splice Machine database"
+        echo -e "\t-S use ssl=basic on connection"
         echo -e "\t-P prompt for password"
         echo -e "\t-w width of output lines. defaults to 128"
         echo -e "\t-f sql file to be executed"
@@ -37,7 +39,7 @@ show_help() {
 }
 
 # Process command line args
-while getopts "U:h:p:u:s:Pw:f:o:q" opt; do
+while getopts "U:h:p:u:s:SPw:f:o:q" opt; do
     case $opt in
         U)
                 URL="${OPTARG}"
@@ -53,6 +55,9 @@ while getopts "U:h:p:u:s:Pw:f:o:q" opt; do
                 ;;
         s)
                 PASS="${OPTARG}"
+                ;;
+        S)
+                SECURE=1
                 ;;
         P)
                 PROMPT=1
@@ -126,10 +131,14 @@ if [[ "$OUTPUT" != "" ]]; then
    IJ_SYS_ARGS+=" -Dij.outfile=${OUTPUT}"
 fi
 
+SSL=""
 if [[ "$URL" != "" ]]; then
    IJ_SYS_ARGS+=" -Dij.connection.splice=${URL}"
 else
-   IJ_SYS_ARGS+=" -Dij.connection.splice=jdbc:splice://${HOST}:${PORT}/splicedb;user=${USER};password=${PASS}"
+   if (( $SECURE )); then
+      SSL=";ssl=basic"
+   fi
+   IJ_SYS_ARGS+=" -Dij.connection.splice=jdbc:splice://${HOST}:${PORT}/splicedb;user=${USER};password=${PASS}${SSL}"
 fi
 
 if hash rlwrap 2>/dev/null; then
