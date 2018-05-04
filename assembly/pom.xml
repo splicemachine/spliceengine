@@ -197,7 +197,7 @@
                                             <fileset dir="target/classes/conf" includes="**/*"/>
                                         </copy>
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin">
-                                            <fileset dir="target/classes/bin" includes="**/*"/>
+                                            <fileset dir="common/src/main/resources/bin" includes="**/*"/>
                                         </copy>
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts">
                                             <fileset dir="target/classes/scripts" includes="**/*" excludes="**/flatten.sh,**/restart.sh" />
@@ -478,7 +478,7 @@
                                 <configuration>
                                     <target>
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin">
-                                            <fileset dir="target/classes/bin" includes="**/*"/>
+                                            <fileset dir="common/src/main/resources/bin" includes="**/*"/>
                                         </copy>
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/conf">
                                             <fileset dir="target/classes/conf" includes="**/*"/>
