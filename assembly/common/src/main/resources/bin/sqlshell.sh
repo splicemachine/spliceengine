@@ -211,7 +211,8 @@ else
          KERBEROS+=";keytab=${KEYTAB}"
       fi
    fi
-   IJ_SYS_ARGS+=" -Dij.connection.splice=jdbc:splice://${HOST}:${PORT}/splicedb;user=${USER};password=${PASS}${SSL}${KERBEROS}"
+   IJ_SYS_ARGS+=" -Dij.connection.splice=jdbc:splice://${HOST}:${PORT}/splicedb${SSL}${KERBEROS}"
+   export JAVA_TOOL_OPTIONS="-Dij.user=$USER -Dij.password=$PASS"
 fi
 
 if hash rlwrap 2>/dev/null; then
@@ -224,4 +225,4 @@ fi
 
 message "Running Splice Machine SQL shell"
 message "For help: \"splice> help;\""
-${RLWRAP} java ${GEN_SYS_ARGS} ${IJ_SYS_ARGS}  com.splicemachine.db.tools.ij ${SCRIPT}
+${RLWRAP} java ${GEN_SYS_ARGS} ${IJ_SYS_ARGS}  com.splicemachine.db.tools.ij ${SCRIPT} 2> >(grep -v "^Picked up JAVA_TOOL_OPTIONS:" >&2)
