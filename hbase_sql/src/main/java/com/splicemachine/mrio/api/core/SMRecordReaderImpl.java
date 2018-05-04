@@ -242,6 +242,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 			SIDriver driver=SIDriver.driver();
 
 			HBaseConnectionFactory instance=HBaseConnectionFactory.getInstance(driver.getConfiguration());
+			boolean debugConnections = driver.getConfiguration().getAuthenticationTokenDebugConnections();
 			Clock clock = driver.getClock();
             // Hack added to fix statistics run... DB-4752
             if (statisticsRun)
@@ -251,7 +252,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
             	scan.setAttribute(SIConstants.TOKEN_ACL_NAME, token);
 				try {
 					ClientPartition delegate = new ClientPartition(instance.getConnection(), htable.getName(), htable, clock, NoPartitionInfoCache.getInstance());
-					clientPartition = new AdapterPartition(delegate, instance.getConnection(), SpliceClient.getConnectionPool().getConnection(),htable.getName(), NoPartitionInfoCache.getInstance());
+					clientPartition = new AdapterPartition(delegate, instance.getConnection(), SpliceClient.getConnectionPool(debugConnections).getConnection(),htable.getName(), NoPartitionInfoCache.getInstance());
 				} catch (SQLException e) {
 					throw new IOException(e);
 				}

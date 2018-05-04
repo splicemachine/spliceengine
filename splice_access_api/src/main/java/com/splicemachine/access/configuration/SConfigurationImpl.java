@@ -60,6 +60,7 @@ public final class SConfigurationImpl implements SConfiguration {
     public int authenticationTokenMaxLifetime;
     public int authenticationTokenRenewInterval;
     public boolean authenticationTokenEnabled;
+    public boolean authenticationTokenDebugConnections;
 
     // Authorization Configuration
     private final String authorizationScheme;
@@ -271,6 +272,11 @@ public final class SConfigurationImpl implements SConfiguration {
     public boolean getAuthenticationTokenEnabled() {
         return authenticationTokenEnabled;
     }
+    @Override
+    public boolean getAuthenticationTokenDebugConnections() {
+        return authenticationTokenDebugConnections;
+    }
+
 
     // DDLConfiguration
     @Override
@@ -754,6 +760,7 @@ public final class SConfigurationImpl implements SConfiguration {
         authenticationTokenLength = builder.authenticationTokenLength;
         authenticationTokenRenewInterval = builder.authenticationTokenRenewInterval;
         authenticationTokenEnabled = builder.authenticationTokenEnabled;
+        authenticationTokenDebugConnections = builder.authenticationTokenDebugConnections;
         authenticationTokenMaxLifetime = builder.authenticationTokenMaxLifetime;
         fallbackNullFraction = builder.fallbackNullFraction;
         optimizerExtraQualifierMultiplier = builder.optimizerExtraQualifierMultiplier;

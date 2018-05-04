@@ -73,6 +73,7 @@ public interface SConfiguration {
     int getAuthenticationTokenMaxLifetime();
     int getAuthenticationTokenRenewInterval();
     boolean getAuthenticationTokenEnabled();
+    boolean getAuthenticationTokenDebugConnections();
 
     // DDLConfiguration
     long getDdlDrainingInitialWait();
