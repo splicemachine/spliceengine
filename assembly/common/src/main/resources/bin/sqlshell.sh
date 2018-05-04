@@ -5,6 +5,7 @@ HOST="localhost"
 PORT="1527"
 USER="splice"
 PASS="admin"
+PROMPT=0
 declare -i WIDTH=128
 SCRIPT=""
 OUTPUT=""
@@ -22,12 +23,13 @@ message() {
 
 show_help() {
         echo "Splice Machine SQL client wrapper script"
-        echo "Usage: $(basename $BASH_SOURCE) [-U url|-h host] [-p port] [-u username] [-s password] [-w width] [-f scriptfile] [-o output] [-q]"
+        echo "Usage: $(basename $BASH_SOURCE) [-U url|-h host] [-p port] [-u username] [-s password] [-P] [-w width] [-f scriptfile] [-o output] [-q]"
         echo -e "\t-U full JDBC URL for Splice Machine database"
         echo -e "\t-h IP address or hostname of Splice Machine (HBase RegionServer)"
         echo -e "\t-p Port which Splice Machine is listening on, defaults to 1527"
         echo -e "\t-u username for Splice Machine database"
         echo -e "\t-s password for Splice Machine database"
+        echo -e "\t-P prompt for password"
         echo -e "\t-w width of output lines. defaults to 128"
         echo -e "\t-f sql file to be executed"
         echo -e "\t-o file for output"
@@ -35,7 +37,7 @@ show_help() {
 }
 
 # Process command line args
-while getopts "U:h:p:u:s:w:f:o:q" opt; do
+while getopts "U:h:p:u:s:Pw:f:o:q" opt; do
     case $opt in
         U)
                 URL="${OPTARG}"
@@ -51,6 +53,9 @@ while getopts "U:h:p:u:s:w:f:o:q" opt; do
                 ;;
         s)
                 PASS="${OPTARG}"
+                ;;
+        P)
+                PROMPT=1
                 ;;
         w)
                 WIDTH="${OPTARG}"
@@ -95,6 +100,11 @@ SPLICE_LIB_DIR="##SPLICELIBDIR##"
 
 # set up classpath to point to splice jars
 export CLASSPATH="${SPLICE_LIB_DIR}/*"
+
+# prompt silently for user password
+if (( $PROMPT )); then
+   read -s -p "Enter Password: " PASS
+fi
 
 GEN_SYS_ARGS="-Djava.awt.headless=true"
 
