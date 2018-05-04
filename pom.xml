@@ -927,7 +927,7 @@
                 <spark.major.version>spark2.2</spark.major.version>
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <kafka.version>0.10.2-kafka-2.2.0</kafka.version>
-                <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
+                <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
             </properties>
             <modules>
                 <module>hbase_storage</module>
@@ -955,7 +955,7 @@
                 <spark.major.version>spark2.2</spark.major.version>
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <kafka.version>0.10.2-kafka-2.2.0</kafka.version>
-                <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
+                <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
             </properties>
             <modules>
                 <module>hbase_storage</module>
@@ -983,7 +983,7 @@
                 <spark.major.version>spark2.2</spark.major.version>
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <kafka.version>0.10.2-kafka-2.2.0</kafka.version>
-                <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
+                <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
             </properties>
             <modules>
                 <module>hbase_storage</module>
@@ -1011,7 +1011,7 @@
                 <spark.major.version>spark2.2</spark.major.version>
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <kafka.version>0.10.2-kafka-2.2.0</kafka.version>
-                <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
+                <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
             </properties>
             <modules>
                 <module>hbase_storage</module>
@@ -1039,7 +1039,7 @@
                 <spark.major.version>spark2.2</spark.major.version>
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <kafka.version>0.10.2-kafka-2.2.0</kafka.version>
-                <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
+                <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
             </properties>
             <modules>
                 <module>hbase_storage</module>
@@ -1067,7 +1067,7 @@
                 <zookeeper.version>3.4.5-cdh5.13.2</zookeeper.version>
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <kafka.version>0.10.2-kafka-2.2.0</kafka.version>
-                <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
+                <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
             </properties>
             <modules>
                 <module>hbase_storage</module>
@@ -1096,7 +1096,7 @@
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.14.0</spark-assembly-id>
                 <kafka.version>0.10.2-kafka-2.2.0</kafka.version>
-                <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
+                <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
             </properties>
             <modules>
                 <module>hbase_storage</module>
