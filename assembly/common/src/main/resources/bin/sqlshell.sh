@@ -112,7 +112,7 @@ if [[ "$URL" != "" ]]; then
       echo "Error: you cannot supply both a URL and the -s password option"
       exit 1
    elif (( $SECURE )); then
-      echo "Error: you cannot supply both a URL and the -S ssl flag
+      echo "Error: you cannot supply both a URL and the -S ssl flag"
       exit 1
    elif [[ "$PRINCIPAL" != "" ]]; then
       echo "Error: you cannot supply both a URL and the -k principal option"
@@ -172,7 +172,7 @@ fi
 # prompt silently for user password
 if (( $PROMPT )); then
    read -s -p "Enter Password: " PASS
-elif [[ "${PASSARG}" != "" ]];
+elif [[ "${PASSARG}" != "" ]]; then
    PASS=$PASSARG
 fi
 
