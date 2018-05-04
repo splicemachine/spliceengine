@@ -192,10 +192,11 @@ public class SpliceSpark {
 
                 boolean tokenEnabled = HConfiguration.getConfiguration().getAuthenticationTokenEnabled();
                 boolean debugConnections = HConfiguration.getConfiguration().getAuthenticationTokenDebugConnections();
+                int maxConnections = HConfiguration.getConfiguration().getAuthenticationTokenMaxConnections();
 
                 //boot SI components
                 SIEnvironment env = SpliceClient.isClient() && tokenEnabled ?
-                        AdapterSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper(),SpliceClient.getConnectionPool(debugConnections)) :
+                        AdapterSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper(),SpliceClient.getConnectionPool(debugConnections,maxConnections)) :
                         HBaseSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper());
                 
                 SIDriver driver = env.getSIDriver();
@@ -227,7 +228,7 @@ public class SpliceSpark {
                 ContextFactoryDriver cfDriver =ContextFactoryDriverService.loadDriver();
                 //we specify rsServices = null here because we don't actually use the receiving side of the Pipeline environment
                 PipelineEnvironment pipelineEnv= SpliceClient.isClient() && tokenEnabled ?
-                        AdapterPipelineEnvironment.loadEnvironment(clock,cfDriver,SpliceClient.getConnectionPool(debugConnections)) :
+                        AdapterPipelineEnvironment.loadEnvironment(clock,cfDriver,SpliceClient.getConnectionPool(debugConnections, maxConnections)) :
                         HBasePipelineEnvironment.loadEnvironment(clock,cfDriver);
                 PipelineDriver.loadDriver(pipelineEnv);
                 HBaseRegionLoads.INSTANCE.startWatching();
