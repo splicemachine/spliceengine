@@ -108,7 +108,7 @@ public class SpliceClient {
     }
 
     private static volatile ComboPooledDataSource pool;
-    public static DataSource getConnectionPool(boolean debugConnections) {
+    public static DataSource getConnectionPool(boolean debugConnections, int maxConnections) {
         if (pool == null) {
             synchronized (SpliceClient.class) {
                 if (pool == null) {
@@ -117,9 +117,9 @@ public class SpliceClient {
                         pool.setDriverClass("com.splicemachine.db.jdbc.Driver40");
                         pool.setJdbcUrl(connectionString);
 
-                        pool.setMinPoolSize(5);
+                        pool.setMinPoolSize(10);
                         pool.setAcquireIncrement(5);
-                        pool.setMaxPoolSize(100);
+                        pool.setMaxPoolSize(maxConnections);
                         if (debugConnections) {
                             pool.setUnreturnedConnectionTimeout(60);
                             pool.setDebugUnreturnedConnectionStackTraces(true);
