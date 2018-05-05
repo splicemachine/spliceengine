@@ -322,7 +322,9 @@ public class BulkWriteAction implements Callable<WriteStats>{
                                     ctx.refreshCache=ctx.refreshCache || isFailure;
                                     ctx.sleep=true; //always sleep
                                 }
-                                writtenCounter.add(currentBulkWrite.getSize() - writes.size());
+                                writtenCounter.add(currentBulkWrite.getSize() -
+                                        bulkWriteResult.getNotRunRows().size() -
+                                        bulkWriteResult.getFailedRows().size());
                                 partialRetriedRows.add(writes.size());
                                 break;
                             case IGNORE:
