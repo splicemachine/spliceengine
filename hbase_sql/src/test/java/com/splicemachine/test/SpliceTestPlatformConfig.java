@@ -17,17 +17,12 @@ package com.splicemachine.test;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.spark_project.guava.collect.Lists.transform;
-
-import java.io.IOException;
 import java.util.List;
 
 import com.splicemachine.access.configuration.OlapConfigurations;
 import com.splicemachine.compactions.SpliceDefaultCompactor;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
-import org.apache.commons.collections.ListUtils;
 import org.apache.hadoop.hbase.security.access.AccessController;
-import com.splicemachine.compactions.SpliceDefaultCompactor;
-import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import org.apache.hadoop.hbase.security.token.TokenProvider;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.spark_project.guava.base.Function;
@@ -63,29 +58,20 @@ class SpliceTestPlatformConfig {
     );
 
     private static final List<Class<?>> REGION_COPROCESSORS = ImmutableList.<Class<?>>of(
+            TokenProvider.class,
+            AccessController.class,
             MemstoreAwareObserver.class,
             SpliceIndexObserver.class,
             SpliceIndexEndpoint.class,
             RegionSizeEndpoint.class,
             TxnLifecycleEndpoint.class,
             SIObserver.class,
-            BackupEndpointObserver.class ,
-            TokenProvider.class
+            BackupEndpointObserver.class
     );
 
-
-    private static final List<Class<?>> SECURE_REGION_COPROCESSORS = ListUtils.union(ImmutableList.<Class<?>>of(
-            TokenProvider.class,
-            AccessController.class
-    ), REGION_COPROCESSORS);
-
-
     private static final List<Class<?>> MASTER_COPROCESSORS = ImmutableList.<Class<?>>of(
+            AccessController.class,
             SpliceMasterObserver.class);
-
-    private static final List<Class<?>> SECURE_MASTER_COPROCESSORS = ListUtils.union(
-            ImmutableList.<Class<?>>of(
-            AccessController.class), MASTER_COPROCESSORS);
 
     private static final List<Class<?>> HFILE_CLEANERS = ImmutableList.<Class<?>>of(
             SpliceHFileCleaner.class,
@@ -101,8 +87,7 @@ class SpliceTestPlatformConfig {
                                        Integer regionServerInfoPort,
                                        Integer derbyPort,
                                        boolean failTasksRandomly,
-                                       String olapLog4jConfig,
-                                       boolean secure) {
+                                       String olapLog4jConfig) {
 
         Configuration config = HConfiguration.unwrapDelegate();
 
@@ -112,24 +97,8 @@ class SpliceTestPlatformConfig {
         // Coprocessors
         //
         config.set("hbase.coprocessor.regionserver.classes", getRegionServerCoprocessorsAsString());
-        config.set("hbase.coprocessor.region.classes", getRegionCoprocessorsAsString(secure));
-        config.set("hbase.coprocessor.master.classes", getMasterCoprocessorsAsString(secure));
-
-        // Security
-
-        if (secure) {
-            String keytab = hbaseRootDirUri + "/splice.keytab";
-            config.set("hadoop.security.authentication", "kerberos");
-            config.set("hbase.security.authentication", "kerberos");
-            config.set("hbase.regionserver.kerberos.principal", "hbase/example.com@EXAMPLE.COM");
-            config.set("hbase.regionserver.keytab.file", keytab);
-            config.set("hbase.master.kerberos.principal", "hbase/example.com@EXAMPLE.COM");
-            config.set("hbase.master.keytab.file", keytab);
-            config.set("yarn.nodemanager.principal", "yarn/example.com@EXAMPLE.COM");
-            config.set("yarn.resourcemanager.principal", "yarn/example.com@EXAMPLE.COM");
-        }
-
-//        UserGroupInformation.setLoginUser(Us);
+        config.set("hbase.coprocessor.region.classes", getRegionCoprocessorsAsString());
+        config.set("hbase.coprocessor.master.classes", getMasterCoprocessorsAsString());
 
         //
         // Networking
@@ -163,21 +132,15 @@ class SpliceTestPlatformConfig {
         //
         // File System
         //
-        String defaultFs = secure ? "hdfs://localhost:58878/" : "file:///";
-
-        config.set("fs.defaultFS", defaultFs); // MapR Hack, tells it local filesystem // fs.default.name is deprecated
-        config.set(FileSystem.FS_DEFAULT_NAME_KEY, defaultFs);
+        config.set("fs.defaultFS", "file:///"); // MapR Hack, tells it local filesystem // fs.default.name is deprecated
+        config.set(FileSystem.FS_DEFAULT_NAME_KEY, "file:///");
         config.setDouble("yarn.nodemanager.resource.io-spindles",2.0);
-        config.set("fs.default.name", defaultFs);
+        config.set("fs.default.name", "file:///");
         config.set("yarn.nodemanager.container-executor.class","org.apache.hadoop.yarn.server.nodemanager.DefaultContainerExecutor");
 
         // Must allow Cygwin instance to config its own rootURI
         if (!"CYGWIN".equals(hbaseRootDirUri)) {
-            if (secure)
-                config.set("hbase.rootdir", "hdfs://localhost:58878/hbase");
-            else
-                config.set("hbase.rootdir", hbaseRootDirUri+"/hbase");
-
+            config.set("hbase.rootdir", hbaseRootDirUri);
         }
 
 
@@ -287,12 +250,12 @@ class SpliceTestPlatformConfig {
         return Joiner.on(",").join(transform(REGION_SERVER_COPROCESSORS, CLASS_NAME_FUNC));
     }
 
-    private static String getRegionCoprocessorsAsString(boolean secure) {
-        return Joiner.on(",").join(transform(secure ? SECURE_REGION_COPROCESSORS : REGION_COPROCESSORS, CLASS_NAME_FUNC));
+    private static String getRegionCoprocessorsAsString() {
+        return Joiner.on(",").join(transform(REGION_COPROCESSORS, CLASS_NAME_FUNC));
     }
 
-    private static String getMasterCoprocessorsAsString(boolean secure) {
-        return Joiner.on(",").join(transform(secure ? SECURE_MASTER_COPROCESSORS : MASTER_COPROCESSORS, CLASS_NAME_FUNC));
+    private static String getMasterCoprocessorsAsString() {
+        return Joiner.on(",").join(transform(MASTER_COPROCESSORS, CLASS_NAME_FUNC));
     }
 
     private static String getHFileCleanerAsString() {

@@ -22,16 +22,9 @@ import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.zookeeper.KeeperException;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.net.URL;
-import java.security.PrivilegedExceptionAction;
 
 /**
  * Start MiniHBaseCluster for use by ITs.
@@ -39,7 +32,7 @@ import java.security.PrivilegedExceptionAction;
 public class SpliceTestPlatform {
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 9) {
+        if (args.length != 8) {
             SpliceTestPlatformUsage.usage("Unknown argument(s)", null);
         }
         try {
@@ -52,7 +45,6 @@ public class SpliceTestPlatform {
             Integer derbyPort = Integer.valueOf(args[5]);
             boolean failTasksRandomly = Boolean.valueOf(args[6]);
             String olapLog4jConfig = args[7];
-            boolean secure = Boolean.parseBoolean(args[8]);
 
             Configuration config = SpliceTestPlatformConfig.create(
                     hbaseRootDirUri,
@@ -62,8 +54,7 @@ public class SpliceTestPlatform {
                     regionServerInfoPort,
                     derbyPort,
                     failTasksRandomly,
-                    olapLog4jConfig,
-                    secure);
+                    olapLog4jConfig);
 
             // clean-up zookeeper
             try {
@@ -77,38 +68,9 @@ public class SpliceTestPlatform {
                 // ignore
             }
 
-            String keytab = hbaseRootDirUri+"/splice.keytab";
-            UserGroupInformation ugi;
-            if (secure) {
-                ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI("hbase/example.com@EXAMPLE.COM", keytab);
-            } else {
-                ugi = UserGroupInformation.createRemoteUser("hbase");
-            }
-            UserGroupInformation.setLoginUser(ugi);
-            ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
+            MiniHBaseCluster miniHBaseCluster = new MiniHBaseCluster(config, 1, 1);
 
-            ugi.doAs(new PrivilegedExceptionAction<Void>() {
-                @Override
-                public Void run() throws Exception {
-                    MiniHBaseCluster miniHBaseCluster = new MiniHBaseCluster(config, 1, 1);
-                    new SpliceTestPlatformShutdownThread(miniHBaseCluster);
-
-                    Configuration hbaseConf = miniHBaseCluster.getConfiguration();
-                    hbaseConf.writeXml(bytesOut);
-                    bytesOut.close();
-
-                    return null;
-                }
-
-            });
-
-            String hbaseSiteFile = hbaseRootDirUri+"/hbase-site.xml";
-            File file = new File(new URL(hbaseSiteFile).getPath());
-            file.createNewFile();
-            //write the bytes to the file in the classpath
-            OutputStream os = new FileOutputStream(file);
-            os.write(bytesOut.toByteArray());
-            os.close();
+            new SpliceTestPlatformShutdownThread(miniHBaseCluster);
 
         } catch (NumberFormatException e) {
             SpliceTestPlatformUsage.usage("Bad port specified", e);
