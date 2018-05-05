@@ -91,10 +91,20 @@ public abstract class HFileGenerationFunction implements MapPartitionsFunction<R
     public Iterator<String> call(Iterator<Row> mainAndIndexRows) throws Exception {
 
         try {
+            String lastKey = null;
             while (mainAndIndexRows.hasNext()) {
                 Row row = mainAndIndexRows.next();
                 Long conglomerateId = row.getAs("conglomerateId");
-                byte[] key = Bytes.fromHex(row.getAs("key"));
+                String keyStr = row.getAs("key");
+                if (lastKey != null && lastKey.equals(keyStr)) {
+                    if (operationContext != null) {
+                        operationContext.recordBadRecord("Primary key duplicate, row: "
+                            + row.toString(), null);
+                    }
+                    continue;
+                }
+                lastKey = keyStr;
+                byte[] key = Bytes.fromHex(keyStr);
                 byte[] value = row.getAs("value");
                 if (LOG.isDebugEnabled()) {
                     SpliceLogUtils.error(LOG, "conglomerateId:%d, key:%s, value:%s",
