@@ -237,6 +237,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
 
             if(retryPipingCallBuffer!=null){
                 writesToPerform.addAll(retryPipingCallBuffer.getBulkWrites());
+                retryPipingCallBuffer.close();
                 retryPipingCallBuffer=null;
             }
         }while(!writesToPerform.isEmpty());
