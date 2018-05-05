@@ -16,14 +16,13 @@
 package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.*;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
 import org.spark_project.guava.base.Throwables;
 
 import java.io.File;
@@ -49,13 +48,27 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
     private static final String PART = "PART";
     private static final String NATION = "NATION";
     private static final String REGION = "REGION";
+    private static final String ROWS_COUNT_WITH_SAMPLE = "ROWS_COUNT_WITH_SAMPLE";
+    private static final String ROWS_COUNT_WITHOUT_SAMPLE = "ROWS_COUNT_WITHOUT_SAMPLE";
     private static boolean notSupported;
 
     @ClassRule
     public static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
 
-    @ClassRule
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
+
+    public static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(ROWS_COUNT_WITH_SAMPLE,
+            spliceSchemaWatcher.schemaName,
+            "(i varchar(10), j varchar(10) not null, constraint a_pk1 primary key (i))");
+
+    public static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(ROWS_COUNT_WITHOUT_SAMPLE,
+            spliceSchemaWatcher.schemaName,
+            "(i varchar(10), j varchar(10) not null, constraint a_pk2 primary key (i))");
+
+    @ClassRule
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+            .around(spliceTableWatcher1)
+            .around(spliceTableWatcher2);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA_NAME);
@@ -133,6 +146,34 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
         int count = rs.getInt(1);
         Assert.assertTrue(count==0);
     }
+
+    @Test
+    public void testRowsCountWithSample() throws Exception {
+        ResultSet result = spliceClassWatcher.prepareStatement(format(
+                "call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s',null,null,null,null,null,-1,null,true,null, '%s', false)",
+                SCHEMA_NAME, ROWS_COUNT_WITH_SAMPLE, getResourceDirectory() + "rows_count.csv", getResource("data")))
+                .executeQuery();
+        result.next();
+        int rowsCount = result.getInt(1);
+        int badRecords = result.getInt(2);
+        assertEquals(rowsCount, 1);
+        assertEquals(badRecords, 2);
+    }
+
+    @Test
+    public void testRowsCountWithoutSample() throws Exception {
+        ResultSet result = spliceClassWatcher.prepareStatement(format(
+                "call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s',null,null,null,null,null,-1,null,true,null, '%s', true)",
+                SCHEMA_NAME, ROWS_COUNT_WITHOUT_SAMPLE, getResourceDirectory() + "rows_count.csv", getResource("data")))
+                .executeQuery();
+        result.next();
+        int rowsCount = result.getInt(1);
+        int badRecords = result.getInt(2);
+        assertEquals(rowsCount, 1);
+        assertEquals(badRecords, 2);
+    }
+
+
     @Test
     public void sql1() throws Exception {
         if (notSupported)

@@ -218,7 +218,6 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
             assert encode.getRowKey()!=null && encode.getRowKey().length>0:"Tried to buffer incorrect row key";
             writeBuffer.add(encode);
             TriggerHandler.fireAfterRowTriggers(triggerHandler,execRow,flushCallback);
-            operationContext.recordWrite();
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }

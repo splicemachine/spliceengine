@@ -67,12 +67,11 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
             operation.fireBeforeStatementTriggers();
             pipelineWriter.open(operation.getTriggerHandler(),operation);
             pipelineWriter.write(dataSet.toLocalIterator());
-
-            long recordsWritten = operationContext.getRecordsWritten();
-            operationContext.getActivation().getLanguageConnectionContext().setRecordsImported(operationContext.getRecordsWritten());
             txn.commit(); // Commit before closing pipeline so triggers see our writes
             if(pipelineWriter!=null)
                 pipelineWriter.close();
+            long recordsWritten = operationContext.getRecordsWritten();
+            operationContext.getActivation().getLanguageConnectionContext().setRecordsImported(operationContext.getRecordsWritten());
             long badRecords = 0;
             if(operation instanceof InsertOperation){
                 InsertOperation insertOperation = (InsertOperation)operation;
