@@ -30,7 +30,7 @@ class SpliceTestPlatformUsage {
             t.printStackTrace(out);
         }
         out.println("Usage: String hbaseRootDirUri, Integer masterPort, " +
-                "Integer masterInfoPort, Integer regionServerPort, Integer regionServerInfoPort, Integer derbyPort, String true|false, String olapLog4jConfig, Boolean secure");
+                "Integer masterInfoPort, Integer regionServerPort, Integer regionServerInfoPort, Integer derbyPort, String true|false, String olapLog4jConfig");
 
         System.exit(1);
     }
