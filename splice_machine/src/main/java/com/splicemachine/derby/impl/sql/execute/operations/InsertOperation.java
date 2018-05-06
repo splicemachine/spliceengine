@@ -412,11 +412,13 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
 
         try {
             for (long cid : writeInfo.getIndexConglomerateIds()) {
-                Partition table = tableFactory.getTable(Long.toString(cid));
+                try (Partition table = tableFactory.getTable(Long.toString(cid))) {
+                    table.flush();
+                }
+            }
+            try (Partition table = tableFactory.getTable(Long.toString(writeInfo.getConglomerateId()))) {
                 table.flush();
             }
-            Partition table = tableFactory.getTable(Long.toString(writeInfo.getConglomerateId()));
-            table.flush();
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }

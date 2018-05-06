@@ -308,6 +308,13 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
         }
         rebuildIfNecessary();
 
+        // Table
+        try {
+            table.close();
+        } catch (Exception e) {
+            LOG.warn("Exception while closing table", e);
+        }
+
         // Server
         for (ServerCallBuffer buffer : serverNameToRegionServerCBMap.values()) {
             buffer.close();
