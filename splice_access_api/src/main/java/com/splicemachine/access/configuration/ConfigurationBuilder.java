@@ -63,6 +63,8 @@ public class ConfigurationBuilder {
     public int authenticationTokenMaxLifetime;
     public int authenticationTokenRenewInterval;
     public boolean authenticationTokenEnabled;
+    public boolean authenticationTokenDebugConnections;
+    public int authenticationTokenMaxConnections;
 
     // StatsConfiguration
     public double fallbackNullFraction;

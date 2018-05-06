@@ -2,6 +2,7 @@ package com.splicemachine.client;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
@@ -107,7 +108,7 @@ public class SpliceClient {
     }
 
     private static volatile ComboPooledDataSource pool;
-    public static DataSource getConnectionPool() {
+    public static DataSource getConnectionPool(boolean debugConnections, int maxConnections) {
         if (pool == null) {
             synchronized (SpliceClient.class) {
                 if (pool == null) {
@@ -116,9 +117,13 @@ public class SpliceClient {
                         pool.setDriverClass("com.splicemachine.db.jdbc.Driver40");
                         pool.setJdbcUrl(connectionString);
 
-                        pool.setMinPoolSize(5);
+                        pool.setMinPoolSize(10);
                         pool.setAcquireIncrement(5);
-                        pool.setMaxPoolSize(100);
+                        pool.setMaxPoolSize(maxConnections);
+                        if (debugConnections) {
+                            pool.setUnreturnedConnectionTimeout(60);
+                            pool.setDebugUnreturnedConnectionStackTraces(true);
+                        }
                     } catch (PropertyVetoException e) {
                         e.printStackTrace();
                     }
