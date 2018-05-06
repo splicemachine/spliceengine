@@ -149,6 +149,8 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void testRowsCountWithSample() throws Exception {
+        if (notSupported)
+            return;
         ResultSet result = spliceClassWatcher.prepareStatement(format(
                 "call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s',null,null,null,null,null,-1,null,true,null, '%s', false)",
                 SCHEMA_NAME, ROWS_COUNT_WITH_SAMPLE, getResourceDirectory() + "rows_count.csv", getResource("data")))
@@ -162,6 +164,8 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void testRowsCountWithoutSample() throws Exception {
+        if (notSupported)
+            return;
         ResultSet result = spliceClassWatcher.prepareStatement(format(
                 "call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s',null,null,null,null,null,-1,null,true,null, '%s', true)",
                 SCHEMA_NAME, ROWS_COUNT_WITHOUT_SAMPLE, getResourceDirectory() + "rows_count.csv", getResource("data")))
