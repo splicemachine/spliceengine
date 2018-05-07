@@ -171,6 +171,15 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
                 !(innerTable instanceof RowResultSetNode)                     &&
                 !(innerTable instanceof SetOperatorNode)) {
 
+                // Base tables only supported for inequality broadcast
+                // join in the first pass to reduce risk.
+                FromTable prn = (FromTable)innerTable;
+                while (prn instanceof ProjectRestrictNode &&
+                       ((ProjectRestrictNode)prn).childResult instanceof FromTable)
+                    prn = (FromTable)((ProjectRestrictNode)prn).childResult;
+                if (!(prn instanceof FromBaseTable))
+                    return false;
+
                 Predicate pred = null;
                 // If we do not currently have a join predicate, it may just
                 // be because the predicate can't be applied given the current
@@ -450,18 +459,19 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         }
         int[] hashKeyColumns = findHashKeyColumns(hashTableFor, cd, nonStoreRestrictionList);
 
-        if (hashKeyColumns == null && !innerTable.getTrulyTheBestAccessPath().isMissingHashKeyOK()){
-            String name;
-            if (cd != null && cd.isIndex()) {
-                name = cd.getConglomerateName();
+        if (hashKeyColumns == null) {
+            if (!innerTable.getTrulyTheBestAccessPath().isMissingHashKeyOK()) {
+                String name;
+                if (cd != null && cd.isIndex()) {
+                    name = cd.getConglomerateName();
+                } else {
+                    name = innerTable.getBaseTableName();
+                }
+                throw StandardException.newException(SQLState.LANG_HASH_NO_EQUIJOIN_FOUND, name, innerTable.getBaseTableName());
             }
-            else {
-                name = innerTable.getBaseTableName();
-            }
-            throw StandardException.newException(SQLState.LANG_HASH_NO_EQUIJOIN_FOUND, name, innerTable.getBaseTableName());
+            else
+                hashKeyColumns = new int[0];  // To designate there is no hash key: inequality join
         }
-        else
-            hashKeyColumns = new int[0];  // To designate there is no hash key: inequality join
 
         innerTable.setHashKeyColumns(hashKeyColumns);
 
