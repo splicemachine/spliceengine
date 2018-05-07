@@ -170,11 +170,7 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
 
   def getYarnSiteDesiredValues(self):
       yarn_site_desired_values = {
-          "hdp.version" : "2.6.3.0-235",
-          "yarn.application.classpath" : ("/usr/hdp/current/ext/hadoop/*,"
-                                          "/usr/hdp/current/hadoop-hdfs-client/*,/usr/hdp/current/hadoop-hdfs-client/lib/*,"
-                                          "/usr/hdp/current/hadoop-yarn-client/*,/usr/hdp/current/hadoop-yarn-client/lib/*,"
-                                          "/usr/hdp/current/hadoop-mapreduce-client/*,/usr/hdp/current/hadoop-mapreduce-client/lib/*")
+          "hdp.version" : "2.6.3.0-235"
 
       }
       return yarn_site_desired_values
