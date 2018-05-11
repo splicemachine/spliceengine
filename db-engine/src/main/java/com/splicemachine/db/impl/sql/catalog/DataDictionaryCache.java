@@ -589,7 +589,7 @@ public class DataDictionaryCache {
     }
 
     public ConglomerateDescriptor conglomerateDescriptorCacheFind(long conglomId) throws StandardException {
-        if (!dd.canReadCache(null))
+        if (!dd.canUseCache(null))
             return null;
         
         if (LOG.isDebugEnabled())
@@ -599,7 +599,7 @@ public class DataDictionaryCache {
 
 
     public void conglomerateDescriptorCacheAdd(Long conglomId, ConglomerateDescriptor conglomerate) throws StandardException {
-        if (!dd.canWriteCache(null))
+        if (!dd.canUseCache(null))
             return;
         if (LOG.isDebugEnabled())
             LOG.debug("conglomerateDescriptorCacheAdd " + conglomId + " : " + conglomerate);
