@@ -87,7 +87,7 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         if property not in hbase_site or hbase_site[property] != desired_value:
           putHBaseSiteProperty(property, desired_value)
 
-    # Update hbase-site properties in hbase-site
+    # Update yarn-site properties in yarn-site
     if "yarn-site" in services["configurations"]:
         yarn_site = services["configurations"]["yarn-site"]["properties"]
         putYarnSitePropertyAttributes = self.putPropertyAttribute(configurations, "yarn-site")
