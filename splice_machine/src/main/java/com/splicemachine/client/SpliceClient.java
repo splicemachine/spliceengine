@@ -2,6 +2,7 @@ package com.splicemachine.client;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
@@ -9,10 +10,12 @@ import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
 
 import javax.sql.DataSource;
 import java.beans.PropertyVetoException;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.TimeZone;
@@ -26,6 +29,11 @@ import java.util.concurrent.TimeUnit;
 public class SpliceClient {
     private static final Logger LOG = Logger.getLogger(SpliceClient.class);
 
+    public enum Mode {
+        MASTER,
+        EXECUTOR
+    }
+
     private static volatile boolean isClient = false;
     public static boolean isRegionServer = false;
     public static volatile String connectionString;
@@ -34,10 +42,29 @@ public class SpliceClient {
     private static ScheduledExecutorService service = Executors.newScheduledThreadPool(2,
             new ThreadFactoryBuilder().setNameFormat("SpliceTokenRenewer").setDaemon(true).build());
 
-    public static synchronized void setClient() {
+    public static synchronized void setClient(Mode mode) {
         if (!isClient) {
             isClient = true;
+            if (mode.equals(Mode.MASTER))
+                grantHBasePrivileges();
             initializeTokenInternal();
+        }
+    }
+
+    private static void grantHBasePrivileges() {
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            try (PreparedStatement statement = conn.prepareStatement("call SYSCS_UTIL.SYSCS_HBASE_OPERATION(?,?,?)")) {
+                statement.setString(1, "splice:SPLICE_TXN"); // not used, reference any splice system table
+                statement.setString(2, "grant");
+                String userName = UserGroupInformation.getCurrentUser().getShortUserName();
+                statement.setBlob(3, new ArrayInputStream(Bytes.toBytes(userName)));
+                ResultSet rs = statement.executeQuery();
+                rs.next();
+
+                LOG.info("Granted HBase privileges on splice namespace to user " + userName);
+            }
+        } catch (Throwable t) {
+            LOG.error("Error while granting HBase privileges, job might fail", t);
         }
     }
 
