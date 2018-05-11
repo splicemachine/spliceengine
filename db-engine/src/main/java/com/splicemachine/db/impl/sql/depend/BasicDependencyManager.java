@@ -492,6 +492,7 @@ public class BasicDependencyManager implements DependencyManager {
         for (ConglomerateDescriptor cd: td.getConglomerateDescriptorList()) {
             cache.partitionStatisticsCacheRemove(cd.getConglomerateNumber());
             cache.conglomerateCacheRemove(cd.getConglomerateNumber());
+            cache.conglomerateDescriptorCacheRemove(cd.getConglomerateNumber());
         }
 
     }
