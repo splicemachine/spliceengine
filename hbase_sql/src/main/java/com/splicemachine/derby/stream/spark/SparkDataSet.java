@@ -733,7 +733,15 @@ public class SparkDataSet<V> implements DataSet<V> {
             for (int i = 0; i < partitionBy.length; i++) {
                 partitionByCols.add(ValueRow.getNamedColumn(partitionBy[i]));
             }
-            insertDF.write().option(SPARK_COMPRESSION_OPTION,compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
+            if (partitionBy.length > 0) {
+                List<Column> repartitionCols = new ArrayList();
+                for (int i = 0; i < partitionBy.length; i++) {
+                    repartitionCols.add(new Column(ValueRow.getNamedColumn(partitionBy[i])));
+                }
+                insertDF = insertDF.repartition(scala.collection.JavaConversions.asScalaBuffer(repartitionCols).toList());
+            }
+            insertDF.write().option(SPARK_COMPRESSION_OPTION,compression)
+                    .partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
                     .mode(SaveMode.Append).parquet(location);
             ValueRow valueRow=new ValueRow(1);
             valueRow.setColumn(1,new SQLLongint(context.getRecordsWritten()));
@@ -757,6 +765,13 @@ public class SparkDataSet<V> implements DataSet<V> {
             List<Column> partitionByCols = new ArrayList();
             for (int i = 0; i < partitionBy.length; i++) {
                 partitionByCols.add(new Column(ValueRow.getNamedColumn(partitionBy[i])));
+            }
+            if (partitionBy.length > 0) {
+                List<Column> repartitionCols = new ArrayList();
+                for (int i = 0; i < partitionBy.length; i++) {
+                    repartitionCols.add(new Column(ValueRow.getNamedColumn(partitionBy[i])));
+                }
+                insertDF = insertDF.repartition(scala.collection.JavaConversions.asScalaBuffer(repartitionCols).toList());
             }
             insertDF.write().option(SPARK_COMPRESSION_OPTION,compression)
                     .partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
