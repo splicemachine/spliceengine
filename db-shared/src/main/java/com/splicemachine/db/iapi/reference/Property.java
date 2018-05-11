@@ -662,6 +662,15 @@ public interface Property {
 	int		LANG_CONGLOMERATE_CACHE_SIZE_DEFAULT =1024;
 
 	/**
+	 * The size of the conglomerate descriptor cache
+	 * used by the data dictionary.  Database.  Static.
+	 * <p>
+	 * Undocumented.
+	 */
+	String	LANG_CONGLOMERATE_DESCRIPTOR_CACHE_SIZE = "derby.language.conglomerateDescriptorCacheSize";
+	int		LANG_CONGLOMERATE_DESCRIPTOR_CACHE_SIZE_DEFAULT =1024;
+
+	/**
 	 * The size of the statement cache
 	 * used by the data dictionary.  Database.  Static.
 	 * <p>
