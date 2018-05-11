@@ -57,7 +57,7 @@ public class SpliceClient {
                 statement.setString(1, "splice:SPLICE_TXN"); // not used, reference any splice system table
                 statement.setString(2, "grant");
                 String userName = UserGroupInformation.getCurrentUser().getShortUserName();
-                statement.setBlob(1, new ArrayInputStream(Bytes.toBytes(userName)));
+                statement.setBlob(3, new ArrayInputStream(Bytes.toBytes(userName)));
                 ResultSet rs = statement.executeQuery();
                 rs.next();
 
