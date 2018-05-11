@@ -5301,10 +5301,16 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     @Override
     public ConglomerateDescriptor getConglomerateDescriptor(long conglomerateNumber) throws StandardException{
+        ConglomerateDescriptor result = dataDictionaryCache.conglomerateDescriptorCacheFind(conglomerateNumber);
+        if (result != null) {
+            return result;
+        }
         ConglomerateDescriptor[] cds=getConglomerateDescriptors(conglomerateNumber);
         if(cds.length==0)
             return null;
-        return cds[0];
+        result = cds[0];
+        dataDictionaryCache.conglomerateDescriptorCacheAdd(conglomerateNumber, result);
+        return result;
     }
 
     /**
