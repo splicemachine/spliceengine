@@ -87,7 +87,8 @@ public class DataDictionaryCache {
     private ManagedCache<String, Optional<String>> propertyCache;
     private DataDictionary dd;
     public static final String [] cacheNames = new String[] {"oidTdCache", "nameTdCache", "spsNameCache", "sequenceGeneratorCache", "permissionsCache", "partitionStatisticsCache",
-            "storedPreparedStatementCache", "conglomerateCache", "statementCache", "schemaCache", "aliasDescriptorCache", "roleCache", "defaultRoleCache", "roleGrantCache", "tokenCache", "propertyCache"};
+            "storedPreparedStatementCache", "conglomerateCache", "statementCache", "schemaCache", "aliasDescriptorCache", "roleCache", "defaultRoleCache", "roleGrantCache",
+            "tokenCache", "propertyCache", "conglomerateDescriptorCache"};
 
     private int getCacheSize(Properties startParams, String propertyName, int defaultValue) throws StandardException {
         String value = startParams.getProperty(propertyName);
@@ -421,6 +422,9 @@ public class DataDictionaryCache {
         roleGrantCache.invalidateAll();
         tokenCache.invalidateAll();
         propertyCache.invalidateAll();
+        conglomerateCache.invalidateAll();
+        conglomerateDescriptorCache.invalidateAll();
+        aliasDescriptorCache.invalidateAll();
     }
 
     public void clearTableCache(){
@@ -621,7 +625,7 @@ public class DataDictionaryCache {
     public void registerJMX(MBeanServer mbs) throws Exception{
         try{
             ManagedCache [] mc = new ManagedCache[] {oidTdCache, nameTdCache, spsNameCache, sequenceGeneratorCache, permissionsCache, partitionStatisticsCache, storedPreparedStatementCache,
-                    conglomerateCache, statementCache, schemaCache, aliasDescriptorCache, roleCache, defaultRoleCache, roleGrantCache, tokenCache, propertyCache};
+                    conglomerateCache, statementCache, schemaCache, aliasDescriptorCache, roleCache, defaultRoleCache, roleGrantCache, tokenCache, propertyCache, conglomerateDescriptorCache};
             //Passing in objects from mc array and names of objects from cacheNames array (static above)
             for(int i = 0; i < mc.length; i++){
                 ObjectName cacheName = new ObjectName("com.splicemachine.db.impl.sql.catalog:type="+cacheNames[i]);
