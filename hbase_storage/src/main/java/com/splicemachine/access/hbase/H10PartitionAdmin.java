@@ -18,53 +18,32 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
-import java.sql.Blob;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.splicemachine.access.client.ReadOnlyTableDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.BlockLocation;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.HdfsBlockLocation;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.exceptions.ConnectionClosingException;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.Store;
-import org.apache.hadoop.hbase.regionserver.StoreFile;
 import org.apache.hadoop.hbase.security.access.AccessControlClient;
 import org.apache.hadoop.hbase.security.access.Permission;
-import org.apache.hadoop.hbase.util.FSUtils;
+import org.apache.hadoop.hbase.security.access.UserPermission;
 import org.apache.hadoop.hbase.util.HBaseFsckRepair;
-import org.apache.hadoop.hdfs.DistributedFileSystem;
-import org.apache.hadoop.hdfs.HDFSUtil;
-import org.apache.hadoop.hdfs.protocol.LocatedBlock;
-import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos;
-import org.apache.hadoop.hdfs.protocolPB.PBHelper;
-import org.apache.hadoop.io.DataOutputBuffer;
-import org.apache.hadoop.io.Writable;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Function;
 import org.apache.hadoop.hbase.*;
@@ -405,21 +384,8 @@ public class H10PartitionAdmin implements PartitionAdmin{
                 case "grant":
                     String userName = Bytes.toString(bytes);
                     String spliceNamespace = SIDriver.driver().getConfiguration().getNamespace();
-                    AccessControlClient.grant(admin.getConnection(), spliceNamespace, userName,
-                            Permission.Action.WRITE
-                            ,Permission.Action.READ
-                            ,Permission.Action.EXEC
-                    );
-                    AccessControlClient.grant(admin.getConnection(), spliceNamespace, userName.toLowerCase(),
-                            Permission.Action.WRITE
-                            ,Permission.Action.READ
-                            ,Permission.Action.EXEC
-                    );
-                    AccessControlClient.grant(admin.getConnection(), spliceNamespace, userName.toUpperCase(),
-                            Permission.Action.WRITE
-                            ,Permission.Action.READ
-                            ,Permission.Action.EXEC
-                    );
+                    grantPrivilegesIfNeeded(userName, spliceNamespace);
+
                     return Collections.emptyList();
                 default:
                     throw new UnsupportedOperationException(operation);
@@ -431,5 +397,46 @@ public class H10PartitionAdmin implements PartitionAdmin{
         } catch (Throwable t) {
             throw new IOException(t);
         }
+    }
+
+    private void grantPrivilegesIfNeeded(String userName, String spliceNamespace) throws Throwable {
+        if (hasPrivileges(userName, spliceNamespace)) {
+            LOG.info("User " + userName + " already has privileges on namespace " + spliceNamespace);
+            return;
+        }
+        
+        LOG.info("User " + userName + " lacks some privileges on namespace " + spliceNamespace + ", granting them");
+
+        for (String user : Arrays.asList(userName, userName.toUpperCase(), userName.toLowerCase())) {
+            AccessControlClient.grant(admin.getConnection(), spliceNamespace, user,
+                    Permission.Action.WRITE
+                    , Permission.Action.READ
+                    , Permission.Action.EXEC
+            );
+        }
+    }
+
+    private boolean hasPrivileges(String userName, String spliceNamespace) throws Throwable {
+        List<UserPermission> permissions = AccessControlClient.getUserPermissions(admin.getConnection(), "@"+spliceNamespace);
+        for (String user : Arrays.asList(userName, userName.toUpperCase(), userName.toLowerCase())) {
+            UserPermission up = getPermission(permissions, user);
+            if (up == null)
+                return false;
+            
+            for (Permission.Action action : Arrays.asList(Permission.Action.WRITE, Permission.Action.READ, Permission.Action.EXEC)) {
+                if (!up.implies(spliceNamespace, action))
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    private UserPermission getPermission(List<UserPermission> permissions, String userName) {
+        for(UserPermission up: permissions) {
+            if (Bytes.equals(up.getUser(), Bytes.toBytes(userName))) {
+                return up;
+            }
+        }
+        return null;
     }
 }
