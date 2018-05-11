@@ -14,10 +14,6 @@
 
 package com.splicemachine.derby.impl.sql.execute;
 
-import com.splicemachine.db.iapi.sql.execute.ResultSetFactory;
-import com.splicemachine.derby.impl.sql.execute.operations.*;
-import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
@@ -26,14 +22,17 @@ import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
+import com.splicemachine.db.iapi.sql.execute.ResultSetFactory;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.GenericResultDescription;
-import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.ConvertedResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.*;
+import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
 
 public class SpliceGenericResultSetFactory implements ResultSetFactory {
     private static Logger LOG = Logger.getLogger(SpliceGenericResultSetFactory.class);
@@ -602,6 +601,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                           double optimizerEstimatedCost, boolean isDerbyStyleTableFunction,
                                           int returnTypeNumber, int vtiProjectionNumber,
                                           int vtiRestrictionNumber,
+                                          int vtiResultDescriptionNumber,
                                           String explainPlan) throws StandardException {
 
         VTIOperation op =  new VTIOperation(activation, row, resultSetNumber,
@@ -617,7 +617,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 isDerbyStyleTableFunction,
                 returnTypeNumber,
                 vtiProjectionNumber,
-                vtiRestrictionNumber);
+                vtiRestrictionNumber,
+                vtiResultDescriptionNumber);
         op.setExplainPlan(explainPlan);
         return op;
     }
@@ -640,6 +641,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int returnTypeNumber,
             int vtiProjectionNumber,
             int vtiRestrictionNumber,
+            int vtiResultDescriptionNumber,
             String explainPlan)
             throws StandardException {
         
@@ -660,6 +662,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 returnTypeNumber,
                 vtiProjectionNumber,
                 vtiRestrictionNumber,
+                vtiResultDescriptionNumber,
                 explainPlan
         );
     }

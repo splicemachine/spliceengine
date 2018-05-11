@@ -14,48 +14,6 @@
 
 package com.splicemachine.derby.impl.load;
 
-import static com.splicemachine.homeless.TestUtils.o;
-import static com.splicemachine.test_tools.Rows.row;
-import static com.splicemachine.test_tools.Rows.rows;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.io.File;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.sql.Connection;
-import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.sql.Types;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.TimeZone;
-
-import org.apache.commons.io.FileUtils;
-import org.hamcrest.Matcher;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TemporaryFolder;
-import org.junit.rules.TestRule;
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.collect.Maps;
-
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
@@ -63,6 +21,28 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
+import org.apache.commons.io.FileUtils;
+import org.hamcrest.Matcher;
+import org.junit.*;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TemporaryFolder;
+import org.junit.rules.TestRule;
+import org.spark_project.guava.collect.Lists;
+import org.spark_project.guava.collect.Maps;
+
+import java.io.File;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.sql.*;
+import java.sql.Date;
+import java.text.SimpleDateFormat;
+import java.util.*;
+
+import static com.splicemachine.homeless.TestUtils.o;
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.*;
 
 public class HdfsImportIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
@@ -90,6 +70,8 @@ public class HdfsImportIT extends SpliceUnitTest {
     protected static String TABLE_21 = "U";
     protected static String TABLE_22 = "V";
     protected static String TABLE_23 = "W";
+    protected static String TABLE_24 = "X";
+    protected static String TABLE_25 = "Y";
 
     private static final String AUTO_INCREMENT_TABLE = "INCREMENT";
 
@@ -180,6 +162,10 @@ public class HdfsImportIT extends SpliceUnitTest {
             .schemaName, "(c1 varchar(10) for bit data )");
     protected static SpliceTableWatcher spliceTableWatcher23 = new SpliceTableWatcher(TABLE_23, spliceSchemaWatcher
             .schemaName, "(i varchar(10), j varchar(10) not null, constraint a_pk primary key (i))");
+    protected static SpliceTableWatcher spliceTableWatcher24 = new SpliceTableWatcher(TABLE_24, spliceSchemaWatcher
+            .schemaName, "(c1 varchar(6), c2 char(6), c3 int)");
+    protected static SpliceTableWatcher spliceTableWatcher25 = new SpliceTableWatcher(TABLE_25, spliceSchemaWatcher
+            .schemaName, "(c1 varchar(6), c2 char(6), c3 int)");
 
     private static SpliceTableWatcher  multiLine = new SpliceTableWatcher("mytable",spliceSchemaWatcher.schemaName,
             "(a int, b char(10),c timestamp, d varchar(100),e bigint)");
@@ -218,6 +204,8 @@ public class HdfsImportIT extends SpliceUnitTest {
             .around(spliceTableWatcher21)
             .around(spliceTableWatcher22)
             .around(spliceTableWatcher23)
+            .around(spliceTableWatcher24)
+            .around(spliceTableWatcher25)
             .around(multiLine)
             .around(multiPK)
             .around(autoIncTableWatcher);
@@ -519,6 +507,98 @@ public class HdfsImportIT extends SpliceUnitTest {
         Assert.assertEquals("wrong row count imported!", 2, results.size());
         Assert.assertEquals("first row wrong", "i:1,j:Hello", results.get(0));
         Assert.assertEquals("second row wrong", "i:2,j:There", results.get(1));
+    }
+
+    @Test
+    public void testImportNormalizationForCharType() throws Exception {
+        String csvLocation = getResourceDirectory() + "char_type.csv";
+
+        String importStmt = format("call SYSCS_UTIL.IMPORT_DATA(" +
+                        "'%s'," +  // schema name
+                        "'%s'," +  // table name
+                        "null," +  // insert column list
+                        "'%s'," +  // file path
+                        "','," +   // column delimiter
+                        "null," +  // character delimiter
+                        "null," +  // timestamp format
+                        "null," +  // date format
+                        "null," +  // time format
+                        "%d," +    // max bad records
+                        "'%s'," +  // bad record dir
+                        "null," +  // has one line records
+                        "null)",   // char set
+                spliceSchemaWatcher.schemaName, TABLE_24,
+                csvLocation,                    2,
+                BADDIR.getCanonicalPath());
+        PreparedStatement ps = methodWatcher.prepareStatement(importStmt);
+        ResultSet rs = ps.executeQuery();
+        if (rs.next()) {
+            int rowsImported = rs.getInt(1);
+            int failedRows = rs.getInt(2);
+            Assert.assertEquals("wrong rowsImported!", 2, rowsImported);
+            Assert.assertEquals("wrong failedRows!", 2, failedRows);
+        } else {
+            fail("wrong output for import statement, exepcted one row!");
+        }
+        rs.close();
+
+        String expected = "1    |    2     |\n" +
+                "---------------------\n" +
+                "  -aaa-  |- AAA   - |\n" +
+                "-ddd   - |- ddd   - |";
+        String sql = format("select '-' || c1 || '-', '- '|| c2 || '-' from %s.%s order by c1", spliceSchemaWatcher
+                .schemaName, TABLE_24);
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n"+sql+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testImportNormalizationForCharTypeForMultiLineInput() throws Exception {
+        String csvLocation = getResourceDirectory() + "char_type_multiline.csv";
+
+        String importStmt = format("call SYSCS_UTIL.IMPORT_DATA(" +
+                        "'%s'," +  // schema name
+                        "'%s'," +  // table name
+                        "null," +  // insert column list
+                        "'%s'," +  // file path
+                        "','," +   // column delimiter
+                        "null," +  // character delimiter
+                        "null," +  // timestamp format
+                        "null," +  // date format
+                        "null," +  // time format
+                        "%d," +    // max bad records
+                        "'%s'," +  // bad record dir
+                        "false," +  // has one line records
+                        "null)",   // char set
+                spliceSchemaWatcher.schemaName, TABLE_25,
+                csvLocation,                    2,
+                BADDIR.getCanonicalPath());
+        PreparedStatement ps = methodWatcher.prepareStatement(importStmt);
+        ResultSet rs = ps.executeQuery();
+        if (rs.next()) {
+            int rowsImported = rs.getInt(1);
+            int failedRows = rs.getInt(2);
+            Assert.assertEquals("wrong rowsImported!", 2, rowsImported);
+            Assert.assertEquals("wrong failedRows!", 2, failedRows);
+        } else {
+            fail("wrong output for import statement, exepcted one row!");
+        }
+        rs.close();
+
+        String expected = "1    |    2     |\n" +
+                "---------------------\n" +
+                "-aaa\n" +
+                "aa- |- AAA\n" +
+                "AA- |\n" +
+                "-ddd\n" +
+                "  - |- ddd\n" +
+                "  - |";
+        String sql = format("select '-' || c1 || '-', '- '|| c2 || '-' from %s.%s order by c1", spliceSchemaWatcher
+                .schemaName, TABLE_25);
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n"+sql+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
     }
 
     @Test

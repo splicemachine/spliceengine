@@ -16,14 +16,16 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.catalog.TypeDescriptor;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
+import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.ResultDescription;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.vti.Restriction;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -112,8 +114,11 @@ public class VTIOperation extends SpliceBaseOperation {
 	private boolean[] runtimeNullableColumn;
 	private boolean isDerbyStyleTableFunction;
     private  TypeDescriptor returnType;
-    private DataTypeDescriptor[]    returnColumnTypes;
+    private DataTypeDescriptor[]    resultColumnTypes;
     private Restriction vtiRestriction;
+    private int resultDescriptionItemNumber;
+    private ResultDescription resultDescription;
+
 
 	/**
 		Specified isolation level of SELECT (scan). If not set or
@@ -149,7 +154,8 @@ public class VTIOperation extends SpliceBaseOperation {
 				 boolean isDerbyStyleTableFunction,
                  int returnTypeNumber,
                  int vtiProjectionNumber,
-                 int vtiRestrictionNumber
+                 int vtiRestrictionNumber,
+                 int resultDescriptionNumber
                  ) 
 		throws StandardException
 	{
@@ -180,6 +186,9 @@ public class VTIOperation extends SpliceBaseOperation {
 		this.ctcNumber = ctcNumber;
 		compileTimeConstants = (FormatableHashtable) (activation.getPreparedStatement().
 								getSavedObject(ctcNumber));
+
+		this.resultDescriptionItemNumber = resultDescriptionNumber;
+
         init();
     }
 
@@ -190,6 +199,9 @@ public class VTIOperation extends SpliceBaseOperation {
         this.row = (rowMethodName==null)? null: new SpliceMethod<ExecRow>(rowMethodName,activation);
         this.constructor = (constructorMethodName==null)? null: new SpliceMethod<DatasetProvider>(constructorMethodName,activation);
         this.userVTI = constructor==null?null:constructor.invoke();
+
+        this.resultDescription = (ResultDescription)activation.getPreparedStatement().getSavedObject(resultDescriptionItemNumber);
+        resultColumnTypes = fetchResultTypes(resultDescription);
     }
 
     @Override
@@ -203,6 +215,7 @@ public class VTIOperation extends SpliceBaseOperation {
         javaClassName = in.readUTF();
         rowMethodName = in.readUTF();
         constructorMethodName = in.readUTF();
+        resultDescriptionItemNumber = in.readInt();
     }
 
     @Override
@@ -211,6 +224,7 @@ public class VTIOperation extends SpliceBaseOperation {
         out.writeUTF(javaClassName);
         out.writeUTF(rowMethodName);
         out.writeUTF(constructorMethodName);
+        out.writeInt(resultDescriptionItemNumber);
     }
 
 
@@ -278,5 +292,22 @@ public class VTIOperation extends SpliceBaseOperation {
     @Override
     public String getScopeName() {
         return "VTIOperation" + (userVTI != null ? " (" + userVTI.getClass().getSimpleName() + ")" : "");
+    }
+
+    private DataTypeDescriptor[] fetchResultTypes(
+            ResultDescription resultDescription){
+        int colCount=resultDescription.getColumnCount();
+        DataTypeDescriptor[] result=new DataTypeDescriptor[colCount];
+        for(int i=1;i<=colCount;i++){
+            ResultColumnDescriptor colDesc=resultDescription.getColumnDescriptor(i);
+            DataTypeDescriptor dtd=colDesc.getType();
+
+            result[i-1]=dtd;
+        }
+        return result;
+    }
+
+    public DataTypeDescriptor[] getResultColumnTypes() {
+        return resultColumnTypes;
     }
 }
