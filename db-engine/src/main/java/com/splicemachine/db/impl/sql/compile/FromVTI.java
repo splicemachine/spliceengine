@@ -1423,10 +1423,16 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         // push the projection and restriction for RestrictedVTIs
         mb.push( storeObjectInPS( acb, projectedColumnNames ) );
         mb.push( storeObjectInPS( acb, vtiRestriction ) );
+
+        // special handling for fixed Char type.
+        int resultDescriptionItem = acb.addItem(makeResultDescription());
+        mb.push(resultDescriptionItem);
+
         mb.push(printExplainInformationForActivation());
 
-        return 17;
+        return 18;
     }
+
     /** Store an object in the prepared statement.  Returns -1 if the object is
      * null. Otherwise returns the object's retrieval handle.
      */

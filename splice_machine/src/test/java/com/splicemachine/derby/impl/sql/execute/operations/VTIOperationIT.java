@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -180,18 +181,91 @@ public class VTIOperationIT extends SpliceUnitTest {
     @Test
     public void testFileVTITypes() throws Exception {
         String location = getResourceDirectory()+"vtiConversion.in";
-        String sql = String.format("select * from new com.splicemachine.derby.vti.SpliceFileVTI('%s','',',') as b" +
+        String sql = String.format("select '-' || name || '-', '-' || title || '-', age, something, date_hired, clock from new com.splicemachine.derby.vti.SpliceFileVTI('%s','',',') as b" +
                                        " (name varchar(10), title varchar(30), age int, something varchar(12), " +
-                                       "date_hired timestamp, clock time)\n" +
+                                       "date_hired timestamp, clock time) --splice-properties useSpark=false\n" +
                                        " where age < 40 and date_hired > TIMESTAMP('2015-08-21', '08:09:08') order" +
                                        " by name", location);
         ResultSet rs = spliceClassWatcher.executeQuery(sql);
         String expected =
-            "NAME  |          TITLE          | AGE | SOMETHING  |     DATE_HIRED       |  CLOCK  |\n" +
-                "--------------------------------------------------------------------------------------\n" +
-                "jzhang | How The West Won Texas  | 34  |08-23X-2015 |2015-08-22 08:12:08.0 |11:08:08 |\n" +
-                "sfines |Senior Software Engineer | 27  |08X-27-2015 |2015-08-27 08:08:08.0 |06:08:08 |";
+            "1    |             2             | AGE | SOMETHING  |     DATE_HIRED       |  CLOCK  |\n" +
+                    "------------------------------------------------------------------------------------------\n" +
+                    "-jzhang- | -How The West Won Texas-  | 34  |08-23X-2015 |2015-08-22 08:12:08.0 |11:08:08 |\n" +
+                    "-sfines- |-Senior Software Engineer- | 27  |08X-27-2015 |2015-08-27 08:08:08.0 |06:08:08 |";
         assertEquals("\n"+sql+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        //test spark path
+        sql = String.format("select '-' || name || '-', '-' || title || '-', age, something, date_hired, clock from new com.splicemachine.derby.vti.SpliceFileVTI('%s','',',') as b" +
+                " (name varchar(10), title varchar(30), age int, something varchar(12), " +
+                "date_hired timestamp, clock time) --splice-properties useSpark=false\n" +
+                " where age < 40 and date_hired > TIMESTAMP('2015-08-21', '08:09:08') order" +
+                " by name", location);
+        rs = spliceClassWatcher.executeQuery(sql);
+        assertEquals("\n"+sql+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+
+    @Test
+    public void testFileVTIFixedLengthCharType() throws Exception {
+        String location = getResourceDirectory()+"vtiConversion.in";
+        String sql = String.format("select '-' || name || '-', '-' || title || '-', age, something, date_hired, clock from new com.splicemachine.derby.vti.SpliceFileVTI('%s','',',') as b" +
+                " (name char(20), title char(30), age int, something varchar(12), " +
+                "date_hired timestamp, clock time) --splice-properties useSpark=false\n" +
+                " where name='jzhang' order" +
+                " by name", location);
+        ResultSet rs = spliceClassWatcher.executeQuery(sql);
+        String expected =
+                "1           |                2                | AGE | SOMETHING  |     DATE_HIRED       |  CLOCK  |\n" +
+                        "--------------------------------------------------------------------------------------------------------------\n" +
+                        "-jzhang              - |-How The West Won Texas        - | 34  |08-23X-2015 |2015-08-22 08:12:08.0 |11:08:08 |";
+        assertEquals("\n"+sql+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        //test spark path
+        sql = String.format("select '-' || name || '-', '-' || title || '-', age, something, date_hired, clock from new com.splicemachine.derby.vti.SpliceFileVTI('%s','',',') as b" +
+                " (name char(20), title char(30), age int, something varchar(12), " +
+                "date_hired timestamp, clock time) --splice-properties useSpark=true\n" +
+                " where name='jzhang' order" +
+                " by name", location);
+        rs = spliceClassWatcher.executeQuery(sql);
+        assertEquals("\n"+sql+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testFileVTIFixedLengthCharTypeErrorCase() throws Exception {
+        /* title has value with more than 10 characters, specifying it of fixed char(10) should make it error out */
+        String location = getResourceDirectory()+"vtiConversion.in";
+        String sql = String.format("select '-' || name || '-', '-' || title || '-', age, something, date_hired, clock from new com.splicemachine.derby.vti.SpliceFileVTI('%s','',',') as b" +
+                " (name char(20), title char(10), age int, something varchar(12), " +
+                "date_hired timestamp, clock time)\n" +
+                " where name='jzhang' order" +
+                " by name", location);
+        try {
+            spliceClassWatcher.executeQuery(sql);
+            Assert.fail("Query is expected to fail with error ERROR 22001: A truncation error was encountered trying to shrink CHAR ...");
+        } catch (SQLException se) {
+            Assert.assertEquals(se.getSQLState(), SQLState.LANG_STRING_TRUNCATION);
+        }
+    }
+
+    @Test
+    public void testFileVTIVarCharTypeErrorCase() throws Exception {
+        /* title has value with more than 10 characters, specifying it of varchar(10) should make it error out */
+        String location = getResourceDirectory()+"vtiConversion.in";
+        String sql = String.format("select '-' || name || '-', '-' || title || '-', age, something, date_hired, clock from new com.splicemachine.derby.vti.SpliceFileVTI('%s','',',') as b" +
+                " (name char(20), title varchar(10), age int, something varchar(12), " +
+                "date_hired timestamp, clock time)\n" +
+                " where name='jzhang' order" +
+                " by name", location);
+        try {
+            spliceClassWatcher.executeQuery(sql);
+            Assert.fail("Query is expected to fail with error ERROR 22001: A truncation error was encountered trying to shrink CHAR ...");
+        } catch (SQLException se) {
+            Assert.assertEquals(se.getSQLState(), SQLState.LANG_STRING_TRUNCATION);
+        }
     }
 
     @Test
