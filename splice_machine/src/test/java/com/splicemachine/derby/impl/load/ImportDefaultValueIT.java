@@ -112,10 +112,10 @@ public class ImportDefaultValueIT {
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
         SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
-                                                                   .toFileRow("1", "ac").expected("1", "ac")
-                                                                   .toFileRow("2", "a").expected("2", "a")
-                                                                   .toFileRow("3", "ab").expected("3", "ab")
-                                                                   .toFileRow("4", "b").expected("4", "b")
+                                                                   .toFileRow("1", "ac").expected("1", "ac ")
+                                                                   .toFileRow("2", "a").expected("2", "a  ")
+                                                                   .toFileRow("3", "ab").expected("3", "ab ")
+                                                                   .toFileRow("4", "b").expected("4", "b  ")
                                                                    .fill(writer);
         writer.close();
 
@@ -131,9 +131,9 @@ public class ImportDefaultValueIT {
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
         SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
-                                                                   .toFileRow("1", "ac").expected("1", "ac")
+                                                                   .toFileRow("1", "ac").expected("1", "ac ")
                                                                    .toFileRow("2", "NULL").expected("2", "abc")
-                                                                   .toFileRow("3", "ab").expected("3", "ab")
+                                                                   .toFileRow("3", "ab").expected("3", "ab ")
                                                                    .toFileRow("4", "NULL").expected("4", "abc")
                                                                    .fill(writer);
 
@@ -151,10 +151,10 @@ public class ImportDefaultValueIT {
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
         SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
-                                                                   .toFileRow("1", "ac").expected("1", "ac")
-                                                                   .toFileRow("2", "a").expected("2", "a")
-                                                                   .toFileRow("3", "ab").expected("3", "ab")
-                                                                   .toFileRow("4", "b").expected("4", "b")
+                                                                   .toFileRow("1", "ac").expected("1", "ac ")
+                                                                   .toFileRow("2", "a").expected("2", "a  ")
+                                                                   .toFileRow("3", "ab").expected("3", "ab ")
+                                                                   .toFileRow("4", "b").expected("4", "b  ")
                                                                    .fill(writer);
         writer.close();
 
@@ -189,9 +189,9 @@ public class ImportDefaultValueIT {
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
         SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
-                                                                   .toFileRow("1", "ac").expected("1", "ac")
+                                                                   .toFileRow("1", "ac").expected("1", "ac ")
                                                                    .toFileRow("2", "").expected("2", "abc")
-                                                                   .toFileRow("3", "ab").expected("3", "ab")
+                                                                   .toFileRow("3", "ab").expected("3", "ab ")
                                                                    .toFileRow("4", "").expected("4", "abc")
                                                                    .fill(writer);
         writer.close();
@@ -518,14 +518,14 @@ public class ImportDefaultValueIT {
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
         SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
-                .toFileRow("1", "1", "1.0", "a", "1").expected("1", "1", "1.000", "a", "1")
-                .toFileRow("2", "1", "", "a", "1").expected("2", "1", "NULL", "a", "1")
+                .toFileRow("1", "1", "1.0", "a", "1").expected("1", "1", "1.000", "a  ", "1")
+                .toFileRow("2", "1", "", "a", "1").expected("2", "1", "NULL", "a  ", "1")
                 .toFileRow("3", "1", "1.0", "", "1").expected("3", "1", "1.000", "NULL", "1")
                 .toFileRow("4", "1", "1.0", "", "1").expected("4", "1", "1.000", "NULL", "1")
-                .toFileRow("5", "1", "1.0", "a", "1").expected("5", "1", "1.000", "a", "1")
-                .toFileRow("6", "1", "1.0", "a", "").expected("6", "1", "1.000", "a", "NULL")
+                .toFileRow("5", "1", "1.0", "a", "1").expected("5", "1", "1.000", "a  ", "1")
+                .toFileRow("6", "1", "1.0", "a", "").expected("6", "1", "1.000", "a  ", "NULL")
                 .toFileRow("7", "1", "1.0", "", "1").expected("7", "1", "1.000", "NULL", "1")
-                .toFileRow("8", "1", "1.0", "a", "1").expected("8", "1", "1.000", "a", "1")
+                .toFileRow("8", "1", "1.0", "a", "1").expected("8", "1", "1.000", "a  ", "1")
                 .fill(writer);
         writer.close();
 
