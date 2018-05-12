@@ -1837,17 +1837,12 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
 
-    public static void SYSCS_GET_SPLICE_TOKEN(final String userName, final ResultSet[] resultSet) throws SQLException {
+    public static void SYSCS_GET_SPLICE_TOKEN(final String user, // this variable is no longer used
+                                              final ResultSet[] resultSet) throws SQLException {
         try {
             EmbedConnection conn = (EmbedConnection)getDefaultConn();
             LanguageConnectionContext lcc = conn.getLanguageConnection();
             Activation lastActivation = conn.getLanguageConnection().getLastActivation();
-
-            // Grant HBase access to splice schema for user
-            try(PartitionAdmin admin=SIDriver.driver().getTableFactory().getAdmin()) {
-                byte[] encoding = Bytes.toBytes(userName);
-                admin.hbaseOperation(null, "grant", encoding);
-            }
 
             DataDictionary dd = lcc.getDataDictionary();
             dd.startWriting(lcc);
@@ -1857,7 +1852,6 @@ public class SpliceAdmin extends BaseAdminProcedures{
                     new GenericColumnDescriptor("EXPIRETIME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIMESTAMP)),
                     new GenericColumnDescriptor("MAXIMUMTIME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIMESTAMP)),
             };
-
 
             List<ExecRow> rows = new ArrayList<>();
 

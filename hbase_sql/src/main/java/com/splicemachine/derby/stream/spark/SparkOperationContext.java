@@ -187,7 +187,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         }
         if (in.readBoolean()) {
             SpliceClient.connectionString = in.readUTF();
-            SpliceClient.setClient();
+            SpliceClient.setClient(SpliceClient.Mode.EXECUTOR);
         }
         badRecordsSeen = in.readLong();
         badRecordThreshold = in.readLong();
