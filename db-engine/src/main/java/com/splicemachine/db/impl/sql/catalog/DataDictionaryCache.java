@@ -75,6 +75,7 @@ public class DataDictionaryCache {
     private ManagedCache<Long,List<PartitionStatisticsDescriptor>> partitionStatisticsCache;
     private ManagedCache<UUID, SPSDescriptor> storedPreparedStatementCache;
     private ManagedCache<Long,Conglomerate> conglomerateCache;
+    private ManagedCache<Long,ConglomerateDescriptor> conglomerateDescriptorCache;
     private ManagedCache<GenericStatement,GenericStorablePreparedStatement> statementCache;
     private ManagedCache<String,SchemaDescriptor> schemaCache;
     private ManagedCache<String,AliasDescriptor> aliasDescriptorCache;
@@ -85,7 +86,8 @@ public class DataDictionaryCache {
     private ManagedCache<String, Optional<String>> propertyCache;
     private DataDictionary dd;
     public static final String [] cacheNames = new String[] {"oidTdCache", "nameTdCache", "spsNameCache", "sequenceGeneratorCache", "permissionsCache", "partitionStatisticsCache",
-            "storedPreparedStatementCache", "conglomerateCache", "statementCache", "schemaCache", "aliasDescriptorCache", "roleCache", "defaultRoleCache", "roleGrantCache", "tokenCache", "propertyCache"};
+            "storedPreparedStatementCache", "conglomerateCache", "statementCache", "schemaCache", "aliasDescriptorCache", "roleCache", "defaultRoleCache", "roleGrantCache",
+            "tokenCache", "propertyCache", "conglomerateDescriptorCache"};
 
     private int getCacheSize(Properties startParams, String propertyName, int defaultValue) throws StandardException {
         String value = startParams.getProperty(propertyName);
@@ -111,6 +113,9 @@ public class DataDictionaryCache {
         int conglomerateCacheSize = getCacheSize(startParams,
                 Property.LANG_CONGLOMERATE_CACHE_SIZE,
                 Property.LANG_CONGLOMERATE_CACHE_SIZE_DEFAULT);
+        int conglomerateDescriptorCacheSize = getCacheSize(startParams,
+                Property.LANG_CONGLOMERATE_DESCRIPTOR_CACHE_SIZE,
+                Property.LANG_CONGLOMERATE_DESCRIPTOR_CACHE_SIZE_DEFAULT);
         int statementCacheSize = getCacheSize(startParams, Property.LANG_STATEMENT_CACHE_SIZE,
                 Property.LANG_STATEMENT_CACHE_SIZE_DEFAULT);
         int schemaCacheSize = getCacheSize(startParams, Property.LANG_SCHEMA_CACHE_SIZE,
@@ -152,6 +157,8 @@ public class DataDictionaryCache {
                 .maximumSize(partstatCacheSize).build());
         conglomerateCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats()
                 .maximumSize(conglomerateCacheSize).build());
+        conglomerateDescriptorCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats()
+                .maximumSize(conglomerateDescriptorCacheSize).build());
         statementCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize
                 (statementCacheSize).removalListener(dependentInvalidator).build());
         schemaCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(
@@ -414,6 +421,9 @@ public class DataDictionaryCache {
         roleGrantCache.invalidateAll();
         tokenCache.invalidateAll();
         propertyCache.invalidateAll();
+        conglomerateCache.invalidateAll();
+        conglomerateDescriptorCache.invalidateAll();
+        aliasDescriptorCache.invalidateAll();
     }
 
     public void clearTableCache(){
@@ -581,6 +591,30 @@ public class DataDictionaryCache {
         propertyCache.invalidateAll();
     }
 
+    public ConglomerateDescriptor conglomerateDescriptorCacheFind(long conglomId) throws StandardException {
+        if (!dd.canReadCache(null))
+            return null;
+        
+        if (LOG.isDebugEnabled())
+            LOG.debug("conglomerateDescriptorCacheFind " + conglomId);
+        return conglomerateDescriptorCache.getIfPresent(conglomId);
+    }
+
+
+    public void conglomerateDescriptorCacheAdd(Long conglomId, ConglomerateDescriptor conglomerate) throws StandardException {
+        if (!dd.canWriteCache(null))
+            return;
+        if (LOG.isDebugEnabled())
+            LOG.debug("conglomerateDescriptorCacheAdd " + conglomId + " : " + conglomerate);
+        conglomerateDescriptorCache.put(conglomId,conglomerate);
+    }
+
+    public void conglomerateDescriptorCacheRemove(Long conglomId) throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("conglomerateDescriptorCacheRemove " + conglomId);
+        conglomerateDescriptorCache.invalidate(conglomId);
+    }
+
     @MXBean
     @SuppressWarnings("UnusedDeclaration")
     public interface DataDictionaryCacheIFace {
@@ -590,7 +624,7 @@ public class DataDictionaryCache {
     public void registerJMX(MBeanServer mbs) throws Exception{
         try{
             ManagedCache [] mc = new ManagedCache[] {oidTdCache, nameTdCache, spsNameCache, sequenceGeneratorCache, permissionsCache, partitionStatisticsCache, storedPreparedStatementCache,
-                    conglomerateCache, statementCache, schemaCache, aliasDescriptorCache, roleCache, defaultRoleCache, roleGrantCache, tokenCache, propertyCache};
+                    conglomerateCache, statementCache, schemaCache, aliasDescriptorCache, roleCache, defaultRoleCache, roleGrantCache, tokenCache, propertyCache, conglomerateDescriptorCache};
             //Passing in objects from mc array and names of objects from cacheNames array (static above)
             for(int i = 0; i < mc.length; i++){
                 ObjectName cacheName = new ObjectName("com.splicemachine.db.impl.sql.catalog:type="+cacheNames[i]);
