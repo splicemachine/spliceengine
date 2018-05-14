@@ -33,17 +33,16 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
-
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.depend.Provider;
+import com.splicemachine.db.iapi.sql.depend.ProviderInfo;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.impl.sql.execute.PrivilegeInfo;
 import com.splicemachine.db.impl.sql.execute.SchemaPrivilegeInfo;
 import com.splicemachine.db.impl.sql.execute.TablePrivilegeInfo;
-import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-
-import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.depend.Provider;
-import com.splicemachine.db.iapi.sql.depend.ProviderInfo;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -113,8 +112,27 @@ public class BasicPrivilegesNode extends QueryTreeNode
 			
 		for( int action = 0; action < TablePrivilegeInfo.ACTION_COUNT; action++)
 		{
-			if( columnLists[ action] != null)
-				columnBitSets[action] = columnLists[ action].bindResultColumnsByName( td, (DMLStatementNode) null);
+			if( columnLists[ action] != null) {
+				if (columnLists[action].size() == 1) {
+					ResultColumn rc = columnLists[action].elementAt(0);
+					if (rc instanceof AllResultColumn) {
+						columnLists[action].remove(0);
+
+						//expand asterisk to all columns of the table
+						ColumnDescriptorList cdl = td.getColumnDescriptorList();
+						for (ColumnDescriptor cd: cdl) {
+							ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
+									C_NodeTypes.RESULT_COLUMN,
+									cd.getColumnName(),
+									null,
+									getContextManager());
+							columnLists[action].addResultColumn(newRC);
+						}
+					}
+				}
+
+				columnBitSets[action] = columnLists[action].bindResultColumnsByName(td, (DMLStatementNode) null);
+			}
 
 			// Prevent granting non-SELECT privileges to views
 			if (td.getTableType() == TableDescriptor.VIEW_TYPE && action != TablePrivilegeInfo.SELECT_ACTION)

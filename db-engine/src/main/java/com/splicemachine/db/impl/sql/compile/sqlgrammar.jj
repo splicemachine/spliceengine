@@ -15908,11 +15908,32 @@ ResultColumnList privilegeColumnList() throws StandardException :
                                                                   getContextManager());
 }
 {
-    <LEFT_PAREN> columnNameList( cl) <RIGHT_PAREN>
+    <LEFT_PAREN> columnNameListOrAsterisk( cl) <RIGHT_PAREN>
     {
         return cl;
     }
 } // end of privilegeColumnList
+
+
+/*
+ * <A NAME="columnNameListOrAsterisk">columnNameListOrAsterisk</A>
+ */
+void columnNameListOrAsterisk(ResultColumnList cl) throws StandardException :
+{
+     ResultColumn allResultColumn;
+}
+{
+     columnNameList(cl)
+|
+     <ASTERISK>
+     {
+         allResultColumn = (ResultColumn) nodeFactory.getNode(
+                                            C_NodeTypes.ALL_RESULT_COLUMN,
+                                            null,
+                                            getContextManager());
+         cl.addResultColumn(allResultColumn);
+     }
+}
 
 /*
  * <A NAME="granteeList">granteeList</A>
