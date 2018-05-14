@@ -139,7 +139,7 @@ public class TablePrivilegeInfo extends BasicPrivilegeInfo
 			String grantee = (String) itr.next();
 			if( tablePermsDesc != null)
 			{
-				if (dd.addRemovePermissionsDescriptor( grant, tablePermsDesc, grantee, tc) < 0)
+				if (dd.addRemovePermissionsDescriptor( grant, tablePermsDesc, grantee, tc) == DataDictionary.PermissionOperation.REMOVE)
 				{
 					privileges_revoked = true;
 					dd.getDependencyManager().invalidateFor
@@ -154,6 +154,7 @@ public class TablePrivilegeInfo extends BasicPrivilegeInfo
 					// Dependents.
 					dd.getDependencyManager().invalidateFor
 						(td, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
+
                     TablePermsDescriptor tablePermsDescriptor =
                             new TablePermsDescriptor(dd, tablePermsDesc.getGrantee(),
                                     tablePermsDesc.getGrantor(), tablePermsDesc.getTableUUID(),
@@ -166,8 +167,8 @@ public class TablePrivilegeInfo extends BasicPrivilegeInfo
             }
             for (int i = 0; i < columnBitSets.length; i++) {
                 if (colPermsDescs[i] != null) {
-                	int action = dd.addRemovePermissionsDescriptor(grant, colPermsDescs[i], grantee, tc);
-                    if (action == -1) {
+                	DataDictionary.PermissionOperation action = dd.addRemovePermissionsDescriptor(grant, colPermsDescs[i], grantee, tc);
+                    if (action == DataDictionary.PermissionOperation.REMOVE) {
 						privileges_revoked = true;
 						dd.getDependencyManager().invalidateFor(colPermsDescs[i], DependencyManager.REVOKE_PRIVILEGE, lcc);
 						// When revoking a privilege from a Table we need to
@@ -181,7 +182,7 @@ public class TablePrivilegeInfo extends BasicPrivilegeInfo
 										DependencyManager.INTERNAL_RECOMPILE_REQUEST,
 										lcc);
 					}
-					if (action != 0) {
+					if (action != DataDictionary.PermissionOperation.NOCHANGE) {
 						/* we need to add the colPermDescriptor to result for both grant and revoke case, so that we can invalidate cache
 						 * later in a distributed way for both cases.
 						 * an example where cache needs to be invalidated for grant statement is:

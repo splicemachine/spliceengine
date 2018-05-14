@@ -127,7 +127,7 @@ public class GenericPrivilegeInfo extends PrivilegeInfo
 			// warning.
 			boolean privileges_revoked = false;
 			String grantee = (String) itr.next();
-			if (dd.addRemovePermissionsDescriptor( grant, permDesc, grantee, tc) < 0)
+			if (dd.addRemovePermissionsDescriptor( grant, permDesc, grantee, tc) == DataDictionary.PermissionOperation.REMOVE)
 			{
                 //
                 // We fall in here if we are performing REVOKE.

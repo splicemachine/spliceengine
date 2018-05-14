@@ -1758,6 +1758,7 @@ public interface DataDictionary{
      */
     boolean isReadOnlyUpgrade();
 
+    enum PermissionOperation {NOCHANGE, ADD, REMOVE};
     /**
      * Add or remove a permission to the permission database.
      *
@@ -1765,11 +1766,11 @@ public interface DataDictionary{
      * @param perm    the permission to add/remove
      * @param grantee the name of the person to be granted
      * @param tc      the transaction to use
-     * @return 3 values: 0: no change, 1: add permission; -1: remove permission
+     * @return 3 values: 0: no change, 1: add permission; 2: remove permission
      *  hence the caller of this method know whether to send invalidation
      * actions to PermssionDescriptor's dependents and dictionary cache.
      */
-    int addRemovePermissionsDescriptor(boolean add,
+    PermissionOperation addRemovePermissionsDescriptor(boolean add,
                                            PermissionsDescriptor perm,
                                            String grantee,
                                            TransactionController tc) throws StandardException;
