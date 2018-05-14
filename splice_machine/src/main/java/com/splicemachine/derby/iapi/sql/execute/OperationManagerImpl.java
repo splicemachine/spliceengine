@@ -18,6 +18,8 @@ package com.splicemachine.derby.iapi.sql.execute;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.PreparedStatement;
+import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.utils.Pair;
 
@@ -75,6 +77,9 @@ public class OperationManagerImpl implements OperationManager {
         unregisterOperation(uuid);
         op.getOperation().kill();
         op.getThread().interrupt();
+        ResultSet rs=activation.getResultSet();
+        rs.close();
+
         return true;
     }
 }
