@@ -72,9 +72,14 @@ public class OlapServerMaster implements Watcher {
     }
 
     public static void main(String[] args) throws Exception {
-        final ServerName serverName = ServerName.parseServerName(args[0]);
-        final int port = Integer.parseInt(args[1]);
-        new OlapServerMaster(serverName, port).run();
+        try {
+            final ServerName serverName = ServerName.parseServerName(args[0]);
+            final int port = Integer.parseInt(args[1]);
+            new OlapServerMaster(serverName, port).run();
+        } finally {
+            // Some issue prevented us from exiting normally
+            System.exit(-1);
+        }
     }
 
     private void run() throws Exception {
@@ -146,6 +151,11 @@ public class OlapServerMaster implements Watcher {
                 submitSparkApplication(conf, ugi);
             } catch (Exception e) {
                 LOG.error("Unexpected exception when submitting Spark application with authentication", e);
+
+                rmClient.unregisterApplicationMaster(
+                        FinalApplicationStatus.FAILED, "", "");
+                rmClient.stop();
+
                 throw e;
             }
             return null;
@@ -154,7 +164,7 @@ public class OlapServerMaster implements Watcher {
         rmClient.unregisterApplicationMaster(
                 FinalApplicationStatus.SUCCEEDED, "", "");
         rmClient.stop();
-        
+
         System.exit(0);
     }
 
