@@ -3,20 +3,13 @@ package com.splicemachine.client;
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
 
 import javax.sql.DataSource;
 import java.beans.PropertyVetoException;
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
+import java.sql.*;
 import java.util.Calendar;
 import java.util.TimeZone;
 import java.util.concurrent.Executors;
@@ -112,6 +105,17 @@ public class SpliceClient {
             }, cancellationWait, TimeUnit.MILLISECONDS);
 
         } catch (Throwable t) {
+            if (t instanceof SQLException) {
+                SQLException sqlException = (SQLException) t;
+                if (t.getMessage().contains("password")) {
+                    Throwable newT = new SQLException(
+                            maskJDBCPassword(sqlException.getMessage()),
+                            sqlException.getSQLState(),
+                            sqlException.getErrorCode());
+                    newT.setStackTrace(t.getStackTrace());
+                    t = newT;
+                }
+            }
             LOG.error("Error while getting Splice token", t);
 
             service.schedule(new Runnable() {
@@ -121,6 +125,12 @@ public class SpliceClient {
                 }
             }, 10, TimeUnit.SECONDS);
         }
+    }
+
+    public static String maskJDBCPassword(String jdbcUrl) {
+        return jdbcUrl.replaceAll(
+                "password=([a-zA-Z0-9%])*(;|$|&|\\s)",
+                "password=[Omitted]$2");
     }
 
     private static void cancelToken(byte[] token) {
