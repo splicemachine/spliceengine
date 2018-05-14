@@ -71,7 +71,7 @@ public class CreateSchemaIT {
         methodWatcher.executeUpdate("CREATE SCHEMA IF NOT EXISTS TESTFOO");
         methodWatcher.executeUpdate("CREATE SCHEMA IF NOT EXISTS TESTFOO1");
         methodWatcher.executeUpdate("CREATE SCHEMA TESTFOO2 IF NOT EXISTS");
-        ResultSet rs = methodWatcher.executeQuery("SELECT SCHEMANAME FROM SYS.SYSSCHEMAS WHERE SCHEMANAME LIKE 'TEST%'");
+        ResultSet rs = methodWatcher.executeQuery("SELECT SCHEMANAME FROM SYS.SYSSCHEMAS WHERE SCHEMANAME LIKE 'TEST%' order by 1");
         rs.next();
         Assert.assertTrue("Schema should now exist", rs.getString(1).equals("TESTFOO"));
         rs.next();

@@ -945,7 +945,6 @@ public class DDLUtils {
                                                  LanguageConnectionContext lcc) throws StandardException{
 
         BasicUUID uuid = ProtoUtil.getDerbyUUID(revokeColumnPrivilege.getTableId());
-        BasicUUID objectId = ProtoUtil.getDerbyUUID(revokeColumnPrivilege.getPermObjectId());
         TableDescriptor td = dd.getTableDescriptor(uuid);
         ColPermsDescriptor colPermsDescriptor =
             new ColPermsDescriptor(
@@ -954,11 +953,17 @@ public class DDLUtils {
                 revokeColumnPrivilege.getGrantor(),
                 uuid,
                 revokeColumnPrivilege.getType(),
-                new FormatableBitSet(revokeColumnPrivilege.getColumns().toByteArray()));
-        colPermsDescriptor.setUUID(objectId);
+                revokeColumnPrivilege.hasColumns()?new FormatableBitSet(revokeColumnPrivilege.getColumns().toByteArray()):null);
+        boolean isGrant = revokeColumnPrivilege.getOp() == DDLMessage.RevokeColumnPrivilege.OpType.GRANT_OP;
+        if (!isGrant) {
+            // only revoke statements need to invalidate the dependent objects
+            BasicUUID objectId = ProtoUtil.getDerbyUUID(revokeColumnPrivilege.getPermObjectId());
+            colPermsDescriptor.setUUID(objectId);
+            dm.invalidateFor(colPermsDescriptor, DependencyManager.REVOKE_PRIVILEGE, lcc);
+            dm.invalidateFor(td, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
+        }
+        // both grant and revoke column permissions need to trigger cache invalidation
         dd.getDataDictionaryCache().permissionCacheRemove(colPermsDescriptor);
-        dm.invalidateFor(colPermsDescriptor, DependencyManager.REVOKE_PRIVILEGE, lcc);
-        dm.invalidateFor(td, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
     }
 
     private static void preRevokeRoutinePrivilege(DDLMessage.RevokeRoutinePrivilege revokeRoutinePrivilege,
