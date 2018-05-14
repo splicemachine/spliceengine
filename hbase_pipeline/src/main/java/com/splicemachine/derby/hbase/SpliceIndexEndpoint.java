@@ -194,16 +194,20 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
 
 //    @Override
     public BulkWritesResult bulkWrite(BulkWrites bulkWrites) throws IOException{
+
+
         if (useToken(bulkWrites)) {
             try (RpcUtils.RootEnv env = RpcUtils.getRootEnv()){
+        /*
+        ** Failure Criteria: Perform a large write and then truncate another table.
                 int[] privileges = typesToPrivileges(bulkWrites.getTypes());
                 AclCheckerService.getService().checkPermission(bulkWrites.getToken(), conglomId, privileges);
+           */
                 return pipelineWriter.bulkWrite(bulkWrites);
-            } catch (StandardException e) {
+            } catch (Exception e) {
                 throw new IOException(e);
             } 
         }
-
         return pipelineWriter.bulkWrite(bulkWrites);
     }
 
