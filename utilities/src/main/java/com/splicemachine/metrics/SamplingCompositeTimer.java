@@ -154,7 +154,7 @@ class SamplingCompositeTimer implements Timer,TimeView{
 								count++;
 						}
 				}
-				return ((double)sum)/count;
+				return count != 0 ? ((double)sum)/count : 0 ;
 		}
 
 		private long computeSum(long[] samples) {
