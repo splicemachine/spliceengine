@@ -89,7 +89,7 @@ public class RoutinePrivilegeInfo extends PrivilegeInfo
             // warning.
             boolean privileges_revoked = false;
             String grantee = (String) grantee1;
-            if (dd.addRemovePermissionsDescriptor(grant, routinePermsDesc, grantee, tc) < 0) {
+            if (dd.addRemovePermissionsDescriptor(grant, routinePermsDesc, grantee, tc) == DataDictionary.PermissionOperation.REMOVE) {
                 privileges_revoked = true;
                 //Derby currently supports only restrict form of revoke execute
                 //privilege and that is why, we are sending invalidation action
