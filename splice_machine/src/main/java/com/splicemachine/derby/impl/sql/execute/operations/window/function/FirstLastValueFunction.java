@@ -47,7 +47,7 @@ public class FirstLastValueFunction extends SpliceGenericWindowFunction {
     @Override
     protected void calculateOnAdd(WindowChunk chunk, DataValueDescriptor[] dvds) throws StandardException {
         DataValueDescriptor result = chunk.getResult();
-        if (result == null || result.isNull()) {
+        if (result == null || ignoreNulls && result.isNull()) {
             chunk.setResult(dvds[0].cloneValue(false));
         } else if (isLastValue) {   // We keep setting results if we're calc'ing LAST_VALUE. If FIRST_VALUE, stop on first result.
             DataValueDescriptor input = dvds[0];
@@ -60,7 +60,37 @@ public class FirstLastValueFunction extends SpliceGenericWindowFunction {
 
     @Override
     protected void calculateOnRemove(WindowChunk chunk, DataValueDescriptor[] dvds) throws StandardException {
-       // nothing to do here we've already set all the results. For LAST_VALUE(), result is just the last item we added.
+       if (isLastValue) {
+           // we need to handle the scenario where the last value is the one that is removing, this could happen
+           // when ignoreNulls is true
+           DataValueDescriptor removedVal = dvds[0];
+           if (ignoreNulls && !removedVal.isNull() && chunk.getResult().equals(removedVal)) {
+               int position = chunk.last;
+               DataValueDescriptor result = null;
+               while (position > chunk.first) {
+                   result = chunk.get(position-1)[0];
+                   if (result !=null && !result.isNull()) {
+                       chunk.setResult(result);
+                       return;
+                   }
+                   position --;
+               }
+               chunk.setResult(result);
+           }
+       } else {// handle First_Value
+           int position = chunk.first;
+           DataValueDescriptor result = null;
+           while (position < chunk.last) {
+               result = chunk.get(position)[0];
+               if (result !=null && (!ignoreNulls || !result.isNull())) {
+                   chunk.setResult(result);
+                   return;
+               }
+               position ++;
+           }
+           chunk.setResult(result);
+       }
+       return;
     }
 
     @Override
