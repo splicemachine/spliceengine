@@ -79,7 +79,9 @@ public class OperationManagerImpl implements OperationManager {
         op.getOperation().kill();
         op.getThread().interrupt();
         ResultSet rs=activation.getResultSet();
-        rs.close();
+        if (rs!=null && !rs.isClosed()) {
+            rs.close();
+        }
 
         return true;
     }
