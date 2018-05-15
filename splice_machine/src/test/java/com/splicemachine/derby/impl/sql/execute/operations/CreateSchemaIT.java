@@ -18,6 +18,7 @@ import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUserWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -30,6 +31,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Tests around creating schemas
@@ -71,13 +74,14 @@ public class CreateSchemaIT {
         methodWatcher.executeUpdate("CREATE SCHEMA IF NOT EXISTS TESTFOO");
         methodWatcher.executeUpdate("CREATE SCHEMA IF NOT EXISTS TESTFOO1");
         methodWatcher.executeUpdate("CREATE SCHEMA TESTFOO2 IF NOT EXISTS");
-        ResultSet rs = methodWatcher.executeQuery("SELECT SCHEMANAME FROM SYS.SYSSCHEMAS WHERE SCHEMANAME LIKE 'TEST%' order by 1");
-        rs.next();
-        Assert.assertTrue("Schema should now exist", rs.getString(1).equals("TESTFOO"));
-        rs.next();
-        Assert.assertTrue("Schema should now exist", rs.getString(1).equals("TESTFOO1"));
-        rs.next();
-        Assert.assertTrue("Schema should now exist", rs.getString(1).equals("TESTFOO2"));
+        ResultSet rs = methodWatcher.executeQuery("SELECT SCHEMANAME FROM SYS.SYSSCHEMAS WHERE SCHEMANAME LIKE 'TEST%'");
+        String expected = "SCHEMANAME |\n" +
+                "------------\n" +
+                "  TESTFOO  |\n" +
+                " TESTFOO1  |\n" +
+                " TESTFOO2  |";
+        assertEquals("list of schemas does not match", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
     }
 
     @Test
