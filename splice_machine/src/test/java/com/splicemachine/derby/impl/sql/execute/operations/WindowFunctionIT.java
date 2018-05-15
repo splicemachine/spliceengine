@@ -394,6 +394,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     private static String EMP3_DEF = "(EMPNO int, EMPNAME varchar(20), SALARY int, DEPTNO int)";
     private static Iterable<Iterable<Object>>  EMP3_ROWS = rows(
             row(10, "Bill", 12000, 5), row(11, "Solomon", 10000, 5), row(12, "Susan", 10000, 5),
+            row(25, "Jack", null, 5), row(26, "Tom", null, 5), row(27, "Apple", null, 5), row(28, "Dan", 15000, 5), row(29, "Ken", null, 5),
             row(13, "Wendy", 9000, 1), row(14, "Benjamin", 7500, 1), row(15, "Tom", 7600, 1),
             row(16, "Henry", 8500, 2), row(17, "Robert", 9500, 2), row(18, "Paul", 7700, 2),
             row(19, "Dora", 8500, 3), row(20, "Samuel", 6900, 3), row(21, "Mary", 7500, 3),
@@ -2822,7 +2823,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         // DB-3920
         String sqlText = format("select empno, salary, deptno, first_value(empno) over(partition by deptno order by " +
                 "salary asc, empno rows unbounded preceding) as first_value from  " +
-                "%s --SPLICE-PROPERTIES useSpark = %s \n order by empno asc", EMP3_REF, useSpark);
+                "%s --SPLICE-PROPERTIES useSpark = %s \n where empno < 25 order by empno asc", EMP3_REF, useSpark);
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // Verified with PostgreSQL App
         String expected =
@@ -2843,6 +2844,306 @@ public class WindowFunctionIT extends SpliceUnitTest {
                         "  22   | 6500  |   4   |     22      |\n" +
                         "  23   | 7800  |   4   |     22      |\n" +
                         "  24   | 7200  |   4   |     22      |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testFirstValueFunctionIgnoreNulls() throws Exception {
+        // test default setting, which is the same as respect nulls
+        String sqlText = format("select deptno, empno, salary, first_value(salary) over(partition by deptno order by " +
+                "empno desc) as first_value from  " +
+                "%s --SPLICE-PROPERTIES useSpark = %s \n order by deptno, empno desc", EMP3_REF, useSpark);
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "DEPTNO | EMPNO |SALARY | FIRST_VALUE |\n" +
+                        "--------------------------------------\n" +
+                        "   1   |  15   | 7600  |    7600     |\n" +
+                        "   1   |  14   | 7500  |    7600     |\n" +
+                        "   1   |  13   | 9000  |    7600     |\n" +
+                        "   2   |  18   | 7700  |    7700     |\n" +
+                        "   2   |  17   | 9500  |    7700     |\n" +
+                        "   2   |  16   | 8500  |    7700     |\n" +
+                        "   3   |  21   | 7500  |    7500     |\n" +
+                        "   3   |  20   | 6900  |    7500     |\n" +
+                        "   3   |  19   | 8500  |    7500     |\n" +
+                        "   4   |  24   | 7200  |    7200     |\n" +
+                        "   4   |  23   | 7800  |    7200     |\n" +
+                        "   4   |  22   | 6500  |    7200     |\n" +
+                        "   5   |  29   | NULL  |    NULL     |\n" +
+                        "   5   |  28   | 15000 |    NULL     |\n" +
+                        "   5   |  27   | NULL  |    NULL     |\n" +
+                        "   5   |  26   | NULL  |    NULL     |\n" +
+                        "   5   |  25   | NULL  |    NULL     |\n" +
+                        "   5   |  12   | 10000 |    NULL     |\n" +
+                        "   5   |  11   | 10000 |    NULL     |\n" +
+                        "   5   |  10   | 12000 |    NULL     |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        // test explicit respect nulls
+        sqlText = format("select deptno, empno, salary, first_value(salary respect nulls) over(partition by deptno order by " +
+                "empno desc) as first_value from  " +
+                "%s --SPLICE-PROPERTIES useSpark = %s \n order by deptno, empno desc", EMP3_REF, useSpark);
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        //test UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING, which should get the same result as above
+        sqlText = format("select deptno, empno, salary, first_value(salary respect nulls) over(partition by deptno order by " +
+                "empno desc rows BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as first_value from  " +
+                "%s --SPLICE-PROPERTIES useSpark = %s \n order by deptno, empno desc", EMP3_REF, useSpark);
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        // test ignore nulls
+        expected =
+                "DEPTNO | EMPNO |SALARY | FIRST_VALUE |\n" +
+                        "--------------------------------------\n" +
+                        "   1   |  15   | 7600  |    7600     |\n" +
+                        "   1   |  14   | 7500  |    7600     |\n" +
+                        "   1   |  13   | 9000  |    7600     |\n" +
+                        "   2   |  18   | 7700  |    7700     |\n" +
+                        "   2   |  17   | 9500  |    7700     |\n" +
+                        "   2   |  16   | 8500  |    7700     |\n" +
+                        "   3   |  21   | 7500  |    7500     |\n" +
+                        "   3   |  20   | 6900  |    7500     |\n" +
+                        "   3   |  19   | 8500  |    7500     |\n" +
+                        "   4   |  24   | 7200  |    7200     |\n" +
+                        "   4   |  23   | 7800  |    7200     |\n" +
+                        "   4   |  22   | 6500  |    7200     |\n" +
+                        "   5   |  29   | NULL  |    NULL     |\n" +
+                        "   5   |  28   | 15000 |    15000    |\n" +
+                        "   5   |  27   | NULL  |    15000    |\n" +
+                        "   5   |  26   | NULL  |    15000    |\n" +
+                        "   5   |  25   | NULL  |    15000    |\n" +
+                        "   5   |  12   | 10000 |    15000    |\n" +
+                        "   5   |  11   | 10000 |    15000    |\n" +
+                        "   5   |  10   | 12000 |    15000    |";
+        sqlText = format("select deptno, empno, salary, first_value(salary ignore nulls) over(partition by deptno order by " +
+                "empno desc) as first_value from  " +
+                "%s --SPLICE-PROPERTIES useSpark = %s \n order by deptno, empno desc", EMP3_REF, useSpark);
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testFirstValueFunctionWithFrameClause() throws Exception {
+        // test default setting, which is the same as respect nulls
+        String sqlText = format("select deptno, empno, salary, first_value(salary) over(partition by deptno order by " +
+                "empno desc rows between 1 preceding and 1 following) as first_value from  " +
+                "%s --SPLICE-PROPERTIES useSpark = %s \n order by deptno, empno desc", EMP3_REF, useSpark);
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "DEPTNO | EMPNO |SALARY | FIRST_VALUE |\n" +
+                        "--------------------------------------\n" +
+                        "   1   |  15   | 7600  |    7600     |\n" +
+                        "   1   |  14   | 7500  |    7600     |\n" +
+                        "   1   |  13   | 9000  |    7500     |\n" +
+                        "   2   |  18   | 7700  |    7700     |\n" +
+                        "   2   |  17   | 9500  |    7700     |\n" +
+                        "   2   |  16   | 8500  |    9500     |\n" +
+                        "   3   |  21   | 7500  |    7500     |\n" +
+                        "   3   |  20   | 6900  |    7500     |\n" +
+                        "   3   |  19   | 8500  |    6900     |\n" +
+                        "   4   |  24   | 7200  |    7200     |\n" +
+                        "   4   |  23   | 7800  |    7200     |\n" +
+                        "   4   |  22   | 6500  |    7800     |\n" +
+                        "   5   |  29   | NULL  |    NULL     |\n" +
+                        "   5   |  28   | 15000 |    NULL     |\n" +
+                        "   5   |  27   | NULL  |    15000    |\n" +
+                        "   5   |  26   | NULL  |    NULL     |\n" +
+                        "   5   |  25   | NULL  |    NULL     |\n" +
+                        "   5   |  12   | 10000 |    NULL     |\n" +
+                        "   5   |  11   | 10000 |    10000    |\n" +
+                        "   5   |  10   | 12000 |    10000    |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        // test explicit respect nulls
+        sqlText = format("select deptno, empno, salary, first_value(salary respect nulls) over(partition by deptno order by " +
+                "empno desc rows between 1 preceding and 1 following) as first_value from  " +
+                "%s --SPLICE-PROPERTIES useSpark = %s \n order by deptno, empno desc", EMP3_REF, useSpark);
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        // test ignore nulls
+        expected =
+                "DEPTNO | EMPNO |SALARY | FIRST_VALUE |\n" +
+                        "--------------------------------------\n" +
+                        "   1   |  15   | 7600  |    7600     |\n" +
+                        "   1   |  14   | 7500  |    7600     |\n" +
+                        "   1   |  13   | 9000  |    7500     |\n" +
+                        "   2   |  18   | 7700  |    7700     |\n" +
+                        "   2   |  17   | 9500  |    7700     |\n" +
+                        "   2   |  16   | 8500  |    9500     |\n" +
+                        "   3   |  21   | 7500  |    7500     |\n" +
+                        "   3   |  20   | 6900  |    7500     |\n" +
+                        "   3   |  19   | 8500  |    6900     |\n" +
+                        "   4   |  24   | 7200  |    7200     |\n" +
+                        "   4   |  23   | 7800  |    7200     |\n" +
+                        "   4   |  22   | 6500  |    7800     |\n" +
+                        "   5   |  29   | NULL  |    15000    |\n" +
+                        "   5   |  28   | 15000 |    15000    |\n" +
+                        "   5   |  27   | NULL  |    15000    |\n" +
+                        "   5   |  26   | NULL  |    NULL     |\n" +
+                        "   5   |  25   | NULL  |    10000    |\n" +
+                        "   5   |  12   | 10000 |    10000    |\n" +
+                        "   5   |  11   | 10000 |    10000    |\n" +
+                        "   5   |  10   | 12000 |    10000    |";
+        sqlText = format("select deptno, empno, salary, first_value(salary ignore nulls) over(partition by deptno order by " +
+                "empno desc rows between 1 preceding and 1 following) as first_value from  " +
+                "%s --SPLICE-PROPERTIES useSpark = %s \n order by deptno, empno desc", EMP3_REF, useSpark);
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testLastValueFunctionIgnoreNulls() throws Exception {
+        // test default setting, which is the same as respect nulls
+        String sqlText = format("select deptno, empno, salary, last_value(salary) over(partition by deptno order by " +
+                "empno) as last_value from  " +
+                "%s --SPLICE-PROPERTIES useSpark = %s \n order by deptno, empno", EMP3_REF, useSpark);
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "DEPTNO | EMPNO |SALARY |LAST_VALUE |\n" +
+                        "------------------------------------\n" +
+                        "   1   |  13   | 9000  |   9000    |\n" +
+                        "   1   |  14   | 7500  |   7500    |\n" +
+                        "   1   |  15   | 7600  |   7600    |\n" +
+                        "   2   |  16   | 8500  |   8500    |\n" +
+                        "   2   |  17   | 9500  |   9500    |\n" +
+                        "   2   |  18   | 7700  |   7700    |\n" +
+                        "   3   |  19   | 8500  |   8500    |\n" +
+                        "   3   |  20   | 6900  |   6900    |\n" +
+                        "   3   |  21   | 7500  |   7500    |\n" +
+                        "   4   |  22   | 6500  |   6500    |\n" +
+                        "   4   |  23   | 7800  |   7800    |\n" +
+                        "   4   |  24   | 7200  |   7200    |\n" +
+                        "   5   |  10   | 12000 |   12000   |\n" +
+                        "   5   |  11   | 10000 |   10000   |\n" +
+                        "   5   |  12   | 10000 |   10000   |\n" +
+                        "   5   |  25   | NULL  |   NULL    |\n" +
+                        "   5   |  26   | NULL  |   NULL    |\n" +
+                        "   5   |  27   | NULL  |   NULL    |\n" +
+                        "   5   |  28   | 15000 |   15000   |\n" +
+                        "   5   |  29   | NULL  |   NULL    |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        // test explicit respect nulls
+        sqlText = format("select deptno, empno, salary, last_value(salary respect nulls) over(partition by deptno order by " +
+                "empno) as last_value from  " +
+                "%s --SPLICE-PROPERTIES useSpark = %s \n order by deptno, empno", EMP3_REF, useSpark);
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        // test ignore nulls
+        expected =
+                "DEPTNO | EMPNO |SALARY |LAST_VALUE |\n" +
+                        "------------------------------------\n" +
+                        "   1   |  13   | 9000  |   9000    |\n" +
+                        "   1   |  14   | 7500  |   7500    |\n" +
+                        "   1   |  15   | 7600  |   7600    |\n" +
+                        "   2   |  16   | 8500  |   8500    |\n" +
+                        "   2   |  17   | 9500  |   9500    |\n" +
+                        "   2   |  18   | 7700  |   7700    |\n" +
+                        "   3   |  19   | 8500  |   8500    |\n" +
+                        "   3   |  20   | 6900  |   6900    |\n" +
+                        "   3   |  21   | 7500  |   7500    |\n" +
+                        "   4   |  22   | 6500  |   6500    |\n" +
+                        "   4   |  23   | 7800  |   7800    |\n" +
+                        "   4   |  24   | 7200  |   7200    |\n" +
+                        "   5   |  10   | 12000 |   12000   |\n" +
+                        "   5   |  11   | 10000 |   10000   |\n" +
+                        "   5   |  12   | 10000 |   10000   |\n" +
+                        "   5   |  25   | NULL  |   10000   |\n" +
+                        "   5   |  26   | NULL  |   10000   |\n" +
+                        "   5   |  27   | NULL  |   10000   |\n" +
+                        "   5   |  28   | 15000 |   15000   |\n" +
+                        "   5   |  29   | NULL  |   15000   |";
+        sqlText = format("select deptno, empno, salary, last_value(salary ignore nulls) over(partition by deptno order by " +
+                "empno) as last_value from  " +
+                "%s --SPLICE-PROPERTIES useSpark = %s \n order by deptno, empno", EMP3_REF, useSpark);
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testLastValueFunctionWithFrameClause() throws Exception {
+        // test default setting, which is the same as respect nulls
+        String sqlText = format("select deptno, empno, salary, last_value(salary) over(partition by deptno order by " +
+                "empno rows between 1 preceding and 1 following) as last_value from  " +
+                "%s --SPLICE-PROPERTIES useSpark = %s \n order by deptno, empno", EMP3_REF, useSpark);
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "DEPTNO | EMPNO |SALARY |LAST_VALUE |\n" +
+                        "------------------------------------\n" +
+                        "   1   |  13   | 9000  |   7500    |\n" +
+                        "   1   |  14   | 7500  |   7600    |\n" +
+                        "   1   |  15   | 7600  |   7600    |\n" +
+                        "   2   |  16   | 8500  |   9500    |\n" +
+                        "   2   |  17   | 9500  |   7700    |\n" +
+                        "   2   |  18   | 7700  |   7700    |\n" +
+                        "   3   |  19   | 8500  |   6900    |\n" +
+                        "   3   |  20   | 6900  |   7500    |\n" +
+                        "   3   |  21   | 7500  |   7500    |\n" +
+                        "   4   |  22   | 6500  |   7800    |\n" +
+                        "   4   |  23   | 7800  |   7200    |\n" +
+                        "   4   |  24   | 7200  |   7200    |\n" +
+                        "   5   |  10   | 12000 |   10000   |\n" +
+                        "   5   |  11   | 10000 |   10000   |\n" +
+                        "   5   |  12   | 10000 |   NULL    |\n" +
+                        "   5   |  25   | NULL  |   NULL    |\n" +
+                        "   5   |  26   | NULL  |   NULL    |\n" +
+                        "   5   |  27   | NULL  |   15000   |\n" +
+                        "   5   |  28   | 15000 |   NULL    |\n" +
+                        "   5   |  29   | NULL  |   NULL    |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        // test explicit respect nulls
+        sqlText = format("select deptno, empno, salary, last_value(salary respect nulls) over(partition by deptno order by " +
+                "empno rows between 1 preceding and 1 following) as last_value from  " +
+                "%s --SPLICE-PROPERTIES useSpark = %s \n order by deptno, empno", EMP3_REF, useSpark);
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        // test ignore nulls
+        expected =
+                "DEPTNO | EMPNO |SALARY |LAST_VALUE |\n" +
+                        "------------------------------------\n" +
+                        "   1   |  13   | 9000  |   7500    |\n" +
+                        "   1   |  14   | 7500  |   7600    |\n" +
+                        "   1   |  15   | 7600  |   7600    |\n" +
+                        "   2   |  16   | 8500  |   9500    |\n" +
+                        "   2   |  17   | 9500  |   7700    |\n" +
+                        "   2   |  18   | 7700  |   7700    |\n" +
+                        "   3   |  19   | 8500  |   6900    |\n" +
+                        "   3   |  20   | 6900  |   7500    |\n" +
+                        "   3   |  21   | 7500  |   7500    |\n" +
+                        "   4   |  22   | 6500  |   7800    |\n" +
+                        "   4   |  23   | 7800  |   7200    |\n" +
+                        "   4   |  24   | 7200  |   7200    |\n" +
+                        "   5   |  10   | 12000 |   10000   |\n" +
+                        "   5   |  11   | 10000 |   10000   |\n" +
+                        "   5   |  12   | 10000 |   10000   |\n" +
+                        "   5   |  25   | NULL  |   10000   |\n" +
+                        "   5   |  26   | NULL  |   NULL    |\n" +
+                        "   5   |  27   | NULL  |   15000   |\n" +
+                        "   5   |  28   | 15000 |   15000   |\n" +
+                        "   5   |  29   | NULL  |   15000   |";
+        sqlText = format("select deptno, empno, salary, last_value(salary ignore nulls) over(partition by deptno order by " +
+                "empno rows between 1 preceding and 1 following) as last_value from  " +
+                "%s --SPLICE-PROPERTIES useSpark = %s \n order by deptno, empno", EMP3_REF, useSpark);
+        rs = methodWatcher.executeQuery(sqlText);
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
@@ -3006,7 +3307,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         // DB-3920
         String sqlText = format("select empno, salary, deptno, " +
                 "LAG(SALARY) OVER (PARTITION BY DEPTNO ORDER BY SALARY DESC, empno) NEXT_LOWER_SAL from " +
-                "%s   --SPLICE-PROPERTIES useSpark = %s \n order by deptno, SALARY DESC, empno", EMP3_REF, useSpark);
+                "%s   --SPLICE-PROPERTIES useSpark = %s \n where empno < 25 order by deptno, SALARY DESC, empno", EMP3_REF, useSpark);
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // Verified with PostgreSQL App
         String expected =
