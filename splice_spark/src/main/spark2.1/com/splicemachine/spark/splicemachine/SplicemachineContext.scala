@@ -261,6 +261,46 @@ class SplicemachineContext(url: String) extends Serializable {
     internalConnection.createStatement().executeUpdate(sqlText)
   }
 
+  /**
+    *
+    * Insert a dataFrame into a table (schema.table).  This corresponds to an
+    *
+    * insert into from select statement
+    *
+    * @param dataFrame
+    * @param schemaTableName
+    */
+  def insert(dataFrame: DataFrame, schemaTableName: String, statusDirectory: String, badRecordsAllowed: Integer): Unit = {
+    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
+    val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
+    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
+    val sqlText = "insert into " + schemaTableName + " (" + columnList + ")" +
+      " --splice-properties useSpark=true, insertMode=INSERT, statusDirectory=" + statusDirectory + ", badRecordsAllowed=" + badRecordsAllowed + "\n " +
+      "select " + columnList + " from " +
+      "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
+      "as SpliceDatasetVTI (" + schemaString + ")"
+    internalConnection.createStatement().executeUpdate(sqlText)
+  }
+
+  /**
+    * Insert a RDD into a table (schema.table).  The schema is required since RDD's do not have schema.
+    *
+    * @param rdd
+    * @param schema
+    * @param schemaTableName
+    */
+  def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String, statusDirectory: String, badRecordsAllowed: Integer): Unit = {
+    SpliceRDDVTI.datasetThreadLocal.set(rdd)
+    val columnList = SpliceJDBCUtil.listColumns(schema.fieldNames)
+    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(schema, url)
+    val sqlText = "insert into " + schemaTableName + " (" + columnList + ")" +
+      " --splice-properties useSpark=true, insertMode=INSERT, statusDirectory=" + statusDirectory + ", badRecordsAllowed=" + badRecordsAllowed + "\n " +
+      " select " + columnList + " from " +
+      "new com.splicemachine.derby.vti.SpliceRDDVTI() " +
+      "as SpliceRDDVTI (" + schemaString + ")"
+    internalConnection.createStatement().executeUpdate(sqlText)
+  }
+
   def upsert(dataFrame: DataFrame, schemaTableName: String): Unit = {
     SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
     val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
