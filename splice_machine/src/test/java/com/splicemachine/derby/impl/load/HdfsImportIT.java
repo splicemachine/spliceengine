@@ -72,6 +72,7 @@ public class HdfsImportIT extends SpliceUnitTest {
     protected static String TABLE_23 = "W";
     protected static String TABLE_24 = "X";
     protected static String TABLE_25 = "Y";
+    protected static String TABLE_26 = "Z";
 
     private static final String AUTO_INCREMENT_TABLE = "INCREMENT";
 
@@ -166,6 +167,8 @@ public class HdfsImportIT extends SpliceUnitTest {
             .schemaName, "(c1 varchar(6), c2 char(6), c3 int)");
     protected static SpliceTableWatcher spliceTableWatcher25 = new SpliceTableWatcher(TABLE_25, spliceSchemaWatcher
             .schemaName, "(c1 varchar(6), c2 char(6), c3 int)");
+    protected static SpliceTableWatcher spliceTableWatcher26 = new SpliceTableWatcher(TABLE_26, spliceSchemaWatcher
+            .schemaName, "(c1 int, c2 clob(1k))");
 
     private static SpliceTableWatcher  multiLine = new SpliceTableWatcher("mytable",spliceSchemaWatcher.schemaName,
             "(a int, b char(10),c timestamp, d varchar(100),e bigint)");
@@ -206,6 +209,7 @@ public class HdfsImportIT extends SpliceUnitTest {
             .around(spliceTableWatcher23)
             .around(spliceTableWatcher24)
             .around(spliceTableWatcher25)
+            .around(spliceTableWatcher26)
             .around(multiLine)
             .around(multiPK)
             .around(autoIncTableWatcher);
@@ -596,6 +600,50 @@ public class HdfsImportIT extends SpliceUnitTest {
                 "  - |";
         String sql = format("select '-' || c1 || '-', '- '|| c2 || '-' from %s.%s order by c1", spliceSchemaWatcher
                 .schemaName, TABLE_25);
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n"+sql+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testImportNormalizationForCLOB() throws Exception {
+        String csvLocation = getResourceDirectory() + "char_type_clob.csv";
+
+        String importStmt = format("call SYSCS_UTIL.IMPORT_DATA(" +
+                        "'%s'," +  // schema name
+                        "'%s'," +  // table name
+                        "null," +  // insert column list
+                        "'%s'," +  // file path
+                        "','," +   // column delimiter
+                        "null," +  // character delimiter
+                        "null," +  // timestamp format
+                        "null," +  // date format
+                        "null," +  // time format
+                        "%d," +    // max bad records
+                        "'%s'," +  // bad record dir
+                        "false," +  // has one line records
+                        "null)",   // char set
+                spliceSchemaWatcher.schemaName, TABLE_26,
+                csvLocation,                    2,
+                BADDIR.getCanonicalPath());
+        PreparedStatement ps = methodWatcher.prepareStatement(importStmt);
+        ResultSet rs = ps.executeQuery();
+        if (rs.next()) {
+            int rowsImported = rs.getInt(1);
+            int failedRows = rs.getInt(2);
+            Assert.assertEquals("wrong rowsImported!", 1, rowsImported);
+            Assert.assertEquals("wrong failedRows!", 1, failedRows);
+        } else {
+            fail("wrong output for import statement, exepcted one row!");
+        }
+        rs.close();
+
+        // select the ending portion of the clob
+        String expected = "C1 |        2        |\n" +
+                "----------------------\n" +
+                " 0 |-2222222222xxxx- |";
+        String sql = format("select  c1 , '-'|| substr(c2,830,20) || '-' from %s.%s order by c1", spliceSchemaWatcher
+                .schemaName, TABLE_26);
         rs = methodWatcher.executeQuery(sql);
         assertEquals("\n"+sql+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
