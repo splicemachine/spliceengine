@@ -74,7 +74,7 @@ public class CreateSchemaIT {
         methodWatcher.executeUpdate("CREATE SCHEMA IF NOT EXISTS TESTFOO");
         methodWatcher.executeUpdate("CREATE SCHEMA IF NOT EXISTS TESTFOO1");
         methodWatcher.executeUpdate("CREATE SCHEMA TESTFOO2 IF NOT EXISTS");
-        ResultSet rs = methodWatcher.executeQuery("SELECT SCHEMANAME FROM SYS.SYSSCHEMAS WHERE SCHEMANAME LIKE 'TEST%'");
+        ResultSet rs = methodWatcher.executeQuery("SELECT SCHEMANAME FROM SYS.SYSSCHEMAS WHERE SCHEMANAME in ('TESTFOO', 'TESTFOO1', 'TESTFOO2')");
         String expected = "SCHEMANAME |\n" +
                 "------------\n" +
                 "  TESTFOO  |\n" +
