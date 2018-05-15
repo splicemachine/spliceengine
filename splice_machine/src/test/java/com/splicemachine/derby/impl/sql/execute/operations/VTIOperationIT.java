@@ -198,7 +198,7 @@ public class VTIOperationIT extends SpliceUnitTest {
         //test spark path
         sql = String.format("select '-' || name || '-', '-' || title || '-', age, something, date_hired, clock from new com.splicemachine.derby.vti.SpliceFileVTI('%s','',',') as b" +
                 " (name varchar(10), title varchar(30), age int, something varchar(12), " +
-                "date_hired timestamp, clock time) --splice-properties useSpark=false\n" +
+                "date_hired timestamp, clock time) --splice-properties useSpark=true\n" +
                 " where age < 40 and date_hired > TIMESTAMP('2015-08-21', '08:09:08') order" +
                 " by name", location);
         rs = spliceClassWatcher.executeQuery(sql);

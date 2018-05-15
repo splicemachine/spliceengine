@@ -197,6 +197,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
                         break;
                     case StoredFormatIds.SQL_CHAR_ID:
                     case StoredFormatIds.SQL_VARCHAR_ID:
+                    case StoredFormatIds.SQL_CLOB_ID:
                         dvd.setValue(value);
                         //normalize the char type
                         if(dataTypeDescriptors != null && !dvd.isNull()){
