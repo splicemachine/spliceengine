@@ -20,10 +20,12 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DateTimeDataValue;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.VTIOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.stream.utils.BooleanList;
@@ -150,6 +152,13 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
                 columnnumbermistmatch = true;
                 throw StandardException.newException(SQLState.COLUMN_NUMBER_MISMATCH, returnRow.nColumns(), values.size());
             }
+
+            DataTypeDescriptor[] dataTypeDescriptors = null;
+            if (operationContext != null && operationContext.getOperation() instanceof VTIOperation) {
+                VTIOperation op = (VTIOperation) operationContext.getOperation();
+                dataTypeDescriptors = op.getResultColumnTypes();
+            }
+
             numofColumnsinTable = returnRow.nColumns();
             numofColumnsinFile = values.size();
             for (int i = 1; i <= returnRow.nColumns(); i++) {
@@ -185,6 +194,15 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
                             ((DateTimeDataValue)dvd).setValue(value,calendar);
                         else
                             dvd.setValue(SpliceDateFunctions.TO_TIMESTAMP(value, timestampFormat),calendar);
+                        break;
+                    case StoredFormatIds.SQL_CHAR_ID:
+                    case StoredFormatIds.SQL_VARCHAR_ID:
+                    case StoredFormatIds.SQL_CLOB_ID:
+                        dvd.setValue(value);
+                        //normalize the char type
+                        if(dataTypeDescriptors != null && !dvd.isNull()){
+                            dvd.normalize(dataTypeDescriptors[i-1], dvd);
+                        }
                         break;
                     default:
                         dvd.setValue(value);
