@@ -17,21 +17,28 @@ package org.apache.hadoop.hbase.ipc;
 
 public class RpcUtils {
 
+    public static ThreadLocal<Boolean> accessAllowed = new ThreadLocal<>();
+
     public static RootEnv getRootEnv() {
         return new RootEnv();
     }
 
+    public static boolean isAccessAllowed() {
+        Boolean allowed = accessAllowed.get();
+        return allowed != null && allowed;
+    }
+
     public static class RootEnv implements AutoCloseable {
-        RpcServer.Call stored;
+        Boolean stored;
 
         RootEnv() {
-            stored = (RpcServer.Call) RpcServer.getCurrentCall();
-            RpcServer.CurCall.set(null);
+            stored = accessAllowed.get();
+            accessAllowed.set(true);
         }
 
         @Override
         public void close() {
-            RpcServer.CurCall.set(stored);
+            accessAllowed.set(stored);
         }
     }
 }

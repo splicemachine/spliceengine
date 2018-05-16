@@ -50,6 +50,7 @@ import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.ipc.RpcServer;
+import org.apache.hadoop.hbase.ipc.RpcUtils;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
@@ -369,6 +370,9 @@ public class SIObserver extends BaseRegionObserver{
 
         User user = RpcServer.getRequestUser();
         if (user == null || user.getShortName().equalsIgnoreCase("hbase"))
+            return;
+
+        if (RpcUtils.isAccessAllowed())
             return;
 
         throw new AccessDeniedException("Insufficient permissions for user " +
