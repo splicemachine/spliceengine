@@ -16,7 +16,6 @@ package com.splicemachine.compactions;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
-import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.db.catalog.UUID;
@@ -43,6 +42,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.ipc.RpcServer;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionProgress;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
@@ -69,16 +69,16 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     private static final boolean allowSpark = true;
     private static final Logger LOG = Logger.getLogger(SpliceDefaultCompactor.class);
     private long smallestReadPoint;
-    private String conglomId = null;
-    private String tableDisplayName = null;
-    private String indexDisplayName = null;
+    private String conglomId;
+    private String tableDisplayName;
+    private String indexDisplayName;
+    private static String hostName;
 
     private static final String TABLE_DISPLAY_NAME_ATTR = SIConstants.TABLE_DISPLAY_NAME_ATTR;
     private static final String INDEX_DISPLAY_NAME_ATTR = SIConstants.INDEX_DISPLAY_NAME_ATTR;
 
     public SpliceDefaultCompactor(final Configuration conf, final Store store) {
         super(conf, store);
-        
         conglomId = this.store.getTableName().getQualifierAsString();
         tableDisplayName = ((HStore)this.store).getHRegion().getTableDesc().getValue(TABLE_DISPLAY_NAME_ATTR);
         indexDisplayName = ((HStore)this.store).getHRegion().getTableDesc().getValue(INDEX_DISPLAY_NAME_ATTR);
@@ -116,18 +116,19 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                         : ScanType.COMPACT_DROP_DELETES;
         // trigger MemstoreAwareObserver
         postCreateCoprocScanner(request, scanType, null,user);
+        if (hostName == null)
+            hostName = RSRpcServices.getHostname(conf,false);
 
-        String regionLocation = getRegionLocation(store);
         SConfiguration config = HConfiguration.getConfiguration();
         DistributedCompaction jobRequest=new DistributedCompaction(
                 getCompactionFunction(request.isMajor()),
                 files,
                 getJobDetails(request),
-                getJobGroup(request,regionLocation),
+                getJobGroup(request,hostName),
                 getJobDescription(request),
                 getPoolName(),
                 getScope(request),
-                regionLocation,
+                hostName,
                 config.getOlapCompactionMaximumWait());
         CompactionResult result = null;
         Future<CompactionResult> futureResult = EngineDriver.driver().getOlapClient().submit(jobRequest);
@@ -497,29 +498,6 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"createScanner");
         return super.createScanner(store, scanners, smallestReadPoint, earliestPutTs, dropDeletesFromRow, dropDeletesToRow);
-    }
-
-    /**
-     * Returns location for an HBase store
-     * @param store
-     * @return
-     * @throws java.io.IOException
-     */
-    private String getRegionLocation(Store store) throws IOException {
-        // Get start key for the store
-        HRegionInfo regionInfo = store.getRegionInfo();
-        byte[] startKey = regionInfo.getStartKey();
-
-        // Get an instance of the table
-        PartitionFactory tableFactory=SIDriver.driver().getTableFactory();
-        Partition table = tableFactory.getTable(regionInfo.getTable());
-
-        // Get region location using start key
-        List<Partition> partitions = table.subPartitions(startKey, HConstants.EMPTY_END_ROW, true);
-        if (partitions.isEmpty()) {
-            throw new IOException("Couldn't find region location for " + regionInfo);
-        }
-        return partitions.get(0).owningServer().getHostname();
     }
 
     private boolean shouldPurge() throws IOException {
