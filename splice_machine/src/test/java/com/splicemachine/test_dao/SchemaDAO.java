@@ -67,6 +67,17 @@ public class SchemaDAO {
                 }
             }
 
+            // Delete Sequences
+
+            try(ResultSet resultSet = jdbcTemplate.getConnection().prepareStatement(String.format("select sequencename from sys.syssequences seq, sys.sysschemas sch where " +
+                    "seq.schemaid = sch.schemaid and SCHEMANAME = '%s'",uSchema)).executeQuery()) {
+                while(resultSet.next()){
+                    jdbcTemplate.executeUpdate(String.format("drop sequence %s.%s restrict",uSchema,resultSet.getString(1)));
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+
             // Delete Triggers
 
             try(ResultSet resultSet = jdbcTemplate.getConnection().prepareStatement(String.format("select triggername from sys.systriggers, sys.sysschemas where " +
