@@ -16,27 +16,14 @@
 package com.splicemachine.storage;
 
 import com.google.protobuf.Service;
-import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
-import com.splicemachine.db.iapi.types.SQLBlob;
 import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.data.HExceptionFactory;
-import com.splicemachine.si.impl.HNotServingRegion;
-import com.splicemachine.si.impl.HRegionTooBusy;
-import com.splicemachine.si.impl.HWrongRegion;
 import com.splicemachine.storage.util.PartitionInRangePredicate;
 import com.splicemachine.utils.Pair;
-import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.ClusterStatus;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.RegionLoad;
-import org.apache.hadoop.hbase.ServerLoad;
-import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
@@ -50,26 +37,19 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
-import org.apache.hadoop.hbase.protobuf.generated.AdminProtos;
 import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
 import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
-import org.apache.hadoop.hbase.protobuf.generated.MasterProtos;
 import org.apache.hadoop.hbase.security.AccessDeniedException;
-import org.apache.hadoop.hdfs.DFSUtil;
-import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos;
-import org.apache.hadoop.hdfs.protocolPB.PBHelper;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.collect.ImmutableList;
 import org.spark_project.guava.collect.Iterables;
 import org.spark_project.guava.collect.Iterators;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
+import javax.sql.DataSource;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InterruptedIOException;
-import java.io.OutputStream;
 import java.sql.Blob;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -78,15 +58,11 @@ import java.sql.Types;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
 /**
@@ -101,7 +77,7 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
     // If we ever have an ACL violation, we must use the proxy for all remaining calls
     private volatile static boolean useProxy = false;
 
-    private final java.sql.Connection jdbcConnection;
+    private final DataSource connectionPool;
     private TableName tableName;
     private final Connection connection;
     private PartitionInfoCache partitionInfoCache;
@@ -109,13 +85,13 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
 
     public AdapterPartition(ClientPartition clientPartition,
                             Connection connection,
-                            java.sql.Connection jdbcConnection,
+                            DataSource connectionPool,
                             TableName tableName,
                             PartitionInfoCache partitionInfoCache){
         assert tableName!=null:"Passed in tableName is null";
         this.delegate = clientPartition;
         this.tableName=tableName;
-        this.jdbcConnection=jdbcConnection;
+        this.connectionPool=connectionPool;
         this.connection=connection;
         this.partitionInfoCache = partitionInfoCache;
     }
@@ -127,12 +103,7 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
 
     @Override
     public void close() throws IOException{
-        try {
-            jdbcConnection.close();
-            delegate.close();
-        } catch (SQLException e) {
-            throw new IOException(e);
-        }
+        delegate.close();
     }
 
     @Override
@@ -147,7 +118,8 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
         }
 
         try {
-            try (PreparedStatement statement = jdbcConnection.prepareStatement("call SYSCS_UTIL.SYSCS_HBASE_OPERATION(?, ?, ?)")) {
+            try (java.sql.Connection jdbcConnection = connectionPool.getConnection();
+                 PreparedStatement statement = jdbcConnection.prepareStatement("call SYSCS_UTIL.SYSCS_HBASE_OPERATION(?, ?, ?)")) {
                 statement.setString(1, tableName.toString());
                 statement.setString(2, "get");
                 ClientProtos.Get getRequest = ProtobufUtil.toGet(get);
@@ -181,7 +153,8 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
         }
 
         try {
-            try (PreparedStatement statement = jdbcConnection.prepareStatement("call SYSCS_UTIL.SYSCS_HBASE_OPERATION(?, ?, ?)")) {
+            try (java.sql.Connection jdbcConnection = connectionPool.getConnection();
+                 PreparedStatement statement = jdbcConnection.prepareStatement("call SYSCS_UTIL.SYSCS_HBASE_OPERATION(?, ?, ?)")) {
                 statement.setString(1, tableName.toString());
                 statement.setString(2, "scan");
                 Scan copy = new Scan(scan);
@@ -274,7 +247,8 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
         List<Result> results = new ArrayList<>();
 
         try {
-            try (PreparedStatement statement = jdbcConnection.prepareStatement("call SYSCS_UTIL.SYSCS_HBASE_OPERATION(?, ?, ?)")) {
+            try (java.sql.Connection jdbcConnection = connectionPool.getConnection();
+                 PreparedStatement statement = jdbcConnection.prepareStatement("call SYSCS_UTIL.SYSCS_HBASE_OPERATION(?, ?, ?)")) {
                 statement.setString(1, tableName.toString());
                 statement.setString(2, "batchGet");
                 statement.setBlob(3, new ArrayInputStream(os.toByteArray()));
@@ -415,7 +389,8 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
         }
 
         try {
-            try (PreparedStatement statement = jdbcConnection.prepareStatement("call SYSCS_UTIL.SYSCS_HBASE_OPERATION(?, ?, ?)")) {
+            try (java.sql.Connection jdbcConnection = connectionPool.getConnection();
+                 PreparedStatement statement = jdbcConnection.prepareStatement("call SYSCS_UTIL.SYSCS_HBASE_OPERATION(?, ?, ?)")) {
                 statement.setString(1, tableName.toString());
                 statement.setString(2, "descriptor");
                 statement.setNull(3, Types.BLOB);

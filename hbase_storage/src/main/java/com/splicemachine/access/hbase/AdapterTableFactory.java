@@ -69,13 +69,9 @@ public class AdapterTableFactory implements PartitionFactory<TableName>{
 
     @Override
     public Partition getTable(TableName tableName) throws IOException{
-        try {
-            Table table = connection.getTable(tableName);
-            ClientPartition delegate = new ClientPartition(connection, tableName, table, timeKeeper, partitionInfoCache);
-            return new AdapterPartition(delegate, connection,connectionPool.getConnection(),tableName, partitionInfoCache);
-        } catch (SQLException e) {
-            throw new IOException(e);
-        }
+        Table table = connection.getTable(tableName);
+        ClientPartition delegate = new ClientPartition(connection, tableName, table, timeKeeper, partitionInfoCache);
+        return new AdapterPartition(delegate, connection,connectionPool,tableName, partitionInfoCache);
     }
 
     @Override
