@@ -46,7 +46,7 @@ public class BroadcastJoinIT extends SpliceUnitTest {
     private Boolean useSpark;
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
-        Collection<Object[]> params = Lists.newArrayListWithCapacity(4);
+        Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
         params.add(new Object[]{true});
         params.add(new Object[]{false});
         return params;
