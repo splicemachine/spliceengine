@@ -54,9 +54,10 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     private static final boolean allowSpark = true;
     private static final Logger LOG = Logger.getLogger(SpliceDefaultCompactor.class);
     private long smallestReadPoint;
-    private String conglomId = null;
-    private String tableDisplayName = null;
-    private String indexDisplayName = null;
+    private String conglomId;
+    private String tableDisplayName;
+    private String indexDisplayName;
+    private static String hostName;
 
     private static final String TABLE_DISPLAY_NAME_ATTR = SIConstants.TABLE_DISPLAY_NAME_ATTR;
     private static final String INDEX_DISPLAY_NAME_ATTR = SIConstants.INDEX_DISPLAY_NAME_ATTR;
@@ -100,17 +101,19 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         // trigger MemstoreAwareObserver
         postCreateCoprocScanner(request, scanType, null, user);
 
-        String regionLocation = getRegionLocation(store);
+        if (hostName == null)
+            hostName = RSRpcServices.getHostname(conf,false);
+
         SConfiguration config = HConfiguration.getConfiguration();
         DistributedCompaction jobRequest=new DistributedCompaction(
                 getCompactionFunction(request.isMajor()),
                 files,
                 getJobDetails(request),
-                getJobGroup(request,regionLocation),
+                getJobGroup(request,hostName),
                 getJobDescription(request),
                 getPoolName(),
                 getScope(request),
-                regionLocation,
+                hostName,
                 config.getOlapCompactionMaximumWait());
         CompactionResult result = null;
         Future<CompactionResult> futureResult = EngineDriver.driver().getOlapClient().submit(jobRequest);
@@ -499,26 +502,4 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         return super.createScanner(store, scanners, smallestReadPoint, earliestPutTs, dropDeletesFromRow, dropDeletesToRow);
     }
 
-    /**
-     * Returns location for an HBase store
-     * @param store
-     * @return
-     * @throws IOException
-     */
-    private String getRegionLocation(Store store) throws IOException {
-        // Get start key for the store
-        HRegionInfo regionInfo = store.getRegionInfo();
-        byte[] startKey = regionInfo.getStartKey();
-
-        // Get an instance of the table
-        PartitionFactory tableFactory=SIDriver.driver().getTableFactory();
-        Partition table = tableFactory.getTable(regionInfo.getTable());
-
-        // Get region location using start key
-        List<Partition> partitions = table.subPartitions(startKey, HConstants.EMPTY_END_ROW, true);
-        if (partitions.isEmpty()) {
-            throw new IOException("Couldn't find region location for " + regionInfo);
-        }
-        return partitions.get(0).owningServer().getHostname();
-    }
 }
