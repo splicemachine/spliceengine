@@ -32,6 +32,7 @@ public class Hbase10PartitionCache implements PartitionInfoCache<TableName>{
     private SConfiguration config;
     private HBaseTableInfoFactory tableInfoFactory;
     private Cache<TableName, List<Partition>> partitionCache = CacheBuilder.newBuilder().maximumSize(100).build();
+    private Cache<TableName, List<Partition>> partitionAdapterCache = CacheBuilder.newBuilder().maximumSize(100).build();
 
     //must be a no-args to support the PartitionCacheService--use configure() instead
     public Hbase10PartitionCache(){ }
@@ -62,6 +63,23 @@ public class Hbase10PartitionCache implements PartitionInfoCache<TableName>{
     @Override
     public void put(TableName tableName, List<Partition> partitions) throws IOException {
         partitionCache.put(tableName,partitions);
+    }
+
+    @Override
+    public void invalidateAdapter(TableName tableName) throws IOException {
+        partitionAdapterCache.invalidate(tableName);
+        ((ClusterConnection)HBaseConnectionFactory.getInstance(config).getConnection()).clearRegionCache(tableName);
+        ((ClusterConnection)HBaseConnectionFactory.getInstance(config).getNoRetryConnection()).clearRegionCache(tableName);
+    }
+
+    @Override
+    public List<Partition> getAdapterIfPresent(TableName tableName) throws IOException {
+        return partitionAdapterCache.getIfPresent(tableName);
+    }
+
+    @Override
+    public void putAdapter(TableName tableName, List<Partition> partitions) throws IOException {
+        partitionAdapterCache.put(tableName,partitions);
     }
 }
 
