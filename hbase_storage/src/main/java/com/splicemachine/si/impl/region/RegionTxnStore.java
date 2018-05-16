@@ -91,6 +91,20 @@ public class RegionTxnStore implements TxnPartition{
     }
 
     @Override
+    public TxnMessage.TaskId getTaskId(long txnId) throws IOException{
+        long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
+        if(LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG,"getTransaction txnId=%d",txnId);
+        Get get=new Get(getRowKey(beginTS));
+        get.addColumn(FAMILY, V2TxnDecoder.TASK_QUALIFIER_BYTES);
+        Result result=region.get(get);
+        if(result==null||result.isEmpty())
+            return null; //no transaction
+        TxnMessage.TaskId taskId=newTransactionDecoder.decodeTaskId(this,txnId,result);
+        return taskId;
+    }
+
+    @Override
     public TxnMessage.Txn getTransactionV1(long txnId) throws IOException{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"getTransactionV1 txnId=%d",txnId);

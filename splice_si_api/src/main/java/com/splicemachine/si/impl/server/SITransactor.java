@@ -26,6 +26,7 @@ import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.server.ConstraintChecker;
 import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.ConflictType;
+import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
@@ -33,6 +34,7 @@ import com.splicemachine.si.api.txn.WriteConflict;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.ConflictResults;
 import com.splicemachine.si.impl.SimpleTxnFilter;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
@@ -533,6 +535,18 @@ public class SITransactor implements Transactor{
                     conflictResults.addChild(dataTransactionId);
                     break;
                 case ADDITIVE:
+                    if (dataTransaction.getState()==Txn.State.ACTIVE) {
+                        // check if it's a retry of the same task
+                        TaskId updateTaskId = txnSupplier.getTaskId(updateTransaction.getTxnId());
+                        TaskId dataTaskId = txnSupplier.getTaskId(dataTransactionId);
+                        if (updateTaskId != null && dataTaskId != null &&
+                                updateTaskId.sameTask(dataTaskId) &&
+                                updateTaskId.getTaskAttemptNumber() > dataTaskId.getTaskAttemptNumber()) {
+                            // this is a retry, rollback previous transaction and don't report a conflict
+                            SIDriver.driver().lifecycleManager().rollback(dataTransactionId);
+                            break;
+                        }
+                    }
                     if(conflictResults==null){
                         conflictResults=new ConflictResults();
                     }

@@ -46,4 +46,6 @@ public interface TxnLifecycleStore{
     void rollbackTransactionsAfter(long txnId) throws IOException;
     
     TxnMessage.Txn getOldTransaction(long txnId) throws IOException;
+
+    TxnMessage.TaskId getTaskId(long txnId) throws IOException;
 }

@@ -49,6 +49,7 @@ public class V2TxnDecoder implements TxnDecoder{
     static final byte[] STATE_QUALIFIER_BYTES=Bytes.toBytes("s");
     static final byte[] DESTINATION_TABLE_QUALIFIER_BYTES=Bytes.toBytes("e"); //had to pick a letter that was unique
     static final byte[] ROLLBACK_SUBTRANSACTIONS_QUALIFIER_BYTES=Bytes.toBytes("r"); //had to pick a letter that was unique
+    static final byte[] TASK_QUALIFIER_BYTES=Bytes.toBytes("v"); //had to pick a letter that was unique
 
     private V2TxnDecoder(){ } //singleton instance
 
@@ -63,6 +64,7 @@ public class V2TxnDecoder implements TxnDecoder{
         Cell stateKv=null;
         Cell destinationTables=null;
         Cell rollbackIds=null;
+        Cell taskId=null;
 
         for(Cell kv : keyValues){
             if(CellUtils.singleMatchingColumn(kv,FAMILY,DATA_QUALIFIER_BYTES))
@@ -84,6 +86,22 @@ public class V2TxnDecoder implements TxnDecoder{
 
         long txnId=TxnUtils.txnIdFromRowKey(dataKv.getRowArray(),dataKv.getRowOffset(),dataKv.getRowLength());
         return decodeInternal(txnStore,dataKv,keepAliveKv,commitKv,globalCommitKv,stateKv,destinationTables,txnId, rollbackIds);
+    }
+
+    @Override
+    public TxnMessage.TaskId decodeTaskId(RegionTxnStore txnStore,
+                                 long txnId,Result result) throws IOException{
+        Cell taskKv=result.getColumnLatestCell(FAMILY,TASK_QUALIFIER_BYTES);
+
+        if(taskKv==null) return null;
+        MultiFieldDecoder decoder=MultiFieldDecoder.wrap(taskKv.getValueArray(),taskKv.getValueOffset(),taskKv.getValueLength());
+        String jtId=decoder.decodeNextString();
+        int jobId=decoder.decodeNextInt();
+        int stageId=decoder.decodeNextInt();
+        int partitionId=decoder.decodeNextInt();
+        int attemptNumber=decoder.decodeNextInt();
+
+        return TxnMessage.TaskId.newBuilder().setJtId(jtId).setJobId(jobId).setStageId(stageId).setPartitionId(partitionId).setTaskAttemptNumber(attemptNumber).build();
     }
 
     @Override
@@ -211,14 +229,15 @@ public class V2TxnDecoder implements TxnDecoder{
 	 * "t"	--	commit timestamp
 	 * "g"	--	globalCommitTimestamp
 	 * "s"	--	state
+	 * "v"  --  taskId
 	 *
 	 * The additional columns are kept separate so that they may be updated(and read) independently without
 	 * reading and decoding the entire transaction.
 	 *
 	 * In the new format, if a transaction has been written to the table, then it automatically allows writes
 	 *
-	 * order: c,d,e,g,k,s,t
-	 * order: counter,data,destinationTable,globalCommitTimestamp,keepAlive,state,commitTimestamp,
+	 * order: c,d,e,g,k,s,t,v
+	 * order: counter,data,destinationTable,globalCommitTimestamp,keepAlive,state,commitTimestamp,taskId
 	 */
     public org.apache.hadoop.hbase.client.Put encodeForPut(TxnMessage.TxnInfo txnInfo,byte[] rowKey) throws IOException{
         org.apache.hadoop.hbase.client.Put put=new org.apache.hadoop.hbase.client.Put(rowKey);
@@ -244,6 +263,13 @@ public class V2TxnDecoder implements TxnDecoder{
         ByteString destTableBuffer=txnInfo.getDestinationTables();
         if(destTableBuffer!=null && !destTableBuffer.isEmpty())
             put.addColumn(FAMILY,DESTINATION_TABLE_QUALIFIER_BYTES,destTableBuffer.toByteArray());
+        if (txnInfo.hasTaskId()) {
+            TxnMessage.TaskId taskId = txnInfo.getTaskId();
+            MultiFieldEncoder taskIdEncoder=MultiFieldEncoder.create(5);
+            taskIdEncoder.encodeNext(taskId.getJtId()).encodeNext(taskId.getJobId())
+                    .encodeNext(taskId.getStageId()).encodeNext(taskId.getPartitionId()).encodeNext(taskId.getTaskAttemptNumber());
+            put.addColumn(FAMILY,TASK_QUALIFIER_BYTES,taskIdEncoder.build());
+        }
         return put;
     }
 

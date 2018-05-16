@@ -40,6 +40,7 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
     private static final Logger LOG=Logger.getLogger(StripedTxnLifecycleStore.class);
 
     private static final TxnMessage.Txn NONEXISTENT_TXN;
+    private static final TxnMessage.TaskId NONEXISTENT_TASK_ID;
 
     static{
         TxnMessage.TxnInfo nonExistentInfo=TxnMessage.TxnInfo.newBuilder()
@@ -48,6 +49,8 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
                 .setIsolationLevel(Txn.IsolationLevel.SNAPSHOT_ISOLATION.getLevel()).build();
 
         NONEXISTENT_TXN=TxnMessage.Txn.newBuilder().setState(Txn.State.ROLLEDBACK.getId()).setInfo(nonExistentInfo).build();
+
+        NONEXISTENT_TASK_ID=TxnMessage.TaskId.newBuilder().setJtId("").setJobId(0).setStageId(0).setPartitionId(0).setTaskAttemptNumber(0).build();
     }
 
     private final LongStripedSynchronizer<ReadWriteLock> lockStriper;
@@ -198,6 +201,22 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
             unlock(lock);
         }
     }
+
+    @Override
+    public TxnMessage.TaskId getTaskId(long txnId) throws IOException {
+        long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
+        Lock lock=lockStriper.get(beginTS).readLock();
+        acquireLock(lock);
+        try{
+            TxnMessage.TaskId taskId=baseStore.getTaskId(txnId);
+            if(taskId==null)
+                taskId=NONEXISTENT_TASK_ID;
+            return taskId;
+        }finally{
+            unlock(lock);
+        }
+    }
+
 
     @Override
     public long[] getActiveTransactionIds(byte[] destTable,long startId,long endId) throws IOException{
