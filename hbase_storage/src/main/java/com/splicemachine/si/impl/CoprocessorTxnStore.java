@@ -16,6 +16,7 @@ package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.TransactionMissing;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.spark_project.guava.collect.Iterators;
@@ -81,12 +82,25 @@ public class CoprocessorTxnStore implements TxnStore {
     public void recordNewTransaction(Txn txn) throws IOException {
         byte[] rowKey=getTransactionRowKey(txn.getTxnId());
 
+
         TxnMessage.TxnInfo.Builder request=TxnMessage.TxnInfo.newBuilder()
                 .setTxnId(txn.getTxnId())
                 .setAllowsWrites(txn.allowsWrites())
                 .setIsAdditive(txn.isAdditive())
                 .setBeginTs(txn.getBeginTimestamp())
                 .setIsolationLevel(txn.getIsolationLevel().encode());
+
+        TaskId taskId = txn.getTaskId();
+        if (taskId != null) {
+            request.setTaskId(TxnMessage.TaskId.newBuilder()
+                    .setJtId(taskId.getJtId())
+                    .setJobId(taskId.getJobId())
+                    .setPartitionId(taskId.getPartitionId())
+                    .setStageId(taskId.getStageId())
+                    .setTaskAttemptNumber(taskId.getTaskAttemptNumber())
+                    .build());
+        }
+        
         if(!Txn.ROOT_TRANSACTION.equals(txn.getParentTxnView())){
             request=request.setParentTxnid(txn.getParentTxnId());
         }
@@ -287,6 +301,23 @@ public class CoprocessorTxnStore implements TxnStore {
     @Override
     public TxnView getTransactionFromCache(long txnId){
         return null;
+    }
+
+    @Override
+    public TaskId getTaskId(long txnId) throws IOException {
+        lookups.incrementAndGet(); //we are performing a lookup, so increment the counter
+
+        byte[] rowKey=getTransactionRowKey(txnId );
+        TxnMessage.TxnRequest request=TxnMessage.TxnRequest.newBuilder().setTxnId(txnId).build();
+
+        try (TxnNetworkLayer table = tableFactory.accessTxnNetwork()) {
+            TxnMessage.TaskId taskId = table.getTaskId(rowKey, request);
+            return new TaskId(taskId.getJtId(), taskId.getJobId(), taskId.getStageId(), taskId.getPartitionId(), taskId.getTaskAttemptNumber());
+        } catch (IOException e) {
+            throw e;
+        } catch(Throwable throwable){
+            throw new IOException(throwable);
+        }
     }
 
     /**

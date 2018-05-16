@@ -16,6 +16,7 @@ package com.splicemachine.si.impl.store;
 
 import com.splicemachine.collections.LongKeyedCache;
 import com.splicemachine.hash.HashFunctions;
+import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
@@ -80,7 +81,12 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
 			return tentative != null ? tentative : delegate.getTransactionFromCache(txnId);
 		}
 
-		public int getSize(){
+	@Override
+	public TaskId getTaskId(long txnId) throws IOException {
+		return delegate.getTaskId(txnId);
+	}
+
+	public int getSize(){
         return cache.size();
     }
 }

@@ -85,4 +85,12 @@ public interface TxnSupplier {
 		void cache(TxnView toCache);
 
     TxnView getTransactionFromCache(long txnId);
+
+
+	/**
+	 * Get the taskId associated with {@code txnId}.
+	 *
+	 * @param txnId the transaction id to fetch.
+	 */
+	TaskId getTaskId(long txnId) throws IOException;
 }
