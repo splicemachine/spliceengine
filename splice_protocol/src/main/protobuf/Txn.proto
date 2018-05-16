@@ -33,6 +33,9 @@ message TxnInfo{
 
     //list of encoded destination tables
     optional bytes destinationTables = 7;
+
+    //identifier of task associated with this transaction
+    optional TaskId taskId = 8;
 }
 
 message Txn {
@@ -156,6 +159,14 @@ message ActiveTxnResponse{
     repeated Txn txns = 1;
 }
 
+message TaskId {
+    required string jtId = 1;
+    required int32 jobId = 2;
+    required int32 stageId = 3;
+    required int32 partitionId = 4;
+    required int32 taskAttemptNumber = 5;
+}
+
 service TxnLifecycleService{
     /**
      * Begin a top-level <em>writable</em> transaction. The
@@ -198,6 +209,8 @@ service TxnLifecycleService{
     rpc lifecycleAction(TxnLifecycleMessage) returns (ActionResponse);
 
     rpc getTransaction(TxnRequest) returns (Txn);
+
+    rpc getTaskId(TxnRequest) returns (TaskId);
 
     rpc getActiveTransactionIds(ActiveTxnRequest) returns (ActiveTxnIdResponse);
 
