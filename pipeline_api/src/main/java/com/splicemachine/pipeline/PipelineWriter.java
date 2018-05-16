@@ -14,6 +14,9 @@
 
 package com.splicemachine.pipeline;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.conn.Authorizer;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.api.PipelineMeter;
@@ -24,6 +27,7 @@ import com.splicemachine.pipeline.traffic.SpliceWriteControl;
 import com.splicemachine.pipeline.writehandler.SharedCallBufferFactory;
 import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
+import org.spark_project.guava.primitives.Ints;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
@@ -57,7 +61,7 @@ public class PipelineWriter{
     }
 
 
-    public BulkWritesResult bulkWrite(@Nonnull BulkWrites bulkWrites) throws IOException{
+    public BulkWritesResult bulkWrite(@Nonnull BulkWrites bulkWrites, long conglomId) throws IOException{
         Collection<BulkWrite> bws = bulkWrites.getBulkWrites();
         int numBulkWrites = bulkWrites.getBulkWrites().size();
         List<BulkWriteResult> result = new ArrayList<>(numBulkWrites);
@@ -112,7 +116,14 @@ public class PipelineWriter{
             return new BulkWritesResult(result);
         }
         try {
+            if (conglomId != -1) {
+                // We have to check privileges
+                int[] privileges = typesToPrivileges(bulkWrites.getTypes());
+                AclCheckerService.getService().checkPermission(bulkWrites.getToken(), conglomId, privileges);
+            }
             return performWrite(bulkWrites,bws,result,indexWriteBufferFactory);
+        } catch (StandardException e) {
+            throw new IOException(e);
         } finally {
             switch (status) {
                 case REJECTED:
@@ -257,5 +268,28 @@ public class PipelineWriter{
         return writePairMap;
     }
 
+    private int[] typesToPrivileges(Set<KVPair.Type> types) {
+        Set<Integer> privileges = new HashSet<>();
+        for (KVPair.Type type : types) {
+            switch (type) {
+                case INSERT:
+                    privileges.add(Authorizer.INSERT_PRIV);
+                    break;
+                case UPDATE:
+                    privileges.add(Authorizer.UPDATE_PRIV);
+                    break;
+                case UPSERT:
+                    privileges.add(Authorizer.INSERT_PRIV);
+                    privileges.add(Authorizer.UPDATE_PRIV);
+                    break;
+                case DELETE:
+                    privileges.add(Authorizer.DELETE_PRIV);
+                    break;
+                default:
+                    break;
+            }
+        }
+        return Ints.toArray(privileges);
+    }
 
 }
