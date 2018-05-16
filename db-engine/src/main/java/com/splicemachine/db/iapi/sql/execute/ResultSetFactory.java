@@ -721,6 +721,7 @@ public interface ResultSetFactory {
 		@param returnTypeNumber	Which saved object contains the return type (a multi-set) serialized as a byte array
 		@param vtiProjectionNumber	Which saved object contains the projection for a RestrictedVTI
 		@param vtiRestrictionNumber	Which saved object contains the restriction for a RestrictedVTI
+	    @param vtiResultDescriptionNumber Which saved object contains the result description of a VTI
 		@return the row as a result set.
 		@exception StandardException thrown when unable to create the
 			result set
@@ -740,6 +741,7 @@ public interface ResultSetFactory {
 								   int returnTypeNumber,
 								   int vtiProjectionNumber,
 								   int vtiRestrictionNumber,
+								   int vtiResultDescriptionNumber,
 								   String explainPlan)
 		 throws StandardException;
 
@@ -766,6 +768,7 @@ public interface ResultSetFactory {
 			int returnTypeNumber,
 			int vtiProjectionNumber,
 			int vtiRestrictionNumber,
+			int vtiResultDescriptionNumber,
 			String explainPlan
 	)
 					throws StandardException;
