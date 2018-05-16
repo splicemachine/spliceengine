@@ -15615,6 +15615,8 @@ usableObjects() throws StandardException :
    {
        return ReuseFactory.getInteger( PrivilegeNode.AGGREGATE_PRIVILEGES);
    }
+
+|
     <SEQUENCE>
     {
         return ReuseFactory.getInteger( PrivilegeNode.SEQUENCE_PRIVILEGES);
