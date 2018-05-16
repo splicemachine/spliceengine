@@ -113,6 +113,7 @@ public class BulkWriteChannelInvoker {
              * pulled it from the cache, we first invalidate that cache
              */
             partitionInfoCache.invalidate(this.tableName);
+            partitionInfoCache.invalidateAdapter(this.tableName);
             return true;
 	    }
         return false;

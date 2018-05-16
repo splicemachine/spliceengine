@@ -61,6 +61,11 @@ public class MPartitionCache implements PartitionInfoCache<String> {
     }
 
     @Override
+    public void invalidateAdapter(byte[] tableName) throws IOException {
+            // no-op
+    }
+
+    @Override
     public List<Partition> getAdapterIfPresent(String s) throws IOException {
         throw new UnsupportedOperationException("Adapter operations not supported in mem platform");
     }
