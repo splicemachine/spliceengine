@@ -73,6 +73,11 @@ public class Hbase10PartitionCache implements PartitionInfoCache<TableName>{
     }
 
     @Override
+    public void invalidateAdapter(byte[] tableName) throws IOException {
+        invalidateAdapter(tableInfoFactory.getTableInfo(tableName));
+    }
+
+    @Override
     public List<Partition> getAdapterIfPresent(TableName tableName) throws IOException {
         return partitionAdapterCache.getIfPresent(tableName);
     }
