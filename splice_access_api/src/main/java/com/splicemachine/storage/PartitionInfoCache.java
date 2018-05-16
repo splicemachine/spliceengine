@@ -32,6 +32,7 @@ public interface PartitionInfoCache<TableInfo>{
     void put(TableInfo tableInfo, List<Partition> partitions) throws IOException;
 
     void invalidateAdapter(TableInfo tableInfo) throws IOException;
+    void invalidateAdapter(byte[] tableName) throws IOException;
     List<Partition> getAdapterIfPresent(TableInfo tableInfo) throws IOException;
     void putAdapter(TableInfo tableInfo, List<Partition> partitions) throws IOException;
 }
