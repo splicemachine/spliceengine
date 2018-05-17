@@ -51,13 +51,14 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
     #Update HBase Classpath
     print "getServiceConfigurationRecommendations",services
     splice_jars = ":".join([jar for jar in glob.glob('/var/lib/splicemachine/*.jar')])
+    distcp_jar = "/usr/hdp/2.6.3.0-235/hadoop-mapreduce/hadoop-distcp-2.7.3.2.6.3.0-235.jar"
     spark_jars = ":".join([jar for jar in glob.glob('/usr/hdp/2.6.3.0-235/spark2/jars/*.jar')])
     master_jars = ":".join([jar for jar in glob.glob('/usr/hdp/current/hbase-master/lib/*.jar')])
     if "hbase-env" in services["configurations"]:
         hbase_env = services["configurations"]["hbase-env"]["properties"]
         if "content" in hbase_env:
           content = hbase_env["content"]
-          HBASE_CLASSPATH_PREFIX = "export HBASE_CLASSPATH_PREFIX="+ splice_jars + ":" + spark_jars + ":" + master_jars
+          HBASE_CLASSPATH_PREFIX = "export HBASE_CLASSPATH_PREFIX="+ splice_jars + ":" + spark_jars + ":" + master_jars + ":" + distcp_jar
           if "splicemachine" not in content:
             print "Updating Hbase Classpath"
             HBASE_CLASSPATH_PREFIX = "#Add Splice Jars to HBASE_PREFIX_CLASSPATH\n" + HBASE_CLASSPATH_PREFIX
@@ -100,8 +101,8 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
     # Update spark-defaults for spark
     if "spark2-env" in services["configurations"]:
         spark2_env = services['configurations']['spark2-env']["properties"]
-        splice_driver_lib = "export spark.driver.extraLibraryPath=${spark.driver.extraLibraryPath}:" + splice_jars + "\n"
-        splice_executor_lib = "export spark.executor.extraLibraryPath=${spark.executor.extraLibraryPath}:" + splice_jars + "\n"
+        splice_driver_lib = "export spark.driver.extraLibraryPath=${spark.driver.extraLibraryPath}:" + splice_jars + ":" + distcp_jar + "\n"
+        splice_executor_lib = "export spark.executor.extraLibraryPath=${spark.executor.extraLibraryPath}:" + splice_jars + ":" + distcp_jar + "\n"
         splice_path = "\n".join((splice_driver_lib,splice_executor_lib))
         if 'content' in spark2_env:
           spark_content = spark2_env["content"]
