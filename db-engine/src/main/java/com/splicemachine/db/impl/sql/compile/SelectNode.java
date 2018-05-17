@@ -1579,10 +1579,6 @@ public class SelectNode extends ResultSetNode{
 		/* Get the cost */
         costEstimate=optimizer.getOptimizedCost();
 
-        // Aggregation with no GROUP BY always outputs one row.
-        if (selectAggregates!=null && selectAggregates.size() > 0 && groupByList == null)
-            costEstimate.setEstimatedRowCount(1);
-
         selectSubquerys.optimize(dataDictionary,costEstimate.rowCount());
 
         if(whereSubquerys!=null && !whereSubquerys.isEmpty()){
