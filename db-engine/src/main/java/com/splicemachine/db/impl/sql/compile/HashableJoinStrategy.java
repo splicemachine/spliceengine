@@ -164,6 +164,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         // Could these be removed in the future?
         if (hashKeyColumns == null && skipKeyCheck) {
             if (innerTable instanceof FromTable                               &&
+                outerCost.getEstimatedRowCount() > 1                          &&
                 predList != null                                              &&
                 (innerTable.isMaterializable() ||
                  innerTable.supportsMultipleInstantiations())                 &&
@@ -187,7 +188,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
                 // no join predicates.
                 for (int i = 0; i < predList.size(); i++) {
                     pred = (Predicate)predList.getOptPredicate(i);
-                    if (pred.isJoinPredicate()) {
+                    if (pred.isJoinPredicate(true)) {
                         missingHashKeyOK = true;
                         return true;
                     }

@@ -769,6 +769,18 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      * @return Whether or not this is a join predicate.
      */
     public boolean isJoinPredicate(){
+        return isJoinPredicate(false);
+    }
+
+    /**
+     * Worker method for isJoinPredicate() which passes default values of optional parameters.
+     * @param ignorePredsWithFlattenedAggregateReference  Skip over predicates that include a
+     *                                                    column reference to a flattened
+     *                                                    aggregate subquery.
+     * @return Whether or not this is a join predicate.
+     */
+    public boolean isJoinPredicate(boolean ignorePredsWithFlattenedAggregateReference){
+        boolean retcode;
         // If the predicate isn't a binary relational operator,
         // then it's not a join predicate.
         if(!(getAndNode().getLeftOperand() instanceof BinaryRelationalOperatorNode)){
@@ -798,7 +810,18 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
         // If both sides are column references AND they point to different
         // tables, then this is a join pred.
-        return (isColumnReferenceOnLeft && isColumnReferenceOnRight && leftTableNumber!=rightTableNumber);
+        retcode = (isColumnReferenceOnLeft && isColumnReferenceOnRight && leftTableNumber!=rightTableNumber);
+        if (retcode && ignorePredsWithFlattenedAggregateReference)
+        {
+            String matchString = "^AggFlatSub-(\\d+)-(\\d+)";
+            if (leftOperand.getTableName() != null &&
+                leftOperand.getTableName().matches(matchString))
+                return false;
+            if (rightOperand.getTableName() != null &&
+                rightOperand.getTableName().matches(matchString))
+                return false;
+        }
+        return retcode;
     }
 
     /**
