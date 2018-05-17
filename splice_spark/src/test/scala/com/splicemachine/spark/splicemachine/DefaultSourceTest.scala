@@ -17,9 +17,12 @@ import java.io.File
 import java.math.BigDecimal
 import java.sql.{Time, Timestamp}
 
-import org.apache.spark.sql.execution.datasources.jdbc.JdbcUtils
+import com.splicemachine.derby.vti.SpliceDatasetVTI
+import org.apache.commons.io.FileUtils
+import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}
+import org.apache.spark.sql.jdbc.JdbcDialects
 import scala.collection.immutable.IndexedSeq
-import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql._
 import org.junit.runner.RunWith
 import org.junit.Assert._
 import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
@@ -57,12 +60,34 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     assert(newDF.count == 20)
   }
 
-  test("insertion using rdd") {
+  test("insertion using RDD") {
     val df = sqlContext.read.options(internalOptions).splicemachine
     val changedDF = df.withColumn("C6_INT", when(col("C6_INT").leq(10), col("C6_INT").plus(10)))
     splicemachineContext.insert(changedDF.rdd, changedDF.schema, internalTN)
     val newDF = sqlContext.read.options(internalOptions).splicemachine
     assert(newDF.count == 20)
+  }
+
+  test("insertion with bad records file") {
+    val statusDirectory = createBadDirectory("DST_bulkImport2")
+    val df = sqlContext.read.options(internalOptions).splicemachine
+    val changedDF = df.withColumn("C6_INT", when(col("C6_INT").leq(10), col("C6_INT").plus(10)) )
+    val doubleIt = changedDF.union(df.withColumn("C6_INT", when(col("C6_INT").leq(10), col("C6_INT").plus(10))))
+    splicemachineContext.insert(doubleIt, internalTN,statusDirectory.getAbsolutePath,100)
+    val newDF = sqlContext.read.options(internalOptions).splicemachine
+    assert(newDF.count == 20)
+    assert(sqlContext.sparkContext.textFile(statusDirectory.getAbsolutePath).count()==10)
+  }
+
+  test("insertion with bad records file using RDD") {
+    val statusDirectory = createBadDirectory("DST_bulkImport3")
+    val df = sqlContext.read.options(internalOptions).splicemachine
+    val changedDF = df.withColumn("C6_INT", when(col("C6_INT").leq(10), col("C6_INT").plus(10)))
+    val doubleIt = changedDF.union(df.withColumn("C6_INT", when(col("C6_INT").leq(10), col("C6_INT").plus(10))))
+    splicemachineContext.insert(doubleIt.rdd, changedDF.schema, internalTN,statusDirectory.getAbsolutePath,100)
+    val newDF = sqlContext.read.options(internalOptions).splicemachine
+    assert(newDF.count == 20)
+    assert(sqlContext.sparkContext.textFile(statusDirectory.getAbsolutePath).count()==10)
   }
 
   test("upsert") {
@@ -357,4 +382,16 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     assertEquals("[[0], [1], [2], [3], [4], [5], [6], [7], [8], [9]]",
       sqlContext.sql(s"""SELECT c6_int FROM $table where c6_int is NOT NULL""").collectAsList().toString)
   }
+
+  def createBadDirectory(directoryName: String): File = {
+    val tmpDir: String = System.getProperty("java.io.tmpdir");
+    val bulkImportDirectory: File = new File(tmpDir, directoryName)
+    bulkImportDirectory.mkdirs()
+    val statusDirectory: File = new File(bulkImportDirectory, "BAD")
+    if (statusDirectory.exists())
+      FileUtils.deleteDirectory(statusDirectory)
+    statusDirectory.mkdir()
+    statusDirectory
+  }
+
 }
