@@ -33,7 +33,10 @@ import com.splicemachine.si.api.txn.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
+import org.spark_project.guava.cache.Cache;
+import org.spark_project.guava.cache.CacheBuilder;
 import org.spark_project.guava.collect.Lists;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -48,6 +51,11 @@ public class BulkWriteAction implements Callable<WriteStats>{
     private static final Logger LOG=Logger.getLogger(BulkWriteAction.class);
     private static final Logger RETRY_LOG=Logger.getLogger(BulkWriteAction.class.getName()+".retries");
     private static final AtomicLong idGen=new AtomicLong(0L);
+    public static final AtomicLong submitTimeCounter=new AtomicLong(0L);
+    public static long submitTime;
+    public static final Cache<byte[],Long> IGNORE_REFRESH = CacheBuilder.newBuilder().
+            concurrencyLevel(64).
+            expireAfterWrite(60,TimeUnit.SECONDS).initialCapacity(128).build();
     private final Counter writtenCounter;
     private final Counter thrownErrorsRows;
     private final Counter retriedRows;
@@ -76,8 +84,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
     private final Counter partialFailureCounter;
     private final Counter regionTooBusy;
     private final PartitionFactory partitionFactory;
-    private PipingCallBuffer retryPipingCallBuffer=null; // retryCallBuffer
-
+    private PipingCallBuffer retryPipingCallBuffer; // retryCallBuffer
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public BulkWriteAction(byte[] tableName,
@@ -254,6 +261,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
         try{
             BulkWriter writer=writerFactory.newWriter(tableName);
             writeTimer.startTiming();
+            submitTime = submitTimeCounter.getAndIncrement();
             BulkWritesResult bulkWritesResult=writer.write(nextWrite,ctx.refreshCache);
             writeTimer.stopTiming();
             Iterator<BulkWrite> bws=nextWrite.getBulkWrites().iterator();
@@ -465,12 +473,48 @@ public class BulkWriteAction implements Callable<WriteStats>{
         return first;
     }
 
+    /**
+     *
+     * s = submit time
+     * r = response time
+     * rc = refresh cache finish time.
+     * b = blocked time in synchronized method
+     *
+     * The algorithm will not immediately refresh for any calls with submit time (s) < rc
+     *
+
+     * |
+     * |
+     * |   s----------------r-bbs------r              (Blocked in synchronized block, until rc and then s < rc)
+     * |
+     * |         s----------------r s---r        (Ignore since s < rc
+     * |
+     * |      s----------------r    s---r        (Ignore since s < rc
+     * |
+     * |        s---------r---rc            (Refresh)
+     * |
+     * |                        s---------r (This would be allowed to invalidate cache if it is incorrect)...
+     * |
+     * ----------------------------------------------------------------------------------> t
+     *
+     *
+     * @param writerFactory
+     * @param tableName
+     */
+    public static synchronized void invalidateCache(BulkWriterFactory writerFactory, byte[] tableName, long submitTime) throws IOException {
+        Long ignoreRefreshSubmit = IGNORE_REFRESH.getIfPresent(tableName);
+        if (ignoreRefreshSubmit == null || ignoreRefreshSubmit.longValue() < submitTime) {
+            writerFactory.invalidateCache(tableName);
+            IGNORE_REFRESH.put(tableName, submitTimeCounter.getAndIncrement());
+        }
+    }
+
     private void addToRetryCallBuffer(Collection<KVPair> retryBuffer,TxnView txn,byte[] token,boolean refreshCache) throws Exception{
         if(retryBuffer==null) return; //actually nothing to do--probably doesn't happen, but just to be safe
         if(RETRY_LOG.isDebugEnabled())
             SpliceLogUtils.debug(RETRY_LOG,"[%d] addToRetryCallBuffer %d rows, refreshCache=%s",id,retryBuffer.size(),refreshCache);
         if(refreshCache){
-            writerFactory.invalidateCache(tableName);
+            invalidateCache(writerFactory,tableName,submitTime);
         }
         if(retryPipingCallBuffer==null)
             retryPipingCallBuffer=new PipingCallBuffer(partitionFactory.getTable(Bytes.toString(tableName)),txn,token,null,PipelineUtils.noOpFlushHook,writeConfiguration,null,false);

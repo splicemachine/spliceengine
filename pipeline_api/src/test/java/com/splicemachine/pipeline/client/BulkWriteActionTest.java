@@ -40,12 +40,14 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -1342,4 +1344,35 @@ public class BulkWriteActionTest{
 				Assert.assertEquals("Incorrect number of rows written!",write.getMutations().size(),totalRowsWritten);
 		}
 */
+
+    @Test
+    public void testInvalidateCache() throws Exception {
+        BulkWriterFactory bwf = mock(BulkWriterFactory.class);
+        byte[] tableName = "fooey".getBytes();
+        doNothing().when(bwf).invalidateCache(any());
+        // Test Sets Value
+
+        long t1 = BulkWriteAction.submitTimeCounter.getAndIncrement();
+        long t2 = BulkWriteAction.submitTimeCounter.getAndIncrement();
+        long t3 = BulkWriteAction.submitTimeCounter.getAndIncrement();
+
+        BulkWriteAction.invalidateCache(bwf,tableName,t1);
+        long t4 = BulkWriteAction.submitTimeCounter.getAndIncrement();
+
+        long t1Refresh = BulkWriteAction.IGNORE_REFRESH.getIfPresent(tableName).longValue();
+        Assert.assertTrue(t1Refresh > t3 && t1Refresh < t4);
+
+        // Test Lower Value Ignored
+        BulkWriteAction.invalidateCache(bwf,tableName,t2);
+        Assert.assertEquals(BulkWriteAction.IGNORE_REFRESH.getIfPresent(tableName).longValue(),t1Refresh);
+        // Test Higher Value Executed
+        BulkWriteAction.invalidateCache(bwf,tableName,t4);
+        long t5 = BulkWriteAction.submitTimeCounter.getAndIncrement();
+        long t4Refresh = BulkWriteAction.IGNORE_REFRESH.getIfPresent(tableName).longValue();
+        Assert.assertTrue(t4Refresh > t4 &&
+                t4Refresh < t5);
+
+
+    }
+
 }
