@@ -107,6 +107,17 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
                                      boolean additive,
                                      byte[] destinationTable,
                                      boolean inMemory) throws IOException{
+        return beginChildTransaction(parentTxn, isolationLevel, additive, destinationTable, inMemory, null);
+    }
+
+    @Override
+    public Txn beginChildTransaction(TxnView parentTxn,
+                                     Txn.IsolationLevel isolationLevel,
+                                     boolean additive,
+                                     byte[] destinationTable,
+                                     boolean inMemory,
+                                     TaskId taskId) throws IOException {
+
         if(parentTxn==null)
             parentTxn=Txn.ROOT_TRANSACTION;
         if(destinationTable!=null && !parentTxn.allowsWrites())
@@ -118,10 +129,10 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
                 Txn parent = (Txn) parentTxn;
                 long subId = parent.newSubId();
                 if (subId <= SIConstants.SUBTRANSANCTION_ID_MASK)
-                    return createWritableTransaction(parent.getBeginTimestamp(), subId, parent, isolationLevel, additive, parentTxn, destinationTable);
+                    return createWritableTransaction(parent.getBeginTimestamp(), subId, parent, isolationLevel, additive, parentTxn, destinationTable, null);
             }
             long timestamp = timestampSource.nextTimestamp();
-            return createWritableTransaction(timestamp, 0, null, isolationLevel, additive, parentTxn, destinationTable);
+            return createWritableTransaction(timestamp, 0, null, isolationLevel, additive, parentTxn, destinationTable, taskId);
         }else
             return createReadableTransaction(isolationLevel,additive,parentTxn);
     }
@@ -155,7 +166,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
         long oldTs=txnToCommit.getCommitTimestamp();
 
         if(destinationTable!=null)
-            return createWritableTransaction(oldTs, 0, null, isolationLevel,additive,parentTxn,destinationTable);
+            return createWritableTransaction(oldTs, 0, null, isolationLevel,additive,parentTxn,destinationTable, null);
         else{
             if(parentTxn.equals(Txn.ROOT_TRANSACTION)){
                 return ReadOnlyTxn.createReadOnlyParentTransaction(oldTs,oldTs,isolationLevel,this,exceptionFactory,additive);
@@ -223,7 +234,8 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
                                           Txn.IsolationLevel isolationLevel,
                                           boolean additive,
                                           TxnView parentTxn,
-                                          byte[] destinationTable) throws IOException{
+                                          byte[] destinationTable,
+                                          TaskId taskId) throws IOException{
 		/*
 		 * Create a writable transaction directly.
 		 *
@@ -231,7 +243,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
 		 * transaction to the table.
 		 */
         WritableTxn newTxn=new WritableTxn(timestamp ^ subId, timestamp, parentReference,
-                isolationLevel,parentTxn,this,additive,destinationTable,exceptionFactory);
+                isolationLevel,parentTxn,this,additive,destinationTable,taskId,exceptionFactory);
         if (subId == 0) {
             //record the transaction on the transaction table--network call
             store.recordNewTransaction(newTxn);

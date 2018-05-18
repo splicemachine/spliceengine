@@ -202,6 +202,11 @@ public interface Txn extends TxnView{
                 ClassNotFoundException{
             throw new RuntimeException("Not Implemented");
         }
+
+        @Override
+        public TaskId getTaskId() {
+            return null;
+        }
     };
 
     long newSubId();
@@ -440,4 +445,6 @@ public interface Txn extends TxnView{
      * @throws IOException if something goes wrong during the elevation
      */
     Txn elevateToWritable(byte[] writeTable) throws IOException;
+
+    TaskId getTaskId();
 }

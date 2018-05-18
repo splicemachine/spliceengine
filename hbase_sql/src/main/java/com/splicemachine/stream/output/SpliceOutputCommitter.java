@@ -14,6 +14,7 @@
 
 package com.splicemachine.stream.output;
 
+import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
@@ -23,6 +24,8 @@ import org.apache.hadoop.mapreduce.JobStatus;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.log4j.Logger;
+import org.apache.spark.TaskContext;
+
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -80,7 +83,18 @@ public class SpliceOutputCommitter extends OutputCommitter {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"setupTask");
         // Create child additive transaction so we don't read rows inserted by ourselves in this operation
-        TxnView txn = SIDriver.driver().lifecycleManager().beginChildTransaction(parentTxn, parentTxn.getIsolationLevel(), true, destinationTable);
+        TaskContext sparkTaskContext = TaskContext.get();
+        TaskId taskId = null;
+        if (sparkTaskContext != null) {
+            String jtid = taskContext.getTaskAttemptID().getJobID().getJtIdentifier();
+            int jobId = taskContext.getTaskAttemptID().getJobID().getId();
+            int stageId = sparkTaskContext.stageId();
+            int partitionId = sparkTaskContext.partitionId();
+            int attemptNumber = sparkTaskContext.attemptNumber();
+            taskId = new TaskId(jtid, jobId, stageId, partitionId, attemptNumber);
+        }
+        TxnView txn = SIDriver.driver().lifecycleManager().beginChildTransaction(parentTxn, parentTxn.getIsolationLevel(),
+                true, destinationTable, false, taskId);
         ActiveWriteTxn childTxn = new ActiveWriteTxn(txn.getTxnId(), txn.getTxnId(), parentTxn, true, parentTxn.getIsolationLevel());
         currentTxn.set(childTxn);
         if (LOG.isDebugEnabled())
