@@ -1547,7 +1547,8 @@ public class SelectNode extends ResultSetNode{
         optimizer.setOuterRows(outerRows);
 
         // Aggregation with no GROUP BY always outputs one row.
-        if (selectAggregates != null && selectAggregates.size() > 0 && hasNoGroupBy())
+        if ((selectAggregates != null && !selectAggregates.isEmpty() ||
+             havingAggregates !=null  && !havingAggregates.isEmpty()) && hasNoGroupBy())
             optimizer.setSingleRow(true);
 
 		/* Optimize this SelectNode */
@@ -2644,7 +2645,7 @@ public class SelectNode extends ResultSetNode{
      * Is the GROUP BY clause nonexistent or a dummy constant value?
      */
     public boolean hasNoGroupBy(){
-        if (groupByList == null)
+        if (groupByList == null || groupByList.isEmpty())
             return true;
         if (groupByList.size() != 1 ||
             !(groupByList.elementAt(0) instanceof GroupByColumn))
