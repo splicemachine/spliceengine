@@ -165,6 +165,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         if (hashKeyColumns == null && skipKeyCheck) {
             if (innerTable instanceof FromTable                               &&
                 predList != null                                              &&
+                !outerCost.isSingleRow()                                      &&
                 (innerTable.isMaterializable() ||
                  innerTable.supportsMultipleInstantiations())                 &&
                 optimizer instanceof OptimizerImpl                            &&
