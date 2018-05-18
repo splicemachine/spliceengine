@@ -89,9 +89,10 @@ public class PipelineUtils{
         if (ntries >= RETRY_BACKOFF.length) {
             ntries = RETRY_BACKOFF.length - 1;
         }
-        long normalPause = pause * RETRY_BACKOFF[ntries];
         // DB-7022 avoid coordinated pauses from multiple threads
-        return RANDOM.nextLong() % normalPause;
+        long normalPause = pause * RETRY_BACKOFF[ntries];
+        long jitter =  (long)(normalPause * (RANDOM.nextFloat() - 0.5));
+        return normalPause + jitter;
     }
 
 }
