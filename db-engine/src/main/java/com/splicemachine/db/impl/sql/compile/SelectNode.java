@@ -1539,6 +1539,10 @@ public class SelectNode extends ResultSetNode{
         optimizer=getOptimizer(fromList, wherePredicates, dataDictionary, orderByList);
         optimizer.setOuterRows(outerRows);
 
+        // Aggregation with no GROUP BY always outputs one row.
+        if (selectAggregates != null && selectAggregates.size() > 0 && hasNoGroupBy())
+            optimizer.setSingleRow(true);
+
 		/* Optimize this SelectNode */
         while(optimizer.nextJoinOrder()){
             while(optimizer.getNextDecoratedPermutation()){
@@ -1578,6 +1582,8 @@ public class SelectNode extends ResultSetNode{
 
 		/* Get the cost */
         costEstimate=optimizer.getOptimizedCost();
+
+        costEstimate.setSingleRow(optimizer.isSingleRow());
 
         selectSubquerys.optimize(dataDictionary,costEstimate.rowCount());
 
@@ -2625,5 +2631,22 @@ public class SelectNode extends ResultSetNode{
         markReferencedResultColumns(refedcolmnList);
 
         return this;
+    }
+
+    /**
+     * Is the GROUP BY clause nonexistent or a dummy constant value?
+     */
+    public boolean hasNoGroupBy(){
+        if (groupByList == null)
+            return true;
+        if (groupByList.size() != 1 ||
+            !(groupByList.elementAt(0) instanceof GroupByColumn))
+            return false;
+
+        GroupByColumn groupByColumn = (GroupByColumn)groupByList.elementAt(0);
+        if ( !(groupByColumn.getColumnExpression() instanceof NumericConstantNode))
+            return false;
+
+        return true;
     }
 }
