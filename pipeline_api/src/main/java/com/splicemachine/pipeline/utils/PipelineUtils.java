@@ -84,14 +84,13 @@ public class PipelineUtils{
      * @return
      */
 
-    public static long getPauseTime(final int tries, final long pause) {
+    public static long getPauseTime(final int tries, final int pause) {
         int ntries = tries;
         if (ntries >= RETRY_BACKOFF.length) {
             ntries = RETRY_BACKOFF.length - 1;
         }
-        long normalPause = pause * RETRY_BACKOFF[ntries];
         // DB-7022 avoid coordinated pauses from multiple threads
-        return RANDOM.nextLong() % normalPause;
+        return RANDOM.nextInt(pause * RETRY_BACKOFF[ntries]);
     }
 
 }
