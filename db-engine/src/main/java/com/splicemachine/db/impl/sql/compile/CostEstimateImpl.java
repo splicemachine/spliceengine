@@ -307,9 +307,12 @@ public class CostEstimateImpl implements CostEstimate {
 
     /** @see CostEstimate#cloneMe */
     public CostEstimate cloneMe() {
-        return new CostEstimateImpl(cost,
+        CostEstimate costEstimate =
+               new CostEstimateImpl(cost,
                 rowCount,
                 singleScanRowCount);
+        costEstimate.setSingleRow(isSingleRow());
+        return costEstimate;
     }
 
     /** @see CostEstimate#isUninitialized */
