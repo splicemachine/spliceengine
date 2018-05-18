@@ -227,7 +227,8 @@ public class SimpleCostEstimate implements CostEstimate{
                 +",outputHeapSize="+getEstimatedHeapSize()+
                 ",partitions="+partitionCount()+
                 ",rowOrdering="+rowOrdering+
-                ",predicateList="+predicateList+")";
+                ",predicateList="+predicateList+
+                ",singleRow="+isSingleRow()+")";
     }
 
     @Override public void setRowCount(double outerRows){
