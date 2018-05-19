@@ -15,6 +15,7 @@
 package com.splicemachine.si.impl.txn;
 
 import com.carrotsearch.hppc.LongOpenHashSet;
+import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
@@ -159,5 +160,10 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
             }
         }
         return super.canSee(otherTxn);
+    }
+
+    @Override
+    public TaskId getTaskId() {
+        return null;
     }
 }

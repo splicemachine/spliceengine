@@ -44,4 +44,5 @@ public interface TxnDecoder {
 
 	Put encodeForPut(TxnMessage.TxnInfo txn,byte[] rowKey) throws IOException;
 
+    TxnMessage.TaskId decodeTaskId(RegionTxnStore regionTxnStore, long txnId, Result result) throws IOException;
 }

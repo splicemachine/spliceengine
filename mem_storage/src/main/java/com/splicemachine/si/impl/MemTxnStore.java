@@ -119,6 +119,11 @@ public class MemTxnStore implements TxnStore{
     }
 
     @Override
+    public TaskId getTaskId(long txnId) throws IOException {
+        return null;
+    }
+
+    @Override
     public void recordNewTransaction(Txn txn) throws IOException{
         ReadWriteLock readWriteLock=lockStriper.get(txn.getTxnId());
         Lock wl=readWriteLock.writeLock();

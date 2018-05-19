@@ -46,4 +46,6 @@ public interface TxnLifecycleStore{
     Source<TxnMessage.Txn> getActiveTransactions(byte[] destTable, long startId, long endId) throws IOException;
 
     void rollbackTransactionsAfter(long txnId) throws IOException;
+
+    TxnMessage.TaskId getTaskId(long txnId) throws IOException;
 }

@@ -15,6 +15,7 @@
 package com.splicemachine.si.impl.store;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
@@ -99,5 +100,10 @@ public class CompletedTxnCacheSupplier implements TxnSupplier{
         if(txn!=null)
             hits.incrementAndGet();
         return txn;
+    }
+
+    @Override
+    public TaskId getTaskId(long txnId) throws IOException {
+        return delegate.getTaskId(txnId);
     }
 }

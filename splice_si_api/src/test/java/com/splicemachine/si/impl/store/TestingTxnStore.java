@@ -99,6 +99,11 @@ public class TestingTxnStore implements TxnStore{
     }
 
     @Override
+    public TaskId getTaskId(long txnId) throws IOException {
+        return null;
+    }
+
+    @Override
     public void recordNewTransaction(Txn txn) throws IOException{
         TxnHolder txn1=txnMap.get(txn.getTxnId());
         assert txn1==null:" Transaction "+txn.getTxnId()+" already existed!";

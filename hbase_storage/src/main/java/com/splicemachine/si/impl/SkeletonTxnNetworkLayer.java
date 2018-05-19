@@ -116,6 +116,17 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
         return done.get();
     }
 
+    @Override
+    public TxnMessage.TaskId getTaskId(byte[] rowKey,TxnMessage.TxnRequest request) throws IOException{
+        TxnMessage.TxnLifecycleService service=getLifecycleService(rowKey);
+        ServerRpcController controller=new ServerRpcController();
+        BlockingRpcCallback<TxnMessage.TaskId> done=new BlockingRpcCallback<>();
+        service.getTaskId(controller,request,done);
+        dealWithError(controller);
+        return done.get();
+    }
+
+
     protected abstract TxnMessage.TxnLifecycleService getLifecycleService(byte[] rowKey) throws IOException;
 
     protected abstract <C> Map<byte[],C> coprocessorService(Class<TxnMessage.TxnLifecycleService> txnLifecycleServiceClass,
