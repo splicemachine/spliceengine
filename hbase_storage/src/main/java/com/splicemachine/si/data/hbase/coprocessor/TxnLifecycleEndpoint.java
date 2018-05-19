@@ -195,6 +195,17 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
     }
 
     @Override
+    public void getTaskId(RpcController controller,TxnMessage.TxnRequest request,RpcCallback<TxnMessage.TaskId> done){
+        try (RpcUtils.RootEnv env = RpcUtils.getRootEnv()) {
+            long txnId=request.getTxnId();
+            TxnMessage.TaskId taskId = lifecycleStore.getTaskId(txnId);
+            done.run(taskId);
+        }catch(IOException ioe){
+            ResponseConverter.setControllerException(controller,ioe);
+        }
+    }
+
+    @Override
     public void getActiveTransactionIds(RpcController controller,TxnMessage.ActiveTxnRequest request,RpcCallback<TxnMessage.ActiveTxnIdResponse> done){
         long endTxnId=request.getEndTxnId();
         long startTxnId=request.getStartTxnId();

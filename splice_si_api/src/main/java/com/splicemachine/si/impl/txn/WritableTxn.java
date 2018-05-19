@@ -15,6 +15,7 @@
 package com.splicemachine.si.impl.txn;
 
 import com.splicemachine.si.api.data.ExceptionFactory;
+import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
@@ -43,6 +44,7 @@ public class WritableTxn extends AbstractTxn{
     private boolean isAdditive;
     private volatile State state=State.ACTIVE;
     private Set<byte[]> tableWrites=new CopyOnWriteArraySet<>();
+    private TaskId taskId;
     private ExceptionFactory exceptionFactory;
 
     public WritableTxn(){
@@ -57,7 +59,7 @@ public class WritableTxn extends AbstractTxn{
                        TxnLifecycleManager tc,
                        boolean isAdditive,
                        ExceptionFactory exceptionFactory){
-        this(txnId,beginTimestamp,parentRoot,isolationLevel,parentTxn,tc,isAdditive,null,exceptionFactory);
+        this(txnId,beginTimestamp,parentRoot,isolationLevel,parentTxn,tc,isAdditive,null,null,exceptionFactory);
     }
 
     public WritableTxn(long txnId,
@@ -68,12 +70,14 @@ public class WritableTxn extends AbstractTxn{
                        TxnLifecycleManager tc,
                        boolean isAdditive,
                        byte[] destinationTable,
+                       TaskId taskId,
                        ExceptionFactory exceptionFactory){
         super(parentReference,txnId,beginTimestamp,isolationLevel);
         this.exceptionFactory = exceptionFactory;
         this.parentTxn=parentTxn;
         this.tc=tc;
         this.isAdditive=isAdditive;
+        this.taskId=taskId;
 
         if(destinationTable!=null)
             this.tableWrites.add(destinationTable);
@@ -222,13 +226,16 @@ public class WritableTxn extends AbstractTxn{
 
     public WritableTxn getReadUncommittedActiveTxn() {
         return new WritableTxn(txnId,getBeginTimestamp(), parentReference,Txn.IsolationLevel.READ_UNCOMMITTED,
-                parentTxn,tc,isAdditive,null,exceptionFactory);
+                parentTxn,tc,isAdditive,null,null,exceptionFactory);
     }
 
     public WritableTxn getReadCommittedActiveTxn() {
         return new WritableTxn(txnId,getBeginTimestamp(), parentReference,Txn.IsolationLevel.READ_COMMITTED,
-                parentTxn,tc,isAdditive,null,exceptionFactory);
+                parentTxn,tc,isAdditive,null,null,exceptionFactory);
     }
 
-
+    @Override
+    public TaskId getTaskId() {
+        return taskId;
+    }
 }

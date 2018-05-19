@@ -191,4 +191,6 @@ public interface TxnPartition{
     void rollbackTransactionsAfter(long txnId) throws IOException;
 
     void recordRollbackSubtransactions(long txnId, long[] subIds) throws IOException;
+
+    TxnMessage.TaskId getTaskId(long txnId) throws IOException;
 }

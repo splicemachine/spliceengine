@@ -15,6 +15,7 @@
 package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongOpenHashSet;
+import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.txn.AbstractTxn;
@@ -70,5 +71,10 @@ public abstract class ForwardingTxnView extends AbstractTxn {
     @Override
     public boolean equivalent(TxnView o) {
         return delegate.equivalent(o);
+    }
+
+    @Override
+    public TaskId getTaskId() {
+        return delegate.getTaskId();
     }
 }
