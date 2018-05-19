@@ -37,5 +37,7 @@ public interface TxnNetworkLayer extends AutoCloseable{
 
     TxnMessage.Txn getTxn(byte[] rowKey,TxnMessage.TxnRequest request) throws IOException;
 
+    TxnMessage.TaskId getTaskId(byte[] rowKey,TxnMessage.TxnRequest request) throws IOException;
+
     void close() throws IOException;
 }
