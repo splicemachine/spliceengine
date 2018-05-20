@@ -20,7 +20,7 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.ClusterConnection;
 import java.io.IOException;
 import java.util.List;
 
@@ -40,8 +40,8 @@ public class Hbase10PartitionCache implements PartitionInfoCache<TableName>{
     @Override
     public void invalidate(TableName tableName) throws IOException{
         partitionCache.invalidate(tableName);
-        ((HConnection)HBaseConnectionFactory.getInstance(config).getConnection()).clearRegionCache(tableName);
-        ((HConnection)HBaseConnectionFactory.getInstance(config).getNoRetryConnection()).clearRegionCache(tableName);
+        ((ClusterConnection)HBaseConnectionFactory.getInstance(config).getConnection()).clearRegionCache(tableName);
+        ((ClusterConnection)HBaseConnectionFactory.getInstance(config).getNoRetryConnection()).clearRegionCache(tableName);
     }
 
     @Override
