@@ -62,6 +62,7 @@ public final class SConfigurationImpl implements SConfiguration {
     public boolean authenticationTokenEnabled;
     public boolean authenticationTokenDebugConnections;
     public int authenticationTokenMaxConnections;
+    public int authenticationTokenPermissionCacheSize;
 
     // DDLConfiguration
     private final  long ddlDrainingInitialWait;
@@ -276,7 +277,10 @@ public final class SConfigurationImpl implements SConfiguration {
     public int getAuthenticationTokenMaxConnections() {
         return authenticationTokenMaxConnections;
     }
-
+    @Override
+    public int getAuthenticationTokenPermissionCacheSize() {
+        return authenticationTokenPermissionCacheSize;
+    }
 
     // DDLConfiguration
     @Override
@@ -749,6 +753,7 @@ public final class SConfigurationImpl implements SConfiguration {
         authenticationTokenEnabled = builder.authenticationTokenEnabled;
         authenticationTokenDebugConnections = builder.authenticationTokenDebugConnections;
         authenticationTokenMaxConnections = builder.authenticationTokenMaxConnections;
+        authenticationTokenPermissionCacheSize = builder.authenticationTokenPermissionCacheSize;
         authenticationTokenMaxLifetime = builder.authenticationTokenMaxLifetime;
         fallbackNullFraction = builder.fallbackNullFraction;
         optimizerExtraQualifierMultiplier = builder.optimizerExtraQualifierMultiplier;

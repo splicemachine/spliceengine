@@ -14,7 +14,6 @@
 
 package com.splicemachine.mrio.api.core;
 
-import com.splicemachine.access.client.ClientRegionConstants;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.concurrent.Clock;
@@ -34,7 +33,6 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
-import com.splicemachine.storage.util.NoPartitionInfoCache;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.SerializationUtils;
@@ -52,7 +50,6 @@ import org.apache.spark.TaskContext;
 import org.apache.spark.util.TaskFailureListener;
 
 import java.io.IOException;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.*;
 
@@ -242,12 +239,8 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
             Partition clientPartition;
             if (SpliceClient.isClient() && validToken()) {
             	scan.setAttribute(SIConstants.TOKEN_ACL_NAME, token);
-				try {
-					ClientPartition delegate = new ClientPartition(instance.getConnection(), htable.getName(), htable, clock, NoPartitionInfoCache.getInstance());
-					clientPartition = new AdapterPartition(delegate, instance.getConnection(), SpliceClient.getConnectionPool(debugConnections, maxConnections).getConnection(),htable.getName(), NoPartitionInfoCache.getInstance());
-				} catch (SQLException e) {
-					throw new IOException(e);
-				}
+		ClientPartition delegate = new ClientPartition(instance.getConnection(), htable.getName(), htable, clock, driver.getPartitionInfoCache());
+		clientPartition = new AdapterPartition(delegate, instance.getConnection(), SpliceClient.getConnectionPool(debugConnections, maxConnections),htable.getName(), driver.getPartitionInfoCache());
 			} else {
             	clientPartition = new ClientPartition(instance.getConnection(),htable.getName(),htable,clock,driver.getPartitionInfoCache());
 			}

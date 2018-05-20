@@ -60,7 +60,7 @@ public class BulkWritesRPCInvoker implements BulkWriter{
             String encodedRegionName = firstBulkWrite.getEncodedStringName();
             PartitionWritePipeline pipeline=pipelineFactory.getPipeline(encodedRegionName);
             if(pipeline!=null){
-                return pipelineWriter.bulkWrite(writes);
+                return pipelineWriter.bulkWrite(writes, -1);
             }
         }
 
