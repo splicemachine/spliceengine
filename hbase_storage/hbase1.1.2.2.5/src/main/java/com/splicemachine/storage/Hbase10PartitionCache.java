@@ -20,7 +20,7 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.ClusterConnection;
 import java.io.IOException;
 import java.util.List;
 
@@ -32,6 +32,7 @@ public class Hbase10PartitionCache implements PartitionInfoCache<TableName>{
     private SConfiguration config;
     private HBaseTableInfoFactory tableInfoFactory;
     private Cache<TableName, List<Partition>> partitionCache = CacheBuilder.newBuilder().maximumSize(100).build();
+    private Cache<TableName, List<Partition>> partitionAdapterCache = CacheBuilder.newBuilder().maximumSize(100).build();
 
     //must be a no-args to support the PartitionCacheService--use configure() instead
     public Hbase10PartitionCache(){ }
@@ -39,8 +40,8 @@ public class Hbase10PartitionCache implements PartitionInfoCache<TableName>{
     @Override
     public void invalidate(TableName tableName) throws IOException{
         partitionCache.invalidate(tableName);
-        ((HConnection)HBaseConnectionFactory.getInstance(config).getConnection()).clearRegionCache(tableName);
-        ((HConnection)HBaseConnectionFactory.getInstance(config).getNoRetryConnection()).clearRegionCache(tableName);
+        ((ClusterConnection)HBaseConnectionFactory.getInstance(config).getConnection()).clearRegionCache(tableName);
+        ((ClusterConnection)HBaseConnectionFactory.getInstance(config).getNoRetryConnection()).clearRegionCache(tableName);
     }
 
     @Override
@@ -62,6 +63,28 @@ public class Hbase10PartitionCache implements PartitionInfoCache<TableName>{
     @Override
     public void put(TableName tableName, List<Partition> partitions) throws IOException {
         partitionCache.put(tableName,partitions);
+    }
+
+    @Override
+    public void invalidateAdapter(TableName tableName) throws IOException {
+        partitionAdapterCache.invalidate(tableName);
+        ((ClusterConnection)HBaseConnectionFactory.getInstance(config).getConnection()).clearRegionCache(tableName);
+        ((ClusterConnection)HBaseConnectionFactory.getInstance(config).getNoRetryConnection()).clearRegionCache(tableName);
+    }
+
+    @Override
+    public void invalidateAdapter(byte[] tableName) throws IOException {
+        invalidateAdapter(tableInfoFactory.getTableInfo(tableName));
+    }
+
+    @Override
+    public List<Partition> getAdapterIfPresent(TableName tableName) throws IOException {
+        return partitionAdapterCache.getIfPresent(tableName);
+    }
+
+    @Override
+    public void putAdapter(TableName tableName, List<Partition> partitions) throws IOException {
+        partitionAdapterCache.put(tableName,partitions);
     }
 }
 

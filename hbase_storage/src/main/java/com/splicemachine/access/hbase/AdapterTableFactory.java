@@ -23,7 +23,6 @@ import com.splicemachine.storage.AdapterPartition;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionInfoCache;
-import com.splicemachine.storage.util.NoPartitionInfoCache;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Table;
@@ -31,7 +30,6 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import javax.sql.DataSource;
 import java.io.IOException;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -71,13 +69,9 @@ public class AdapterTableFactory implements PartitionFactory<TableName>{
 
     @Override
     public Partition getTable(TableName tableName) throws IOException{
-        try {
-            Table table = connection.getTable(tableName);
-            ClientPartition delegate = new ClientPartition(connection, tableName, table, timeKeeper, NoPartitionInfoCache.getInstance());
-            return new AdapterPartition(delegate, connection,connectionPool.getConnection(),tableName,NoPartitionInfoCache.getInstance());
-        } catch (SQLException e) {
-            throw new IOException(e);
-        }
+        Table table = connection.getTable(tableName);
+        ClientPartition delegate = new ClientPartition(connection, tableName, table, timeKeeper, partitionInfoCache);
+        return new AdapterPartition(delegate, connection,connectionPool,tableName, partitionInfoCache);
     }
 
     @Override

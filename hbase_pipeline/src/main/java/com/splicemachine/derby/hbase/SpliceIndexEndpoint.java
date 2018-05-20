@@ -196,39 +196,11 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
     public BulkWritesResult bulkWrite(BulkWrites bulkWrites) throws IOException{
         if (useToken(bulkWrites)) {
             try (RpcUtils.RootEnv env = RpcUtils.getRootEnv()){
-                int[] privileges = typesToPrivileges(bulkWrites.getTypes());
-                AclCheckerService.getService().checkPermission(bulkWrites.getToken(), conglomId, privileges);
-                return pipelineWriter.bulkWrite(bulkWrites);
-            } catch (StandardException e) {
-                throw new IOException(e);
-            } 
-        }
-
-        return pipelineWriter.bulkWrite(bulkWrites);
-    }
-
-    private int[] typesToPrivileges(Set<KVPair.Type> types) {
-        Set<Integer> privileges = new HashSet<>();
-        for (KVPair.Type type : types) {
-            switch (type) {
-                case INSERT:
-                    privileges.add(Authorizer.INSERT_PRIV);
-                    break;
-                case UPDATE:
-                    privileges.add(Authorizer.UPDATE_PRIV);
-                    break;
-                case UPSERT:
-                    privileges.add(Authorizer.INSERT_PRIV);
-                    privileges.add(Authorizer.UPDATE_PRIV);
-                    break;
-                case DELETE:
-                    privileges.add(Authorizer.DELETE_PRIV);
-                    break;
-                default:
-                    break;
+                return pipelineWriter.bulkWrite(bulkWrites, conglomId);
             }
         }
-        return Ints.toArray(privileges);
+
+        return pipelineWriter.bulkWrite(bulkWrites, -1);
     }
 
     //    @Override
