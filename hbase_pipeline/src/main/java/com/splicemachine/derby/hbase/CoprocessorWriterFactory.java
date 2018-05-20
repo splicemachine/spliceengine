@@ -63,6 +63,7 @@ public class CoprocessorWriterFactory implements BulkWriterFactory{
     @Override
     public void invalidateCache(byte[] tableName) throws IOException{
         partitionInfoCache.invalidate(tableName);
+        partitionInfoCache.invalidateAdapter(tableName);
     }
 
     @Override

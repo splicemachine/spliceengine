@@ -54,4 +54,24 @@ public class MPartitionCache implements PartitionInfoCache<String> {
         public void put(String tableName, List<Partition> partitions) throws IOException {
             partitionCache.put(tableName,partitions);
         }
+
+    @Override
+    public void invalidateAdapter(String s) throws IOException {
+        throw new UnsupportedOperationException("Adapter operations not supported in mem platform");
     }
+
+    @Override
+    public void invalidateAdapter(byte[] tableName) throws IOException {
+            // no-op
+    }
+
+    @Override
+    public List<Partition> getAdapterIfPresent(String s) throws IOException {
+        throw new UnsupportedOperationException("Adapter operations not supported in mem platform");
+    }
+
+    @Override
+    public void putAdapter(String s, List<Partition> partitions) throws IOException {
+        throw new UnsupportedOperationException("Adapter operations not supported in mem platform");
+    }
+}
