@@ -714,6 +714,7 @@
                 <executions>
                     <execution>
                         <id>############### standalone build ###############</id>
+			<!-- run as jenkins to build standalone. mvn deploy to build. -->
                         <phase>test</phase>
                         <configuration>
                             <tasks>
@@ -729,7 +730,7 @@
                     </execution>
                     <execution>
                         <id>############### copy jars ###############</id>
-                        <phase>package</phase>
+                        <phase>deploy</phase>
                         <configuration>
                             <target>
                                     <copy todir="../assembly/standalone/target/splicemachine/lib">
