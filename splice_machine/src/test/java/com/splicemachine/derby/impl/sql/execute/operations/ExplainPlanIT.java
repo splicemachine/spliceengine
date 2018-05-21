@@ -422,6 +422,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
     }
 
     @Test
+    @Ignore("DB-7058")
     public void testDefaultSelectivityFactorHintAtSessionLevel() throws Exception {
         // collect stats
         methodWatcher.executeQuery(format("analyze table %s.t5", CLASS_NAME));
