@@ -1281,7 +1281,8 @@ public class JoinNode extends TableOperatorNode{
     void projectResultColumns() throws StandardException{
         leftResultSet.projectResultColumns();
         rightResultSet.projectResultColumns();
-        resultColumns.pullVirtualIsReferenced();
+        if (!getCompilerContext().isProjectionPruningEnabled())
+            resultColumns.pullVirtualIsReferenced();
         super.projectResultColumns();
     }
 
