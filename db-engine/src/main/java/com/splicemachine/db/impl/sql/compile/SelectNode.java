@@ -953,11 +953,13 @@ public class SelectNode extends ResultSetNode{
             isDistinct=true;
             groupByList=null;
             wasGroupBy=true;
-            /**
-             *  We need to mark all columns in RCL as referenced, as they are the columns where distinct will be
-             *  applied on
-             */
-            resultColumns.setColumnReferences(true,true);
+            if (getCompilerContext().isProjectionPruningEnabled()) {
+                /**
+                 *  We need to mark all columns in RCL as referenced, as they are the columns where distinct will be
+                 *  applied on
+                 */
+                resultColumns.setColumnReferences(true, true);
+            }
         }
 
 		/* Consider distinct elimination based on a uniqueness condition.
