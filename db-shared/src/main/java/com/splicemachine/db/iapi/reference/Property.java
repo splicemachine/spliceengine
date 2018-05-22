@@ -1320,4 +1320,15 @@ public interface Property {
 	 */
 	String PROJECTION_PRUNING_DISABLED =
 			"derby.database.projectionPruningDisabled";
+
+	/**
+	 * If true, import of timestamp data that is out of the current legal timestamp range,
+	 * 1677-09-21-00.12.44.000000 -> 2262-04-11-23.47.16.999999, will be converted to a
+	 * legal value.  Values below the legal range are converted to the minimum timestamp,
+	 * and values above the legal range are converted to the maximum timestamp.
+	 * By default it is false or NULL(which is the same as false).
+	 */
+	String CONVERT_OUT_OF_RANGE_TIMESTAMPS =
+	        "derby.database.convertOutOfRangeTimeStamps";
+
 }

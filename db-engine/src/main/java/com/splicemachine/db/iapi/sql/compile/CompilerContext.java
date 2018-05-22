@@ -652,4 +652,8 @@ public interface CompilerContext extends Context
 
 	public void setProjectionPruningEnabled(boolean onOff);
 
+	public boolean isConvertTimestampsEnabled();
+
+	public void setConvertTimestampsEnabled(boolean onOff);
+
 }
