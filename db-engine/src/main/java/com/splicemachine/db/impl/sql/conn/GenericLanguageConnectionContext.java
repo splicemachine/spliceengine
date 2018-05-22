@@ -45,10 +45,8 @@ import com.splicemachine.db.iapi.services.context.ContextImpl;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
-import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 import com.splicemachine.db.iapi.sql.*;
 import com.splicemachine.db.iapi.sql.compile.ASTVisitor;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
@@ -69,7 +67,13 @@ import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.compile.CompilerContextImpl;
 import com.splicemachine.db.impl.sql.execute.*;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 
+import java.io.UnsupportedEncodingException;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 /**
@@ -79,6 +83,8 @@ import java.util.*;
  * The generic impl does not provide statement caching.
  */
 public class GenericLanguageConnectionContext extends ContextImpl implements LanguageConnectionContext{
+
+    private final Logger stmtLogger = Logger.getLogger("splice-derby.statement");
 
     private static final ThreadLocal<String> badFile = new ThreadLocal<String>() {
         @Override
@@ -254,8 +260,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     // Whether or not to write executing statement info to db2j.log
     private boolean logStatementText;
+    // The max length of statement in log
+    private int maxStatementLogLen;
     private boolean logQueryPlan;
-    private HeaderPrintWriter istream;
 
     // this used to be computed in OptimizerFactoryContextImpl; i.e everytime a
     // connection was made. To keep the semantics same I'm putting it out here
@@ -355,7 +362,16 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         /* Find out whether or not to log info on executing statements to error log
          */
         String logStatementProperty=PropertyUtil.getServiceProperty(getTransactionCompile(),"derby.language.logStatementText");
-        logStatementText=logStatementProperty == null || Boolean.valueOf(logStatementProperty); // log statements by default
+        logStatementText=logStatementProperty == null || Boolean.valueOf(logStatementProperty);
+        // log statements by default
+        if (!logStatementText) {
+            stmtLogger.setLevel(Level.OFF);
+        }
+
+        String maxStatementLogLenStr = PropertyUtil.getServiceProperty(getTransactionCompile(),
+                "derby.language.maxStatementLogLen");
+        maxStatementLogLen = maxStatementLogLenStr == null ? -1 : Integer.valueOf
+                (maxStatementLogLenStr);
 
         String logQueryPlanProperty=PropertyUtil.getServiceProperty(getTransactionCompile(),"derby.language.logQueryPlan");
         logQueryPlan=Boolean.valueOf(logQueryPlanProperty);
@@ -1432,25 +1448,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                     SQLState.LANG_NO_COMMIT_IN_NESTED_CONNECTION);
         }
 
-        // Log commit to error log, if appropriate
-        if(logStatementText){
-            if(istream==null){
-                istream=Monitor.getStream();
-            }
-            String xactId=tran.getTransactionIdString();
-            istream.printlnWithHeader(
-                    LanguageConnectionContext.xidStr+
-                            xactId+
-                            "), "+
-                            LanguageConnectionContext.lccStr+
-                            instanceNumber+
-                            "), "+LanguageConnectionContext.dbnameStr+
-                            dbname+
-                            "), "+
-                            LanguageConnectionContext.drdaStr+
-                            drdaID+
-                            "), Committing");
-        }
+        logCommit();
 
         endTransactionActivationHandling(false);
 
@@ -1645,24 +1643,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             throw StandardException.newException(SQLState.LANG_NO_ROLLBACK_IN_NESTED_CONNECTION);
         }
 
-        // Log rollback to error log, if appropriate
-        if(logStatementText){
-            if(istream==null){
-                istream=Monitor.getStream();
-            }
-            String xactId=tran.getTransactionIdString();
-            istream.printlnWithHeader(LanguageConnectionContext.xidStr+
-                    xactId+
-                    "), "+
-                    LanguageConnectionContext.lccStr+
-                    instanceNumber+
-                    "), "+LanguageConnectionContext.dbnameStr+
-                    dbname+
-                    "), "+
-                    LanguageConnectionContext.drdaStr+
-                    drdaID+
-                    "), Rolling back");
-        }
+        logRollback();
 
         endTransactionActivationHandling(true);
 
@@ -3619,5 +3600,92 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public String getClientIPAddress() {
         return ipAddress;
+    }
+
+    @Override
+    public void logStartCompiling(String statement) {
+        stmtLogger.info(String.format("Begin compiling prepared statement. %s, %s",
+                getLogHeader(), formatLogStmt(statement)));
+    }
+
+    @Override
+    public void logEndCompiling(String statement, long nanoTimeSpent) {
+        stmtLogger.info(String.format("End compiling prepared statement. %s, timeSpent=%dms, %s",
+                getLogHeader(), nanoTimeSpent / 1000000, formatLogStmt(statement)));
+    }
+
+    @Override
+    public void logErrorCompiling(String statement, Throwable t, long nanoTimeSpent) {
+        stmtLogger.warn(String.format("Error compiling prepared statement. %s, timeSpent=%dms, %s",
+                getLogHeader(), nanoTimeSpent / 1000000, formatLogStmt(statement)), t);
+    }
+
+    @Override
+    public void logCommit() {
+        stmtLogger.info(String.format("Committing. %s", getLogHeader()));
+    }
+
+    @Override
+    public void logRollback() {
+        stmtLogger.info(String.format("Rolling back. %s", getLogHeader()));
+    }
+
+    @Override
+    public void logStartFetching(String statement) {
+        stmtLogger.info(String.format("Start fetching from the result set. %s, %s",
+                getLogHeader(), formatLogStmt(statement)));
+    }
+
+    @Override
+    public void logEndFetching(String statement, long fetchedRows) {
+        stmtLogger.info(String.format("End fetching from the result set. %s, fetchedRows=%d, %s",
+                getLogHeader(), fetchedRows, formatLogStmt(statement)));
+    }
+
+    @Override
+    public void logStartExecuting(String uuid, String engine, ExecPreparedStatement ps,
+                                  ParameterValueSet pvs) {
+        stmtLogger.info(String.format(
+                "Start executing query. %s, uuid=%s, engine=%s, %s, paramsCount=%d, params=[ %s ]",
+                getLogHeader(), uuid, engine, formatLogStmt(ps.getSource()),
+                pvs.getParameterCount(), pvs.toString()));
+    }
+
+    @Override
+    public void logEndExecuting(String uuid, long modifiedRows, long badRecords, long
+            nanoTimeSpent) {
+        stmtLogger.info(String.format("End executing query. %s, uuid=%s, timeSpent=%dms, " +
+                        "modifiedRows=%d, badRecords=%d",
+                getLogHeader(), uuid, nanoTimeSpent / 1000000, modifiedRows, badRecords));
+    }
+
+    private String getLogHeader() {
+        return String.format(
+                "XID=%s, SessionID=%s, Database=%s, DRDAID=%s, UserID=%s",
+                getTransactionExecute().getActiveStateTxIdString(),
+                getInstanceNumber(),
+                getDbname(),
+                getDrdaID(),
+                getSessionUserId());
+    }
+
+    private String formatLogStmt(String statement) {
+        if (statement == null) {
+            return "sqlHash=null, statement=null";
+        }
+        String hash = "";
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            md.reset();
+            md.update(statement.getBytes("UTF-8"));
+            hash = new BigInteger(1, md.digest()).toString(16);
+        } catch (UnsupportedEncodingException | NoSuchAlgorithmException e) {
+            stmtLogger.error("Cannot encode statement " + statement, e);
+        }
+        String subStatement = statement;
+        if (maxStatementLogLen >= 0 && maxStatementLogLen < statement.length()) {
+            subStatement = statement.substring(0, maxStatementLogLen) + " ... ";
+        }
+        return String.format("sqlHash=%s, statement=[ %s ]", hash, subStatement);
     }
 }

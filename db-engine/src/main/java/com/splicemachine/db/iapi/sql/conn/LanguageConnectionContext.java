@@ -51,6 +51,7 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.CursorActivation;
+import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecutionStmtValidator;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueFactory;
@@ -1379,4 +1380,15 @@ public interface LanguageConnectionContext extends Context {
 	double getDefaultSelectivityFactor();
 
 	String getClientIPAddress();
+
+	void logStartCompiling(String statement);
+	void logEndCompiling(String statement, long nanoTimeSpent);
+	void logErrorCompiling(String statement, Throwable t, long nanoTimeSpent);
+	void logCommit();
+	void logRollback();
+	void logStartFetching(String statement);
+	void logEndFetching(String statement, long fetchedRows);
+	void logStartExecuting(String uuid, String engine, ExecPreparedStatement ps,
+						   ParameterValueSet pvs);
+	void logEndExecuting(String uuid, long modifiedRows, long badRecords, long nanoTimeSpent);
 }
