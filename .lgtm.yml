@@ -1,0 +1,6 @@
+# This specifies the build command for analysis of splicemachine/spliceengine
+# on LGTM.com
+extraction:
+  java:
+    index:
+      build_command: mvn clean install -Pcore,mem -DskipTests
