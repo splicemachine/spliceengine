@@ -15,9 +15,7 @@
 package com.splicemachine;
 
 import java.sql.Connection;
-import java.util.List;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicLong;
 
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.SConfiguration;
@@ -25,13 +23,10 @@ import com.splicemachine.access.api.ServiceDiscovery;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
-import com.splicemachine.derby.iapi.sql.execute.FileStatementLogger;
 import com.splicemachine.derby.iapi.sql.execute.OperationManager;
-import com.splicemachine.derby.iapi.sql.execute.StatementLogger;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
-import com.splicemachine.hbase.ManagedThreadPool;
 import com.splicemachine.management.DatabaseAdministrator;
 import com.splicemachine.management.Manager;
 import com.splicemachine.tools.CachedResourcePool;
@@ -59,7 +54,6 @@ public class EngineDriver{
     private final OlapClient olapClient;
     private final OperationManager operationManager;
     private final SqlEnvironment environment;
-    private final StatementLogger statementLogger;
     private final ServiceDiscovery serviceDiscovery;
 
     public static void loadDriver(SqlEnvironment environment){
@@ -99,7 +93,6 @@ public class EngineDriver{
                         entity.close();
                     }
                 }).build();
-        this.statementLogger = new FileStatementLogger();
         this.serviceDiscovery = environment.serviceDiscovery();
     }
 
@@ -156,10 +149,6 @@ public class EngineDriver{
     }
 
     public OperationManager getOperationManager() { return operationManager; }
-
-    public StatementLogger getStatementLogger() {
-        return statementLogger;
-    }
 
     public ServiceDiscovery getServiceDiscovery() {
         return serviceDiscovery;
