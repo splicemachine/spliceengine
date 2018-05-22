@@ -35,10 +35,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
-import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 import com.splicemachine.db.iapi.sql.PreparedStatement;
 import com.splicemachine.db.iapi.sql.Statement;
 import com.splicemachine.db.iapi.sql.compile.*;
@@ -475,25 +473,21 @@ public class GenericStatement implements Statement{
                                   Timestamp beginTimestamp,
                                   boolean foundInCache,
                                   CompilerContext cc) throws StandardException{
-        HeaderPrintWriter istream=lcc.getLogStatementText()?Monitor.getStream():null;
-        try{
-            // Statement logging if lcc.getLogStatementText() is true
-            if(istream!=null){
-                String statement = "Begin compiling prepared statement: ";
-                printStatementLine(lcc,istream,statement);
-            }
+        lcc.logStartCompiling(getSource());
+        long startTime = System.nanoTime();
+        try {
 
-            StatementNode qt=parse(lcc,paramDefaults,timestamps,cc);
+            StatementNode qt = parse(lcc, paramDefaults, timestamps, cc);
 
             /*
-            ** Tell the data dictionary that we are about to do
-            ** a bunch of "get" operations that must be consistent with
-            ** each other.
-            */
+             ** Tell the data dictionary that we are about to do
+             ** a bunch of "get" operations that must be consistent with
+             ** each other.
+             */
 
-            DataDictionary dataDictionary=lcc.getDataDictionary();
+            DataDictionary dataDictionary = lcc.getDataDictionary();
 
-            bindAndOptimize(lcc,timestamps,foundInCache,istream,qt,dataDictionary);
+            bindAndOptimize(lcc, timestamps, foundInCache, qt, dataDictionary);
 
             /* we need to move the commit of nested sub-transaction
              * after we mark PS valid, during compilation, we might need
@@ -504,11 +498,15 @@ public class GenericStatement implements Statement{
              * Otherwise we would just erase the DDL's invalidation when
              * we mark it valid.
              */
-            Timestamp endTimestamp=generate(lcc,timestamps,cc,qt);
+            Timestamp endTimestamp = generate(lcc, timestamps, cc, qt);
 
             saveTree(qt, CompilationPhase.AFTER_GENERATE);
 
-        }finally{ // for block introduced by pushCompilerContext()
+            lcc.logEndCompiling(getSource(), System.nanoTime() - startTime);
+        } catch (StandardException e) {
+            lcc.logErrorCompiling(getSource(), e, System.nanoTime() - startTime);
+            throw e;
+        }  finally{ // for block introduced by pushCompilerContext()
             lcc.popCompilerContext(cc);
         }
     }
@@ -538,7 +536,6 @@ public class GenericStatement implements Statement{
     private void bindAndOptimize(LanguageConnectionContext lcc,
                                  long[] timestamps,
                                  boolean foundInCache,
-                                 HeaderPrintWriter istream,
                                  StatementNode qt,
                                  DataDictionary dataDictionary) throws StandardException{
 
@@ -607,23 +604,9 @@ public class GenericStatement implements Statement{
             // Call user-written tree-printer if it exists
             walkAST(lcc,qt, CompilationPhase.AFTER_OPTIMIZE);
             saveTree(qt, CompilationPhase.AFTER_OPTIMIZE);
-
-            // Statement logging if lcc.getLogStatementText() is true
-            if(istream!=null){
-                String endStatement = "End compiling prepared statement: ";
-                printStatementLine(lcc,istream,endStatement);
-            }
         }catch(StandardException se){
             lcc.commitNestedTransaction();
-
-            // Statement logging if lcc.getLogStatementText() is true
-            if(istream!=null){
-                String errorStatement = "Error compiling prepared statement: ";
-                printStatementLine(lcc,istream,errorStatement);
-            }
             throw se;
-        }finally{
-
         }
     }
 
@@ -678,16 +661,6 @@ public class GenericStatement implements Statement{
             throw e;
         }
         return endTimestamp;
-    }
-
-    private void printStatementLine(LanguageConnectionContext lcc,HeaderPrintWriter istream,String endStatement){
-        String xactId=lcc.getTransactionExecute().getActiveStateTxIdString();
-        istream.printlnWithHeader(LanguageConnectionContext.xidStr+ xactId+ "), "+
-                LanguageConnectionContext.lccStr+ lcc.getInstanceNumber()+ "), "+
-                LanguageConnectionContext.dbnameStr+ lcc.getDbname()+ "), "+
-                LanguageConnectionContext.drdaStr+ lcc.getDrdaID()+ "), "+
-                LanguageConnectionContext.useridStr+ lcc.getSessionUserId()+
-                "), "+endStatement+ getSource()+ " :End prepared statement");
     }
 
     private void dumpParseTree(LanguageConnectionContext lcc,StatementNode qt,boolean stopAfter) throws StandardException{

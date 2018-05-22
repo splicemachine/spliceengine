@@ -15,9 +15,7 @@
 package com.splicemachine;
 
 import java.sql.Connection;
-import java.util.List;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicLong;
 
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.SConfiguration;
@@ -27,13 +25,10 @@ import com.splicemachine.db.iapi.services.authorization.AuthorizationFactoryServ
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
-import com.splicemachine.derby.iapi.sql.execute.FileStatementLogger;
 import com.splicemachine.derby.iapi.sql.execute.OperationManager;
-import com.splicemachine.derby.iapi.sql.execute.StatementLogger;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
-import com.splicemachine.hbase.ManagedThreadPool;
 import com.splicemachine.management.DatabaseAdministrator;
 import com.splicemachine.management.Manager;
 import com.splicemachine.tools.CachedResourcePool;

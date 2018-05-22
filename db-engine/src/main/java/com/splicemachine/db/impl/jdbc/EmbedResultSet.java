@@ -355,18 +355,21 @@ public abstract class EmbedResultSet extends ConnectionChild
 	{
         // we seem to have some trigger paths which don't have
         // statement initialized, may not need this check in those cases
-        if (maxRows !=0 )
+		if (maxRows !=0 )
         {
-            NumberofFetchedRows++;    
-            // check whether we hit the maxRows limit 
-            if (NumberofFetchedRows > maxRows) 
+            // check whether we hit the maxRows limit
+            if (NumberofFetchedRows >= maxRows)
             {
                 //we return false for the next call when maxRows is hit
                 closeCurrentStream();
                 return false;
             }
         }
-	    return movePosition(NEXT, 0, "next");
+	    boolean hasNext = movePosition(NEXT, 0, "next");
+		if (hasNext) {
+			NumberofFetchedRows++;
+		}
+		return hasNext;
 	}
 
 	protected boolean movePosition(int position, String positionText)
@@ -616,6 +619,9 @@ public abstract class EmbedResultSet extends ConnectionChild
 
 			// we hang on to theResults and messenger
 			// in case more calls come in on this resultSet
+
+			LanguageConnectionContext lcc = getEmbedConnection().getLanguageConnection();
+			lcc.logEndFetching(getSQLText(), NumberofFetchedRows);
 		}
 
 	}

@@ -100,6 +100,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     private volatile UUID uuid = null;
     private volatile boolean isKilled = false;
     private volatile boolean isTimedout = false;
+    private long startTime = System.nanoTime();
 
     public SpliceBaseOperation(){
         super();
@@ -483,21 +484,16 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     }
 
     private void logExecutionStart(DataSetProcessor dsp) {
-        LanguageConnectionContext lccToUse = activation.getLanguageConnectionContext();
-        if (lccToUse.getLogStatementText()) {
-            String xactId = lccToUse.getTransactionExecute().getActiveStateTxIdString();
-            EngineDriver.driver().getStatementLogger().logExecutionStart(xactId, lccToUse.getInstanceNumber(), lccToUse.getDbname(), lccToUse.getDrdaID(), lccToUse.getCurrentUserId(activation), uuid.toString(), dsp.getType(), activation.getPreparedStatement(), activation.getParameterValueSet());
-        }
-
+        activation.getLanguageConnectionContext().logStartExecuting(
+                uuid.toString(), dsp.getType().toString(),
+                activation.getPreparedStatement(),
+                activation.getParameterValueSet()
+        );
     }
 
     private void logExecutionEnd() {
-        LanguageConnectionContext lccToUse = activation.getLanguageConnectionContext();
-        if (lccToUse.getLogStatementText()) {
-            String xactId = lccToUse.getTransactionExecute().getActiveStateTxIdString();
-            EngineDriver.driver().getStatementLogger().logExecutionEnd(xactId, lccToUse.getInstanceNumber(), lccToUse.getDbname(), lccToUse.getDrdaID(), lccToUse.getCurrentUserId(activation), uuid.toString());
-        }
-
+        activation.getLanguageConnectionContext().logEndExecuting(uuid.toString(),
+                (long) modifiedRowCount(), badRecords, System.nanoTime() - startTime);
     }
 
     protected void computeModifiedRows() throws StandardException {
