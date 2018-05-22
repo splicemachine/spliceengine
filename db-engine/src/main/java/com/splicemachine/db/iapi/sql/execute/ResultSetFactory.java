@@ -727,22 +727,23 @@ public interface ResultSetFactory {
 			result set
 	 */
 	public NoPutResultSet getVTIResultSet(Activation activation, GeneratedMethod row,
-									 int resultSetNumber,
-									 GeneratedMethod constructor,
-									 String javaClassName,
-									 String pushedQualifiersField,
-									 int erdNumber,
-									 int ctcNumber,
-									 boolean isTarget,
-									 int scanIsolationLevel,
-									 double optimizerEstimatedRowCount,
-									 double optimizerEstimatedCost,
-                                     boolean isDerbyStyleTableFunction,
-                                     int returnTypeNumber,
-                                     int vtiProjectionNumber,
-                                     int vtiRestrictionNumber,
-									 int vtiResultDescriptionNumber,
-	                                 String explainPlan)
+								   int resultSetNumber,
+								   GeneratedMethod constructor,
+								   String javaClassName,
+								   String pushedQualifiersField,
+								   int erdNumber,
+								   int ctcNumber,
+								   boolean isTarget,
+								   int scanIsolationLevel,
+								   double optimizerEstimatedRowCount,
+								   double optimizerEstimatedCost,
+								   boolean isDerbyStyleTableFunction,
+								   int returnTypeNumber,
+								   int vtiProjectionNumber,
+								   int vtiRestrictionNumber,
+								   int vtiResultDescriptionNumber,
+								   String explainPlan,
+						   		   boolean convertTimestamps)
 		 throws StandardException;
 
 	/*
@@ -769,8 +770,8 @@ public interface ResultSetFactory {
 			int vtiProjectionNumber,
 			int vtiRestrictionNumber,
 			int vtiResultDescriptionNumber,
-			String explainPlan
-			)
+			String explainPlan,
+			boolean convertTimestamps)
 					throws StandardException;
 	/**
 		A distinct scan result set pushes duplicate elimination into
@@ -803,6 +804,7 @@ public interface ResultSetFactory {
 		@param optimizerEstimatedRowCount	Estimated total # of rows by
 											optimizer
 		@param optimizerEstimatedCost		Estimated total cost by optimizer
+	    @param convertTimestamps Convert out-of-range timestamps to in-range timestamps.
 		@return the table scan operation as a result set.
 		@exception StandardException thrown when unable to create the
 			result set

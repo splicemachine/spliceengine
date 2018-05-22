@@ -439,6 +439,15 @@ public class GenericStatement implements Statement{
 
             cc.setProjectionPruningEnabled(!projectionPruningOptimizationDisabled);
 
+            String convertTimestampsString = PropertyUtil.getCachedDatabaseProperty(lcc.getTransactionCompile(),
+            Property.CONVERT_OUT_OF_RANGE_TIMESTAMPS);
+            // if database property is not set, treat it as false
+            cc.setConvertTimestampsEnabled(false);
+            if (convertTimestampsString != null)
+                cc.setConvertTimestampsEnabled(Boolean.valueOf(convertTimestampsString));
+
+
+
             fourPhasePrepare(lcc,paramDefaults,timestamps,beginTimestamp,foundInCache,cc);
         }catch(StandardException se){
             if(foundInCache)

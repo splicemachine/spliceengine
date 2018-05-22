@@ -118,6 +118,7 @@ public class VTIOperation extends SpliceBaseOperation {
     private Restriction vtiRestriction;
     private int resultDescriptionItemNumber;
     private ResultDescription resultDescription;
+    private boolean convertTimestamps;
 
 
 	/**
@@ -155,7 +156,8 @@ public class VTIOperation extends SpliceBaseOperation {
                  int returnTypeNumber,
                  int vtiProjectionNumber,
                  int vtiRestrictionNumber,
-                 int resultDescriptionNumber
+                 int resultDescriptionNumber,
+                 boolean convertTimestamps
                  ) 
 		throws StandardException
 	{
@@ -188,6 +190,7 @@ public class VTIOperation extends SpliceBaseOperation {
 								getSavedObject(ctcNumber));
 
 		this.resultDescriptionItemNumber = resultDescriptionNumber;
+		this.convertTimestamps = convertTimestamps;
 
         init();
     }
@@ -216,6 +219,7 @@ public class VTIOperation extends SpliceBaseOperation {
         rowMethodName = in.readUTF();
         constructorMethodName = in.readUTF();
         resultDescriptionItemNumber = in.readInt();
+        convertTimestamps = in.readBoolean();
     }
 
     @Override
@@ -225,6 +229,7 @@ public class VTIOperation extends SpliceBaseOperation {
         out.writeUTF(rowMethodName);
         out.writeUTF(constructorMethodName);
         out.writeInt(resultDescriptionItemNumber);
+        out.writeBoolean(convertTimestamps);
     }
 
 
@@ -310,4 +315,5 @@ public class VTIOperation extends SpliceBaseOperation {
     public DataTypeDescriptor[] getResultColumnTypes() {
         return resultColumnTypes;
     }
+    public boolean isConvertTimestampsEnabled() { return convertTimestamps; }
 }
