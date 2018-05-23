@@ -722,6 +722,11 @@ public abstract class GenericConstantActionFactory {
 	 */
 	public abstract ConstantAction getSetTransactionIsolationConstantAction(int isolationLevel);
 
+	/**
+	 * @param properties
+	 * @return
+	 */
+	public abstract ConstantAction getSetSessionPropertyConstantAction(Properties properties);
 
 	/**
 	 *	Make the ConstantAction for a Replicated DELETE statement.

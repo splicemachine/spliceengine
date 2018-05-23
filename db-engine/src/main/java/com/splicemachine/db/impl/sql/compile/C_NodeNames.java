@@ -340,6 +340,8 @@ public interface C_NodeNames
 
 	String DROP_PIN_NODE_NAME = "com.splicemachine.db.impl.sql.compile.DropPinNode";
 
+	static final String SET_SESSION_PROPERTY_NAME = "com.splicemachine.db.impl.sql.compile.SetSessionPropertyNode";
+
 	// WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
     // THEM TO tools/jar/DBMSnodes.properties
 

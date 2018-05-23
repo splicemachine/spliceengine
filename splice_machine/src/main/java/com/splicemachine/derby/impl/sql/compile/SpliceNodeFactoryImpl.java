@@ -14,24 +14,24 @@
 
 package com.splicemachine.derby.impl.sql.compile;
 
-import java.util.Properties;
-
-import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.monitor.ModuleControl;
-import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
-import com.splicemachine.db.iapi.services.monitor.Monitor;
-import com.splicemachine.db.iapi.sql.compile.Optimizer;
-import com.splicemachine.db.iapi.sql.compile.Node;
-import com.splicemachine.db.iapi.sql.compile.NodeFactory;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.EngineType;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.loader.ClassInfo;
+import com.splicemachine.db.iapi.services.monitor.ModuleControl;
+import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.Node;
+import com.splicemachine.db.iapi.sql.compile.NodeFactory;
+import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.impl.sql.compile.C_NodeNames;
 import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
+
+import java.util.Properties;
 
 /**
  * This class is a factory for QueryTreeNode nodes.  It exists to provide
@@ -387,6 +387,7 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 		  case C_NodeTypes.IDENTITY_VAL_NODE:
 		  case C_NodeTypes.CURRENT_SCHEMA_NODE:
           case C_NodeTypes.CURRENT_ROLE_NODE:
+		  case C_NodeTypes.CURRENT_SESSION_PROPERTY_NODE:
 		  	return C_NodeNames.SPECIAL_FUNCTION_NODE_NAME;
 
 		  case C_NodeTypes.IS_NODE:
@@ -623,8 +624,10 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 			case C_NodeTypes.ARRAY_CONSTANT_NODE:
 				return C_NodeNames.ARRAY_CONSTANT_NODE_NAME;
 
+			case C_NodeTypes.SET_SESSION_PROPERTY_NODE:
+				return C_NodeNames.SET_SESSION_PROPERTY_NAME;
 
-			// WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
+            // WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
 		  // THEM TO tools/jar/DBMSnodes.properties
 
 		  default:

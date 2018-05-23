@@ -73,6 +73,7 @@ public class GenericStatement implements Statement{
     private final boolean isForReadOnly;
     private int prepareIsolationLevel;
     private GenericStorablePreparedStatement preparedStmt;
+    private String sessionPropertyValues;
 
     /**
      * Constructor for a Statement given the text of the statement in a String
@@ -214,7 +215,7 @@ public class GenericStatement implements Statement{
     public boolean equals(Object other){
         if(other instanceof GenericStatement){
             GenericStatement os=(GenericStatement)other;
-            return statementText.equals(os.statementText) && isForReadOnly==os.isForReadOnly
+            return statementText.equals(os.statementText) && sessionPropertyValues.equals(os.sessionPropertyValues) && isForReadOnly==os.isForReadOnly
                     && compilationSchema.equals(os.compilationSchema) &&
                     (prepareIsolationLevel==os.prepareIsolationLevel);
         }
@@ -224,7 +225,7 @@ public class GenericStatement implements Statement{
     public int hashCode(){ return statementText.hashCode(); }
 
     public String toString() {
-        return statementText.trim().toUpperCase();
+        return statementText.trim().toUpperCase() + "[session properties: " + sessionPropertyValues + "]";
     }
 
     private static long getCurrentTimeMillis(LanguageConnectionContext lcc){
@@ -313,6 +314,7 @@ public class GenericStatement implements Statement{
 		 * relevant Derby property) then the value of cacheMe is irrelevant.
 		 */
         boolean foundInCache=false;
+        sessionPropertyValues = lcc.getCurrentSessionPropertyDelimited();
 //        boolean isExplain=isExplainStatement();
         if(preparedStmt==null){
             if(cacheMe)
