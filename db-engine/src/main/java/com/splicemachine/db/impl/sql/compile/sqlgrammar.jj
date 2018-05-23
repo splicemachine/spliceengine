@@ -168,6 +168,7 @@ import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.iapi.util.IdUtil;
+import com.splicemachine.utils.Pair;
 
 import java.sql.Types;
 import java.util.List;
@@ -2742,6 +2743,7 @@ TOKEN [IGNORE_CASE] :
 |	<SECOND: "second">
 |	<SELECT: "select">
 |	<SESSION_USER: "session_user">
+|   <SESSION_PROPERTY: "session_property">
 |	<SET: "set">
 |	<SMALLINT: "smallint">
 |	<ARRAY: "array">
@@ -3758,7 +3760,8 @@ spsSetStatement() throws StandardException :
                 statementNode = setIsolationStatement() |
 	        statementNode = setSchemaStatement() |
             statementNode = setMessageLocaleStatement() |
-            statementNode = setRoleStatement()
+            statementNode = setRoleStatement()   |
+            statementNode = setSessionPropertyStatement()
         )
 	{
 		return statementNode;
@@ -8569,6 +8572,11 @@ generalValueSpecification() throws StandardException :
 	{
 		return parm;
 	}
+|
+	parm = currentSessionPropertyNode()
+	{
+		return parm;
+	}
 }
 
 ValueNode
@@ -8617,6 +8625,23 @@ currentRoleNode() throws StandardException :
 	}
 }
 
+/*
+ * <A NAME="currentSessionPropertyNode">currentSessionPropertyNode</A>
+ */
+ValueNode
+currentSessionPropertyNode() throws StandardException :
+{
+}
+{
+	<CURRENT> <SESSION_PROPERTY>
+	{
+        checkVersion( DataDictionary.DD_VERSION_DERBY_10_5, "SESSION_PROPERTIES");
+		checkSqlStandardAccess("CURRENT_SESSION_PROPERTY");
+		return (ValueNode) nodeFactory.getNode(
+			C_NodeTypes.CURRENT_SESSION_PROPERTY_NODE,
+			getContextManager());
+	}
+}
 
 /*
  * <A NAME="newInvocation">newInvocation</A>
@@ -13260,6 +13285,11 @@ DB2DefaultOption(String columnName) throws StandardException :
 		return value;
 	}
 |
+    value = currentSessionPropertyNode()
+    {
+        return value;
+    }
+|
 	LOOKAHEAD({
 				getToken(1).kind == DATE ||
                 getToken(1).kind == TIME ||
@@ -14174,7 +14204,54 @@ setSchemaValues() throws StandardException :
 	}
 }
 
+StatementNode
+setSessionPropertyStatement() throws StandardException :
+{
+    List properties = null;
+}
+{
+    <SESSION_PROPERTY> properties = sessionPropertyList()
+    {
+        return (StatementNode) nodeFactory.getNode(
+                                        C_NodeTypes.SET_SESSION_PROPERTY_NODE,
+                                        properties,
+                                        getContextManager());
+    }
+}
 
+List sessionPropertyList() throws StandardException :
+{
+    ArrayList list = new ArrayList();
+}
+{
+    sessionPropertyPair(list) ( <COMMA> sessionPropertyPair(list) ) *
+    {
+         return list;
+    }
+}
+
+void
+sessionPropertyPair(List list) throws StandardException :
+{
+    String propertyName;
+    ValueNode propertyValue;
+}
+{
+    propertyName=identifier(Limits.MAX_IDENTIFIER_LENGTH, true) <EQUALS_OPERATOR> (
+        propertyValue = literal()
+        {
+
+             String val = ((ConstantNode)propertyValue).getValue().getString();
+
+             list.add(new Pair(propertyName, val));
+        }
+        |
+        <NULL>
+        {
+             list.add(new Pair(propertyName, null));
+        }
+    )
+}
 
 // Set the locale for messages coming from the database system. This
 // is for support only, so we can get messages in our preferred language
@@ -16476,6 +16553,7 @@ reservedKeyword() :
 |	tok = <SECOND>
 |	tok = <SELECT>
 |	tok = <SESSION_USER>
+|   tok = <SESSION_PROPERTY>
 |	tok = <SET>
 |	tok = <SMALLINT>
 |	tok = <ARRAY>
