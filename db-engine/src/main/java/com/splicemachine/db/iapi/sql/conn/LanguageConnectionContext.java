@@ -60,6 +60,7 @@ import com.splicemachine.db.impl.sql.execute.TriggerExecutionStack;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 /**
  * LanguageConnectionContext keeps the result sets,
@@ -1375,9 +1376,6 @@ public interface LanguageConnectionContext extends Context {
 	 */
 	void setControlExecutionLimiter(ControlExecutionLimiter executionLimiter);
 
-	boolean getSkipStats();
-
-	double getDefaultSelectivityFactor();
 
 	String getClientIPAddress();
 
@@ -1391,4 +1389,8 @@ public interface LanguageConnectionContext extends Context {
 	void logStartExecuting(String uuid, String engine, ExecPreparedStatement ps,
 						   ParameterValueSet pvs);
 	void logEndExecuting(String uuid, long modifiedRows, long badRecords, long nanoTimeSpent);
+
+	void setSessionProperties(Properties newProperties);
+	SessionProperties getSessionProperties();
+	String getCurrentSessionPropertyDelimited();
 }
