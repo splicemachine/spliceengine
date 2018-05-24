@@ -602,8 +602,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                           int returnTypeNumber, int vtiProjectionNumber,
                                           int vtiRestrictionNumber,
                                           int vtiResultDescriptionNumber,
-                                          String explainPlan,
-                                          boolean convertTimestamps) throws StandardException {
+                                          String explainPlan) throws StandardException {
 
         VTIOperation op =  new VTIOperation(activation, row, resultSetNumber,
                 constructor,
@@ -619,8 +618,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 returnTypeNumber,
                 vtiProjectionNumber,
                 vtiRestrictionNumber,
-                vtiResultDescriptionNumber,
-                convertTimestamps);
+                vtiResultDescriptionNumber);
         op.setExplainPlan(explainPlan);
         return op;
     }
@@ -644,8 +642,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int vtiProjectionNumber,
             int vtiRestrictionNumber,
             int vtiResultDescriptionNumber,
-            String explainPlan,
-            boolean convertTimestamps)
+            String explainPlan)
             throws StandardException {
         
         return getVTIResultSet(
@@ -666,8 +663,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 vtiProjectionNumber,
                 vtiRestrictionNumber,
                 vtiResultDescriptionNumber,
-                explainPlan,
-                convertTimestamps
+                explainPlan
         );
     }
 

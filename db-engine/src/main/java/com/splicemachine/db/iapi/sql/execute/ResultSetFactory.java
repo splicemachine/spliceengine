@@ -742,8 +742,7 @@ public interface ResultSetFactory {
 								   int vtiProjectionNumber,
 								   int vtiRestrictionNumber,
 								   int vtiResultDescriptionNumber,
-								   String explainPlan,
-						   		   boolean convertTimestamps)
+								   String explainPlan)
 		 throws StandardException;
 
 	/*
@@ -770,8 +769,7 @@ public interface ResultSetFactory {
 			int vtiProjectionNumber,
 			int vtiRestrictionNumber,
 			int vtiResultDescriptionNumber,
-			String explainPlan,
-			boolean convertTimestamps)
+			String explainPlan)
 					throws StandardException;
 	/**
 		A distinct scan result set pushes duplicate elimination into
@@ -804,7 +802,6 @@ public interface ResultSetFactory {
 		@param optimizerEstimatedRowCount	Estimated total # of rows by
 											optimizer
 		@param optimizerEstimatedCost		Estimated total cost by optimizer
-	    @param convertTimestamps Convert out-of-range timestamps to in-range timestamps.
 		@return the table scan operation as a result set.
 		@exception StandardException thrown when unable to create the
 			result set

@@ -1430,9 +1430,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 
         mb.push(printExplainInformationForActivation());
 
-        mb.push(acb.myCompCtx != null && acb.myCompCtx.isConvertTimestampsEnabled());
-
-        return 19;
+        return 18;
     }
 
     /** Store an object in the prepared statement.  Returns -1 if the object is

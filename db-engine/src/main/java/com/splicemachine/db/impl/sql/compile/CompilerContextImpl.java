@@ -214,14 +214,6 @@ public class CompilerContextImpl extends ContextImpl
 	public void setProjectionPruningEnabled(boolean onOff) {
 		projectionPruningEnabled = onOff;
 	}
-
-	public boolean isConvertTimestampsEnabled() {
-		return convertTimestamps;
-	}
-
-	public void setConvertTimestampsEnabled(boolean onOff) {
-		convertTimestamps = onOff;
-	}
 	/**
 	 * Get the current next subquery number from this CompilerContext.
 	 *
@@ -1060,7 +1052,6 @@ public class CompilerContextImpl extends ContextImpl
 	private int                 maximalPossibleTableCount;
 	private boolean             selectivityEstimationIncludingSkewedDefault = false;
 	private boolean             projectionPruningEnabled;
-	private boolean             convertTimestamps;
 
 	/**
 	 * Saved execution time default schema, if we need to change it
