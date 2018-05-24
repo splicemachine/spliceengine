@@ -14,7 +14,7 @@
 
 package com.splicemachine.pipeline.config;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
@@ -58,7 +58,7 @@ public class DefaultWriteConfiguration extends BaseWriteConfiguration {
 
     @Override
     public WriteResponse partialFailure(BulkWriteResult result, BulkWrite request) throws ExecutionException {
-        IntObjectOpenHashMap<WriteResult> failedRows = result.getFailedRows();
+        IntObjectHashMap<WriteResult> failedRows = result.getFailedRows();
         for (IntObjectCursor<WriteResult> cursor : failedRows) {
             if (!cursor.value.canRetry())
                 return WriteResponse.THROW_ERROR;

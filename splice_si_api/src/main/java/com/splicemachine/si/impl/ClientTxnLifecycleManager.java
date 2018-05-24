@@ -14,7 +14,7 @@
 
 package com.splicemachine.si.impl;
 
-import com.carrotsearch.hppc.LongOpenHashSet;
+import com.carrotsearch.hppc.LongHashSet;
 import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.txn.*;
@@ -219,7 +219,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
     }
 
     @Override
-    public void rollbackSubtransactions(long txnId, LongOpenHashSet rolledback) throws IOException {
+    public void rollbackSubtransactions(long txnId, LongHashSet rolledback) throws IOException {
         if(restoreMode){
             return; // we are in restore mode, don't try to access the store
         }

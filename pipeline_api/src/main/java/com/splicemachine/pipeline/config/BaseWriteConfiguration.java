@@ -14,9 +14,9 @@
 
 package com.splicemachine.pipeline.config;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
-import com.carrotsearch.hppc.IntOpenHashSet;
-import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
+import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.IntHashSet;
+import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.api.RecordingContext;
@@ -172,11 +172,11 @@ public abstract class BaseWriteConfiguration implements WriteConfiguration {
         if (writeResult.isSuccess())
             return WriteResponse.SUCCESS;
         else if (writeResult.isPartial()) {
-            IntObjectOpenHashMap<WriteResult> failedRows = bulkWriteResult.getFailedRows();
+            IntObjectHashMap<WriteResult> failedRows = bulkWriteResult.getFailedRows();
             if (failedRows != null && failedRows.size() > 0) {
                 return WriteResponse.PARTIAL;
             }
-            IntOpenHashSet notRun = bulkWriteResult.getNotRunRows();
+            IntHashSet notRun = bulkWriteResult.getNotRunRows();
             if(notRun!=null && notRun.size()>0)
                 return WriteResponse.PARTIAL;
             /*
@@ -192,7 +192,7 @@ public abstract class BaseWriteConfiguration implements WriteConfiguration {
     }
 
     @Override
-    public void registerContext(WriteContext context, ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap) {
+    public void registerContext(WriteContext context, ObjectObjectHashMap<KVPair, KVPair> indexToMainMutationMap) {
         SpliceLogUtils.warn(LOG, "registering Context with a base class");
     }
 

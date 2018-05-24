@@ -15,7 +15,7 @@
 package com.splicemachine.si.impl.store;
 
 import com.carrotsearch.hppc.LongArrayList;
-import com.carrotsearch.hppc.LongOpenHashSet;
+import com.carrotsearch.hppc.LongHashSet;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.txn.*;
@@ -122,18 +122,18 @@ public class TestingTxnStore implements TxnStore{
         txnHolder.txn=getRolledbackTxn(txn);
     }
 
-    private Txn getRolledbackSubtxns(long txnId, Txn txn, LongOpenHashSet subtransactions) {
-        final LongOpenHashSet subs = subtransactions.clone();
+    private Txn getRolledbackSubtxns(long txnId, Txn txn, LongHashSet subtransactions) {
+        final LongHashSet subs = subtransactions.clone();
         return new ForwardingTxnView(txn){
             @Override
-            public LongOpenHashSet getRolledback() {
+            public LongHashSet getRolledback() {
                 return subs;
             }
         };
     }
 
     @Override
-    public void rollbackSubtransactions(long txnId, LongOpenHashSet subtransactions) throws IOException {
+    public void rollbackSubtransactions(long txnId, LongHashSet subtransactions) throws IOException {
         long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
 
         TxnHolder txnHolder=txnMap.get(beginTS);

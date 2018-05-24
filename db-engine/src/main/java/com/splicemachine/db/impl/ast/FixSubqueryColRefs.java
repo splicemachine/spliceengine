@@ -31,7 +31,7 @@
 
 package com.splicemachine.db.impl.ast;
 
-import com.carrotsearch.hppc.LongObjectOpenHashMap;
+import com.carrotsearch.hppc.LongObjectHashMap;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
@@ -82,7 +82,7 @@ public class FixSubqueryColRefs extends AbstractSpliceVisitor {
         if (correlatedSubQs.containsKey(num)){
             final org.spark_project.guava.base.Predicate<ResultColumn> pointsToPrimaryTree = RSUtils.pointsTo(node.getChildResult());
             ResultColumnList rcl = node.getChildResult().getResultColumns();
-            LongObjectOpenHashMap<ResultColumn> colMap = rcl.rsnChainMap();
+            LongObjectHashMap<ResultColumn> colMap = rcl.rsnChainMap();
             for (SubqueryNode sub: correlatedSubQs.get(num)){
                 Iterable<ColumnReference> crs =
                         Iterables.filter(RSUtils.collectNodes(sub, ColumnReference.class),

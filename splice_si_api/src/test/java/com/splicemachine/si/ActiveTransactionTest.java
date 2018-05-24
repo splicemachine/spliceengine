@@ -247,7 +247,7 @@ public class ActiveTransactionTest{
     public void oldestActiveTransactionIgnoresCommitTimestampIds() throws IOException{
         final Txn t0=control.beginTransaction(DESTINATION_TABLE);
         transactorSetup.timestampSource.rememberTimestamp(t0.getTxnId());
-        LongArrayList committedTxns=LongArrayList.newInstance();
+        LongArrayList committedTxns=new LongArrayList();
         for(int i=0;i<4;i++){
             final Txn transactionId=control.beginTransaction(DESTINATION_TABLE);
             transactionId.commit();
@@ -266,7 +266,7 @@ public class ActiveTransactionTest{
     @Test
     @Ignore("This is subject to contamination failures when other tests are running concurrently")
     public void oldestActiveTransactionsManyActive() throws IOException{
-        LongArrayList startedTxns=LongArrayList.newInstance();
+        LongArrayList startedTxns=new LongArrayList();
         final Txn t0=control.beginTransaction(DESTINATION_TABLE);
         startedTxns.add(t0.getTxnId());
         transactorSetup.timestampSource.rememberTimestamp(t0.getTxnId());

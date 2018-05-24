@@ -2028,7 +2028,7 @@ public class ResultColumn extends ValueNode
 	}
 
 	public LongArrayList chain() {
-		LongArrayList chain = LongArrayList.newInstance();
+		LongArrayList chain = new LongArrayList();
 		ValueNode expression = getExpression();
 		while (expression != null) {
 			if (expression instanceof VirtualColumnNode) {

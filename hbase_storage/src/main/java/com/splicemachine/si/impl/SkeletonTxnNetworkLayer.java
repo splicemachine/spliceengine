@@ -14,7 +14,7 @@
 
 package com.splicemachine.si.impl;
 
-import com.carrotsearch.hppc.LongOpenHashSet;
+import com.carrotsearch.hppc.LongHashSet;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HConstants;
@@ -76,7 +76,7 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
                         }
                     });
 
-            LongOpenHashSet txns=LongOpenHashSet.newInstance(); //TODO -sf- do we really need to check for duplicates? In case of Transaction table splits?
+            LongHashSet txns=new LongHashSet(); //TODO -sf- do we really need to check for duplicates? In case of Transaction table splits?
             for(TxnMessage.ActiveTxnIdResponse response : data.values()){
                 int activeTxnIdsCount=response.getActiveTxnIdsCount();
                 for(int i=0;i<activeTxnIdsCount;i++){

@@ -14,7 +14,7 @@
 
 package com.splicemachine.pipeline.writehandler;
 
-import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
+import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
@@ -39,7 +39,7 @@ import java.io.IOException;
 public class SharedCallBufferFactory{
 
     /* conglomerateId to CallBuffer */
-    private ObjectObjectOpenHashMap<byte[], CallBuffer<KVPair>> sharedCallBufferMap = new ObjectObjectOpenHashMap<>();
+    private ObjectObjectHashMap<byte[], CallBuffer<KVPair>> sharedCallBufferMap = new ObjectObjectHashMap<>();
     private final WriteCoordinator writerPool;
     private final PartitionFactory partitionFactory;
 
@@ -50,7 +50,7 @@ public class SharedCallBufferFactory{
 
     public CallBuffer<KVPair> getWriteBuffer(byte[] conglomBytes,
                                              WriteContext context,
-                                             ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap,
+                                             ObjectObjectHashMap<KVPair, KVPair> indexToMainMutationMap,
                                              int maxSize,
                                              boolean useAsyncWriteBuffers,
                                              TxnView txn, byte[] token) throws Exception {
@@ -67,7 +67,7 @@ public class SharedCallBufferFactory{
 
     private CallBuffer<KVPair> createKvPairCallBuffer(byte[] conglomBytes,
                                                       WriteContext context,
-                                                      ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap,
+                                                      ObjectObjectHashMap<KVPair, KVPair> indexToMainMutationMap,
                                                       int maxSize,
                                                       boolean useAsyncWriteBuffers,
                                                       TxnView txn, byte[] token) throws IOException{

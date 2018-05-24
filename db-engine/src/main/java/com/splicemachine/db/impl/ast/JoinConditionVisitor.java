@@ -32,7 +32,7 @@
 package com.splicemachine.db.impl.ast;
 
 
-import com.carrotsearch.hppc.LongLongOpenHashMap;
+import com.carrotsearch.hppc.LongLongHashMap;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
@@ -70,7 +70,7 @@ import java.util.*;
 public class JoinConditionVisitor extends AbstractSpliceVisitor {
 
     private static Logger LOG = Logger.getLogger(JoinConditionVisitor.class);
-    private LongLongOpenHashMap joinChainMap;
+    private LongLongHashMap joinChainMap;
 
     private void initializeMap(QueryTreeNode v)  throws StandardException {
         if (joinChainMap == null)

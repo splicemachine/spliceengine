@@ -14,8 +14,8 @@
 
 package com.splicemachine.si.impl.server;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
-import com.carrotsearch.hppc.LongOpenHashSet;
+import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.LongHashSet;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.LongCursor;
 import com.splicemachine.kvpair.KVPair;
@@ -179,7 +179,7 @@ public class SITransactor implements Transactor{
         TxnFilter constraintState=null;
         if(constraintChecker!=null)
             constraintState=new SimpleTxnFilter(null,txn,NoOpReadResolver.INSTANCE,txnSupplier);
-        @SuppressWarnings("unchecked") final LongOpenHashSet[] conflictingChildren=new LongOpenHashSet[mutations.size()];
+        @SuppressWarnings("unchecked") final LongHashSet[] conflictingChildren=new LongHashSet[mutations.size()];
         try{
             lockRows(table,mutations,lockPairs,finalStatus);
 
@@ -188,7 +188,7 @@ public class SITransactor implements Transactor{
              * 1 of 2 paths (bulk write pipeline and SIObserver). Since both of those will externally ensure that
              * the region can't close until after this method is complete, we don't need the calls.
              */
-            IntObjectOpenHashMap<DataPut> writes=checkConflictsForKvBatch(table,rollForwardQueue,lockPairs,
+            IntObjectHashMap<DataPut> writes=checkConflictsForKvBatch(table,rollForwardQueue,lockPairs,
                     conflictingChildren,txn,family,qualifier,constraintChecker,constraintState,finalStatus,skipConflictDetection,skipWAL);
 
             //TODO -sf- this can probably be made more efficient
@@ -229,17 +229,17 @@ public class SITransactor implements Transactor{
         }
     }
 
-    private IntObjectOpenHashMap<DataPut> checkConflictsForKvBatch(Partition table,
+    private IntObjectHashMap<DataPut> checkConflictsForKvBatch(Partition table,
                                                                    RollForward rollForwardQueue,
                                                                    Pair<KVPair, Lock>[] dataAndLocks,
-                                                                   LongOpenHashSet[] conflictingChildren,
+                                                                   LongHashSet[] conflictingChildren,
                                                                    TxnView transaction,
                                                                    byte[] family, byte[] qualifier,
                                                                    ConstraintChecker constraintChecker,
                                                                    TxnFilter constraintStateFilter,
                                                                    MutationStatus[] finalStatus, boolean skipConflictDetection,
                                                                    boolean skipWAL) throws IOException {
-        IntObjectOpenHashMap<DataPut> finalMutationsToWrite = IntObjectOpenHashMap.newInstance(dataAndLocks.length, 0.9f);
+        IntObjectHashMap<DataPut> finalMutationsToWrite = new IntObjectHashMap(dataAndLocks.length, 0.9f);
         DataResult possibleConflicts = null;
         BitSet bloomInMemoryCheck  = skipConflictDetection ? null : table.getBloomInMemoryCheck(constraintChecker!=null,dataAndLocks);
         for(int i=0;i<dataAndLocks.length;i++){
@@ -408,7 +408,7 @@ public class SITransactor implements Transactor{
         return newPut;
     }
 
-    private void resolveChildConflicts(Partition table,DataPut put,LongOpenHashSet conflictingChildren) throws IOException{
+    private void resolveChildConflicts(Partition table,DataPut put,LongHashSet conflictingChildren) throws IOException{
         if(conflictingChildren!=null && !conflictingChildren.isEmpty()){
             DataDelete delete=opFactory.newDelete(put.key());
             Iterable<DataCell> cells=put.cells();

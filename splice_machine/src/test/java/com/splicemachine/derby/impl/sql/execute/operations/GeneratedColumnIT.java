@@ -14,11 +14,20 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.carrotsearch.hppc.IntOpenHashSet;
-import com.splicemachine.derby.test.framework.*;
+import com.carrotsearch.hppc.IntHashSet;
+import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test_dao.TableDAO;
 import org.apache.log4j.Logger;
-import org.junit.*;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -32,7 +41,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Test to validate that GENERATED columns work correctly.
@@ -126,7 +138,7 @@ public class GeneratedColumnIT {
         while(rs.next()){
             Integer adrId = rs.getInt(1);
 
-            Assert.assertTrue("No adr_id specified!",!rs.wasNull());
+            assertTrue("No adr_id specified!",!rs.wasNull());
 //            Assert.assertTrue("adrId falls in incorrect range! adrId = "+ adrId,size <= adrId || size/2 >= adrId);
             int addrCatId = rs.getInt(2);
             results.add(String.format("addrId=%d,addrCatId=%d",adrId,addrCatId));
@@ -148,8 +160,8 @@ public class GeneratedColumnIT {
         while(rs.next()){
             Integer adrId = rs.getInt(1);
 
-            Assert.assertTrue("No adr_id specified!",!rs.wasNull());
-            Assert.assertTrue("adr_id outside correct range!adrId = "+ adrId,10<=adrId);
+            assertTrue("No adr_id specified!",!rs.wasNull());
+            assertTrue("adr_id outside correct range!adrId = "+ adrId,10<=adrId);
             int addrCatId = rs.getInt(2);
             results.add(String.format("addrId=%d,addrCatId=%d",adrId,addrCatId));
         }
@@ -169,8 +181,8 @@ public class GeneratedColumnIT {
         while(rs.next()){
             Integer adrId = rs.getInt(1);
 
-            Assert.assertTrue("No adr_id specified!",!rs.wasNull());
-            Assert.assertTrue("(adrId-1)%10!=0, adrId="+adrId,(adrId-1)%10==0);
+            assertTrue("No adr_id specified!",!rs.wasNull());
+            assertTrue("(adrId-1)%10!=0, adrId="+adrId,(adrId-1)%10==0);
             int addrCatId = rs.getInt(2);
             results.add(String.format("addrId=%d,addrCatId=%d",adrId,addrCatId));
         }
@@ -190,7 +202,7 @@ public class GeneratedColumnIT {
         while(rs.next()){
             Integer adrId = rs.getInt(1);
 
-            Assert.assertTrue("No adr_id specified!",!rs.wasNull());
+            assertTrue("No adr_id specified!",!rs.wasNull());
             int addrCatId = rs.getInt(2);
             results.add(String.format("addrId=%d,addrCatId=%d",adrId,addrCatId));
         }
@@ -397,26 +409,26 @@ public class GeneratedColumnIT {
             }
 
             try(ResultSet rs=s.executeQuery(String.format("SELECT * FROM %s order by c1",tableRef))){
-                IntOpenHashSet foundData=new IntOpenHashSet(15);
+                IntHashSet foundData=new IntHashSet(15);
                 int lastValue=0;
                 int count=0;
                 while(rs.next()){
                     count++;
                     int next=rs.getInt(1);
                     Assert.assertFalse("Returned null!",rs.wasNull()); //ensure sequence is never null
-                    Assert.assertTrue("Returned data < start value!",next>=1); //ensure sequence is always 1 or greater(start with 1)
-                    Assert.assertTrue("Returned data out of order!",next>lastValue); //ensure sequence is sorted (ORDER BY clause)
-                    Assert.assertTrue("Duplicate value ["+next+"] found in a unique sequence!",foundData.add(next)); //ensure sequence is unique(generated clause)
+                    assertTrue("Returned data < start value!",next>=1); //ensure sequence is always 1 or greater(start with 1)
+                    assertTrue("Returned data out of order!",next>lastValue); //ensure sequence is sorted (ORDER BY clause)
+                    assertTrue("Duplicate value ["+next+"] found in a unique sequence!",foundData.add(next)); //ensure sequence is unique(generated clause)
                     lastValue=next;
                 }
-                Assert.assertEquals("Incorrect returned row count!",rowCount,count);
+                assertEquals("Incorrect returned row count!",rowCount,count);
             }
         }finally{
             try{
                 conn.rollback();
                 conn.reset();
             }catch(Exception e){
-                Assert.fail("Unable to rollback:"+e.getMessage());
+                fail("Unable to rollback:"+e.getMessage());
             }
         }
     }
@@ -445,16 +457,16 @@ public class GeneratedColumnIT {
                     count++;
                     int next=rs.getInt(1);
                     Assert.assertFalse("Returned null!",rs.wasNull()); //ensure sequence is never null
-                    Assert.assertTrue("Returned data out of order!",next==lastValue+1); //ensure sequence is sorted (ORDER BY clause)
+                    assertTrue("Returned data out of order!",next==lastValue+1); //ensure sequence is sorted (ORDER BY clause)
                     lastValue=next;
                 }
-                Assert.assertEquals("Incorrect returned row count!",rowCount,count);
+                assertEquals("Incorrect returned row count!",rowCount,count);
             }
             try(ResultSet rs=s.executeQuery(String.format("SELECT max(c1) FROM %s",tableRef))){
-                Assert.assertTrue("No rows returned!",rs.next());
+                assertTrue("No rows returned!",rs.next());
                 int max=rs.getInt(1);
                 Assert.assertFalse("Returned null!",rs.wasNull());
-                Assert.assertEquals("Wrong last value!", 163820, max);
+                assertEquals("Wrong last value!", 163820, max);
             }
 
 
@@ -476,16 +488,16 @@ public class GeneratedColumnIT {
                     count++;
                     int next=rs.getInt(1);
                     Assert.assertFalse("Returned null!",rs.wasNull()); //ensure sequence is never null
-                    Assert.assertTrue("Returned data out of order!",next==lastValue+3000); //ensure sequence is sorted (ORDER BY clause)
+                    assertTrue("Returned data out of order!",next==lastValue+3000); //ensure sequence is sorted (ORDER BY clause)
                     lastValue=next;
                 }
-                Assert.assertEquals("Incorrect returned row count!",rowCount,count);
+                assertEquals("Incorrect returned row count!",rowCount,count);
             }
             try(ResultSet rs=s.executeQuery(String.format("SELECT max(c1) FROM %s",tableRef))){
-                Assert.assertTrue("No rows returned!",rs.next());
+                assertTrue("No rows returned!",rs.next());
                 int max=rs.getInt(1);
                 Assert.assertFalse("Returned null!",rs.wasNull());
-                Assert.assertEquals("Wrong last value!", 15296900, max);
+                assertEquals("Wrong last value!", 15296900, max);
             }
 
             tableName = "t5".toUpperCase();
@@ -504,16 +516,16 @@ public class GeneratedColumnIT {
                     count++;
                     int next=rs.getInt(1);
                     Assert.assertFalse("Returned null!",rs.wasNull()); //ensure sequence is never null
-                    Assert.assertTrue("Returned data out of order!",next==lastValue-9999); //ensure sequence is sorted (ORDER BY clause)
+                    assertTrue("Returned data out of order!",next==lastValue-9999); //ensure sequence is sorted (ORDER BY clause)
                     lastValue=next;
                 }
-                Assert.assertEquals("Incorrect returned row count!",rowCount,count);
+                assertEquals("Incorrect returned row count!",rowCount,count);
             }
             try(ResultSet rs=s.executeQuery(String.format("SELECT min(c1) FROM %s",tableRef))){
-                Assert.assertTrue("No rows returned!",rs.next());
+                assertTrue("No rows returned!",rs.next());
                 int min=rs.getInt(1);
                 Assert.assertFalse("Returned null!",rs.wasNull());
-                Assert.assertEquals("Wrong last value!", -188981, min);
+                assertEquals("Wrong last value!", -188981, min);
             }
             tableName = "t6".toUpperCase();
             tableRef = schemaWatcher.schemaName+"."+tableName;
@@ -531,16 +543,16 @@ public class GeneratedColumnIT {
                     count++;
                     int next=rs.getInt(1);
                     Assert.assertFalse("Returned null!",rs.wasNull()); //ensure sequence is never null
-                    Assert.assertTrue("Returned data out of order!",next==lastValue-10000); //ensure sequence is sorted (ORDER BY clause)
+                    assertTrue("Returned data out of order!",next==lastValue-10000); //ensure sequence is sorted (ORDER BY clause)
                     lastValue=next;
                 }
-                Assert.assertEquals("Incorrect returned row count!",rowCount,count);
+                assertEquals("Incorrect returned row count!",rowCount,count);
             }
             try(ResultSet rs=s.executeQuery(String.format("SELECT min(c1) FROM %s",tableRef))){
-                Assert.assertTrue("No rows returned!",rs.next());
+                assertTrue("No rows returned!",rs.next());
                 int min=rs.getInt(1);
                 Assert.assertFalse("Returned null!",rs.wasNull());
-                Assert.assertEquals("Wrong last value!", -191000, min);
+                assertEquals("Wrong last value!", -191000, min);
             }
             tableName = "t7".toUpperCase();
             tableRef = schemaWatcher.schemaName+"."+tableName;
@@ -558,16 +570,16 @@ public class GeneratedColumnIT {
                     count++;
                     int next=rs.getInt(1);
                     Assert.assertFalse("Returned null!",rs.wasNull()); //ensure sequence is never null
-                    Assert.assertTrue("Returned data out of order!",next==lastValue-23000); //ensure sequence is sorted (ORDER BY clause)
+                    assertTrue("Returned data out of order!",next==lastValue-23000); //ensure sequence is sorted (ORDER BY clause)
                     lastValue=next;
                 }
-                Assert.assertEquals("Incorrect returned row count!",rowCount,count);
+                assertEquals("Incorrect returned row count!",rowCount,count);
             }
             try(ResultSet rs=s.executeQuery(String.format("SELECT min(c1) FROM %s",tableRef))){
-                Assert.assertTrue("No rows returned!",rs.next());
+                assertTrue("No rows returned!",rs.next());
                 int min=rs.getInt(1);
                 Assert.assertFalse("Returned null!",rs.wasNull());
-                Assert.assertEquals("Wrong last value!", -437001, min);
+                assertEquals("Wrong last value!", -437001, min);
             }
 
         }finally{
@@ -575,7 +587,7 @@ public class GeneratedColumnIT {
                 conn.rollback();
                 conn.reset();
             }catch(Exception e){
-                Assert.fail("Unable to rollback:"+e.getMessage());
+                fail("Unable to rollback:"+e.getMessage());
             }
         }
     }
@@ -596,7 +608,7 @@ public class GeneratedColumnIT {
         int i = 0;
         while (rs.next())
             i++;
-        Assert.assertEquals("Missing Rows",2,i);
+        assertEquals("Missing Rows",2,i);
     }
 
 }
