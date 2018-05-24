@@ -57,7 +57,6 @@ public class EngineDriver{
     private final OperationManager operationManager;
     private final SqlEnvironment environment;
     private final ServiceDiscovery serviceDiscovery;
-    private final StatementLogger statementLogger;
 
     public static void loadDriver(SqlEnvironment environment){
         INSTANCE=new EngineDriver(environment);
@@ -97,7 +96,6 @@ public class EngineDriver{
                     }
                 }).build();
         this.serviceDiscovery = environment.serviceDiscovery();
-        this.statementLogger = new FileStatementLogger();
     }
 
     public DatabaseAdministrator dbAdministrator(){
@@ -156,9 +154,5 @@ public class EngineDriver{
 
     public ServiceDiscovery getServiceDiscovery() {
         return serviceDiscovery;
-    }
-
-    public StatementLogger getStatementLogger() {
-        return statementLogger;
     }
 }
