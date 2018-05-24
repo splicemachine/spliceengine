@@ -14,13 +14,14 @@
 
 package com.splicemachine.test;
 
-import com.splicemachine.access.HConfiguration;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.spark_project.guava.collect.Lists.transform;
+import java.util.List;
+
 import com.splicemachine.access.configuration.OlapConfigurations;
-import com.splicemachine.access.configuration.SQLConfiguration;
-import com.splicemachine.compactions.SpliceDefaultCompactionPolicy;
 import com.splicemachine.compactions.SpliceDefaultCompactor;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
-<<<<<<< HEAD
 import org.apache.hadoop.hbase.security.access.AccessController;
 import org.apache.hadoop.hbase.security.token.TokenProvider;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -28,13 +29,7 @@ import org.spark_project.guava.base.Function;
 import org.spark_project.guava.base.Joiner;
 import org.spark_project.guava.collect.ImmutableList;
 import com.splicemachine.compactions.SpliceDefaultCompactionPolicy;
-=======
-import com.splicemachine.derby.hbase.SpliceIndexObserver;
->>>>>>> 0a884bb240... SPLICE-2151 Address review comments.
 import com.splicemachine.hbase.*;
-import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
-import com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint;
-import com.splicemachine.utils.BlockingProbeEndpoint;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.HConstants;
@@ -43,19 +38,12 @@ import org.apache.hadoop.hbase.master.cleaner.TimeToLiveHFileCleaner;
 import org.apache.hadoop.hbase.regionserver.DefaultStoreEngine;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionPolicy;
 import org.apache.hadoop.hbase.regionserver.compactions.Compactor;
-import org.apache.hadoop.hbase.security.access.AccessController;
-import org.apache.hadoop.hbase.security.token.TokenProvider;
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.base.Joiner;
-import org.spark_project.guava.collect.ImmutableList;
-
-import java.util.List;
-
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.hadoop.fs.s3a.Constants.ACCESS_KEY;
-import static org.apache.hadoop.fs.s3a.Constants.SECRET_KEY;
-import static org.spark_project.guava.collect.Lists.transform;
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.configuration.SQLConfiguration;
+import com.splicemachine.derby.hbase.SpliceIndexObserver;
+import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
+import com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint;
+import com.splicemachine.utils.BlockingProbeEndpoint;
 
 /**
  * HBase configuration for SpliceTestPlatform and SpliceTestClusterParticipant.
@@ -166,7 +154,7 @@ class SpliceTestPlatformConfig {
         config.setInt("hbase.client.ipc.pool.size",10);
         config.setInt("hbase.rowlock.wait.duration",0);
 
-        config.setLong("hbase.client.scanner.timeout.period", MINUTES.toMillis(999)); // hbase.regionserver.lease.period is deprecated
+        config.setLong("hbase.client.scanner.timeout.period", MINUTES.toMillis(2)); // hbase.regionserver.lease.period is deprecated
         config.setLong("hbase.client.operation.timeout", MINUTES.toMillis(2));
         config.setLong("hbase.regionserver.handler.count", 100);
         config.setLong("hbase.regionserver.metahandler.count", 100);
