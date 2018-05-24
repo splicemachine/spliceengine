@@ -1442,6 +1442,10 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
     private static void ensureSnapshot(String snapshotName, boolean exists) throws StandardException
     {
+
+        if (!snapshotName.matches("[a-zA-Z_0-9][a-zA-Z_0-9-.]*")) {
+            throw StandardException.newException(SQLState.SNAPSHOT_NAME_ILLEGAL,snapshotName);
+        }
         int count = 0;
         try {
             String sql = "select count(*) from sys.syssnapshots where snapshotname=?";
