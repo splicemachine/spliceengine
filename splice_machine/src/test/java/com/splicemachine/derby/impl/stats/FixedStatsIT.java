@@ -15,7 +15,6 @@
 package com.splicemachine.derby.impl.stats;
 
 import com.splicemachine.derby.test.framework.*;
-import com.splicemachine.homeless.TestUtils;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -243,6 +242,7 @@ public class FixedStatsIT{
     }
 
     @Test
+    @Ignore("DB-7068")
     public void testCardinalityIsCorrectForPrimaryKeyColumns() throws Exception{
         conn.collectStats(schema.schemaName,load.tableName); //collect stats
 
