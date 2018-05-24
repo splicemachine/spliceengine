@@ -14,7 +14,7 @@
 
 package com.splicemachine.derby.stream.output;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -73,7 +73,7 @@ public class PermissiveInsertWriteConfiguration extends ForwardingWriteConfigura
             SpliceLogUtils.debug(LOG, "partialFailure result=%s", result);
         if(operationContext.isFailed()) return WriteResponse.IGNORE;
         //filter out and report bad records
-        IntObjectOpenHashMap<WriteResult> failedRows = result.getFailedRows();
+        IntObjectHashMap<WriteResult> failedRows = result.getFailedRows();
         @SuppressWarnings("MismatchedReadAndWriteOfArray") Object[] fRows = failedRows.values;
         boolean ignore = result.getNotRunRows().size()<=0 && result.getFailedRows().size()<=0;
         List<KVPair> kvPairList = request.mutationsList();

@@ -15,7 +15,7 @@
 package com.splicemachine.pipeline.writehandler;
 
 import java.io.IOException;
-import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
+import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.splicemachine.access.api.NotServingPartitionException;
 import com.splicemachine.access.api.WrongPartitionException;
 import com.splicemachine.kvpair.KVPair;
@@ -41,7 +41,7 @@ public abstract class RoutingWriteHandler implements WriteHandler {
      * original (i.e. the base partition) KVPair. This allows us to backtrack and identify the source for a given
      * destination write.
      */
-    protected final ObjectObjectOpenHashMap<KVPair, KVPair> routedToBaseMutationMap= ObjectObjectOpenHashMap.newInstance();
+    protected final ObjectObjectHashMap<KVPair, KVPair> routedToBaseMutationMap= new ObjectObjectHashMap();
     protected final boolean keepState;
 
     protected RoutingWriteHandler(byte[] destination,boolean keepState) {

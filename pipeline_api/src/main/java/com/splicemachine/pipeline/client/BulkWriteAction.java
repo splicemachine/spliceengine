@@ -14,7 +14,7 @@
 
 package com.splicemachine.pipeline.client;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.Clock;
@@ -409,7 +409,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
      * @param failedRows the rows which failed, and their respective error messages
      * @return error message describing the failed rows
      */
-    private String getFailedRowsMessage(IntObjectOpenHashMap<WriteResult> failedRows){
+    private String getFailedRowsMessage(IntObjectHashMap<WriteResult> failedRows){
 
         if(failedRows!=null && !failedRows.isEmpty()){
 
@@ -453,7 +453,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
     }
 
     private Exception parseIntoException(BulkWriteResult response){
-        IntObjectOpenHashMap<WriteResult> failedRows=response.getFailedRows();
+        IntObjectHashMap<WriteResult> failedRows=response.getFailedRows();
         Exception first = null;
         for(IntObjectCursor<WriteResult> cursor : failedRows){
             @SuppressWarnings("ThrowableResultOfMethodCallIgnored") Throwable e=pipelineExceptionFactory.processErrorResult(cursor.value);

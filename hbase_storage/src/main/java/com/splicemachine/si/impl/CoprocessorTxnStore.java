@@ -14,7 +14,7 @@
 
 package com.splicemachine.si.impl;
 
-import com.carrotsearch.hppc.LongOpenHashSet;
+import com.carrotsearch.hppc.LongHashSet;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.TransactionMissing;
@@ -140,7 +140,7 @@ public class CoprocessorTxnStore implements TxnStore {
     }
 
     @Override
-    public void rollbackSubtransactions(long txnId, LongOpenHashSet subtransactions) throws IOException {
+    public void rollbackSubtransactions(long txnId, LongHashSet subtransactions) throws IOException {
         byte[] rowKey=getTransactionRowKey(txnId);
         TxnMessage.TxnLifecycleMessage lifecycle=TxnMessage.TxnLifecycleMessage.newBuilder()
                 .setTxnId(txnId).addAllRolledbackSubTxns(Longs.asList(subtransactions.toArray()))

@@ -14,7 +14,7 @@
 
 package com.splicemachine.pipeline.writehandler;
 
-import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
+import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.callbuffer.PreFlushHook;
 import com.splicemachine.pipeline.context.WriteContext;
@@ -33,7 +33,7 @@ public class SharedPreFlushHook implements PreFlushHook{
 
     private static final Logger LOG=Logger.getLogger(SharedPreFlushHook.class);
 
-    private List<Pair<WriteContext, ObjectObjectOpenHashMap<KVPair, KVPair>>> sharedMainMutationList=new ArrayList<>();
+    private List<Pair<WriteContext, ObjectObjectHashMap<KVPair, KVPair>>> sharedMainMutationList=new ArrayList<>();
 
     @Override
     public Collection<KVPair> transform(Collection<KVPair> buffer) throws Exception{
@@ -41,7 +41,7 @@ public class SharedPreFlushHook implements PreFlushHook{
             SpliceLogUtils.trace(LOG,"transform buffer rows=%d",buffer.size());
         Collection<KVPair> newList=new ArrayList<>(buffer.size());
         for(KVPair indexPair : buffer){
-            for(Pair<WriteContext, ObjectObjectOpenHashMap<KVPair, KVPair>> pair : sharedMainMutationList){
+            for(Pair<WriteContext, ObjectObjectHashMap<KVPair, KVPair>> pair : sharedMainMutationList){
                 KVPair base=pair.getSecond().get(indexPair);
                 if(base!=null){
                     if(pair.getFirst().canRun(base))
@@ -55,7 +55,7 @@ public class SharedPreFlushHook implements PreFlushHook{
         return newList;
     }
 
-    public void registerContext(WriteContext context,ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap){
+    public void registerContext(WriteContext context,ObjectObjectHashMap<KVPair, KVPair> indexToMainMutationMap){
         sharedMainMutationList.add(Pair.newPair(context,indexToMainMutationMap));
     }
 

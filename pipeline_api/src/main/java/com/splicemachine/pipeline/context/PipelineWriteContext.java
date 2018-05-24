@@ -14,7 +14,7 @@
 
 package com.splicemachine.pipeline.context;
 
-import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
+import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.access.util.CachedPartitionFactory;
 import com.splicemachine.kvpair.KVPair;
@@ -141,7 +141,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
 
     @Override
     public CallBuffer<KVPair> getSharedWriteBuffer(byte[] conglomBytes,
-                                                   ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap,
+                                                   ObjectObjectHashMap<KVPair, KVPair> indexToMainMutationMap,
                                                    int maxSize, boolean useAsyncWriteBuffers, TxnView txn, byte[] token) throws Exception {
         assert indexSharedCallBuffer != null;
         return indexSharedCallBuffer.getWriteBuffer(conglomBytes, this, indexToMainMutationMap, maxSize, useAsyncWriteBuffers, txn, token);

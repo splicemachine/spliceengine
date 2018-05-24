@@ -1,7 +1,7 @@
 package com.splicemachine.pipeline.testsetup.com.splicemachine.pipeline.tests;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
-import com.carrotsearch.hppc.IntOpenHashSet;
+import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.IntHashSet;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.api.WriteResponse;
@@ -59,31 +59,31 @@ public class BulkWriteActionRetryTest {
         Assert.assertEquals(WriteResponse.RETRY, response);
 
         writeResult = new WriteResult(Code.PARTIAL);
-        IntObjectOpenHashMap<WriteResult> failedRows = new IntObjectOpenHashMap<>();
+        IntObjectHashMap<WriteResult> failedRows = new IntObjectHashMap<>();
         failedRows.put(1, new WriteResult(Code.FAILED, "NoRouteToHostException:No route to host"));
-        bulkWriteResult = new BulkWriteResult(writeResult, new IntOpenHashSet(), failedRows);
+        bulkWriteResult = new BulkWriteResult(writeResult, new IntHashSet(), failedRows);
         response = config.partialFailure(bulkWriteResult, null);
         Assert.assertEquals(WriteResponse.RETRY, response);
 
 
         writeResult = new WriteResult(Code.PARTIAL);
-        failedRows = new IntObjectOpenHashMap<>();
+        failedRows = new IntObjectHashMap<>();
         failedRows.put(1, new WriteResult(Code.FAILED, "FailedServerException:This server is in the failed servers list"));
-        bulkWriteResult = new BulkWriteResult(writeResult, new IntOpenHashSet(), failedRows);
+        bulkWriteResult = new BulkWriteResult(writeResult, new IntHashSet(), failedRows);
         response = config.partialFailure(bulkWriteResult, null);
         Assert.assertEquals(WriteResponse.RETRY, response);
 
         writeResult = new WriteResult(Code.PARTIAL);
-        failedRows = new IntObjectOpenHashMap<>();
+        failedRows = new IntObjectHashMap<>();
         failedRows.put(1, new WriteResult(Code.FAILED, "ServerNotRunningYetException"));
-        bulkWriteResult = new BulkWriteResult(writeResult, new IntOpenHashSet(), failedRows);
+        bulkWriteResult = new BulkWriteResult(writeResult, new IntHashSet(), failedRows);
         response = config.partialFailure(bulkWriteResult, null);
         Assert.assertEquals(WriteResponse.RETRY, response);
 
         writeResult = new WriteResult(Code.PARTIAL);
-        failedRows = new IntObjectOpenHashMap<>();
+        failedRows = new IntObjectHashMap<>();
         failedRows.put(1, new WriteResult(Code.FAILED, "ConnectTimeoutException"));
-        bulkWriteResult = new BulkWriteResult(writeResult, new IntOpenHashSet(), failedRows);
+        bulkWriteResult = new BulkWriteResult(writeResult, new IntHashSet(), failedRows);
         response = config.partialFailure(bulkWriteResult, null);
         Assert.assertEquals(WriteResponse.RETRY, response);
 

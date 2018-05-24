@@ -14,8 +14,8 @@
 
 package com.splicemachine.pipeline.utils;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
-import com.carrotsearch.hppc.IntOpenHashSet;
+import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.callbuffer.PreFlushHook;
@@ -44,8 +44,8 @@ public class PipelineUtils{
     };
 
     public static Collection<KVPair> doPartialRetry(BulkWrite bulkWrite,BulkWriteResult response,long id) throws Exception{
-        IntOpenHashSet notRunRows=response.getNotRunRows();
-        IntObjectOpenHashMap<WriteResult> failedRows=response.getFailedRows();
+        IntHashSet notRunRows=response.getNotRunRows();
+        IntObjectHashMap<WriteResult> failedRows=response.getFailedRows();
         Collection<KVPair> toRetry=new ArrayList<>(failedRows.size()+notRunRows.size());
         List<String> errorMsgs= Lists.newArrayListWithCapacity(failedRows.size());
         int i=0;
