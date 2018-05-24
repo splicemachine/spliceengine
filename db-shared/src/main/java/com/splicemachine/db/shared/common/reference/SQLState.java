@@ -2009,6 +2009,7 @@ public interface SQLState {
 
 	String SNAPSHOT_EXISTS											= "SNA01";
 	String SNAPSHOT_NOT_EXISTS										= "SNA02";
+	String SNAPSHOT_NAME_ILLEGAL									= "SNA03";
 
     String SPLITKEY_EQUALS_STARTKEY                                 = "TS001";
 	String NO_PRIMARY_KEY											= "TS002";
