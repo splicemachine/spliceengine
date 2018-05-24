@@ -14,7 +14,7 @@
 
 package com.splicemachine.pipeline.context;
 
-import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
+import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
@@ -76,7 +76,7 @@ public interface WriteContext {
      * Retrieve the sharedWriteBuffer for the index upsert handler
      */
     CallBuffer<KVPair> getSharedWriteBuffer(byte[] conglomBytes,
-                                            ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap,
+                                            ObjectObjectHashMap<KVPair, KVPair> indexToMainMutationMap,
                                             int maxSize,
                                             boolean useAsyncWriteBuffers,
                                             TxnView txn, byte[] token) throws Exception;

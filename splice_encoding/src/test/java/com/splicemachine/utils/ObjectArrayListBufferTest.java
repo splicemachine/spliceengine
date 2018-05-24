@@ -24,14 +24,14 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.carrotsearch.hppc.ObjectArrayList;
-import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
+import com.carrotsearch.hppc.ObjectObjectHashMap;
 import org.spark_project.guava.base.Predicate;
 import org.spark_project.guava.collect.Collections2;
 import org.spark_project.guava.collect.Lists;
 
 public class ObjectArrayListBufferTest {
 	protected static Map<String,String> map = new HashMap<String,String>();
-	protected static ObjectObjectOpenHashMap<String,String> backingMap = new ObjectObjectOpenHashMap<String,String>();
+	protected static ObjectObjectHashMap<String,String> backingMap = new ObjectObjectHashMap<String,String>();
 
 	static {
 		map.put("John", "Leach");
@@ -65,7 +65,7 @@ public class ObjectArrayListBufferTest {
 	@Test
 	public void objectArrayListBufferTest() {
 		ObjectArrayList<String> names = ObjectArrayList.from("John","Jenny","Molly");
-		ObjectArrayList<String> newList = ObjectArrayList.newInstance();
+		ObjectArrayList<String> newList = new ObjectArrayList<>();
 		Object[] buffer = names.buffer;
 		int size = names.size();
 		for (int i =0; i<size; i++) {

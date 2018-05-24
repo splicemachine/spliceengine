@@ -20,7 +20,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import com.carrotsearch.hppc.LongOpenHashSet;
+import com.carrotsearch.hppc.LongHashSet;
 
 import com.google.common.collect.Iterables;
 import com.splicemachine.EngineDriver;
@@ -73,7 +73,7 @@ public class Vacuum{
         //get all the conglomerates from sys.sysconglomerates
         PreparedStatement ps = null;
         ResultSet rs = null;
-        LongOpenHashSet activeConglomerates = LongOpenHashSet.newInstance();
+        LongHashSet activeConglomerates = new LongHashSet();
         try{
             ps = connection.prepareStatement("select conglomeratenumber from sys.sysconglomerates");
             rs = ps.executeQuery();
