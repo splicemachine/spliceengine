@@ -17,12 +17,15 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -156,8 +159,7 @@ public class VTIOperation extends SpliceBaseOperation {
                  int returnTypeNumber,
                  int vtiProjectionNumber,
                  int vtiRestrictionNumber,
-                 int resultDescriptionNumber,
-                 boolean convertTimestamps
+                 int resultDescriptionNumber
                  ) 
 		throws StandardException
 	{
@@ -190,7 +192,16 @@ public class VTIOperation extends SpliceBaseOperation {
 								getSavedObject(ctcNumber));
 
 		this.resultDescriptionItemNumber = resultDescriptionNumber;
-		this.convertTimestamps = convertTimestamps;
+
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        String convertTimestampsString = null;
+        if (lcc != null) {
+            convertTimestampsString =
+            PropertyUtil.getCachedDatabaseProperty(lcc.getTransactionCompile(),
+                                                   Property.CONVERT_OUT_OF_RANGE_TIMESTAMPS);
+        }
+        // if database property is not set, treat it as false
+		this.convertTimestamps = convertTimestampsString != null && Boolean.valueOf(convertTimestampsString);
 
         init();
     }
