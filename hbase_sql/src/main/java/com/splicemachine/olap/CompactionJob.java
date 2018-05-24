@@ -29,11 +29,13 @@ import com.splicemachine.stream.SparkCompactionContext;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
+import org.apache.spark.SparkJobInfo;
+import org.apache.spark.SparkStageInfo;
+import org.apache.spark.SparkStatusTracker;
 import org.apache.spark.api.java.JavaFutureAction;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.ui.jobs.UIData;
 import scala.Option;
 
 import java.io.IOException;
@@ -165,18 +167,22 @@ public class CompactionJob implements Callable<Void>{
             return false;
         }
         Integer jobId = jobIds.get(0);
-        Option<UIData.JobUIData> op = SpliceSpark.getContext().sc().jobProgressListener().jobIdToData().get(jobId);
+        SparkStatusTracker statusTracker = SpliceSpark.getContext().sc().statusTracker();
+
+        Option<SparkJobInfo> op = statusTracker.getJobInfo(jobId);
         if (op.isEmpty()) {
             return false;
         }
-        UIData.JobUIData jobData = op.get();
-        if (jobData.numActiveTasks() > 0) {
-            return true;
+        SparkJobInfo jobInfo = op.get();
+        Integer stageIds = jobInfo.stageIds()[0];
+
+        Option<SparkStageInfo> stageInfoOp = statusTracker.getStageInfo(stageIds);
+        if(stageInfoOp.isEmpty()) {
+            return false;
         }
-        if (jobData.numCompletedTasks() > 0) {
-            return true;
-        }
-        return false;
+        SparkStageInfo stageInfo = stageInfoOp.get();
+
+        return stageInfo.numActiveTasks() > 0 || stageInfo.numCompletedTasks() > 0;
     }
 
     protected void initializeJob() {
