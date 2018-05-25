@@ -31,17 +31,18 @@
 
 package com.splicemachine.db.iapi.types;
 
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.io.ArrayInputStream;
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.db.DatabaseContext;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.services.context.ContextService;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
-import com.splicemachine.db.iapi.util.StringUtil;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
+import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.splicemachine.db.iapi.util.ReuseFactory;
+import com.splicemachine.db.iapi.util.StringUtil;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
@@ -53,21 +54,16 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.unsafe.Platform;
 import org.joda.time.DateTime;
-import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.PreparedStatement;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.io.ObjectOutput;
-import java.io.ObjectInput;
+import org.joda.time.Days;
+
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.sql.*;
 import java.text.DateFormat;
 import java.text.ParseException;
-import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
-import org.joda.time.Days;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 
 
 /**
@@ -126,6 +122,30 @@ public final class SQLTimestamp extends DataType
         return millis;
     }
 
+    /**
+     * Convert an out-of-bounds timestamp to the minimum or maximum timestamp.
+     * <p>
+     * @return If timestamp is less than the minimum timestamp, the minimum timestamp is returned.
+     *         If timestamp is greater than the maximum timestamp, the maximum timestamp is returned.
+     *         If timestamp is in bounds, it is returned unaltered.
+     * @notes  The current minimum timestamp is appr. 1677-09-21-00.12.44.000000.
+     *         The current maximum timestamp is appr. 2262-04-11-23.47.16.999999.
+     *         Due to time zone settings or other influences, the actual maximum
+     *         or minimum timestamp may differ slightly.
+     */
+	public static Timestamp convertTimeStamp(Timestamp timestamp) throws StandardException {
+        if (timestamp == null)
+            return null;
+
+        long millis = timestamp.getTime();
+        if (millis > MAX_TIMESTAMP)
+            timestamp = new Timestamp(MAX_TIMESTAMP);
+
+        if (millis < MIN_TIMESTAMP)
+            timestamp = new Timestamp(MIN_TIMESTAMP);
+
+        return timestamp;
+	}
 
     public int estimateMemoryUsage()
     {

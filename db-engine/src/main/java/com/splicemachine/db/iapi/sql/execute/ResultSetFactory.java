@@ -726,7 +726,7 @@ public interface ResultSetFactory {
 		@exception StandardException thrown when unable to create the
 			result set
 	 */
-	NoPutResultSet getVTIResultSet(Activation activation, GeneratedMethod row,
+	public NoPutResultSet getVTIResultSet(Activation activation, GeneratedMethod row,
 								   int resultSetNumber,
 								   GeneratedMethod constructor,
 								   String javaClassName,
@@ -769,8 +769,7 @@ public interface ResultSetFactory {
 			int vtiProjectionNumber,
 			int vtiRestrictionNumber,
 			int vtiResultDescriptionNumber,
-			String explainPlan
-	)
+			String explainPlan)
 					throws StandardException;
 	/**
 		A distinct scan result set pushes duplicate elimination into
