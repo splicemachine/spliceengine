@@ -727,22 +727,22 @@ public interface ResultSetFactory {
 			result set
 	 */
 	public NoPutResultSet getVTIResultSet(Activation activation, GeneratedMethod row,
-									 int resultSetNumber,
-									 GeneratedMethod constructor,
-									 String javaClassName,
-									 String pushedQualifiersField,
-									 int erdNumber,
-									 int ctcNumber,
-									 boolean isTarget,
-									 int scanIsolationLevel,
-									 double optimizerEstimatedRowCount,
-									 double optimizerEstimatedCost,
-                                     boolean isDerbyStyleTableFunction,
-                                     int returnTypeNumber,
-                                     int vtiProjectionNumber,
-                                     int vtiRestrictionNumber,
-									 int vtiResultDescriptionNumber,
-	                                 String explainPlan)
+								   int resultSetNumber,
+								   GeneratedMethod constructor,
+								   String javaClassName,
+								   String pushedQualifiersField,
+								   int erdNumber,
+								   int ctcNumber,
+								   boolean isTarget,
+								   int scanIsolationLevel,
+								   double optimizerEstimatedRowCount,
+								   double optimizerEstimatedCost,
+								   boolean isDerbyStyleTableFunction,
+								   int returnTypeNumber,
+								   int vtiProjectionNumber,
+								   int vtiRestrictionNumber,
+								   int vtiResultDescriptionNumber,
+								   String explainPlan)
 		 throws StandardException;
 
 	/*
@@ -769,8 +769,7 @@ public interface ResultSetFactory {
 			int vtiProjectionNumber,
 			int vtiRestrictionNumber,
 			int vtiResultDescriptionNumber,
-			String explainPlan
-			)
+			String explainPlan)
 					throws StandardException;
 	/**
 		A distinct scan result set pushes duplicate elimination into

@@ -14,25 +14,21 @@
 
 package com.splicemachine.derby.impl.load;
 
-import java.io.File;
-import java.sql.*;
-
 import com.google.common.io.Files;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
-import org.junit.Assert;
-import static org.junit.Assert.*;
-
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
+import org.junit.*;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+
+import java.io.File;
+import java.sql.*;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 /**
  * Tests for checking proper error conditions hold for Importing.
@@ -408,4 +404,86 @@ public class ImportErrorIT extends SpliceUnitTest {
             check.check(schema.schemaName+"."+table, inputFilePath, se);
         }
     }
+
+    @Test
+    public void testTimestampConversion() throws Exception{
+        /*
+         * Regression test for SPLICE-2151.
+         * With derby.database.convertOutOfRangeTimeStamps set to true, out-of-range
+         * timestamps should be converted to the max/min timestamp.
+         * With derby.database.convertOutOfRangeTimeStamps set to false, out-of-range
+         * timestamps should be considered bad data.
+         */
+
+        Connection conn = methodWatcher.getOrCreateConnection();
+        conn.setSchema(schema.schemaName);
+        String inputFilePath = getResourceDirectory()+"ts.csv";
+
+        try(Statement s = conn.createStatement()){
+            s.execute("drop table if exists TS");
+            s.execute("create table TS(a1 BIGINT, b1 timestamp, primary key(a1))");
+            s.execute("call syscs_util.syscs_set_global_database_property('derby.database.convertOutOfRangeTimeStamps', 'false')");
+            s.execute("CALL SYSCS_UTIL.SYSCS_EMPTY_STATEMENT_CACHE()");
+
+            try{
+                s.execute(format("call SYSCS_UTIL.IMPORT_DATA(" +
+                "'%s'," +  // schema name
+                "'%s'," +  // table name
+                "null," +  // insert column list
+                "'%s'," +  // file path
+                "','," +   // column delimiter
+                "null," +  // character delimiter
+                "'yyyy-MM-dd HH:mm:ss.S'," +  // timestamp format
+                "null," +  // date format
+                "null," +  // time format
+                "%d," +    // max bad records
+                "'%s'," +  // bad record dir
+                "null," +  // has one line records
+                "null)",   // char set
+                schema.schemaName, "TS", inputFilePath,
+                0, BADDIR.getCanonicalPath()));
+
+                Assert.fail("No SQLException was thrown!");
+            }
+            // IMPORT must fail if conversion of bad timestamps is disabled.
+            catch(SQLException se){
+                Assert.assertEquals("SE009",se.getSQLState());
+            }
+        }
+
+        try(Statement s = conn.createStatement()){
+            s.execute("DELETE FROM TS");
+            s.execute("call syscs_util.syscs_set_global_database_property('derby.database.convertOutOfRangeTimeStamps', 'true')");
+            s.execute("CALL SYSCS_UTIL.SYSCS_EMPTY_STATEMENT_CACHE()");
+
+            s.execute(format("call SYSCS_UTIL.IMPORT_DATA(" +
+            "'%s'," +  // schema name
+            "'%s'," +  // table name
+            "null," +  // insert column list
+            "'%s'," +  // file path
+            "','," +   // column delimiter
+            "null," +  // character delimiter
+            "'yyyy-MM-dd HH:mm:ss.S'," +  // timestamp format
+            "null," +  // date format
+            "null," +  // time format
+            "%d," +    // max bad records
+            "'%s'," +  // bad record dir
+            "null," +  // has one line records
+            "null)",   // char set
+            schema.schemaName, "TS", inputFilePath,
+            0, BADDIR.getCanonicalPath()));
+
+            try(ResultSet rs = s.executeQuery("select EXTRACT(YEAR from b1) from TS order by 1")){
+                String expectedResult = "1  |\n" +
+                "------\n" +
+                "1677 |\n" +
+                "1677 |\n" +
+                "2017 |\n" +
+                "2262 |\n" +
+                "2262 |";
+                assertEquals(expectedResult, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
+        }
+    }
 }
+

@@ -23,6 +23,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DateTimeDataValue;
+import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.VTIOperation;
@@ -36,6 +37,7 @@ import org.supercsv.prefs.CsvPreference;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
@@ -138,6 +140,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
         int numofColumnsinTable = 0;
         int numofColumnsinFile = 0;
         boolean columnnumbermistmatch = false;
+        boolean convertTimestamps = false;
 
         if (operationContext != null)
             operationContext.recordRead();
@@ -157,6 +160,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
             if (operationContext != null && operationContext.getOperation() instanceof VTIOperation) {
                 VTIOperation op = (VTIOperation) operationContext.getOperation();
                 dataTypeDescriptors = op.getResultColumnTypes();
+                convertTimestamps = op.isConvertTimestampsEnabled();
             }
 
             numofColumnsinTable = returnRow.nColumns();
@@ -192,8 +196,12 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
                             calendar = new GregorianCalendar();
                         if (timestampFormat == null || value==null)
                             ((DateTimeDataValue)dvd).setValue(value,calendar);
-                        else
-                            dvd.setValue(SpliceDateFunctions.TO_TIMESTAMP(value, timestampFormat),calendar);
+                        else {
+                            Timestamp ts = SpliceDateFunctions.TO_TIMESTAMP(value, timestampFormat);
+                            if (convertTimestamps)
+                                ts = SQLTimestamp.convertTimeStamp(ts);
+                            dvd.setValue(ts, calendar);
+                        }
                         break;
                     case StoredFormatIds.SQL_CHAR_ID:
                     case StoredFormatIds.SQL_VARCHAR_ID:
