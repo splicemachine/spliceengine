@@ -727,6 +727,9 @@ public class FromBaseTable extends FromTable {
         ap.setLockMode(0);
         bestAp.setLockMode(0);
         bestSortAp.setLockMode(0);
+        ap.setMissingHashKeyOK(false);
+        bestAp.setMissingHashKeyOK(false);
+        bestSortAp.setMissingHashKeyOK(false);
 
 		/*
 		 ** Only need to do this for current access path, because the

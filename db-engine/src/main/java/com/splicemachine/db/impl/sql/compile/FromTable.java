@@ -231,6 +231,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
             optimizer.tracer().trace(OptimizerFlag.CONSIDERING_JOIN_STRATEGY,tableNumber,0,0.0,ap.getJoinStrategy(),
                                      correlationName);
         }
+        ap.setMissingHashKeyOK(false);
 
 		/*
 		** Tell the RowOrdering about columns that are equal to constant
@@ -544,6 +545,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         AccessPath currentAccessPath=getCurrentAccessPath();
         currentAccessPath.setJoinStrategy(null);
         currentAccessPath.setHintedJoinStrategy(false);
+        currentAccessPath.setMissingHashKeyOK(false);
     }
 
     @Override
