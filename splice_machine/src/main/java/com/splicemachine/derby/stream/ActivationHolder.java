@@ -235,4 +235,19 @@ public class ActivationHolder implements Externalizable {
             }
         }
     }
+
+    /**
+     *
+     * @return True, if the current ContextManager has not been made accessible
+     *         through ContextService, and a call to reinitialize is required.
+     * @notes The ContextManager for the runningthread is found by calling
+     *        ContextService.getFactory().getCurrentContextManager().
+     *        It is assumed that when class variable "prepared" is true, the
+     *        ContextManager in ContextService is set up.
+     *        If that is not the case, there may be faulty logic or
+     *        synchronization between ActivationHolder and ContextService.
+     */
+    public boolean needsReinitialization() {
+        return !prepared;
+    }
 }
