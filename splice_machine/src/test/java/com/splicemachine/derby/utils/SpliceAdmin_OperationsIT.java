@@ -22,6 +22,7 @@ import com.splicemachine.derby.test.framework.SpliceTestDataSource;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test.SerialTest;
 import org.apache.log4j.Logger;
@@ -118,38 +119,7 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
 
     @BeforeClass
     public static void killRunningOperations() throws Exception {
-        String sql= "call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS()";
-
-        int count;
-        int loops = 0;
-        // Repeat until no more running queries
-        do {
-            loops++;
-            count = 0;
-            ResultSet rs = spliceClassWatcher.executeQuery(sql);
-            int killed = 0;
-            while (rs.next()) {
-                String uuid = rs.getString(1);
-
-                String killCall = "call SYSCS_UTIL.SYSCS_KILL_OPERATION('" + uuid + "')";
-                try {
-                    System.out.println("Going to run: " + killCall);
-                    spliceClassWatcher.getOrCreateConnection().execute(killCall);
-                    killed++;
-                } catch (SQLException se) {
-                    LOG.warn("Failed to kill query", se);
-                }
-            }
-            LOG.info("Killed " + killed + " operations.");
-
-            // make sure no operations are running
-            rs = spliceClassWatcher.executeQuery(sql);
-            while (rs.next()) {
-                LOG.info("Running " + rs.getString(3));
-                count++;
-            }
-        } while (count > 1 && loops < 30);
-        assertEquals(1, count); // only the GET_RUNNING_OPS should be running
+        TestUtils.killRunningOperations(spliceClassWatcher);
     }
 
     @Test
