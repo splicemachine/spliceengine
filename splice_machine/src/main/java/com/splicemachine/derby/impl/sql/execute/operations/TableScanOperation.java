@@ -25,6 +25,7 @@ import com.splicemachine.db.impl.sql.compile.ActivationClassBuilder;
 import com.splicemachine.db.impl.sql.compile.FromTable;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.primitives.Bytes;
@@ -332,6 +333,7 @@ public class TableScanOperation extends ScanOperation{
      */
     public DataSet<ExecRow> getTableScannerBuilder(DataSetProcessor dsp) throws StandardException{
         TxnView txn=getCurrentTransaction();
+        operationContext = dsp.createOperationContext(this);
         return dsp.<TableScanOperation,ExecRow>newScanSet(this,tableName)
                 .tableDisplayName(tableDisplayName)
                 .activation(activation)
@@ -355,6 +357,6 @@ public class TableScanOperation extends ScanOperation{
                 .storedAs(storedAs)
                 .location(location)
                 .defaultRow(defaultRow,scanInformation.getDefaultValueMap())
-                .buildDataSet(this);
+                .buildDataSet(this).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
     }
 }

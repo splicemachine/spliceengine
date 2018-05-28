@@ -220,14 +220,12 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             List<DataSet<ExecRow>> datasets = new ArrayList<>(scans.size());
             for (DataScan scan : scans) {
                 deSiify(scan);
-                OperationContext opClone = operationContext.getClone();
-                MultiProbeTableScanOperation clone = (MultiProbeTableScanOperation) opClone.getOperation();
-                DataSet<ExecRow> ds = dsp.<MultiProbeTableScanOperation, ExecRow>newScanSet(clone, tableName)
+                DataSet<ExecRow> ds = dsp.<MultiProbeTableScanOperation, ExecRow>newScanSet(this, tableName)
                         .tableDisplayName(tableDisplayName)
-                        .activation(clone.getActivation())
+                        .activation(this.getActivation())
                         .transaction(txn)
                         .scan(scan)
-                        .template(clone.currentTemplate)
+                        .template(this.currentTemplate.getClone())
                         .tableVersion(tableVersion)
                         .indexName(indexName)
                         .reuseRowLocation(false)
@@ -240,7 +238,8 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                         .baseColumnMap(baseColumnMap)
                         .optionalProbeValue(probeValues[i])
                         .defaultRow(defaultRow, scanInformation.getDefaultValueMap())
-                        .buildDataSet(clone);
+                        .buildDataSet(this);
+
                 datasets.add(ds);
                 i++;
             }
@@ -250,5 +249,5 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 throw StandardException.plainWrapException(e);
             }
     }
-        
+
 }
