@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static java.util.Arrays.asList;
 
@@ -29,7 +30,7 @@ import static java.util.Arrays.asList;
  *
  *
  */
-public class FutureIterator<T> implements Iterator<T>, AutoCloseable {
+public class FutureIterator<T> implements Iterator<T> {
 
     private BlockingQueue<Future<Iterator<T>>> futureIterators;
     private volatile Iterator<T> current;
@@ -87,17 +88,6 @@ public class FutureIterator<T> implements Iterator<T>, AutoCloseable {
         return new FutureIterator<>(futureIterators);
     }
 
-    @Override
-    public void close() throws Exception {
-        Future<Iterator<T>> future;
-        while ((future = futureIterators.poll()) != null) {
-            future.get(); // make sure we consume all remaining futures
-        }
-        Iterator it = current;
-        if (it != null) {
-            it.hasNext(); // make sure the current iterator also had a chance to return
-        }
-    }
 }
 
 
