@@ -69,6 +69,7 @@ import com.splicemachine.db.impl.sql.compile.CompilerContextImpl;
 import com.splicemachine.db.impl.sql.execute.*;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.log4j.Priority;
 
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
@@ -323,6 +324,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * Allows fallback to distributed mode when we read too many rows on control mode
      */
     private ControlExecutionLimiter limiter;
+
+    private String lastLogStmt;
+    private String lastLogStmtFormat;
 
     /* constructor */
     public GenericLanguageConnectionContext(
@@ -3623,59 +3627,77 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     @Override
     public void logStartCompiling(String statement) {
-        stmtLogger.info(String.format("Begin compiling prepared statement. %s, %s",
-                getLogHeader(), formatLogStmt(statement)));
+        if (stmtLogger.isInfoEnabled()) {
+            stmtLogger.info(String.format("Begin compiling prepared statement. %s, %s",
+                    getLogHeader(), formatLogStmt(statement)));
+        }
     }
 
     @Override
     public void logEndCompiling(String statement, long nanoTimeSpent) {
-        stmtLogger.info(String.format("End compiling prepared statement. %s, timeSpent=%dms, %s",
-                getLogHeader(), nanoTimeSpent / 1000000, formatLogStmt(statement)));
+        if (stmtLogger.isInfoEnabled()) {
+            stmtLogger.info(String.format("End compiling prepared statement. %s, timeSpent=%dms, %s",
+                    getLogHeader(), nanoTimeSpent / 1000000, formatLogStmt(statement)));
+        }
     }
 
     @Override
     public void logErrorCompiling(String statement, Throwable t, long nanoTimeSpent) {
-        stmtLogger.warn(String.format("Error compiling prepared statement. %s, timeSpent=%dms, %s",
-                getLogHeader(), nanoTimeSpent / 1000000, formatLogStmt(statement)), t);
+        if (stmtLogger.isEnabledFor(Level.WARN)) {
+            stmtLogger.warn(String.format("Error compiling prepared statement. %s, timeSpent=%dms, %s",
+                    getLogHeader(), nanoTimeSpent / 1000000, formatLogStmt(statement)), t);
+        }
     }
 
     @Override
     public void logCommit() {
-        stmtLogger.info(String.format("Committing. %s", getLogHeader()));
+        if (stmtLogger.isInfoEnabled()) {
+            stmtLogger.info(String.format("Committing. %s", getLogHeader()));
+        }
     }
 
     @Override
     public void logRollback() {
-        stmtLogger.info(String.format("Rolling back. %s", getLogHeader()));
+        if (stmtLogger.isInfoEnabled()) {
+            stmtLogger.info(String.format("Rolling back. %s", getLogHeader()));
+        }
     }
 
     @Override
     public void logStartFetching(String statement) {
-        stmtLogger.info(String.format("Start fetching from the result set. %s, %s",
-                getLogHeader(), formatLogStmt(statement)));
+        if (stmtLogger.isInfoEnabled()) {
+            stmtLogger.info(String.format("Start fetching from the result set. %s, %s",
+                    getLogHeader(), formatLogStmt(statement)));
+        }
     }
 
     @Override
     public void logEndFetching(String statement, long fetchedRows) {
-        stmtLogger.info(String.format("End fetching from the result set. %s, fetchedRows=%d, %s",
-                getLogHeader(), fetchedRows, formatLogStmt(statement)));
+        if (stmtLogger.isInfoEnabled()) {
+            stmtLogger.info(String.format("End fetching from the result set. %s, fetchedRows=%d, %s",
+                    getLogHeader(), fetchedRows, formatLogStmt(statement)));
+        }
     }
 
     @Override
     public void logStartExecuting(String uuid, String engine, ExecPreparedStatement ps,
                                   ParameterValueSet pvs) {
-        stmtLogger.info(String.format(
-                "Start executing query. %s, uuid=%s, engine=%s, %s, paramsCount=%d, params=[ %s ]",
-                getLogHeader(), uuid, engine, formatLogStmt(ps.getSource()),
-                pvs.getParameterCount(), pvs.toString()));
+        if (stmtLogger.isInfoEnabled()) {
+            stmtLogger.info(String.format(
+                    "Start executing query. %s, uuid=%s, engine=%s, %s, paramsCount=%d, params=[ %s ]",
+                    getLogHeader(), uuid, engine, formatLogStmt(ps.getSource()),
+                    pvs.getParameterCount(), pvs.toString()));
+        }
     }
 
     @Override
     public void logEndExecuting(String uuid, long modifiedRows, long badRecords, long
             nanoTimeSpent) {
-        stmtLogger.info(String.format("End executing query. %s, uuid=%s, timeSpent=%dms, " +
-                        "modifiedRows=%d, badRecords=%d",
-                getLogHeader(), uuid, nanoTimeSpent / 1000000, modifiedRows, badRecords));
+        if (stmtLogger.isInfoEnabled()) {
+            stmtLogger.info(String.format("End executing query. %s, uuid=%s, timeSpent=%dms, " +
+                            "modifiedRows=%d, badRecords=%d",
+                    getLogHeader(), uuid, nanoTimeSpent / 1000000, modifiedRows, badRecords));
+        }
     }
 
     private String getLogHeader() {
@@ -3692,19 +3714,28 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         if (statement == null) {
             return "sqlHash=null, statement=null";
         }
-        String hash = "";
-        try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            md.reset();
-            md.update(statement.getBytes("UTF-8"));
-            hash = new BigInteger(1, md.digest()).toString(16);
-        } catch (UnsupportedEncodingException | NoSuchAlgorithmException e) {
-            stmtLogger.error("Cannot encode statement " + statement, e);
+        synchronized(this) {
+            // cache formatted statement log
+            if (statement.equals(lastLogStmt)) {
+                return lastLogStmtFormat;
+            }
+            String hash = "";
+            try {
+                MessageDigest md = MessageDigest.getInstance("MD5");
+                md.reset();
+                md.update(statement.getBytes("UTF-8"));
+                hash = new BigInteger(1, md.digest()).toString(16);
+            } catch (UnsupportedEncodingException | NoSuchAlgorithmException e) {
+                stmtLogger.error("Cannot encode statement " + statement, e);
+            }
+            String subStatement = statement;
+            if (maxStatementLogLen >= 0 && maxStatementLogLen < statement.length()) {
+                subStatement = statement.substring(0, maxStatementLogLen) + " ... ";
+            }
+            String result = String.format("sqlHash=%s, statement=[ %s ]", hash, subStatement);
+            lastLogStmt = statement;
+            lastLogStmtFormat = result;
+            return result;
         }
-        String subStatement = statement;
-        if (maxStatementLogLen >= 0 && maxStatementLogLen < statement.length()) {
-            subStatement = statement.substring(0, maxStatementLogLen) + " ... ";
-        }
-        return String.format("sqlHash=%s, statement=[ %s ]", hash, subStatement);
     }
 }
