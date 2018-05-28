@@ -112,12 +112,6 @@ public class TableScannerIterator implements Iterable<ExecRow>, Iterator<ExecRow
     public ExecRow next() {
         slotted = false;
         rows++;
-        if (operation != null) {
-            StreamLogUtils.logOperationRecord(execRow, operation);
-            operation.setCurrentRow(execRow);
-            hBaseRowLocation.setValue(execRow.getKey());
-            operation.setCurrentRowLocation(hBaseRowLocation);
-        }
         return execRow;
     }
 

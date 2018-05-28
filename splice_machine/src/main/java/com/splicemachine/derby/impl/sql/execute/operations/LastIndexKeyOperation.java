@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunction;
 import com.splicemachine.derby.stream.function.TakeFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -114,6 +115,7 @@ public class LastIndexKeyOperation extends ScanOperation {
 
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        operationContext = dsp.createOperationContext(this);
         DataSet<ExecRow> scan = dsp.<LastIndexKeyOperation,ExecRow>newScanSet(this,tableName)
                 .tableDisplayName(tableDisplayName)
                 .transaction(getCurrentTransaction())
@@ -128,7 +130,7 @@ public class LastIndexKeyOperation extends ScanOperation {
                 .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                 .keyDecodingMap(getKeyDecodingMap())
                 .rowDecodingMap(baseColumnMap)
-                .buildDataSet(this);
+                .buildDataSet(this).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
 
         OperationContext<SpliceOperation> operationContext = dsp.<SpliceOperation>createOperationContext(this);
         return scan.take(new TakeFunction<SpliceOperation, ExecRow>(operationContext,1))
