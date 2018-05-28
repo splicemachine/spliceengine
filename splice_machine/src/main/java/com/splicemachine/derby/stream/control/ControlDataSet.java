@@ -228,7 +228,6 @@ public class ControlDataSet<V> implements DataSet<V> {
         try {
             ExecutorService es = SIDriver.driver().getExecutorService();
             FutureIterator<V> futureIterator = new FutureIterator<>(2);
-            operationContext.getOperation().registerCloseable(futureIterator);
             Future<Iterator<V>> leftSideFuture = es.submit(new NonLazy(iterator));
             Future<Iterator<V>> rightSideFuture = es.submit(new NonLazy(((ControlDataSet<V>) dataSet).iterator));
             futureIterator.appendFutureIterator(leftSideFuture);

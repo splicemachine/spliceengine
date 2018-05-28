@@ -225,6 +225,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 deSiify(scan);
                 OperationContext opClone = operationContext.getClone();
                 MultiProbeTableScanOperation clone = (MultiProbeTableScanOperation) opClone.getOperation();
+                this.registerCloseable(() -> clone.close());
                 DataSet<ExecRow> ds = dsp.<MultiProbeTableScanOperation, ExecRow>newScanSet(clone, tableName)
                         .tableDisplayName(tableDisplayName)
                         .activation(clone.getActivation())
