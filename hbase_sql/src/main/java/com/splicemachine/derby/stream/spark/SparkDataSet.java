@@ -30,6 +30,7 @@ import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.stream.output.*;
 import com.splicemachine.utils.ByteDataInput;
 import org.apache.commons.codec.binary.Base64;
@@ -277,11 +278,13 @@ public class SparkDataSet<V> implements DataSet<V> {
 
 
     @Override
-    public DataSet<V> parallelProbe(List<DataSet<V>> dataSets, OperationContext<MultiProbeTableScanOperation> operationContext) {
+    public DataSet<V> parallelProbe(List<ScanSetBuilder<ExecRow>> scanSetBuilders, OperationContext<MultiProbeTableScanOperation> operationContext) throws StandardException {
         DataSet<V> toReturn = null;
         DataSet<V> branch = null;
         int i = 0;
-        for (DataSet<V> dataSet: dataSets) {
+        MultiProbeTableScanOperation operation = operationContext.getOperation();
+        for (ScanSetBuilder<ExecRow> builder: scanSetBuilders) {
+            DataSet<V> dataSet = (DataSet<V>) builder.buildDataSet(operation);
             if (i % 100 == 0) {
                 if (branch != null) {
                     if (toReturn == null)

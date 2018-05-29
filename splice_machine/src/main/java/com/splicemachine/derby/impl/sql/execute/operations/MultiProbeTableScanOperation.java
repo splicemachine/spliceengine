@@ -26,6 +26,7 @@ import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunc
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataScan;
 
@@ -217,10 +218,10 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             DataSet<ExecRow> dataSet = dsp.getEmpty();
             OperationContext<MultiProbeTableScanOperation> operationContext = dsp.<MultiProbeTableScanOperation>createOperationContext(this);
             int i = 0;
-            List<DataSet<ExecRow>> datasets = new ArrayList<>(scans.size());
+            List<ScanSetBuilder<ExecRow>> datasets = new ArrayList<>(scans.size());
             for (DataScan scan : scans) {
                 deSiify(scan);
-                DataSet<ExecRow> ds = dsp.<MultiProbeTableScanOperation, ExecRow>newScanSet(this, tableName)
+                ScanSetBuilder<ExecRow> ssb = dsp.<MultiProbeTableScanOperation, ExecRow>newScanSet(this, tableName)
                         .tableDisplayName(tableDisplayName)
                         .activation(this.getActivation())
                         .transaction(txn)
@@ -237,10 +238,9 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                         .rowDecodingMap(getRowDecodingMap())
                         .baseColumnMap(baseColumnMap)
                         .optionalProbeValue(probeValues[i])
-                        .defaultRow(defaultRow, scanInformation.getDefaultValueMap())
-                        .buildDataSet(this);
+                        .defaultRow(defaultRow, scanInformation.getDefaultValueMap());
 
-                datasets.add(ds);
+                datasets.add(ssb);
                 i++;
             }
             return dataSet.parallelProbe(datasets, operationContext).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
