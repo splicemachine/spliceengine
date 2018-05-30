@@ -153,7 +153,7 @@ To edit the ZooKeeper configuration, click `ZooKeeper` in the Cloudera Manager (
 screen, then click the `Configuration` tab
 and follow these steps:
 
-1. Select the `Service-Wide` category.
+1. Select the `Server` category.
 
    Make the following changes:
    
