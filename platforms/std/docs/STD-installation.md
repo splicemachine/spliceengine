@@ -15,7 +15,7 @@ of Splice Machine; follow the instructions for your operating system:
 
 * [Mac OSX](#configure-mac-osx-for-splice-machine)
 * [Ubuntu Linux](#configure-ubuntu-linux-for-splice-machine)
-* [CentOS/Red Hat Enterprise Linux (RHEL)](#configure-centos/red-hat-enterprise-linux-(rhel)-for-splice-machine)
+* [CentOS/Red Hat Enterprise Linux (RHEL)](#configure-centosred-hat-enterprise-linux-rhel-for-splice-machine)
 
 ## Configure Mac OSX for Splice Machine
 
