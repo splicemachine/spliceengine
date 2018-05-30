@@ -31,35 +31,35 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.conn.Authorizer;
-import com.splicemachine.db.iapi.sql.compile.Visitor;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.reference.ClassName;
-import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.StatementType;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.sql.conn.Authorizer;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.impl.ast.RSUtils;
-import com.splicemachine.db.vti.DeferModification;
-import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
-import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.execute.FKInfo;
+import com.splicemachine.db.vti.DeferModification;
 
 import java.sql.Types;
 import java.util.List;
 import java.util.Properties;
-import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-import com.splicemachine.db.iapi.util.ReuseFactory;
 
 /**
  * An InsertNode is the top node in a query tree for an
@@ -456,7 +456,8 @@ public final class InsertNode extends DMLModStatementNode {
 
 			// The select list may have new columns now, make sure to bind
 			// those.
-			super.bindExpressions();
+
+			super.bindTargetExpressions();
 
 			orderByList.bindOrderByColumns(resultSet);
 		}
