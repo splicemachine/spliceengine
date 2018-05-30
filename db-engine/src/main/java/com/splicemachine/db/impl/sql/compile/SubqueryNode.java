@@ -457,7 +457,7 @@ public class SubqueryNode extends ValueNode{
 
         if(subqueryType==EXISTS_SUBQUERY){
 			/* Bind the expression in the SELECT list */
-            resultSet.bindTargetExpressions(fromList);
+            resultSet.bindTargetExpressions(fromList, true);
 
 			/*
 			 * reject any untyped nulls in the EXISTS subquery before

@@ -287,7 +287,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
      * @throws StandardException Thrown on error
      */
 
-    public void bindTargetExpressions(FromList fromListParam)
+    public void bindTargetExpressions(FromList fromListParam, boolean checkFromSubquery)
             throws StandardException{
         if(SanityManager.DEBUG)
             SanityManager.ASSERT(false,

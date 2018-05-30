@@ -295,6 +295,21 @@ public abstract class DMLStatementNode extends StatementNode {
                             " on return from RS.bindExpressions()");
     }
 
+    protected void bindTargetExpressions() throws StandardException {
+        FromList fromList = (FromList) getNodeFactory().getNode(
+                C_NodeTypes.FROM_LIST,
+                getNodeFactory().doJoinOrderOptimization(),
+                getContextManager());
+
+		/* Bind the expressions under the resultSet */
+        resultSet.bindTargetExpressions(fromList, false);
+
+		/* Verify that all underlying ResultSets reclaimed their FromList */
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(fromList.size() == 0,
+                    "fromList.size() is expected to be 0, not " + fromList.size() +
+                            " on return from RS.bindTargetExpressions()");
+    }
     /**
      * Bind the expressions in the underlying ResultSets with tables.
      *
