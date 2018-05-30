@@ -784,11 +784,11 @@ abstract class SetOperatorNode extends TableOperatorNode
 	 * @exception StandardException		Thrown on error
 	 */
 
-	public void bindTargetExpressions(FromList fromListParam)
+	public void bindTargetExpressions(FromList fromListParam, boolean checkFromSubquery)
 					throws StandardException
 	{
-		leftResultSet.bindTargetExpressions(fromListParam);
-		rightResultSet.bindTargetExpressions(fromListParam);
+		leftResultSet.bindTargetExpressions(fromListParam, checkFromSubquery);
+		rightResultSet.bindTargetExpressions(fromListParam, checkFromSubquery);
 	}
 
 	/**

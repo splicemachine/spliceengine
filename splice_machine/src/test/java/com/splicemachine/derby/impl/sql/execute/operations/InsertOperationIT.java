@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.homeless.TestUtils;
 import org.spark_project.guava.collect.Maps;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -30,6 +31,7 @@ import java.util.*;
 
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.getBaseDirectory;
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.getResourceDirectory;
+import static org.junit.Assert.assertEquals;
 
 public class InsertOperationIT {
 
@@ -82,6 +84,8 @@ public class InsertOperationIT {
         classWatcher.executeUpdate("create table BB(c1 int, c2 int, c3 int, c4 int)");
         classWatcher.executeUpdate("insert into AA values(1,1)");
         classWatcher.executeUpdate("insert into BB values(1,1,1,1)");
+
+        classWatcher.executeUpdate("create table TT1(i int)");
     }
 
     @Rule
@@ -450,5 +454,27 @@ public class InsertOperationIT {
         ResultSet rs = methodWatcher.executeQuery("select * from TT");
         assert rs.next();
         Assert.assertEquals(1, rs.getInt(1));
+    }
+
+    @Test
+    public void testInsertSelectFromSubqueryWithOrderBy() throws Exception {
+        String sqlText =
+                "INSERT INTO TT1\n" +
+                        "SELECT\n" +
+                        "aa.c1\n" +
+                        "FROM aa \n" +
+                        "LEFT JOIN (SELECT col1, col2, col3 FROM\n" +
+                        "(SELECT b1.c1 AS col1, b1.c2 AS col2,b1.c3 AS col3\n" +
+                        " FROM bb b1\n" +
+                        ")b2 LEFT OUTER JOIN bb b3 ON b2.col3=b3.c4\n" +
+                        ") b3 ON b3.col1 = aa.c1 AND b3.col2 = aa.c2 order by aa.c1, aa.c2";
+        methodWatcher.executeUpdate(sqlText);
+        String sql = "select * from TT1";
+        String expected = "I |\n" +
+                "----\n" +
+                " 1 |";
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
     }
 }

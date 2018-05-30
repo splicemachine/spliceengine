@@ -249,7 +249,7 @@ public class RowResultSetNode extends FromTable {
 	 * @exception StandardException		Thrown on error
 	 */
 	@Override
-	public void bindTargetExpressions(FromList fromListParam) throws StandardException {
+	public void bindTargetExpressions(FromList fromListParam, boolean checkFromSubquery) throws StandardException {
 		bindExpressions(fromListParam);
 	}
 
