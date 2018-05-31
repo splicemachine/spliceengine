@@ -47,7 +47,6 @@ public class TxnTestProcs {
 	/*
 	 * ============================================================================================
 	 * The following test the transactional correctness of Splice stored procedures.
-	 * These are the Original Testing Procs
 	 * ============================================================================================
 	 */
 
