@@ -43,7 +43,6 @@ import java.util.List;
  * Date: 3/4/14
  */
 public class CharTableScanOperationIT {
-		private static Logger LOG = Logger.getLogger(CharTableScanOperationIT.class);
 		protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 		public static final String CLASS_NAME = CharTableScanOperationIT.class.getSimpleName().toUpperCase();
 		protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);

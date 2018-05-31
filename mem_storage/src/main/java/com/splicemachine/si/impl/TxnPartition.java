@@ -14,6 +14,8 @@
 
 package com.splicemachine.si.impl;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.storage.util.MappedDataResultScanner;
 import org.spark_project.guava.collect.Iterators;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
@@ -38,12 +40,12 @@ import java.util.concurrent.locks.Lock;
  *         Date: 12/16/15
  */
 public class TxnPartition implements Partition{
-    private final Partition basePartition;
-    private final Transactor transactor;
-    private final RollForward rollForward;
-    private final TxnOperationFactory txnOpFactory;
-    private final TransactionReadController txnReadController;
-    private final ReadResolver readResolver;
+    protected final Partition basePartition;
+    protected final Transactor transactor;
+    protected final RollForward rollForward;
+    protected final TxnOperationFactory txnOpFactory;
+    protected final TransactionReadController txnReadController;
+    protected final ReadResolver readResolver;
 
     public TxnPartition(Partition basePartition,
                         Transactor transactor,
@@ -185,7 +187,18 @@ public class TxnPartition implements Partition{
     @Override
     public DataResultScanner openResultScanner(DataScan scan,MetricFactory metricFactory) throws IOException{
         attachFilterIfNeeded(scan);
-        return basePartition.openResultScanner(scan,metricFactory);
+        DataScanner ds = basePartition.openScanner(scan,metricFactory);
+        return new MappedDataResultScanner(ds){
+            @Override
+            protected DataResult newResult(){
+                return new MResult();
+            }
+
+            @Override
+            protected void setResultRow(List<DataCell> nextRow,DataResult resultWrapper){
+                ((MResult)resultWrapper).set(nextRow);
+            }
+        };
     }
 
 
@@ -352,5 +365,19 @@ public class TxnPartition implements Partition{
     @Override
     public PartitionDescriptor getDescriptor() throws IOException {
         throw new UnsupportedOperationException("Operation not supported in mem storage engine");
+    }
+
+    public String getVersion() {
+        return basePartition.getVersion();
+    }
+
+    @Override
+    public boolean isRedoPartition() {
+        return basePartition.isRedoPartition();
+    }
+
+    @Override
+    public boolean fastRollForward(DataCell dataCell, long effectiveTimestamp) {
+        return basePartition.fastRollForward(dataCell,effectiveTimestamp);
     }
 }

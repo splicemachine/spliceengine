@@ -18,6 +18,7 @@ import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.TransactionMissing;
+import com.splicemachine.si.impl.txn.AbstractTxnStore;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.spark_project.guava.collect.Iterators;
 import org.spark_project.guava.collect.Lists;
@@ -53,7 +54,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *         Date: 6/27/14
  */
 @ThreadSafe
-public class CoprocessorTxnStore implements TxnStore {
+public class CoprocessorTxnStore extends AbstractTxnStore implements TxnStore {
     private final TxnNetworkLayerFactory tableFactory;
     private TxnSupplier cache; //a transaction store which uses a global cache for us
     private volatile long oldTransactions;
@@ -251,12 +252,27 @@ public class CoprocessorTxnStore implements TxnStore {
     }
 
     @Override
-    public TxnView getTransaction(long txnId) throws IOException{
-        return getTransaction(txnId,false);
+    public HashMap<Long, TxnView> getTransactions(TxnView currentTxn, Set<Long> txnIds) throws IOException {
+        HashMap<Long, TxnView> txns = new HashMap<>(txnIds.size());
+        for (long txnId: txnIds) {
+            txns.put(txnId,getTransaction(currentTxn,txnId));
+        }
+        return txns;
     }
 
     @Override
-    public TxnView getTransaction(long txnId,boolean getDestinationTables) throws IOException{
+    public HashMap<Long, TxnView> getBaseTransactions(TxnView currentTxn, Set<Long> txnIds) throws IOException {
+        HashMap<Long, TxnView> txns = new HashMap<>(txnIds.size());
+        for (long txnId: txnIds) {
+            txns.put(txnId,getBaseTransaction(currentTxn,txnId));
+        }
+        return txns;
+    }
+
+    @Override
+    public TxnView getBaseTransaction(TxnView currentTxn, long txnId,boolean getDestinationTables) throws IOException{
+        if (currentTxn != null && currentTxn.getTxnId() == txnId)
+            return currentTxn; // Do not lookup current txn...
         lookups.incrementAndGet(); //we are performing a lookup, so increment the counter
         if (txnId < oldTransactions) {
             return getOldTransaction(txnId, getDestinationTables);
@@ -384,7 +400,7 @@ public class CoprocessorTxnStore implements TxnStore {
                         false, false,
                         true,true,
                         queryId,queryId,
-                        Txn.State.COMMITTED,Iterators.emptyIterator(),System.currentTimeMillis());
+                        Txn.State.COMMITTED,Iterators.emptyIterator(),System.currentTimeMillis(), null);
             } else {
                 throw new TransactionMissing(queryId);
             }
@@ -442,13 +458,21 @@ public class CoprocessorTxnStore implements TxnStore {
             }
         };
 
-        TxnView parentTxn=parentTxnId<0?Txn.ROOT_TRANSACTION:cache.getTransaction(parentTxnId);
+        TxnView parentTxn=parentTxnId<0?Txn.ROOT_TRANSACTION:cache.getTransaction(null,parentTxnId);
+        LongOpenHashSet rollBackSet = null;
+        if (message.getRollbackSubIdsCount() > 0) {
+            List<Long> rollbackSubIds = message.getRollbackSubIdsList();
+            rollBackSet = new LongOpenHashSet(message.getRollbackSubIdsCount());
+            for (Long rollbackSubId: rollbackSubIds) {
+                rollBackSet.add(rollbackSubId);
+            }
+        }
         return new InheritingTxnView(parentTxn,txnId,beginTs,
                 isolationLevel,
                 hasAdditive,additive,
                 true,true,
                 commitTs,globalCommitTs,
-                state,destTablesIterator,kaTime);
+                state,destTablesIterator,kaTime,rollBackSet);
     }
 
     private byte[] encode(Txn txn){

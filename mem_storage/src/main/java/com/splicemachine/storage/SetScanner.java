@@ -22,9 +22,7 @@ import com.splicemachine.primitives.Bytes;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author Scott Fines
@@ -45,6 +43,7 @@ class SetScanner implements DataScanner{
     private int currentLength = 0;
     private List<DataCell> currentRow;
     private DataCell last;
+    private Map<byte [], NavigableSet<byte []>> familyMap;
 
     public SetScanner(long sequenceCutoffPoint,
             Iterator<DataCell> dataCells,
@@ -52,16 +51,17 @@ class SetScanner implements DataScanner{
                       long highVersion,
                       DataFilter filter,
                       Partition partition,
-                      MetricFactory metricFactory){
+                      MetricFactory metricFactory,
+                      Map<byte [], NavigableSet<byte []>> familyMap){
         this.sequenceCutoffPoint=sequenceCutoffPoint;
         this.dataCells=dataCells;
         this.lowVersion=lowVersion;
         this.highVersion=highVersion;
         this.filter=filter;
         this.partition = partition;
-
         this.rowCounter = metricFactory.newCounter();
         this.filterCounter = metricFactory.newCounter();
+        this.familyMap = familyMap;
     }
 
     @Override
@@ -115,7 +115,8 @@ class SetScanner implements DataScanner{
                         last=n;
                         return true;
                     }else{
-                        filter.reset(); //we've moved to a new row
+                        if (filter!=null)
+                            filter.reset(); //we've moved to a new row
                         currentKey=n.keyArray();
                         currentOffset=n.keyOffset();
                         currentLength=n.keyLength();
@@ -155,7 +156,7 @@ class SetScanner implements DataScanner{
     private DataCell advanceColumn(DataCell n){
         while(dataCells.hasNext()){
             DataCell next = dataCells.next();
-            if(!next.matchesQualifier(next.family(),n.qualifier()))
+            if(!next.matchesQualifier(n.family(),n.qualifier()))
                 return next;
         }
         return null;
@@ -203,9 +204,31 @@ class SetScanner implements DataScanner{
         long ts = n.version();
         if(ts<lowVersion) return DataFilter.ReturnCode.NEXT_COL;
         else if(ts>highVersion) return DataFilter.ReturnCode.SKIP;
+
+        if(familyMap.size()>0) {
+            if (!familyMap.containsKey(n.family()))
+                return DataFilter.ReturnCode.NEXT_COL;
+            NavigableSet<byte[]> qualifiersToFetch = familyMap.get(n.family());
+            if (qualifiersToFetch != null && qualifiersToFetch.size() > 0 && !qualifiersToFetch.contains(n.qualifier())) {
+                return DataFilter.ReturnCode.NEXT_COL;
+            }
+        }
+
         if(filter!=null){
             return filter.filterCell(n);
         }
         return DataFilter.ReturnCode.INCLUDE;
+    }
+
+    @Override
+    public boolean reseek(byte[] rowKey) throws IOException {
+        while(dataCells.hasNext()){
+            DataCell n = dataCells.next();
+            if(Bytes.basicByteComparator().compare(
+                    rowKey,0,rowKey.length,n.keyArray(),n.keyOffset(),n.keyLength()) <= 0){
+                return true;
+            }
+        }
+        return false;
     }
 }

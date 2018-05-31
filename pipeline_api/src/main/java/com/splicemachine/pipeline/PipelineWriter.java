@@ -150,7 +150,7 @@ public class PipelineWriter{
             PartitionWritePipeline writePipeline = pair.getSecond();
             if (writePipeline != null) {
                 BulkWrite bulkWrite = entry.getKey();
-                BulkWriteResult submitResult = writePipeline.submitBulkWrite(bulkWrites.getTxn(), bulkWrites.getToken(), bulkWrite,indexWriteBufferFactory, writePipeline.getRegionCoprocessorEnvironment());
+                BulkWriteResult submitResult = writePipeline.submitBulkWrite(bulkWrites.getTxn(), bulkWrites.getToken(), bulkWrite,indexWriteBufferFactory, writePipeline.getRegionCoprocessorEnvironment(),bulkWrites.getExecRow());
                 if(LOG.isTraceEnabled()){
                     LOG.trace("Submission of "+bulkWrite.getSize()+" rows to region "+ bulkWrite.getEncodedStringName()+" has submission result "+ submitResult.getGlobalResult());
                     if(!submitResult.getFailedRows().isEmpty()){

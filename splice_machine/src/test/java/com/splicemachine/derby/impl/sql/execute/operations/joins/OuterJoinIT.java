@@ -35,7 +35,7 @@ import static org.junit.Assert.assertEquals;
 
 public class OuterJoinIT extends SpliceUnitTest { 
 
-    private static Logger LOG = Logger.getLogger(OuterJoinIT.class);
+   // private static Logger LOG = Logger.getLogger(OuterJoinIT.class);
 
     public static final String CLASS_NAME = OuterJoinIT.class.getSimpleName().toUpperCase()+ "_2"; 
     public static final String TABLE_NAME_1 = "A";
@@ -251,7 +251,6 @@ public class OuterJoinIT extends SpliceUnitTest {
         int j = 0;
         while (rs.next()) {
             j++;
-            LOG.info(String.format("cc.sa=%s,count=%dd", rs.getString(1), rs.getInt(2)));
 			Assert.assertNotNull(rs.getString(1));
 			if (!rs.getString(1).equals("9")) {
 				Assert.assertEquals(1l,rs.getLong(2));
@@ -266,7 +265,6 @@ public class OuterJoinIT extends SpliceUnitTest {
         int j = 0;
         while (rs.next()) {
             j++;
-            LOG.info("cc.si=" + rs.getString(1) + ",dd.si=" + rs.getString(2));
             Assert.assertNotNull(rs.getString(2));
             if (!rs.getString(2).equals("9")) {
                 Assert.assertNotNull(rs.getString(1));
@@ -302,7 +300,6 @@ public class OuterJoinIT extends SpliceUnitTest {
             j++;
             String left = rs.getString(1);
             String right = rs.getString(2);
-            System.out.printf("left=%s, right=%s%n", left, right);
             Assert.assertNotNull("left side is null", left);
             if (!rs.getString(1).equals("9")) {
                 Assert.assertNotNull("right side is null", right);
@@ -334,7 +331,6 @@ public class OuterJoinIT extends SpliceUnitTest {
         int j = 0;
         while (rs.next()) {
             j++;
-            LOG.info("c.si=" + rs.getString(1) + ",d.si=" + rs.getString(2));
             Assert.assertNotNull(rs.getString(2));
             if (!rs.getString(2).equals("9")) {
                 Assert.assertNotNull(rs.getString(1));
@@ -356,7 +352,6 @@ public class OuterJoinIT extends SpliceUnitTest {
         int j = 0;
         while (rs.next()) {
             j++;
-            LOG.info("c.si=" + rs.getString(1) + ",d.si=" + rs.getString(4));
             Assert.assertNotNull(rs.getString(4));
             if (!rs.getString(4).equals("9")) {
                 Assert.assertNotNull(rs.getString(1));
@@ -412,7 +407,6 @@ public class OuterJoinIT extends SpliceUnitTest {
     @Test
     public void testRepeatedLeftOuterWithLessThan() throws Exception {
         for(int i=0;i<100;i++){
-            System.out.println(i);
             testLeftOuterWithLessThan();
         }
     }

@@ -352,10 +352,11 @@ public abstract class AbstractTxnView implements TxnView {
 
     @Override
     public String toString(){
-    	return String.format("%s(%s,%s)",
+    	return String.format("%s(%s,%s,%s)",
     			getClass().getSimpleName(),
     			txnId,
-    			getState());
+    			getState(),
+                getRolledback());
     }
 
     public int getSubId() {
@@ -365,5 +366,16 @@ public abstract class AbstractTxnView implements TxnView {
     @Override
     public boolean allowsSubtransactions() {
         return false;
+    }
+
+
+    @Override
+    public TxnView getReadUncommittedActiveTxn() {
+        throw new UnsupportedOperationException("Not Supported");
+    }
+
+    @Override
+    public TxnView getReadCommittedActiveTxn() {
+        throw new UnsupportedOperationException("Not Supported");
     }
 }

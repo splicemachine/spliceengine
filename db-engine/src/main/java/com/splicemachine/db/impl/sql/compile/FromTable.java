@@ -1183,6 +1183,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         this.existsTable=existsTable;
         this.isNotExists=isNotExists;
         this.matchRowId = matchRowId;
+        return;
     }
 
     @Override

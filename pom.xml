@@ -86,6 +86,8 @@
         <maven.compiler.useIncrementalCompilation>false</maven.compiler.useIncrementalCompilation>
         <scala.binary.version>2.11</scala.binary.version>
         <spark.version>2.1.0.cloudera1</spark.version>
+        <hive.version>1.1.0-cdh5.12.0</hive.version>
+
     </properties>
     <scm>
         <connection>scm:git:git@github.com:splicemachine/${project.artifactId}.git</connection>
@@ -1042,10 +1044,12 @@
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
             </properties>
             <modules>
+                <module>hbase_pax</module>
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
                 <module>splice_spark</module>
+
             </modules>
         </profile>
         <profile>

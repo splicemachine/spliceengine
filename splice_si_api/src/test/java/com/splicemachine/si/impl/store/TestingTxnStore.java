@@ -21,6 +21,7 @@ import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.txn.*;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.ForwardingTxnView;
+import com.splicemachine.si.impl.txn.AbstractTxnStore;
 import com.splicemachine.si.impl.txn.WritableTxn;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.utils.ByteSlice;
@@ -38,7 +39,7 @@ import java.util.concurrent.locks.ReadWriteLock;
  * @author Scott Fines
  *         Date: 6/23/14
  */
-public class TestingTxnStore implements TxnStore{
+public class TestingTxnStore extends AbstractTxnStore implements TxnStore{
     private final Map<Long, TxnHolder> txnMap;
     private final TimestampSource commitTsGenerator;
     private final Clock clock;
@@ -58,25 +59,33 @@ public class TestingTxnStore implements TxnStore{
         this.clock=clock;
     }
 
+
     @Override
-    public Txn getTransaction(long txnId) throws IOException{
-        long subId = txnId & SIConstants.SUBTRANSANCTION_ID_MASK;
-        long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
-        TxnHolder txn=txnMap.get(beginTS);
+    public TxnView getBaseTransaction(TxnView currentTxn, long txnId, boolean getDestinationTables) throws IOException {
+        TxnHolder txn=txnMap.get(txnId);
         if(txn==null) return null;
 
         if(isTimedOut(txn))
-            return getRolledbackTxn(txn.txn);
-        if(subId == 0) return txn.txn;
-        else if (txn.txn.getRolledback().contains(subId))
-            return getRolledbackTxn(txn.txn);
-        else return txn.txn;
+            return getRolledbackTxn(txnId,txn.txn);
+        return txn.txn;
     }
 
     @Override
-    public Txn getTransaction(long txnId,boolean getDestinationTables) throws IOException{
-        return getTransaction(txnId);
+    public HashMap<Long, TxnView> getTransactions(TxnView currentTxn, Set<Long> txnIds) throws IOException {
+        HashMap<Long, TxnView> txns = new HashMap<>(txnIds.size());
+        for (long txnId: txnIds) {
+            txns.put(txnId,getTransaction(currentTxn, txnId));
+        }
+        return txns;
     }
+
+    @Override
+    public TxnView getTransaction(TxnView currentTxn, long txnId,boolean getDestinationTables) throws IOException{
+        long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
+        TxnView baseTxn = getBaseTransaction(currentTxn, beginTS);
+        return getComparableTxn(baseTxn,txnId);
+    }
+
 
 
     @Override
@@ -90,9 +99,11 @@ public class TestingTxnStore implements TxnStore{
     }
 
     @Override
-    public Txn getTransactionFromCache(long txnId){
+    public TxnView getTransactionFromCache(long txnId){
         try{
-            return getTransaction(txnId);
+            long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
+            TxnView baseTxn = getBaseTransaction(null, beginTS);
+            return baseTxn;
         }catch(IOException e){
             throw new RuntimeException(e);
         }

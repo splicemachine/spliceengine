@@ -664,7 +664,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         }
         return result;
     }
-
+    
     /**
      * Return an array of collation ids for this table.
      * <p/>

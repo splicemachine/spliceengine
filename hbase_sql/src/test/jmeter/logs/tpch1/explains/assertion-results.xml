@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testResults version="1.2">
+<sample t="111" ts="1500928684953" s="true" lb="explain01" rc="200" tn="explains 1-1" ng="1" na="1"/>
+<sample t="1968" ts="1500928685067" s="true" lb="explain02" rc="200" tn="explains 1-1" ng="1" na="1"/>
+<sample t="130" ts="1500928687038" s="true" lb="explain03" rc="200" tn="explains 1-1" ng="1" na="1"/>
+<sample t="385" ts="1500928687170" s="true" lb="explain04" rc="200" tn="explains 1-1" ng="1" na="1"/>
+<sample t="768" ts="1500928687557" s="true" lb="explain05" rc="200" tn="explains 1-1" ng="1" na="1"/>
+<sample t="32" ts="1500928688327" s="true" lb="explain06" rc="200" tn="explains 1-1" ng="1" na="1"/>
+<sample t="125" ts="1500928688360" s="true" lb="explain07" rc="200" tn="explains 1-1" ng="1" na="1"/>
+<sample t="181" ts="1500928688487" s="true" lb="explain08" rc="200" tn="explains 1-1" ng="1" na="1"/>
+<sample t="157" ts="1500928688670" s="true" lb="explain09" rc="200" tn="explains 1-1" ng="1" na="1"/>
+<sample t="130" ts="1500928688828" s="true" lb="explain10" rc="200" tn="explains 1-1" ng="1" na="1"/>
+<sample t="56" ts="1500928688959" s="true" lb="explain11" rc="200" tn="explains 1-1" ng="1" na="1"/>
+<sample t="68" ts="1500928689017" s="true" lb="explain12" rc="200" tn="explains 1-1" ng="1" na="1"/>
+<sample t="37" ts="1500928689087" s="true" lb="explain13" rc="200" tn="explains 1-1" ng="1" na="1"/>
+<sample t="53" ts="1500928689126" s="true" lb="explain14" rc="200" tn="explains 1-1" ng="1" na="1"/>
+<sample t="567" ts="1500928689181" s="true" lb="explain15_create_view" rc="200" tn="explains 1-1" ng="1" na="1"/>
+<sample t="164" ts="1500928689749" s="true" lb="explain15" rc="200" tn="explains 1-1" ng="1" na="1"/>
+<sample t="93" ts="1500928689914" s="true" lb="explain15_drop_view" rc="200" tn="explains 1-1" ng="1" na="1"/>
+<sample t="50" ts="1500928690008" s="true" lb="explain16" rc="200" tn="explains 1-1" ng="1" na="1"/>
+<sample t="46" ts="1500928690060" s="true" lb="explain17" rc="200" tn="explains 1-1" ng="1" na="1"/>
+<sample t="55" ts="1500928690107" s="true" lb="explain18" rc="200" tn="explains 1-1" ng="1" na="1"/>
+<sample t="77" ts="1500928690163" s="true" lb="explain19" rc="200" tn="explains 1-1" ng="1" na="1"/>
+<sample t="64" ts="1500928690242" s="true" lb="explain20" rc="200" tn="explains 1-1" ng="1" na="1"/>
+<sample t="126" ts="1500928690307" s="true" lb="explain21" rc="200" tn="explains 1-1" ng="1" na="1"/>
+<sample t="61" ts="1500928690435" s="true" lb="explain22" rc="200" tn="explains 1-1" ng="1" na="1"/>

@@ -19,6 +19,8 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.spark.SparkOperationContext;
+import com.splicemachine.si.impl.SpliceQuery;
+import com.splicemachine.si.impl.server.RedoTransactor;
 import com.splicemachine.stream.handlers.OpenHandler;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
@@ -61,6 +63,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
     private transient CountDownLatch active;
     private int batches;
     private volatile TaskContext taskContext;
+    private SpliceQuery spliceQuery;
 
     // Serialization
     public ResultStreamer() {
@@ -81,6 +84,9 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
     public void channelActive(final ChannelHandlerContext ctx) throws Exception {
         LOG.trace("Starting result streamer " + this);
         // Write init data right away
+
+        RedoTransactor.queryContext.set(spliceQuery);
+
         ctx.writeAndFlush(new StreamProtocol.Init(uuid, numPartitions, partition));
         // Subsequent writes are from a separate thread, so we don't block this one
         this.future = this.workerGroup.submit(new Callable<Long>() {
@@ -98,8 +104,12 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
                     ah.reinitialize(null, false);
                     prepared = true;
                 }
+                RedoTransactor.queryContext.set(spliceQuery);
                 try {
                     while (locatedRowIterator.hasNext()) {
+
+                        SpliceQuery sq = RedoTransactor.queryContext.get();
+
                         T lr = locatedRowIterator.next();
                         consumed++;
 
@@ -197,6 +207,8 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
 
     @Override
     public Iterator<String> call(Integer partition, Iterator<T> locatedRowIterator) throws Exception {
+
+        spliceQuery = RedoTransactor.queryContext.get();
         InetSocketAddress socketAddr=new InetSocketAddress(host,port);
         this.partition = partition;
         this.locatedRowIterator = locatedRowIterator;

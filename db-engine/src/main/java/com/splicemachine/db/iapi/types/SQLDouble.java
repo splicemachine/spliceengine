@@ -52,6 +52,7 @@ import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.Decimal;
 import org.apache.spark.sql.types.StructField;
 
 /**
@@ -451,6 +452,20 @@ public final class SQLDouble extends NumberDataType
 		// infinity values which should throw an exception in setValue(double).
 		setValue(bigDecimal.doubleValue());
 		
+	}
+
+	/**
+	 Called for an application setting this value using a BigDecimal
+	 */
+	public  void setDecimal(Decimal bigDecimal) throws StandardException {
+		if (objectNull(bigDecimal))
+			return;
+
+		// Note BigDecimal.doubleValue() handles the case where
+		// its value is outside the range of a double. It returns
+		// infinity values which should throw an exception in setValue(double).
+		setValue(bigDecimal.toDouble());
+
 	}
 
 	/**
@@ -905,6 +920,10 @@ public final class SQLDouble extends NumberDataType
 		return isNull() ? null : BigDecimal.valueOf(value);
 	}
 
+	public Decimal getDecimal() {
+		return isNull() ? null : Decimal.apply(value);
+	}
+
 	/**
 	 *
 	 * Write into Project Tungsten Format (UnsafeRow)
@@ -1004,6 +1023,11 @@ public final class SQLDouble extends NumberDataType
 			value = (Double) sparkObject; // Autobox, must be something better.
 			setIsNull(false);
 		}
+	}
+
+	@Override
+	public Object getHiveObject() throws StandardException {
+		return isNull()?null:new SQLDouble(value);
 	}
 
 }

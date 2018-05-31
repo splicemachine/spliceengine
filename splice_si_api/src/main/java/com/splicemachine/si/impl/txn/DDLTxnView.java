@@ -14,6 +14,7 @@
 
 package com.splicemachine.si.impl.txn;
 
+import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.si.api.txn.ConflictType;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
@@ -182,6 +183,11 @@ public class DDLTxnView extends AbstractTxnView {
 		output.writeLong(demarcationPoint);
 		output.writeObject(txn);
 	}
+
+    @Override
+    public LongOpenHashSet getRolledback() {
+        throw new UnsupportedOperationException("Not Supported");
+    }
 
     @Override
     public String toString() {

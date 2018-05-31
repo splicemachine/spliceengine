@@ -14,6 +14,7 @@
 
 package com.splicemachine.si.impl.txn;
 
+import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.txn.ConflictType;
 import com.splicemachine.si.api.txn.Txn;
@@ -249,7 +250,7 @@ public class LazyTxnView implements TxnView {
         synchronized (this){
             if(lookedUp&&!force) return; //double checked locking to avoid race conditions on committed transactions
             try {
-                delegate = store.getTransaction(txnId);
+                delegate = store.getTransaction(null,txnId);
                 if(delegate==null)
                     throw exceptionFactory.readOnlyModification("Txn "+txnId+" is read only");
             } catch (IOException e) {
@@ -259,4 +260,21 @@ public class LazyTxnView implements TxnView {
             inFinalState = delegate.getCommitTimestamp()>=0;
         }
     }
+
+    @Override
+    public TxnView getReadUncommittedActiveTxn() {
+        throw new UnsupportedOperationException("Not Supported");
+    }
+
+    @Override
+    public TxnView getReadCommittedActiveTxn() {
+        throw new UnsupportedOperationException("Not Supported");
+    }
+
+
+    @Override
+    public LongOpenHashSet getRolledback() {
+        return delegate.getRolledback();
+    }
+
 }

@@ -32,6 +32,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.primitives.Bytes;
 import org.apache.hadoop.conf.Configuration;
@@ -107,7 +108,6 @@ public class TableSplit{
         ps.setString(15, tempDir);
         ps.executeQuery();
         ps.close();
-
         DistributedFileSystem fs = SIDriver.driver().getFileSystem(tempDir);
         Path filePath = new Path(tempDir, conglomId + "/keys");
         InputStream in = fs.newInputStream(filePath.toString(), StandardOpenOption.READ);

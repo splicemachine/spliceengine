@@ -228,7 +228,7 @@ public class SICompactionState {
                                         LOG.debug("Resolving " + txnId);
                                     TxnView txn;
                                     try {
-                                        txn = transactionStore.getTransaction(txnId);
+                                        txn = transactionStore.getTransaction(null,txnId);
 
                                         if (LOG.isTraceEnabled())
                                             LOG.trace("Txn " + txn);

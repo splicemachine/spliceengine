@@ -299,6 +299,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
                     .outputTemplate(compactRow)
                     .transaction(getCurrentTransaction())
                     .indexColumns(indexCols)
+                    .accessedCols(accessedAllCols)
                     .mainTableKeyColumnEncodingOrder(getColumnOrdering())
                     .mainTableKeyColumnTypes(getKeyColumnTypes())
                     .mainTableKeyColumnSortOrder(getConglomerate().getAscDescInfo())

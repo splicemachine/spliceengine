@@ -56,12 +56,11 @@ public class SparkUpdateTableWriterBuilder<K,V> extends UpdateTableWriterBuilder
                     operationContext,
                     conf,
                     heapConglom,
-                    formatIds,
                     columnOrdering,
                     pkCols,
                     pkColumns,
                     tableVersion,
-                    execRowDefinition,
+                    execRow,
                     heapList);
         }catch(Exception e){
             throw new RuntimeException(e);

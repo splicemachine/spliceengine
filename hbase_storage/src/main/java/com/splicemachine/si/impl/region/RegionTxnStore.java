@@ -326,7 +326,7 @@ public class RegionTxnStore implements TxnPartition{
                     return txn;
                 }
 
-                switch(txnSupplier.getTransaction(parentTxnId).getEffectiveState()){
+                switch(txnSupplier.getTransaction(null,parentTxnId).getEffectiveState()){
                     case ACTIVE:
                         return txn;
                     case ROLLEDBACK:

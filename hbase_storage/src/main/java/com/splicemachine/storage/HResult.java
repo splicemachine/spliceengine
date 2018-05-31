@@ -78,6 +78,24 @@ public class HResult implements DataResult{
     }
 
     @Override
+    public DataCell activeData(){
+        if(result==null) return null;
+        Cell columnLatestCell=result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES,SIConstants.PACKED_COLUMN_BYTES);
+        if(columnLatestCell==null) return null;
+        wrapper.set(columnLatestCell);
+        return wrapper;
+    }
+
+    @Override
+    public DataCell redoData(){
+        if(result==null) return null;
+        Cell columnLatestCell=result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_REDO_BYTES,SIConstants.PACKED_COLUMN_BYTES);
+        if(columnLatestCell==null) return null;
+        wrapper.set(columnLatestCell);
+        return wrapper;
+    }
+
+    @Override
     public DataCell fkCounter(){
         if(result==null) return null;
         Cell columnLatestCell=result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES);

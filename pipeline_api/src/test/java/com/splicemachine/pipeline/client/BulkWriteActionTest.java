@@ -17,6 +17,9 @@ package com.splicemachine.pipeline.client;
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.IncrementingClock;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLVarchar;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.kvpair.KVPair;
@@ -75,10 +78,10 @@ public class BulkWriteActionTest{
     @Test
     public void testDoesNotWriteDataWhenGivenAnEmptyBulkWrite() throws Exception{
         byte[] table=Bytes.toBytes("1424");
-        TxnView txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION);
+        TxnView txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION,null);
         Collection<BulkWrite> bwList=new ArrayList<>();
 
-        BulkWrites bw=new BulkWrites(bwList,txn);
+        BulkWrites bw=new BulkWrites(bwList,txn, new ValueRow(new DataValueDescriptor[]{new SQLVarchar()}));
         ActionStatusReporter asr=new ActionStatusReporter();
         final BulkWriter writer = new FailWriter();
         BulkWriterFactory bwf=new BulkWriterFactory(){
@@ -134,11 +137,11 @@ public class BulkWriteActionTest{
     @Test
     public void testDoesNotWriteDataWhenGivenBulkWriteWithNoRecords() throws Exception{
         byte[] table=Bytes.toBytes("1424");
-        TxnView txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION);
+        TxnView txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION,null);
         Collection<BulkWrite> bwList=new ArrayList<>();
         bwList.add(new BulkWrite(Collections.<KVPair>emptyList(),"region1"));
 
-        BulkWrites bw=new BulkWrites(bwList,txn);
+        BulkWrites bw=new BulkWrites(bwList,txn,new ValueRow(new DataValueDescriptor[]{new SQLVarchar()}));
         ActionStatusReporter asr=new ActionStatusReporter();
         final BulkWriter writer = new FailWriter();
         BulkWriterFactory bwf=new BulkWriterFactory(){
@@ -194,12 +197,12 @@ public class BulkWriteActionTest{
     @Test
     public void testCorrectlyRetriesWhenOneRegionStops() throws Exception{
         byte[] table=Bytes.toBytes("1424");
-        TxnView txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION);
+        TxnView txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION,null);
         Collection<BulkWrite> bwList=new ArrayList<>(2);
         bwList.add(new BulkWrite(addData(0,10),"region1"));
         bwList.add(new BulkWrite(addData(100,10),"region2"));
 
-        BulkWrites bw=new BulkWrites(bwList,txn);
+        BulkWrites bw=new BulkWrites(bwList,txn,new ValueRow(new DataValueDescriptor[]{new SQLVarchar()}));
         ActionStatusReporter asr=new ActionStatusReporter();
         final TestBulkWriter writer = new TestBulkWriter();
         BulkWriterFactory bwf=new BulkWriterFactory(){
@@ -268,12 +271,12 @@ public class BulkWriteActionTest{
     @Test
     public void testCorrectlyRetriesPartialResults() throws Exception{
         byte[] table=Bytes.toBytes("1424");
-        TxnView txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION);
+        TxnView txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION,null);
         Collection<BulkWrite> bwList=new ArrayList<>(2);
         bwList.add(new BulkWrite(addData(0,10),"region1"));
         bwList.add(new BulkWrite(addData(100,10),"region2"));
 
-        BulkWrites bw=new BulkWrites(bwList,txn);
+        BulkWrites bw=new BulkWrites(bwList,txn,new ValueRow(new DataValueDescriptor[]{new SQLVarchar()}));
         ActionStatusReporter asr=new ActionStatusReporter();
         final PartialTestBulkWriter writer = new PartialTestBulkWriter();
         BulkWriterFactory bwf=new BulkWriterFactory(){
@@ -342,12 +345,12 @@ public class BulkWriteActionTest{
     @Test
     public void testCorrectlyRetriesWhenOneRegionStopsButReturnsResult() throws Exception{
         byte[] table=Bytes.toBytes("1424");
-        TxnView txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION);
+        TxnView txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION,null);
         Collection<BulkWrite> bwList=new ArrayList<>(2);
         bwList.add(new BulkWrite(addData(0,10),"region1"));
         bwList.add(new BulkWrite(addData(100,10),"region2"));
 
-        BulkWrites bw=new BulkWrites(bwList,txn);
+        BulkWrites bw=new BulkWrites(bwList,txn,new ValueRow(new DataValueDescriptor[]{new SQLVarchar()}));
         ActionStatusReporter asr=new ActionStatusReporter();
         final TestBulkWriter writer = new TestBulkWriter();
         BulkWriterFactory bwf=new BulkWriterFactory(){

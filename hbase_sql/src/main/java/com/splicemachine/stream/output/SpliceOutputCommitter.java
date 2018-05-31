@@ -95,7 +95,7 @@ public class SpliceOutputCommitter extends OutputCommitter {
         }
         TxnView txn = SIDriver.driver().lifecycleManager().beginChildTransaction(parentTxn, parentTxn.getIsolationLevel(),
                 true, destinationTable, false, taskId);
-        ActiveWriteTxn childTxn = new ActiveWriteTxn(txn.getTxnId(), txn.getTxnId(), parentTxn, true, parentTxn.getIsolationLevel());
+        ActiveWriteTxn childTxn = new ActiveWriteTxn(txn.getTxnId(), txn.getTxnId(), parentTxn, true, parentTxn.getIsolationLevel(),null);
         currentTxn.set(childTxn);
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"beginTxn=%s and destinationTable=%s",childTxn,destinationTable);

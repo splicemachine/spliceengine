@@ -15,9 +15,12 @@
 package com.splicemachine.storage;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NavigableSet;
+import java.util.TreeMap;
 
 /**
  * @author Scott Fines
@@ -32,12 +35,26 @@ public class MScan implements DataScan{
     private long highTs = Long.MAX_VALUE;
     private long lowTs = 0l;
     private boolean descending = false;
+    private Map<byte [], NavigableSet<byte []>> familyMap =
+            new TreeMap<byte [], NavigableSet<byte []>>(Bytes.BYTES_COMPARATOR);
 
     @Override
     @SuppressFBWarnings("EI_EXPOSE_REP2")
     public DataScan startKey(byte[] startKey){
         this.startKey =startKey;
         return this;
+    }
+
+    @Override
+    public DataScan setFamily(byte[] family) {
+        familyMap.remove(family);
+        familyMap.put(family, null);
+        return this;
+    }
+
+    @Override
+    public Map<byte[], NavigableSet<byte[]>> getFamilyMap() {
+        return familyMap;
     }
 
     @Override

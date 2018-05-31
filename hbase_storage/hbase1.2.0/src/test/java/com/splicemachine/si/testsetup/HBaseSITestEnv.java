@@ -27,6 +27,7 @@ import org.apache.hadoop.hbase.NamespaceDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.io.compress.Compression;
+import org.apache.hadoop.hbase.io.encoding.DataBlockEncoding;
 import org.apache.hadoop.hbase.regionserver.BloomType;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.ConsoleAppender;
@@ -77,6 +78,8 @@ public class HBaseSITestEnv implements SITestEnv{
     private TxnStore txnStore;
     private TimestampSource timestampSource;
     private HBaseTestingUtility testUtility;
+    private boolean isRedoTransactor;
+    private boolean isInitialized;
 
     public HBaseSITestEnv(){
         this(Level.ERROR);
@@ -86,6 +89,16 @@ public class HBaseSITestEnv implements SITestEnv{
         configureLogging(baseLoggingLevel);
         Configuration conf = HConfiguration.unwrapDelegate();
         conf.set("fs.defaultFS", "file:///");
+        conf.setLong("hbase.master.event.waiting.time", 50);
+        conf.setLong("hbase.client.pause", 20);
+        conf.setBoolean("hbase.defaults.for.version.skip",true);
+        conf.setBoolean("hbase.ipc.client.fallback-to-simple-auth-allowed",true);
+        conf.setBoolean("hbase.regionserver.safemode",false);
+        conf.setBoolean("hbase.table.sanity.checks",false);
+        conf.setLong("hbase.regionserver.msginterval",1000);
+        conf.setInt("hbase.regionserver.handler.count",5);
+        conf.setInt("hbase.regionserver.metahandler.count",5);
+
         try{
             startCluster(conf);
             SIEnvironment hEnv=loadSIEnvironment();
@@ -105,14 +118,18 @@ public class HBaseSITestEnv implements SITestEnv{
     }
 
     @Override
-    public void initialize() throws IOException{
-        try(HBaseAdmin hBaseAdmin=testUtility.getHBaseAdmin()){
-            HTableDescriptor table = generateDefaultSIGovernedTable("1440");
-            if (hBaseAdmin.tableExists(table.getTableName())) {
-                hBaseAdmin.disableTable(table.getTableName());
-                hBaseAdmin.deleteTable(table.getTableName());
+    public void initialize(boolean isRedoTransactor) throws IOException{
+        if (this.isRedoTransactor != isRedoTransactor || !isInitialized) {
+            this.isRedoTransactor = isRedoTransactor;
+            try (HBaseAdmin hBaseAdmin = testUtility.getHBaseAdmin()) {
+                HTableDescriptor table = generateDefaultSIGovernedTable("1440");
+                if (hBaseAdmin.tableExists(table.getTableName())) {
+                    hBaseAdmin.disableTable(table.getTableName());
+                    hBaseAdmin.deleteTable(table.getTableName());
+                }
+                hBaseAdmin.createTable(table);
             }
-            hBaseAdmin.createTable(table);
+            isInitialized = true;
         }
     }
 
@@ -174,7 +191,6 @@ public class HBaseSITestEnv implements SITestEnv{
         columnDescriptor.setBlockCacheEnabled(true);
         columnDescriptor.setBloomFilterType(BloomType.ROWCOL);
         desc.addFamily(columnDescriptor);
-        desc.addFamily(new HColumnDescriptor(Bytes.toBytes(SIConstants.SI_PERMISSION_FAMILY)));
         return desc;
     }
 
@@ -189,10 +205,37 @@ public class HBaseSITestEnv implements SITestEnv{
         return snapshot;
     }
 
+    public static HColumnDescriptor createActiveFamily() {
+        HColumnDescriptor snapshot = new HColumnDescriptor(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES);
+        snapshot.setMaxVersions(1);
+        snapshot.setCompressionType(Compression.Algorithm.NONE);
+        snapshot.setDataBlockEncoding(DataBlockEncoding.PREFIX_TREE);
+        snapshot.setInMemory(true);
+        snapshot.setBlockCacheEnabled(true);
+        snapshot.setBloomFilterType(BloomType.ROW);
+        return snapshot;
+    }
+
+    public static HColumnDescriptor createRedoFamily() {
+        HColumnDescriptor snapshot = new HColumnDescriptor(SIConstants.DEFAULT_FAMILY_REDO_BYTES);
+        snapshot.setMaxVersions(Integer.MAX_VALUE);
+        snapshot.setCompressionType(Compression.Algorithm.NONE);
+        snapshot.setDataBlockEncoding(DataBlockEncoding.PREFIX_TREE);
+        snapshot.setInMemory(true);
+        snapshot.setBlockCacheEnabled(true);
+        snapshot.setBloomFilterType(BloomType.ROW);
+        return snapshot;
+    }
+
     private HTableDescriptor generateDefaultSIGovernedTable(String tableName) throws IOException{
         HTableDescriptor desc =
             new HTableDescriptor(TableName.valueOf(HConfiguration.getConfiguration().getNamespace(),tableName));
-        desc.addFamily(createDataFamily());
+        if (isRedoTransactor) {
+            desc.addFamily(createActiveFamily());
+            desc.addFamily(createRedoFamily());
+        } else {
+            desc.addFamily(createDataFamily());
+        }
         desc.addCoprocessor(SIObserver.class.getName());
         return desc;
     }

@@ -18,12 +18,14 @@ import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.si.api.filter.RowAccumulator;
 import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.readresolve.ReadResolver;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
 import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
 import com.splicemachine.si.impl.txn.CommittedTxn;
+import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.storage.CellType;
 import com.splicemachine.storage.DataCell;
 import com.splicemachine.storage.DataFilter;
@@ -219,7 +221,7 @@ public class SimpleTxnFilter implements TxnFilter{
     private TxnView fetchTransaction(long txnId) throws IOException{
         TxnView toCompare=currentTxn;
         if(currentTxn==null || currentTxn.getTxnId()!=txnId){
-            toCompare=transactionStore.getTransaction(txnId);
+            toCompare=transactionStore.getTransaction(myTxn,txnId);
             currentTxn=toCompare;
         }
         return toCompare;

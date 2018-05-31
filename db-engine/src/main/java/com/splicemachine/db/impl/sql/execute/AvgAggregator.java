@@ -112,7 +112,6 @@ public final class AvgAggregator extends OrderableAggregator
 //				}
 
 				try {
-
 						aggregator.accumulate(addend);
 						count++;
 						return;

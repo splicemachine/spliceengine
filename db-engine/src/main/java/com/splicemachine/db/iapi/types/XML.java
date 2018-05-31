@@ -1183,4 +1183,10 @@ public class XML
     public void setSparkObject(Object sparkObject) throws StandardException {
 
     }
+
+    @Override
+    public Object getHiveObject() throws StandardException {
+        return isNull()?null:getObject();
+    }
+
 }

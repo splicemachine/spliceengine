@@ -37,8 +37,23 @@ public class SQLArrayTest extends SQLDataValueDescriptorTest {
                 SQLArray valueA = new SQLArray();
                 value.write(writer, 0);
                 Assert.assertTrue("SerdeIncorrect", row.isNullAt(0));
-                value.read(row, 0);
+                valueA.read(row, 0);
                 Assert.assertTrue("SerdeIncorrect", valueA.isNull());
+        }
+
+        @Test
+        public void serdeArrayData() throws Exception {
+                UnsafeRow row = new UnsafeRow(2);
+                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),2);
+                SQLVarchar varchar = new SQLVarchar("sdfsdfdsfsdfsd");
+                SQLArray value = new SQLArray(new DataValueDescriptor[]{new SQLInteger(2),new SQLInteger(4)});
+                SQLArray valueA = new SQLArray(new DataValueDescriptor[]{new SQLInteger(1)});
+                writer.reset();
+                varchar.write(writer,0);
+                value.write(writer, 1);
+                Assert.assertFalse("SerdeIncorrect", row.isNullAt(1));
+                valueA.read(row, 1);
+                Assert.assertTrue("SerdeIncorrect", value.toString().equals(valueA.toString()));
         }
 
 }

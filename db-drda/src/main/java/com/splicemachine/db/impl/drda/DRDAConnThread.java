@@ -75,6 +75,7 @@ import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.db.iapi.jdbc.EnginePreparedStatement;
 import com.sun.security.auth.callback.TextCallbackHandler;
 import com.sun.security.jgss.GSSUtil;
+import org.apache.spark.sql.types.Decimal;
 import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSException;
@@ -8200,8 +8201,8 @@ class DRDAConnThread extends Thread {
 				case DRDAConstants.DRDA_TYPE_NDECIMAL:
 					if (precision == 0)
 						precision = FdocaConstants.NUMERIC_DEFAULT_PRECISION;
-					BigDecimal bd = (java.math.BigDecimal) val;
-					writer.writeBigDecimal(bd,precision,scale);
+					Decimal bd = (Decimal) val;
+					writer.writeBigDecimal(bd.toJavaBigDecimal(),precision,scale); // TODO JLEACH FIX
 					break;
 				case DRDAConstants.DRDA_TYPE_NDATE:
 					writer.writeString(formatDate((java.sql.Date) val));

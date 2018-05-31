@@ -19,6 +19,7 @@ import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import java.io.IOException;
 import java.util.Map;
+import java.util.NavigableSet;
 
 /**
  * @author Scott Fines
@@ -50,6 +51,17 @@ public class HScan implements DataScan{
     public DataScan stopKey(byte[] stopKey){
         scan.setStopRow(stopKey);
         return this;
+    }
+
+    @Override
+    public DataScan setFamily(byte[] family) {
+        scan.addFamily(family);
+        return this;
+    }
+
+    @Override
+    public Map<byte[], NavigableSet<byte[]>> getFamilyMap() {
+        return scan.getFamilyMap();
     }
 
     @Override

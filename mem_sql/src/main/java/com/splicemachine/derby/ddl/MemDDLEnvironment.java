@@ -62,7 +62,7 @@ public class MemDDLEnvironment implements DDLEnvironment{
 
         SIDriver driver = SIDriver.driver();
         this.ddlWatcher = new SynchronousDDLWatcher(
-                        driver.readController(),
+                        driver.getSiReadController(),
                         driver.getClock(),
                         driver.getConfiguration(),
                 EngineDriver.driver().getExceptionFactory(),
@@ -125,6 +125,9 @@ public class MemDDLEnvironment implements DDLEnvironment{
             finishedChanges.remove(changeId);
             errorChanges.remove(changeId);
             changesInFlight.remove(changeId);
+            CommunicationListener wl = watchListener;
+            if(wl!=null)
+                wl.onCommunicationEvent(null);
         }
 
         public void kill(String key){

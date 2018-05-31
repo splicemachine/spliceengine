@@ -54,12 +54,14 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.hadoop.io.FloatWritable;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.Decimal;
 import org.apache.spark.sql.types.StructField;
 
 /**
@@ -896,6 +898,18 @@ public final class SQLReal
 		return isNull() ? null : BigDecimal.valueOf(value);
 	}
 
+	public Decimal getDecimal() {
+		return isNull() ? null : Decimal.apply(value);
+	}
+
+	@Override
+	public void setDecimal(Decimal decimal) throws StandardException {
+		if (decimal == null)
+			setToNull();
+		else
+			value = decimal.toFloat();
+	}
+
 	/**
 	 *
 	 * Write to a Project Tungsten format (UnsafeRow)
@@ -994,5 +1008,10 @@ public final class SQLReal
 			value = (Float) sparkObject; // Autobox, must be something better.
 			setIsNull(false);
 		}
+	}
+
+	@Override
+	public Object getHiveObject() throws StandardException {
+		return isNull()?null:new FloatWritable(value);
 	}
 }

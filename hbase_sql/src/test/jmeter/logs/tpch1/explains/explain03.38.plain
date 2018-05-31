@@ -1,0 +1,13 @@
+Plan
+Cursor(n=12,rows=10,updateMode=READ_ONLY (1),engine=Spark)
+  ->  ScrollInsensitive(n=11,totalCost=9539.379,outputRows=10,outputHeapSize=316.759 KB,partitions=10)
+    ->  Limit(n=10,totalCost=9539.067,outputRows=10,outputHeapSize=316.759 KB,partitions=10,offset=0,fetchFirst=10)
+      ->  OrderBy(n=9,totalCost=9539.067,outputRows=10,outputHeapSize=316.759 KB,partitions=10)
+        ->  ProjectRestrict(n=8,totalCost=8637.748,outputRows=482143,outputHeapSize=316.759 KB,partitions=10)
+          ->  GroupBy(n=7,totalCost=4153.889,outputRows=482143,outputHeapSize=90.665 MB,partitions=10)
+            ->  ProjectRestrict(n=6,totalCost=12944554.035,outputRows=3,outputHeapSize=90.665 MB,partitions=10)
+              ->  MergeJoin(n=5,totalCost=4153.889,outputRows=482143,outputHeapSize=90.665 MB,partitions=10,preds=[(L_ORDERKEY[8:7] = O_ORDERKEY[8:1])])
+                ->  TableScan[LINEITEM(1600)](n=4,totalCost=6665.349,outputRows=3235133,outputHeapSize=90.665 MB,partitions=10,preds=[(L_SHIPDATE[6:4] > 1995-03-15)])
+                ->  BroadcastJoin(n=3,totalCost=663.703,outputRows=223550,outputHeapSize=10.566 MB,partitions=10,preds=[(C_CUSTKEY[4:5] = O_CUSTKEY[4:2])])
+                  ->  TableScan[CUSTOMER(1632)](n=2,totalCost=182.5,outputRows=29913,outputHeapSize=10.566 MB,partitions=10,preds=[(C_MKTSEGMENT[2:2] = BUILDING)])
+                  ->  TableScan[ORDERS(1616)](n=1,totalCost=1669,outputRows=722411,outputHeapSize=30.62 MB,partitions=10,preds=[(O_ORDERDATE[0:3] < 1995-03-15)])

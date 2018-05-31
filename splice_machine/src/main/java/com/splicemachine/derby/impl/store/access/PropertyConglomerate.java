@@ -53,10 +53,13 @@ public class PropertyConglomerate {
 	private Dictionary	cachedSet;
 	private Dictionary	cachedStoreSet;
 	private PropertyFactory  pf;
+	private FormatableBitSet fbs;
 
     /* Constructors for This class: */
 
 	public PropertyConglomerate(TransactionController tc, boolean create, Properties startParams, PropertyFactory pf) throws StandardException {
+		fbs = new FormatableBitSet(2);
+		fbs.setAll();
 		serviceProperties = new Properties();
 		PropertyManager propertyManager=PropertyManagerService.loadPropertyManager();
 		this.pf = pf;
@@ -181,7 +184,7 @@ public class PropertyConglomerate {
             open_mode,
             TransactionController.MODE_TABLE,
             TransactionController.ISOLATION_SERIALIZABLE,
-            (FormatableBitSet) null,
+            fbs,
             (DataValueDescriptor[]) null,	// start key
             ScanController.NA,
             qualifiers,

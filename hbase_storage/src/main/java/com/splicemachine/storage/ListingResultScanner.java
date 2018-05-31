@@ -65,6 +65,11 @@ public class ListingResultScanner implements DataScanner{
     @Override public long getRowsFiltered(){ return resultScanner.getRowsFiltered(); }
     @Override public long getRowsVisited(){ return resultScanner.getRowsVisited(); }
 
+    @Override
+    public boolean reseek(byte[] rowKey) throws IOException {
+        throw new UnsupportedOperationException("Not Supported Exception");
+    }
+
     private static class ListView extends AbstractList<DataCell>{
         private List<Cell> cells;
         private final HCell wrapper = new HCell();
@@ -109,5 +114,6 @@ public class ListingResultScanner implements DataScanner{
                 cells.remove();
             }
         }
+
     }
 }

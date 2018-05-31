@@ -42,7 +42,6 @@ public class BulkLoadIndexJob extends DistributedJob implements Externalizable {
     String scope;
     String prefix;
     DDLMessage.TentativeIndex tentativeIndex;
-    int[] indexFormatIds;
     boolean sampling;
     String  hfilePath;
     ActivationHolder ah;
@@ -57,7 +56,6 @@ public class BulkLoadIndexJob extends DistributedJob implements Externalizable {
                             String jobGroup,
                             String prefix,
                             DDLMessage.TentativeIndex tentativeIndex,
-                            int[]    indexFormatIds,
                             boolean  sampling,
                             String   hfilePath,
                             String   tableVersion,
@@ -69,7 +67,6 @@ public class BulkLoadIndexJob extends DistributedJob implements Externalizable {
         this.jobGroup = jobGroup;
         this.prefix = prefix;
         this.tentativeIndex = tentativeIndex;
-        this.indexFormatIds = indexFormatIds;
         this.sampling = sampling;
         this.hfilePath = hfilePath;
         this.tableVersion = tableVersion;
@@ -94,7 +91,6 @@ public class BulkLoadIndexJob extends DistributedJob implements Externalizable {
         out.writeUTF(jobGroup);
         out.writeUTF(prefix);
         out.writeObject(tentativeIndex.toByteArray());
-        ArrayUtil.writeIntArray(out,indexFormatIds);
         SIDriver.driver().getOperationFactory().writeTxn(childTxn,out);
         out.writeUTF(tableVersion);
         out.writeUTF(hfilePath);
@@ -111,7 +107,6 @@ public class BulkLoadIndexJob extends DistributedJob implements Externalizable {
         prefix = in.readUTF();
         byte[] bytes = (byte[]) in.readObject();
         tentativeIndex = DDLMessage.TentativeIndex.parseFrom(bytes);
-        indexFormatIds = ArrayUtil.readIntArray(in);
         childTxn = SIDriver.driver().getOperationFactory().readTxn(in);
         tableVersion = in.readUTF();
         hfilePath = in.readUTF();

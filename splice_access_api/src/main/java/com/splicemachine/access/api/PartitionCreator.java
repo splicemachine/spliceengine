@@ -14,6 +14,7 @@
 
 package com.splicemachine.access.api;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.storage.Partition;
 
 import java.io.IOException;
@@ -27,6 +28,8 @@ public interface PartitionCreator{
     PartitionCreator withName(String name);
 
     PartitionCreator withDisplayNames(String[] displayNames);
+
+    PartitionCreator withTemplate(ExecRow template);
 
     /**
      * Set the maximum size of a given subpartition for this overall partition,

@@ -137,8 +137,24 @@ public class TabInfoImpl
                                 indexes.length + ")");
             }
         }
-
         return indexes[indexID].getConglomerateNumber();
+    }
+
+    FormatableBitSet getIndexAllColumnsSet(int indexID) {
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(indexes != null,
+                    "indexes is expected to be non-null");
+            if (indexID >= indexes.length)
+            {
+                SanityManager.THROWASSERT(
+                        "indexID (" + indexID + ") is out of range(0-" +
+                                indexes.length + ")");
+            }
+        }
+        FormatableBitSet formatableBitSet = new FormatableBitSet(indexes[indexID].getColumnCount()+1);
+        formatableBitSet.setAll();
+        return formatableBitSet;
     }
 
     /**
@@ -759,7 +775,7 @@ public class TabInfoImpl
                         ((wait) ? 0 : TransactionController.OPENMODE_LOCK_NOWAIT)),
                 lockMode,
                 isolation,
-                (FormatableBitSet) null, // all fields as objects
+                getIndexAllColumnsSet(indexNumber), // all fields as objects
                 startKeyRow,   // start position - first row
                 startOp,      // startSearchOperation
                 qualifier, //scanQualifier
@@ -1027,6 +1043,8 @@ public class TabInfoImpl
 
         RowChanger 					rc  = getRowChanger( tc, colsToUpdate,baseRow );
 
+        FormatableBitSet fbs = new FormatableBitSet(getIndexRowGenerator( indexNumber ).numberOfOrderedColumns()+1);
+        fbs.setAll();
         // Row level locking
         rc.openForUpdate(indicesToUpdate, TransactionController.MODE_RECORD, true);
 
@@ -1044,7 +1062,7 @@ public class TabInfoImpl
                 TransactionController.OPENMODE_FORUPDATE,
                 TransactionController.MODE_RECORD,
                 TransactionController.ISOLATION_REPEATABLE_READ,
-                (FormatableBitSet) null,     // all fields as objects
+                fbs,
                 key.getRowArray(),   // start position - first row
                 ScanController.GE,      // startSearchOperation
                 null, //scanQualifier

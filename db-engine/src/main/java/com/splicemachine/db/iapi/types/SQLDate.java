@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.hadoop.hive.serde2.io.DateWritable;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
@@ -62,6 +63,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.ParseException;
+import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
+
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import org.joda.time.Days;
 import org.joda.time.LocalDate;
@@ -86,6 +90,20 @@ public final class SQLDate extends DataType
 	/**
 	 +     * The JodaTime has problems with all the years before 1884
 	 +     */
+
+	private static final long MILLIS_PER_DAY;
+	private static final ThreadLocal<TimeZone> LOCAL_TIMEZONE;
+
+
+	static {
+		MILLIS_PER_DAY = TimeUnit.DAYS.toMillis(1L);
+		LOCAL_TIMEZONE = new ThreadLocal() {
+			protected TimeZone initialValue() {
+				return Calendar.getInstance().getTimeZone();
+			}
+		};
+	}
+
 
 	public static final ThreadLocal<GregorianCalendar> GREGORIAN_CALENDAR =
 			new ThreadLocal<GregorianCalendar>() {
@@ -1404,10 +1422,31 @@ public final class SQLDate extends DataType
 			setToNull();
 		else {
 			java.time.LocalDate localeDate = ((Date)sparkObject).toLocalDate();
+			java.sql.Date foo;
 			encodedDate = computeEncodedDate(localeDate.getYear(),localeDate.getMonthValue(),localeDate.getDayOfMonth());
 			setIsNull(false);
 		}
 
 	}
 
+	@Override
+	public Object getHiveObject() throws StandardException {
+		return isNull?null:new DateWritable( (Date)getObject());
+	}
+
+	public static int dateToDays(Date d) {
+		long millisLocal = d.getTime();
+		return millisToDays(millisLocal);
+	}
+
+	public static int millisToDays(long millisLocal) {
+		long millisUtc = millisLocal + (long)((TimeZone)LOCAL_TIMEZONE.get()).getOffset(millisLocal);
+		int days;
+		if(millisUtc >= 0L) {
+			days = (int)(millisUtc / MILLIS_PER_DAY);
+		} else {
+			days = (int)((millisUtc - 86399999L) / MILLIS_PER_DAY);
+		}
+		return days;
+	}
 }

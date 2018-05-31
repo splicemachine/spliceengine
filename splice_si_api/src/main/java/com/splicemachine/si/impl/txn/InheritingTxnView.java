@@ -14,6 +14,7 @@
 
 package com.splicemachine.si.impl.txn;
 
+import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.ByteSlice;
@@ -23,6 +24,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 
 /**
@@ -46,6 +48,8 @@ public class InheritingTxnView extends AbstractTxnView{
     private long globalCommitTimestamp;
     private final Iterator<ByteSlice> destinationTables;
     private final long lastKaTime;
+    private LongOpenHashSet rollbackSet;
+
 
     @SuppressFBWarnings("SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION")
     public InheritingTxnView(TxnView parentTxn,
@@ -98,7 +102,7 @@ public class InheritingTxnView extends AbstractTxnView{
                 hasAdditive,isAdditive,
                 hasAllowWrites,allowWrites,
                 commitTimestamp,globalCommitTimestamp,
-                state,destinationTables,-1l);
+                state,destinationTables,-1l,null);
     }
 
     public InheritingTxnView(TxnView parentTxn,
@@ -109,7 +113,8 @@ public class InheritingTxnView extends AbstractTxnView{
                              long commitTimestamp,long globalCommitTimestamp,
                              Txn.State state,
                              Iterator<ByteSlice> destinationTables,
-                             long lastKaTime){
+                             long lastKaTime,
+                             LongOpenHashSet rollbackSet){
         super(txnId,beginTimestamp,isolationLevel);
         this.hasAdditive=hasAdditive;
         this.isAdditive=isAdditive;
@@ -121,6 +126,7 @@ public class InheritingTxnView extends AbstractTxnView{
         this.globalCommitTimestamp=globalCommitTimestamp;
         this.destinationTables=destinationTables;
         this.lastKaTime=lastKaTime;
+        this.rollbackSet = rollbackSet;
     }
 
     @Override
@@ -194,5 +200,10 @@ public class InheritingTxnView extends AbstractTxnView{
     @Override
     public void writeExternal(ObjectOutput output) throws IOException{
         throw new UnsupportedOperationException("InheritingTxnView is not intended to be serialized");
+    }
+
+    @Override
+    public LongOpenHashSet getRolledback() {
+        return rollbackSet;
     }
 }

@@ -327,4 +327,9 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
          */
         computeModifiedRows();
     }
+
+    protected ExecRow getEmptyExecRow() throws StandardException {
+        return ((WriteCursorConstantOperation)writeInfo.getConstantAction()).getEmptyHeapRow(activation.getLanguageConnectionContext());
+    }
+
 }

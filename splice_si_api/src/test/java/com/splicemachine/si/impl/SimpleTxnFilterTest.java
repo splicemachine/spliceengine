@@ -301,7 +301,7 @@ public class SimpleTxnFilterTest{
                 Object[] args=invocationOnMock.getArguments();
                 committedTs.setFirst((ByteSlice)args[0]);
                 long tx=(Long)args[1];
-                long commitTs=txnStore.getTransaction(tx).getEffectiveCommitTimestamp();
+                long commitTs=txnStore.getTransaction(null,tx).getEffectiveCommitTimestamp();
                 committedTs.setSecond(Pair.newPair(tx,commitTs));
                 return null;
             }

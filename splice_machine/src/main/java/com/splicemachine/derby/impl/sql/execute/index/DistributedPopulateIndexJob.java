@@ -39,18 +39,16 @@ public class DistributedPopulateIndexJob extends DistributedJob implements Exter
     String scope;
     String prefix;
     DDLMessage.TentativeIndex tentativeIndex;
-    int[] indexFormatIds;
 
     public DistributedPopulateIndexJob() {}
     public DistributedPopulateIndexJob(TxnView childTxn, ScanSetBuilder<ExecRow> scanSetBuilder, String scope,
-                                       String jobGroup, String prefix, DDLMessage.TentativeIndex tentativeIndex, int[] indexFormatIds) {
+                                       String jobGroup, String prefix, DDLMessage.TentativeIndex tentativeIndex) {
         this.childTxn = childTxn;
         this.scanSetBuilder = scanSetBuilder;
         this.scope = scope;
         this.jobGroup = jobGroup;
         this.prefix = prefix;
         this.tentativeIndex = tentativeIndex;
-        this.indexFormatIds = indexFormatIds;
     }
 
     @Override
@@ -70,7 +68,6 @@ public class DistributedPopulateIndexJob extends DistributedJob implements Exter
         out.writeUTF(jobGroup);
         out.writeUTF(prefix);
         out.writeObject(tentativeIndex.toByteArray());
-        ArrayUtil.writeIntArray(out,indexFormatIds);
         SIDriver.driver().getOperationFactory().writeTxn(childTxn,out);
     }
 
@@ -82,7 +79,6 @@ public class DistributedPopulateIndexJob extends DistributedJob implements Exter
         prefix = in.readUTF();
         byte[] bytes = (byte[]) in.readObject();
         tentativeIndex = DDLMessage.TentativeIndex.parseFrom(bytes);
-        indexFormatIds = ArrayUtil.readIntArray(in);
         childTxn = SIDriver.driver().getOperationFactory().readTxn(in);
     }
 }

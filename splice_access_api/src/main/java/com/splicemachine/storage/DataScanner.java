@@ -40,4 +40,6 @@ public interface DataScanner extends AutoCloseable{
     @Override void close() throws IOException;
 
     Partition getPartition();
+
+    boolean reseek(byte[] rowKey) throws IOException;
 }

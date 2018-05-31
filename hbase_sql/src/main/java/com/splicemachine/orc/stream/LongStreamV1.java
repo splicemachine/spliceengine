@@ -20,12 +20,12 @@ import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataType;
 
 import java.io.IOException;
-import static com.splicemachine.orc.stream.OrcStreamUtils.MIN_REPEAT_SIZE;
 import static java.lang.Math.toIntExact;
 
 public class LongStreamV1
         implements LongStream
 {
+    private static final int MIN_REPEAT_SIZE = 3;
     private static final int MAX_LITERAL_SIZE = 128;
 
     private final OrcInputStream input;
@@ -52,7 +52,7 @@ public class LongStreamV1
 
         int control = input.read();
         if (control == -1) {
-            throw new OrcCorruptionException("Read past end of RLE integer from %s", input);
+            throw new OrcCorruptionException(input.getOrcDataSourceId(),"Read past end of RLE integer from %s", input);
         }
 
         if (control < 0x80) {
@@ -61,7 +61,7 @@ public class LongStreamV1
             repeat = true;
             delta = input.read();
             if (delta == -1) {
-                throw new OrcCorruptionException("End of stream in RLE Integer from %s", input);
+                throw new OrcCorruptionException(input.getOrcDataSourceId(),"End of stream in RLE Integer from %s", input);
             }
 
             // convert from 0 to 255 to -128 to 127 by converting to a signed byte

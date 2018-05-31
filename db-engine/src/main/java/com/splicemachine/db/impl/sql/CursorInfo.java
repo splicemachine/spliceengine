@@ -109,8 +109,14 @@ public class CursorInfo
 	public void writeExternal(ObjectOutput out) throws IOException
 	{
 		out.writeInt(updateMode);
-		out.writeObject(targetTable);
-		ArrayUtil.writeArray(out, targetColumns);
+		out.writeBoolean(targetTable!=null);
+		if (targetTable!=null)
+			out.writeObject(targetTable);
+		out.writeBoolean(targetColumns!=null);
+		if (targetColumns!=null)
+			ArrayUtil.writeArray(out, targetColumns);
+		out.writeBoolean(updateColumns!=null);
+		if (updateColumns!=null)
 		ArrayUtil.writeArray(out, updateColumns);
 	}
 
@@ -126,18 +132,22 @@ public class CursorInfo
 		throws IOException, ClassNotFoundException
 	{
 		updateMode = in.readInt();
-		targetTable = (ExecCursorTableReference)in.readObject();
-		int len = ArrayUtil.readArrayLength(in);
-		if (len != 0)
-		{
-			targetColumns = new ResultColumnDescriptor[len];
-			ArrayUtil.readArrayItems(in, targetColumns);
+		int len;
+		if (in.readBoolean())
+			targetTable = (ExecCursorTableReference)in.readObject();
+		if (in.readBoolean()) {
+			len = ArrayUtil.readArrayLength(in);
+			if (len != 0) {
+				targetColumns = new ResultColumnDescriptor[len];
+				ArrayUtil.readArrayItems(in, targetColumns);
+			}
 		}
-		len = ArrayUtil.readArrayLength(in);
-		if (len != 0)
-		{
-			updateColumns = new String[len];
-			ArrayUtil.readArrayItems(in, updateColumns);
+		if (in.readBoolean()) {
+			len = ArrayUtil.readArrayLength(in);
+			if (len != 0) {
+				updateColumns = new String[len];
+				ArrayUtil.readArrayItems(in, updateColumns);
+			}
 		}
 	}
 	

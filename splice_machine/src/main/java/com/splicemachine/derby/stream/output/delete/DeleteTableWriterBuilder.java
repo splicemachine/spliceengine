@@ -15,6 +15,7 @@
 package com.splicemachine.derby.stream.output.delete;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.TableWriter;
@@ -37,6 +38,8 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
     protected TxnView txn;
     protected OperationContext operationContext;
     protected byte[] token;
+    protected String tableVersion;
+    protected ExecRow execRow;
 
     public DeleteTableWriterBuilder heapConglom(long heapConglom) {
         this.heapConglom = heapConglom;
@@ -50,6 +53,18 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
     @Override
     public DataSetWriterBuilder destConglomerate(long heapConglom){
         this.heapConglom = heapConglom;
+        return this;
+    }
+
+    @Override
+    public DataSetWriterBuilder tableVersion(String tableVersion){
+        this.tableVersion = tableVersion;
+        return this;
+    }
+
+    @Override
+    public DataSetWriterBuilder execRow(ExecRow execRow){
+        this.execRow = execRow;
         return this;
     }
 
@@ -70,8 +85,9 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
 
     @Override
     public TableWriter buildTableWriter() throws StandardException{
+        assert execRow!=null:"ExecRow cannot be null";
         long conglom = Long.parseLong(Bytes.toString(((DMLWriteOperation)operationContext.getOperation()).getDestinationTable()));
-        return new DeletePipelineWriter(txn,token,conglom,operationContext);
+        return new DeletePipelineWriter(tableVersion,txn,token,conglom,operationContext,execRow);
     }
 
     @Override
@@ -94,6 +110,7 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
         out.writeBoolean(operationContext!=null);
         if (operationContext!=null)
             out.writeObject(operationContext);
+        out.writeObject(execRow);
     }
 
     @Override
@@ -102,6 +119,7 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
         txn = SIDriver.driver().getOperationFactory().readTxn(in);
         if (in.readBoolean())
             operationContext = (OperationContext) in.readObject();
+        execRow = (ExecRow) in.readObject();
     }
 
     public static DeleteTableWriterBuilder getDeleteTableWriterBuilderFromBase64String(String base64String) throws IOException {

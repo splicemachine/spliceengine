@@ -210,12 +210,12 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         SpliceLogUtils.trace(LOG, "initIsolationLevel");
     }
 
-    public DataScan getNonSIScan() throws StandardException{
+    public DataScan getNonSIScan(ExecRow currentTemplate) throws StandardException{
         /*
 		 * Intended to get a scan which does NOT set up SI underneath us (since
 		 * we are doing it ourselves).
 		 */
-        DataScan s=getScan();
+        DataScan s=getScan(currentTemplate);
 
         if(oneRowScan){
             /*
@@ -227,17 +227,20 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         }
         // Makes it a small scan for 100 rows of fewer
         // Bug where splits return 1 extra row
-//        else if (this.getEstimatedRowCount()<100) {
-//            s = s.cacheRows(100).batchCells(-1);
-//        } else {
+        if (getEstimatedRowCount()<100) {
+            s = s.cacheRows(100).batchCells(-1);
+        } else {
             s.cacheRows(1000).batchCells(-1);
-//        }
-        deSiify(s);
+        }
+        if (!tableVersion.equals("3.0"))
+            deSiify(s);
+        else
+            s.setFamily(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES);
         return s;
     }
 
-    public DataScan getReversedNonSIScan() throws StandardException{
-        return getNonSIScan().reverseOrder();
+    public DataScan getReversedNonSIScan(ExecRow currentTemplate) throws StandardException{
+        return getNonSIScan(currentTemplate).reverseOrder();
     }
 
     /**
@@ -264,6 +267,24 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         return keyFormatIds;
     }
 
+
+    public static int[] getKeyFormatIds(int[] keyColumnEncodingOrder, ExecRow template) throws StandardException {
+        try {
+            if (keyColumnEncodingOrder == null) return null; //no keys to worry about
+            int[] keyFormatIds = new int[keyColumnEncodingOrder.length];
+            for (int i = 0, pos = 0; i < keyColumnEncodingOrder.length; i++) {
+                int keyColumnPosition = keyColumnEncodingOrder[i];
+                if (keyColumnPosition >= 0) {
+                    keyFormatIds[pos] = template.getColumn(keyColumnPosition+1).getTypeFormatId();
+                    pos++;
+                }
+            }
+            return keyFormatIds;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
+    }
     /**
      * @return a map from the accessed (desired) key columns to their position in the decoded row.
      * @throws StandardException
@@ -329,11 +350,11 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         scan.returnAllVersions();
     }
 
-    protected DataScan getScan() throws StandardException{
+    protected DataScan getScan(ExecRow currentTemplate) throws StandardException{
 
         return scanInformation.getScan(getCurrentTransaction(),
                 ((BaseActivation)activation).getScanStartOverride(),getKeyDecodingMap(),
-                ((BaseActivation)activation).getScanKeys(),((BaseActivation)activation).getScanStopOverride());
+                ((BaseActivation)activation).getScanKeys(),((BaseActivation)activation).getScanStopOverride(), currentTemplate);
     }
 
     @Override

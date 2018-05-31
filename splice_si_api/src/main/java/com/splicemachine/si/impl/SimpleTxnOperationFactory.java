@@ -15,6 +15,9 @@
 package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongArrayList;
+import com.carrotsearch.hppc.LongOpenHashSet;
+import com.carrotsearch.hppc.cursors.LongCursor;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.si.api.data.ExceptionFactory;
@@ -23,13 +26,17 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.storage.*;
 
+import java.util.Collections;
+import java.util.List;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
 
 import static com.splicemachine.si.constants.SIConstants.*;
 
@@ -125,20 +132,7 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
     @Override
     public TxnView fromWrites(byte[] data,int off,int length) throws IOException{
         if(length<=0) return null; //non-transactional
-        MultiFieldDecoder decoder=MultiFieldDecoder.wrap(data,off,length);
-        long txnId=decoder.decodeNextLong();
-        long beginTs=decoder.decodeNextLong();
-        boolean additive=decoder.decodeNextBoolean();
-        Txn.IsolationLevel level=Txn.IsolationLevel.fromByte(decoder.decodeNextByte());
-        //throw away the allow reads bit, since we won't care anyway
-        decoder.decodeNextBoolean();
-
-        TxnView parent=Txn.ROOT_TRANSACTION;
-        while(decoder.available()){
-            long id=decoder.decodeNextLong();
-            parent=new ActiveWriteTxn(id,id,parent,additive,level);
-        }
-        return new ActiveWriteTxn(txnId,beginTs,parent,additive,level);
+        return decode(data,off,length);
     }
 
     @Override
@@ -157,39 +151,70 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
 
     @Override
     public byte[] encode(TxnView txn){
-        MultiFieldEncoder encoder=MultiFieldEncoder.create(6)
-                .encodeNext(txn.getTxnId())
-                .encodeNext(txn.getBeginTimestamp())
-                .encodeNext(txn.isAdditive())
-                .encodeNext(txn.getIsolationLevel().encode())
-                .encodeNext(txn.allowsWrites());
+        List parentIds = new ArrayList<>();
+        TxnView parent=txn.getParentTxnView();
+        while(!Txn.ROOT_TRANSACTION.equals(parent)){
+            parentIds.add(parent.getTxnId());
+            parent=parent.getParentTxnView();
+        }
+        //TxnView txnToEncode= txn;
+        TxnView txnToEncode= null;
+        // Code is added to allow propogation of rolledback sub txns that will not require a
+        // lookup on the read side.
+        if (txn.getParentTxnView() != null  && txn.getTxnId() == txn.getParentTxnView().getTxnId()) {
+            txnToEncode = txn.getParentTxnView();
+        } else {
+            txnToEncode = txn;
+        }
 
-        LongArrayList parentTxnIds=LongArrayList.newInstance();
-        byte[] build=encodeParentIds(txn,parentTxnIds);
-        encoder.setRawBytes(build);
-        return encoder.build();
+        TxnMessage.TxnInfo.Builder builder = TxnMessage.TxnInfo.newBuilder()
+                .setTxnId(txnToEncode.getTxnId())
+                .setBeginTs(txnToEncode.getBeginTimestamp())
+                // There can be changes for isAdditive and you have to use the original
+                // for constant iteration.
+                .setIsAdditive(txn.isAdditive())
+                .setIsolationLevel(txnToEncode.getIsolationLevel().encode())
+                .setAllowsWrites(txnToEncode.allowsWrites())
+                .addAllParentIds(parentIds);
+        if (txnToEncode.getRolledback() != null) {
+            LongOpenHashSet hashSet = txnToEncode.getRolledback();
+            ArrayList list = new ArrayList(hashSet.size());
+            long[] values = hashSet.toArray();
+            for (int i = 0; i< hashSet.size(); i++) {
+                list.add(values[i]);
+            }
+            builder.addAllRollbackSubIds(list);
+        }
+        return builder.build().toByteArray();
     }
 
     public TxnView decode(byte[] data,int offset,int length){
-        MultiFieldDecoder decoder=MultiFieldDecoder.wrap(data,offset,length);
-        long txnId=decoder.decodeNextLong();
-        long beginTs=decoder.decodeNextLong();
-        boolean additive=decoder.decodeNextBoolean();
-        Txn.IsolationLevel level=Txn.IsolationLevel.fromByte(decoder.decodeNextByte());
-        boolean allowsWrites=decoder.decodeNextBoolean();
-
-        TxnView parent=Txn.ROOT_TRANSACTION;
-        while(decoder.available()){
-            long id=decoder.decodeNextLong();
-            if(allowsWrites)
-                parent=new ActiveWriteTxn(id,id,parent,additive,level);
-            else
-                parent=new ReadOnlyTxn(id,id,level,parent,UnsupportedLifecycleManager.INSTANCE,exceptionLib,additive);
+        TxnMessage.TxnInfo info = null;
+        try {
+            info = TxnMessage.TxnInfo.parseFrom(data);
+        } catch (InvalidProtocolBufferException e) {
+            throw new RuntimeException(e);
         }
-        if(allowsWrites)
-            return new ActiveWriteTxn(txnId,beginTs,parent,additive,level);
+        Txn.IsolationLevel isolationLevel = Txn.IsolationLevel.fromByte((byte)info.getIsolationLevel());
+        TxnView parent=Txn.ROOT_TRANSACTION;
+        LongOpenHashSet rolledBackIds = null;
+        if (info.getRollbackSubIdsCount() > 0) {
+            rolledBackIds = new LongOpenHashSet(info.getRollbackSubIdsCount());
+            for (Long rolledBackId: info.getRollbackSubIdsList()) {
+                rolledBackIds.add(rolledBackId);
+            }
+        }
+        for (int i = 1; i <= info.getParentIdsCount(); i++) {
+            long id = info.getParentIds(info.getParentIdsCount()-i);
+            if(info.getAllowsWrites())
+                parent=new ActiveWriteTxn(id,id,parent,info.getIsAdditive(), isolationLevel,rolledBackIds);
+            else
+                parent=new ReadOnlyTxn(id,id,isolationLevel,parent,UnsupportedLifecycleManager.INSTANCE,exceptionLib,info.getIsAdditive());
+        }
+        if(info.getAllowsWrites())
+            return new ActiveWriteTxn(info.getTxnId(),info.getBeginTs(),parent,info.getIsAdditive(),isolationLevel,rolledBackIds);
         else
-            return new ReadOnlyTxn(txnId,beginTs,level,parent,UnsupportedLifecycleManager.INSTANCE,exceptionLib,additive);
+            return new ReadOnlyTxn(info.getTxnId(),info.getBeginTs(),isolationLevel,parent,UnsupportedLifecycleManager.INSTANCE,exceptionLib,info.getIsAdditive());
     }
 
     @Override
@@ -219,30 +244,6 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
 
     protected void makeNonTransactional(Attributable op){
         op.addAttribute(SI_EXEMPT,TRUE_BYTES);
-    }
-
-
-    private byte[] encodeParentIds(TxnView txn,LongArrayList parentTxnIds){
-        /*
-         * For both active reads AND active writes, we only need to know the
-         * parent's transaction ids, since we'll use the information immediately
-         * available to determine other properties (additivity, etc.) Thus,
-         * by doing this bit of logic, we can avoid a network call on the server
-         * for every parent on the transaction chain, at the cost of 2-10 bytes
-         * per parent on the chain--a cheap trade.
-         */
-        TxnView parent=txn.getParentTxnView();
-        while(!Txn.ROOT_TRANSACTION.equals(parent)){
-            parentTxnIds.add(parent.getTxnId());
-            parent=parent.getParentTxnView();
-        }
-        int parentSize=parentTxnIds.size();
-        long[] parentIds=parentTxnIds.buffer;
-        MultiFieldEncoder parents=MultiFieldEncoder.create(parentSize);
-        for(int i=1;i<=parentSize;i++){
-            parents.encodeNext(parentIds[parentSize-i]);
-        }
-        return parents.build();
     }
 
 

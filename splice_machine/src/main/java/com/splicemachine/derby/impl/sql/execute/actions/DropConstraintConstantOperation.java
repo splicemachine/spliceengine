@@ -210,7 +210,7 @@ public class DropConstraintConstantOperation extends ConstraintConstantOperation
         if(conDesc.getConstraintType() == DataDictionary.FOREIGNKEY_CONSTRAINT) {
             ForeignKeyConstraintDescriptor d = (ForeignKeyConstraintDescriptor)conDesc;
             final ReferencedKeyConstraintDescriptor referencedConstraint = d.getReferencedConstraint();
-            new FkJobSubmitter(dd, (SpliceTransactionManager) tc, referencedConstraint, conDesc, DDLChangeType.DROP_FOREIGN_KEY,lcc).submit();
+            new FkJobSubmitter(dd, (SpliceTransactionManager) tc, td, referencedConstraint, conDesc, DDLChangeType.DROP_FOREIGN_KEY,lcc).submit();
         }
 
 

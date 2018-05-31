@@ -26,6 +26,7 @@ import com.splicemachine.db.iapi.store.access.conglomerate.ScanManager;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -34,6 +35,7 @@ import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceScan;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.constants.SIConstants;
@@ -55,20 +57,19 @@ public class HBaseConglomerate extends SpliceConglomerate{
     private static final Logger LOG=Logger.getLogger(HBaseConglomerate.class);
 
     public HBaseConglomerate(){
-        super();
     }
 
     protected void create(boolean isExternal,
-            Transaction rawtran,
-            long input_containerid,
-            DataValueDescriptor[] template,
-            ColumnOrdering[] columnOrder,
-            int[] collationIds,
-            Properties properties,
-            int conglom_format_id,
-            int tmpFlag,
-            TxnOperationFactory operationFactory,
-            PartitionFactory partitionFactory) throws StandardException{
+                          Transaction rawtran,
+                          long input_containerid,
+                          DataValueDescriptor[] template,
+                          ColumnOrdering[] columnOrder,
+                          int[] collationIds,
+                          Properties properties,
+                          int conglom_format_id,
+                          int tmpFlag,
+                          TxnOperationFactory operationFactory,
+                          PartitionFactory partitionFactory) throws StandardException{
         super.create(isExternal,rawtran,
                 input_containerid,
                 template,
@@ -95,7 +96,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
                 properties.getProperty(SIConstants.SCHEMA_DISPLAY_NAME_ATTR),
                 properties.getProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR),
                 properties.getProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR),
-                pSize);
+                pSize,new ValueRow(template));
     }
 
     @Override
@@ -243,7 +244,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
                                        DynamicCompiledOpenConglomInfo dynamic_info) throws StandardException{
         SpliceLogUtils.trace(LOG,"open conglomerate id: %d",containerId);
         OpenSpliceConglomerate open_conglom=new OpenSpliceConglomerate(xact_manager,rawtran,hold,static_info,dynamic_info,this);
-        return new HBaseController(open_conglom,rawtran,partitionFactory,opFactory);
+        return new HBaseController(open_conglom,rawtran,partitionFactory,opFactory,SIDriver.driver().baseOperationFactory());
     }
 
     /**
@@ -274,7 +275,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
             throw StandardException.newException(SQLState.HEAP_UNIMPLEMENTED_FEATURE);
         OpenSpliceConglomerate open_conglom=new OpenSpliceConglomerate(xact_manager,rawtran,hold,static_info,dynamic_info,this);
         return new SpliceScan(open_conglom,scanColumnList,startKeyValue,startSearchOperator,
-                qualifier,stopKeyValue,stopSearchOperator,rawtran,false,opFactory,partitionFactory);
+                qualifier,stopKeyValue,stopSearchOperator,rawtran,false,opFactory,partitionFactory,SIDriver.driver().baseOperationFactory());
     }
 
     public void purgeConglomerate(TransactionManager xact_manager,Transaction rawtran) throws StandardException{
@@ -388,7 +389,12 @@ public class HBaseConglomerate extends SpliceConglomerate{
 
     @Override
     public StructField getStructField(String columnName) {
-        throw new RuntimeException("Not Implemented");
+        throw new UnsupportedOperationException("Not Implemented");
+    }
+
+    @Override
+    public Object getHiveObject() throws StandardException {
+        throw new UnsupportedOperationException("Not Implemented");
     }
 
 }

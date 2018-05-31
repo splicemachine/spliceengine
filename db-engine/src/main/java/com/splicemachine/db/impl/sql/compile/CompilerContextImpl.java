@@ -214,6 +214,7 @@ public class CompilerContextImpl extends ContextImpl
 	public void setProjectionPruningEnabled(boolean onOff) {
 		projectionPruningEnabled = onOff;
 	}
+
 	/**
 	 * Get the current next subquery number from this CompilerContext.
 	 *

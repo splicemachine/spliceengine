@@ -17,6 +17,29 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.db.catalog.IndexDescriptor;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
+import com.splicemachine.derby.stream.function.FileFunction;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.utils.FormatableBitSetUtils;
+import com.splicemachine.derby.utils.marshall.BareKeyHash;
+import com.splicemachine.derby.utils.marshall.DataHash;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnLifecycleManager;
+import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.utils.IntArrays;
+import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -638,7 +661,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             //
             if(!alreadyHaveConglomDescriptor){
                 long indexCId=createConglomerateDescriptor(dd,userTransaction,sd,td,indexRowGenerator,ddg);
-                createAndPopulateIndex(activation,userTransaction,td,indexCId,heapConglomerateId,indexRowGenerator,defaultValue, defaultRow);
+                createAndPopulateIndex(activation,userTransaction,td,indexCId,heapConglomerateId,indexRowGenerator,defaultValue, defaultRow, compactBaseRow);
             }
         }catch (Throwable t) {
             throw Exceptions.parseException(t);
@@ -801,9 +824,10 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                                         TableDescriptor td,
                                         long indexConglomId,
                                         long heapConglomerateId,
-                                        IndexDescriptor indexDescriptor,
+                                        IndexRowGenerator indexDescriptor,
                                         DataValueDescriptor defaultValue,
-                                        ExecRow defaultRow) throws StandardException, IOException {
+                                        ExecRow defaultRow,
+                                        ExecRow compactBaseRow) throws StandardException, IOException {
         /*
          * Manages the Create and Populate index phases
          */
@@ -826,31 +850,25 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                 td.getHeapConglomerateId(), indexConglomId, td, indexDescriptor, defaultValue);
         if (preSplit && !sampling) {
             splitIndex(indexDescriptor, splitKeyPath, columnDelimiter, characterDelimiter,
-                    timestampFormat, dateFormat, timeFormat, ddlChange.getTentativeIndex(), td, activation);
+                    timestampFormat, dateFormat, timeFormat, ddlChange.getTentativeIndex(), td, activation, compactBaseRow);
         }
         String changeId = DDLUtils.notifyMetadataChange(ddlChange);
         tc.prepareDataDictionaryChange(changeId);
         Txn indexTransaction = DDLUtils.getIndexTransaction(tc, tentativeTransaction, td.getHeapConglomerateId(),indexName);
         populateIndex(td, activation, indexTransaction, tentativeTransaction.getCommitTimestamp(),
-                ddlChange.getTentativeIndex(), indexDescriptor, preSplit, sampling, splitKeyPath, hfilePath,
+                ddlChange.getTentativeIndex(), indexDescriptor, compactBaseRow, preSplit, sampling, splitKeyPath, hfilePath,
                 columnDelimiter, characterDelimiter, timestampFormat, dateFormat, timeFormat, defaultRow);
         indexTransaction.commit();
     }
 
     private void splitIndex(IndexDescriptor indexDescriptor, String splitKeyPath, String columnDelimiter,
                             String characterDelimiter, String timestampFormat, String dateTimeFormat, String timeFormat,
-                            DDLMessage.TentativeIndex tentativeIndex, TableDescriptor td, Activation activation) throws IOException, StandardException {
+                            DDLMessage.TentativeIndex tentativeIndex, TableDescriptor td, Activation activation, ExecRow execRow) throws IOException, StandardException {
 
         List<Integer> indexCols = tentativeIndex.getIndex().getIndexColsToMainColMapList();
-        List<Integer> allFormatIds = tentativeIndex.getTable().getFormatIdsList();
-        int[] indexFormatIds = new int[indexCols.size()];
-        for (int i = 0; i < indexCols.size(); ++i) {
-            indexFormatIds[i] = allFormatIds.get(indexCols.get(i)-1);
-        }
         DataSetProcessor dsp = EngineDriver.driver().processorFactory().localProcessor(null,null);
         DataSet<String> text = dsp.readTextFile(splitKeyPath);
-        OperationContext operationContext = dsp.createOperationContext(activation);
-        ExecRow execRow = WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds);
+        OperationContext operationContext = dsp.createOperationContext((Activation)null);
         DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
                 null, timeFormat, dateTimeFormat, timestampFormat, operationContext), true);
         List<ExecRow> rows = dataSet.collect();

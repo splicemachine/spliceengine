@@ -19,10 +19,8 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
@@ -30,7 +28,6 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.DataSetWriter;
-import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -44,12 +41,10 @@ import java.io.IOException;
  */
 public class UpdateOperation extends DMLWriteOperation{
     private static final Logger LOG=Logger.getLogger(UpdateOperation.class);
-    private DataValueDescriptor[] kdvds;
     public int[] colPositionMap;
     public FormatableBitSet heapList; // 1-based
     public FormatableBitSet heapListStorage; // 1-based
     protected int[] columnOrdering;
-    protected int[] format_ids;
 
     protected static final String NAME=UpdateOperation.class.getSimpleName().replaceAll("Operation","");
 
@@ -82,12 +77,7 @@ public class UpdateOperation extends DMLWriteOperation{
         pkCols=writeInfo.getPkColumnMap();
         pkColumns=writeInfo.getPkColumns();
         SpliceConglomerate conglomerate=(SpliceConglomerate)((SpliceTransactionManager)activation.getTransactionController()).findConglomerate(heapConglom);
-        format_ids=conglomerate.getFormat_ids();
         columnOrdering=conglomerate.getColumnOrdering();
-        kdvds=new DataValueDescriptor[columnOrdering.length];
-        for(int i=0;i<columnOrdering.length;++i){
-            kdvds[i]=LazyDataValueFactory.getLazyNull(format_ids[columnOrdering[i]]);
-        }
     }
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
@@ -159,6 +149,7 @@ public class UpdateOperation extends DMLWriteOperation{
         return heapListStorage;
     }
 
+
     @Override
     public String toString(){
         return "Update{destTable="+heapConglom+",source="+source+"}";
@@ -170,18 +161,14 @@ public class UpdateOperation extends DMLWriteOperation{
         DataSet set=source.getDataSet(dsp);
         OperationContext operationContext=dsp.createOperationContext(this);
         TxnView txn=getCurrentTransaction();
-        ExecRow execRow=getExecRowDefinition();
-        int[] execRowTypeFormatIds=WriteReadUtils.getExecRowTypeFormatIds(execRow);
         operationContext.pushScope();
         try{
             DataSetWriter writer=set.updateData(operationContext)
-                    .execRowDefinition(execRow)
-                    .execRowTypeFormatIds(execRowTypeFormatIds)
                     .pkCols(pkCols==null?new int[0]:pkCols)
                     .pkColumns(pkColumns)
-                    .formatIds(format_ids)
                     .columnOrdering(columnOrdering==null?new int[0]:columnOrdering)
                     .heapList(getHeapListStorage())
+                    .execRow(getEmptyExecRow())
                     .tableVersion(tableVersion)
                     .destConglomerate(heapConglom)
                     .operationContext(operationContext)

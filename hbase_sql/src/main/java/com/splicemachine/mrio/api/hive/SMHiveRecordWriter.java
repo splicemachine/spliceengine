@@ -140,8 +140,8 @@ public class SMHiveRecordWriter implements RecordWriter<RowLocationWritable, Exe
             long childTxsID = util.getChildTransactionID(conn, parentTxnID, tableName);
             // Assume default additivity and isolation levels. In the future if we want different isolation levels
             // we would need to pass in the whole transaction chain in the conf to this writer.
-            parentTxn = new ActiveWriteTxn(parentTxnID, parentTxnID, Txn.ROOT_TRANSACTION, Txn.ROOT_TRANSACTION.isAdditive(), Txn.ROOT_TRANSACTION.getIsolationLevel());
-            childTxn = new ActiveWriteTxn(childTxsID,childTxsID,parentTxn,parentTxn.isAdditive(),parentTxn.getIsolationLevel());
+            parentTxn = new ActiveWriteTxn(parentTxnID, parentTxnID, Txn.ROOT_TRANSACTION, Txn.ROOT_TRANSACTION.isAdditive(), Txn.ROOT_TRANSACTION.getIsolationLevel(),null);
+            childTxn = new ActiveWriteTxn(childTxsID,childTxsID,parentTxn,parentTxn.isAdditive(),parentTxn.getIsolationLevel(),null);
             activation = util.getActivation(createVTIStatement(tableName), childTxn);
         } catch (Exception e) {
             throw new RuntimeException(e);

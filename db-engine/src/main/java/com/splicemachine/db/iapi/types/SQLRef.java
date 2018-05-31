@@ -360,7 +360,6 @@ public class SQLRef extends DataType implements RefDataValue {
 		value.read(row,ordinal);
 	}
 
-
 	@Override
 	public StructField getStructField(String columnName) {
 		return DataTypes.createStructField(columnName, DataTypes.BinaryType, true);
@@ -388,4 +387,14 @@ public class SQLRef extends DataType implements RefDataValue {
 		return value.getSparkObject();
 	}
 
+	@Override
+	public boolean isVariableLength() {
+		return true;
+	}
+
+
+	@Override
+	public Object getHiveObject() throws StandardException {
+		return isNull()?null:getObject();
+	}
 }

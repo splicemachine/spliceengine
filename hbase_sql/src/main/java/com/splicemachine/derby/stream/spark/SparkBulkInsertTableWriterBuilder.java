@@ -93,7 +93,7 @@ public class SparkBulkInsertTableWriterBuilder<K, V>
     @Override
     public DataSetWriter build() {
         return new BulkInsertDataSetWriter(dataSet, tableVersion, pkCols, autoIncrementRowLocationArray, heapConglom,
-                execRowDefinition, spliceSequences, operationContext, txn, bulkImportDirectory, samplingOnly, outputKeysOnly,
+                execRow, spliceSequences, operationContext, txn, bulkImportDirectory, samplingOnly, outputKeysOnly,
                 skipSampling, indexName);
     }
 }

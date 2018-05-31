@@ -1,31 +1,42 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This file is part of Splice Machine.
- * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
- * GNU Affero General Public License as published by the Free Software Foundation, either
- * version 3, or (at your option) any later version.
- * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
- * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU Affero General Public License for more details.
- * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
- * If not, see <http://www.gnu.org/licenses/>.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.splicemachine.orc;
 
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.orc.block.*;
+import com.splicemachine.orc.OrcWriteValidation.WriteChecksum;
+import com.splicemachine.orc.OrcWriteValidation.WriteChecksumBuilder;
+import com.splicemachine.orc.block.ColumnBlock;
+import com.splicemachine.orc.block.LazyColumnBlock;
+import com.splicemachine.orc.block.LazyIncludedColumnBlockLoaderImpl;
+import com.splicemachine.orc.block.LazyPartitionColumnBlockLoaderImpl;
 import com.splicemachine.orc.memory.AbstractAggregatedMemoryContext;
 import com.splicemachine.orc.memory.AggregatedMemoryContext;
-import com.splicemachine.orc.metadata.*;
+import com.splicemachine.orc.metadata.ColumnEncoding;
+import com.splicemachine.orc.metadata.MetadataReader;
+import com.splicemachine.orc.metadata.OrcType;
 import com.splicemachine.orc.metadata.OrcType.OrcTypeKind;
 import com.splicemachine.orc.metadata.PostScript.HiveWriterVersion;
+import com.splicemachine.orc.metadata.StripeInformation;
+import com.splicemachine.orc.metadata.statistics.ColumnStatistics;
+import com.splicemachine.orc.metadata.statistics.StripeStatistics;
 import com.splicemachine.orc.reader.StreamReader;
 import com.splicemachine.orc.reader.StreamReaders;
 import com.splicemachine.orc.stream.StreamSources;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
@@ -37,30 +48,40 @@ import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.joda.time.DateTimeZone;
+
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
+
 import static com.splicemachine.orc.OrcDataSourceUtils.mergeAdjacentDiskRanges;
 import static com.splicemachine.orc.OrcReader.MAX_BATCH_SIZE;
 import static com.splicemachine.orc.OrcRecordReader.LinearProbeRangeFinder.createTinyStripesRangeFinder;
+import static com.splicemachine.orc.OrcWriteValidation.WriteChecksumBuilder.createWriteChecksumBuilder;
 import static com.google.common.base.Preconditions.checkArgument;
-import static java.lang.Math.toIntExact;
+import static java.lang.Math.*;
 import static java.util.Comparator.comparingLong;
 import static java.util.Objects.requireNonNull;
-import static java.lang.Math.min;
 
 public class OrcRecordReader
+        implements Closeable
 {
+    public static boolean allowCaching = true;
     private final OrcDataSource orcDataSource;
 
     private final StreamReader[] streamReaders;
+    private final long[] maxBytesPerCell;
+    private long maxCombinedBytesPerRow;
 
     private final long totalRowCount;
     private final long splitLength;
     private final Set<Integer> presentColumns;
+    private final long maxBlockBytes;
+    private final Map<Integer, DataType> includedColumns;
     private long currentPosition;
     private long currentStripePosition;
     private int currentBatchSize;
+    private int maxBatchSize = MAX_BATCH_SIZE;
 
     private final List<StripeInformation> stripes;
     private final StripeReader stripeReader;
@@ -74,9 +95,14 @@ public class OrcRecordReader
     private Iterator<RowGroup> rowGroups = ImmutableList.<RowGroup>of().iterator();
     private long currentGroupRowCount;
     private long nextRowInGroup;
+
     private final Map<String, Slice> userMetadata;
+
     private final AbstractAggregatedMemoryContext systemMemoryUsage;
-    protected Map<Integer, DataType> includedColumns;
+
+    private final Optional<OrcWriteValidation> writeValidation;
+    private final Optional<WriteChecksumBuilder> writeChecksumBuilder;
+
     protected List<String> partitionValues;
     protected List<Integer> partitionIds;
 
@@ -91,16 +117,17 @@ public class OrcRecordReader
             long splitOffset,
             long splitLength,
             List<OrcType> types,
-            CompressionKind compressionKind,
-            int bufferSize,
+            Optional<OrcDecompressor> decompressor,
             int rowsInRowGroup,
             DateTimeZone hiveStorageTimeZone,
             HiveWriterVersion hiveWriterVersion,
             MetadataReader metadataReader,
             DataSize maxMergeDistance,
             DataSize maxReadSize,
+            DataSize maxBlockSize,
             Map<String, Slice> userMetadata,
             AbstractAggregatedMemoryContext systemMemoryUsage,
+            Optional<OrcWriteValidation> writeValidation,
             List<Integer> partitionIds,
             List<String> partitionValues)
             throws IOException
@@ -111,22 +138,18 @@ public class OrcRecordReader
         requireNonNull(stripeStats, "stripeStats is null");
         requireNonNull(orcDataSource, "orcDataSource is null");
         requireNonNull(types, "types is null");
-        requireNonNull(compressionKind, "compressionKind is null");
+        requireNonNull(decompressor, "decompressor is null");
         requireNonNull(hiveStorageTimeZone, "hiveStorageTimeZone is null");
         requireNonNull(userMetadata, "userMetadata is null");
 
-        // Place to add static values?
-
-        // Adding All Included Columns
-        this.includedColumns = includedColumns;
-
+        this.includedColumns = requireNonNull(includedColumns, "includedColumns is null");
+        this.writeValidation = requireNonNull(writeValidation, "writeValidation is null");
+        this.writeChecksumBuilder = writeValidation.map(validation -> createWriteChecksumBuilder(includedColumns));
         this.partitionValues = partitionValues;
         this.partitionIds = partitionIds;
-
         // reduce the included columns to the set that is also present
-        presentColumns = new TreeSet<>();
-        Map<Integer, DataType> presentColumnsAndTypes = new TreeMap();
-
+        ImmutableSet.Builder<Integer> presentColumns = ImmutableSet.builder();
+        ImmutableMap.Builder<Integer, DataType> presentColumnsAndTypes = ImmutableMap.builder();
         OrcType root = types.get(0);
         int partitionDecrement = 0;
         for (Map.Entry<Integer, DataType> entry : includedColumns.entrySet()) {
@@ -139,6 +162,9 @@ public class OrcRecordReader
             presentColumnsAndTypes.put(entry.getKey()-partitionDecrement, entry.getValue());
 
         }
+        this.presentColumns = presentColumns.build();
+
+        this.maxBlockBytes = requireNonNull(maxBlockSize, "maxBlockSize is null").toBytes();
 
         // it is possible that old versions of orc use 0 to mean there are no row groups
         checkArgument(rowsInRowGroup > 0, "rowsInRowGroup must be greater than zero");
@@ -159,7 +185,7 @@ public class OrcRecordReader
         long fileRowCount = 0;
         ImmutableList.Builder<StripeInformation> stripes = ImmutableList.builder();
         ImmutableList.Builder<Long> stripeFilePositions = ImmutableList.builder();
-        if (predicate.matches(numberOfRows, getStatisticsByColumnOrdinal(root, partitionIds, fileStats))) {
+        if (predicate.matches(numberOfRows, getStatisticsByColumnOrdinal(root, partitionIds,fileStats))) {
             // select stripes that start within the specified split
             for (StripeInfo info : stripeInfos) {
                 StripeInformation stripe = info.getStripe();
@@ -191,16 +217,17 @@ public class OrcRecordReader
 
         stripeReader = new StripeReader(
                 orcDataSource,
-                compressionKind,
+                decompressor,
                 types,
-                bufferSize,
                 this.presentColumns,
                 rowsInRowGroup,
                 predicate,
                 hiveWriterVersion,
-                metadataReader);
+                metadataReader,
+                writeValidation);
 
-        streamReaders = createStreamReaders(orcDataSource, types, hiveStorageTimeZone, presentColumnsAndTypes, partitionIds);
+        streamReaders = createStreamReaders(orcDataSource, types, hiveStorageTimeZone, presentColumnsAndTypes.build());
+        maxBytesPerCell = new long[streamReaders.length];
     }
 
     private static boolean splitContainsStripe(long splitOffset, long splitLength, StripeInformation stripe)
@@ -226,6 +253,8 @@ public class OrcRecordReader
     @VisibleForTesting
     static OrcDataSource wrapWithCacheIfTinyStripes(OrcDataSource dataSource, List<StripeInformation> stripes, DataSize maxMergeDistance, DataSize maxReadSize)
     {
+        if (!allowCaching)
+            return dataSource;
         if (dataSource instanceof CachingOrcDataSource) {
             return dataSource;
         }
@@ -286,10 +315,31 @@ public class OrcRecordReader
         return splitLength;
     }
 
+    /**
+     * Returns the sum of the largest cells in size from each column
+     */
+    public long getMaxCombinedBytesPerRow()
+    {
+        return maxCombinedBytesPerRow;
+    }
+
+    @Override
     public void close()
             throws IOException
     {
         orcDataSource.close();
+
+        if (writeChecksumBuilder.isPresent()) {
+            WriteChecksum actualChecksum = writeChecksumBuilder.get().build();
+            validateWrite(validation -> validation.getChecksum().getTotalRowCount() == actualChecksum.getTotalRowCount(), "Invalid row count");
+            List<Long> columnHashes = actualChecksum.getColumnHashes();
+            for (int i = 0; i < columnHashes.size(); i++) {
+                int columnIndex = i;
+                validateWrite(validation -> validation.getChecksum().getColumnHashes().get(columnIndex).equals(columnHashes.get(columnIndex)),
+                        "Invalid checksum for column %s", columnIndex);
+            }
+            validateWrite(validation -> validation.getChecksum().getStripeHash() == actualChecksum.getStripeHash(), "Invalid stripes checksum");
+        }
     }
 
     public boolean isColumnPresent(int hiveColumnIndex)
@@ -314,7 +364,7 @@ public class OrcRecordReader
             }
         }
 
-        currentBatchSize = toIntExact(min(MAX_BATCH_SIZE, currentGroupRowCount - nextRowInGroup));
+        currentBatchSize = toIntExact(min(maxBatchSize, currentGroupRowCount - nextRowInGroup));
 
         for (StreamReader column : streamReaders) {
             if (column != null) {
@@ -322,13 +372,23 @@ public class OrcRecordReader
             }
         }
         nextRowInGroup += currentBatchSize;
+        validateWritePageChecksum();
         return currentBatchSize;
     }
 
     public ColumnVector readBlock(DataType type, int columnIndex)
             throws IOException
     {
-        return streamReaders[columnIndex].readBlock(type);
+        ColumnVector block = streamReaders[columnIndex].readBlock(type);
+        if (block.getElementsAppended() > 0) {
+            long bytesPerCell = 1000 / block.getElementsAppended(); // TODO JL
+            if (maxBytesPerCell[columnIndex] < bytesPerCell) {
+                maxCombinedBytesPerRow = maxCombinedBytesPerRow - maxBytesPerCell[columnIndex] + bytesPerCell;
+                maxBytesPerCell[columnIndex] = bytesPerCell;
+                maxBatchSize = toIntExact(min(maxBatchSize, max(1, maxBlockBytes / maxCombinedBytesPerRow)));
+            }
+        }
+        return block;
     }
 
     public ColumnarBatch getColumnarBatch(StructType schema) throws IOException {
@@ -374,6 +434,7 @@ public class OrcRecordReader
         return columnarBatch;
     }
 
+
     public StreamReader getStreamReader(int index)
     {
         checkArgument(index < streamReaders.length, "index does not exist");
@@ -401,6 +462,9 @@ public class OrcRecordReader
 
         RowGroup currentRowGroup = rowGroups.next();
         currentGroupRowCount = currentRowGroup.getRowCount();
+        if (currentRowGroup.getMinAverageRowBytes() > 0) {
+            maxBatchSize = toIntExact(min(maxBatchSize, max(1, maxBlockBytes / currentRowGroup.getMinAverageRowBytes())));
+        }
 
         currentPosition = currentStripePosition + currentRowGroup.getRowOffset();
         filePosition = stripeFilePositions.get(currentStripe) + currentRowGroup.getRowOffset();
@@ -433,6 +497,7 @@ public class OrcRecordReader
         }
 
         StripeInformation stripeInformation = stripes.get(currentStripe);
+        validateWriteStripe(stripeInformation.getNumberOfRows());
 
         Stripe stripe = stripeReader.readStripe(stripeInformation, currentStripeSystemMemoryContext);
         if (stripe != null) {
@@ -449,45 +514,50 @@ public class OrcRecordReader
         }
     }
 
-    private static StreamReader[] createStreamReaders(OrcDataSource orcDataSource,
+    private void validateWrite(Predicate<OrcWriteValidation> test, String messageFormat, Object... args)
+            throws OrcCorruptionException
+    {
+        if (writeValidation.isPresent() && !test.apply(writeValidation.get())) {
+            throw new OrcCorruptionException(orcDataSource.getId(), "Write validation failed: " + messageFormat, args);
+        }
+    }
+
+    private void validateWriteStripe(int rowCount)
+            throws IOException
+    {
+        if (writeChecksumBuilder.isPresent()) {
+            writeChecksumBuilder.get().addStripe(rowCount);
+        }
+    }
+
+    private void validateWritePageChecksum()
+            throws IOException
+    {
+        if (writeChecksumBuilder.isPresent()) {
+            ColumnVector[] blocks = new ColumnVector[streamReaders.length];
+            for (int columnIndex = 0; columnIndex < streamReaders.length; columnIndex++) {
+                blocks[columnIndex] = readBlock(includedColumns.get(columnIndex), columnIndex);
+            }
+//            writeChecksumBuilder.get().addPage(new Page(currentBatchSize, blocks)); TODO JL PAGE?
+        }
+    }
+
+    private static StreamReader[] createStreamReaders(
+            OrcDataSource orcDataSource,
             List<OrcType> types,
             DateTimeZone hiveStorageTimeZone,
-            Map<Integer, DataType> includedColumns,
-            List<Integer> partitionIds)
+            Map<Integer, DataType> includedColumns)
     {
-        // create streamReaders with a size = table's total columns
-        // only fill indexes which are selected, non-partitioned columns
-        // doing this makes getColumnarBatch()'s job a lot easier
-        int numPartitions = partitionIds.size();
         List<StreamDescriptor> streamDescriptors = createStreamDescriptor("", "", 0, types, orcDataSource).getNestedStreams();
+
         OrcType rowType = types.get(0);
-        int totalColumns = rowType.getFieldCount() + numPartitions;
-        StreamReader[] streamReaders = new StreamReader[totalColumns];
-
-        int lastColumn = 0;
-        for (Integer i : includedColumns.keySet()){
-            if (i > lastColumn){
-                lastColumn = i;
+        StreamReader[] streamReaders = new StreamReader[rowType.getFieldCount()];
+        for (int columnId = 0; columnId < rowType.getFieldCount(); columnId++) {
+            if (includedColumns.containsKey(columnId)) {
+                StreamDescriptor streamDescriptor = streamDescriptors.get(columnId);
+                streamReaders[columnId] = StreamReaders.createStreamReader(streamDescriptor, hiveStorageTimeZone);
             }
         }
-        int streamDescrIndex = 0;
-
-        for (int col = 0; col <= lastColumn; col++) {
-            if (includedColumns.containsKey(col)){
-                if (partitionIds.contains(col)) {
-                    // do nothing
-                } else {
-                    StreamDescriptor streamDescriptor = streamDescriptors.get(streamDescrIndex);
-                    streamReaders[col] = StreamReaders.createStreamReader(streamDescriptor, hiveStorageTimeZone);
-                    streamDescrIndex++;
-                }
-            } else {
-                if (!partitionIds.contains(col)){
-                    streamDescrIndex++;
-                }
-            }
-        }
-
         return streamReaders;
     }
 
@@ -537,6 +607,7 @@ public class OrcRecordReader
         }
         return statistics.build();
     }
+
 
     private static class StripeInfo
     {
@@ -589,7 +660,7 @@ public class OrcRecordReader
 
         public static LinearProbeRangeFinder createTinyStripesRangeFinder(List<StripeInformation> stripes, DataSize maxMergeDistance, DataSize maxReadSize)
         {
-            if (stripes.isEmpty()) {
+            if (stripes.size() == 0) {
                 return new LinearProbeRangeFinder(ImmutableList.of());
             }
 
@@ -602,135 +673,8 @@ public class OrcRecordReader
         }
     }
 
-
-
-    /**
-     * Process the qualifier list on the row, return true if it qualifies.
-     * <p>
-     * A two dimensional array is to be used to pass around a AND's and OR's in
-     * conjunctive normal form.  The top slot of the 2 dimensional array is
-     * optimized for the more frequent where no OR's are present.  The first
-     * array slot is always a list of AND's to be treated as described above
-     * for single dimensional AND qualifier arrays.  The subsequent slots are
-     * to be treated as AND'd arrays or OR's.  Thus the 2 dimensional array
-     * qual[][] argument is to be treated as the following, note if
-     * qual.length = 1 then only the first array is valid and it is and an
-     * array of and clauses:
-     *
-     * (qual[0][0] and qual[0][0] ... and qual[0][qual[0].length - 1])
-     * and
-     * (qual[1][0] or  qual[1][1] ... or  qual[1][qual[1].length - 1])
-     * and
-     * (qual[2][0] or  qual[2][1] ... or  qual[2][qual[2].length - 1])
-     * ...
-     * and
-     * (qual[qual.length - 1][0] or  qual[1][1] ... or  qual[1][2])
-     *
-     *
-     * @return true if the row qualifies.
-     *
-     * @param row               The row being qualified.
-     * @param qual_list         2 dimensional array representing conjunctive
-     *                          normal form of simple qualifiers.
-     *
-     * @exception StandardException  Standard exception policy.
-     **/
-    /*
-    public static BitSet qualifyBlocks(
-            ColumnBlock[]        columnBlocks,
-            Qualifier[][]   qual_list,
-            int[] baseColumnMap,
-            DataValueDescriptor probeValue)
-            throws StandardException {
-        assert columnBlocks!=null:"row passed in is null";
-        assert qual_list!=null:"qualifier[][] passed in is null";
-        boolean     row_qualifies = true;
-        for (int i = 0; i < qual_list[0].length; i++) {
-            // process each AND clause
-            row_qualifies = false;
-            // process each OR clause.
-            Qualifier q = qual_list[0][i];
-            q.clearOrderableCache();
-            // Get the column from the possibly partial row, of the
-            // q.getColumnId()'th column in the full row.
-            DataValueDescriptor columnValue =
-                    (DataValueDescriptor) row[baseColumnMap!=null?baseColumnMap[q.getStoragePosition()]:q.getStoragePosition()];
-            if ( filterNull(q.getOperator(),columnValue,probeValue==null || i!=0?q.getOrderable():probeValue,q.getVariantType())) {
-                return false;
-            }
-            row_qualifies =
-                    columnValue.compare(
-                            q.getOperator(),
-                            probeValue==null || i!=0?q.getOrderable():probeValue,
-                            q.getOrderedNulls(),
-                            q.getUnknownRV());
-            if (q.negateCompareResult())
-                row_qualifies = !row_qualifies;
-//            System.out.println(String.format("And Clause -> value={%s}, operator={%s}, orderable={%s}, " +
-//                    "orderedNulls={%s}, unknownRV={%s}",
-//                    columnValue, q.getOperator(),q.getOrderable(),q.getOrderedNulls(),q.getUnknownRV()));
-            // Once an AND fails the whole Qualification fails - do a return!
-            if (!row_qualifies)
-                return(false);
-        }
-
-        // all the qual[0] and terms passed, now process the OR clauses
-        for (int and_idx = 1; and_idx < qual_list.length; and_idx++) {
-            // loop through each of the "and" clause.
-            row_qualifies = false;
-            for (int or_idx = 0; or_idx < qual_list[and_idx].length; or_idx++) {
-                // Apply one qualifier to the row.
-                Qualifier q      = qual_list[and_idx][or_idx];
-                q.clearOrderableCache();
-                // Get the column from the possibly partial row, of the
-                // q.getColumnId()'th column in the full row.
-                DataValueDescriptor columnValue =
-                        (DataValueDescriptor) row[baseColumnMap!=null?baseColumnMap[q.getStoragePosition()]:q.getStoragePosition()];
-                // do the compare between the column value and value in the
-                // qualifier.
-                if ( filterNull(q.getOperator(),columnValue,q.getOrderable(),q.getVariantType())) {
-                    return false;
-                }
-                row_qualifies =
-                        columnValue.compare(
-                                q.getOperator(),
-                                q.getOrderable(),
-                                q.getOrderedNulls(),
-                                q.getUnknownRV());
-
-                if (q.negateCompareResult())
-                    row_qualifies = !row_qualifies;
-                // processing "OR" clauses, so as soon as one is true, break
-                // to go and process next AND clause.
-                if (row_qualifies)
-                    break;
-
-            }
-
-            // The qualifier list represented a set of "AND'd"
-            // qualifications so as soon as one is false processing is done.
-            if (!row_qualifies)
-                break;
-        }
-        return(row_qualifies);
+    public int getCurrentBatchSize() {
+        return currentBatchSize;
     }
 
-    public static boolean filterNull(int operator, DataValueDescriptor columnValue, DataValueDescriptor orderable, int variantType) {
-        if (orderable==null||orderable.isNull()) {
-            switch (operator) {
-                case com.splicemachine.db.iapi.types.DataType.ORDER_OP_LESSTHAN:
-                case com.splicemachine.db.iapi.types.DataType.ORDER_OP_LESSOREQUALS:
-                case com.splicemachine.db.iapi.types.DataType.ORDER_OP_GREATERTHAN:
-                case com.splicemachine.db.iapi.types.DataType.ORDER_OP_GREATEROREQUALS:
-                    return true;
-                case com.splicemachine.db.iapi.types.DataType.ORDER_OP_EQUALS:
-                    if (variantType != 1)
-                        return true;
-//                    if (columnValue == null || columnValue.isNull())
-//                            return true;
-                    return false;
-            }
-        }
-        return false;
-    }*/
 }

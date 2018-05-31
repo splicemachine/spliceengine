@@ -32,33 +32,29 @@
 package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
-
 import com.splicemachine.db.iapi.reference.SQLState;
-
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.io.Storable;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
 import com.splicemachine.db.iapi.services.cache.ClassSize;
-
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
-
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.Decimal;
 import org.apache.spark.sql.types.StructField;
 
 /**
@@ -906,6 +902,18 @@ public final class SQLLongint extends NumberDataType {
 		return isNull ? null : BigDecimal.valueOf(value);
 	}
 
+	public Decimal getDecimal() {
+		return isNull ? null : Decimal.apply(value);
+	}
+
+	@Override
+	public void setDecimal(Decimal decimal) throws StandardException {
+		if (decimal == null)
+			setToNull();
+		else
+			value = decimal.toLong();
+	}
+
 	@Override
 	public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) {
 		if (isNull())
@@ -988,5 +996,9 @@ public final class SQLLongint extends NumberDataType {
 		}
 	}
 
+	@Override
+	public Object getHiveObject() throws StandardException {
+		return isNull()?null:new LongWritable(	value);
+	}
 
 }

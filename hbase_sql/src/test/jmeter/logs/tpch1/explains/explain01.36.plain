@@ -1,0 +1,8 @@
+Plan
+Cursor(n=7,rows=2,updateMode=READ_ONLY (1),engine=Spark)
+  ->  ScrollInsensitive(n=6,totalCost=7627.582,outputRows=2,outputHeapSize=76 B,partitions=36)
+    ->  OrderBy(n=5,totalCost=7627.561,outputRows=2,outputHeapSize=76 B,partitions=36)
+      ->  ProjectRestrict(n=4,totalCost=7421.403,outputRows=1980401,outputHeapSize=76 B,partitions=36)
+        ->  GroupBy(n=3,totalCost=6665.349,outputRows=1980401,outputHeapSize=72.713 MB,partitions=36)
+          ->  ProjectRestrict(n=2,totalCost=6665.349,outputRows=1980401,outputHeapSize=72.713 MB,partitions=36)
+            ->  TableScan[LINEITEM(1600)](n=1,totalCost=6665.349,outputRows=1980401,outputHeapSize=72.713 MB,partitions=36,preds=[(L_SHIPDATE[0:7] <= date(TIMESTAMPADD(1998-12-01 00:00:00.0, 4, -90)))])

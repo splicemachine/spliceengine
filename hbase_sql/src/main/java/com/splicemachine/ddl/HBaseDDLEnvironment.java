@@ -65,7 +65,7 @@ public class HBaseDDLEnvironment implements DDLEnvironment{
         Clock clock= SIDriver.driver().getClock();
         this.ddlController = new AsynchronousDDLController(communicator,lf,clock,config);
         SIDriver driver=SIDriver.driver();
-        TransactionReadController txnController=driver.readController();
+        TransactionReadController txnController=driver.getSiReadController();
         this.watcher = new AsynchronousDDLWatcher(txnController,
                 clock,
                 config,

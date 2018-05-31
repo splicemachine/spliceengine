@@ -15,6 +15,7 @@
 package com.splicemachine.pipeline.callbuffer;
 
 import com.splicemachine.access.util.ByteComparisons;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
@@ -78,6 +79,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
     private boolean record = true;
     private final Partition table;
     private KVPair lastKvPair;
+    private ExecRow execRow;
 
     public PipingCallBuffer(Partition table,
                             TxnView txn,
@@ -86,7 +88,9 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
                             PreFlushHook preFlushHook,
                             WriteConfiguration writeConfiguration,
                             BufferConfiguration bufferConfiguration,
-                            boolean skipIndexWrites) {
+                            boolean skipIndexWrites,
+                            ExecRow execRow) {
+        assert execRow!=null;
         this.writer = writer;
         this.table = table;
         this.token = token;
@@ -99,6 +103,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
         this.preFlushHook = preFlushHook;
         MetricFactory metricFactory = writeConfiguration!=null? writeConfiguration.getMetricFactory(): Metrics.noOpMetricFactory();
         writeStats = new MergingWriteStats(metricFactory);
+        this.execRow = execRow;
     }
 
     /**
@@ -208,7 +213,8 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
                         writeConfiguration,
                         server,
                         (writer != null ? new RegulatedWriter(writer) : null),
-                        writeStats);
+                        writeStats,
+                        execRow);
                 serverNameToRegionServerCBMap.put(server, regionServerCB);
             }
 

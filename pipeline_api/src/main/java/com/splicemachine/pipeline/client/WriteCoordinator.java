@@ -26,6 +26,7 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.PipelineConfiguration;
 import com.splicemachine.concurrent.Clock;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
@@ -126,29 +127,29 @@ public class WriteCoordinator {
         return defaultWriteConfiguration;
     }
 
-    public RecordingCallBuffer<KVPair> writeBuffer(Partition partition, TxnView txn, byte[] token) {
-        return writeBuffer(partition,txn, token, PipelineUtils.noOpFlushHook);
+    public RecordingCallBuffer<KVPair> writeBuffer(Partition partition, TxnView txn, byte[] token, ExecRow execRow) {
+        return writeBuffer(partition,txn, token, PipelineUtils.noOpFlushHook, execRow);
     }
 
 
-    public RecordingCallBuffer<KVPair> synchronousWriteBuffer(Partition partition, TxnView txn) {
-        return synchronousWriteBuffer(partition, txn, null);
+    public RecordingCallBuffer<KVPair> synchronousWriteBuffer(Partition partition, TxnView txn, ExecRow execRow) {
+        return synchronousWriteBuffer(partition, txn, null, execRow);
     }
-    public RecordingCallBuffer<KVPair> synchronousWriteBuffer(Partition partition, TxnView txn, byte[] token) {
-        return synchronousWriteBuffer(partition,txn, token, PipelineUtils.noOpFlushHook,defaultWriteConfiguration);
-    }
-
-    public RecordingCallBuffer<KVPair> writeBuffer(Partition partition, TxnView txn, byte[] token, PreFlushHook preFlushHook) {
-        return writeBuffer(partition,txn,token, preFlushHook,Metrics.noOpMetricFactory());
+    public RecordingCallBuffer<KVPair> synchronousWriteBuffer(Partition partition, TxnView txn, byte[] token, ExecRow execRow) {
+        return synchronousWriteBuffer(partition,txn, token, PipelineUtils.noOpFlushHook,defaultWriteConfiguration, execRow);
     }
 
-    public RecordingCallBuffer<KVPair> noIndexWriteBuffer(byte[] tableId, TxnView txn, final MetricFactory metricFactory) throws IOException{
+    public RecordingCallBuffer<KVPair> writeBuffer(Partition partition, TxnView txn, byte[] token, PreFlushHook preFlushHook, ExecRow execRow) {
+        return writeBuffer(partition,txn,token, preFlushHook,Metrics.noOpMetricFactory(), execRow);
+    }
+
+    public RecordingCallBuffer<KVPair> noIndexWriteBuffer(byte[] tableId, TxnView txn, final MetricFactory metricFactory, ExecRow execRow) throws IOException{
         PartitionFactory pf = SIDriver.driver().getTableFactory();
         Partition p = pf.getTable(tableId);
-        return noIndexWriteBuffer(p,txn,metricFactory);
+        return noIndexWriteBuffer(p,txn,metricFactory,execRow);
     }
 
-    public RecordingCallBuffer<KVPair> noIndexWriteBuffer(Partition partition, TxnView txn, final MetricFactory metricFactory) {
+    public RecordingCallBuffer<KVPair> noIndexWriteBuffer(Partition partition, TxnView txn, final MetricFactory metricFactory, ExecRow execRow) {
         WriteConfiguration config = defaultWriteConfiguration;
         //if it isn't active, don't bother creating the extra object
         if (metricFactory.isActive()) {
@@ -157,11 +158,11 @@ public class WriteCoordinator {
             };
         }
         monitor.outstandingBuffers.incrementAndGet();
-        return new MonitoredPipingCallBuffer(partition, txn, null, asynchronousWriter, PipelineUtils.noOpFlushHook, config, monitor, true);
+        return new MonitoredPipingCallBuffer(partition, txn, null, asynchronousWriter, PipelineUtils.noOpFlushHook, config, monitor, true, execRow);
    }
 
 
-    public RecordingCallBuffer<KVPair> writeBuffer(Partition partition, TxnView txn, byte[] token, final PreFlushHook preFlushHook,final MetricFactory metricFactory) {
+    public RecordingCallBuffer<KVPair> writeBuffer(Partition partition, TxnView txn, byte[] token, final PreFlushHook preFlushHook,final MetricFactory metricFactory, ExecRow execRow) {
         WriteConfiguration config = defaultWriteConfiguration;
         monitor.outstandingBuffers.incrementAndGet();
         //if it isn't active, don't bother creating the extra object
@@ -170,30 +171,30 @@ public class WriteCoordinator {
                 @Override public MetricFactory getMetricFactory() { return metricFactory; }
             };
         }
-        return writeBuffer(partition, txn, token, preFlushHook,config);
+        return writeBuffer(partition, txn, token, preFlushHook,config,execRow);
     }
 
-    public RecordingCallBuffer<KVPair> writeBuffer(byte[] partition, TxnView txn, byte[] token, PreFlushHook preFlushHook) throws IOException{
-        return writeBuffer(partition, txn, token, preFlushHook, defaultWriteConfiguration,Metrics.noOpMetricFactory());
+    public RecordingCallBuffer<KVPair> writeBuffer(byte[] partition, TxnView txn, byte[] token, PreFlushHook preFlushHook, ExecRow execRow) throws IOException{
+        return writeBuffer(partition, txn, token, preFlushHook, defaultWriteConfiguration,Metrics.noOpMetricFactory(),execRow);
     }
 
-    public RecordingCallBuffer<KVPair> writeBuffer(byte[] partition, TxnView txn, byte[] token, MetricFactory metricsFactory) throws IOException{
-        return writeBuffer(partition, txn, token, PipelineUtils.noOpFlushHook, defaultWriteConfiguration,metricsFactory);
+    public RecordingCallBuffer<KVPair> writeBuffer(byte[] partition, TxnView txn, byte[] token, MetricFactory metricsFactory, ExecRow execRow) throws IOException{
+        return writeBuffer(partition, txn, token, PipelineUtils.noOpFlushHook, defaultWriteConfiguration,metricsFactory,execRow);
     }
 
     public RecordingCallBuffer<KVPair> writeBuffer(byte[] partition,TxnView txn,byte[] token,PreFlushHook noOpFlushHook,
-                                                   WriteConfiguration writeConfig,MetricFactory metricsFactory) throws IOException{
+                                                   WriteConfiguration writeConfig,MetricFactory metricsFactory, ExecRow execRow) throws IOException{
         Partition p =SIDriver.driver().getTableFactory().getTable(partition);
-        return writeBuffer(p,txn,token,noOpFlushHook,writeConfig);
+        return writeBuffer(p,txn,token,noOpFlushHook,writeConfig,execRow);
     }
 
     public RecordingCallBuffer<KVPair> writeBuffer(Partition partition, TxnView txn, byte[] token,
-                                                   PreFlushHook flushHook, WriteConfiguration writeConfiguration) {
+                                                   PreFlushHook flushHook, WriteConfiguration writeConfiguration, ExecRow execRow) {
         monitor.outstandingBuffers.incrementAndGet();
-        return new MonitoredPipingCallBuffer(partition, txn, token, asynchronousWriter, flushHook, writeConfiguration, monitor, false);
+        return new MonitoredPipingCallBuffer(partition, txn, token, asynchronousWriter, flushHook, writeConfiguration, monitor, false, execRow);
     }
 
-    public RecordingCallBuffer<KVPair> writeBuffer(Partition partition, TxnView txn, byte[] token, final int maxEntries) {
+    public RecordingCallBuffer<KVPair> writeBuffer(Partition partition, TxnView txn, byte[] token, final int maxEntries, ExecRow execRow) {
         BufferConfiguration config = new BufferConfiguration() {
             @Override public long getMaxHeapSize() { return Long.MAX_VALUE; }
             @Override public int getMaxEntries() { return maxEntries; }
@@ -201,21 +202,23 @@ public class WriteCoordinator {
             @Override public void writeRejected() { monitor.writeRejected(); }
         };
         monitor.outstandingBuffers.incrementAndGet();
-        return new MonitoredPipingCallBuffer(partition, txn, token, asynchronousWriter, PipelineUtils.noOpFlushHook, defaultWriteConfiguration, config, false);
+        return new MonitoredPipingCallBuffer(partition, txn, token, asynchronousWriter, PipelineUtils.noOpFlushHook, defaultWriteConfiguration, config, false, execRow);
     }
 
     public RecordingCallBuffer<KVPair> synchronousWriteBuffer(Partition partition,
                                                               TxnView txn, byte[] token, PreFlushHook flushHook,
-                                                              WriteConfiguration writeConfiguration) {
+                                                              WriteConfiguration writeConfiguration,
+                                                              ExecRow execRow) {
         monitor.outstandingBuffers.incrementAndGet();
-        return new MonitoredPipingCallBuffer(partition, txn, token, synchronousWriter, flushHook, writeConfiguration, monitor, false);
+        return new MonitoredPipingCallBuffer(partition, txn, token, synchronousWriter, flushHook, writeConfiguration, monitor, false, execRow);
     }
 
     public RecordingCallBuffer<KVPair> synchronousWriteBuffer(Partition partition,
                                                               TxnView txn, byte[] token,
                                                               PreFlushHook flushHook,
                                                               WriteConfiguration writeConfiguration,
-                                                              final int maxEntries) {
+                                                              final int maxEntries,
+                                                              ExecRow execRow) {
         BufferConfiguration config = new BufferConfiguration() {
             @Override public long getMaxHeapSize() { return Long.MAX_VALUE; }
             @Override public int getMaxEntries() { return maxEntries; }
@@ -223,13 +226,13 @@ public class WriteCoordinator {
             @Override public void writeRejected() { monitor.writeRejected(); }
         };
         monitor.outstandingBuffers.incrementAndGet();
-        return new MonitoredPipingCallBuffer(partition, txn, token, synchronousWriter, flushHook, writeConfiguration, config, false);
+        return new MonitoredPipingCallBuffer(partition, txn, token, synchronousWriter, flushHook, writeConfiguration, config, false, execRow);
     }
 
     public PartitionFactory getPartitionFactory(){ return partitionFactory; }
 
-    public RecordingCallBuffer<KVPair> writeBuffer(Partition table,TxnView txn, byte[] token,WriteConfiguration writeConfiguration){
-        return writeBuffer(table,txn,token,PipelineUtils.noOpFlushHook,writeConfiguration);
+    public RecordingCallBuffer<KVPair> writeBuffer(Partition table,TxnView txn, byte[] token,WriteConfiguration writeConfiguration, ExecRow execRow){
+        return writeBuffer(table,txn,token,PipelineUtils.noOpFlushHook,writeConfiguration, execRow);
     }
 
     private class MonitoredPipingCallBuffer extends PipingCallBuffer {
@@ -241,8 +244,9 @@ public class WriteCoordinator {
                                          PreFlushHook preFlushHook,
                                          WriteConfiguration writeConfiguration,
                                          BufferConfiguration bufferConfiguration,
-                                         boolean skipIndexWrites) {
-            super(partition, txn, token, writer, preFlushHook, writeConfiguration, bufferConfiguration, skipIndexWrites);
+                                         boolean skipIndexWrites,
+                                         ExecRow execRow) {
+            super(partition, txn, token, writer, preFlushHook, writeConfiguration, bufferConfiguration, skipIndexWrites, execRow);
         }
 
         @Override

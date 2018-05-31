@@ -146,14 +146,13 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
             operationContext.recordRead();
 
         try {
-            ExecRow returnRow = execRow.getClone();
             if (values == null) {
                 columnnumbermistmatch = true;
                 throw StandardException.newException(SQLState.COLUMN_NUMBER_MISMATCH, execRow.nColumns(), 0);
             }
-            else if (values.size() < returnRow.nColumns()) {
+            else if (values.size() < execRow.nColumns()) {
                 columnnumbermistmatch = true;
-                throw StandardException.newException(SQLState.COLUMN_NUMBER_MISMATCH, returnRow.nColumns(), values.size());
+                throw StandardException.newException(SQLState.COLUMN_NUMBER_MISMATCH, execRow.nColumns(), values.size());
             }
 
             DataTypeDescriptor[] dataTypeDescriptors = null;
@@ -163,10 +162,10 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
                 convertTimestamps = op.isConvertTimestampsEnabled();
             }
 
-            numofColumnsinTable = returnRow.nColumns();
+            numofColumnsinTable = execRow.nColumns();
             numofColumnsinFile = values.size();
-            for (int i = 1; i <= returnRow.nColumns(); i++) {
-                DataValueDescriptor dvd = returnRow.getColumn(i);
+            for (int i = 1; i <= execRow.nColumns(); i++) {
+                DataValueDescriptor dvd = execRow.getColumn(i);
                 columnID = i;
                 int type = dvd.getTypeFormatId();
 
@@ -216,7 +215,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
                         dvd.setValue(value);
                 }
             }
-            return returnRow;
+            return execRow;
         } catch (Exception e) {
             if (operationContext != null && operationContext.isPermissive()) {
                 String extendedMessage;

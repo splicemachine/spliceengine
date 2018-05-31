@@ -50,7 +50,8 @@ import java.sql.SQLException;
 import java.util.Calendar;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
-import org.apache.commons.lang.SerializationUtils;
+import org.apache.commons.lang3.SerializationUtils;
+import org.apache.hadoop.io.BytesWritable;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
@@ -634,8 +635,9 @@ public class UserType extends DataType
 	public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException{
 		if (isNull())
 			unsafeRowWriter.setNullAt(ordinal);
-		else
-			unsafeRowWriter.write(ordinal, SerializationUtils.serialize((Serializable)value));
+		else {
+			unsafeRowWriter.write(ordinal, SerializationUtils.serialize((Serializable) value));
+		}
 	}
 
 	/**
@@ -684,21 +686,38 @@ public class UserType extends DataType
      */
 	@Override
 	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
-		if (unsafeRow.isNullAt(ordinal))
-			setToNull();
-		else {
-			isNull = false;
-			value = SerializationUtils.deserialize(unsafeRow.getBinary(ordinal));
+		byte[] foo = null;
+		try {
+			if (unsafeRow.isNullAt(ordinal))
+				setToNull();
+			else {
+				isNull = false;
+				foo = unsafeRow.getBinary(ordinal);
+				value = SerializationUtils.deserialize(foo);
+			}
+		} catch (Exception e) {
+			System.out.println("->" + foo == null?"NULL":foo.length);
+			System.out.println(unsafeRow);
+			SerializationUtils.deserialize(unsafeRow.getBinary(ordinal));
+			throw e;
 		}
 	}
 
 	@Override
 	public void read(Row row, int ordinal) throws StandardException {
-		if (row.isNullAt(ordinal))
-			setToNull();
-		else {
-			isNull = false;
-			value = row.get(ordinal);
+		byte[] foo = null;
+		try {
+			if (row.isNullAt(ordinal))
+				setToNull();
+			else {
+				isNull = false;
+				foo = (byte[]) row.get(ordinal);
+				value = SerializationUtils.deserialize(foo);
+			}
+		} catch (Exception e) {
+			System.out.println("->" + foo == null?"NULL":foo.length);
+			System.out.println(row);
+			throw e;
 		}
 	}
 
@@ -714,8 +733,26 @@ public class UserType extends DataType
 	}
 
 	@Override
+	public Object getSparkObject() throws StandardException {
+		if (isNull)
+			return null;
+		else {
+			return SerializationUtils.serialize((Serializable) value);
+		}
+	}
+
+	@Override
 	public void setSparkObject(Object sparkObject) throws StandardException {
 
 	}
 
+	@Override
+	public boolean isVariableLength() {
+		return true;
+	}
+
+	@Override
+	public Object getHiveObject() throws StandardException {
+		return isNull()?null:new BytesWritable(SerializationUtils.serialize((Serializable) value));
+	}
 }

@@ -15,6 +15,7 @@
 package com.splicemachine.derby.stream.output.direct;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -46,15 +47,19 @@ public class DirectPipelineWriter implements TableWriter<KVPair>,AutoCloseable{
     private TxnView txn;
     private final OperationContext opCtx;
     private final boolean skipIndex;
+    private String tableVersion;
+    private ExecRow execRow;
 
     private RecordingCallBuffer<KVPair> writeBuffer;
 
-    public DirectPipelineWriter(long destConglomerate, TxnView txn, byte[] token, OperationContext opCtx, boolean skipIndex){
+    public DirectPipelineWriter(String tableVersion,long destConglomerate,TxnView txn, byte[] token, OperationContext opCtx,boolean skipIndex, ExecRow execRow){
         this.destConglomerate=destConglomerate;
         this.txn=txn;
         this.token=token;
         this.opCtx=opCtx;
         this.skipIndex=skipIndex;
+        this.tableVersion = tableVersion;
+        this.execRow = execRow;
     }
 
     @Override
@@ -67,7 +72,7 @@ public class DirectPipelineWriter implements TableWriter<KVPair>,AutoCloseable{
                     txn, null,
                     PipelineUtils.noOpFlushHook,
                     writeConfiguration,
-                    Metrics.basicMetricFactory());
+                    Metrics.basicMetricFactory(),execRow);
         }catch(IOException e){
             throw Exceptions.parseException(e);
         }

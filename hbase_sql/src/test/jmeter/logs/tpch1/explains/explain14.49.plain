@@ -1,0 +1,10 @@
+Plan
+Cursor(n=9,rows=1,updateMode=READ_ONLY (1),engine=Spark)
+  ->  ScrollInsensitive(n=8,totalCost=29956.963,outputRows=1,outputHeapSize=0 B,partitions=1)
+    ->  ProjectRestrict(n=7,totalCost=4302,outputRows=1457151,outputHeapSize=0 B,partitions=1)
+      ->  GroupBy(n=6,totalCost=866.951,outputRows=1457151,outputHeapSize=35.235 MB,partitions=36)
+        ->  ProjectRestrict(n=5,totalCost=228,outputRows=200000,outputHeapSize=35.235 MB,partitions=36)
+          ->  MergeSortJoin(n=4,totalCost=866.951,outputRows=1457151,outputHeapSize=35.235 MB,partitions=36,preds=[(L_PARTKEY[4:1] = P_PARTKEY[4:5])])
+            ->  TableScan[PART(1680)](n=3,totalCost=228,outputRows=200000,outputHeapSize=35.235 MB,partitions=36)
+            ->  ProjectRestrict(n=2,totalCost=3435.05,outputRows=1355711,outputHeapSize=28.444 MB,partitions=36)
+              ->  IndexScan[L_SHIPDATE_IDX(1761)](n=1,totalCost=3435.05,outputRows=1355711,outputHeapSize=28.444 MB,partitions=36,baseTable=LINEITEM(1600),preds=[(L_SHIPDATE[0:1] >= 1995-09-01),(L_SHIPDATE[0:1] < dataTypeServices: DATE )])

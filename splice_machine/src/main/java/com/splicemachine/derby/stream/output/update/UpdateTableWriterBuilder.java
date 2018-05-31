@@ -22,7 +22,6 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.UpdateDataSetWriterBuilder;
-import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -40,15 +39,13 @@ import java.io.ObjectOutput;
  */
 public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateDataSetWriterBuilder{
     protected long heapConglom;
-    protected int[] formatIds;
     protected int[] columnOrdering;
     protected int[] pkCols;
     protected FormatableBitSet pkColumns;
     protected FormatableBitSet heapList;
     protected String tableVersion;
     protected TxnView txn;
-    protected ExecRow execRowDefinition;
-    protected int[] execRowTypeFormatIds;
+    protected ExecRow execRow;
     protected OperationContext operationContext;
     protected byte[] token;
 
@@ -59,14 +56,13 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
         if (operationContext!=null)
             out.writeObject(operationContext);
         out.writeLong(heapConglom);
-        ArrayUtil.writeIntArray(out, formatIds);
         ArrayUtil.writeIntArray(out, columnOrdering);
         ArrayUtil.writeIntArray(out, pkCols);
         out.writeObject(pkColumns);
         out.writeObject(heapList);
         out.writeUTF(tableVersion);
         SIDriver.driver().getOperationFactory().writeTxn(txn, out);
-        ArrayUtil.writeIntArray(out, execRowTypeFormatIds);
+        out.writeObject(execRow);
     }
 
     @Override
@@ -74,7 +70,6 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
         if (in.readBoolean())
             operationContext = (OperationContext) in.readObject();
         heapConglom = in.readLong();
-        formatIds = ArrayUtil.readIntArray(in);
         columnOrdering = ArrayUtil.readIntArray(in);
         if(columnOrdering==null)
             columnOrdering = new int[]{};
@@ -86,8 +81,7 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
         heapList = (FormatableBitSet) in.readObject();
         tableVersion = in.readUTF();
         txn = SIDriver.driver().getOperationFactory().readTxn(in);
-        execRowTypeFormatIds = ArrayUtil.readIntArray(in);
-        execRowDefinition = WriteReadUtils.getExecRowFromTypeFormatIds(execRowTypeFormatIds);
+        execRow = (ExecRow)in.readObject();
     }
 
     @Override
@@ -105,9 +99,9 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
     }
 
     @Override
-    public UpdateDataSetWriterBuilder execRowDefinition(ExecRow execRowDefinition) {
-        assert execRowDefinition != null :"ExecRowDefinition Cannot Be null!";
-        this.execRowDefinition = execRowDefinition;
+    public UpdateDataSetWriterBuilder execRow(ExecRow execRow) {
+        assert execRow != null :"ExecRowDefinition Cannot Be null!";
+        this.execRow = execRow;
         return this;
     }
 
@@ -124,27 +118,12 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
     }
 
     @Override
-    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
-    public UpdateDataSetWriterBuilder execRowTypeFormatIds(int[] execRowTypeFormatIds) {
-        assert execRowTypeFormatIds != null :"execRowTypeFormatIds Cannot Be null!";
-        this.execRowTypeFormatIds = execRowTypeFormatIds;
-        return this;
-    }
-
-    @Override
     public UpdateDataSetWriterBuilder destConglomerate(long heapConglom) {
         assert heapConglom !=-1 :"Only Set Heap Congloms allowed!";
         this.heapConglom = heapConglom;
         return this;
     }
 
-    @Override
-    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
-    public UpdateDataSetWriterBuilder formatIds(int[] formatIds) {
-        assert formatIds != null :"Format ids cannot be null";
-        this.formatIds = formatIds;
-        return this;
-    }
 
     @Override
     public TxnView getTxn(){
@@ -158,8 +137,8 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
 
     @Override
     public TableWriter buildTableWriter() throws StandardException{
-        return new UpdatePipelineWriter(heapConglom,formatIds,columnOrdering,pkCols,pkColumns,tableVersion,
-                txn,token, execRowDefinition,heapList,operationContext);
+        return new UpdatePipelineWriter(heapConglom,columnOrdering,pkCols,pkColumns,tableVersion,
+                txn, token, execRow,heapList,operationContext);
     }
 
     public long getHeapConglom() {

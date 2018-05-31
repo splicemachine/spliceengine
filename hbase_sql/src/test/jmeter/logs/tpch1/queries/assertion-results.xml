@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testResults version="1.2">
+<sample t="21431" ts="1500928690504" s="true" lb="query01" rc="200" tn="queries 2-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="18854" ts="1500928711936" s="true" lb="query02" rc="200" tn="queries 2-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="16965" ts="1500928730792" s="true" lb="query03" rc="200" tn="queries 2-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="39912" ts="1500928747760" s="true" lb="query04" rc="200" tn="queries 2-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="36799" ts="1500928787672" s="true" lb="query05" rc="200" tn="queries 2-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="12692" ts="1500928824473" s="true" lb="query06" rc="200" tn="queries 2-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="17388" ts="1500928837166" s="true" lb="query07" rc="200" tn="queries 2-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="22736" ts="1500928854556" s="true" lb="query08" rc="200" tn="queries 2-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="56872" ts="1500928877292" s="true" lb="query09" rc="200" tn="queries 2-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="47669" ts="1500928934163" s="true" lb="query10" rc="200" tn="queries 2-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="6021" ts="1500928981835" s="true" lb="query11" rc="200" tn="queries 2-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="14514" ts="1500928987856" s="true" lb="query12" rc="200" tn="queries 2-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="17893" ts="1500929002372" s="true" lb="query13" rc="200" tn="queries 2-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="2367" ts="1500929020267" s="true" lb="query14" rc="200" tn="queries 2-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="84" ts="1500929022634" s="true" lb="query15_create_view" rc="200" tn="queries 2-1" ng="1" na="1"/>
+<sample t="37754" ts="1500929022719" s="true" lb="query15" rc="200" tn="queries 2-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="122" ts="1500929060473" s="true" lb="query15_drop_view" rc="200" tn="queries 2-1" ng="1" na="1"/>
+<sample t="4790" ts="1500929060597" s="true" lb="query16" rc="200" tn="queries 2-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="68708" ts="1500929065394" s="true" lb="query17" rc="200" tn="queries 2-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="60914" ts="1500929134106" s="true" lb="query18" rc="200" tn="queries 2-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>

@@ -16,6 +16,7 @@ package com.splicemachine.pipeline.writehandler;
 
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import com.splicemachine.pipeline.config.UnsafeWriteConfiguration;
@@ -53,11 +54,10 @@ public class SharedCallBufferFactory{
                                              ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap,
                                              int maxSize,
                                              boolean useAsyncWriteBuffers,
-                                             TxnView txn, byte[] token) throws Exception {
-
+                                             TxnView txn, byte[] token, ExecRow execRow) throws Exception {
         CallBuffer<KVPair> writeBuffer = sharedCallBufferMap.get(conglomBytes);
         if (writeBuffer == null) {
-            writeBuffer = createKvPairCallBuffer(conglomBytes, context, indexToMainMutationMap, maxSize, useAsyncWriteBuffers, txn, token);
+            writeBuffer = createKvPairCallBuffer(conglomBytes, context, indexToMainMutationMap, maxSize, useAsyncWriteBuffers, txn, token, execRow);
         } else {
             ((SharedPreFlushHook) writeBuffer.getPreFlushHook()).registerContext(context, indexToMainMutationMap);
             writeBuffer.getWriteConfiguration().registerContext(context, indexToMainMutationMap);
@@ -70,7 +70,7 @@ public class SharedCallBufferFactory{
                                                       ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap,
                                                       int maxSize,
                                                       boolean useAsyncWriteBuffers,
-                                                      TxnView txn, byte[] token) throws IOException{
+                                                      TxnView txn, byte[] token,ExecRow execRow) throws IOException{
         SharedPreFlushHook hook = new SharedPreFlushHook();
         WriteConfiguration writeConfiguration=writerPool.defaultWriteConfiguration();
         WriteConfiguration wc = new SharedWriteConfiguration(writeConfiguration.getMaximumRetries(),
@@ -83,9 +83,9 @@ public class SharedCallBufferFactory{
         wc.registerContext(context, indexToMainMutationMap);
         CallBuffer<KVPair> writeBuffer;
         if (useAsyncWriteBuffers) {
-            writeBuffer = writerPool.writeBuffer(partitionFactory.getTable(conglomBytes), txn,token, hook, wc);
+            writeBuffer = writerPool.writeBuffer(partitionFactory.getTable(conglomBytes), txn,token, hook, wc,execRow);
         } else {
-            writeBuffer = writerPool.synchronousWriteBuffer(partitionFactory.getTable(conglomBytes), txn, token, hook, wc, maxSize);
+            writeBuffer = writerPool.synchronousWriteBuffer(partitionFactory.getTable(conglomBytes), txn, token, hook, wc, maxSize,execRow);
         }
         sharedCallBufferMap.put(conglomBytes, writeBuffer);
         return writeBuffer;

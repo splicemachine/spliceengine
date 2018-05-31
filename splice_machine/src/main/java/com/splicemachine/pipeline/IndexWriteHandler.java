@@ -195,7 +195,7 @@ public class IndexWriteHandler extends RoutingWriteHandler{
     private boolean ensureBufferReader(KVPair mutation, WriteContext ctx) {
         if (indexBuffer == null) {
             try {
-                indexBuffer = getRoutedWriteBuffer(ctx,expectedWrites);
+                indexBuffer = getRoutedWriteBuffer(ctx,expectedWrites,transformer.getIndexRow());
             } catch (Exception e) {
                 fail(mutation,ctx,e);
                 return false;

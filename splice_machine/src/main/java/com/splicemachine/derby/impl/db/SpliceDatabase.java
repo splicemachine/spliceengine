@@ -91,7 +91,6 @@ public class SpliceDatabase extends BasicDatabase{
         if (logStatementText == null) {
             startParams.put("derby.language.logStatementText", Boolean.toString(config.debugLogStatementContext()));
         }
-
         if (config.debugDumpClassFile()) {
             System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
             SanityManager.DEBUG_SET("DumpClassFile");

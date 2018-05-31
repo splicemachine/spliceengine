@@ -46,6 +46,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.driver.SIEnvironment;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
+import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
 import com.splicemachine.storage.*;
 import com.splicemachine.timestamp.api.TimestampSource;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -71,6 +72,7 @@ public class MemSIEnvironment implements SIEnvironment{
     private final KeepAliveScheduler kaScheduler;
     private final MPartitionCache partitionCache = new MPartitionCache();
     private final SConfiguration config;
+    private TxnSupplier txnSupplier;
 
 
     private transient SIDriver siDriver;
@@ -87,6 +89,8 @@ public class MemSIEnvironment implements SIEnvironment{
         this.opFactory = new MOperationFactory(clock);
         this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory,opFactory);
         this.kaScheduler = new ManualKeepAliveScheduler(txnStore);
+        this.txnSupplier = new CompletedTxnCacheSupplier(txnStore,1024,4);
+        this.txnStore.setCache(txnSupplier);
         this.clock = clock;
     }
 
@@ -122,7 +126,7 @@ public class MemSIEnvironment implements SIEnvironment{
 
     @Override
     public TxnSupplier txnSupplier(){
-        return txnStore;
+        return txnSupplier;
     }
 
     @Override

@@ -49,10 +49,12 @@ import com.splicemachine.utils.SpliceLogUtils;
 public class HRegionUtil extends BaseHRegionUtil{
     private static final Logger LOG=Logger.getLogger(HRegionUtil.class);
     public static void lockStore(Store store){
+        assert store!=null:"Store Passed in is null";
         ((HStore)store).lock.readLock().lock();
     }
 
     public static void unlockStore(Store store){
+        assert store!=null:"Store Passed in is null";
         ((HStore)store).lock.readLock().unlock();
     }
 

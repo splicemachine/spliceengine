@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecAggregator;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.NumberDataType;
 import com.splicemachine.db.iapi.types.SQLDouble;
+import org.apache.spark.sql.types.Decimal;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -177,9 +178,9 @@ public class DoubleBufferedSumAggregator extends SumAggregator{
 
 		public SumAggregator upgrade() throws StandardException {
 				DecimalBufferedSumAggregator agg = new DecimalBufferedSumAggregator(buffer.length);
-				agg.init(BigDecimal.valueOf(sum),eliminatedNulls);
+				agg.init(Decimal.apply(sum),eliminatedNulls);
 				for(int i=0;i<position;i++){
-						agg.addDirect(BigDecimal.valueOf(buffer[i]));
+						agg.addDirect(Decimal.apply(buffer[i]));
 				}
 				return agg;
 		}

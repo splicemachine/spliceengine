@@ -375,7 +375,7 @@ public abstract class EmbedCallableStatement extends EmbedPreparedStatement
 			if (wasNull = dvd.isNull())
 				return null;
 			
-			return com.splicemachine.db.iapi.types.SQLDecimal.getBigDecimal(dvd);
+			return com.splicemachine.db.iapi.types.SQLDecimal.getDecimal(dvd).toJavaBigDecimal();
 			
 		} catch (StandardException e)
 		{

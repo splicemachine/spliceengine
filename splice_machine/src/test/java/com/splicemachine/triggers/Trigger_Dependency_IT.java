@@ -134,6 +134,7 @@ public class Trigger_Dependency_IT {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     private void createTrigger(TriggerBuilder tb) throws Exception {
+        System.out.println(tb.build());
         methodWatcher.executeUpdate(tb.build());
     }
 }

@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -99,6 +100,8 @@ public class DeleteOperation extends DMLWriteOperation {
             DataSetWriter dataSetWriter = dataSetWriterBuilder
                     .destConglomerate(heapConglom)
                     .operationContext(operationContext)
+                    .execRow(getEmptyExecRow())
+                    .tableVersion(tableVersion)
                     .txn(txn).build();
             return dataSetWriter.write();
 

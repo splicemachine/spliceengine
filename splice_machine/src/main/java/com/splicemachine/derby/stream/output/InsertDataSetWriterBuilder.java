@@ -26,10 +26,6 @@ public interface InsertDataSetWriterBuilder extends DataSetWriterBuilder{
 
     InsertDataSetWriterBuilder autoIncrementRowLocationArray(RowLocation[] rowLocations);
 
-    InsertDataSetWriterBuilder execRowDefinition(ExecRow definition);
-
-    InsertDataSetWriterBuilder execRowTypeFormatIds(int[] typeFormatIds);
-
     InsertDataSetWriterBuilder sequences(SpliceSequence[] sequences);
 
     InsertDataSetWriterBuilder isUpsert(boolean isUpsert);

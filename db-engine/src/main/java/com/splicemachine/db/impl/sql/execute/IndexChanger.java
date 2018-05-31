@@ -35,6 +35,7 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
+import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -251,7 +252,7 @@ public class IndexChanger
        * Thus, the following hack. When the row is not entirely filled, we convert
        * the start/stop key into a single ANDed equals qualifier[], and use that instead
        */
-      DataValueDescriptor[] ourRowDvds = ourIndexRow.getRowArray();
+     DataValueDescriptor[] ourRowDvds = ourIndexRow.getRowArray();
       int numNonNull = ourRowDvds.length;
         for (DataValueDescriptor ourRowDvd : ourRowDvds) {
             if (ourRowDvd.isNull()) {
@@ -287,7 +288,7 @@ public class IndexChanger
 					      TransactionController.OPENMODE_FORUPDATE, /* forUpdate */
 						  lockMode,
 	                      isolationLevel,
-		                  (FormatableBitSet)null,					/* all fields */
+		                  null,					/* all fields */
 			              ourIndexRow.getRowArray(),    /* startKeyValue */
 				          ScanController.GE,            /* startSearchOp */
 					      qualifiers,                         /* qualifier */
@@ -303,7 +304,7 @@ public class IndexChanger
 					      TransactionController.OPENMODE_FORUPDATE, /* forUpdate */
 						  lockMode,
 	                      isolationLevel,
-		                  (FormatableBitSet)null,					/* all fields */
+		                  null,					/* all fields */
 			              ourIndexRow.getRowArray(),    /* startKeyValue */
 				          ScanController.GE,            /* startSearchOp */
 					      qualifiers,                         /* qualifier */
@@ -385,13 +386,13 @@ public class IndexChanger
                  dem 2013/04/10 - temporarily comment this out while
                  we are getting snapshot isolation DDL support in
                  place
-
+				*/
 				if (SanityManager.DEBUG)
 					SanityManager.THROWASSERT(
                         "Index row "+RowUtil.toString(ourIndexRow)+
                         " not found in conglomerateid " + indexCID +
                         "Current scan = " + indexSC);
-                */
+
 
                 Object[] args = new Object[2];
                 args[0] = ourIndexRow.getRowArray()[ourIndexRow.getRowArray().length - 1];

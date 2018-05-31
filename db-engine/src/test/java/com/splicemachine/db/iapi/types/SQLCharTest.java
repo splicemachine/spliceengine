@@ -165,7 +165,6 @@ public class SQLCharTest extends SQLDataValueDescriptorTest {
                 Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
 
         }
-
         @Test
         public void testExecRowSparkRowConversion() throws StandardException {
                 ValueRow execRow = new ValueRow(1);

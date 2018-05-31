@@ -18,6 +18,7 @@ import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.LongOpenHashSet;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.LongCursor;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.*;
@@ -96,7 +97,6 @@ public class SITransactor implements Transactor{
             //noinspection unchecked
             return new MutationStatus[0];
         }
-
         Map<TxnView, Map<byte[], Map<byte[], List<KVPair>>>> kvPairMap=SITransactorUtil.putToKvPairMap(mutations,txnOperationFactory);
         final Map<byte[], MutationStatus> statusMap= Maps.newTreeMap(Bytes.BASE_COMPARATOR);
         for(Map.Entry<TxnView, Map<byte[], Map<byte[], List<KVPair>>>> entry : kvPairMap.entrySet()){
@@ -114,7 +114,7 @@ public class SITransactor implements Transactor{
                             return !statusMap.containsKey(input.getRowKey()) || statusMap.get(input.getRowKey()).isSuccess();
                         }
                     }));
-                    MutationStatus[] statuses=processKvBatch(table,null,family,qualifier,kvPairs,txnId,operationStatusLib.getNoOpConstraintChecker());
+                    MutationStatus[] statuses=processKvBatch(table,null,family,qualifier,kvPairs,txnId,operationStatusLib.getNoOpConstraintChecker(),null);
                     for(int i=0;i<statuses.length;i++){
                         byte[] row=kvPairs.get(i).getRowKey();
                         MutationStatus status=statuses[i];
@@ -144,8 +144,9 @@ public class SITransactor implements Transactor{
                                             byte[] packedColumnBytes,
                                             Collection<KVPair> toProcess,
                                             TxnView txn,
-                                            ConstraintChecker constraintChecker) throws IOException{
-        return processKvBatch(table,rollForward,defaultFamilyBytes,packedColumnBytes,toProcess,txn,constraintChecker, false, false);
+                                            ConstraintChecker constraintChecker,
+                                           ExecRow execRow) throws IOException{
+        return processKvBatch(table,rollForward,defaultFamilyBytes,packedColumnBytes,toProcess,txn,constraintChecker, false, false,execRow);
     }
 
     @Override
@@ -157,9 +158,9 @@ public class SITransactor implements Transactor{
                                            TxnView txn,
                                            ConstraintChecker constraintChecker,
                                            boolean skipConflictDetection,
-                                           boolean skipWAL) throws IOException{
+                                           boolean skipWAL,ExecRow execRow) throws IOException{
         ensureTransactionAllowsWrites(txn);
-        return processInternal(table,rollForward,txn,defaultFamilyBytes,packedColumnBytes,toProcess,constraintChecker,skipConflictDetection,skipWAL);
+        return processInternal(table,rollForward,txn,defaultFamilyBytes,packedColumnBytes,toProcess,constraintChecker,skipConflictDetection,skipWAL,execRow);
     }
 
     private MutationStatus getCorrectStatus(MutationStatus status,MutationStatus oldStatus){
@@ -173,7 +174,7 @@ public class SITransactor implements Transactor{
                                              Collection<KVPair> mutations,
                                              ConstraintChecker constraintChecker,
                                              boolean skipConflictDetection,
-                                             boolean skipWAL) throws IOException{
+                                             boolean skipWAL, ExecRow execRow) throws IOException{
 //                if (LOG.isTraceEnabled()) LOG.trace(String.format("processInternal: table = %s, txnId = %s", table.toString(), txn.getTxnId()));
         MutationStatus[] finalStatus=new MutationStatus[mutations.size()];
         Pair<KVPair, Lock>[] lockPairs=new Pair[mutations.size()];
@@ -359,7 +360,6 @@ public class SITransactor implements Transactor{
                     mutationsAndLocks[position]=Pair.newPair(mutation,lock);
                 else
                     finalStatus[position]=operationStatusLib.notRun();
-
                 position++;
             }
         }catch(RuntimeException re){
@@ -466,7 +466,7 @@ public class SITransactor implements Transactor{
     private boolean hasCurrentTransactionTombstone(TxnView updateTxn,DataCell tombstoneCell) throws IOException{
         if(tombstoneCell==null) return false; //no tombstone at all
         if(tombstoneCell.dataType()==CellType.ANTI_TOMBSTONE) return false;
-        TxnView tombstoneTxn=txnSupplier.getTransaction(tombstoneCell.version());
+        TxnView tombstoneTxn=txnSupplier.getTransaction(updateTxn,tombstoneCell.version());
         return updateTxn.canSee(tombstoneTxn);
     }
 
@@ -480,7 +480,7 @@ public class SITransactor implements Transactor{
             long globalCommitTs=commitCell.valueAsLong();
             if(globalCommitTs<0){
                 // Unknown transaction status
-                final TxnView dataTransaction=txnSupplier.getTransaction(txnId);
+                final TxnView dataTransaction=txnSupplier.getTransaction(updateTransaction,txnId);
                 if(dataTransaction.getState()==Txn.State.ROLLEDBACK)
                     return conflictResults; //can't conflict with a rolled back transaction
                 final ConflictType conflictType=updateTransaction.conflicts(dataTransaction);
@@ -522,7 +522,7 @@ public class SITransactor implements Transactor{
                                                  DataCell cell,
                                                  long dataTransactionId) throws IOException{
         if(updateTransaction.getTxnId()!=dataTransactionId){
-            final TxnView dataTransaction=txnSupplier.getTransaction(dataTransactionId);
+            final TxnView dataTransaction=txnSupplier.getTransaction(updateTransaction, dataTransactionId);
             if(dataTransaction.getState()==Txn.State.ROLLEDBACK){
                 return conflictResults; //can't conflict with a rolled back transaction
             }

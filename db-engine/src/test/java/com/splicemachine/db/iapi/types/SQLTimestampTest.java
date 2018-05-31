@@ -57,21 +57,23 @@ public class SQLTimestampTest extends SQLDataValueDescriptorTest {
 
         @Test
         public void serdeValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                UnsafeRow row = new UnsafeRow(2);
+                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),2);
                 Timestamp timestamp = new Timestamp(System.currentTimeMillis());
                 SQLTimestamp value = new SQLTimestamp(timestamp);
+                SQLVarchar foo = new SQLVarchar("sdfjskddkfsjdkfsd");
                 SQLTimestamp valueA = new SQLTimestamp();
                 writer.reset();
-                value.write(writer, 0);
-                valueA.read(row,0);
+                foo.write(writer,0);
+                value.write(writer, 1);
+                valueA.read(row,1);
                 Assert.assertEquals("SerdeIncorrect",timestamp.toString(),valueA.getTimestamp(new GregorianCalendar()).toString());
             }
 
         @Test
         public void serdeNullValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                UnsafeRow row = new UnsafeRow(2);
+                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),2);
                 SQLTimestamp value = new SQLTimestamp();
                 SQLTimestamp valueA = new SQLTimestamp();
                 value.write(writer, 0);

@@ -114,7 +114,7 @@ public class SliceDictionaryStreamReader extends AbstractStreamReader {
             }
             if (readOffset > 0) {
                 if (dataStream == null) {
-                    throw new OrcCorruptionException("Value is not null but data stream is not present");
+                    throw new OrcCorruptionException(streamDescriptor.getOrcDataSourceId(),"Value is not null but data stream is not present");
                 }
                 if (inDictionaryStream != null) {
                     inDictionaryStream.skip(readOffset);
@@ -130,7 +130,7 @@ public class SliceDictionaryStreamReader extends AbstractStreamReader {
         int[] dataVector = new int[nextBatchSize];
         if (presentStream == null) {
             if (dataStream == null) {
-                throw new OrcCorruptionException("Value is not null but data stream is not present");
+                throw new OrcCorruptionException(streamDescriptor.getOrcDataSourceId(),"Value is not null but data stream is not present");
             }
             Arrays.fill(isNullVector, false);
             dataStream.nextIntVector(nextBatchSize, dataVector);
@@ -139,7 +139,7 @@ public class SliceDictionaryStreamReader extends AbstractStreamReader {
             int nullValues = presentStream.getUnsetBits(nextBatchSize, isNullVector);
             if (nullValues != nextBatchSize) {
                 if (dataStream == null) {
-                    throw new OrcCorruptionException("Value is not null but data stream is not present");
+                    throw new OrcCorruptionException(streamDescriptor.getOrcDataSourceId(),"Value is not null but data stream is not present");
                 }
                 dataStream.nextIntVector(nextBatchSize, dataVector, isNullVector);
             }
@@ -217,7 +217,7 @@ public class SliceDictionaryStreamReader extends AbstractStreamReader {
                 // read the lengths
                 LongStream lengthStream = stripeDictionaryLengthStreamSource.openStream();
                 if (lengthStream == null) {
-                    throw new OrcCorruptionException("Dictionary is not empty but dictionary length stream is not present");
+                    throw new OrcCorruptionException(streamDescriptor.getOrcDataSourceId(),"Dictionary is not empty but dictionary length stream is not present");
                 }
                 lengthStream.nextIntVector(stripeDictionarySize, dictionaryLength);
 

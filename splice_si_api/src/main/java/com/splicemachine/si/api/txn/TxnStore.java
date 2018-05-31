@@ -17,7 +17,9 @@ package com.splicemachine.si.api.txn;
 import com.carrotsearch.hppc.LongOpenHashSet;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author Scott Fines
@@ -95,4 +97,6 @@ public interface TxnStore extends TxnSupplier{
     void setOldTransactions(long oldTransactions);
 
     long getOldTransactions();
+
+
 }

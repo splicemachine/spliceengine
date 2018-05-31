@@ -55,6 +55,7 @@ public class IndexRowReaderBuilder implements Externalizable{
     private int[] mainTableKeyDecodingMap;
     private FormatableBitSet mainTableAccessedKeyColumns;
     private int[] execRowTypeFormatIds;
+    protected FormatableBitSet accessedCols;
     /*
      * A Map from the physical location of the Index columns in the INDEX scanned row
      * and the decoded output row.
@@ -79,6 +80,11 @@ public class IndexRowReaderBuilder implements Externalizable{
 
     public IndexRowReaderBuilder mainTableVersion(String mainTableVersion){
         this.tableVersion=mainTableVersion;
+        return this;
+    }
+
+    public IndexRowReaderBuilder accessedCols(FormatableBitSet accessedCols){
+        this.accessedCols=accessedCols;
         return this;
     }
 
@@ -166,28 +172,32 @@ public class IndexRowReaderBuilder implements Externalizable{
         }
         EntryPredicateFilter epf=new EntryPredicateFilter(rowFieldsToReturn);
         byte[] epfBytes=epf.toBytes();
+        KeyHashDecoder keyDecoder = null;
+        KeyHashDecoder rowDecoder = null;
+        if (tableVersion.equals("3.0")) {
 
-        DescriptorSerializer[] templateSerializers=VersionedSerializers.forVersion(tableVersion,false).getSerializers(outputTemplate);
-        KeyHashDecoder keyDecoder;
-        if(mainTableKeyColumnEncodingOrder==null || mainTableAccessedKeyColumns==null || mainTableAccessedKeyColumns.getNumBitsSet()<=0)
-            keyDecoder=NoOpKeyHashDecoder.INSTANCE;
-        else{
-            keyDecoder=SkippingKeyDecoder.decoder(VersionedSerializers.typesForVersion(tableVersion),
-                    templateSerializers,
-                    mainTableKeyColumnEncodingOrder,
-                    mainTableKeyColumnTypes,
-                    mainTableKeyColumnSortOrder,
-                    mainTableKeyDecodingMap,
-                    mainTableAccessedKeyColumns);
+        } else {
+            DescriptorSerializer[] templateSerializers = VersionedSerializers.forVersion(tableVersion, false).getSerializers(outputTemplate);
+
+            if (mainTableKeyColumnEncodingOrder == null || mainTableAccessedKeyColumns == null || mainTableAccessedKeyColumns.getNumBitsSet() <= 0)
+                keyDecoder = NoOpKeyHashDecoder.INSTANCE;
+            else {
+                keyDecoder = SkippingKeyDecoder.decoder(VersionedSerializers.typesForVersion(tableVersion),
+                        templateSerializers,
+                        mainTableKeyColumnEncodingOrder,
+                        mainTableKeyColumnTypes,
+                        mainTableKeyColumnSortOrder,
+                        mainTableKeyDecodingMap,
+                        mainTableAccessedKeyColumns);
+            }
+            rowDecoder = new EntryDataDecoder(mainTableRowDecodingMap, null, templateSerializers);
         }
-
-        KeyHashDecoder rowDecoder=new EntryDataDecoder(mainTableRowDecodingMap,null,templateSerializers);
-
         SIDriver driver=SIDriver.driver();
         TxnOperationFactory txnOperationFactory =driver.getOperationFactory();
         PartitionFactory tableFactory = driver.getTableFactory();
         return new IndexRowReader(
                 source,
+                accessedCols,
                 outputTemplate,
                 txn,
                 lookupBatchSize,
@@ -198,7 +208,9 @@ public class IndexRowReaderBuilder implements Externalizable{
                 rowDecoder,
                 indexCols,
                 txnOperationFactory,
-                tableFactory);
+                tableFactory,
+                driver.baseOperationFactory(),
+                tableVersion);
     }
 
     @Override

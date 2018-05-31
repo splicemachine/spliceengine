@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.spark_project.guava.base.Function;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.Lists;
@@ -108,13 +109,15 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
     @Override
     public WriteContext create(SharedCallBufferFactory indexSharedCallBuffer,
                                TxnView txn, TransactionalRegion rce,
-                               ServerControl env) throws IOException, InterruptedException {
+                               ServerControl env, ExecRow execRow) throws IOException, InterruptedException {
+        assert execRow!=null:"ExecRow is null";
         CachedPartitionFactory<TableInfo> pf = new CachedPartitionFactory<TableInfo>(basePartitionFactory){
             @Override protected String infoAsString(TableInfo tableName){ return tableInfoParseFunction.apply(tableName); }
         };
         PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer,pf, txn, null, rce, false, false, false, env,pipelineExceptionFactory);
+        isInitialized(txn);
         BatchConstraintChecker checker = buildConstraintChecker(txn);
-        context.addLast(new PartitionWriteHandler(rce, tableWriteLatch, checker));
+        context.addLast(new PartitionWriteHandler(rce, tableWriteLatch, checker,execRow));
         addWriteHandlerFactories(1000, context);
         return context;
     }
@@ -123,20 +126,21 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
     public WriteContext create(SharedCallBufferFactory indexSharedCallBuffer,
                                TxnView txn, byte[] token, TransactionalRegion region, int expectedWrites,
                                boolean skipIndexWrites, boolean skipConflictDetection, boolean skipWAL,
-                               ServerControl env) throws IOException, InterruptedException {
+                               ServerControl env, ExecRow execRow) throws IOException, InterruptedException {
+        assert execRow!=null:"ExecRow is null";
         CachedPartitionFactory<TableInfo> pf = new CachedPartitionFactory<TableInfo>(basePartitionFactory){
             @Override protected String infoAsString(TableInfo tableName){ return tableInfoParseFunction.apply(tableName); }
         };
         PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer,
                 pf,txn, token, region, skipIndexWrites,skipConflictDetection, skipWAL, env,pipelineExceptionFactory);
+        isInitialized(txn);
         BatchConstraintChecker checker = buildConstraintChecker(txn);
-        context.addLast(new PartitionWriteHandler(region, tableWriteLatch, checker));
+        context.addLast(new PartitionWriteHandler(region, tableWriteLatch, checker,execRow));
         addWriteHandlerFactories(expectedWrites, context);
         return context;
     }
 
     private BatchConstraintChecker buildConstraintChecker(TxnView txn) throws IOException, InterruptedException{
-        isInitialized(txn);
         if(state.get()==State.RUNNING){
             if(constraintFactories.isEmpty()){
                 return null;
@@ -250,7 +254,6 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
         if(state.get()!=State.STARTING) return; //we got here in a weird way
         try{
             factoryLoader.load(txn);
-
             indexFactories = factoryLoader.getIndexFactories();
             ddlFactories = factoryLoader.getDDLFactories();
             fkGroup = factoryLoader.getForeignKeyFactories();

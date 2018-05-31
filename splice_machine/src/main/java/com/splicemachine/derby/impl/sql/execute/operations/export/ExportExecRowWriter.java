@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
+import com.splicemachine.db.client.am.Decimal;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
@@ -64,7 +65,8 @@ public class ExportExecRowWriter implements Closeable {
                 decimalFormat.setMaximumFractionDigits(scale);
                 decimalFormat.setMinimumFractionDigits(scale);
                 decimalFormat.setGroupingUsed(false);
-                BigDecimal valueObject = (BigDecimal) value.getObject();
+                Decimal foo;
+                BigDecimal valueObject = ((org.apache.spark.sql.types.Decimal) value.getObject()).toJavaBigDecimal();
                 stringRowArray[i] = decimalFormat.format(valueObject);
             }
 

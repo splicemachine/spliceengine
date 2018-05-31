@@ -25,9 +25,20 @@ import java.util.Iterator;
 import java.util.ServiceLoader;
 
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.access.impl.data.UnsafeRecord;
+import com.splicemachine.access.impl.data.UnsafeRecordUtils;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLBlob;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.db.impl.store.access.conglomerate.GenericConglomerate;
+import com.splicemachine.encoding.Encoding;
+import com.splicemachine.si.impl.SpliceQuery;
+import com.splicemachine.storage.*;
+import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Preconditions;
-
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionCreator;
@@ -42,13 +53,6 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.storage.DataGet;
-import com.splicemachine.storage.DataPut;
-import com.splicemachine.storage.DataResult;
-import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.EntryEncoder;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
@@ -69,38 +73,60 @@ public class ConglomerateUtils{
      * @param <T>           the type to return
      * @return an instance of {@code T} which contains the conglomerate information.
      */
-    public static <T> T readConglomerate(long conglomId,Class<T> instanceClass,TxnView txn) throws StandardException{
+    public static <T extends GenericConglomerate> T readConglomerate(long conglomId, Class<T> instanceClass, TxnView txn) throws StandardException{
         SpliceLogUtils.trace(LOG,"readConglomerate {%d}, for instanceClass {%s}",conglomId,instanceClass);
         Preconditions.checkNotNull(txn);
         Preconditions.checkNotNull(conglomId);
         SIDriver driver=SIDriver.driver();
         try(Partition partition=driver.getTableFactory().getTable(SQLConfiguration.CONGLOMERATE_TABLE_NAME_BYTES)){
-            DataGet get=driver.getOperationFactory().newDataGet(txn,Bytes.toBytes(conglomId),null);
-            get.returnAllVersions();
-            get.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES);
-            EntryPredicateFilter predicateFilter=EntryPredicateFilter.emptyPredicate();
-            get.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
+            if (partition.isRedoPartition()) {
+                DataGet get = driver.getOperationFactory().newDataGet(txn, Encoding.encode(conglomId), null);
+                //get.addColumn(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES, SIConstants.PACKED_COLUMN_BYTES);
+                EntryPredicateFilter predicateFilter = EntryPredicateFilter.emptyPredicate();
+                get.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL, predicateFilter.toBytes());
+                ExecRow execRow = new ValueRow(2);
+                execRow.setRowArray(new DataValueDescriptor[]{new SQLBlob(),new SQLBlob()});
+                FormatableBitSet bs = new FormatableBitSet(2);
+                bs.set(0);
+                bs.set(1);
+                SpliceQuery spliceQuery = new SpliceQuery(execRow,bs);
+                SIDriver.driver().baseOperationFactory().setQuery(get,spliceQuery);
+                DataResult result = partition.get(get, null);
+                DataCell dataCell = result.activeData();
+                UnsafeRecord unsafeRecord = new UnsafeRecord();
+                unsafeRecord.wrap(dataCell);
+                unsafeRecord.getData(new int[]{0,1},execRow);
+                GenericConglomerate gc =  DerbyBytesUtil.fromBytesUnsafe(execRow.getColumn(1).getBytes());
+                gc.setTemplate(org.apache.commons.lang3.SerializationUtils.deserialize(execRow.getColumn(2).getBytes()));
+                return (T)gc;
+            } else {
+                DataGet get = driver.getOperationFactory().newDataGet(txn, Bytes.toBytes(conglomId), null);
+                get.returnAllVersions();
+                get.addColumn(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES);
+                EntryPredicateFilter predicateFilter = EntryPredicateFilter.emptyPredicate();
+                get.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL, predicateFilter.toBytes());
 
-            DataResult result=partition.get(get,null);
-            byte[] data=result.userData().value();
+                DataResult result = partition.get(get, null);
+                byte[] data = result.userData().value();
 
-            EntryDecoder entryDecoder=new EntryDecoder();
-            try{
-                if(data!=null){
-                    entryDecoder.set(data);
-                    MultiFieldDecoder decoder=entryDecoder.getEntryDecoder();
-                    byte[] nextRaw=decoder.decodeNextBytesUnsorted();
+                EntryDecoder entryDecoder = new EntryDecoder();
+                try {
+                    if (data != null) {
+                        entryDecoder.set(data);
+                        MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
+                        byte[] nextRaw = decoder.decodeNextBytesUnsorted();
 
-                    try{
-                        return DerbyBytesUtil.fromBytesUnsafe(nextRaw);
-                    }catch(InvalidClassException ice){
-                        LOG.error("InvalidClassException detected when reading conglomerate "+conglomId+
-                                ". Attempting to resolve the ambiguity in serialVersionUIDs, but serialization errors may result:"+ice.getMessage());
-                        return readVersioned(nextRaw,instanceClass);
+                        try {
+                            return DerbyBytesUtil.fromBytesUnsafe(nextRaw);
+                        } catch (InvalidClassException ice) {
+                            LOG.error("InvalidClassException detected when reading conglomerate " + conglomId +
+                                    ". Attempting to resolve the ambiguity in serialVersionUIDs, but serialization errors may result:" + ice.getMessage());
+                            return readVersioned(nextRaw, instanceClass);
+                        }
                     }
+                } finally {
+                    entryDecoder.close();
                 }
-            }finally{
-                entryDecoder.close();
             }
         }catch(Exception e){
             SpliceLogUtils.logAndThrow(LOG,"readConglomerateException",Exceptions.parseException(e));
@@ -211,17 +237,8 @@ public class ConglomerateUtils{
      * @param conglomerate the conglomerate to store
      * @throws com.splicemachine.db.iapi.error.StandardException if something goes wrong and the data can't be stored.
      */
-    public static void createConglomerate(boolean isExternal,long conglomId,Conglomerate conglomerate,Txn txn) throws StandardException{
-        createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,null,null,null,-1);
-    }
-
-    public static void createConglomerate(boolean isExternal,long conglomId,
-                                          Conglomerate conglomerate,
-                                          Txn txn,
-                                          String schemaDisplayName,
-                                          String tableDisplayName,
-                                          String indexDisplayName) throws StandardException{
-        createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,schemaDisplayName, tableDisplayName,indexDisplayName,-1);
+    public static void createConglomerate(boolean isExternal,long conglomId,Conglomerate conglomerate,Txn txn,ExecRow execRow) throws StandardException{
+        createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,null,null,null,-1,execRow);
     }
 
     public static void createConglomerate(boolean isExternal,long conglomId,
@@ -230,8 +247,19 @@ public class ConglomerateUtils{
                                           String schemaDisplayName,
                                           String tableDisplayName,
                                           String indexDisplayName,
-                                          long partitionSize) throws StandardException{
-        createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,schemaDisplayName, tableDisplayName,indexDisplayName,partitionSize);
+                                          ExecRow execRow) throws StandardException{
+        createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,schemaDisplayName, tableDisplayName,indexDisplayName,-1,execRow);
+    }
+
+    public static void createConglomerate(boolean isExternal,long conglomId,
+                                          Conglomerate conglomerate,
+                                          Txn txn,
+                                          String schemaDisplayName,
+                                          String tableDisplayName,
+                                          String indexDisplayName,
+                                          long partitionSize,
+                                          ExecRow execRow) throws StandardException{
+        createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,schemaDisplayName, tableDisplayName,indexDisplayName,partitionSize,execRow);
     }
 
     /**
@@ -249,8 +277,9 @@ public class ConglomerateUtils{
             String schemaDisplayName,
             String tableDisplayName,
             String indexDisplayName,
-            long partitionSize) throws StandardException{
-        SpliceLogUtils.debug(LOG,"creating Hbase table for conglom {%s} with data {%s}",tableName,conglomData);
+            long partitionSize,
+            ExecRow execRow) throws StandardException{
+        SpliceLogUtils.debug(LOG,"creating table for conglom {%s} with data {%s}",tableName,conglomData);
         Preconditions.checkNotNull(txn);
         Preconditions.checkNotNull(conglomData);
         Preconditions.checkNotNull(tableName);
@@ -262,6 +291,7 @@ public class ConglomerateUtils{
                 PartitionCreator partitionCreator = admin.newPartition().withName(tableName).withDisplayNames(new String[]{schemaDisplayName, tableDisplayName, indexDisplayName});
                 if (partitionSize > 0)
                     partitionCreator = partitionCreator.withPartitionSize(partitionSize);
+                partitionCreator.withTemplate(execRow);
                 partitionCreator.create();
             } catch (Exception e) {
                 SpliceLogUtils.logAndThrow(LOG, "Error Creating Conglomerate", Exceptions.parseException(e));
@@ -269,13 +299,31 @@ public class ConglomerateUtils{
         }
 
         try(Partition table=tableFactory.getTable(SQLConfiguration.CONGLOMERATE_TABLE_NAME_BYTES)){
-            DataPut put=driver.getOperationFactory().newDataPut(txn,Bytes.toBytes(conglomId));
-            BitSet fields=new BitSet();
-            fields.set(0);
-            entryEncoder=EntryEncoder.create(SpliceKryoRegistry.getInstance(),1,fields,null,null,null);
-            entryEncoder.getEntryEncoder().encodeNextUnsorted(conglomData);
-            put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,entryEncoder.encode());
-            table.put(put);
+            byte[] conglomIdBytes = Encoding.encode(conglomId);
+            DataPut put=driver.getOperationFactory().newDataPut(txn,conglomIdBytes);
+            // Need to isolate this code better
+            if (table.isRedoPartition()) {
+                ExecRow blobRow = new ValueRow(2);
+                blobRow.setRowArray(new DataValueDescriptor[]{new SQLBlob(),new SQLBlob()});
+                driver.baseOperationFactory().setTemplate(put,blobRow);
+                UnsafeRecord record = new UnsafeRecord(
+                        conglomIdBytes,
+                        1,
+                        new byte[UnsafeRecordUtils.calculateFixedRecordSize(1)],
+                        0l,true);
+                record.setNumberOfColumns(1);
+                record.setTxnId1(txn.getTxnId());
+                record.setData(new DataValueDescriptor[]{new SQLBlob(conglomData),new SQLBlob(org.apache.commons.lang3.SerializationUtils.serialize(execRow))});
+                put.addCell(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES,SIConstants.PACKED_COLUMN_BYTES,1,record.getValue());
+                table.put(put);
+            } else {
+                BitSet fields = new BitSet();
+                fields.set(0);
+                entryEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(), 1, fields, null, null, null);
+                entryEncoder.getEntryEncoder().encodeNextUnsorted(conglomData);
+                put.addCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES, entryEncoder.encode());
+                table.put(put);
+            }
         }
         catch(Exception e){
             SpliceLogUtils.logAndThrow(LOG,"Error Creating Conglomerate",Exceptions.parseException(e));
@@ -298,13 +346,30 @@ public class ConglomerateUtils{
         EntryEncoder entryEncoder=null;
         SIDriver driver=SIDriver.driver();
         try(Partition table=driver.getTableFactory().getTable(SQLConfiguration.CONGLOMERATE_TABLE_NAME_BYTES)){
-            DataPut put=driver.getOperationFactory().newDataPut(txn,Bytes.toBytes(conglomerate.getContainerid()));
-            BitSet setFields=new BitSet();
-            setFields.set(0);
-            entryEncoder=EntryEncoder.create(SpliceKryoRegistry.getInstance(),1,setFields,null,null,null); //no need to set length-delimited, we aren't
-            entryEncoder.getEntryEncoder().encodeNextUnsorted(DerbyBytesUtil.toBytes(conglomerate));
-            put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,entryEncoder.encode());
-            table.put(put);
+            if (table.isRedoPartition()) {
+                DataPut put = driver.getOperationFactory().newDataPut(txn, Encoding.encode(conglomerate.getContainerid()));
+                UnsafeRecord record = new UnsafeRecord(
+                        Encoding.encode(conglomerate.getContainerid()),
+                        1,
+                        new byte[UnsafeRecordUtils.calculateFixedRecordSize(1)],
+                        0l, true);
+                record.setNumberOfColumns(1);
+                record.setTxnId1(txn.getTxnId());
+                ExecRow execRow = new ValueRow(1);
+                execRow.setRowArray(new DataValueDescriptor[]{new SQLBlob()});
+                record.setData(new DataValueDescriptor[]{new SQLBlob(DerbyBytesUtil.toBytes(conglomerate))});
+                SIDriver.driver().baseOperationFactory().setTemplate(put,execRow);
+                put.addCell(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES, SIConstants.PACKED_COLUMN_BYTES, 1, record.getValue());
+                table.put(put);
+            } else {
+                DataPut put = driver.getOperationFactory().newDataPut(txn, Bytes.toBytes(conglomerate.getContainerid()));
+                BitSet setFields = new BitSet();
+                setFields.set(0);
+                entryEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(), 1, setFields, null, null, null); //no need to set length-delimited, we aren't
+                entryEncoder.getEntryEncoder().encodeNextUnsorted(DerbyBytesUtil.toBytes(conglomerate));
+                put.addCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES, entryEncoder.encode());
+                table.put(put);
+            }
         }catch(Exception e){
             SpliceLogUtils.logAndThrow(LOG,"update Conglomerate Failed",Exceptions.parseException(e));
         }finally{

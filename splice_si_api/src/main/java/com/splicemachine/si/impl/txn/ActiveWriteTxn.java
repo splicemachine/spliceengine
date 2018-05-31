@@ -14,9 +14,9 @@
 
 package com.splicemachine.si.impl.txn;
 
+import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -28,6 +28,7 @@ import java.io.ObjectOutput;
 public class ActiveWriteTxn extends AbstractTxnView{
     private TxnView parentTxn;
     private boolean additive;
+    private LongOpenHashSet rolledBackSet;
 
     public ActiveWriteTxn(){
         super();
@@ -37,10 +38,12 @@ public class ActiveWriteTxn extends AbstractTxnView{
                           long beginTimestamp,
                           TxnView parentTxn,
                           boolean additive,
-                          Txn.IsolationLevel isolationLevel){
+                          Txn.IsolationLevel isolationLevel,
+                          LongOpenHashSet rolledBackSet){
         super(txnId,beginTimestamp,isolationLevel);
         this.parentTxn=parentTxn;
         this.additive=additive;
+        this.rolledBackSet = rolledBackSet;
     }
 
 
@@ -97,13 +100,18 @@ public class ActiveWriteTxn extends AbstractTxnView{
         output.writeBoolean(additive);
         output.writeObject(parentTxn);
     }
-
+    @Override
     public ActiveWriteTxn getReadUncommittedActiveTxn() {
-        return new ActiveWriteTxn(txnId,getBeginTimestamp(),parentTxn,additive, Txn.IsolationLevel.READ_UNCOMMITTED);
+        return new ActiveWriteTxn(txnId,getBeginTimestamp(),parentTxn,additive, Txn.IsolationLevel.READ_UNCOMMITTED,rolledBackSet);
+    }
+    @Override
+    public ActiveWriteTxn getReadCommittedActiveTxn() {
+        return new ActiveWriteTxn(txnId,getBeginTimestamp(),parentTxn,additive, Txn.IsolationLevel.READ_COMMITTED,rolledBackSet);
     }
 
-    public ActiveWriteTxn getReadCommittedActiveTxn() {
-        return new ActiveWriteTxn(txnId,getBeginTimestamp(),parentTxn,additive, Txn.IsolationLevel.READ_COMMITTED);
+    @Override
+    public LongOpenHashSet getRolledback() {
+        return rolledBackSet;
     }
 
 }

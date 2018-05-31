@@ -15,5 +15,5 @@ package com.splicemachine.orc.metadata;
 
 public enum CompressionKind
 {
-    UNCOMPRESSED, ZLIB, SNAPPY
+    NONE, ZLIB, SNAPPY, ZSTD
 }

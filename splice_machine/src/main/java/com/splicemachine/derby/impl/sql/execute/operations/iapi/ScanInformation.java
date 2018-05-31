@@ -59,13 +59,13 @@ public interface ScanInformation<T> {
 
     DataScan getScan(TxnView txn) throws StandardException;
 
-    DataScan getScan(TxnView txn, T startKeyHint,int[] keyDecodingMap, int[] scanKeys, T stopKeyPrefix) throws StandardException;
+    DataScan getScan(TxnView txn, T startKeyHint,int[] keyDecodingMap, int[] scanKeys, T stopKeyPrefix, ExecRow currentTemplate) throws StandardException;
 
     Qualifier[][] getScanQualifiers() throws StandardException;
 
     long getConglomerateId();
     
-    List<DataScan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, int[] keyDecodingMap) throws StandardException;
+    List<DataScan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, int[] keyDecodingMap, ExecRow currentTemplate) throws StandardException;
 
     int[] getColumnOrdering() throws StandardException;
 

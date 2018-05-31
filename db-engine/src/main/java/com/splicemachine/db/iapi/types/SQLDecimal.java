@@ -48,6 +48,8 @@ import java.sql.*;
 
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.hadoop.hive.common.type.HiveDecimal;
+import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
@@ -93,21 +95,11 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		be set to null.
 
 	 */
-	private BigDecimal	value;
+	private Decimal	value;
 
 	public int precision = -1;
 
 	public int scale = -1;
-
-	/**
-		See comments for value
-	*/
-	private byte[]		rawData;
-
-	/**
-		See comments for value
-	*/
-	private int			rawScale;
 
     private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( SQLDecimal.class);
     private static final int BIG_DECIMAL_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( BigDecimal.class);
@@ -116,9 +108,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
     {
         int sz = BASE_MEMORY_USAGE;
         if( null != value)
-            sz += BIG_DECIMAL_MEMORY_USAGE + (value.unscaledValue().bitLength() + 8)/8;
-        if( null != rawData)
-            sz += rawData.length;
+            sz += BIG_DECIMAL_MEMORY_USAGE + (value.toJavaBigInteger().bitLength() + 8)/8;
         return sz;
     }
 
@@ -130,31 +120,42 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	////////////////////////////////////////////////////////////////////
 	/** no-arg constructor, required by Formattable */
 	public SQLDecimal() {
+		setValue((Decimal)null);
+	}
+
+	public void setSQLDecimal(SQLDecimal sqlDecimal) {
+		if (sqlDecimal.isNull()) {
+			isNull = true;
+		} else {
+			isNull = false;
+			this.value = sqlDecimal.value;
+			this.precision = sqlDecimal.precision;
+			this.scale = sqlDecimal.scale;
+		}
 
 	}
 
-	public SQLDecimal(BigDecimal val)
-	{
+	public SQLDecimal(Decimal val) {
 		setValue(val);
 	}
 
-	public SQLDecimal(BigDecimal val, int precision, int scale)
+
+	public SQLDecimal(Decimal val, int precision, int scale)
 			throws StandardException {
 
 		setValue(val);
 		if ((value != null) && (scale >= 0)) {
-			setValue(value.setScale(scale, BigDecimal.ROUND_DOWN));
+			value.changePrecision(precision,scale,Decimal.ROUND_FLOOR());
 		}
 		if (value ==null) {
 			this.precision = precision;
 			this.scale = scale;
 		}
-
 	}
 
 	public SQLDecimal(String val)
 	{
-		setValue(new BigDecimal(val));
+		setValue(Decimal.apply(val));
 	}
 
 	/*
@@ -171,16 +172,9 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	{
 		if (isNull())
 			return 0;
-
-		try {
-			long lv = getLong();
-
-			if ((lv >= Integer.MIN_VALUE) && (lv <= Integer.MAX_VALUE))
-				return (int) lv;
-
-		} catch (StandardException ignored) {
-		}
-
+		long lv = value.toLong();
+		if ((lv >= Integer.MIN_VALUE) && (lv <= Integer.MAX_VALUE))
+			return (int) lv;
 		throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, "INTEGER");
 	}
 
@@ -191,16 +185,9 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	{
 		if (isNull())
 			return (byte)0;
-
-		try {
-			long lv = getLong();
-
-			if ((lv >= Byte.MIN_VALUE) && (lv <= Byte.MAX_VALUE))
-				return (byte) lv;
-
-		} catch (StandardException ignored) {
-		}
-
+		long lv = value.toLong();
+		if ((lv >= Byte.MIN_VALUE) && (lv <= Byte.MAX_VALUE))
+			return (byte) lv;
 		throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, "TINYINT");
 	}
 
@@ -211,24 +198,16 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	{
 		if (isNull())
 			return (short)0;
-
-		try {
-			long lv = getLong();
-
+			long lv = value.toLong();
 			if ((lv >= Short.MIN_VALUE) && (lv <= Short.MAX_VALUE))
 				return (short) lv;
-
-		} catch (StandardException ignored) {
-		}
-
 		throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, "SMALLINT");
 	}
 
 	/**
 	 * @exception StandardException thrown on failure to convert
 	 */
-	public long	getLong() throws StandardException
-	{
+	public long	getLong() throws StandardException {
 		BigDecimal localValue = getBigDecimal();
 		if (localValue == null)
 			return (long)0;
@@ -291,12 +270,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	{
 		if (isNull())
 			return null;
-		if ((value == null) && (rawData != null))
-		{
-			setValue(new BigDecimal(new BigInteger(rawData), rawScale));
-		}
-
-		return value;
+		return value.toJavaBigDecimal();
 	}
 
 	/**
@@ -325,7 +299,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		/*
 		** BigDecimal is immutable
 		*/
-		return getBigDecimal();
+		return value;
 	}
 
 	/**
@@ -333,11 +307,11 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	 * @throws StandardException
 	 */
 	void setObject(Object theValue) throws StandardException {
-		setValue((BigDecimal) theValue);
+		setValue((Decimal) theValue);
 	}
 
 	protected void setFrom(DataValueDescriptor theValue) throws StandardException {
-		setCoreValue(SQLDecimal.getBigDecimal(theValue));
+		setCoreValue(SQLDecimal.getDecimal(theValue));
 	}
 
 	public int	getLength()
@@ -371,7 +345,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	 */
 	private boolean evaluateNull()
 	{
-		return (value == null) && (rawData == null);
+		return (value == null);
 	}
 
 	/**
@@ -384,52 +358,47 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	 */
 	public void writeExternal(ObjectOutput out) throws IOException {
         out.writeBoolean(isNull);
-        if (isNull)
-            return;
-
+        if (isNull) {
+			out.writeInt(scale);
+			out.writeInt(precision);
+			return;
+		}
 		int scale;
 		byte[] byteArray;
 
-		if (value != null) {
-			scale = value.scale();
+		scale = value.scale();
 
-			// J2SE 5.0 introduced negative scale value for BigDecimals.
-			// In previouse Java releases a negative scale was not allowed
-			// (threw an exception on setScale and the constructor that took
-			// a scale).
-			//
-			// Thus the Derby format for DECIMAL implictly assumed a
-			// positive or zero scale value, and thus now must explicitly
-			// be positive. This is to allow databases created under J2SE 5.0
-			// to continue to be supported under JDK 1.3/JDK 1.4, ie. to continue
-			// the platform independence, independent of OS/cpu and JVM.
-			//
-			// If the scale is negative set the scale to be zero, this results
-			// in an unchanged value with a new scale. A BigDecimal with a
-			// negative scale by definition is a whole number.
-			// e.g. 1000 can be represented by:
-			//    a BigDecimal with scale -3 (unscaled value of 1)
-			// or a BigDecimal with scale 0 (unscaled value of 1000)
+		// J2SE 5.0 introduced negative scale value for BigDecimals.
+		// In previouse Java releases a negative scale was not allowed
+		// (threw an exception on setScale and the constructor that took
+		// a scale).
+		//
+		// Thus the Derby format for DECIMAL implictly assumed a
+		// positive or zero scale value, and thus now must explicitly
+		// be positive. This is to allow databases created under J2SE 5.0
+		// to continue to be supported under JDK 1.3/JDK 1.4, ie. to continue
+		// the platform independence, independent of OS/cpu and JVM.
+		//
+		// If the scale is negative set the scale to be zero, this results
+		// in an unchanged value with a new scale. A BigDecimal with a
+		// negative scale by definition is a whole number.
+		// e.g. 1000 can be represented by:
+		//    a BigDecimal with scale -3 (unscaled value of 1)
+		// or a BigDecimal with scale 0 (unscaled value of 1000)
 
-			if (scale < 0) {
-				scale = 0;
-				setValue(value.setScale(0));
-			}
-
-			BigInteger bi = value.unscaledValue();
-			byteArray = bi.toByteArray();
-		} else {
-			scale = rawScale;
-			byteArray = rawData;
+		if (scale < 0) {
+			scale = 0;
+			value.changePrecision(precision,0);
 		}
 
+		BigInteger bi = value.toJavaBigInteger();
+		byteArray = bi.toByteArray();
 		if (SanityManager.DEBUG)
 		{
 			if (scale < 0)
 				SanityManager.THROWASSERT("DECIMAL scale at writeExternal is negative "
 					+ scale + " value " + toString());
 		}
-
 		out.writeByte(scale);
 		out.writeByte(byteArray.length);
 		out.write(byteArray);
@@ -446,14 +415,16 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 
         if (in.readBoolean()) {
             setCoreValue(null);
-            return;
+			scale = in.readInt();
+			precision = in.readInt();
+			return;
         }
 
 		// clear the previous value to ensure that the
 		// rawData value will be used
 		value = null;
 
-		rawScale = in.readUnsignedByte();
+		int rawScale = in.readUnsignedByte();
 		int size = in.readUnsignedByte();
 
 		/*
@@ -464,13 +435,11 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
         Need to use readFully below and NOT just read because read does not
         guarantee getting size bytes back, whereas readFully does (unless EOF).
         */
-		if ((rawData == null) || size != rawData.length)
-		{
-			rawData = new byte[size];
-		}
+		byte[] rawData = new byte[size];
 		in.readFully(rawData);
+		BigInteger bigInteger = new BigInteger(rawData);
+		value = Decimal.apply(bigInteger);
 		isNull = evaluateNull();
-
 	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException
 	{
@@ -478,7 +447,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		// rawData value will be used
 		value = null;
 
-		rawScale = in.readUnsignedByte();
+		int rawScale = in.readUnsignedByte();
 		int size = in.readUnsignedByte();
 
 		/*
@@ -489,11 +458,9 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
         Need to use readFully below and NOT just read because read does not
         guarantee getting size bytes back, whereas readFully does (unless EOF).
         */
-		if ((rawData == null) || size != rawData.length)
-		{
-			rawData = new byte[size];
-		}
+		byte[] rawData = new byte[size];
 		in.readFully(rawData);
+		Decimal.apply(new BigInteger(rawData));
 		isNull = evaluateNull();
 	}
 
@@ -504,16 +471,14 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	public void restoreToNull()
 	{
 		value = null;
-		rawData = null;
 		isNull = true;
 	}
 
 
 	/** @exception StandardException		Thrown on error */
-	protected int typeCompare(DataValueDescriptor arg) throws StandardException
-	{
-		BigDecimal otherValue = SQLDecimal.getBigDecimal(arg);
-		return getBigDecimal().compareTo(otherValue);
+	protected int typeCompare(DataValueDescriptor arg) throws StandardException {
+		Decimal otherValue = SQLDecimal.getDecimal(arg);
+		return value.compare(otherValue); // CAN Null Point TODOJL
 	}
 
 	/*
@@ -523,10 +488,9 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
     /**
      * @see DataValueDescriptor#cloneValue
      */
-    public DataValueDescriptor cloneValue(boolean forceMaterialization)
-	{
+    public DataValueDescriptor cloneValue(boolean forceMaterialization) {
 		try {
-			return new SQLDecimal(getBigDecimal(), precision, scale);
+			return new SQLDecimal(value == null?null:value.clone(), precision, scale);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -552,8 +516,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 									  boolean isNullable)
 		throws SQLException
 	{
-			rawData = null;
-			setValue(resultSet.getBigDecimal(colNumber));
+			setValue(Decimal.apply(resultSet.getBigDecimal(colNumber)));
 	}
 	/**
 		Set the value into a PreparedStatement.
@@ -583,7 +546,6 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	 */
 	public void setValue(String theValue) throws StandardException
 	{
-		rawData = null;
 
 		if (theValue == null)
 		{
@@ -594,8 +556,10 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		    try
 			{
 				theValue = theValue.trim();
-				rawData = null;
-		        setValue(new BigDecimal(theValue));
+				Decimal decimal = Decimal.apply(theValue);
+				if (precision != -1 && scale != -1) // This is used for import mapping of decimal types.
+					decimal.changePrecision(precision, scale, Decimal.ROUND_FLOOR());
+				setValue(decimal);
 			} catch (NumberFormatException nfe)
 			{
 			    throw invalidFormat();
@@ -619,8 +583,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	 *
 	 */
 	public void setValue(float theValue)
-		throws StandardException
-	{
+		throws StandardException {
 		setCoreValue((double)NumberDataType.normalizeREAL(theValue));
 		isNull = evaluateNull();
 	}
@@ -629,10 +592,8 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	 * @see NumberDataValue#setValue
 	 *
 	 */
-	public void setValue(long theValue)
-	{
-		value = BigDecimal.valueOf(theValue);
-		rawData = null;
+	public void setValue(long theValue) {
+		value = Decimal.apply(theValue);
 		isNull = evaluateNull();
 	}
 
@@ -646,7 +607,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		isNull = evaluateNull();
 	}
 
-	public void setValue(BigDecimal theValue)
+	public void setValue(Decimal theValue)
 	{
 		setCoreValue(theValue);
 	}
@@ -657,7 +618,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	*/
 	public void setBigDecimal(Number theValue) throws StandardException
 	{
-		setCoreValue((BigDecimal) theValue);
+		setCoreValue(Decimal.apply((BigDecimal) theValue));
 	}
 
 	/**
@@ -675,9 +636,11 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 				!(theValue instanceof java.lang.Long))
 				SanityManager.THROWASSERT("SQLDecimal.setValue(Number) passed a " + theValue.getClass());
 		}
-
-		if (theValue instanceof BigDecimal || theValue == null)
-			setCoreValue((BigDecimal) theValue);
+		if (theValue == null) {
+			setCoreValue(null);
+		}
+		else if (theValue instanceof BigDecimal)
+			setCoreValue(Decimal.apply((BigDecimal) theValue));
 		else
 			setValue(theValue.longValue());
 	}
@@ -688,7 +651,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	 */
 	public void setValue(boolean theValue)
 	{
-		setCoreValue(theValue ? ONE : ZERO);
+		setCoreValue(theValue ? ONED : ZEROD);
 	}
 
 	/*
@@ -702,24 +665,22 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	}
     // END DataValueDescriptor interface
 
-	private void setCoreValue(BigDecimal theValue)
+	private void setCoreValue(Decimal theValue)
 	{
 		value = theValue;
 		if (value !=null) {
 			precision = value.precision();
 			scale = value.scale();
 		}
-		rawData = null;
 		isNull = evaluateNull();
 	}
 
 	private void setCoreValue(double theValue) {
-		value = new BigDecimal(Double.toString(theValue));
+		value = Decimal.apply(theValue);
 		if (value !=null) {
 			precision = value.precision();
 			scale = value.scale();
 		}
-		rawData = null;
 		isNull = evaluateNull();
 	}
 
@@ -774,18 +735,16 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 							NumberDataValue result)
 				throws StandardException
 	{
-		if (result == null)
-		{
+		if (result == null) {
 			result = new SQLDecimal();
 		}
 
-		if (addend1.isNull() || addend2.isNull())
-		{
+		if (addend1.isNull() || addend2.isNull()) {
 			result.setToNull();
 			return result;
 		}
 
-		result.setBigDecimal(SQLDecimal.getBigDecimal(addend1).add(SQLDecimal.getBigDecimal(addend2)));
+		result.setDecimal(SQLDecimal.getDecimal(addend1).$plus(SQLDecimal.getDecimal(addend2)));
 		return result;
 	}
 
@@ -807,18 +766,16 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 							NumberDataValue result)
 				throws StandardException
 	{
-		if (result == null)
-		{
+		if (result == null) {
 			result = new SQLDecimal();
 		}
 
-		if (left.isNull() || right.isNull())
-		{
+		if (left.isNull() || right.isNull()) {
 			result.setToNull();
 			return result;
 		}
 
-		result.setBigDecimal(SQLDecimal.getBigDecimal(left).subtract(SQLDecimal.getBigDecimal(right)));
+		result.setDecimal(SQLDecimal.getDecimal(left).$minus(SQLDecimal.getDecimal(right)));
 		return result;
 	}
 
@@ -851,7 +808,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 			return result;
 		}
 
-		result.setBigDecimal(SQLDecimal.getBigDecimal(left).multiply(SQLDecimal.getBigDecimal(right)));
+		result.setDecimal(SQLDecimal.getDecimal(left).$times(SQLDecimal.getDecimal(right)));
 		return result;
 	}
 
@@ -897,24 +854,21 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 							 int scale)
 				throws StandardException
 	{
-		if (result == null)
-		{
+		if (result == null) {
 			result = new SQLDecimal();
 		}
 
-		if (dividend.isNull() || divisor.isNull())
-		{
+		if (dividend.isNull() || divisor.isNull()) {
 			result.setToNull();
 			return result;
 		}
 
-		BigDecimal divisorBigDecimal = SQLDecimal.getBigDecimal(divisor);
+		Decimal divisorBigDecimal = SQLDecimal.getDecimal(divisor);
 
-		if (divisorBigDecimal.compareTo(ZERO) == 0)
-		{
+		if (divisorBigDecimal.isZero()) {
 			throw  StandardException.newException(SQLState.LANG_DIVIDE_BY_ZERO);
 		}
-		BigDecimal dividendBigDecimal = SQLDecimal.getBigDecimal(dividend);
+		Decimal dividendBigDecimal = SQLDecimal.getDecimal(dividend);
 
 		/*
 		** Set the result scale to be either the passed in scale, whcih was
@@ -923,15 +877,17 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		** (for the whole result set column, eg.); otherwise dynamically
 		** calculates the scale according to actual values.  Beetle 3901
 		*/
-		result.setBigDecimal(dividendBigDecimal.divide(
-									divisorBigDecimal,
-									scale > -1 ? scale :
-									Math.max((dividendBigDecimal.scale() +
-											SQLDecimal.getWholeDigits(divisorBigDecimal) +
-											1),
-										NumberDataValue.MIN_DECIMAL_DIVIDE_SCALE),
-									BigDecimal.ROUND_DOWN));
-
+		BigDecimal bd;
+		Decimal div = dividendBigDecimal.$div(
+				divisorBigDecimal);
+		div.changePrecision(scale > -1 ? scale :
+						Math.max((dividendBigDecimal.scale() +
+										SQLDecimal.getWholeDigits(divisorBigDecimal) +
+										1),
+								NumberDataValue.MIN_DECIMAL_DIVIDE_SCALE),
+				precision,
+				Decimal.ROUND_CEILING());
+		result.setDecimal(div);
 		return result;
 	}
 
@@ -1049,13 +1005,14 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 			return;
 
 		if (desiredPrecision != IGNORE_PRECISION &&
-			((desiredPrecision - desiredScale) <  SQLDecimal.getWholeDigits(getBigDecimal())))
+			((desiredPrecision - desiredScale) <  SQLDecimal.getWholeDigits(value)))
 		{
-			throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE,
-									("DECIMAL/NUMERIC("+desiredPrecision+","+desiredScale+")"));
+//			throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE,
+//									("DECIMAL/NUMERIC("+desiredPrecision+","+desiredScale+")"));
 		}
-		rawData = null;
-		setValue(value.setScale(desiredScale, BigDecimal.ROUND_DOWN));
+		value.changePrecision(desiredPrecision,desiredScale,Decimal.ROUND_FLOOR());
+		precision = desiredPrecision;
+		scale = desiredScale;
 	}
 
 	/**
@@ -1068,10 +1025,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	{
 		if (isNull())
 			return 0;
-
-		BigDecimal localValue = getBigDecimal();
-
-		return SQLDecimal.getWholeDigits(localValue) + getDecimalValueScale();
+		return getWholeDigits(value) + getDecimalValueScale();
 	}
 
 	/**
@@ -1084,9 +1038,6 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	{
 		if (isNull())
 			return 0;
-
-		if (value == null)
-			return rawScale;
 
 		int scale = value.scale();
 		if (scale >= 0)
@@ -1103,7 +1054,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	 * @return BigDecimal value
 	 * @throws StandardException Invalid conversion or out of range.
 	 */
-	public static BigDecimal getBigDecimal(DataValueDescriptor value) throws StandardException
+	public static Decimal getDecimal(DataValueDescriptor value) throws StandardException
 	{
 		if (SanityManager.DEBUG)
 		{
@@ -1114,15 +1065,15 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		switch (value.typeToBigDecimal())
 		{
 		case Types.DECIMAL:
-			return (BigDecimal) value.getObject();
+			return (Decimal)value.getObject();
 		case Types.CHAR:
 			try {
-				return new BigDecimal(value.getString().trim());
+				return Decimal.apply(value.getString().trim());
 			} catch (NumberFormatException nfe) {
 				throw StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION, "java.math.BigDecimal");
 			}
 		case Types.BIGINT:
-			return BigDecimal.valueOf(value.getLong());
+			return Decimal.apply(value.getLong());
 		default:
 			if (SanityManager.DEBUG)
 				SanityManager.THROWASSERT("invalid return from " + value.getClass() + ".typeToBigDecimal() " + value.typeToBigDecimal());
@@ -1136,13 +1087,14 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	 * @param decimalValue Value to get whole digits from, never null.
 	 * @return number of whole digits.
 	 */
-	private static int getWholeDigits(BigDecimal decimalValue) {
+	private static int getWholeDigits(Decimal decimalValue) {
         /**
          * if ONE > abs(value) then the number of whole digits is 0
          */
-        decimalValue = decimalValue.abs();
-        if (ONE.compareTo(decimalValue) == 1)
+       /* decimalValue = decimalValue.abs();
+        if (ONE.compareTo(decimalValue.toJavaBigDecimal()) == 1)
             return 0;
+            */
         return decimalValue.precision() - decimalValue.scale();
 	}
 
@@ -1164,8 +1116,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		if (isNull())
 				unsafeRowWriter.setNullAt(ordinal);
 		else {
-			Decimal foobar = Decimal.apply(value,value.precision(),value.scale());
-			unsafeRowWriter.write(ordinal, Decimal.apply(value,value.precision(),value.scale()), value.precision(), value.scale());
+			unsafeRowWriter.write(ordinal, value, value.precision(), value.scale());
 		}
 	}
 
@@ -1182,8 +1133,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		if (isNull())
 			unsafeArrayWriter.setNull(ordinal);
 		else {
-			Decimal foobar = Decimal.apply(value,value.precision(),value.scale());
-			unsafeArrayWriter.write(ordinal, Decimal.apply(value,value.precision(),value.scale()), value.precision(), value.scale());
+			unsafeArrayWriter.write(ordinal, value, value.precision(), value.scale());
 		}
 	}
 
@@ -1201,7 +1151,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 			setToNull();
 		else {
 			isNull = false;
-			value = unsafeArrayData.getDecimal(ordinal,precision,scale).toJavaBigDecimal();
+			value = unsafeArrayData.getDecimal(ordinal,precision,scale);
 		}
 	}
 
@@ -1211,7 +1161,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 			setToNull();
 		else {
 			isNull = false;
-			value = row.getDecimal(ordinal);
+			value = Decimal.apply(row.getDecimal(ordinal));
 		}
 	}
 
@@ -1231,7 +1181,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 				setToNull();
 		else {
 			isNull = false;
-			value = unsafeRow.getDecimal(ordinal, precision, scale).toJavaBigDecimal();
+			value = unsafeRow.getDecimal(ordinal, precision, scale);
 		}
 	}
 
@@ -1284,7 +1234,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	}
 
 	public void updateThetaSketch(UpdateSketch updateSketch) {
-		updateSketch.update(this.value.toEngineeringString());
+		updateSketch.update(this.value.toJavaBigDecimal().toEngineeringString());
 	}
 
 	@Override
@@ -1292,9 +1242,32 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		if (sparkObject == null)
 			setToNull();
 		else {
-			value = (BigDecimal) sparkObject; //
+			value = Decimal.apply((BigDecimal) sparkObject); //
 			setIsNull(false);
 		}
 	}
 
+	@Override
+	public Decimal getDecimal() throws StandardException {
+		return isNull()?null:value;
+	}
+
+	@Override
+	public void setDecimal(Decimal decimal) throws StandardException {
+		if (decimal == null)
+			setToNull();
+		else {
+			this.value = decimal;
+			isNull = false;
+		}
+	}
+
+	public boolean isVariableLength() {
+		return precision > Decimal.MAX_LONG_DIGITS();
+	}
+
+	@Override
+	public Object getHiveObject() throws StandardException {
+		return isNull()?null:new HiveDecimalWritable(HiveDecimal.create(getBigDecimal()));
+	}
 }

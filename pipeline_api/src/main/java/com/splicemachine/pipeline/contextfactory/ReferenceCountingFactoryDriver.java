@@ -16,7 +16,6 @@ package com.splicemachine.pipeline.contextfactory;
 
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.si.api.txn.TxnView;
-
 import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -49,58 +48,58 @@ public abstract class ReferenceCountingFactoryDriver implements ContextFactoryDr
 
     /* ***************************************************************************************************************/
     /*private helper methods*/
-    private class CountingFactoryLoader implements ContextFactoryLoader{
+    private class CountingFactoryLoader implements ContextFactoryLoader {
         private final ContextFactoryLoader delegate;
         private final long conglomId;
         private final AtomicInteger refCount = new AtomicInteger(0);
         private volatile boolean loaded;
 
-        public CountingFactoryLoader(long conglomId,ContextFactoryLoader delegate){
-            this.delegate=delegate;
+        public CountingFactoryLoader(long conglomId, ContextFactoryLoader delegate) {
+            this.delegate = delegate;
             this.conglomId = conglomId;
         }
 
         @Override
-        public void close(){
-           int rCount= refCount.decrementAndGet();
-           if(rCount==0){
-               synchronized(ReferenceCountingFactoryDriver.this){
-                   if(refCount.get()<=0)
-                       loaderMap.remove(conglomId);
-               }
-           }
+        public void close() {
+            int rCount = refCount.decrementAndGet();
+            if (rCount == 0) {
+                synchronized (ReferenceCountingFactoryDriver.this) {
+                    if (refCount.get() <= 0)
+                        loaderMap.remove(conglomId);
+                }
+            }
         }
 
         @Override
-        public void load(TxnView txn) throws IOException, InterruptedException{
-            if(loaded) return; //no need to load twice
+        public void load(TxnView txn) throws IOException, InterruptedException {
+            if (loaded) return; //no need to load twice
             delegate.load(txn);
-            loaded=true;
+            loaded = true;
         }
 
         @Override
-        public WriteFactoryGroup getForeignKeyFactories(){
+        public WriteFactoryGroup getForeignKeyFactories() {
             return delegate.getForeignKeyFactories();
         }
 
         @Override
-        public WriteFactoryGroup getIndexFactories(){
+        public WriteFactoryGroup getIndexFactories() {
             return delegate.getIndexFactories();
         }
 
         @Override
-        public WriteFactoryGroup getDDLFactories(){
+        public WriteFactoryGroup getDDLFactories() {
             return delegate.getDDLFactories();
         }
 
         @Override
-        public Set<ConstraintFactory> getConstraintFactories(){
+        public Set<ConstraintFactory> getConstraintFactories() {
             return delegate.getConstraintFactories();
         }
 
         @Override
-        public void ddlChange(DDLMessage.DDLChange ddlChange){
-            if(!loaded) return; //ignore changes that occur before we have a chance to load them
+        public void ddlChange(DDLMessage.DDLChange ddlChange) {
+            if (!loaded) return; //ignore changes that occur before we have a chance to load them
             delegate.ddlChange(ddlChange);
         }
     }

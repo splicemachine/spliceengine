@@ -41,7 +41,6 @@ import static com.splicemachine.homeless.TestUtils.o;
 
 public class InnerJoinIT extends SpliceUnitTest{
 
-    private static Logger LOG=Logger.getLogger(InnerJoinIT.class);
     private static final Map<String, String> tableMap=Maps.newHashMap();
 
     public static final String CLASS_NAME=InnerJoinIT.class.getSimpleName().toUpperCase()+"_2";
@@ -190,7 +189,6 @@ public class InnerJoinIT extends SpliceUnitTest{
         int j=0;
         while(rs.next()){
             j++;
-            LOG.info("cc.si="+rs.getString(1)+",dd.si="+rs.getString(2));
             Assert.assertNotNull(rs.getString(1));
             if(!rs.getString(2).equals("9")){
                 Assert.assertNotNull(rs.getString(1));
@@ -574,7 +572,6 @@ public class InnerJoinIT extends SpliceUnitTest{
         int j=0;
         while(rs.next()){
             j++;
-            LOG.info("cc.si="+rs.getString(1)+",dd.si="+rs.getString(2));
             Assert.assertNotNull(rs.getString(1));
             if(!rs.getString(1).equals("9")){
                 Assert.assertNotNull(rs.getString(1));
@@ -592,7 +589,6 @@ public class InnerJoinIT extends SpliceUnitTest{
         int j=0;
         while(rs.next()){
             j++;
-            LOG.info("cc.si="+rs.getString(1)+",count="+rs.getLong(2));
             Assert.assertNotNull(rs.getString(1));
             Assert.assertEquals(9,rs.getLong(2));
         }
@@ -615,7 +611,7 @@ public class InnerJoinIT extends SpliceUnitTest{
     public void testReturnOutOfOrderJoin() throws Exception{
         ResultSet rs=methodWatcher.executeQuery("select cc.sa, dd.sa,cc.si from cc inner join dd --SPLICE-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si");
         while(rs.next()){
-            LOG.info(String.format("cc.sa=%s,dd.sa=%s",rs.getString(1),rs.getString(2)));
+
         }
     }
 
@@ -642,7 +638,6 @@ public class InnerJoinIT extends SpliceUnitTest{
         int j=0;
         while(rs.next()){
             j++;
-            LOG.info("cc.si="+rs.getString(1)+",dd.si="+rs.getString(2));
             Assert.assertNotNull(rs.getString(1));
             if(!rs.getString(2).equals("9")){
                 Assert.assertNotNull(rs.getString(1));
@@ -677,7 +672,6 @@ public class InnerJoinIT extends SpliceUnitTest{
         int j=0;
         while(rs.next()){
             j++;
-            LOG.info("cc.si="+rs.getString(1)+",dd.si="+rs.getString(2));
             Assert.assertNotNull(rs.getString(1));
             if(!rs.getString(2).equals("9")){
                 Assert.assertNotNull(rs.getString(1));

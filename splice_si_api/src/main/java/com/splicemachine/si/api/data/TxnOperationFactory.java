@@ -15,6 +15,7 @@
 package com.splicemachine.si.api.data;
 
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.SpliceQuery;
 import com.splicemachine.storage.*;
 
 import java.io.IOException;

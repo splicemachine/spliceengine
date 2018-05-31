@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.carrotsearch.hppc.LongOpenHashSet;
 import org.spark_project.guava.collect.Iterators;
 import com.google.protobuf.ByteString;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -30,7 +31,9 @@ import com.splicemachine.si.impl.txn.InheritingTxnView;
 import com.splicemachine.utils.ByteSlice;
 
 import java.io.Serializable;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * Created by jyuan on 10/19/15.
@@ -106,13 +109,21 @@ public class TxnViewDecoderFunction<Op extends SpliceOperation, T> extends Splic
             }
         };
 
-        TxnView parentTxn=parentTxnId<0?Txn.ROOT_TRANSACTION:supplier.getTransaction(parentTxnId);
+        LongOpenHashSet rollBackSet = null;
+        if (message.getRollbackSubIdsCount() > 0) {
+            List<Long> rollbackSubIds = message.getRollbackSubIdsList();
+            rollBackSet = new LongOpenHashSet(message.getRollbackSubIdsCount());
+            for (Long rollbackSubId: rollbackSubIds) {
+                rollBackSet.add(rollbackSubId);
+            }
+        }
+        TxnView parentTxn=parentTxnId<0?Txn.ROOT_TRANSACTION:supplier.getTransaction(null,parentTxnId);
         return new InheritingTxnView(parentTxn,txnId,beginTs,
                 isolationLevel,
                 hasAdditive,additive,
                 true,true,
                 commitTs,globalCommitTs,
-                state,destTablesIterator,kaTime);
+                state,destTablesIterator,kaTime,rollBackSet);
     }
 
 }

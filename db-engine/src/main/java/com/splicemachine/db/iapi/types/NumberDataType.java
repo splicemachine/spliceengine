@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.reference.Limits;
+import org.apache.spark.sql.types.Decimal;
 
 /**
  * NumberDataType is the superclass for all exact and approximate 
@@ -55,6 +56,8 @@ public abstract class NumberDataType extends DataType
 	
 	static final BigDecimal ZERO = BigDecimal.valueOf(0L);
 	static final BigDecimal ONE = BigDecimal.valueOf(1L);
+	static final Decimal ZEROD = Decimal.apply(BigDecimal.valueOf(0L));
+	static final Decimal ONED = Decimal.apply(BigDecimal.valueOf(1L));
 	static final BigDecimal MAXLONG_PLUS_ONE = BigDecimal.valueOf(Long.MAX_VALUE).add(ONE);
 	static final BigDecimal MINLONG_MINUS_ONE = BigDecimal.valueOf(Long.MIN_VALUE).subtract(ONE);
 

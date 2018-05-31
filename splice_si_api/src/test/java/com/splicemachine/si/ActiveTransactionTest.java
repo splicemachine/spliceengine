@@ -55,7 +55,7 @@ public class ActiveTransactionTest{
     public void setUp() throws Exception{
         if(testEnv==null){
             testEnv=SITestEnvironment.loadTestEnvironment();
-            transactorSetup=new TestTransactionSetup(testEnv,true);
+            transactorSetup=new TestTransactionSetup(testEnv,true,false);
         }
         control=new ForwardingLifecycleManager(transactorSetup.txnLifecycleManager){
             @Override

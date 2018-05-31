@@ -74,6 +74,9 @@ import org.spark_project.guava.base.Strings;
 import java.sql.Types;
 import java.util.*;
 
+import org.apache.commons.lang3.SystemUtils;
+import org.spark_project.guava.base.Strings;
+
 /**
  * QueryTreeNode is the root class for all query tree nodes. All
  * query tree nodes inherit from QueryTreeNode except for those that extend

@@ -81,14 +81,14 @@ public class ShortDirectStreamReader
             }
             if (readOffset > 0) {
                 if (dataStream == null)
-                    throw new OrcCorruptionException("Value is not null but data stream is not present");
+                    throw new OrcCorruptionException(streamDescriptor.getOrcDataSourceId(),"Value is not null but data stream is not present");
                 dataStream.skip(readOffset);
             }
         }
 
         if (presentStream == null) {
             if (dataStream == null) {
-                throw new OrcCorruptionException("Value is not null but data stream is not present");
+                throw new OrcCorruptionException(streamDescriptor.getOrcDataSourceId(),"Value is not null but data stream is not present");
             }
             if (type instanceof LongType || type instanceof DateType)
                 dataStream.nextLongVector(type, nextBatchSize, vector);
@@ -102,7 +102,7 @@ public class ShortDirectStreamReader
             int nullValues = presentStream.getUnsetBits(nextBatchSize, nullVector);
             if (nullValues != nextBatchSize) {
                 if (dataStream == null) {
-                    throw new OrcCorruptionException("Value is not null but data stream is not present");
+                    throw new OrcCorruptionException(streamDescriptor.getOrcDataSourceId(),"Value is not null but data stream is not present");
                 }
                 if (type instanceof LongType || type instanceof DateType)
                     dataStream.nextLongVector(type, nextBatchSize, vector, nullVector);

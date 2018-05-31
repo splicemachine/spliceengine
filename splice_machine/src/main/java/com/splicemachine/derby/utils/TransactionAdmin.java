@@ -71,7 +71,7 @@ public class TransactionAdmin{
     public static void killTransaction(long txnId) throws SQLException{
         try{
             TxnSupplier store=SIDriver.driver().getTxnStore();
-            TxnView txn=store.getTransaction(txnId);
+            TxnView txn=store.getTransaction(null,txnId);
             //if the transaction is read-only, or doesn't exist, then don't do anything to it
             if(txn==null) return;
 
@@ -204,7 +204,7 @@ public class TransactionAdmin{
     public static void SYSCS_COMMIT_CHILD_TRANSACTION(Long txnId) throws SQLException, IOException{
         TxnLifecycleManager tc=SIDriver.driver().lifecycleManager();
         TxnSupplier store=SIDriver.driver().getTxnStore();
-        TxnView childTxn=store.getTransaction(txnId);
+        TxnView childTxn=store.getTransaction(null,txnId);
         if(childTxn==null){
             throw new IllegalArgumentException(String.format("Specified child transaction id %s not found.",txnId));
         }
@@ -234,7 +234,7 @@ public class TransactionAdmin{
 
         // Verify the parentTransactionId passed in
         TxnSupplier store=SIDriver.driver().getTxnStore();
-        TxnView parentTxn=store.getTransaction(parentTransactionId);
+        TxnView parentTxn=store.getTransaction(null,parentTransactionId);
         if(parentTxn==null){
             throw new IllegalArgumentException(String.format("Specified parent transaction id %s not found. Unable to create child transaction.",parentTransactionId));
         }

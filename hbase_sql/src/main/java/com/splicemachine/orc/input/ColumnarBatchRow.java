@@ -16,10 +16,7 @@ package com.splicemachine.orc.input;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.util.ArrayData;
-import org.apache.spark.sql.types.DataType;
-import org.apache.spark.sql.types.Decimal;
-import org.apache.spark.sql.types.DecimalType;
-import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.types.*;
 import scala.collection.Seq;
 import scala.collection.immutable.Map;
 import java.math.BigDecimal;
@@ -54,6 +51,9 @@ public class ColumnarBatchRow implements Row {
 
     @Override
     public Object get(int i) {
+        if (structType.fields()[i].dataType() == DataTypes.BinaryType) {
+            return row.getBinary(i);
+        }
         return row.get(i,structType.fields()[i].dataType());
     }
 
@@ -154,6 +154,8 @@ public class ColumnarBatchRow implements Row {
     public boolean getBoolean(int i) {
         return row.getBoolean(i);
     }
+
+    public byte[] getBinary(int i) { return row.getBinary(i); }
 
     @Override
     public <T> Seq<T> getSeq(int i) {

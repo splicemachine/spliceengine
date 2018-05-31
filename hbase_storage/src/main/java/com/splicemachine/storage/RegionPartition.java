@@ -14,7 +14,10 @@
 
 package com.splicemachine.storage;
 
+import com.splicemachine.access.impl.data.UnsafeRecord;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.exceptions.ConnectionClosingException;
+import org.apache.spark.unsafe.Platform;
 import org.spark_project.guava.base.Function;
 import com.splicemachine.si.impl.HRegionTooBusy;
 
@@ -59,6 +62,7 @@ public class RegionPartition implements Partition{
 
     public RegionPartition(HRegion region){
         this.region=region;
+        region.getMaxFlushedSeqId();
     }
 
     @Override
@@ -228,8 +232,8 @@ public class RegionPartition implements Partition{
 
         Scan s=((HScan)scan).unwrapDelegate();
         try{
+            s.setMaxVersions();
             RegionScanner scanner=region.getScanner(s);
-
             return new RegionDataScanner(this,scanner,metricFactory);
         }catch(NotServingRegionException | ConnectionClosingException nsre){
             throw new HNotServingRegion(nsre.getMessage());
@@ -488,5 +492,23 @@ public class RegionPartition implements Partition{
         return "RegionPartition{" +
                 "region=" + region +
                 '}';
+    }
+
+    @Override
+    public String getVersion() {
+        return "3.0"; // TODO FIX
+    }
+
+    @Override
+    public boolean isRedoPartition() {
+        return true; // TODO FIX
+    }
+    @Override
+    public boolean fastRollForward(DataCell dataCell, long effectiveTimestamp) {
+        HCell hCell = (HCell) dataCell;
+        if (hCell.unwrapDelegate().getSequenceId()> region.getMaxFlushedSeqId()) { // In Memstore, do your thing.
+            Platform.putLong(hCell.valueArray(), hCell.valueOffset() + UnsafeRecord.EFF_TS_INC, effectiveTimestamp);
+        }
+        return true;
     }
 }

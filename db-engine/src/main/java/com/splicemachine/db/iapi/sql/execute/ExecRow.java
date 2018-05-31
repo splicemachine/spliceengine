@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Row;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.spark.sql.types.StructType;
+import org.roaringbitmap.RoaringBitmap;
 
 import java.util.BitSet;
 import java.util.Comparator;
@@ -119,6 +120,8 @@ public interface ExecRow extends Row, KeyableRow, org.apache.spark.sql.Row, Comp
 	 */
 	void getNewObjectArray();
 
+	StructType createStructType();
+
 	StructType createStructType(int[] baseColumnMap);
 
 	org.apache.spark.sql.Row getSparkRow();
@@ -132,5 +135,11 @@ public interface ExecRow extends Row, KeyableRow, org.apache.spark.sql.Row, Comp
 	byte[] getKey();
 
 	void setKey(byte[] key);
+
+	public int getNonNullCount() throws StandardException;
+
+	public byte[] generateRowKey(int[] columns) throws StandardException;
+
+	public FormatableBitSet getVariableLengthBitSet() throws StandardException;
 
 }

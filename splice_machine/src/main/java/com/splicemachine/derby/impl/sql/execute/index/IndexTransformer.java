@@ -15,12 +15,19 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.access.impl.data.UnsafeRecord;
+import com.splicemachine.access.impl.data.UnsafeRecordUtils;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.ExecRowAccumulator;
+import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.si.impl.SpliceQuery;
+import com.splicemachine.si.impl.functions.ScannerFunctionUtils;
 import org.apache.commons.lang.SerializationUtils;
 import org.spark_project.guava.primitives.Ints;
 import com.splicemachine.SpliceKryoRegistry;
@@ -59,7 +66,7 @@ import static org.spark_project.guava.base.Preconditions.checkArgument;
  * FOR NON-UNIQUE: indexRowKey = [col1] + 0 + [col2] ... [colN] + encodeBytesUnsorted(srcRowKey)
  * FOR UNIQUE:     indexRowKey = [col1] + 0 + [col2] ... [colN]
  *
- * And
+ * AndindexedColumns
  *
  * indexValue = multiValueEncoding( encodeBytesUnsorted ( srcRowKey ))
  *
@@ -80,17 +87,22 @@ public class IndexTransformer {
     private DDLMessage.Table table;
     private int [] mainColToIndexPosMap;
     private BitSet indexedCols;
+    private FormatableBitSet indexedColsFBS;
     private byte[] indexConglomBytes;
-    private int[] indexFormatIds;
     private DescriptorSerializer[] serializers;
     private boolean excludeNulls;
     private boolean excludeDefaultValues;
     private DataValueDescriptor defaultValue;
     private ValueRow defaultValuesExecRow;
     private ExecRowAccumulator execRowAccumulator;
+    private boolean ignore;
+    protected UnsafeRecord unsafeRecord;
     private transient DataGet baseGet = null;
     private transient DataResult baseResult = null;
-    private boolean ignore;
+    private ExecRow indexRow;
+    private ExecRow directIndexWrite;
+    private ExecRow tableTemplate;
+    private SpliceQuery spliceQuery;
 
     public IndexTransformer(DDLMessage.TentativeIndex tentativeIndex) {
         index = tentativeIndex.getIndex();
@@ -101,18 +113,27 @@ public class IndexTransformer {
         this.typeProvider = VersionedSerializers.typesForVersion(table.getTableVersion());
         List<Integer> indexColsList = index.getIndexColsToMainColMapList();
         indexedCols = DDLUtils.getIndexedCols(Ints.toArray(indexColsList));
-        List<Integer> allFormatIds = tentativeIndex.getTable().getFormatIdsList();
+        indexedColsFBS = new FormatableBitSet(indexColsList.size());
+        for (int i: indexColsList) {
+            indexedColsFBS.grow(i);
+            indexedColsFBS.set(i-1);
+        }
+        tableTemplate = (ExecRow) SerializationUtils.deserialize(tentativeIndex.getTable().getTemplate().toByteArray());
         mainColToIndexPosMap = DDLUtils.getMainColToIndexPosMap(Ints.toArray(index.getIndexColsToMainColMapList()), indexedCols);
         indexConglomBytes = DDLUtils.getIndexConglomBytes(index.getConglomerate());
-        indexFormatIds = new int[indexColsList.size()];
-        for (int i = 0; i < indexColsList.size(); i++) {
-            indexFormatIds[i] = allFormatIds.get(indexColsList.get(i)-1);
-        }
+        indexRow = (ExecRow) SerializationUtils.deserialize(tentativeIndex.getIndex().getIndexRow().toByteArray());
+        if (directIndexWrite == null)
+            directIndexWrite = new ValueRow(indexRow.nColumns()+1);
+        System.arraycopy(indexRow.getRowArray(),0,directIndexWrite.getRowArray(),0,indexRow.nColumns());
+        directIndexWrite.setColumn(indexRow.nColumns()+1,new HBaseRowLocation());
+
+        spliceQuery = new SpliceQuery(indexRow,indexedColsFBS);
         if ( index.hasDefaultValues() && excludeDefaultValues) {
             defaultValue = (DataValueDescriptor) SerializationUtils.deserialize(index.getDefaultValues().toByteArray());
             defaultValuesExecRow = new ValueRow(new DataValueDescriptor[]{defaultValue.cloneValue(true)});
 
         }
+        indexRow = (ExecRow) SerializationUtils.deserialize(tentativeIndex.getIndex().getIndexRow().toByteArray());
     }
 
     /**
@@ -143,15 +164,21 @@ public class IndexTransformer {
      * row is not found (may have already been deleted).
      * @throws IOException for encoding/decoding problems.
      */
-    public KVPair createIndexDelete(KVPair mutation, WriteContext ctx, BitSet indexedColumns) throws IOException {
+    public KVPair createIndexDelete(KVPair mutation, WriteContext ctx, BitSet indexedColumns) throws IOException, StandardException {
         // do a Get() on all the indexed columns of the base table
         DataResult result =fetchBaseRow(mutation,ctx,indexedColumns);
         if(result==null||result.size()<=0){
             // we can't find the old row, may have been deleted already
             return null;
         }
-
-        DataCell resultValue = result.userData();
+        DataCell resultValue = null;
+        if (table.getTableVersion().equals("3.0")) {
+            resultValue = result.activeData();
+        } else {
+            resultValue = result.userData();
+        }
+        UnsafeRecord unsafeRecord = new UnsafeRecord();
+        unsafeRecord.wrap(resultValue);
         if(resultValue==null){
             // we can't find the old row, may have been deleted already
             return null;
@@ -159,9 +186,27 @@ public class IndexTransformer {
 
         // transform the results into an index row (as if we were inserting it) but create a delete for it
 
-        KVPair toTransform = new KVPair(
-                resultValue.keyArray(),resultValue.keyOffset(),resultValue.keyLength(),
-                resultValue.valueArray(),resultValue.valueOffset(),resultValue.valueLength(),KVPair.Type.DELETE);
+        // Need to do proper delete...
+        KVPair toTransform;
+  /*      if (table.getTableVersion().equals("3.0")) {
+            unsafeRecord = new UnsafeRecord(
+                    resultValue.key(), // clone not needed
+                    1,
+                    new byte[UnsafeRecordUtils.calculateFixedRecordSize(1)],
+                    0l, true);
+            unsafeRecord.setNumberOfColumns(1);
+            unsafeRecord.setTxnId1(ctx.getTxn().getTxnId());
+            unsafeRecord.setHasTombstone(true);
+            toTransform = unsafeRecord.getKVPair(); // Do I need this?
+            toTransform.setType(KVPair.Type.DELETE);
+
+        }
+        else { */
+            toTransform = new KVPair(
+                    resultValue.keyArray(),resultValue.keyOffset(),resultValue.keyLength(),
+                    resultValue.valueArray(),resultValue.valueOffset(),resultValue.valueLength(),KVPair.Type.DELETE);
+        //}
+
         return translate(toTransform);
     }
 
@@ -180,11 +225,12 @@ public class IndexTransformer {
                 hasNullKeyFields = true;
                 accumulateNull(keyAccumulator,
                     i,
-                    indexFormatIds[i]);
+                    tableTemplate.getColumn(i+1).getTypeFormatId());
             } else {
                 byte[] data = serializers[i].encodeDirect(execRow.getColumn(i+1),false);
                 accumulate(keyAccumulator,
-                    i, indexFormatIds[i],
+                    i,
+                        tableTemplate.getColumn(i+1).getTypeFormatId(),
                     index.getDescColumns(i),
                     data, 0, data.length);
             }
@@ -196,18 +242,37 @@ public class IndexTransformer {
         //add the row key to the end of the index key
         byte[] srcRowKey = Encoding.encodeBytesUnsorted(execRow.getKey());
 
-        EntryEncoder rowEncoder = getRowEncoder();
-        MultiFieldEncoder entryEncoder = rowEncoder.getEntryEncoder();
-        entryEncoder.reset();
-        entryEncoder.setRawBytes(srcRowKey);
-        byte[] indexValue = rowEncoder.encode();
         byte[] indexRowKey;
         if (index.getUnique()) {
             boolean nonUnique = index.getUniqueWithDuplicateNulls() && (hasNullKeyFields || !keyAccumulator.isFinished());
             indexRowKey = getIndexRowKey(srcRowKey, nonUnique);
         } else
             indexRowKey = getIndexRowKey(srcRowKey, true);
-        return new KVPair(indexRowKey, indexValue, KVPair.Type.INSERT);
+
+
+        if (table.getTableVersion().equals("3.0")) {
+            unsafeRecord = new UnsafeRecord(
+                    indexRowKey,
+                    1,
+                    new byte[UnsafeRecordUtils.calculateFixedRecordSize(execRow.nColumns()+1)],
+                    0l, true);
+            if (directIndexWrite == null)
+                directIndexWrite = new ValueRow(execRow.nColumns()+1);
+            System.arraycopy(execRow.getRowArray(),0,directIndexWrite.getRowArray(),0,execRow.nColumns());
+            directIndexWrite.setColumn(execRow.nColumns()+1,new HBaseRowLocation(execRow.getKey()));
+            unsafeRecord.setNumberOfColumns(execRow.nColumns()+1);
+            unsafeRecord.setData(directIndexWrite.getRowArray());
+            KVPair kvPair = unsafeRecord.getKVPair(); // Do I need this?
+            kvPair.setType(KVPair.Type.INSERT);
+            return kvPair;
+        } else {
+            EntryEncoder rowEncoder = getRowEncoder();
+            MultiFieldEncoder entryEncoder = rowEncoder.getEntryEncoder();
+            entryEncoder.reset();
+            entryEncoder.setRawBytes(srcRowKey);
+            byte[] indexValue = rowEncoder.encode();
+            return new KVPair(indexRowKey, indexValue, KVPair.Type.INSERT);
+        }
     }
 
 
@@ -222,10 +287,27 @@ public class IndexTransformer {
      * suitable for performing the required modification of the index record associated with this mutation.
      * @throws IOException for encoding/decoding problems.
      */
-    public KVPair translate(KVPair mutation) throws IOException {
+    public KVPair translate(KVPair mutation) throws IOException, StandardException {
         if (mutation == null) {
             return null;
         }
+        UnsafeRecord unsafeRecord = new UnsafeRecord();
+        unsafeRecord.wrap(mutation, true, 1);
+        if (table.getTableVersion().equals("3.0")) {
+            try {
+                unsafeRecord.mergeWithExistingData(indexedCols, indexRow.getRowArray(),mainColToIndexPosMap);
+                indexRow.setKey(mutation.getRowKey());
+                KVPair kvPair = writeDirectIndex(indexRow);
+                if (kvPair == null)
+                    return null;
+                kvPair.setType(mutation.getType());
+                return kvPair;
+            } catch (StandardException se) {
+                throw new IOException(se);
+            }
+        }
+
+
 
         EntryAccumulator keyAccumulator = getKeyAccumulator();
         keyAccumulator.reset();
@@ -246,7 +328,7 @@ public class IndexTransformer {
                 int indexKeyPos = sourceKeyColumnPos < mainColToIndexPosMap.length ?
                         mainColToIndexPosMap[sourceKeyColumnPos] : -1;
                 int offset = keyDecoder.offset();
-                boolean isNull = skip(keyDecoder, table.getFormatIds(sourceKeyColumnPos));
+                boolean isNull = skip(keyDecoder, tableTemplate.getColumn(sourceKeyColumnPos+1).getTypeFormatId());
                 if(!indexedCols.get(sourceKeyColumnPos)) continue;
                 if(indexKeyPos>=0){
                     /*
@@ -263,7 +345,7 @@ public class IndexTransformer {
                      * ASCENDING order. In an ideal world, that wouldn't matter because
                      */
                     accumulate(keyAccumulator, indexKeyPos,
-                            table.getFormatIds(sourceKeyColumnPos),
+                            tableTemplate.getColumn(sourceKeyColumnPos+1).getTypeFormatId(),
                             index.getDescColumns(indexKeyPos),
                             keyDecoder.array(), offset, length);
                 }
@@ -299,7 +381,7 @@ public class IndexTransformer {
                     length = rowFieldDecoder.offset() - offset - 1;
                     accumulate(keyAccumulator,
                             keyColumnPos,
-                            table.getFormatIds(i),
+                            tableTemplate.getColumn(i+1).getTypeFormatId(),
                             index.getDescColumns(keyColumnPos),
                             rowFieldDecoder.array(), offset, length);
                 } else{
@@ -319,7 +401,7 @@ public class IndexTransformer {
                      */
                     accumulateNull(keyAccumulator,
                             keyColumnPos,
-                            table.getFormatIds(i));
+                            tableTemplate.getColumn(i+1).getTypeFormatId());
                 }
             }
         }
@@ -369,14 +451,20 @@ public class IndexTransformer {
      * @return
      */
     public boolean areIndexKeysModified(KVPair mutation, BitSet indexedColumns) {
-        EntryDecoder newPutDecoder = new EntryDecoder();
-        newPutDecoder.set(mutation.getValue());
-        BitIndex updateIndex = newPutDecoder.getCurrentIndex();
-        for (int i = updateIndex.nextSetBit(0); i >= 0; i = updateIndex.nextSetBit(i + 1)) {
-            if (indexedColumns.get(i))
-                return true;
+        if (table.getTableVersion().equals("3.0")) {
+            UnsafeRecord unsafeRecord = new UnsafeRecord();
+            unsafeRecord.wrap(mutation, true, 1);
+            return unsafeRecord.areIndexedKeysModified(indexedColumns);
+        } else {
+            EntryDecoder newPutDecoder = new EntryDecoder();
+            newPutDecoder.set(mutation.getValue());
+            BitIndex updateIndex = newPutDecoder.getCurrentIndex();
+            for (int i = updateIndex.nextSetBit(0); i >= 0; i = updateIndex.nextSetBit(i + 1)) {
+                if (indexedColumns.get(i))
+                    return true;
+            }
+            return false;
         }
-        return false;
     }
 
     private boolean isSourceColumnPrimaryKey(int sourceColumnIndex) {
@@ -548,7 +636,7 @@ public class IndexTransformer {
     }
 
 
-    private DataResult fetchBaseRow(KVPair mutation,WriteContext ctx,BitSet indexedColumns) throws IOException{
+    public DataResult fetchBaseRow(KVPair mutation,WriteContext ctx,BitSet indexedColumns) throws IOException{
         baseGet =SIDriver.driver().getOperationFactory().newDataGet(ctx.getTxn(),mutation.getRowKey(),baseGet);
 
         EntryPredicateFilter epf;
@@ -556,10 +644,26 @@ public class IndexTransformer {
             epf = new EntryPredicateFilter(indexedColumns);
         }else epf = EntryPredicateFilter.emptyPredicate();
 
-        TransactionalRegion region=ctx.txnRegion();
-        TxnFilter txnFilter=region.packedFilter(ctx.getTxn(),epf,false);
-        baseGet.setFilter(txnFilter);
-        baseResult =ctx.getRegion().get(baseGet,baseResult);
-        return baseResult;
+        TransactionalRegion region = ctx.txnRegion();
+
+        if (table.getTableVersion().equals("3.0")) {
+            SIDriver.driver().baseOperationFactory().setQuery(baseGet,spliceQuery);
+            baseResult = ctx.getRegion().get(baseGet, baseResult);
+
+            baseResult = ScannerFunctionUtils.transformResult(baseResult, ctx.getTxn(), SIDriver.driver().getTxnSupplier(), region.unwrap(),
+                    spliceQuery, SIDriver.driver().baseOperationFactory(), SIDriver.driver().getOperationFactory());
+
+            return baseResult;
+        } else {
+            TxnFilter txnFilter = region.packedFilter(ctx.getTxn(), epf, false);
+            baseGet.setFilter(txnFilter);
+            baseResult = ctx.getRegion().get(baseGet, baseResult);
+            return baseResult;
+        }
     }
+
+    public ExecRow getIndexRow() {
+        return directIndexWrite;
+    }
+
 }

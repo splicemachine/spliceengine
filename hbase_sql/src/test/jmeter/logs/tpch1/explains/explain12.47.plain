@@ -1,0 +1,11 @@
+Plan
+Cursor(n=10,rows=7,updateMode=READ_ONLY (1),engine=Spark)
+  ->  ScrollInsensitive(n=9,totalCost=4665.538,outputRows=7,outputHeapSize=348 B,partitions=10)
+    ->  OrderBy(n=8,totalCost=4665.395,outputRows=7,outputHeapSize=348 B,partitions=10)
+      ->  ProjectRestrict(n=7,totalCost=4241.208,outputRows=634224,outputHeapSize=348 B,partitions=10)
+        ->  GroupBy(n=6,totalCost=1004.995,outputRows=634224,outputHeapSize=30.074 MB,partitions=10)
+          ->  ProjectRestrict(n=5,totalCost=6711.781,outputRows=634224,outputHeapSize=30.074 MB,partitions=10)
+            ->  MergeJoin(n=4,totalCost=1004.995,outputRows=634224,outputHeapSize=30.074 MB,partitions=10,preds=[(O_ORDERKEY[4:1] = L_ORDERKEY[4:3])])
+              ->  ProjectRestrict(n=3,totalCost=6711.781,outputRows=634224,outputHeapSize=30.074 MB,partitions=10,preds=[(L_SHIPDATE[2:2] < L_COMMITDATE[2:3]),(L_COMMITDATE[2:3] < L_RECEIPTDATE[2:4]),(L_SHIPMODE[2:5] IN (MAIL,SHIP))])
+                ->  TableScan[LINEITEM(1600)](n=2,totalCost=6665.349,outputRows=1688454,outputHeapSize=30.074 MB,partitions=10,preds=[(L_RECEIPTDATE[2:4] >= 1994-01-01),(L_RECEIPTDATE[2:4] < date(TIMESTAMPADD(1994-01-01 00:00:00.0, 8, 1)))])
+              ->  TableScan[ORDERS(1616)](n=1,totalCost=1669,outputRows=1500000,outputHeapSize=31.789 MB,partitions=10)

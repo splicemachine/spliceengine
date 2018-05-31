@@ -15,6 +15,7 @@
 package com.splicemachine.pipeline.context;
 
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
@@ -79,7 +80,7 @@ public interface WriteContext {
                                             ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap,
                                             int maxSize,
                                             boolean useAsyncWriteBuffers,
-                                            TxnView txn, byte[] token) throws Exception;
+                                            TxnView txn, byte[] token, ExecRow execRow) throws Exception;
 
     /**
      * Retrieve the coprocessor environment

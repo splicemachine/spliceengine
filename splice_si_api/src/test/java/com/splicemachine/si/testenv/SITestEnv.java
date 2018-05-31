@@ -24,7 +24,7 @@ import java.io.IOException;
 
 public interface SITestEnv extends SITestDataEnv{
 
-    void initialize() throws IOException;
+    void initialize(boolean isRedoTransactor) throws IOException;
 
     String getPersonTableName();
 

@@ -14,6 +14,9 @@
 
 package com.splicemachine.storage;
 
+import java.util.Map;
+import java.util.NavigableSet;
+
 /**
  * @author Scott Fines
  *         Date: 12/15/15
@@ -24,7 +27,11 @@ public interface DataScan extends Attributable{
 
     DataScan stopKey(byte[] stopKey);
 
+    DataScan setFamily(byte[] family);
+
     DataScan filter(DataFilter df);
+
+    Map<byte [], NavigableSet<byte []>> getFamilyMap();
 
     /**
      * Reverse the order in which this scan is operating.

@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.types.*;
+import org.apache.spark.sql.types.Decimal;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -50,7 +51,7 @@ import java.util.List;
  */
 class BinaryRelationalOperatorNodeUtil {
 
-    private static final DataValueDescriptor ZERO_BIG_DECIMAL = new SQLDecimal(BigDecimal.ZERO);
+    private static final DataValueDescriptor ZERO_BIG_DECIMAL = new SQLDecimal(Decimal.apply(BigDecimal.ZERO));
 
     public static void coerceDataTypeIfNecessary(BinaryRelationalOperatorNode operatorNode) {
         try {
@@ -244,7 +245,7 @@ class BinaryRelationalOperatorNodeUtil {
             case StoredFormatIds.SQL_DOUBLE_ID:
                 return new SQLDouble(Limits.DB2_SMALLEST_DOUBLE);
             case StoredFormatIds.SQL_DECIMAL_ID:
-                return new SQLDecimal(getMaxBigDecimal(columnType.getPrecision(), columnType.getScale()).negate());
+                return new SQLDecimal(Decimal.apply(getMaxBigDecimal(columnType.getPrecision(), columnType.getScale()).negate()));
             default:
                 throw new IllegalArgumentException();
         }
@@ -266,7 +267,7 @@ class BinaryRelationalOperatorNodeUtil {
             case StoredFormatIds.SQL_DOUBLE_ID:
                 return new SQLDouble(Limits.DB2_LARGEST_DOUBLE);
             case StoredFormatIds.SQL_DECIMAL_ID:
-                return new SQLDecimal(getMaxBigDecimal(columnType.getPrecision(), columnType.getScale()));
+                return new SQLDecimal(Decimal.apply(getMaxBigDecimal(columnType.getPrecision(), columnType.getScale())));
             default:
                 throw new IllegalArgumentException();
         }

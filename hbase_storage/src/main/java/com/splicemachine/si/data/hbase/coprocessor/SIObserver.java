@@ -26,8 +26,14 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.pipeline.AclCheckerService;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.data.hbase.ExtendedOperationStatus;
 import com.splicemachine.si.impl.server.SimpleCompactionContext;
+import com.splicemachine.si.impl.*;
+import com.splicemachine.si.impl.functions.ScannerFunctionUtils;
+import com.splicemachine.si.impl.server.RedoTransactor;
+import com.splicemachine.storage.*;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HConstants;
@@ -42,6 +48,7 @@ import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -76,18 +83,8 @@ import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.impl.HOperationFactory;
-import com.splicemachine.si.impl.SIFilterPacked;
-import com.splicemachine.si.impl.SimpleTxnOperationFactory;
-import com.splicemachine.si.impl.Tracer;
-import com.splicemachine.si.impl.TxnRegion;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.server.SICompactionState;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.HMutationStatus;
-import com.splicemachine.storage.MutationStatus;
-import com.splicemachine.storage.Partition;
-import com.splicemachine.storage.RegionPartition;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
@@ -99,8 +96,10 @@ public class SIObserver extends BaseRegionObserver{
     private boolean spliceTable=false;
     private long conglomId;
     private TxnOperationFactory txnOperationFactory;
+    private OperationFactory operationFactory;
     private OperationStatusFactory operationStatusFactory;
     private TransactionalRegion region;
+    private boolean useRedoTransactor;
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException{
@@ -108,7 +107,8 @@ public class SIObserver extends BaseRegionObserver{
             SpliceLogUtils.trace(LOG, "starting %s", SIObserver.class);
             RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment) e;
             TableName tableName = rce.getRegion().getTableDesc().getTableName();
-            doesTableNeedSI(tableName);
+            useRedoTransactor = rce.getRegion().getTableDesc().getFamilies().size() == 2;
+            doesTableNeedSI(rce.getRegion().getTableDesc().getTableName());
             if (tableEnvMatch) {
                 try{
                     conglomId=Long.parseLong(tableName.getQualifierAsString());
@@ -127,7 +127,7 @@ public class SIObserver extends BaseRegionObserver{
                         driver.getRollForward(),
                         driver.getReadResolver(regionPartition),
                         driver.getTxnSupplier(),
-                        driver.getTransactor(),
+                        useRedoTransactor?driver.getRedoTransactor():driver.getTransactor(),
                         driver.getOperationFactory()
                 );
                 Tracer.traceRegion(region.getTableName(), rce.getRegion());
@@ -151,39 +151,23 @@ public class SIObserver extends BaseRegionObserver{
     @Override
     public void preGetOp(ObserverContext<RegionCoprocessorEnvironment> e,Get get,List<Cell> results) throws IOException{
         checkAccess();
-
         try {
+            if (operationFactory != null) {
+                SpliceQuery spliceQuery = operationFactory.getQuery(new HGet(get));
+                if (spliceQuery != null)
+                    RedoTransactor.queryContext.set(spliceQuery);
+            }
             SpliceLogUtils.trace(LOG,"preGet %s",get);
-            if(tableEnvMatch && shouldUseSI(get)){
+            if(tableEnvMatch && shouldUseSI(get)) {
                 get.setMaxVersions();
-                get.setTimeRange(0L,Long.MAX_VALUE);
-                assert (get.getMaxVersions()==Integer.MAX_VALUE);
-                addSIFilterToGet(get);
+                get.setTimeRange(0L, Long.MAX_VALUE);
+                assert (get.getMaxVersions() == Integer.MAX_VALUE);
+                if (useRedoTransactor) {
+                } else
+                    addSIFilterToGet(get);
             }
-            SpliceLogUtils.trace(LOG,"preGet after %s",get);
-
-            super.preGetOp(e,get,results);
-        } catch (Throwable t) {
-            throw CoprocessorUtils.getIOException(t);
-        }
-    }
-
-    @Override
-    public RegionScanner preScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e,Scan scan,RegionScanner s) throws IOException{
-        try {
-            SpliceLogUtils.trace(LOG,"preScannerOpen %s with tableEnvMatch=%s, shouldUseSI=%s",scan,tableEnvMatch,shouldUseSI(scan));
-            if(tableEnvMatch && shouldUseSI(scan)){
-                scan.setMaxVersions();
-                scan.setTimeRange(0L,Long.MAX_VALUE);
-                assert (scan.getMaxVersions()==Integer.MAX_VALUE);
-                addSIFilterToScan(scan);
-            }
-            if (tableEnvMatch && hasToken(scan)) {
-                aclCheck(scan);
-            } else {
-                checkAccess();
-            }
-            return super.preScannerOpen(e,scan,s);
+                SpliceLogUtils.trace(LOG,"preGet after %s",get);
+                super.preGetOp(e,get,results);
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
@@ -197,10 +181,85 @@ public class SIObserver extends BaseRegionObserver{
     }
 
     private boolean aclCheck(Scan scan) throws IOException, StandardException {
-        byte[] token=scan.getAttribute(SIConstants.TOKEN_ACL_NAME);
+        byte[] token = scan.getAttribute(SIConstants.TOKEN_ACL_NAME);
 
         AclCheckerService.getService().checkPermission(token, conglomId, Authorizer.SELECT_PRIV);
         return true;
+    }
+
+        @Override
+    public void postGetOp(ObserverContext<RegionCoprocessorEnvironment> e, Get get, List<Cell> results) throws IOException {
+        if(tableEnvMatch && shouldUseSI(get)) {
+            if (results == null || results.isEmpty() || !useRedoTransactor) {
+                super.postGetOp(e, get, results);
+                return;
+            }
+            byte[] attribute=get.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
+            assert attribute!=null: "Transaction information is missing";
+
+            SpliceQuery spliceQuery = operationFactory.getQuery(new HGet(get));
+            assert spliceQuery!=null: "Query information is missing";
+
+            TxnView txn=txnOperationFactory.fromReads(attribute,0,attribute.length);
+            HCell dataCell = (HCell) ScannerFunctionUtils.transformCell(new HCell(results.get(0)),txn,SIDriver.driver().getTxnSupplier(),region.unwrap(),
+                    spliceQuery,SIDriver.driver().baseOperationFactory(),txnOperationFactory);
+            if (dataCell!=null) {
+                results.set(0, dataCell.unwrapDelegate());
+            } else {
+                results.clear();
+            }
+        }
+    }
+
+    @Override
+    public RegionScanner postScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan, RegionScanner s) throws IOException {
+       // System.out.println("postScannerOpen ->" + scan);
+        if(tableEnvMatch && shouldUseSI(scan) && useRedoTransactor){
+            byte[] attribute=scan.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
+            assert attribute!=null: "Transaction information is missing";
+
+            SpliceQuery spliceQuery = operationFactory.getQuery(new HScan(scan));
+            assert spliceQuery!=null: "Transaction information is missing";
+
+            TxnView txn=txnOperationFactory.fromReads(attribute,0,attribute.length);
+
+            return new SIObserverScanner(s, spliceQuery,
+                    region.unwrap(), txn, region.getTxnSupplier(),
+                    SIDriver.driver().baseOperationFactory(),
+                    SIDriver.driver().getOperationFactory(),scan.getCaching());
+
+        }   else
+            return super.postScannerOpen(e, scan, s);
+    }
+
+    @Override
+    public RegionScanner preScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e,Scan scan,RegionScanner s) throws IOException {
+        try {
+            if (operationFactory != null) {
+
+                SpliceQuery spliceQuery = operationFactory.getQuery(new HScan(scan));
+                if (spliceQuery != null)
+                    RedoTransactor.queryContext.set(spliceQuery);
+            }
+            SpliceLogUtils.trace(LOG, "preScannerOpen %s with tableEnvMatch=%s, shouldUseSI=%s", scan, tableEnvMatch, shouldUseSI(scan));
+            if (tableEnvMatch && shouldUseSI(scan)) {
+                scan.setMaxVersions();
+                scan.setTimeRange(0L, Long.MAX_VALUE);
+                assert (scan.getMaxVersions() == Integer.MAX_VALUE);
+                if (useRedoTransactor) {
+                } else {
+                    addSIFilterToScan(scan);
+                }
+            }
+            if (tableEnvMatch && hasToken(scan)) {
+                aclCheck(scan);
+            } else {
+                checkAccess();
+            }
+            return super.preScannerOpen(e, scan, s);
+        } catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
+        }
     }
 
     @Override
@@ -286,10 +345,13 @@ public class SIObserver extends BaseRegionObserver{
                 super.prePut(e, put, edit, writeToWAL);
                 return;
             }
-
             byte[] attribute = put.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
             assert attribute != null : "Transaction not specified!";
 
+        ExecRow execRow = null;
+        if (put.getAttribute(SIConstants.SI_EXEC_ROW)!=null) {
+            execRow = operationFactory.getTemplate(new HPut(put));
+        }
 
             TxnView txn = txnOperationFactory.fromWrites(attribute, 0, attribute.length);
             boolean isDelete = put.getAttribute(SIConstants.SI_DELETE_PUT) != null;
@@ -323,14 +385,14 @@ public class SIObserver extends BaseRegionObserver{
                 }
                 columnMap.put(column, new KVPair(row, value, isDelete ? KVPair.Type.DELETE : KVPair.Type.EMPTY_COLUMN));
             }
-            for (Map.Entry<byte[], Map<byte[], KVPair>> family : familyMap.entrySet()) {
+            for(Map.Entry<byte[], Map<byte[], KVPair>> family : familyMap.entrySet()) {
                 byte[] fam = family.getKey();
                 Map<byte[], KVPair> cols = family.getValue();
                 for (Map.Entry<byte[], KVPair> column : cols.entrySet()) {
                     boolean processed = false;
                     while (!processed) {
                         @SuppressWarnings("unchecked") Iterable<MutationStatus> status =
-                                region.bulkWrite(txn, fam, column.getKey(), operationStatusFactory.getNoOpConstraintChecker(), Collections.singleton(column.getValue()), false, false);
+                                region.bulkWrite(txn, fam, column.getKey(), operationStatusFactory.getNoOpConstraintChecker(), Collections.singleton(column.getValue()), false, false, execRow);
                         Iterator<MutationStatus> itr = status.iterator();
                         if (!itr.hasNext())
                             throw new IllegalStateException();
@@ -353,7 +415,6 @@ public class SIObserver extends BaseRegionObserver{
                     }
                 }
             }
-
             e.bypass();
             e.complete();
         } catch (Throwable t) {
@@ -382,6 +443,15 @@ public class SIObserver extends BaseRegionObserver{
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private void addSIFilterToGet(Get get) throws IOException{
+        byte[] attribute=get.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
+        assert attribute!=null: "Transaction information is missing";
+
+        TxnView txn=txnOperationFactory.fromReads(attribute,0,attribute.length);
+        final Filter newFilter=makeSIFilter(txn,get.getFilter(), getPredicateFilter(get),false);
+        get.setFilter(newFilter);
+    }
+
+    private void addRedoFilterToGet(Get get) throws IOException{
         byte[] attribute=get.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
         assert attribute!=null: "Transaction information is missing";
 
@@ -501,4 +571,14 @@ public class SIObserver extends BaseRegionObserver{
         super.preBulkLoadHFile(ctx, familyPaths);
     }
     
+
+    @Override
+    public void preFlush(ObserverContext<RegionCoprocessorEnvironment> e) throws IOException {
+        super.preFlush(e);
+    }
+
+    @Override
+    public InternalScanner preFlushScannerOpen(ObserverContext<RegionCoprocessorEnvironment> c, Store store, KeyValueScanner memstoreScanner, InternalScanner s) throws IOException {
+        return super.preFlushScannerOpen(c, store, memstoreScanner, s);
+    }
 }
