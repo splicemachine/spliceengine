@@ -1,0 +1,144 @@
+#############################CREATE_EMPLOYEE_TABLE#############################
+
+CREATE PROCEDURE SPLICE.CREATE_EMPLOYEE_TABLE(IN tableName VARCHAR(40)) PARAMETER STYLE JAVA READS SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 0 EXTERNAL NAME 'def run(tableName):
+    c = conn.cursor()
+    c.execute("create table " + tableName + " (ID int, FNAME varchar(20), LNAME varchar(30))")
+    conn.commit()
+    c.close()
+    conn.close()';
+
+CALL SPLICE.CREATE_EMPLOYEE_TABLE('EMPLOYEE');
+
+#############################DROP_EMPLOYEE_TABLE#############################
+
+CREATE PROCEDURE SPLICE.DROP_EMPLOYEE_TABLE(IN tableName VARCHAR(40)) PARAMETER STYLE JAVA READS SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 0 EXTERNAL NAME 'def run(tableName):
+    c = conn.cursor()
+    c.execute("drop table " + tableName)
+    conn.commit()
+    c.close()
+    conn.close()';
+
+CALL SPLICE.DROP_EMPLOYEE_TABLE('EMPLOYEE');
+
+#############################INSERT_EMPLOYEE#############################
+
+CREATE PROCEDURE SPLICE.INSERT_EMPLOYEE(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA READS SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 0 EXTERNAL NAME 'def run(tableName, empId, fname, lname):
+    c = conn.cursor()
+    stmt = "insert into " + "ridicule" + " values(?, ?, ?)"
+    c.execute(stmt, [empId, fname, lname])
+    conn.commit()
+    c.close()
+    conn.close()';
+
+CALL SPLICE.INSERT_EMPLOYEE('EMPLOYEE', 2, 'Barney', 'Rubble');
+CALL SPLICE.INSERT_EMPLOYEE('EMPLOYEE', 1, 'Ao', 'Zeng');
+
+#############################GET_EMPLOYEE###############################
+
+CREATE PROCEDURE SPLICE.GET_EMPLOYEE(IN tableName VARCHAR(40), IN id INT) PARAMETER STYLE JAVA READS SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 1 EXTERNAL NAME 'def run(tableName, empId, rs):
+    c = conn.cursor()
+    stmt = "select * from " + tableName + " where ID = ?"
+    c.execute(stmt,[empId])
+    d = c.description
+    result = c.fetchall()
+    rs[0] = factory.create([d,result])
+    conn.commit()
+    c.close()
+    conn.close()';
+
+CALL SPLICE.GET_EMPLOYEE('EMPLOYEE', 2);
+
+#############################INSERT_AND_GET_EMPLOYEE##########################
+
+CREATE PROCEDURE SPLICE.INSERT_AND_GET_EMPLOYEE(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA READS SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 1 EXTERNAL NAME 'def run(tableName, empId, fname, lname, rs):
+    c = conn.cursor()
+    insertStmt = "insert into " + tableName + " values(?, ?, ?)"
+    c.execute(insertStmt,[empId, fname, lname])
+    getStmt = "select * from " + tableName + " where ID = ?"
+    c.execute(getStmt,[empId])
+    d = c.description
+    result = c.fetchall()
+    rs[0] = factory.create([d,result])
+    conn.commit()
+    c.close()
+    conn.close()';
+
+CALL SPLICE.INSERT_AND_GET_EMPLOYEE('EMPLOYEE', 2, 'Barney', 'Rubble');
+
+
+#############################INSERT_UPDATE_AND_GET_EMPLOYEE########################
+
+CREATE PROCEDURE SPLICE.INSERT_UPDATE_AND_GET_EMPLOYEE(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30), IN fname2 VARCHAR(20), IN lname2 VARCHAR(30)) PARAMETER STYLE JAVA READS SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 1 EXTERNAL NAME 'def run(tableName, empId, fname, lname, fname2, lname2, rs):
+    c = conn.cursor()
+    insertStmt = "insert into " + tableName + " values(?, ?, ?)"
+    c.execute(insertStmt,[empId, fname, lname])
+    updateStmt = "update " + tableName + " set FNAME = ?, LNAME = ? where ID = ?"
+    c.execute(updateStmt,[fname2, lname2, empId])
+    getStmt = "select * from " + tableName + " where ID = ?"
+    c.execute(getStmt,[empId])
+    d = c.description
+    result = c.fetchall()
+    rs[0] = factory.create([d,result])
+    conn.commit()
+    c.close()
+    conn.close()';
+
+CALL SPLICE.INSERT_UPDATE_AND_GET_EMPLOYEE('EMPLOYEE', 2, 'Barney', 'Rubble', 'Wilma', 'Flintsone');
+
+#####################INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE######################
+
+CREATE PROCEDURE SPLICE.INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30), IN fname2 VARCHAR(20), IN lname2 VARCHAR(30), IN id2 INT) PARAMETER STYLE JAVA READS SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 1 EXTERNAL NAME 'from com.ziclix.python.sql import zxJDBC
+jdbc_url = "jdbc:default:connection"
+driver = "com.splicemachine.db.jdbc.ClientDriver"
+
+def run(tableName, empId, fname, lname, fname2, lname2, empId2, rs):
+    conn = zxJDBC.connect(jdbc_url, None, None, driver)
+    c = conn.cursor()
+    insertStmt = "insert into " + tableName + " values(?, ?, ?)"
+    c.execute(insertStmt,[empId, fname, lname])
+
+    updateStmt = "update " + tableName + " set FNAME = ?, LNAME = ? where ID = ?"
+    c.execute(updateStmt,[fname2, lname2, empId])
+
+    getFirstNamesStmt = "select FNAME from " + tableName
+    c.execute(getFirstNamesStmt)
+
+    getLastNamesStmt = "select LNAME from " + tableName
+    c.execute(getLastNamesStmt)
+
+    deleteStmt = "delete from " + tableName + " where ID = ?"
+    c.execute(deleteStmt,[empId2])
+
+    getEmpStmt = "select * from " + tableName + " where ID = ?"
+    c.execute(getEmpStmt,[empId])
+
+    d = c.description
+    result = c.fetchall()
+    rs[0] = factory.create([d,result])
+    conn.commit()
+    c.close()
+    conn.close()';
+
+CALL SPLICE.INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE('EMPLOYEE', 2, 'Barney', 'Rubble', 'Wilma', 'Flintsone', 3);
+
+#######################CREATE_INSERT_AND_GET_EMPLOYEE###########################
+
+CREATE PROCEDURE SPLICE.CREATE_INSERT_AND_GET_EMPLOYEE(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA READS SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 1 EXTERNAL NAME 'def run(tableName, empId, fname, lname, rs):
+    c = conn.cursor()
+    createStmt = "create table " + tableName + " (ID int, FNAME varchar(20), LNAME varchar(30))"
+    c.execute(createStmt)
+
+    insertStmt = "insert into " + tableName + " values(?, ?, ?)"
+    c.execute(insertStmt ,[empId, fname, lname)
+
+    getStmt = "select * from " + tableName + " where ID = ?"
+    c.execute(getStmt,[empId])
+
+    d = c.description
+    result = c.fetchall()
+    rs[0] = factory.create([d,result])
+    conn.commit()
+    c.close()
+    conn.close()';
+
+CALL SPLICE.CREATE_INSERT_AND_GET_EMPLOYEE('EMPLOYEE', 1, 'Fred', 'Flintstone');

@@ -14,13 +14,15 @@
 
 package org.splicetest.txn;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Savepoint;
-import java.sql.Statement;
+import com.splicemachine.db.iapi.error.PublicAPI;
+import java.sql.*;
+
+import com.splicemachine.db.impl.sql.pyprocedure.PyCodeUtil;
+import com.splicemachine.db.impl.sql.pyprocedure.PyInterpreterPool;
+import com.splicemachine.pipeline.Exceptions;
+import org.python.util.PythonInterpreter;
+import org.python.core.*;
+import com.splicemachine.derby.impl.sql.pyprocedure.PyStoredProcedureResultSetFactory;
 
 /**
  * Stored procedures to test the transactional correctness of the Splice Machine stored procedure execution framework.
@@ -42,9 +44,96 @@ public class TxnTestProcs {
 	CALL SQLJ.REPLACE_JAR('/Users/dwinters/Documents/workspace3/txn-it-procs/target/txn-it-procs-1.0-SNAPSHOT.jar', 'SPLICE.TXN_IT_PROCS_JAR');
 	 */
 
+	/**
+	 * A wrapper static method for Python Stored Procedure
+	 *
+	 * @param args if the registered stored procedure has n parameters, the args[0] to args[n-1] are these parameters.
+	 * The args[n] must be a String which contains the Python script. The rest of elements in the args are ResultSet[].
+	 * In the current test version only allows one ResultSet[]
+	 */
+	public static void DEMO(Object... args)
+			throws SQLException
+	{
+		/*
+		-- Declare and execute the procedure in ij.
+		CREATE PROCEDURE SPLICE.DEMO() PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.DEMO';
+		CALL SPLICE.DEMO();
+		 */
+		PyInterpreterPool pool = null;
+		PythonInterpreter interpreter = null;
+		String setFacFuncName = "setFactory";
+		String funcName = "execute";
+
+		try {
+			int pyScriptIdx;
+			byte[] compiledCode;
+			int nargs = args.length;
+			Integer rsDelim = null;
+
+
+			for(int i = 0; i < nargs; ++i){
+				if(args[i] instanceof ResultSet[]){
+					rsDelim = i;
+					break;
+				}
+			}
+
+			// set pyScript
+			if(rsDelim == null){
+				if(nargs == 0 || !(args[nargs-1] instanceof String)){
+					// raise exception
+				}
+				pyScriptIdx = nargs - 1;
+			}
+			else{
+				if(rsDelim-1 < 0 ||!(args[rsDelim - 1] instanceof String)){
+					//faise exception
+				}
+				pyScriptIdx = rsDelim - 1;
+			}
+			compiledCode = (byte[]) args[pyScriptIdx];
+
+			// set the Object[] to pass into Jython code
+			int j = 0;
+			Object[] pyArgs;
+			if(nargs - 1 ==0){
+				pyArgs = null;
+			}
+			else{
+				pyArgs = new Object[nargs - 1];
+			}
+			for(int i = 0; i < nargs; ++i){
+				if(i != pyScriptIdx){
+					pyArgs[j] = args[i];
+					j++;
+				}
+			}
+
+			pool = PyInterpreterPool.getInstance();
+			interpreter = pool.acquire();
+			PyCodeUtil.exec(compiledCode, interpreter);
+			// add global variable factory, so that the user can use it to construct JDBC ResultSet
+			Object[] factoryArg = {new PyStoredProcedureResultSetFactory()};
+			PyFunction addFacFunc = interpreter.get(setFacFuncName, PyFunction.class);
+			addFacFunc._jcall(factoryArg);
+
+			// execute the user defined function, the user needs to fill the ResultSet himself,
+			// just like the original Java Stored Procedure
+			PyFunction userFunc = interpreter.get(funcName, PyFunction.class);
+			userFunc._jcall(pyArgs);
+		}catch (Exception e){
+			throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+		}finally{
+			if(pool != null && interpreter != null){
+				pool.release(interpreter);
+			}
+		}
+	}
+
 	/*
 	 * ============================================================================================
 	 * The following test the transactional correctness of Splice stored procedures.
+	 * These are the Original Testing Procs
 	 * ============================================================================================
 	 */
 
@@ -73,7 +162,7 @@ public class TxnTestProcs {
 		/*
 		-- Declare and execute the procedure in ij.
 		CREATE PROCEDURE SPLICE.DROP_EMPLOYEE_TABLE(IN tableName VARCHAR(40)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 0 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.DROP_EMPLOYEE_TABLE';
-		CALL SPLICE.CREATE_EMPLOYEE_TABLE('EMPLOYEE');
+		CALL SPLICE.DROP_EMPLOYEE_TABLE('EMPLOYEE');
 		 */
 		Connection conn = DriverManager.getConnection("jdbc:default:connection");
 		dropEmployeeTable(conn, tableName);
@@ -381,6 +470,10 @@ public class TxnTestProcs {
         String[] errorCode /* OUT parameter */,
         String[] errorMessage, /* OUT parameter */
         ResultSet[] rs) throws SQLException {
+    	/*
+    	 -- Declare and executet the procedure in ij.
+    	 CREATE PROCEDURE SPLICE.GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS(IN tableName VARCHAR(40), IN id INT, OUT errorCode VARCHAR(100), OUT errorMessage VARCHAR(100)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS'
+    	 */
 
         String responseErrorCode = "0";
         String responseErrorMessage = "Success";
@@ -396,6 +489,34 @@ public class TxnTestProcs {
             errorMessage[0] = responseErrorMessage;
         }
     }
+
+    // Added test for testing multiple ResultSets
+	public static void INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE(Integer id,
+																   String tableName,
+																   String fname,
+																   String lname,
+																   String fname2,
+																   String lname2,
+																   Integer id2,
+																   ResultSet[] rs1,
+																   ResultSet[] rs2,
+																   ResultSet[] rs3)
+			throws SQLException
+	{
+		/*
+		-- Declare and execute the procedure in ij.
+		CREATE PROCEDURE SPLICE.INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE(IN id INT, IN tableName VARCHAR(40), IN fname VARCHAR(20), IN lname VARCHAR(30), IN fname2 VARCHAR(20), IN lname2 VARCHAR(30), IN id2 INT) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 3 EXTERNAL NAME 'org.splicetest.sqlj.SqlJTestProcs.INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE';
+		CALL SPLICE.INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE('EMPLOYEE', 2, 'Barney', 'Rubble', 'Wilma', 'Flintsone', 3);
+		 */
+		Connection conn = DriverManager.getConnection("jdbc:default:connection");
+		insertEmployee(conn, tableName, id, fname, lname);
+		updateEmployeeNameById(conn, tableName, id, fname2, lname2);
+		rs1[0] = getEmployeeFirstNames(conn, tableName);
+		rs2[0] = getEmployeeLastNames(conn, tableName);
+		deleteEmployee(conn, tableName, id2);
+		rs3[0] = getEmployeeById(conn, tableName, id);
+		conn.close();
+	}
 
 	/*
 	 * ============================================================================================
@@ -505,5 +626,46 @@ public class TxnTestProcs {
 	private static ResultSet getEmployeeLastNames(Connection conn, String tableName) throws SQLException {
 		PreparedStatement pstmt = conn.prepareStatement("select LNAME from " + tableName);
 		return pstmt.executeQuery();
+	}
+
+	/**
+	 * Used in PyStoredProcedureResultSetFacotryIT
+	 */
+	public static void JPROC_TYPE_UNIT_TEST(ResultSet[] rs)
+			throws Exception{
+		//-- Declare and execute the procedure in ij.
+		//CREATE PROCEDURE SPLICE.JPROC_TYPE_UNIT_TEST() PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.JPROC_TYPE_UNIT_TEST';
+		//CALL SPLICE.JPROC_TYPE_UNIT_TEST();
+		Connection conn = DriverManager.getConnection("jdbc:default:connection");
+		Statement stmt = conn.createStatement();
+		rs[0] = stmt.executeQuery("SELECT * FROM TEST_TABLE {limit 1}");
+		conn.close();
+	}
+
+	public static void MULTIPLE_RESULTSETS_PROC(ResultSet[] rs1, ResultSet[] rs2, ResultSet[] rs3)
+			throws SQLException
+	{
+		//-- Declare and execute the procedure in ij.
+		//CREATE PROCEDURE SPLICE.MULTIPLE_RESULTSETS_PROC() PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 3 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.MULTIPLE_RESULTSETS_PROC';
+		//CALL SPLICE.MULTIPLE_RESULTSETS_PROC();
+		Connection c = DriverManager.getConnection("jdbc:default:connection");
+		Statement stmt = c.createStatement();
+		rs1[0] = c.createStatement().executeQuery("VALUES(1)");
+		rs2[0] = c.createStatement().executeQuery("VALUES(2)");
+		rs3[0] = c.createStatement().executeQuery("VALUES(3)");
+		c.close();
+
+	}
+
+	/*
+	 * @param out output parameter which is an integer
+	 *
+	 */
+	public static void OUTPUT_PARAMETER_NO_RESULTSET(Integer[] out)
+		throws SQLException{
+		//-- Declare and execute the procedure in ij.
+		//CREATE PROCEDURE SPLICE.OUTPUT_PARAMETER_NO_RESULTSET(OUT outInt INT) PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 0 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.OUTPUT_PARAMETER_NO_RESULTSET';
+		out[0] = 1;
+		return;
 	}
 }

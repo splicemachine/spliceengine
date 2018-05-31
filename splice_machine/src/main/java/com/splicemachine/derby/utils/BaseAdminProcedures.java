@@ -179,7 +179,7 @@ public abstract class BaseAdminProcedures {
         return result;
     }
 
-    protected static ExecRow buildExecRow(ResultColumnDescriptor[] columns) throws SQLException {
+    public static ExecRow buildExecRow(ResultColumnDescriptor[] columns) throws SQLException {
         ExecRow template = new ValueRow(columns.length);
         try {
             DataValueDescriptor[] rowArray = new DataValueDescriptor[columns.length];

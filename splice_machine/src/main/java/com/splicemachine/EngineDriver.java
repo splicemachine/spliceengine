@@ -31,6 +31,7 @@ import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.management.DatabaseAdministrator;
 import com.splicemachine.management.Manager;
+import com.splicemachine.db.impl.sql.pyprocedure.PyInterpreterPool;
 import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.ResourcePool;
 import com.splicemachine.uuid.Snowflake;
@@ -96,7 +97,8 @@ public class EngineDriver{
                     }
                 }).build();
         this.serviceDiscovery = environment.serviceDiscovery();
-
+        // Initiate PyInterpreterPool which is a singleton
+        PyInterpreterPool.getInstance();
     }
 
     public DatabaseAdministrator dbAdministrator(){
@@ -156,6 +158,5 @@ public class EngineDriver{
     public ServiceDiscovery getServiceDiscovery() {
         return serviceDiscovery;
     }
-
 
 }

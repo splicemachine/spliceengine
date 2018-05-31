@@ -463,6 +463,9 @@ public final class SQLDouble extends NumberDataType
 		isNull = false;
 	}
 
+	public void setValue(Double theValue) throws StandardException{
+		setValue(theValue.doubleValue());
+	}
 
 	/*
 	 * DataValueDescriptor interface
