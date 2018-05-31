@@ -21,7 +21,10 @@ import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
+import com.splicemachine.db.iapi.types.SQLDecimal;
 import com.splicemachine.db.impl.sql.execute.GenericScanQualifier;
+import org.apache.spark.sql.types.Decimal;
+
 import java.math.BigDecimal;
 import java.util.GregorianCalendar;
 
@@ -282,7 +285,7 @@ public class QualifierUtils {
                     correctType.setValue(dvd.getDouble());
                 }
             }else if(currentTypeFormatId==StoredFormatIds.SQL_DECIMAL_ID){
-                BigDecimal val = (BigDecimal)dvd.getObject();
+                BigDecimal val = (BigDecimal) ((SQLDecimal) dvd).getBigDecimal();
                 double value = 0;
                 if(columnFormat==StoredFormatIds.SQL_REAL_ID){
                     if(val.compareTo(BigDecimal.valueOf(Float.MAX_VALUE))>0)

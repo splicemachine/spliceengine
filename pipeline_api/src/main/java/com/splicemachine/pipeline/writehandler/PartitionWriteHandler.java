@@ -18,6 +18,7 @@ import com.splicemachine.access.api.NotServingPartitionException;
 import com.splicemachine.access.api.RegionBusyException;
 import com.splicemachine.access.api.WrongPartitionException;
 import com.splicemachine.concurrent.ResettableCountDownLatch;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.*;
 import com.splicemachine.pipeline.constraint.BatchConstraintChecker;
@@ -47,16 +48,20 @@ public class PartitionWriteHandler implements WriteHandler {
     protected List<KVPair> mutations = Lists.newArrayList();
     protected ResettableCountDownLatch writeLatch;
     protected BatchConstraintChecker constraintChecker;
+    protected ExecRow emptyExecRow;
 
     public PartitionWriteHandler(TransactionalRegion region,
                                  ResettableCountDownLatch writeLatch,
-                                 BatchConstraintChecker constraintChecker) {
+                                 BatchConstraintChecker constraintChecker,
+                                 ExecRow emptyExecRow) {
+        assert emptyExecRow != null:"Must have types enabled.";
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "regionWriteHandler create");
         this.region = region;
         this.writeLatch = writeLatch;
         this.constraintChecker = constraintChecker;
         this.mutations = Lists.newArrayList();
+        this.emptyExecRow = emptyExecRow;
     }
 
     @Override
@@ -155,9 +160,9 @@ public class PartitionWriteHandler implements WriteHandler {
 
     private void doWrite(WriteContext ctx, Collection<KVPair> toProcess) throws IOException {
         assert toProcess!=null; //won't ever happen, but it's a nice safety check
+        assert emptyExecRow!=null:"Exec Row is null";
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "doWrite {region=%s, records=%d}", ctx.getRegion().getName(),toProcess.size());
-
         Iterable<MutationStatus> status = region.bulkWrite(
                 ctx.getTxn(),
                 SIConstants.DEFAULT_FAMILY_BYTES,
@@ -165,7 +170,8 @@ public class PartitionWriteHandler implements WriteHandler {
                 constraintChecker,
                 toProcess,
                 ctx.skipConflictDetection(),
-                ctx.skipWAL()
+                ctx.skipWAL(),
+                emptyExecRow
         );
 
         int i = 0;

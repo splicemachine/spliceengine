@@ -1,0 +1,10 @@
+Plan
+Cursor(n=9,rows=1,updateMode=READ_ONLY (1),engine=Spark)
+  ->  ScrollInsensitive(n=8,totalCost=5044.203,outputRows=1,outputHeapSize=0 B,partitions=1)
+    ->  ProjectRestrict(n=7,totalCost=7485.334,outputRows=231912,outputHeapSize=0 B,partitions=1)
+      ->  GroupBy(n=6,totalCost=770.489,outputRows=231912,outputHeapSize=11.961 MB,partitions=36)
+        ->  ProjectRestrict(n=5,totalCost=237.778,outputRows=100000,outputHeapSize=11.961 MB,partitions=36)
+          ->  MergeSortJoin(n=4,totalCost=770.489,outputRows=231912,outputHeapSize=11.961 MB,partitions=36,preds=[(((P_BRAND[4:8] = Brand#12) and ((P_CONTAINER[4:10] IN (SM BOX,SM CASE,SM PACK,SM PKG)) and ((L_QUANTITY[4:2] >= 1) and ((L_QUANTITY[4:2] <= (1 + 10)) and ((P_SIZE[4:9] >= 1) and ((P_SIZE[4:9] <= 5) and (true and true))))))) or (((P_BRAND[4:8] = Brand#23) and ((P_CONTAINER[4:10] IN (MED BAG,MED BOX,MED PACK,MED PKG)) and ((L_QUANTITY[4:2] >= 10) and ((L_QUANTITY[4:2] <= (10 + 10)) and ((P_SIZE[4:9] >= 1) and ((P_SIZE[4:9] <= 10) and (true and true))))))) or (((P_BRAND[4:8] = Brand#34) and ((P_CONTAINER[4:10] IN (LG BOX,LG CASE,LG PACK,LG PKG)) and ((L_QUANTITY[4:2] >= 20) and ((L_QUANTITY[4:2] <= (20 + 10)) and ((P_SIZE[4:9] >= 1) and ((P_SIZE[4:9] <= 15) and (true and true))))))) or false))),(P_PARTKEY[4:7] = L_PARTKEY[4:1])])
+            ->  TableScan[PART(1680)](n=3,totalCost=228,outputRows=200000,outputHeapSize=11.961 MB,partitions=36)
+            ->  ProjectRestrict(n=2,totalCost=6714.845,outputRows=431534,outputHeapSize=13.581 MB,partitions=36,preds=[(L_SHIPMODE[0:6] IN (AIR,AIR REG))])
+              ->  TableScan[LINEITEM(1600)](n=1,totalCost=6665.349,outputRows=1499890,outputHeapSize=13.581 MB,partitions=36,preds=[(L_SHIPINSTRUCT[0:5] = DELIVER IN PERSON)])

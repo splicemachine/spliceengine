@@ -78,7 +78,7 @@ public class MSynchronousReadResolver implements KeyedReadResolver{
 
     public boolean resolve(Partition region,ByteSlice rowKey,long txnId,TxnSupplier supplier,RollForwardStatus status,boolean failOnError,TrafficControl trafficControl){
         try{
-            TxnView transaction=supplier.getTransaction(txnId);
+            TxnView transaction=supplier.getTransaction(null,txnId);
             boolean resolved=false;
             if(transaction.getEffectiveState()==Txn.State.ROLLEDBACK){
                 trafficControl.acquire(1);

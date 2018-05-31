@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.hadoop.hive.serde2.io.TimestampWritable;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
@@ -262,6 +263,8 @@ public final class SQLTimestamp extends DataType
 	public void writeExternal(ObjectOutput out) throws IOException {
 
 		out.writeBoolean(isNull);
+		if (isNull)
+			return;
 		/*
 		** Timestamp is written out 3 ints, encoded date, encoded time, and
 		** nanoseconds
@@ -282,6 +285,8 @@ public final class SQLTimestamp extends DataType
 		int time;
 		int nanos;
 		isNull = in.readBoolean();
+		if (isNull)
+			return;
 		date = in.readInt();
 		time = in.readInt();
 		nanos = in.readInt();
@@ -293,6 +298,8 @@ public final class SQLTimestamp extends DataType
 		int time;
 		int nanos;
 		isNull = in.readBoolean();
+		if (isNull)
+			return;
 		date = in.readInt();
 		time = in.readInt();
 		nanos = in.readInt();
@@ -1605,7 +1612,7 @@ public final class SQLTimestamp extends DataType
 		        Platform.putInt(holder.buffer, holder.cursor + 4, encodedTime);
 		        Platform.putInt(holder.buffer, holder.cursor + 8, nanos);
 		        unsafeRowWriter.setOffsetAndSize(ordinal, 12);
-				holder.cursor = 12;
+				holder.cursor += 12;
 			}
 	    }
 
@@ -1705,5 +1712,16 @@ public final class SQLTimestamp extends DataType
 			setIsNull(false);
 		}
 	}
+
+	@Override
+	public boolean isVariableLength() {
+		return true;
+	}
+
+	@Override
+	public Object getHiveObject() throws StandardException {
+		return isNull()?null:new TimestampWritable((Timestamp) getObject());
+	}
+
 
 }

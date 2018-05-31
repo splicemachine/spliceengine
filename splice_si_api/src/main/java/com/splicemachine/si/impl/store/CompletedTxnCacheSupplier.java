@@ -19,9 +19,13 @@ import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.txn.AbstractTxnStore;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -33,7 +37,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author Scott Fines
  *         Date: 6/18/14
  */
-public class CompletedTxnCacheSupplier implements TxnSupplier{
+public class CompletedTxnCacheSupplier extends AbstractTxnStore implements TxnSupplier{
     private ConcurrentLinkedHashMap<Long, TxnView> cache; // autobox for now
     private final TxnSupplier delegate;
     private final AtomicLong hits=new AtomicLong();
@@ -52,34 +56,20 @@ public class CompletedTxnCacheSupplier implements TxnSupplier{
     }
 
     @Override
-    public TxnView getTransaction(long txnId) throws IOException{
-        if(txnId==-1)
-            return Txn.ROOT_TRANSACTION;
-        return getTransaction(txnId,false);
+    public HashMap<Long, TxnView> getTransactions(TxnView currentTxn, Set<Long> txnIds) throws IOException {
+        HashMap<Long, TxnView> txns = new HashMap<>(txnIds.size());
+        for (long txnId: txnIds) {
+            txns.put(txnId,getTransaction(currentTxn,txnId));
+        }
+        return txns;
     }
 
     @Override
     @SuppressFBWarnings("SF_SWITCH_NO_DEFAULT") //intentional
-    public TxnView getTransaction(long txnId,boolean getDestinationTables) throws IOException{
-        if(txnId==-1)
-            return Txn.ROOT_TRANSACTION;
-        requests.incrementAndGet();
-        TxnView txn=cache.get(txnId); // autobox until Cliff C merge
-        if(txn!=null){
-            hits.incrementAndGet();
-            return txn;
-        }
-        //bummer, we aren't in the cache, need to check the delegate
-        TxnView transaction=delegate.getTransaction(txnId,getDestinationTables);
-        if(transaction==null) //noinspection ConstantConditions
-            return transaction; //don't cache read-only transactions;
+    public TxnView getTransaction(TxnView currentTxn,long txnId,boolean getDestinationTables) throws IOException{
+        TxnView txn = getBaseTransaction(currentTxn, txnId & SIConstants.TRANSANCTION_ID_MASK,getDestinationTables);
+        return getComparableTxn(txn,txnId);
 
-        switch(transaction.getEffectiveState()){
-            case COMMITTED:
-            case ROLLEDBACK:
-                cache.put(transaction.getTxnId(),transaction); // Cache for Future Use
-        }
-        return transaction;
     }
 
     @Override
@@ -106,4 +96,37 @@ public class CompletedTxnCacheSupplier implements TxnSupplier{
     public TaskId getTaskId(long txnId) throws IOException {
         return delegate.getTaskId(txnId);
     }
+
+    public HashMap<Long,TxnView> getBaseTransactions(TxnView currentTxn, Set<Long> txnIds) throws IOException {
+        HashMap<Long, TxnView> txns = new HashMap<>(txnIds.size());
+        for (long txnId: txnIds) {
+            txns.put(txnId,getBaseTransaction(currentTxn, txnId));
+        }
+        return txns;
+    }
+
+    @Override
+    public TxnView getBaseTransaction(TxnView currentTxn, long txnId,boolean getDestinationTables) throws IOException {
+        if(txnId==-1)
+            return Txn.ROOT_TRANSACTION;
+        requests.incrementAndGet();
+        TxnView txn=cache.get(txnId);
+        // autobox until Cliff C merge
+        if(txn!=null){
+            hits.incrementAndGet();
+            return txn;
+        }
+        //bummer, we aren't in the cache, need to check the delegate
+        TxnView transaction=delegate.getBaseTransaction(currentTxn, txnId,getDestinationTables);
+        if(transaction==null) //noinspection ConstantConditions
+            return transaction; //don't cache read-only transactions;
+
+        switch(transaction.getEffectiveState()){
+            case COMMITTED:
+            case ROLLEDBACK:
+                cache.put(transaction.getTxnId(),transaction); // Cache for Future Use
+        }
+        return transaction;
+    }
+
 }

@@ -106,4 +106,9 @@ public class AlterTableRowTransformer implements RowTransformer{
         rowDecoder.close();
         entryEncoder.close();
     }
+
+    @Override
+    public ExecRow getTemplateRow(){
+        return templateRow;
+    }
 }

@@ -63,6 +63,7 @@ import static org.junit.Assert.assertEquals;
  */
 @Category(SerialTest.class)
 @RunWith(Parameterized.class)
+@Ignore
 public class ProjectionPruningIT extends SpliceUnitTest {
     private static Logger LOG = Logger.getLogger(ProjectionPruningIT.class);
     public static final String CLASS_NAME = ProjectionPruningIT.class.getSimpleName().toUpperCase();

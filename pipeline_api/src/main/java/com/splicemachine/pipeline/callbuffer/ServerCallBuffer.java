@@ -15,6 +15,7 @@
 package com.splicemachine.pipeline.callbuffer;
 
 import com.splicemachine.access.util.ByteComparisons;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.pipeline.api.*;
 import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.pipeline.client.BulkWrites;
@@ -62,6 +63,7 @@ class ServerCallBuffer implements CallBuffer<Pair<byte[], PartitionBuffer>> {
     private final TxnView txn;
     private final byte[] token;
     private Pair<byte[], PartitionBuffer> lastElement;
+    private ExecRow execRow;
 
     public ServerCallBuffer(byte[] tableName,
                             TxnView txn,
@@ -69,7 +71,9 @@ class ServerCallBuffer implements CallBuffer<Pair<byte[], PartitionBuffer>> {
                             WriteConfiguration writeConfiguration,
                             PartitionServer server,
                             Writer writer,
-                            final MergingWriteStats writeStats) {
+                            final MergingWriteStats writeStats,
+                            ExecRow execRow) {
+        assert execRow!=null;
         this.txn = txn;
         this.token = token;
         this.writeConfiguration = writeConfiguration;
@@ -77,6 +81,7 @@ class ServerCallBuffer implements CallBuffer<Pair<byte[], PartitionBuffer>> {
         this.writeStats = writeStats;
         this.server= server;
         this.writer = writer;
+        this.execRow = execRow;
         this.buffers = new TreeMap<>(ByteComparisons.comparator());
     }
 
@@ -163,7 +168,7 @@ class ServerCallBuffer implements CallBuffer<Pair<byte[], PartitionBuffer>> {
         }
         if(bws.isEmpty()) return null;
         else
-            return new BulkWrites(bws, this.txn, this.buffers.lastKey(),token);
+            return new BulkWrites(bws, this.txn, this.buffers.lastKey(),token, execRow);
     }
 
     public int getHeapSize() {

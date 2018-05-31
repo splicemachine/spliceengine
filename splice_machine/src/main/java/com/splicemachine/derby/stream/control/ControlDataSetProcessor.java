@@ -17,6 +17,7 @@ package com.splicemachine.derby.stream.control;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.info.Version;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
@@ -35,13 +36,18 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.TxnSupplier;
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.SpliceQuery;
 import com.splicemachine.si.impl.TxnRegion;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.functions.Version3DataScanner;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
+import com.splicemachine.storage.DataScan;
 import com.splicemachine.storage.Partition;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.iterators.SingletonIterator;
+import org.apache.commons.lang3.SerializationUtils;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.types.StructType;
 import org.spark_project.guava.base.Charsets;
@@ -74,15 +80,15 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     private static final Logger LOG=Logger.getLogger(ControlDataSetProcessor.class);
 
     protected final TxnSupplier txnSupplier;
-    protected final Transactor transactory;
+    protected final Transactor transactor;
+    protected final Transactor redoTransactor;
     protected final TxnOperationFactory txnOperationFactory;
 
-    public ControlDataSetProcessor(TxnSupplier txnSupplier,
-                                   Transactor transactory,
-                                   TxnOperationFactory txnOperationFactory){
-        this.txnSupplier=txnSupplier;
-        this.transactory=transactory;
-        this.txnOperationFactory=txnOperationFactory;
+    public ControlDataSetProcessor(SIDriver driver) {
+        this.txnSupplier=driver.getTxnSupplier();
+        this.transactor =driver.getTransactor();
+        this.redoTransactor = driver.getRedoTransactor();
+        this.txnOperationFactory=driver.getOperationFactory();
     }
 
     @Override
@@ -117,8 +123,10 @@ public class ControlDataSetProcessor implements DataSetProcessor{
                 try{
                     p =SIDriver.driver().getTableFactory().getTable(tableName);
                     TxnRegion localRegion=new TxnRegion(p,NoopRollForward.INSTANCE,NoOpReadResolver.INSTANCE,
-                            txnSupplier,transactory,txnOperationFactory);
-
+                            txnSupplier, (tableVersion != null && tableVersion.equals("3.0"))?redoTransactor:transactor,txnOperationFactory);
+                    SpliceQuery spliceQuery = new SpliceQuery(getTemplate(),accessedColumns);
+                    DataScan dataScan = getScan();
+                    SIDriver.driver().baseOperationFactory().setQuery(dataScan,spliceQuery);
                     this.region(localRegion).scanner(p.openScanner(getScan(),metricFactory)); //set the scanner
                     TableScannerIterator tableScannerIterator=new TableScannerIterator(this,spliceOperation);
                     if(spliceOperation!=null){

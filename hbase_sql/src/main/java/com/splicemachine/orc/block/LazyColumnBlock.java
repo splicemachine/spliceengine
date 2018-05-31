@@ -13,8 +13,12 @@
  */
 package com.splicemachine.orc.block;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.Decimal;
+import org.apache.spark.unsafe.types.UTF8String;
 
 /**
  *
@@ -71,5 +75,65 @@ public class LazyColumnBlock implements ColumnBlock {
     @Override
     public void setPartitionNull(int size) {
         blockLoader.getColumnBlock().setPartitionNull(size);
+    }
+
+    @Override
+    public int getPositionCount() {
+        return blockLoader.getColumnBlock().getPositionCount();
+    }
+
+    @Override
+    public boolean isNull(int position) {
+        return blockLoader.getColumnBlock().isNull(position);
+    }
+
+    @Override
+    public boolean getBoolean(int position) {
+        return blockLoader.getColumnBlock().getBoolean(position);
+    }
+
+    @Override
+    public long getLong(int position) {
+        return blockLoader.getColumnBlock().getLong(position);
+    }
+
+    @Override
+    public byte getByte(int position) {
+        return blockLoader.getColumnBlock().getByte(position);
+    }
+
+    @Override
+    public double getDouble(int position) {
+        return blockLoader.getColumnBlock().getDouble(position);
+    }
+
+    @Override
+    public float getFloat(int position) {
+        return blockLoader.getColumnBlock().getFloat(position);
+    }
+
+    @Override
+    public Decimal getDecimal(int positon, int precision, int scale) {
+        return blockLoader.getColumnBlock().getDecimal(positon,precision,scale);
+    }
+
+    @Override
+    public UTF8String getUTF8String(int position) {
+        return blockLoader.getColumnBlock().getUTF8String(position);
+    }
+
+    @Override
+    public byte[] getBinary(int position) {
+        return blockLoader.getColumnBlock().getBinary(position);
+    }
+
+    @Override
+    public void setNull() {
+        blockLoader.getColumnBlock().setNull();
+    }
+
+    @Override
+    public void setValue(DataValueDescriptor dvd) throws StandardException {
+        blockLoader.getColumnBlock().setValue(dvd);
     }
 }

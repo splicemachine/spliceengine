@@ -14,6 +14,7 @@
 
 package com.splicemachine.pipeline.contextfactory;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.si.api.txn.TxnView;
 
@@ -69,4 +70,5 @@ public class UnmanagedFactoryLoader implements ContextFactoryLoader{
     public Set<ConstraintFactory> getConstraintFactories(){
         return constraints;
     }
+
 }

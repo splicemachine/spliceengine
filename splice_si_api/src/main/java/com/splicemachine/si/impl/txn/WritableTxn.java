@@ -223,12 +223,12 @@ public class WritableTxn extends AbstractTxn{
     public Iterator<ByteSlice> getDestinationTables(){
         return new SliceIterator(tableWrites.iterator());
     }
-
+    @Override
     public WritableTxn getReadUncommittedActiveTxn() {
         return new WritableTxn(txnId,getBeginTimestamp(), parentReference,Txn.IsolationLevel.READ_UNCOMMITTED,
                 parentTxn,tc,isAdditive,null,null,exceptionFactory);
     }
-
+    @Override
     public WritableTxn getReadCommittedActiveTxn() {
         return new WritableTxn(txnId,getBeginTimestamp(), parentReference,Txn.IsolationLevel.READ_COMMITTED,
                 parentTxn,tc,isAdditive,null,null,exceptionFactory);

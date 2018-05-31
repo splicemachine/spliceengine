@@ -16,6 +16,8 @@ package com.splicemachine.si.api.txn;
 
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Set;
 
 /**
  * @author Scott Fines
@@ -23,24 +25,12 @@ import java.io.IOException;
  */
 public interface TxnSupplier {
 
-		/**
-		 * Get the transaction associated with {@code txnId}.
-		 *
-		 * Functionally equivalent to {@link #getTransaction(long, boolean)} with
-		 * {@code getDestinationTables = false}.
-		 *
-		 * @param txnId the transaction id to fetch.
-		 */
-		TxnView getTransaction(long txnId) throws IOException;
+		TxnView getTransaction(TxnView currentTxn, long txnId) throws IOException;
 
-		/**
-		 * Get the transaction associated with {@code txnId}.
-		 *
-		 * @param txnId the transaction id to fetch.
-		 * @param getDestinationTables whether or not to fetch destination table
-		 *                              information
-		 */
-		TxnView getTransaction(long txnId,boolean getDestinationTables) throws IOException;
+		HashMap<Long,TxnView> getTransactions(TxnView currentTxn, Set<Long> txnId) throws IOException;
+
+		TxnView getTransaction(TxnView currentTxn, long txnId,boolean getDestinationTables) throws IOException;
+
 
 		/**
 		 * Determines whether this Store has the transaction in its local cache
@@ -93,4 +83,11 @@ public interface TxnSupplier {
 	 * @param txnId the transaction id to fetch.
 	 */
 	TaskId getTaskId(long txnId) throws IOException;
+
+		TxnView getBaseTransaction(TxnView currentTxn, long txnId) throws IOException;
+
+		HashMap<Long,TxnView> getBaseTransactions(TxnView currentTxn, Set<Long> txnId) throws IOException;
+
+		TxnView getBaseTransaction(TxnView currentTxn, long txnId,boolean getDestinationTables) throws IOException;
+
 }

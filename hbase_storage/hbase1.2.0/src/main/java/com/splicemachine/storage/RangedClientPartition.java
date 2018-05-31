@@ -334,4 +334,19 @@ public class RangedClientPartition implements Partition, Comparable<RangedClient
     public Lock getRowLock(byte[] key, int keyOff, int keyLen) throws IOException {
         return delegate.getRowLock(key, keyOff, keyLen);
     }
+
+    @Override
+    public String getVersion() {
+        return null;
+    }
+
+    @Override
+    public boolean isRedoPartition() {
+        return false;
+    }
+
+    @Override
+    public boolean fastRollForward(DataCell dataCell, long effectiveTimestamp) {
+        return false;
+    }
 }

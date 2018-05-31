@@ -18,6 +18,7 @@ import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.Clock;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.Counter;
 import com.splicemachine.metrics.MetricFactory;
@@ -76,7 +77,8 @@ public class BulkWriteAction implements Callable<WriteStats>{
     private final Counter partialFailureCounter;
     private final Counter regionTooBusy;
     private final PartitionFactory partitionFactory;
-    private PipingCallBuffer retryPipingCallBuffer=null; // retryCallBuffer
+    private PipingCallBuffer retryPipingCallBuffer=null;
+    private ExecRow execRow;// retryCallBuffer
 
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
@@ -91,6 +93,8 @@ public class BulkWriteAction implements Callable<WriteStats>{
         assert writes!=null:"writes passed into BWA are null";
         this.tableName=tableName;
         this.bulkWrites=writes;
+        this.execRow = bulkWrites.getExecRow();
+        assert execRow!=null:"ExecRow is null";
         this.writeConfiguration=writeConfiguration;
         this.statusReporter=statusReporter;
         this.writerFactory=writerFactory;
@@ -472,8 +476,10 @@ public class BulkWriteAction implements Callable<WriteStats>{
         if(refreshCache){
             writerFactory.invalidateCache(tableName);
         }
-        if(retryPipingCallBuffer==null)
-            retryPipingCallBuffer=new PipingCallBuffer(partitionFactory.getTable(Bytes.toString(tableName)),txn,token,null,PipelineUtils.noOpFlushHook,writeConfiguration,null,false);
+        if(retryPipingCallBuffer==null) {
+            assert execRow != null : "execrRow is null";
+            retryPipingCallBuffer = new PipingCallBuffer(partitionFactory.getTable(Bytes.toString(tableName)), txn, token, null, PipelineUtils.noOpFlushHook, writeConfiguration, null, false, execRow);
+        }
         if (refreshCache)
             retryPipingCallBuffer.rebuild();
         retryPipingCallBuffer.addAll(retryBuffer);

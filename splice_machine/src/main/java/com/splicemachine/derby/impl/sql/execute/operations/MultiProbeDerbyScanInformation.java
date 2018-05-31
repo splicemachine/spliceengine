@@ -96,7 +96,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 	}
 
 	@Override
-    public List<DataScan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, int[] keyDecodingMap) throws StandardException {
+    public List<DataScan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, int[] keyDecodingMap, ExecRow template) throws StandardException {
         /*
          * We must build the proper scan here in pieces
          */
@@ -110,7 +110,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
         List<DataScan> scans = new ArrayList<DataScan>(probeValues.length);
         for (int i = 0; i < probeValues.length; i++) {
             probeValue = probeValues[i];
-            DataScan scan = getScan(txn, null, keyDecodingMap, null, null);
+            DataScan scan = getScan(txn, null, keyDecodingMap, null, null, template);
             scans.add(scan);
         }
         return scans;

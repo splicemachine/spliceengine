@@ -42,6 +42,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.PreparedStatement;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import org.apache.hadoop.io.BytesWritable;
 
 /**
  * SQLBlob satisfies the DataValueDescriptor,
@@ -338,6 +339,15 @@ public class SQLBlob extends SQLBinary
     	return Format.BLOB;
     }
 
+    @Override
+    public boolean isVariableLength() {
+        return true;
+    }
+
+    @Override
+    public Object getHiveObject() throws StandardException {
+        return isNull()?null:new BytesWritable(getBytes());
+    }
 }
 
 

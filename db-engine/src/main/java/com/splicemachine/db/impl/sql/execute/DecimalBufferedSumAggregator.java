@@ -35,7 +35,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecAggregator;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLDecimal;
-
+import org.apache.spark.sql.types.Decimal;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -48,11 +48,11 @@ import java.util.Objects;
  *         Date: 5/16/14
  */
 public class DecimalBufferedSumAggregator extends SumAggregator {
-		private BigDecimal[] buffer;
+		private Decimal[] buffer;
 		private int length;
 		private int position;
 
-		private BigDecimal sum = BigDecimal.ZERO;
+		private Decimal sum = Decimal.apply(BigDecimal.ZERO);
 		private boolean isNull = true;
 
         public DecimalBufferedSumAggregator() { // SERDE
@@ -64,14 +64,14 @@ public class DecimalBufferedSumAggregator extends SumAggregator {
 				while(s<bufferSize){
 						s<<=1;
 				}
-				buffer = new BigDecimal[s];
+				buffer = new Decimal[s];
 				this.length = s-1;
 				position = 0;
 		}
 
 		@Override
 		protected void accumulate(DataValueDescriptor addend) throws StandardException {
-				buffer[position] = (BigDecimal)addend.getObject();
+				buffer[position] = (Decimal)addend.getObject();
 				incrementPosition();
 		}
 
@@ -115,7 +115,7 @@ public class DecimalBufferedSumAggregator extends SumAggregator {
 		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 				this.eliminatedNulls = in.readBoolean();
 				this.isNull = in.readBoolean();
-				this.sum = (BigDecimal)in.readObject();
+				this.sum = (Decimal)in.readObject();
 		}
 
 		@Override
@@ -131,7 +131,7 @@ public class DecimalBufferedSumAggregator extends SumAggregator {
 						sum(position);
 						position=0;
 				}
-				value.setBigDecimal(sum);
+				value.setBigDecimal(sum.toJavaBigDecimal()); // TODO FIX...
 				return value;
 		}
 
@@ -140,12 +140,12 @@ public class DecimalBufferedSumAggregator extends SumAggregator {
 		 * e.g. after GenericAggregator.finish() has been called
 		 * @return the current sum;
 		 */
-		public BigDecimal getSum(){
+		public Decimal getSum(){
 				assert position==0: "There are entries still to be buffered!";
 				return sum;
 		}
 
-		public void init(BigDecimal sum,boolean eliminatedNulls){
+		public void init(Decimal sum,boolean eliminatedNulls){
 				this.sum = sum;
 				this.eliminatedNulls = eliminatedNulls;
 				this.isNull=false;
@@ -158,8 +158,8 @@ public class DecimalBufferedSumAggregator extends SumAggregator {
 
 		private void sum(int bufferLength) throws StandardException {
 				for (int i=0;i<bufferLength;i++) {
-						BigDecimal l = buffer[i];
-						sum=sum.add(l);
+						Decimal l = buffer[i];
+						sum=sum.$plus(l);
 				}
 		}
 
@@ -171,7 +171,7 @@ public class DecimalBufferedSumAggregator extends SumAggregator {
 				}
 		}
 
-		public void addDirect(BigDecimal bigDecimal) throws StandardException {
+		public void addDirect(Decimal bigDecimal) throws StandardException {
 				buffer[position] = bigDecimal;
 				incrementPosition();
 		}

@@ -43,16 +43,20 @@ import com.splicemachine.ddl.DDLMessage.DDLChange;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
+import com.splicemachine.derby.serialization.ActivationSerializer;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.SpliceQuery;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.commons.lang3.*;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.collect.FluentIterable;
@@ -60,6 +64,7 @@ import org.spark_project.guava.collect.Lists;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.sql.*;
 import java.util.*;
@@ -458,6 +463,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         Activation activation = conn.getLanguageConnection().getLastActivation();
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
 
+
         ScanSetBuilder ssb = dsp.newScanSet(null,Long.toString(heapConglomerateId));
         ScanSetBuilder scanSetBuilder = createTableScanner(ssb,conn,table,txn);
         String scope = getScopeName(table);
@@ -478,6 +484,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     private static DataScan createScan (TxnView txn) {
         DataScan scan=SIDriver.driver().getOperationFactory().newDataScan(txn);
         scan.returnAllVersions(); //make sure that we read all versions of the data
+        // 3.0 TODO
+        scan.setFamily(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES);
         return scan.startKey(new byte[0]).stopKey(new byte[0]);
     }
 
@@ -543,6 +551,13 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             }
         }
         DataScan scan = createScan(txn);
+
+        SpliceQuery spliceQuery = new SpliceQuery(row,new FormatableBitSet(accessedColumns),null);
+        try {
+            SIDriver.driver().baseOperationFactory().setQuery(scan, spliceQuery);
+        } catch (IOException ioe) {
+            StandardException.unexpectedUserException(ioe);
+        }
         return builder.transaction(txn)
                 .metricFactory(Metrics.basicMetricFactory())
                 .template(row)
@@ -553,6 +568,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 .keyColumnTypes(keyColumnTypes)
                 .keyDecodingMap(keyDecodingMap)
                 .baseTableConglomId(table.getHeapConglomerateId())
+                .accessedColumns(new FormatableBitSet(accessedColumns))
                 .accessedKeyColumns(collectedKeyColumns)
                 .tableVersion(table.getVersion())
                 .fieldLengths(fieldLengths)

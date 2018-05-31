@@ -1,0 +1,11 @@
+schemaName	tableName	partition	rowsCollected	partitionSize	partitionCount	statsType	sampleFraction
+TPCH	LINEITEM	-All-	6001215	528106920	36	2	0.0
+TPCH	ORDERS	-All-	1500000	150000000	10	2	0.0
+TPCH	CUSTOMER	-All-	150000	22950000	1	2	0.0
+TPCH	PARTSUPP	-All-	800000	112000000	8	2	0.0
+TPCH	SUPPLIER	-All-	10000	1340000	1	2	0.0
+TPCH	PART	-All-	200000	22000000	1	2	0.0
+TPCH	REGION	-All-	5	380	1	2	0.0
+TPCH	NATION	-All-	25	2225	1	2	0.0
+
+Output variables by position:

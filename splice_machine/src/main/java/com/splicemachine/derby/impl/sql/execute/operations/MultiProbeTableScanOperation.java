@@ -216,7 +216,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         try {
             TxnView txn = getCurrentTransaction();
             DataValueDescriptor[] probeValues = ((MultiProbeDerbyScanInformation)scanInformation).getProbeValues();
-            List<DataScan> scans = scanInformation.getScans(getCurrentTransaction(), null, activation, getKeyDecodingMap());
+            List<DataScan> scans = scanInformation.getScans(getCurrentTransaction(), null, activation, getKeyDecodingMap(), currentTemplate);
             DataSet<ExecRow> dataSet = dsp.getEmpty();
             OperationContext<MultiProbeTableScanOperation> operationContext = dsp.<MultiProbeTableScanOperation>createOperationContext(this);
             int i = 0;
@@ -230,6 +230,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                         .activation(clone.getActivation())
                         .transaction(txn)
                         .scan(scan)
+                        .accessedColumns(scanInformation.getAccessedColumns())
                         .template(clone.currentTemplate)
                         .tableVersion(tableVersion)
                         .indexName(indexName)

@@ -329,6 +329,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     SYSCONGLOMERATESRowFactory.SYSCONGLOMERATES_INDEX3_ID,
                     getBootParameter(startParams,CFG_SYSCONGLOMERATES_INDEX3_ID,true));
 
+            coreInfo[SYSCONGLOMERATES_CORE_NUM].setIndexConglomerate(
+                    SYSCONGLOMERATESRowFactory.SYSCONGLOMERATES_INDEX4_ID,
+                    getBootParameter(startParams,CFG_SYSCONGLOMERATES_INDEX4_ID,true));
 
             // SYSSCHEMAS
             coreInfo[SYSSCHEMAS_CORE_NUM].setHeapConglomerate(
@@ -1380,7 +1383,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             ConglomerateDescriptor[] conglomerateDescriptors = retval.getConglomerateDescriptors();
             if (conglomerateDescriptors.length > 0 &&
                     conglomerateDescriptors[0].getConglomerateNumber() < DataDictionary.FIRST_USER_TABLE_NUMBER)
-                retval.setVersion(SYSTABLESRowFactory.ORIGINAL_TABLE_VERSION);
+                retval.setVersion(SYSTABLESRowFactory.CURRENT_TABLE_VERSION);
             dataDictionaryCache.nameTdCacheAdd(tableKey, retval);
         }
         return retval;
@@ -1408,6 +1411,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         ExecIndexRow keyRow=exFactory.getIndexableRow(2);
         keyRow.setColumn(1,tableNameOrderable);
         keyRow.setColumn(2,schemaIDOrderable);
+
 
         td=(TableDescriptor)getDescriptorViaIndex(
                 SYSTABLESRowFactory.SYSTABLES_INDEX1_ID,
@@ -1609,11 +1613,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         ConglomerateController heapCC=null;
         ScanController scanController=null;
         boolean foundRow;
-        FormatableBitSet colToCheck=new FormatableBitSet(indexCol);
+        //FormatableBitSet colToCheck=new FormatableBitSet(indexCol);
 
         assert indexId>=0:"Programmer error: code needs to be enhanced to support a table scan to find the index id";
 
-        colToCheck.set(indexCol-1);
+        //colToCheck.set(indexCol-1);
 
         ScanQualifier[][] qualifier=exFactory.getScanQualifier(1);
         qualifier[0][0].setQualifier
@@ -1636,7 +1640,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     0,                                  // for read
                     TransactionController.MODE_RECORD,    // row locking
                     TransactionController.ISOLATION_REPEATABLE_READ,
-                    colToCheck,                        // don't get any rows
+                    null,                        // don't get any rows
                     null,                            // start position - first row
                     ScanController.GE,                // startSearchOperation
                     qualifier,                            // scanQualifier,
@@ -3449,11 +3453,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         // when we want to drop or invalidate rows in SYSSTATEMENTS.
         FormatableBitSet cols=new FormatableBitSet(ti.getCatalogRowFactory().getHeapColumnCount());
         for(int i=0;i<cols.size();i++){
-            if(i+1==SYSSTATEMENTSRowFactory.SYSSTATEMENTS_CONSTANTSTATE){
-                cols.clear(i);
-            }else{
-                cols.set(i);
-            }
+            cols.set(i);
         }
         ti.deleteRow(tc,keyRow,SYSSTATEMENTSRowFactory.SYSSTATEMENTS_INDEX1_ID, cols);
 
@@ -3484,15 +3484,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         // when we want to drop or invalidate rows in SYSSTATEMENTS.
         FormatableBitSet cols=new FormatableBitSet(ti.getCatalogRowFactory().getHeapColumnCount());
         for(int i=0;i<cols.size();i++){
-            if(i+1==SYSSTATEMENTSRowFactory.SYSSTATEMENTS_CONSTANTSTATE){
-                cols.clear(i);
-            }else{
-                cols.set(i);
-            }
+            cols.set(i);
         }
-
         getDescriptorViaHeap(cols,null,ti,null,list);
-
         return list;
     }
 
@@ -4493,7 +4487,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 (forUpdate)?TransactionController.OPENMODE_FORUPDATE:0,
                 TransactionController.MODE_RECORD,
                 TransactionController.ISOLATION_REPEATABLE_READ,
-                null,         // all fields as objects
+                ti.getIndexAllColumnsSet(indexId),         // all fields as objects
                 keyRow.getRowArray(),   // start position - exact key match.
                 ScanController.GE,      // startSearchOperation
                 null,                   //scanQualifier,
@@ -4755,13 +4749,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             // create an index row template
             indexRow1=getIndexRowFromHeapRow(ti.getIndexRowGenerator(indexId),heapCC.newRowLocationTemplate(),outRow);
 
-            // just interested in one column
-            DataValueDescriptor[] rowTemplate=new DataValueDescriptor[SYSCONSTRAINTSRowFactory.SYSCONSTRAINTS_COLUMN_COUNT];
-            FormatableBitSet columnToGetSet=new FormatableBitSet(SYSCONSTRAINTSRowFactory.SYSCONSTRAINTS_COLUMN_COUNT);
-            columnToGetSet.set(columnNum-1);
-
-            rowTemplate[columnNum-1]=new SQLChar();
-
             // Scan the index and go to the data pages for qualifying rows 
             scanController=tc.openScan(
                     ti.getIndexConglomerate(indexId),// conglomerate to open
@@ -4777,17 +4764,17 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     ScanController.GT);                // stopSearchOperation
 
             ValueRow row = new ValueRow();
-            row.setRowArray(rowTemplate);
+            row.setRowArray(outRow.getRowArray());
 
             while(scanController.fetchNext(indexRow1.getRowArray())){
                 baseRowLocation=(RowLocation)indexRow1.getColumn(indexRow1.nColumns());
 
                 // get the row and grab the uuid
-                boolean base_row_exists=heapCC.fetch(baseRowLocation,row,columnToGetSet);
+                boolean base_row_exists=heapCC.fetch(baseRowLocation,row,null);
 
                 assert base_row_exists:"base row not found"; //SI reads should see the row
 
-                slist.add(uuidFactory.recreateUUID(rowTemplate[columnNum-1].getString()));
+                slist.add(uuidFactory.recreateUUID(row.getColumn(columnNum).getString()));
             }
         }finally{
             if(heapCC!=null){
@@ -5335,24 +5322,33 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         conglomNumberOrderable=new SQLLongint(conglomerateNumber);
 
-        ScanQualifier[][] scanQualifier=exFactory.getScanQualifier(1);
+/*        ScanQualifier[][] scanQualifier=exFactory.getScanQualifier(1);
         scanQualifier[0][0].setQualifier(
-                SYSCONGLOMERATESRowFactory.SYSCONGLOMERATES_CONGLOMERATENUMBER-1,	/* column number */
+                1,	/* column number */
+        /*
                 conglomNumberOrderable,
                 Orderable.ORDER_OP_EQUALS,
                 false,
                 false,
                 false);
+        */
+        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        keyRow.setColumn(1,conglomNumberOrderable);
 
         ConglomerateDescriptorList cdl=new ConglomerateDescriptorList();
-        getDescriptorViaHeap(null,scanQualifier,ti,null,cdl);
 
-        int size=cdl.size();
-        ConglomerateDescriptor[] cda=new ConglomerateDescriptor[size];
-        for(int index=0;index<size;index++)
-            cda[index]=cdl.get(index);
+        getDescriptorViaIndex(SYSCONGLOMERATESRowFactory.SYSCONGLOMERATES_INDEX4_ID,
+                keyRow,
+                null,
+                ti,
+                null,
+                cdl,
+                false);
 
+        ConglomerateDescriptor[] cda=new ConglomerateDescriptor[cdl.size()];
+        cdl.toArray(cda);
         return cda;
+
     }
 
 
@@ -5589,7 +5585,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         DataValueDescriptor conglomIDOrderable;
         TabInfoImpl ti=coreInfo[SYSCONGLOMERATES_CORE_NUM];
         SYSCONGLOMERATESRowFactory rf=(SYSCONGLOMERATESRowFactory)ti.getCatalogRowFactory();
-        boolean[] bArray={false,false,false};
+        boolean[] bArray={false,false,false,true};
 
         for(ConglomerateDescriptor cd : cds){
             /* Use conglomIDOrderable in both start
@@ -6274,6 +6270,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 Long.toString(
                         coreInfo[SYSCONGLOMERATES_CORE_NUM].getIndexConglomerate(
                                 SYSCONGLOMERATESRowFactory.SYSCONGLOMERATES_INDEX3_ID)));
+        params.put(CFG_SYSCONGLOMERATES_INDEX4_ID,
+                Long.toString(
+                        coreInfo[SYSCONGLOMERATES_CORE_NUM].getIndexConglomerate(
+                                SYSCONGLOMERATESRowFactory.SYSCONGLOMERATES_INDEX4_ID)));
 
         params.put(CFG_SYSSCHEMAS_ID,Long.toString(coreInfo[SYSSCHEMAS_CORE_NUM].getHeapConglomerate()));
         params.put(CFG_SYSSCHEMAS_INDEX1_ID,
@@ -7058,13 +7058,17 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 		/* Scan the index and go to the data pages for qualifying rows to
 		 * build the column descriptor.
 		 */
+
+        FormatableBitSet fbs = new FormatableBitSet(ti.getIndexRowGenerator(indexId).numberOfOrderedColumns()+1);
+        fbs.setAll();
+
         scanController=tc.openScan(
                 ti.getIndexConglomerate(indexId),  // conglomerate to open
                 false, // don't hold open across commit
                 (forUpdate)?TransactionController.OPENMODE_FORUPDATE:0,
                 TransactionController.MODE_RECORD,
                 isolationLevel,
-                null,         // all fields as objects
+                fbs,
                 keyRow.getRowArray(),   // start position - first row
                 ScanController.GE,      // startSearchOperation
                 scanQualifiers,         //scanQualifier,
@@ -7089,7 +7093,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 break;
             }
             i++;
-
             outRows.add(outRow);
             rowLocations.add((RowLocation) indexRow1.getColumn(
                     indexRow1.nColumns()).cloneValue(true));

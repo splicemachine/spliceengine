@@ -35,7 +35,6 @@ public class DefaultIndexBulkLoadIT extends SpliceUnitTest {
 
 
 
-
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(schemaWatcher.schemaName);
 

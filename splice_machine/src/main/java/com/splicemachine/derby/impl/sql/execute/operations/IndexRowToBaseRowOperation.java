@@ -84,6 +84,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
     int[] columnOrdering;
     int[] format_ids;
     SpliceConglomerate conglomerate;
+    FormatableBitSet defaultValueMap;
     /*
         * Variable here to stash pre-generated DataValue definitions for use in
         * getExecRowDefinition(). Save a little bit of performance by caching it
@@ -203,9 +204,12 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 
             compactRow = operationInformation.compactRow(resultRow, accessedAllCols, false);
             // get the info related to defaultRow
-            FormatableBitSet defaultValueMap = null;
-            if (defaultValueMapItem != -1)
+            defaultValueMap = new FormatableBitSet();
+            if (defaultValueMapItem != -1) {
                 defaultValueMap = (FormatableBitSet) saved[defaultValueMapItem];
+            } else {
+                defaultValueMap = new FormatableBitSet();
+            }
             ExecRow defaultRow = null;
             if (defaultRowMethodName != null) {
                 SpliceMethod<ExecRow> defaultRowMethod = new SpliceMethod<ExecRow>(defaultRowMethodName, activation);
@@ -299,6 +303,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
                     .outputTemplate(compactRow)
                     .transaction(getCurrentTransaction())
                     .indexColumns(indexCols)
+                    .accessedCols(accessedAllCols)
                     .mainTableKeyColumnEncodingOrder(getColumnOrdering())
                     .mainTableKeyColumnTypes(getKeyColumnTypes())
                     .mainTableKeyColumnSortOrder(getConglomerate().getAscDescInfo())
@@ -307,6 +312,8 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
                     .mainTableVersion(tableVersion)
                     .mainTableRowDecodingMap(operationInformation.getBaseColumnMap())
                     .mainTableAccessedRowColumns(getMainTableRowColumns())
+                    .defaultRow(compactRow.getClone())
+                    .defaultValueMap(defaultValueMap)
                     .numConcurrentLookups((getEstimatedRowCount()>2*indexBatchSize?lookupBlocks:-1))
                     .lookupBatchSize(indexBatchSize);
         }

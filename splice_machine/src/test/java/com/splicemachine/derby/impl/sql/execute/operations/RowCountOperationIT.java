@@ -62,6 +62,7 @@ public class RowCountOperationIT {
     private static final long MIN_VALUE = 10;
     private static final long MAX_VALUE = 27;
 
+
     @ClassRule
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 

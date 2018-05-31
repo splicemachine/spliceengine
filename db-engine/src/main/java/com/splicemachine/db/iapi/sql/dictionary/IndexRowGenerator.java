@@ -124,6 +124,16 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 	}
 
 	/**
+	 * Get a template for the index row, to be used with getIndexRow.
+	 *
+	 * @return  A row template for the index row.
+	 */
+	public ExecRow getIndexRow() {
+		return getExecutionFactory().getValueRow(
+				id.baseColumnPositions().length);
+	}
+
+	/**
 	 * Get a template for the index row key, to be used with getIndexRowKey.
 	 *
 	 * @return  A row template for the index row.
@@ -135,6 +145,29 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 		} else {
 			return getIndexRowTemplate();
 		}
+	}
+
+
+	/**
+	 * Get a NULL Index Row for this index. This is useful to create objects
+	 * that need to be passed to ScanController.
+	 *
+	 * @param columnList ColumnDescriptors describing the base table.
+	 * @param rowLocation   empty row location.
+	 *
+	 * @exception StandardException thrown on error.
+	 */
+	public ExecRow getNullRow(ColumnDescriptorList columnList)
+			throws StandardException {
+		int[] baseColumnPositions = id.baseColumnPositions();
+		ExecRow indexRow = getIndexRow();
+
+		for (int i = 0; i < baseColumnPositions.length; i++) {
+			DataTypeDescriptor dtd =
+					columnList.elementAt(baseColumnPositions[i] - 1).getType();
+			indexRow.setColumn(i + 1, dtd.getNull());
+		}
+		return indexRow;
 	}
 
     /**

@@ -32,6 +32,7 @@
 package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import org.apache.spark.sql.types.Decimal;
 
 import java.math.BigDecimal;
 
@@ -230,6 +231,12 @@ public interface NumberDataValue extends DataValueDescriptor
 	 * @throws StandardException
 	 */
 	BigDecimal getBigDecimal() throws StandardException;
+
+	Decimal getDecimal() throws StandardException;
+
+
+	void setDecimal(Decimal decimal) throws StandardException;
+
 }
 
 

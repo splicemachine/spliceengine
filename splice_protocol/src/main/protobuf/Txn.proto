@@ -4,6 +4,7 @@ option java_generic_services = true;
 option java_generate_equals_and_hash = true;
 option optimize_for = SPEED;
 
+
 /*
  * Represents the information which is stored on the transaction
  * but which never changes (transaction id, isolation level, and so forth)
@@ -36,6 +37,12 @@ message TxnInfo{
 
     //identifier of task associated with this transaction
     optional TaskId taskId = 8;
+
+    // Parent Ids
+    repeated int64 parentIds = 9;
+
+    // Rollback Sub Ids
+    repeated int64 rollbackSubIds = 10;
 }
 
 message Txn {
@@ -145,6 +152,16 @@ message TxnRequest{
     optional bool isOld = 3;
 }
 
+message TxnRequests{
+    repeated uint64 txnId = 1;
+    repeated bool includeDestinationTables = 2;
+    repeated bool isOld = 3;
+}
+
+message TxnResponses{
+    repeated Txn txns = 1;
+}
+
 message ActiveTxnIdResponse{
     repeated uint64 activeTxnIds = 1;
 }
@@ -211,6 +228,8 @@ service TxnLifecycleService{
     rpc getTransaction(TxnRequest) returns (Txn);
 
     rpc getTaskId(TxnRequest) returns (TaskId);
+
+    rpc getTransactions(TxnRequests) returns (TxnResponses);
 
     rpc getActiveTransactionIds(ActiveTxnRequest) returns (ActiveTxnIdResponse);
 

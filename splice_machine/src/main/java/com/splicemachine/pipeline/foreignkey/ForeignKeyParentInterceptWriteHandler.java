@@ -21,7 +21,9 @@ import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.impl.SimpleTxnFilter;
+import com.splicemachine.si.impl.functions.ScannerFunctionUtils;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.si.impl.txn.WritableTxn;
@@ -148,26 +150,24 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
         byte[] endKey = Bytes.unsignedCopyAndIncrement(startKey);//new byte[startKey.length+1];
         scan = scan.stopKey(endKey);
 
-            SimpleTxnFilter readUncommittedFilter;
-            SimpleTxnFilter readCommittedFilter;
-            if (ctx.getTxn() instanceof ActiveWriteTxn) {
-                readCommittedFilter = new SimpleTxnFilter(Long.toString(indexConglomerateId), ((ActiveWriteTxn) ctx.getTxn()).getReadCommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
-                readUncommittedFilter = new SimpleTxnFilter(Long.toString(indexConglomerateId), ((ActiveWriteTxn) ctx.getTxn()).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
-
+            TxnFilter readUncommittedFilter = null;
+            TxnFilter readCommittedFilter = null;
+            if (!table.isRedoPartition()) {
+                readCommittedFilter = new SimpleTxnFilter(Long.toString(indexConglomerateId), ctx.getTxn().getReadCommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
+                readUncommittedFilter = new SimpleTxnFilter(Long.toString(indexConglomerateId), ctx.getTxn().getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
             }
-            else if (ctx.getTxn() instanceof WritableTxn) {
-                readCommittedFilter = new SimpleTxnFilter(Long.toString(indexConglomerateId), ((WritableTxn) ctx.getTxn()).getReadCommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
-                readUncommittedFilter = new SimpleTxnFilter(Long.toString(indexConglomerateId), ((WritableTxn) ctx.getTxn()).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
-            }
-            else
-                throw new IOException("invalidTxn");
         try(DataScanner scanner = table.openScanner(scan)) {
             List<DataCell> next;
             while ((next = scanner.next(-1)) != null && !next.isEmpty()) {
-                readCommittedFilter.reset();
-                readUncommittedFilter.reset();
-                if (hasData(next, readCommittedFilter) || hasData(next, readUncommittedFilter))
-                    return true;
+                if (!table.isRedoPartition()) {
+                    readCommittedFilter.reset();
+                    readUncommittedFilter.reset();
+                    if (hasData(next, readCommittedFilter) || hasData(next, readUncommittedFilter))
+                        return true;
+                } else {
+                    if (hasData(next.get(0),ctx,table))
+                        return true;
+                }
             }
             return false;
         }catch (Exception e) {
@@ -175,7 +175,13 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
         }
     }
 
-    private boolean hasData(List<DataCell> next, SimpleTxnFilter txnFilter) throws IOException {
+    private boolean hasData(DataCell result,WriteContext ctx, Partition table) throws IOException {
+        DataCell committed = ScannerFunctionUtils.transformCell(result,ctx.getTxn().getReadCommittedActiveTxn(),SIDriver.driver().getTxnSupplier(),table,null,SIDriver.driver().baseOperationFactory(),SIDriver.driver().getOperationFactory());
+        DataCell unCommitted = ScannerFunctionUtils.transformCell(result,ctx.getTxn().getReadUncommittedActiveTxn(),SIDriver.driver().getTxnSupplier(),table,null,SIDriver.driver().baseOperationFactory(),SIDriver.driver().getOperationFactory());
+        return (committed != null) || (unCommitted != null);
+    }
+
+    private boolean hasData(List<DataCell> next, TxnFilter txnFilter) throws IOException {
         int cellCount = next.size();
         for(DataCell dc:next){
             DataFilter.ReturnCode rC = txnFilter.filterCell(dc);

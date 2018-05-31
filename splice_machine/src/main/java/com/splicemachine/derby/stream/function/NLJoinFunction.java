@@ -177,6 +177,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                         if (forSSQ)
                             throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
                     }
+
                 }
                 return result;
             }

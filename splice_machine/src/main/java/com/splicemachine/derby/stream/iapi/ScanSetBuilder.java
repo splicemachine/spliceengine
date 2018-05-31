@@ -71,8 +71,9 @@ public interface ScanSetBuilder<V>{
 
     ScanSetBuilder<V> rowDecodingMap(int[] rowDecodingMap);
 
-    ScanSetBuilder<V> baseColumnMap(int[] baseColumnMap);
+    ScanSetBuilder<V> indexColsToMainColMap(int[] indexColsToMainColMap);
 
+    ScanSetBuilder<V> baseColumnMap(int[] baseColumnMap);
 
     ScanSetBuilder<V> reuseRowLocation(boolean reuseRowLocation);
 
@@ -85,6 +86,8 @@ public interface ScanSetBuilder<V>{
     ScanSetBuilder<V> keyColumnTypes(int[] keyColumnTypes);
 
     ScanSetBuilder<V> keyDecodingMap(int[] keyDecodingMap);
+
+    ScanSetBuilder<V> accessedColumns(FormatableBitSet accessedColumns);
 
     ScanSetBuilder<V> accessedKeyColumns(FormatableBitSet accessedKeyColumns);
 

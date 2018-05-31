@@ -20,6 +20,7 @@ import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import org.apache.spark.sql.types.Decimal;
 import org.junit.Test;
 import org.supercsv.io.CsvListWriter;
 import org.supercsv.prefs.CsvPreference;
@@ -66,8 +67,8 @@ public class ExportExecRowWriterTest {
         rowValues[3] = new SQLVarchar(c4);
         rowValues[4] = new SQLVarchar(c5);
 
-        rowValues[5] = new SQLDecimal(new BigDecimal(d1), 15, 2);
-        rowValues[6] = new SQLDecimal(new BigDecimal(d2), 15, 7);
+        rowValues[5] = new SQLDecimal(Decimal.apply(d1), 15, 2);
+        rowValues[6] = new SQLDecimal(Decimal.apply(d2), 15, 7);
 
         row.setRowArray(rowValues);
         return row;

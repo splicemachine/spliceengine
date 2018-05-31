@@ -169,7 +169,7 @@ public class StatisticsOperation extends SpliceBaseOperation {
             if (execRowIterator == null)
                 execRowIterator = remoteQueryClient.getIterator(); // Blocking Implementation
             if(execRowIterator.hasNext()){
-                locatedRow= execRowIterator.next();
+                locatedRow= execRowIterator.next().getClone();
                 if(LOG.isTraceEnabled())
                     SpliceLogUtils.trace(LOG,"getNextRowCore %s locatedRow=%s",this,locatedRow);
                 return locatedRow;

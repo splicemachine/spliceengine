@@ -17,6 +17,8 @@ package com.splicemachine.derby.impl.sql.execute;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.*;
+import org.apache.spark.sql.types.Decimal;
+
 import java.math.BigDecimal;
 
 public class LazyDataValueFactory extends J2SEDataValueFactory{
@@ -25,7 +27,7 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
                 if(previous != null && previous instanceof SQLDecimal){
                         previous.setValue(value);
                     }else{
-                        previous = new SQLDecimal(BigDecimal.valueOf(value.longValue()));
+                        previous = new SQLDecimal(Decimal.apply(value.longValue()));
                     }
         
                         return previous;

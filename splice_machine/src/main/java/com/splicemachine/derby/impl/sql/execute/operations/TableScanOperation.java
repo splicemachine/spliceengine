@@ -1,4 +1,4 @@
-/*
+ /*
  * Copyright (c) 2012 - 2017 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
@@ -336,9 +336,10 @@ public class TableScanOperation extends ScanOperation{
         TxnView txn=getCurrentTransaction();
         return dsp.<TableScanOperation,ExecRow>newScanSet(this,tableName)
                 .tableDisplayName(tableDisplayName)
+                .accessedColumns(scanInformation.getAccessedColumns())
                 .activation(activation)
                 .transaction(txn)
-                .scan(getNonSIScan())
+                .scan(getNonSIScan(currentTemplate))
                 .template(currentTemplate)
                 .tableVersion(tableVersion)
                 .indexName(indexName)

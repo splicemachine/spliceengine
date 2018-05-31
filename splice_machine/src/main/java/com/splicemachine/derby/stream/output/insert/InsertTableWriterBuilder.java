@@ -45,8 +45,7 @@ import org.apache.commons.codec.binary.Base64;
 public abstract class InsertTableWriterBuilder implements Externalizable,InsertDataSetWriterBuilder{
     protected int[] pkCols;
     protected String tableVersion;
-    protected int[] execRowTypeFormatIds;
-    protected ExecRow execRowDefinition;
+    protected ExecRow execRow;
     protected RowLocation[] autoIncrementRowLocationArray;
     protected SpliceSequence[] spliceSequences;
     protected long heapConglom;
@@ -99,13 +98,6 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
 
     @Override
     @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
-    public InsertDataSetWriterBuilder execRowTypeFormatIds(int[] execRowTypeFormatIds) {
-        this.execRowTypeFormatIds = execRowTypeFormatIds;
-        return this;
-    }
-
-    @Override
-    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public InsertDataSetWriterBuilder autoIncrementRowLocationArray(RowLocation[] autoIncrementRowLocationArray) {
         this.autoIncrementRowLocationArray = autoIncrementRowLocationArray;
         return this;
@@ -147,14 +139,8 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
     public TableWriter buildTableWriter() throws StandardException{
         return new InsertPipelineWriter(pkCols,
                 tableVersion,
-                execRowDefinition,autoIncrementRowLocationArray,spliceSequences,heapConglom,
+                execRow,autoIncrementRowLocationArray,spliceSequences,heapConglom,
                 txn,token,operationContext,isUpsert);
-    }
-
-    @Override
-    public InsertDataSetWriterBuilder execRowDefinition(ExecRow execRowDefinition) {
-        this.execRowDefinition = execRowDefinition;
-        return this;
     }
 
     @Override
@@ -168,8 +154,7 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
             ArrayUtil.writeByteArray(out, token);
             ArrayUtil.writeIntArray(out, pkCols);
             out.writeUTF(tableVersion);
-            ArrayUtil.writeIntArray(out,execRowTypeFormatIds);
-            out.writeObject(execRowDefinition);
+            out.writeObject(execRow);
             out.writeInt(autoIncrementRowLocationArray.length);
             for (int i = 0; i < autoIncrementRowLocationArray.length; i++)
                 out.writeObject(autoIncrementRowLocationArray[i]);
@@ -193,8 +178,7 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
         token = ArrayUtil.readByteArray(in);
         pkCols = ArrayUtil.readIntArray(in);
         tableVersion = in.readUTF();
-        execRowTypeFormatIds = ArrayUtil.readIntArray(in);
-        execRowDefinition = (ExecRow) in.readObject();
+        execRow = (ExecRow) in.readObject();
         autoIncrementRowLocationArray = new RowLocation[in.readInt()];
         for (int i = 0; i < autoIncrementRowLocationArray.length; i++)
             autoIncrementRowLocationArray[i] = (RowLocation) in.readObject();
@@ -217,5 +201,9 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
         return Base64.encodeBase64String(SerializationUtils.serialize(this));
     }
 
-
+    @Override
+    public DataSetWriterBuilder execRow(ExecRow execRow) {
+        this.execRow = execRow;
+        return this;
+    }
 }

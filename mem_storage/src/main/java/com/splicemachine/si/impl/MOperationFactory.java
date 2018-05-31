@@ -14,14 +14,19 @@
 
 package com.splicemachine.si.impl;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.access.util.ByteComparisons;
 import com.splicemachine.concurrent.Clock;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.ByteComparator;
 import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
+import org.apache.commons.lang3.SerializationUtils;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -112,4 +117,34 @@ public class MOperationFactory implements OperationFactory{
         mPut.addCell(family,column,timestamp,kvPair.getValue());
         return mPut;
     }
+
+    @Override
+    public SpliceQuery getQuery(Attributable op) throws IOException {
+        byte[] siQuery = op.getAttribute(SIConstants.SI_QUERY);
+        if (siQuery == null)
+            return null;
+        return SerializationUtils.deserialize(siQuery);
+    }
+
+    @Override
+    public void setQuery(Attributable op, SpliceQuery spliceQuery) throws IOException {
+        assert spliceQuery != null:"SpliceQuery passed in is null";
+        op.addAttribute(SIConstants.SI_QUERY,SerializationUtils.serialize(spliceQuery));
+    }
+
+    @Override
+    public ExecRow getTemplate(Attributable op) throws IOException {
+        byte[] execRow = op.getAttribute(SIConstants.SI_EXEC_ROW);
+        if (execRow == null)
+            return null;
+        return SerializationUtils.deserialize(execRow);
+    }
+
+    @Override
+    public void setTemplate(Attributable op, ExecRow execRow) throws IOException {
+        assert execRow != null:"ExecRow passed in is null";
+        op.addAttribute(SIConstants.SI_EXEC_ROW,SerializationUtils.serialize(execRow));
+    }
+
+
 }

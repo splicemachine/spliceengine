@@ -18,12 +18,14 @@ import java.io.IOException;
 import java.util.Map;
 
 import com.splicemachine.access.api.ServerControl;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.kvpair.KVPair;
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import com.splicemachine.pipeline.writehandler.WriteHandler;
 import com.splicemachine.pipeline.client.WriteResult;
+import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.Partition;
@@ -103,8 +105,8 @@ public class WriteNode implements WriteContext {
     @Override
     public CallBuffer<KVPair> getSharedWriteBuffer(byte[] conglomBytes,
                                                    ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap,
-                                                   int maxSize, boolean useAsyncWriteBuffers, TxnView txn, byte[] token) throws Exception {
-        return pipelineWriteContext.getSharedWriteBuffer(conglomBytes, indexToMainMutationMap, maxSize, useAsyncWriteBuffers, txn, token);
+                                                   int maxSize, boolean useAsyncWriteBuffers, TxnView txn, byte[] token, ExecRow execRow) throws Exception {
+        return pipelineWriteContext.getSharedWriteBuffer(conglomBytes, indexToMainMutationMap, maxSize, useAsyncWriteBuffers, txn, token, execRow);
     }
 
     @Override

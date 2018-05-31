@@ -21,6 +21,10 @@ import java.util.List;
 
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.SpliceQuery;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.server.RedoTransactor;
+import com.splicemachine.storage.HScan;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -148,7 +152,12 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 	 * created by MemStore flushes or current scanner fails due to compaction
 	 */
 	public void updateScanner() throws IOException {
-            if (LOG.isDebugEnabled()) {
+        // Set Scan on query...
+        SpliceQuery spliceQuery = SIDriver.driver().baseOperationFactory().getQuery(new HScan(scan));
+        if (spliceQuery != null)
+            RedoTransactor.queryContext.set(spliceQuery);
+
+        if (LOG.isDebugEnabled()) {
                 SpliceLogUtils.debug(LOG,
                         "updateScanner with hregionInfo=%s, tableName=%s, rootDir=%s, scan=%s",
                         hri, htd.getNameAsString(), rootDir, scan);

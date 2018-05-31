@@ -389,14 +389,13 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
             }
             DataSetWriter writer = writerBuilder
                     .autoIncrementRowLocationArray(autoIncrementRowLocationArray)
-                    .execRowDefinition(getExecRowDefinition())
-                    .execRowTypeFormatIds(execRowTypeFormatIds)
                     .sequences(spliceSequences)
                     .isUpsert(insertMode.equals(InsertNode.InsertMode.UPSERT))
                     .pkCols(pkCols)
                     .tableVersion(tableVersion)
                     .destConglomerate(heapConglom)
                     .operationContext(operationContext)
+                    .execRow(getExecRowDefinition())
                     .txn(txn)
                     .token(SpliceClient.token)
                     .build();

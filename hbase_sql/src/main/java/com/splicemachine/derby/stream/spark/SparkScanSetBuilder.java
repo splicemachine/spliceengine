@@ -32,6 +32,9 @@ import com.splicemachine.derby.stream.utils.AvroUtils;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.SMInputFormat;
+import com.splicemachine.si.impl.SpliceQuery;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.DataScan;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -76,6 +79,13 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         else // this call works even if activation is null
             operationContext = dsp.createOperationContext(activation);
 
+        SpliceQuery spliceQuery = new SpliceQuery(getTemplate(),accessedColumns);
+        DataScan dataScan = getScan();
+        try {
+            SIDriver.driver().baseOperationFactory().setQuery(dataScan, spliceQuery);
+        } catch (IOException ioe) {
+            throw StandardException.unexpectedUserException(ioe);
+        }
         if (pin) {
             ScanOperation operation = (ScanOperation) op;
             return dsp.readPinnedTable(Long.parseLong(tableName),baseColumnMap,location,operationContext,operation.getScanInformation().getScanQualifiers(),null,operation.getExecRowDefinition()).filter(new TableScanPredicateFunction(operationContext));
@@ -124,7 +134,6 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         SpliceSpark.pushScope(String.format("%s: Scan", scopePrefix));
         JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(
             conf, SMInputFormat.class, RowLocation.class, ExecRow.class);
-        // rawRDD.setName(String.format(SparkConstants.RDD_NAME_SCAN_TABLE, tableDisplayName));
         rawRDD.setName("Perform Scan");
         SpliceSpark.popScope();
         SparkSpliceFunctionWrapper f = new SparkSpliceFunctionWrapper(new TableScanTupleMapFunction<SpliceOperation>(operationContext));

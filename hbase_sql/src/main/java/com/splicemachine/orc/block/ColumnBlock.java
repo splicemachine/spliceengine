@@ -13,8 +13,12 @@
  */
 package com.splicemachine.orc.block;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.Decimal;
+import org.apache.spark.unsafe.types.UTF8String;
 
 /**
  *
@@ -30,4 +34,16 @@ public interface ColumnBlock {
     Object[] getTestObjectArray(int offset, int length);
     void setPartitionValue(String value, int size);
     void setPartitionNull(int size);
+    int getPositionCount();
+    boolean isNull(int position);
+    boolean getBoolean(int position);
+    long getLong(int position);
+    byte getByte(int position);
+    double getDouble(int position);
+    float getFloat(int position);
+    Decimal getDecimal(int positon, int precision, int scale);
+    UTF8String getUTF8String(int position);
+    byte[] getBinary(int position);
+    void setNull();
+    void setValue(DataValueDescriptor dvd) throws StandardException;
 }

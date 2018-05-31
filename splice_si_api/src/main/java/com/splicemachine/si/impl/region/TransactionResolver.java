@@ -168,7 +168,7 @@ public class TransactionResolver{
     	if(Txn.State.fromInt(txn.getState())!= Txn.State.COMMITTED) return; //not committed, don't do anything
         long txnId = txn.getInfo().getTxnId();
         try{
-            TxnView parentView = txnSupplier.getTransaction(txn.getInfo().getParentTxnid());
+            TxnView parentView = txnSupplier.getTransaction(null,txn.getInfo().getParentTxnid());
         /*
          * The logic necessary to acquire the transaction's global commit timestamp
          * is actually contained within the TxnView. We rely on the getEffectiveCommitTimestamp()

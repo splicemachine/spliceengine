@@ -16,10 +16,12 @@ package com.splicemachine.access.hbase;
 
 import com.splicemachine.access.api.PartitionCreator;
 import com.splicemachine.concurrent.Clock;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionInfoCache;
+import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
@@ -34,12 +36,12 @@ import java.io.IOException;
 public class HPartitionCreator implements PartitionCreator{
     private HTableDescriptor descriptor;
     private final Connection connection;
-    private final HColumnDescriptor userDataFamilyDescriptor;
+    private final HColumnDescriptor[] userDataFamilyDescriptor;
     private final Clock clock;
     private final HBaseTableInfoFactory tableInfoFactory;
     private final PartitionInfoCache partitionInfoCache;
 
-    public HPartitionCreator(HBaseTableInfoFactory tableInfoFactory,Connection connection,Clock clock,HColumnDescriptor userDataFamilyDescriptor,PartitionInfoCache partitionInfoCache){
+    public HPartitionCreator(HBaseTableInfoFactory tableInfoFactory,Connection connection,Clock clock,PartitionInfoCache partitionInfoCache,HColumnDescriptor... userDataFamilyDescriptor){
         this.connection = connection;
         this.userDataFamilyDescriptor = userDataFamilyDescriptor;
         this.tableInfoFactory = tableInfoFactory;
@@ -62,6 +64,12 @@ public class HPartitionCreator implements PartitionCreator{
     }
 
     @Override
+    public PartitionCreator withTemplate(ExecRow template) {
+        descriptor.setValue(SIConstants.COUNTER_COL, SerializationUtils.serialize(template));
+        return this;
+    }
+
+    @Override
     public PartitionCreator withPartitionSize(long partitionSize){
         descriptor.setMaxFileSize(partitionSize*1024*1024);
         return this;
@@ -77,7 +85,9 @@ public class HPartitionCreator implements PartitionCreator{
     @Override
     public Partition create() throws IOException{
         assert descriptor!=null: "No table to create!";
-        descriptor.addFamily(userDataFamilyDescriptor);
+        for (int i = 0; i< userDataFamilyDescriptor.length; i++) {
+            descriptor.addFamily(userDataFamilyDescriptor[i]);
+        }
         try(Admin admin = connection.getAdmin()){
             admin.createTable(descriptor);
         }

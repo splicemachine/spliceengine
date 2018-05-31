@@ -347,8 +347,8 @@ public class SpliceRegionAdmin {
         Partition p1 = getPartition(td, index, regionName1);
         Partition p2 = getPartition(td, index, regionName2);
 
-        if (Bytes.compareTo(p1.getEndKey(), p2.getStartKey()) == 0 ||
-                Bytes.compareTo(p1.getStartKey(), p2.getEndKey()) == 0) {
+        if (Bytes.compareBytes(false, p1.getEndKey(), p2.getStartKey()) == 0 ||
+                Bytes.compareBytes(false, p1.getStartKey(), p2.getEndKey()) == 0) {
             admin.mergeRegions(regionName1, regionName2);
         }
         else

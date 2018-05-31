@@ -94,6 +94,7 @@ public class HBaseConglomerateFactory extends SpliceConglomerateFactory{
         HBaseConglomerate hbase=new HBaseConglomerate();
 
         SIDriver driver=SIDriver.driver();
+
         hbase.create(isExternal,
                 xact_mgr.getRawStoreXact(),
                 input_containerid,

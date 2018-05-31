@@ -16,7 +16,9 @@ package com.splicemachine.pipeline.foreignkey;
 
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
@@ -28,16 +30,19 @@ import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.writehandler.WriteHandler;
+import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.impl.SimpleTxnFilter;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.functions.ScannerFunctionUtils;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
-import com.splicemachine.si.impl.txn.WritableTxn;
 import com.splicemachine.storage.DataCell;
 import com.splicemachine.storage.DataFilter;
 import com.splicemachine.storage.DataResult;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.util.MapAttributes;
+import org.apache.commons.lang.SerializationUtils;
+
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -55,7 +60,7 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
     private final ForeignKeyViolationProcessor violationProcessor;
     private Partition table;
     private ObjectArrayList<KVPair> mutations = new ObjectArrayList<>();
-    private final int formatIds[];
+    private final ExecRow indexRow;
     private final MultiFieldDecoder multiFieldDecoder;
     private final TypeProvider typeProvider;
     private FKConstraintInfo fkConstraintInfo;
@@ -67,9 +72,7 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
         this.violationProcessor = new ForeignKeyViolationProcessor(
                 new ForeignKeyViolationProcessor.ChildFkConstraintContextProvider(fkConstraintInfo),
                 exceptionFactory);
-        this.formatIds = new int[fkConstraintInfo.getFormatIdsCount()];
-        for (int i =0;i<fkConstraintInfo.getFormatIdsCount();i++)
-            this.formatIds[i] = fkConstraintInfo.getFormatIds(i);
+        indexRow = (ExecRow) SerializationUtils.deserialize(fkConstraintInfo.getIndexRow().toByteArray());
         this.multiFieldDecoder = MultiFieldDecoder.create();
         this.typeProvider = VersionedSerializers.typesForVersion(fkConstraintInfo.getParentTableVersion());
         this.fkConstraintInfo = fkConstraintInfo;
@@ -109,28 +112,33 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
 
             List<byte[]> rowKeysToFetch = new ArrayList<>(culledLookups.size());
             rowKeysToFetch.addAll(culledLookups);
-            SimpleTxnFilter readUncommittedFilter;
-            SimpleTxnFilter readCommittedFilter;
-            if (ctx.getTxn() instanceof ActiveWriteTxn) {
+            TxnFilter readUncommittedFilter = null;
+            TxnFilter readCommittedFilter = null;
+            if (!table.isRedoPartition()) {
                 readUncommittedFilter = new SimpleTxnFilter(Long.toString(referencedConglomerateNumber), ((ActiveWriteTxn) ctx.getTxn()).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
                 readCommittedFilter = new SimpleTxnFilter(Long.toString(referencedConglomerateNumber), ((ActiveWriteTxn) ctx.getTxn()).getReadCommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
-            }else if (ctx.getTxn() instanceof WritableTxn) {
-                readUncommittedFilter = new SimpleTxnFilter(Long.toString(referencedConglomerateNumber), ((WritableTxn) ctx.getTxn()).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
-                readCommittedFilter = new SimpleTxnFilter(Long.toString(referencedConglomerateNumber), ((WritableTxn) ctx.getTxn()).getReadCommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
-            }else
-                throw new IOException("invalidTxn");
+            }
 
             Iterator<DataResult> iterator = table.batchGet(new MapAttributes(),rowKeysToFetch);
             BitSet misses = new BitSet(rowKeysToFetch.size());
 
             int i = 0;
-            while (iterator.hasNext()) {
-                DataResult result = iterator.next();
-                readCommittedFilter.reset();
-                readUncommittedFilter.reset();
-                if (!hasData(result,readCommittedFilter) || !hasData(result,readUncommittedFilter))
-                    misses.set(i);
-                i++;
+            if (!table.isRedoPartition()) {
+                while (iterator.hasNext()) {
+                    DataResult result = iterator.next();
+                    readCommittedFilter.reset();
+                    readUncommittedFilter.reset();
+                    if (!hasData(result, readCommittedFilter) || !hasData(result, readUncommittedFilter))
+                        misses.set(i);
+                    i++;
+                }
+            } else {
+                while (iterator.hasNext()) {
+                    DataResult result = iterator.next();
+                    if (!hasData(result,ctx))
+                        misses.set(i);
+                    i++;
+                }
             }
 
             // No Misses...
@@ -159,7 +167,13 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
             flush(ctx);
     }
 
-    private boolean hasData(DataResult result,SimpleTxnFilter filter) throws IOException {
+    private boolean hasData(DataResult result,WriteContext ctx) throws IOException {
+        DataResult committed = ScannerFunctionUtils.transformResult(result,ctx.getTxn().getReadCommittedActiveTxn(),SIDriver.driver().getTxnSupplier(),table,null,SIDriver.driver().baseOperationFactory(),SIDriver.driver().getOperationFactory());
+        DataResult unCommitted = ScannerFunctionUtils.transformResult(result,ctx.getTxn().getReadUncommittedActiveTxn(),SIDriver.driver().getTxnSupplier(),table,null,SIDriver.driver().baseOperationFactory(),SIDriver.driver().getOperationFactory());
+        return (committed != null && committed.activeData() != null) || (unCommitted != null && unCommitted.activeData() != null);
+    }
+
+    private boolean hasData(DataResult result,TxnFilter filter) throws IOException {
         if(result!=null && result.size()>0) {
             int cellCount = result.size();
             for (DataCell dc : result) {
@@ -222,19 +236,19 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
      * formatIds.length  = 2
      * return value      = [65, 67, 0 54, 45]
      */
-    private byte[] getCheckRowKey(byte[] rowKeyIn) {
+    private byte[] getCheckRowKey(byte[] rowKeyIn) throws StandardException {
 
         int position = 0;
         multiFieldDecoder.set(rowKeyIn);
-        for (int i = 0; i < formatIds.length; i++) {
+        for (int i = 0; i < indexRow.nColumns(); i++) {
             if (multiFieldDecoder.nextIsNull()) {
                 return null;
             }
-            if (formatIds[i] == StoredFormatIds.SQL_DOUBLE_ID) {
+            if (indexRow.getColumn(i+1).getTypeFormatId() == StoredFormatIds.SQL_DOUBLE_ID) {
                 position += multiFieldDecoder.skipDouble();
-            } else if (formatIds[i] == StoredFormatIds.SQL_REAL_ID) {
+            } else if (indexRow.getColumn(i+1).getTypeFormatId() == StoredFormatIds.SQL_REAL_ID) {
                 position += multiFieldDecoder.skipFloat();
-            } else if (typeProvider.isScalar(formatIds[i])) {
+            } else if (typeProvider.isScalar(indexRow.getColumn(i+1).getTypeFormatId())) {
                 position += multiFieldDecoder.skipLong();
             } else {
                 position += multiFieldDecoder.skip();

@@ -39,6 +39,16 @@ public interface Txn extends TxnView{
         }
 
         @Override
+        public TxnView getReadUncommittedActiveTxn() {
+            throw new UnsupportedOperationException("Not Supported");
+        }
+
+        @Override
+        public TxnView getReadCommittedActiveTxn() {
+            throw new UnsupportedOperationException("Not Supported");
+        }
+
+        @Override
         public Iterator<ByteSlice> getDestinationTables(){
             return Collections.emptyIterator();
         }

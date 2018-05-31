@@ -19,6 +19,7 @@ import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
 import com.splicemachine.db.iapi.types.*;
@@ -29,6 +30,8 @@ import com.splicemachine.derby.stream.control.ControlOperationContext;
 import com.splicemachine.derby.stream.function.ExternalizableFlatMapFunction;
 import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
 import com.splicemachine.derby.stream.function.StatisticsFlatMapFunction;
+import com.splicemachine.derby.utils.SerializationUtils;
+import com.splicemachine.si.impl.SpliceQuery;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import com.splicemachine.db.catalog.types.AggregateAliasInfo;
 import com.splicemachine.db.catalog.types.BaseTypeIdImpl;
@@ -92,8 +95,11 @@ import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
+import org.apache.spark.sql.types.Decimal;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
@@ -235,18 +241,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(SumAggregator.class,EXTERNALIZABLE_SERIALIZER,23);
         instance.register(AvgAggregator.class,EXTERNALIZABLE_SERIALIZER,24);
         instance.register(MaxMinAggregator.class,EXTERNALIZABLE_SERIALIZER,25);
-
-        instance.register(SQLDecimal.class,new DataValueDescriptorSerializer<SQLDecimal>(){
-            @Override
-            protected void writeValue(Kryo kryo,Output output,SQLDecimal object) throws StandardException{
-                kryo.writeObjectOrNull(output,object.getObject(),BigDecimal.class);
-            }
-
-            @Override
-            protected void readValue(Kryo kryo,Input input,SQLDecimal dvd) throws StandardException{
-                dvd.setBigDecimal(kryo.readObjectOrNull(input,BigDecimal.class));
-            }
-        },26);
+        instance.register(SQLDecimal.class,EXTERNALIZABLE_SERIALIZER,26);
         instance.register(SQLDouble.class,new DataValueDescriptorSerializer<SQLDouble>(){
             @Override
             protected void writeValue(Kryo kryo,Output output,SQLDouble object) throws StandardException{
@@ -725,7 +720,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                 return aggregator;
             }
         },160);
-
+        instance.register(UnscaledDecimalBufferedSumAggregator.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(FloatBufferedSumAggregator.class,new Serializer<FloatBufferedSumAggregator>(){
             @Override
             public void write(Kryo kryo,Output output,FloatBufferedSumAggregator object){
@@ -835,11 +830,14 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(MergeStatisticsHolder.class,EXTERNALIZABLE_SERIALIZER,291);
         instance.register(ColumnStatisticsMerge.class,EXTERNALIZABLE_SERIALIZER,292);
         instance.register(SpliceUDAVariance.class,EXTERNALIZABLE_SERIALIZER,293);
-
         instance.register(SpliceBaseOperation.class,EXTERNALIZABLE_SERIALIZER,294);
         instance.register(ControlOperationContext.class,EXTERNALIZABLE_SERIALIZER,295);
         instance.register(ActivationHolder.class,EXTERNALIZABLE_SERIALIZER,296);
         instance.register(SetOpOperation.class,EXTERNALIZABLE_SERIALIZER,297);
-
+        instance.register(UnscaledDecimalBufferedSumAggregator.class,EXTERNALIZABLE_SERIALIZER,298);
+        instance.register(SpliceQuery.class,EXTERNALIZABLE_SERIALIZER,299);
+        instance.register(GenericScanQualifier.class,EXTERNALIZABLE_SERIALIZER,300);
+        instance.register(GenericQualifier.class,EXTERNALIZABLE_SERIALIZER,301);
     }
+
 }

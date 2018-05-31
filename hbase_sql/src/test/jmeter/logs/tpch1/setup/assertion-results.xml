@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testResults version="1.2">
+<sample t="1361" ts="1500928211533" s="true" lb="get_version_info" rc="200" tn="setup 1-1" ng="1" na="1"/>
+<sample t="650" ts="1500928212909" s="true" lb="create schema" rc="200" tn="setup 1-1" ng="1" na="1"/>
+<sample t="2122" ts="1500928213561" s="true" lb="create lineitem" rc="200" tn="setup 1-1" ng="1" na="1"/>
+<sample t="1290" ts="1500928215686" s="true" lb="create orders" rc="200" tn="setup 1-1" ng="1" na="1"/>
+<sample t="1280" ts="1500928216977" s="true" lb="create customer" rc="200" tn="setup 1-1" ng="1" na="1"/>
+<sample t="1280" ts="1500928218260" s="true" lb="create partsupp" rc="200" tn="setup 1-1" ng="1" na="1"/>
+<sample t="1285" ts="1500928219545" s="true" lb="create supplier" rc="200" tn="setup 1-1" ng="1" na="1"/>
+<sample t="1267" ts="1500928220832" s="true" lb="create part" rc="200" tn="setup 1-1" ng="1" na="1"/>
+<sample t="1574" ts="1500928222103" s="true" lb="create region" rc="200" tn="setup 1-1" ng="1" na="1"/>
+<sample t="1269" ts="1500928223679" s="true" lb="create nation" rc="200" tn="setup 1-1" ng="1" na="1"/>
+<sample t="111115" ts="1500928224950" s="true" lb="import lineitem" rc="200" tn="setup 1-1" ng="1" na="1"/>
+<sample t="16240" ts="1500928336065" s="true" lb="import orders" rc="200" tn="setup 1-1" ng="1" na="1"/>
+<sample t="5339" ts="1500928352309" s="true" lb="import customer" rc="200" tn="setup 1-1" ng="1" na="1"/>
+<sample t="13098" ts="1500928357652" s="true" lb="import partsupp" rc="200" tn="setup 1-1" ng="1" na="1"/>
+<sample t="2001" ts="1500928370751" s="true" lb="import supplier" rc="200" tn="setup 1-1" ng="1" na="1"/>
+<sample t="5226" ts="1500928372753" s="true" lb="import part" rc="200" tn="setup 1-1" ng="1" na="1"/>
+<sample t="521" ts="1500928377984" s="true" lb="import region" rc="200" tn="setup 1-1" ng="1" na="1"/>
+<sample t="1362" ts="1500928378507" s="true" lb="import nation" rc="200" tn="setup 1-1" ng="1" na="1"/>
+<sample t="18237" ts="1500928379871" s="true" lb="count lineitem" rc="200" tn="setup 1-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="3529" ts="1500928398118" s="true" lb="count orders" rc="200" tn="setup 1-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="1062" ts="1500928401649" s="true" lb="count customer" rc="200" tn="setup 1-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="2248" ts="1500928402713" s="true" lb="count partsupp" rc="200" tn="setup 1-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="180" ts="1500928404963" s="true" lb="count supplier" rc="200" tn="setup 1-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="881" ts="1500928405146" s="true" lb="count part" rc="200" tn="setup 1-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="32" ts="1500928406029" s="true" lb="count region" rc="200" tn="setup 1-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="31" ts="1500928406062" s="true" lb="count nation" rc="200" tn="setup 1-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="12493" ts="1500928406097" s="true" lb="O_CUST_IDX" rc="200" tn="setup 1-1" ng="1" na="1"/>
+<sample t="14477" ts="1500928418593" s="true" lb="O_DATE_PRI_KEY_IDX" rc="200" tn="setup 1-1" ng="1" na="1"/>
+<sample t="57631" ts="1500928433071" s="true" lb="L_SHIPDATE_IDX" rc="200" tn="setup 1-1" ng="1" na="1"/>
+<sample t="86740" ts="1500928490702" s="true" lb="L_PART_IDX" rc="200" tn="setup 1-1" ng="1" na="1"/>
+<sample t="3779" ts="1500928577445" s="true" lb="count orders on O_CUST_IDX" rc="200" tn="setup 1-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="1649" ts="1500928581227" s="true" lb="count orders on O_DATE_PRI_KEY_IDX" rc="200" tn="setup 1-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="6021" ts="1500928582878" s="true" lb="count lineitem on L_SHIPDATE_IDX" rc="200" tn="setup 1-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="7805" ts="1500928588899" s="true" lb="count lineitem on L_PART_IDX" rc="200" tn="setup 1-1" ng="1" na="1">
+  <assertionResult>
+    <name>response assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+</sample>
+<sample t="88124" ts="1500928596706" s="true" lb="collect statistics" rc="200" tn="setup 1-1" ng="1" na="1"/>

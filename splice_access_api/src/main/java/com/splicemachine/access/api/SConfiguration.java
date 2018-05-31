@@ -180,8 +180,6 @@ public interface SConfiguration {
 
     long getTransactionTimeout();
 
-    boolean getIgnoreMissingTxns();
-
     // Olap configurations
 
     int getOlapClientWaitTime();
@@ -207,6 +205,8 @@ public interface SConfiguration {
     int getOlapClientRetries();
 
     int getOlapShufflePartitions();
+
+    boolean getIgnoreMissingTxns();
 
     // SQLConfiguration
     boolean debugDumpBindTree();

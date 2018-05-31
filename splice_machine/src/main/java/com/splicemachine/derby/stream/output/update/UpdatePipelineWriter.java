@@ -15,11 +15,14 @@
 package com.splicemachine.derby.stream.output.update;
 
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.access.impl.data.UnsafeRecord;
+import com.splicemachine.access.impl.data.UnsafeRecordUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
@@ -38,6 +41,8 @@ import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.storage.DataCell;
+import com.splicemachine.storage.Record;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
@@ -50,7 +55,6 @@ import java.util.Iterator;
  */
 public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     protected static final KVPair.Type dataType=KVPair.Type.UPDATE;
-    protected int[] formatIds;
     protected int[] columnOrdering;
     protected int[] pkCols;
     protected FormatableBitSet pkColumns;
@@ -59,25 +63,23 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     protected FormatableBitSet heapList;
     protected boolean modifiedPrimaryKeys=false;
     protected int[] finalPkColumns;
-    protected String tableVersion;
-    protected ExecRow execRowDefinition;
     protected PairEncoder encoder;
     protected ExecRow currentRow;
     public int rowsUpdated=0;
     protected UpdateOperation updateOperation;
+    protected KeyEncoder keyEncoder;
+    protected UnsafeRecord unsafeRecord;
+    protected ExecRow fullRow;
 
     @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
-    public UpdatePipelineWriter(long heapConglom,int[] formatIds,int[] columnOrdering,
+    public UpdatePipelineWriter(long heapConglom, int[] columnOrdering,
                                 int[] pkCols,FormatableBitSet pkColumns,String tableVersion,TxnView txn,byte[] token,
                                 ExecRow execRowDefinition,FormatableBitSet heapList,OperationContext operationContext) throws StandardException{
-        super(txn, token, heapConglom,operationContext);
+        super(tableVersion,txn,token,heapConglom,operationContext,execRowDefinition);
         assert pkCols!=null && columnOrdering!=null:"Primary Key Information is null";
-        this.formatIds=formatIds;
         this.columnOrdering=columnOrdering;
         this.pkCols=pkCols;
         this.pkColumns=pkColumns;
-        this.tableVersion=tableVersion;
-        this.execRowDefinition=execRowDefinition;
         this.heapList=heapList;
         if (operationContext != null) {
             updateOperation = (UpdateOperation)operationContext.getOperation();
@@ -93,7 +95,11 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
         kdvds=new DataValueDescriptor[columnOrdering.length];
         // Get the DVDS for the primary keys...
         for(int i=0;i<columnOrdering.length;++i)
-            kdvds[i]=LazyDataValueFactory.getLazyNull(formatIds[columnOrdering[i]]);
+            kdvds[i]=execRow.getColumn(columnOrdering[i]+1);
+        fullRow = new ValueRow(execRow.nColumns());
+        for(int i=0;i<fullRow.size();++i)
+            fullRow.setColumn(i+1,execRow.getColumn(i+1)); // This is wrong...  TODO JL
+
         colPositionMap=new int[heapList.size()];
         // Map Column Positions for encoding
         for(int i=heapList.anySetBit(), pos=heapList.getNumBitsSet();i!=-1;i=heapList.anySetBit(i),pos++)
@@ -122,7 +128,7 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
 
         RecordingCallBuffer<KVPair> bufferToTransform=null;
         try{
-            bufferToTransform=writeCoordinator.writeBuffer(destinationTable,txn,null,Metrics.noOpMetricFactory());
+            bufferToTransform=writeCoordinator.writeBuffer(destinationTable,txn,null,Metrics.noOpMetricFactory(),execRow);
         }catch(IOException e){
             throw Exceptions.parseException(e);
         }
@@ -132,41 +138,44 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     }
 
     public KeyEncoder getKeyEncoder() throws StandardException{
-        DataHash hash;
-        if(!modifiedPrimaryKeys){
-            hash=new DataHash<ExecRow>(){
-                private ExecRow currentRow;
+        if (keyEncoder == null) {
+            DataHash hash;
+            if (!modifiedPrimaryKeys) {
+                hash = new DataHash<ExecRow>() {
+                    private ExecRow currentRow;
 
-                @Override
-                public void setRow(ExecRow rowToEncode){
-                    this.currentRow=rowToEncode;
-                }
+                    @Override
+                    public void setRow(ExecRow rowToEncode) {
+                        this.currentRow = rowToEncode;
+                    }
 
-                @Override
-                public byte[] encode() throws StandardException, IOException{
-                    return ((RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();
-                }
+                    @Override
+                    public byte[] encode() throws StandardException, IOException {
+                        return ((RowLocation) currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();
+                    }
 
-                @Override
-                public void close() throws IOException{
-                }
+                    @Override
+                    public void close() throws IOException {
+                    }
 
-                @Override
-                public KeyHashDecoder getDecoder(){
-                    return NoOpKeyHashDecoder.INSTANCE;
-                }
-            };
-        }else{
-            //TODO -sf- we need a sort order here for descending columns, don't we?
-            //hash = BareKeyHash.encoder(getFinalPkColumns(getColumnPositionMap(heapList)),null);
-            hash=new PkDataHash(finalPkColumns,kdvds,tableVersion);
+                    @Override
+                    public KeyHashDecoder getDecoder() {
+                        return NoOpKeyHashDecoder.INSTANCE;
+                    }
+                };
+            } else {
+                //TODO -sf- we need a sort order here for descending columns, don't we?
+                //hash = BareKeyHash.encoder(getFinalPkColumns(getColumnPositionMap(heapList)),null);
+                hash = new PkDataHash(finalPkColumns, kdvds, tableVersion);
+            }
+            keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE, hash, NoOpPostfix.INSTANCE);
         }
-        return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
+        return keyEncoder;
     }
 
     public DataHash getRowHash() throws StandardException{
         //if we haven't modified any of our primary keys, then we can just change it directly
-        DescriptorSerializer[] serializers=VersionedSerializers.forVersion(tableVersion,false).getSerializers(execRowDefinition);
+        DescriptorSerializer[] serializers=VersionedSerializers.forVersion(tableVersion,false).getSerializers(execRow);
         if(!modifiedPrimaryKeys){
             return new NonPkRowHash(colPositionMap,null,serializers,heapList);
         }
@@ -184,16 +193,43 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
                 }
             };
             try{
-                return new ForwardRecordingCallBuffer<KVPair>(writeCoordinator.writeBuffer(getDestinationTable(),txn,null,preFlushHook)){
+                return new ForwardRecordingCallBuffer<KVPair>(writeCoordinator.writeBuffer(getDestinationTable(),txn,null,preFlushHook,execRow)){
                     @Override
                     public void add(KVPair element) throws Exception{
                         byte[] oldLocation=((RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();
                         if(!Bytes.equals(oldLocation,element.getRowKey())){
-                            bufferToTransform.add(new KVPair(oldLocation,SIConstants.EMPTY_BYTE_ARRAY,KVPair.Type.DELETE));
+                            if (tableVersion.equals("3.0")) {
+                                RedoResultSupplier redoResultSupplier =  new RedoResultSupplier(new BitSet(),txn,heapConglom, fullRow);
+                                redoResultSupplier.setLocation(oldLocation);
+                                UnsafeRecord unsafeRecord = new UnsafeRecord();
+                                unsafeRecord.wrap(redoResultSupplier.getResult());
+                                UnsafeRecord update = new UnsafeRecord();
+                                update.wrap(element,true,unsafeRecord.getVersion());
+                                Record[] updatedRecords = unsafeRecord.updateRecord(update,fullRow);
+                                updatedRecords[0].setTxnId1(txn.getTxnId());
+                                updatedRecords[0].setKey(element.getRowKey());
+
+                                UnsafeRecord deleteRecord = new UnsafeRecord(
+                                        oldLocation,
+                                        1,
+                                        new byte[UnsafeRecordUtils.calculateFixedRecordSize(1)],
+                                        0l, true);
+                                deleteRecord.setNumberOfColumns(0);
+                                deleteRecord.setTxnId1(txn.getTxnId());
+                                deleteRecord.setHasTombstone(true);
+                                KVPair encode = deleteRecord.getKVPair(); // Do I need this?
+                                encode.setType(KVPair.Type.DELETE);
+                                bufferToTransform.add(encode);
+                                element = ((UnsafeRecord)updatedRecords[0]).getKVPair();
+                                redoResultSupplier.close();
+                            } else {
+                                bufferToTransform.add(new KVPair(oldLocation, SIConstants.EMPTY_BYTE_ARRAY, KVPair.Type.DELETE));
+                            }
                             element.setType(KVPair.Type.INSERT);
                         }else{
                             element.setType(KVPair.Type.UPDATE);
                         }
+
                         delegate.add(element);
                     }
 
@@ -214,7 +250,21 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
             beforeRow(execRow);
             currentRow=execRow;
             rowsUpdated++;
-            KVPair encode=encoder.encode(execRow);
+            KVPair encode;
+            if (tableVersion.equals("3.0")) {
+                unsafeRecord = new UnsafeRecord(
+                        keyEncoder.getKey(execRow),
+                        1,
+                        new byte[UnsafeRecordUtils.calculateFixedRecordSize(execRow.nColumns())],
+                        0l, false);
+                unsafeRecord.setNumberOfColumns(execRow.nColumns());
+                unsafeRecord.setTxnId1(txn.getTxnId());
+                unsafeRecord.setData(colPositionMap,heapList,execRow.getRowArray());
+                encode = unsafeRecord.getKVPair(); // Do I need this?
+                encode.setType(KVPair.Type.UPDATE);
+            } else {
+                encode=encoder.encode(execRow);
+            }
             assert encode.getRowKey()!=null && encode.getRowKey().length>0:"Tried to buffer incorrect row key";
             writeBuffer.add(encode);
             TriggerHandler.fireAfterRowTriggers(triggerHandler,execRow,flushCallback);

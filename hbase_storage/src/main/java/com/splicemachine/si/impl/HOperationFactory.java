@@ -14,8 +14,15 @@
 
 package com.splicemachine.si.impl;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
+import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.data.OperationFactory;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.Cell;
@@ -25,9 +32,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -112,5 +117,72 @@ public class HOperationFactory implements OperationFactory{
         HPut hp = new HPut(kvPair.rowKeySlice(),timestamp);
         hp.addCell(family,column,timestamp,kvPair.getValue());
         return hp;
+    }
+
+    @Override
+    public SpliceQuery getQuery(Attributable op) throws IOException {
+        byte[] siQuery = op.getAttribute(SIConstants.SI_QUERY);
+        if (siQuery == null)
+            return null;
+        Kryo kryo = SpliceKryoRegistry.getInstance().get();
+        try {
+            Input input = new Input();
+            input.setBuffer(siQuery);
+            return kryo.readObject(input,SpliceQuery.class);
+        } finally {
+            SpliceKryoRegistry.getInstance().returnInstance(kryo);
+        }
+    }
+
+    @Override
+    public void setQuery(Attributable op, SpliceQuery spliceQuery) throws IOException {
+        assert spliceQuery != null:"SpliceQuery passed in is null";
+        Kryo kryo = SpliceKryoRegistry.getInstance().get();
+        try {
+            Output output = new Output(124,-1);
+            kryo.writeObject(output,spliceQuery);
+            op.addAttribute(SIConstants.SI_QUERY,output.toBytes());
+        } finally {
+            SpliceKryoRegistry.getInstance().returnInstance(kryo);
+        }
+    }
+
+    @Override
+    public ExecRow getTemplate(Attributable op) throws IOException {
+        byte[] siQuery = op.getAttribute(SIConstants.SI_EXEC_ROW);
+        if (siQuery == null)
+            return null;
+        Kryo kryo = SpliceKryoRegistry.getInstance().get();
+        try {
+            //Thread.dumpStack();
+            Input input = new Input();
+            input.setBuffer(siQuery);
+            return kryo.readObject(input,ValueRow.class);
+        }
+        catch (Exception ioe) {
+            ioe.printStackTrace();
+            throw new IOException(ioe);
+        }
+        finally {
+            SpliceKryoRegistry.getInstance().returnInstance(kryo);
+        }
+    }
+
+    @Override
+    public void setTemplate(Attributable op, ExecRow execRow) throws IOException {
+        assert execRow != null:"SpliceQuery passed in is null";
+        Kryo kryo = SpliceKryoRegistry.getInstance().get();
+        try {
+            Output output = new Output(124,-1);
+            kryo.writeObject(output,(ValueRow) execRow);
+            op.addAttribute(SIConstants.SI_EXEC_ROW,output.toBytes());
+        }
+        catch (Exception ioe) {
+            ioe.printStackTrace();
+            throw new IOException(ioe);
+        }
+        finally {
+            SpliceKryoRegistry.getInstance().returnInstance(kryo);
+        }
     }
 }

@@ -197,7 +197,7 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
             if (conDesc instanceof ForeignKeyConstraintDescriptor) {
                 ForeignKeyConstraintDescriptor d = (ForeignKeyConstraintDescriptor) conDesc;
                 ReferencedKeyConstraintDescriptor referencedConstraint = d.getReferencedConstraint();
-                new FkJobSubmitter(dd, (SpliceTransactionManager) tc, referencedConstraint, conDesc, DDLChangeType.DROP_FOREIGN_KEY,lcc).submit();
+                new FkJobSubmitter(dd, (SpliceTransactionManager) tc, td, referencedConstraint, conDesc, DDLChangeType.DROP_FOREIGN_KEY,lcc).submit();
             }
         }
 
@@ -215,7 +215,7 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
             if (conDesc instanceof ForeignKeyConstraintDescriptor) {
                 ForeignKeyConstraintDescriptor d = (ForeignKeyConstraintDescriptor) conDesc;
                 ReferencedKeyConstraintDescriptor referencedConstraint = d.getReferencedConstraint();
-                new FkJobSubmitter(dd, (SpliceTransactionManager) tc, referencedConstraint, conDesc, DDLChangeType.ADD_FOREIGN_KEY,lcc).submit();
+                new FkJobSubmitter(dd, (SpliceTransactionManager) tc, td, referencedConstraint, conDesc, DDLChangeType.ADD_FOREIGN_KEY,lcc).submit();
             }
         }
 

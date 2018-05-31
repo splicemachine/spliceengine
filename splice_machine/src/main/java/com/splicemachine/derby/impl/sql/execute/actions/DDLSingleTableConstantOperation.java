@@ -126,7 +126,7 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
             ForeignKeyConstraintDescriptor d = (ForeignKeyConstraintDescriptor) consDesc;
             TransactionController tc = lcc.getTransactionExecute();
             final ReferencedKeyConstraintDescriptor referencedConstraint = d.getReferencedConstraint();
-            new FkJobSubmitter(dd, (SpliceTransactionManager) tc, referencedConstraint, consDesc, DDLChangeType.DROP_FOREIGN_KEY,lcc).submit();
+            new FkJobSubmitter(dd, (SpliceTransactionManager) tc, skipCreate, referencedConstraint, consDesc, DDLChangeType.DROP_FOREIGN_KEY,lcc).submit();
         }
 
         if (consDesc.getConstraintType() == DataDictionary.UNIQUE_CONSTRAINT) {

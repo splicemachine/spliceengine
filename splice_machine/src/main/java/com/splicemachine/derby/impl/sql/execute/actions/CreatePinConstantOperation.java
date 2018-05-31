@@ -111,7 +111,7 @@ public class CreatePinConstantOperation implements ConstantAction, ScopeNamed {
         if (td == null) {
             throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION, tableName);
         }
-
+        ExecRow execRow = td.getEmptyExecRow();
 
         try {
             GetIsCachedResult isCachedResult = EngineDriver.driver().getOlapClient().execute(new DistributedIsCachedJob(td.getHeapConglomerateId()));
@@ -146,7 +146,7 @@ public class CreatePinConstantOperation implements ConstantAction, ScopeNamed {
                 .keyColumnSortOrder(conglomerate.getAscDescInfo())
                 .baseColumnMap(baseColumnMap)
                 .keyColumnTypes(ScanOperation.getKeyFormatIds(conglomerate.getColumnOrdering(),
-                        conglomerate.getFormat_ids()
+                        execRow
                 ))
                 .keyDecodingMap(ScanOperation.getKeyDecodingMap(accessedKeyCols,
                         conglomerate.getColumnOrdering(),

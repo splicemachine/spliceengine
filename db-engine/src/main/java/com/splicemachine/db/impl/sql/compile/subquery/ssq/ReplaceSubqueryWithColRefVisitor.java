@@ -25,7 +25,11 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
+<<<<<<< HEAD
  * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+=======
+ * All such Splice Machine modifications are Copyright 2012 - 2017 Splice Machine, Inc.,
+>>>>>>> 45cdf09250... Foo
  * and are licensed to you under the GNU Affero General Public License.
  */
 package com.splicemachine.db.impl.sql.compile.subquery.ssq;

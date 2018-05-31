@@ -33,6 +33,9 @@ public class HGet implements DataGet{
         this.get = new Get(key);
     }
 
+    public HGet(Get get){
+        this.get = get;
+    }
 
     @Override
     public Map<byte[], NavigableSet<byte[]>> familyQualifierMap(){

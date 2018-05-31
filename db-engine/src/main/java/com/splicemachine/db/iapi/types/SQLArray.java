@@ -417,8 +417,8 @@ public class SQLArray extends DataType implements ArrayDataValue {
 			unsafeRowWriter.setNullAt(ordinal);
 		} else {
 			UnsafeArrayWriter unsafeArrayWriter = new UnsafeArrayWriter();
-			BufferHolder bh = new BufferHolder(new UnsafeRow(value.length));
-			unsafeArrayWriter.initialize(bh, value.length, 8); // 4 bytes for int?
+			long currentOffset = unsafeRowWriter.holder().cursor;
+			unsafeArrayWriter.initialize(unsafeRowWriter.holder(), value.length, 8); // 4 bytes for int?
 			for (int i = 0; i< value.length; i++) {
 				if (value[i] == null || value[i].isNull()) {
 					unsafeArrayWriter.setNull(i);
@@ -426,10 +426,7 @@ public class SQLArray extends DataType implements ArrayDataValue {
 					value[i].writeArray(unsafeArrayWriter, i);
 				}
 			}
-			long currentOffset = unsafeRowWriter.holder().cursor;
-			unsafeRowWriter.setOffsetAndSize(ordinal, bh.cursor-16);
-			unsafeRowWriter.holder().grow(bh.cursor-16);
-			Platform.copyMemory(bh.buffer,16,unsafeRowWriter.holder().buffer,currentOffset,bh.cursor-16);
+			unsafeRowWriter.setOffsetAndSize(ordinal,currentOffset,unsafeRowWriter.holder().cursor-currentOffset);
 		}
 	}
 
@@ -448,6 +445,7 @@ public class SQLArray extends DataType implements ArrayDataValue {
 			value = null;
 			setIsNull(true);
 		} else {
+			setIsNull(false);
 			UnsafeArrayData unsafeArrayData = unsafeRow.getArray(ordinal);
 			value = new DataValueDescriptor[unsafeArrayData.numElements()];
 			for (int i = 0; i<value.length; i++) {
@@ -483,7 +481,6 @@ public class SQLArray extends DataType implements ArrayDataValue {
 			}
 		}
 	}
-
 
 	@Override
 	public StructField getStructField(String columnName) {
@@ -606,6 +603,14 @@ public class SQLArray extends DataType implements ArrayDataValue {
 	@Override
 	public void setSparkObject(Object sparkObject) throws StandardException {
 
+	}
+	public boolean isVariableLength() {
+		return true;
+	}
+
+	@Override
+	public Object getHiveObject() throws StandardException {
+		return isNull()?null:getObject();
 	}
 
 }

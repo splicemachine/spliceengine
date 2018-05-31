@@ -18,6 +18,8 @@ import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.commons.lang3.SerializationUtils;
+import com.splicemachine.si.impl.SpliceQuery;
+import com.splicemachine.si.impl.server.RedoTransactor;
 import org.apache.log4j.Logger;
 import org.apache.spark.SimpleFutureAction;
 import org.apache.spark.SparkContext;
@@ -77,6 +79,9 @@ public class StreamableRDD<T> {
     public void submit() throws Exception {
         Exception error = null;
         try {
+
+            SpliceQuery sq = RedoTransactor.queryContext.get();
+
             final JavaRDD<String> streamed = rdd.mapPartitionsWithIndex(new ResultStreamer(context, uuid, host, port, rdd.getNumPartitions(), clientBatches, clientBatchSize), true);
             int numPartitions = streamed.getNumPartitions();
             int partitionsBatchSize = PARALLEL_PARTITIONS / 2;

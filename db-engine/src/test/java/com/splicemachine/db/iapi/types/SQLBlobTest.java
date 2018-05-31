@@ -32,13 +32,13 @@ package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.primitives.Bytes;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
-
 import java.util.Arrays;
 
 /**
@@ -57,7 +57,7 @@ public class SQLBlobTest extends SQLDataValueDescriptorTest {
                 writer.reset();
                 value.write(writer, 0);
                 valueA.read(row,0);
-                Assert.assertTrue("SerdeIncorrect",Arrays.equals("1".getBytes(),valueA.getBytes()));
+                Assert.assertTrue("SerdeIncorrect", Bytes.equals("1".getBytes(),valueA.getBytes()));
         }
 
         @Test

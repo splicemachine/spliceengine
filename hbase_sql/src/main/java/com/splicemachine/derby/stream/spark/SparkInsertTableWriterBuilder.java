@@ -63,7 +63,7 @@ public class SparkInsertTableWriterBuilder<K,V> extends InsertTableWriterBuilder
                 conf,
                 pkCols,
                 tableVersion,
-                execRowDefinition,
+                execRow,
                 autoIncrementRowLocationArray,
                 spliceSequences,
                 heapConglom,

@@ -15,6 +15,7 @@
 package com.splicemachine.derby.stream.output;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.si.api.txn.TxnView;
@@ -36,6 +37,10 @@ public interface DataSetWriterBuilder{
     DataSetWriterBuilder operationContext(OperationContext operationContext);
 
     DataSetWriterBuilder skipIndex(boolean skipIndex);
+
+    DataSetWriterBuilder execRow(ExecRow execRow);
+
+    DataSetWriterBuilder tableVersion(String tableVersion);
 
     TxnView getTxn();
 

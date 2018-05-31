@@ -17,6 +17,7 @@ package com.splicemachine.si.impl;
 import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.txn.AbstractTxnStore;
 import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.primitives.Longs;
 import com.splicemachine.concurrent.Clock;
@@ -43,7 +44,7 @@ import java.util.concurrent.locks.ReadWriteLock;
  * @author Scott Fines
  *         Date: 6/23/14
  */
-public class MemTxnStore implements TxnStore{
+public class MemTxnStore extends AbstractTxnStore implements TxnStore {
     private LongStripedSynchronizer<ReadWriteLock> lockStriper;
     private final ConcurrentMap<Long, TxnHolder> txnMap;
     private final TimestampSource commitTsGenerator;
@@ -63,39 +64,50 @@ public class MemTxnStore implements TxnStore{
     }
 
     @Override
-    public Txn getTransaction(long txnId) throws IOException{
-        long subId = txnId & SIConstants.SUBTRANSANCTION_ID_MASK;
-        long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
-        ReadWriteLock rwlLock=lockStriper.get(beginTS);
+    public HashMap<Long, TxnView> getBaseTransactions(TxnView currentTxn, Set<Long> txnIds) throws IOException {
+        HashMap<Long, TxnView> txns = new HashMap<>(txnIds.size());
+        for (long txnId: txnIds) {
+            txns.put(txnId,getBaseTransaction(currentTxn, txnId));
+        }
+        return txns;
+    }
+
+    @Override
+    public TxnView getBaseTransaction(TxnView currentTxn,long txnId, boolean getDestinationTables) throws IOException {
+        if (currentTxn != null && currentTxn.getTxnId() == txnId)
+            return currentTxn; // Do not lookup current txn...
+     //   System.out.println("getBaseTransaction -> " + currentTxn + "txnId" + txnId);
+        // assert currentTxn == null || (txnId != (currentTxn.getTxnId() & SIConstants.TRANSANCTION_ID_MASK)): "Looking up active Transaction";
+        assert (txnId & SIConstants.SUBTRANSANCTION_ID_MASK) == 0L:"Sub Transaction Passed to Base Transaction txnId="+txnId;
+        ReadWriteLock rwlLock=lockStriper.get(txnId);
         Lock rl=rwlLock.readLock();
         rl.lock();
         try{
-            TxnHolder txn=txnMap.get(beginTS);
+            TxnHolder txn=txnMap.get(txnId);
             if(txn==null) return null;
 
             if(isTimedOut(txn))
                 return getRolledbackTxn(txnId,txn.txn);
-            else if (subId == 0) return txn.txn;
-            else if (txn.txn.getRolledback().contains(subId))
-                return getRolledbackTxn(txnId,txn.txn);
-            else return getSubTransaction(txn.txn, txnId);
+            return txn.txn;
         }finally{
             rl.unlock();
         }
     }
 
-    private Txn getSubTransaction(Txn txn, long subTxnId) {
-        return new ForwardingTxnView(txn) {
-            @Override
-            public long getTxnId() {
-                return subTxnId;
-            }
-        };
+    @Override
+    public HashMap<Long, TxnView> getTransactions(TxnView currentTxn,Set<Long> txnIds) throws IOException {
+        HashMap<Long, TxnView> txns = new HashMap<>(txnIds.size());
+        for (long txnId: txnIds) {
+            txns.put(txnId,getTransaction(currentTxn, txnId));
+        }
+        return txns;
     }
 
     @Override
-    public Txn getTransaction(long txnId,boolean getDestinationTables) throws IOException{
-        return getTransaction(txnId);
+    public TxnView getTransaction(TxnView currentTxn, long txnId,boolean getDestinationTables) throws IOException{
+        long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
+        TxnView baseTxn = getBaseTransaction(currentTxn, beginTS);
+        return getComparableTxn(baseTxn,txnId);
     }
 
 
@@ -111,11 +123,7 @@ public class MemTxnStore implements TxnStore{
 
     @Override
     public Txn getTransactionFromCache(long txnId){
-        try{
-            return getTransaction(txnId);
-        }catch(IOException e){
-            throw new RuntimeException(e);
-        }
+        return null; // no cache...
     }
 
     @Override

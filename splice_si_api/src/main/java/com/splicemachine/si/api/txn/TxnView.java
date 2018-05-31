@@ -14,7 +14,9 @@
 
 package com.splicemachine.si.api.txn;
 
+import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.utils.ByteSlice;
+import scala.collection.immutable.HashSet;
 
 import java.io.Externalizable;
 import java.util.Iterator;
@@ -190,5 +192,11 @@ public interface TxnView extends Externalizable {
      * @throws  java.lang.NullPointerException if {@code potentialParent==null}.
      */
     boolean descendsFrom(TxnView potentialParent);
-    
+
+    TxnView getReadUncommittedActiveTxn();
+
+    TxnView getReadCommittedActiveTxn();
+
+    LongOpenHashSet getRolledback();
+
 }

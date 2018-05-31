@@ -234,5 +234,9 @@ public class SQLBit
 		return Format.BIT;
 	}
 
+	@Override
+	public Object getHiveObject() throws StandardException {
+		return isNull()?null:getObject();
+	}
 
 }

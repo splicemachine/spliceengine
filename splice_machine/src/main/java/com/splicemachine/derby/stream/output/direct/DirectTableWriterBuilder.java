@@ -15,6 +15,7 @@
 package com.splicemachine.derby.stream.output.direct;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
@@ -39,6 +40,8 @@ public abstract class DirectTableWriterBuilder implements Externalizable,DataSet
     protected OperationContext opCtx;
     protected boolean skipIndex;
     protected byte[] token;
+    protected String tableVersion;
+    protected ExecRow execRow;
 
     @Override
     public DataSetWriterBuilder destConglomerate(long heapConglom){
@@ -49,6 +52,18 @@ public abstract class DirectTableWriterBuilder implements Externalizable,DataSet
     @Override
     public DataSetWriterBuilder txn(TxnView txn){
         this.txn = txn;
+        return this;
+    }
+
+    @Override
+    public DataSetWriterBuilder tableVersion(String tableVersion){
+        this.tableVersion = tableVersion;
+        return this;
+    }
+
+    @Override
+    public DataSetWriterBuilder execRow(ExecRow execRow) {
+        this.execRow = execRow;
         return this;
     }
 
@@ -76,7 +91,9 @@ public abstract class DirectTableWriterBuilder implements Externalizable,DataSet
 
     @Override
     public TableWriter buildTableWriter() throws StandardException{
-        return new DirectPipelineWriter(destConglomerate,txn,token,opCtx,skipIndex);
+        assert txn != null: "Txn is null";
+        assert execRow != null: "execRow is null";
+        return new DirectPipelineWriter(tableVersion,destConglomerate,txn,token,opCtx,skipIndex,execRow);
     }
 
     @Override

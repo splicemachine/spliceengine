@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.impl.store.access.base;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.DynamicCompiledOpenConglomInfo;
@@ -43,6 +45,8 @@ public class OpenSpliceConglomerate  {
 	protected DynamicCompiledOpenConglomInfo dynamicCompiledOpenConglomInfo;
 	protected boolean hold;	
 	protected DataValueDescriptor[] rowTemplate = null;
+	protected ExecRow execRowTemplate = null;
+
 	
 	public OpenSpliceConglomerate(TransactionManager transactionManager,
                                   Transaction transaction,
@@ -124,7 +128,16 @@ public class OpenSpliceConglomerate  {
 			rowTemplate = RowUtil.newTemplate(getTransaction().getDataValueFactory(), null, getFormatIds(), getCollationIds());
 		return(RowUtil.newRowFromTemplate(rowTemplate));
 	}
-	
+
+	public ExecRow cloneExecRowTemplate() throws StandardException {
+		if (execRowTemplate == null) {
+			DataValueDescriptor[] dvds = cloneRowTemplate();
+			execRowTemplate = new ValueRow(dvds.length);
+			execRowTemplate.setRowArray(dvds);
+		}
+		return execRowTemplate;
+	}
+
 	public long getIndexConglomerate() {
 		return ((IndexConglomerate)this.conglomerate).baseConglomerateId;
 	}

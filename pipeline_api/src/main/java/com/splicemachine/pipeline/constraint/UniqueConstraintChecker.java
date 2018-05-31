@@ -48,7 +48,6 @@ public class UniqueConstraintChecker implements BatchConstraintChecker {
 
     @Override
     public MutationStatus checkConstraint(KVPair mutation, DataResult existingRow) throws IOException {
-
         if (isPrimaryKey) {
             // There is an existing row for the primary key columns, if this is an insert then fail.
             return mutation.getType() == KVPair.Type.INSERT ? failure : SUCCESS;

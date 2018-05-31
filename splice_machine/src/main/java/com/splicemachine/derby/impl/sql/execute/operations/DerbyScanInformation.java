@@ -279,11 +279,11 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
 
     @Override
     public DataScan getScan(TxnView txn) throws StandardException {
-        return getScan(txn, null, null, null, null);
+        return getScan(txn, null, null, null, null, null);
     }
 
     @Override
-    public DataScan getScan(TxnView txn, ExecRow startKeyOverride, int[] keyDecodingMap, int[] startScanKeys, ExecRow stopKeyPrefix) throws StandardException {
+    public DataScan getScan(TxnView txn, ExecRow startKeyOverride, int[] keyDecodingMap, int[] startScanKeys, ExecRow stopKeyPrefix, ExecRow currentTemplate) throws StandardException {
         boolean sameStartStop = startKeyOverride == null && sameStartStopPosition;
         ExecRow startPosition = getStartPosition();
         ExecRow stopPosition = sameStartStop ? startPosition : getStopPosition();
@@ -332,7 +332,8 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
                 FormatableBitSetUtils.toCompactedIntArray(getAccessedColumns()),
                 activation.getDataValueFactory(),
                 tableVersion,
-                rowIdKey);
+                rowIdKey,
+                currentTemplate);
     }
 
     @Override
@@ -378,7 +379,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
 
 
     @Override
-    public List<DataScan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, int[] keyDecodingMap) throws StandardException {
+    public List<DataScan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, int[] keyDecodingMap, ExecRow template) throws StandardException {
         throw new RuntimeException("getScans is not supported");
     }
 

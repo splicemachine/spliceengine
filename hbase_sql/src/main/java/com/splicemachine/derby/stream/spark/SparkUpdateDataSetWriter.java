@@ -40,12 +40,11 @@ public class SparkUpdateDataSetWriter<K,V> implements DataSetWriter{
     private final OperationContext operationContext;
     private final Configuration conf;
     private long heapConglom;
-    private int[] formatIds;
     private int[] columnOrdering;
     private int[] pkCols;
     private FormatableBitSet pkColumns;
     private String tableVersion;
-    private ExecRow execRowDefinition;
+    private ExecRow execRow;
     private FormatableBitSet heapList;
     private transient TxnView txn;
 
@@ -53,23 +52,21 @@ public class SparkUpdateDataSetWriter<K,V> implements DataSetWriter{
                                     OperationContext operationContext,
                                     Configuration conf,
                                     long heapConglom,
-                                    int[] formatIds,
                                     int[] columnOrdering,
                                     int[] pkCols,
                                     FormatableBitSet pkColumns,
                                     String tableVersion,
-                                    ExecRow execRowDefinition,
+                                    ExecRow execRow,
                                     FormatableBitSet heapList){
         this.rdd=rdd;
         this.operationContext=operationContext;
         this.conf=conf;
         this.heapConglom=heapConglom;
-        this.formatIds=formatIds;
         this.columnOrdering=columnOrdering;
         this.pkCols=pkCols;
         this.pkColumns=pkColumns;
         this.tableVersion=tableVersion;
-        this.execRowDefinition=execRowDefinition;
+        this.execRow=execRow;
         this.heapList=heapList;
     }
 

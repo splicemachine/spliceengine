@@ -14,6 +14,7 @@
 
 package com.splicemachine.storage;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.spark_project.guava.base.Predicate;
 import org.spark_project.guava.collect.Iterables;
 import com.splicemachine.access.api.*;
@@ -89,9 +90,15 @@ public class MPartitionFactory implements PartitionFactory<Object>{
         }
 
         @Override
+        public PartitionCreator withTemplate(ExecRow template) {
+            //no-op
+            return this;
+        }
+
+        @Override
         public Partition create() throws IOException{
             assert name!=null:"No name specified!";
-            final MPartition p=new MPartition(name,name);
+            final MPartition p=new MPartition(name,name,"3.0");
             partitionMap.put(name,p);
             return p;
         }

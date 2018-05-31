@@ -14,6 +14,7 @@
 
 package com.splicemachine.storage;
 
+import org.apache.hadoop.hbase.regionserver.ScannerContext;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.collect.Iterators;
 import org.spark_project.guava.collect.Lists;
@@ -33,22 +34,21 @@ import java.util.List;
  *         Date: 12/14/15
  */
 public class RegionDataScanner implements DataScanner{
-    private final Timer readTimer;
-    private final Counter outputBytesCounter;
-    private final Counter filteredRowCounter;
-    private final Counter visitedRowCounter;
-    private final RegionScanner delegate;
-    private final Partition partition;
+    protected final Timer readTimer;
+    protected final Counter outputBytesCounter;
+    protected final Counter filteredRowCounter;
+    protected final Counter visitedRowCounter;
+    protected final RegionScanner delegate;
+    protected final Partition partition;
 
-    private List<Cell> internalList;
+    protected List<Cell> internalList;
 
-    private HCell cell = new HCell();
+    protected HCell cell = new HCell();
 
     private final Function<Cell,DataCell> transform = new Function<Cell, DataCell>(){
         @Override
         public DataCell apply(Cell input){
-            cell.set(input);
-            return cell;
+               return new HCell(input);
         }
     };
 
@@ -72,7 +72,7 @@ public class RegionDataScanner implements DataScanner{
             internalList = new ArrayList<>(limit>0?limit:10);
         internalList.clear();
         readTimer.startTiming();
-        delegate.next(internalList);
+        delegate.nextRaw(internalList);
         if(!internalList.isEmpty()){
             readTimer.tick(1);
             collectMetrics(internalList);
@@ -80,7 +80,6 @@ public class RegionDataScanner implements DataScanner{
             readTimer.stopTiming();
         return Lists.transform(internalList,transform);
     }
-
 
     @Override public TimeView getReadTime(){ return readTimer.getTime(); }
     @Override public long getBytesOutput(){ return outputBytesCounter.getTotal(); }
@@ -100,4 +99,10 @@ public class RegionDataScanner implements DataScanner{
             }
         }
     }
+
+    @Override
+    public boolean reseek(byte[] rowKey) throws IOException {
+        return delegate.reseek(rowKey);
+    }
+
 }

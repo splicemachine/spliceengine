@@ -411,4 +411,19 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
         }
     }
 
+    @Override
+    public String getVersion() {
+        return null;
+    }
+
+    @Override
+    public boolean isRedoPartition() {
+        return false;
+    }
+
+    @Override
+    public boolean fastRollForward(DataCell dataCell, long effectiveTimestamp) {
+        return false;
+    }
+
 }

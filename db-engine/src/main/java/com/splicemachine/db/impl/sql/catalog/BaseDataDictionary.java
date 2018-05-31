@@ -49,6 +49,7 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 	protected static final String		CFG_SYSCONGLOMERATES_INDEX1_ID = "SysconglomeratesIndex1Identifier";
 	protected static final String		CFG_SYSCONGLOMERATES_INDEX2_ID = "SysconglomeratesIndex2Identifier";
 	protected static final String		CFG_SYSCONGLOMERATES_INDEX3_ID = "SysconglomeratesIndex3Identifier";
+	protected static final String		CFG_SYSCONGLOMERATES_INDEX4_ID = "SysconglomeratesIndex4Identifier";
 	protected static final String		CFG_SYSSCHEMAS_ID = "SysschemasIdentifier";
 	protected static final String		CFG_SYSSCHEMAS_INDEX1_ID = "SysschemasIndex1Identifier";
 	protected static final String		CFG_SYSSCHEMAS_INDEX2_ID = "SysschemasIndex2Identifier";

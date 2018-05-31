@@ -14,6 +14,12 @@
 
 package com.splicemachine.protobuf;
 
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import org.apache.commons.lang.SerializationUtils;
+import org.spark_project.guava.base.Function;
+import com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory;
+import org.spark_project.guava.base.Joiner;
+import org.spark_project.guava.collect.Lists;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.db.catalog.IndexDescriptor;
@@ -43,7 +49,9 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Created by jleach on 11/13/15.
+ *
+ *
+ *
  */
 public class ProtoUtil {
     private static final Logger LOG = Logger.getLogger(ProtoUtil.class);
@@ -54,6 +62,8 @@ public class ProtoUtil {
             return transferDerbyUUID((BasicUUID)td.getUUID());
         }
     };
+
+
 
     public static DDLChange alterStats(long txnId, List<TableDescriptor> tableDescriptors) {
         return DDLChange.newBuilder().setTxnId(txnId)
@@ -235,12 +245,13 @@ public class ProtoUtil {
     }
 
 
-    public static FKConstraintInfo createFKConstraintInfo(ForeignKeyConstraintDescriptor fKConstraintDescriptor) {
+    public static FKConstraintInfo createFKConstraintInfo(ColumnDescriptorList cdl, ForeignKeyConstraintDescriptor fKConstraintDescriptor, DataDictionary dd) {
         try {
             String version = fKConstraintDescriptor.getTableDescriptor().getVersion();
+            byte[] template = SerializationUtils.serialize(fKConstraintDescriptor.getReferencedConstraint().getIndexConglomerateDescriptor(dd).getIndexDescriptor().getNullRow(cdl));
             ColumnDescriptorList columnDescriptors = fKConstraintDescriptor.getColumnDescriptors();
             return FKConstraintInfo.newBuilder().setTableName(fKConstraintDescriptor.getTableDescriptor().getName())
-                .addAllFormatIds(Ints.asList(columnDescriptors.getFormatIds()))
+                .setIndexRow(ByteString.copyFrom(template))
                 .setParentTableVersion(version!=null?version: SYSTABLESRowFactory.CURRENT_TABLE_VERSION)
                 .setConstraintName(fKConstraintDescriptor.getConstraintName())
                 .setColumnNames(Joiner.on(",").join(Lists.transform(columnDescriptors, new ColumnDescriptorNameFunction()))).build();
@@ -267,13 +278,15 @@ public class ProtoUtil {
                 .build();
     }
 
-    public static Index createIndex(long conglomerate, IndexDescriptor indexDescriptor, DataValueDescriptor defaultValue) {
+    public static Index createIndex(long conglomerate, TableDescriptor tableDescriptor, IndexRowGenerator indexDescriptor, DataValueDescriptor defaultValue) throws StandardException{
         byte [] defaultValuesBytes = null;
         if (defaultValue!=null) {
             defaultValuesBytes = SerializationUtils.serialize(defaultValue);
         }
+
         boolean[] ascColumns = indexDescriptor.isAscending();
         Index.Builder builder=Index.newBuilder()
+                .setIndexRow(ByteString.copyFrom(SerializationUtils.serialize(indexDescriptor.getNullRow(tableDescriptor.getColumnDescriptorList()))))
                 .setConglomerate(conglomerate)
                 .setUniqueWithDuplicateNulls(indexDescriptor.isUniqueWithDuplicateNulls())
                 .setUnique(indexDescriptor.isUnique())
@@ -294,11 +307,11 @@ public class ProtoUtil {
 
     public static Table createTable(long conglomerate, TableDescriptor td, LanguageConnectionContext lcc) throws StandardException {
         assert td!=null:"TableDescriptor is null";
-        assert td.getFormatIds()!=null:"No Format ids";
+        byte[] template = SerializationUtils.serialize(td.getEmptyExecRow());
         SpliceConglomerate sc = (SpliceConglomerate)((SpliceTransactionManager)lcc.getTransactionExecute()).findConglomerate(conglomerate);
         Table.Builder builder=Table.newBuilder()
                 .setConglomerate(conglomerate)
-                .addAllFormatIds(Ints.asList(td.getFormatIds()))
+                .setTemplate(ByteString.copyFrom(template))
                 .addAllColumnOrdering(Ints.asList(sc.getColumnOrdering()))
                 .setTableUuid(transferDerbyUUID((BasicUUID)td.getUUID()));
         String tV = DataDictionaryUtils.getTableVersion(lcc,td.getUUID());
@@ -309,10 +322,10 @@ public class ProtoUtil {
     }
 
     public static DDLChange createTentativeIndexChange(long txnId, LanguageConnectionContext lcc, long baseConglomerate, long indexConglomerate,
-                                                       TableDescriptor td, IndexDescriptor indexDescriptor, DataValueDescriptor defaultValues) throws StandardException {
+                                                       TableDescriptor td, IndexRowGenerator indexDescriptor, DataValueDescriptor defaultValues) throws StandardException {
         SpliceLogUtils.trace(LOG, "create Tentative Index {baseConglomerate=%d, indexConglomerate=%d");
         return DDLChange.newBuilder().setTentativeIndex(TentativeIndex.newBuilder()
-                .setIndex(createIndex(indexConglomerate, indexDescriptor,defaultValues))
+                .setIndex(createIndex(indexConglomerate, td, indexDescriptor,defaultValues))
                 .setTable(createTable(baseConglomerate,td,lcc))
                 .build())
                 .setTxnId(txnId)
@@ -321,10 +334,10 @@ public class ProtoUtil {
     }
 
     public static TentativeIndex createTentativeIndex(LanguageConnectionContext lcc, long baseConglomerate, long indexConglomerate,
-                                                       TableDescriptor td, IndexDescriptor indexDescriptor, DataValueDescriptor defaultValue) throws StandardException {
+                                                       TableDescriptor td, IndexRowGenerator indexDescriptor, DataValueDescriptor defaultValue) throws StandardException {
         SpliceLogUtils.trace(LOG, "create Tentative Index {baseConglomerate=%d, indexConglomerate=%d");
         return TentativeIndex.newBuilder()
-                .setIndex(createIndex(indexConglomerate,indexDescriptor,defaultValue))
+                .setIndex(createIndex(indexConglomerate,td, indexDescriptor,defaultValue))
                 .setTable(createTable(baseConglomerate,td,lcc))
                 .build();
     }
@@ -412,17 +425,19 @@ public class ProtoUtil {
 
     }
 
-    public static DDLChange createTentativeFKConstraint(ForeignKeyConstraintDescriptor foreignKeyConstraintDescriptor, long txnId,
+    public static DDLChange createTentativeFKConstraint(ColumnDescriptorList cdl, ForeignKeyConstraintDescriptor foreignKeyConstraintDescriptor, long txnId,
                                                         long baseConglomerate, String tableName, String tableVersion,
-                                                        int[] backingIndexFormatIds, long backingIndexConglomerateId, DDLChangeType changeType) {
+                                                        long backingIndexConglomerateId, DDLChangeType changeType, DataDictionary dd) throws StandardException {
+        byte[] template = SerializationUtils.serialize(foreignKeyConstraintDescriptor.getReferencedConstraint().getIndexConglomerateDescriptor(dd).getIndexDescriptor().getIndexRowTemplate());
+
         return DDLChange.newBuilder().setTxnId(txnId)
                 .setDdlChangeType(changeType)
                 .setTentativeFK(TentativeFK.newBuilder()
-                                .addAllBackingIndexFormatIds(Ints.asList(backingIndexFormatIds))
+                .setIndexRow(ByteString.copyFrom(template))
                                 .setBaseConglomerate(baseConglomerate)
                                 .setReferencedTableName(tableName)
                                 .setReferencedTableVersion(tableVersion)
-                                .setFkConstraintInfo(createFKConstraintInfo(foreignKeyConstraintDescriptor))
+                                .setFkConstraintInfo(createFKConstraintInfo(cdl,foreignKeyConstraintDescriptor,dd))
                                 .setBackingIndexConglomerateId(backingIndexConglomerateId)
                                 .setReferencedConglomerateNumber(baseConglomerate)
                                 .setReferencingConglomerateNumber(backingIndexConglomerateId)

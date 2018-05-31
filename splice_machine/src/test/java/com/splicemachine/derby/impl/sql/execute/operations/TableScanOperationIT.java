@@ -239,9 +239,9 @@ public class TableScanOperationIT{
             }
 
             if(hasRows){
-                for(String row : results){
-                    LOG.info(row);
-                }
+//                for(String row : results){
+//                    LOG.info(row);
+//                }
                 Assert.fail("Rows returned! expected 0 but was "+results.size());
             }
         }
@@ -255,7 +255,7 @@ public class TableScanOperationIT{
             int i=0;
             while(rs.next()){
                 i++;
-                LOG.info("a.si="+rs.getString(1)+",b.si="+rs.getString(2)+",c.si="+rs.getString(3));
+//                LOG.info("a.si="+rs.getString(1)+",b.si="+rs.getString(2)+",c.si="+rs.getString(3));
                 assertNotNull(rs.getString(1));
                 assertNotNull(rs.getString(2));
                 assertNotNull(rs.getString(3));
@@ -273,7 +273,7 @@ public class TableScanOperationIT{
                     int i=0;
                     while(rs.next()){
                         i++;
-                        LOG.info("a.si="+rs.getString(1)+",b.si="+rs.getString(2)+",c.si="+rs.getString(3));
+                        //LOG.info("a.si="+rs.getString(1)+",b.si="+rs.getString(2)+",c.si="+rs.getString(3));
                         assertNotNull(rs.getString(1));
                         assertNotNull(rs.getString(2));
                         assertNotNull(rs.getString(3));
@@ -293,7 +293,7 @@ public class TableScanOperationIT{
                 int i=0;
                 while(rs.next()){
                     i++;
-                    LOG.info("a.si="+rs.getString(1)+",b.si="+rs.getString(2)+",c.si="+rs.getString(3));
+                    //LOG.info("a.si="+rs.getString(1)+",b.si="+rs.getString(2)+",c.si="+rs.getString(3));
                     assertNotNull(rs.getString(1));
                     assertNotNull(rs.getString(2));
                     assertNotNull(rs.getString(3));
@@ -310,7 +310,7 @@ public class TableScanOperationIT{
                 int i=0;
                 while(rs.next()){
                     i++;
-                    LOG.info("a.si="+rs.getString(1)+",b.si="+rs.getString(2)+",c.si="+rs.getString(3));
+                    //LOG.info("a.si="+rs.getString(1)+",b.si="+rs.getString(2)+",c.si="+rs.getString(3));
                     assertNotNull(rs.getString(1));
                     assertNotNull(rs.getString(2));
                     assertNotNull(rs.getString(3));
@@ -327,7 +327,7 @@ public class TableScanOperationIT{
                 int i=0;
                 while(rs.next()){
                     i++;
-                    LOG.info("a.si="+rs.getString(1)+",c.si="+rs.getString(2));
+                    //LOG.info("a.si="+rs.getString(1)+",c.si="+rs.getString(2));
                     assertNotNull("a.si is null!",rs.getString(1));
                     assertNotNull("c.si is null!",rs.getString(2));
                 }

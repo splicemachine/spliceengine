@@ -20,8 +20,10 @@ import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
-
+import com.splicemachine.si.impl.txn.AbstractTxnStore;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Set;
 
 /**
  * Represents a Transaction Store which caches active transactions. This is intended for scans,
@@ -34,33 +36,27 @@ import java.io.IOException;
  * @author Scott Fines
  * Date: 6/18/14
  */
-public class ActiveTxnCacheSupplier implements TxnSupplier {
+public class ActiveTxnCacheSupplier extends AbstractTxnStore implements TxnSupplier {
     private final LongKeyedCache<TxnView> cache;
 		private final TxnSupplier delegate;
 
+		public ActiveTxnCacheSupplier(TxnSupplier delegate) {
+			this(delegate,1024);
+		}
 		public ActiveTxnCacheSupplier(TxnSupplier delegate, int maxSize) {
         this.cache = LongKeyedCache.<TxnView>newBuilder().maxEntries(maxSize)
                 .withHashFunction(HashFunctions.murmur3(0)).build();
 				this.delegate = delegate;
     }
 
-		@Override
-		public TxnView getTransaction(long txnId) throws IOException {
-				return getTransaction(txnId,false);
+	@Override
+	public HashMap<Long, TxnView> getTransactions(TxnView currentTxn, Set<Long> txnIds) throws IOException {
+		HashMap<Long, TxnView> txns = new HashMap<>(txnIds.size());
+		for (long txnId: txnIds) {
+			txns.put(txnId,getTransaction(currentTxn,txnId));
 		}
-
-		@Override
-		public TxnView getTransaction(long txnId, boolean getDestinationTables) throws IOException {
-        TxnView txn = this.cache.get(txnId);
-				if(txn!=null) return txn;
-				//bummer, not cached. try delegate
-				txn = delegate.getTransaction(txnId,getDestinationTables);
-				if(txn==null) return null;
-
-				if(txn.getEffectiveState()== Txn.State.ACTIVE)
-            this.cache.put(txnId,txn);
-				return txn;
-		}
+		return txns;
+	}
 
 		@Override
 		public boolean transactionCached(long txnId) {
@@ -89,4 +85,31 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
 	public int getSize(){
         return cache.size();
     }
+
+	@Override
+	public HashMap<Long, TxnView> getBaseTransactions(TxnView currentTxn, Set<Long> txnIds) throws IOException {
+		HashMap<Long, TxnView> txns = new HashMap<>(txnIds.size());
+		for (long txnId: txnIds) {
+			txns.put(txnId,getBaseTransaction(currentTxn, txnId));
+		}
+		return txns;
+	}
+
+	@Override
+	public TxnView getBaseTransaction(TxnView currentTxn, long txnId, boolean getDestinationTables) throws IOException {
+		TxnView txn = this.cache.get(txnId);
+		if(txn!=null) return txn;
+		//bummer, not cached. try delegate
+		txn = delegate.getBaseTransaction(currentTxn,txnId,getDestinationTables);
+		if(txn==null) return null;
+
+		if(txn.getEffectiveState()== Txn.State.ACTIVE)
+			this.cache.put(txnId,txn);
+		return txn;
+	}
+
+	@Override
+	public TxnView getTransaction(TxnView currentTxn, long txnId, boolean getDestinationTables) throws IOException {
+		return super.getTransaction(currentTxn, txnId, getDestinationTables);
+	}
 }

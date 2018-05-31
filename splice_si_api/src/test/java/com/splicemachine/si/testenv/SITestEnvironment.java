@@ -53,7 +53,7 @@ public class SITestEnvironment{
                 if(!iter.hasNext())
                     throw new IllegalStateException("No SITestEnv found!");
                 testDataEnv = testEnv = iter.next();
-                testEnv.initialize();
+                testEnv.initialize(false);
                 if(iter.hasNext())
                     throw new IllegalStateException("Only one SITestEnv is allowed!");
             }

@@ -16,7 +16,6 @@ package com.splicemachine.derby.stream.function;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.kvpair.KVPair;
 import scala.Tuple2;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;

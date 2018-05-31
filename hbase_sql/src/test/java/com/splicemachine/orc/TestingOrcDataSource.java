@@ -16,6 +16,7 @@ package com.splicemachine.orc;
 import com.google.common.collect.ImmutableList;
 import io.airlift.slice.FixedLengthSliceInput;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import static java.util.Objects.requireNonNull;
@@ -62,6 +63,14 @@ class TestingOrcDataSource
     }
 
     @Override
+    public ByteBuffer readFully(long position, int bufferLength) throws IOException {
+
+        byte[] data = new byte[bufferLength];
+        readFully(position,data);
+        return ByteBuffer.wrap(data);
+    }
+
+    @Override
     public void readFully(long position, byte[] buffer)
             throws IOException
     {
@@ -86,5 +95,15 @@ class TestingOrcDataSource
         readCount += diskRanges.size();
         lastReadRanges = ImmutableList.copyOf(diskRanges.values());
         return delegate.readFully(diskRanges);
+    }
+
+    @Override
+    public OrcDataSourceId getId() {
+        return delegate.getId();
+    }
+
+    @Override
+    public void close() throws IOException {
+        delegate.close();
     }
 }

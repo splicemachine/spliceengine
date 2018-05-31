@@ -17,6 +17,7 @@ package com.splicemachine.pipeline;
 import com.splicemachine.access.api.NotServingPartitionException;
 import com.splicemachine.access.api.RegionBusyException;
 import com.splicemachine.access.api.ServerControl;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
@@ -83,7 +84,7 @@ public class PartitionWritePipeline{
     public BulkWriteResult submitBulkWrite(TxnView txn, byte[] token,
                                            BulkWrite toWrite,
                                            SharedCallBufferFactory writeBufferFactory,
-                                           ServerControl rce) throws IOException{
+                                           ServerControl rce, ExecRow execRow) throws IOException{
         assert txn!=null:"No transaction specified!";
 
         /*
@@ -100,7 +101,7 @@ public class PartitionWritePipeline{
         WriteContext context;
         try{
             context=ctxFactory.create(writeBufferFactory,txn,token,txnRegion,toWrite.getSize(),
-                    toWrite.skipIndexWrite(),toWrite.skipConflictDetection(),toWrite.skipWAL(),rce);
+                    toWrite.skipIndexWrite(),toWrite.skipConflictDetection(),toWrite.skipWAL(),rce, execRow);
         }catch(InterruptedException e){
             return INTERRUPTED;
         }catch(IndexNotSetUpException e){

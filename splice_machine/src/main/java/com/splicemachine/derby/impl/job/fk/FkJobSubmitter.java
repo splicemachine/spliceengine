@@ -47,9 +47,11 @@ public class FkJobSubmitter {
     private final ConstraintDescriptor foreignKeyConstraintDescriptor;
     private final DDLChangeType ddlChangeType;
     private final LanguageConnectionContext lcc;
+    private TableDescriptor td;
 
     public FkJobSubmitter(DataDictionary dataDictionary,
                           SpliceTransactionManager transactionManager,
+                          TableDescriptor td,
                           ReferencedKeyConstraintDescriptor referencedConstraint,
                           ConstraintDescriptor foreignKeyConstraintDescriptor,
                           DDLChangeType ddlChangeType,
@@ -60,6 +62,7 @@ public class FkJobSubmitter {
         this.foreignKeyConstraintDescriptor = foreignKeyConstraintDescriptor;
         this.ddlChangeType = ddlChangeType;
         this.lcc = lcc;
+        this.td = td;
     }
 
     /**
@@ -70,6 +73,8 @@ public class FkJobSubmitter {
         // Format IDs for the new foreign key.
         //
         ColumnDescriptorList backingIndexColDescriptors = referencedConstraint.getColumnDescriptors();
+
+
         int backingIndexFormatIds[] = backingIndexColDescriptors.getFormatIds();
         int referencedConglomerateId = (int) referencedConstraint.getIndexConglomerateDescriptor(dataDictionary).getConglomerateNumber();
 
@@ -82,9 +87,9 @@ public class FkJobSubmitter {
         String referencedTableName = referencedConstraint.getTableDescriptor().getName();
         TxnView activeStateTxn = transactionManager.getActiveStateTxn();
 
-        DDLChange ddlChange = ProtoUtil.createTentativeFKConstraint((ForeignKeyConstraintDescriptor) foreignKeyConstraintDescriptor, activeStateTxn.getTxnId(),
-                referencedConglomerateId, referencedTableName, referencedTableVersion, backingIndexFormatIds, backingIndexConglomerateIds,
-                ddlChangeType.equals(DDLChangeType.DROP_FOREIGN_KEY) ? DDLMessage.DDLChangeType.DROP_FOREIGN_KEY : DDLMessage.DDLChangeType.ADD_FOREIGN_KEY);
+        DDLChange ddlChange = ProtoUtil.createTentativeFKConstraint(referencedConstraint.getTableDescriptor().getColumnDescriptorList(),(ForeignKeyConstraintDescriptor) foreignKeyConstraintDescriptor, activeStateTxn.getTxnId(),
+                referencedConglomerateId, referencedTableName, referencedTableVersion, backingIndexConglomerateIds,
+                ddlChangeType.equals(DDLChangeType.DROP_FOREIGN_KEY) ? DDLMessage.DDLChangeType.DROP_FOREIGN_KEY : DDLMessage.DDLChangeType.ADD_FOREIGN_KEY,dataDictionary);
         TransactionController tc = lcc.getTransactionExecute();
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange)); // Enroll in 2PC
     }

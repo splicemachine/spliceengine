@@ -15,6 +15,8 @@
 package com.splicemachine.derby.impl.store.access.base;
 
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.access.impl.data.UnsafeRecord;
+import com.splicemachine.access.impl.data.UnsafeRecordUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -35,8 +37,10 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.SpliceQuery;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -67,6 +71,7 @@ public class SpliceScan implements ScanManager, LazyScan{
     protected boolean scannerInitialized=false;
     protected String tableName;
     private TxnOperationFactory opFactory;
+    private OperationFactory baseOperationFactory;
     private PartitionFactory partitionFactory;
     private DescriptorSerializer[] serializers;
 
@@ -86,7 +91,9 @@ public class SpliceScan implements ScanManager, LazyScan{
                       Transaction trans,
                       boolean isKeyed,
                       TxnOperationFactory operationFactory,
-                      PartitionFactory partitionFactory) throws StandardException {
+                      PartitionFactory partitionFactory,
+                      OperationFactory baseOperationFactory) throws StandardException {
+        assert baseOperationFactory != null:"BaseOperationFactory is null";
         this.spliceConglomerate=spliceConglomerate;
         this.isKeyed=isKeyed;
         this.scanColumnList=scanColumnList;
@@ -98,15 +105,17 @@ public class SpliceScan implements ScanManager, LazyScan{
         this.trans=(BaseSpliceTransaction)trans;
         this.opFactory = operationFactory;
         this.partitionFactory = partitionFactory;
-        setupScan();
-        attachFilter();
+        this.baseOperationFactory = baseOperationFactory;
         tableName=Long.toString(spliceConglomerate.getConglomerate().getContainerid());
         DataValueDescriptor[] dvdArray = this.spliceConglomerate.cloneRowTemplate();
-        // Hack for Indexes...
-        if (dvdArray[dvdArray.length-1] == null)
-            dvdArray[dvdArray.length-1] = new HBaseRowLocation();
         currentRow = new ValueRow(dvdArray.length);
         currentRow.setRowArray(dvdArray);
+        if (this.scanColumnList == null) {
+            this.scanColumnList = new FormatableBitSet(dvdArray.length);
+            this.scanColumnList.setAll();
+        }
+        setupScan();
+        attachFilter();
         serializers = VersionedSerializers.forVersion("1.0", true).getSerializers(currentRow);
         if(LOG.isTraceEnabled()){
             SpliceLogUtils.trace(LOG,"scanning with start key %s and stop key %s and transaction %s",Arrays.toString(startKeyValue),Arrays.toString(stopKeyValue),trans);
@@ -136,6 +145,9 @@ public class SpliceScan implements ScanManager, LazyScan{
     public void setupScan(){
         try{
             assert spliceConglomerate!=null;
+            assert spliceConglomerate.getConglomerate()!=null;
+            assert trans.getActiveStateTxn()!=null;
+
             boolean[] sortOrder=((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).getAscDescInfo();
             boolean sameStartStop=isSameStartStop(startKeyValue,startSearchOperator,stopKeyValue,stopSearchOperator);
             scan=Scans.setupScan(startKeyValue,startSearchOperator,stopKeyValue,stopSearchOperator,qualifier,
@@ -143,9 +155,11 @@ public class SpliceScan implements ScanManager, LazyScan{
                     ((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).format_ids,
                     ((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).columnOrdering,
                     ((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).columnOrdering,
-                    trans.getDataValueFactory(),"1.0",false);
+                    trans.getDataValueFactory(),"1.0",false,currentRow);
+            assert scan!=null;
             scan.setSmall(true); // Removes extra rpc calls for dictionary scans (smallish)
         }catch(Exception e){
+            e.printStackTrace();
             LOG.error("Exception creating start key");
             throw new RuntimeException(e);
         }
@@ -177,8 +191,24 @@ public class SpliceScan implements ScanManager, LazyScan{
         if(currentResult==null)
             throw StandardException.newException("Attempting to delete with a null current result");
         try{
-            DataMutation dataMutation=opFactory.newDataDelete(trans.getActiveStateTxn(),currentResult.key());
-            table.mutate(dataMutation);
+            if (table.isRedoPartition()) {
+                DataPut put = opFactory.newDataPut(trans.getActiveStateTxn(),currentResult.key());
+                int numberOfColumns = spliceConglomerate.cloneExecRowTemplate().nColumns();
+                UnsafeRecord record = new UnsafeRecord(
+                        currentResult.key(),
+                        1,
+                        new byte[UnsafeRecordUtils.calculateFixedRecordSize(numberOfColumns)],
+                        0l, true);
+                record.setNumberOfColumns(numberOfColumns);
+                record.setTxnId1(trans.getActiveStateTxn().getTxnId());
+                record.setHasTombstone(true);
+                baseOperationFactory.setTemplate(put,spliceConglomerate.cloneExecRowTemplate());
+                put.addCell(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES, SIConstants.PACKED_COLUMN_BYTES, 1, record.getValue());
+                table.put(put);
+            } else {
+                DataMutation dataMutation = opFactory.newDataDelete(trans.getActiveStateTxn(), currentResult.key());
+                table.mutate(dataMutation);
+            }
             currentRowDeleted=true;
             return true;
         }catch(Exception e){
@@ -271,17 +301,26 @@ public class SpliceScan implements ScanManager, LazyScan{
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public void fetchWithoutQualify() throws StandardException{
-        try{
-            if(currentRow!=null){
-                try (EntryDataDecoder decoder = new EntryDataDecoder(null, null, scanColumnList, serializers)) {
-                    DataCell kv = currentResult.userData();//dataLib.matchDataColumn(currentResult);
-                    decoder.set(kv.valueArray(), kv.valueOffset(), kv.valueLength());//dataLib.getDataValueBuffer(kv),dataLib.getDataValueOffset(kv),dataLib.getDataValuelength(kv));
-                    decoder.decode(currentRow);
-                }
+        if (table.isRedoPartition()) {
+            if (currentRow != null) {
+                UnsafeRecord unsafeRecord = new UnsafeRecord();
+                unsafeRecord.wrap(currentResult.activeData());
+                unsafeRecord.getData(scanColumnList,currentRow);
             }
-            this.currentRowLocation=new HBaseRowLocation(currentResult.key());
-        }catch(Exception e){
-            throw StandardException.newException("Error occurred during fetch",e);
+            this.currentRowLocation = new HBaseRowLocation(currentResult.key());
+        } else {
+            try {
+                if (currentRow != null) {
+                    try (EntryDataDecoder decoder = new EntryDataDecoder(null, null, scanColumnList, serializers)) {
+                        DataCell kv = currentResult.userData();//dataLib.matchDataColumn(currentResult);
+                        decoder.set(kv.valueArray(), kv.valueOffset(), kv.valueLength());//dataLib.getDataValueBuffer(kv),dataLib.getDataValueOffset(kv),dataLib.getDataValuelength(kv));
+                        decoder.decode(currentRow);
+                    }
+                }
+                this.currentRowLocation = new HBaseRowLocation(currentResult.key());
+            } catch (Exception e) {
+                throw StandardException.newException("Error occurred during fetch", e);
+            }
         }
     }
 
@@ -353,17 +392,27 @@ public class SpliceScan implements ScanManager, LazyScan{
             int[] validCols=EngineUtils.bitSetToMap(validColumns);
             DataPut put=opFactory.newDataPut(trans.getActiveStateTxn(),currentRowLocation.getBytes());//SpliceUtils.createPut(currentRowLocation.getBytes(),trans.getActiveStateTxn());
 
-            DescriptorSerializer[] serializers=VersionedSerializers.forVersion("1.0",true).getSerializers(row);
-            EntryDataHash entryEncoder=new EntryDataHash(validCols,null,serializers);
-            ExecRow execRow=new ValueRow(row.length);
-            execRow.setRowArray(row);
-            entryEncoder.setRow(execRow);
-            byte[] data=entryEncoder.encode();
-            put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,data);
-
+            if (table.isRedoPartition()) {
+                UnsafeRecord unsafeRecord = new UnsafeRecord(
+                        currentRowLocation.getBytes(),
+                        1,
+                        new byte[UnsafeRecordUtils.calculateFixedRecordSize(row.length)],
+                        0l, true);
+                unsafeRecord.setNumberOfColumns(row.length);
+                unsafeRecord.setTxnId1(trans.getActiveStateTxn().getTxnId());
+                unsafeRecord.setData(row);
+                put.addCell(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES,SIConstants.PACKED_COLUMN_BYTES,1,unsafeRecord.getValue());
+                baseOperationFactory.setTemplate(put,new ValueRow(row));
+            } else{
+                DescriptorSerializer[] serializers = VersionedSerializers.forVersion("1.0", true).getSerializers(row);
+                EntryDataHash entryEncoder = new EntryDataHash(validCols, null, serializers);
+                ExecRow execRow = new ValueRow(row.length);
+                execRow.setRowArray(row);
+                entryEncoder.setRow(execRow);
+                byte[] data = entryEncoder.encode();
+                put.addCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES, data);
+            }
             table.put(put);
-
-//			table.put(Puts.buildInsert(currentRowLocation.getByteCopy(), row, validColumns, transID));
             return true;
         }catch(Exception e){
             throw StandardException.newException("Error during replace ", e);
@@ -386,9 +435,13 @@ public class SpliceScan implements ScanManager, LazyScan{
         try{
             if(table==null)
                 table = partitionFactory.getTable(Long.toString(spliceConglomerate.getConglomerate().getContainerid()));
+            SpliceQuery spliceQuery = new SpliceQuery(spliceConglomerate.cloneExecRowTemplate(),scanColumnList);
+            baseOperationFactory.setQuery(scan,spliceQuery);
+            if (table.isRedoPartition())
+                scan.setFamily(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES);
             scanner=table.openResultScanner(scan);
             this.scannerInitialized=true;
-        }catch(IOException e){
+        }catch(IOException | StandardException e){
             LOG.error("Initializing scanner failed",e);
             throw new RuntimeException(e);
         }

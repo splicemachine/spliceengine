@@ -586,7 +586,7 @@ public class ControlDataSet<V> implements DataSet<V> {
             @Override
             public DataSetWriter build() throws StandardException{
                 assert txn!=null:"Txn is null";
-                DeletePipelineWriter dpw = new DeletePipelineWriter(txn,token,heapConglom,operationContext);
+                DeletePipelineWriter dpw = new DeletePipelineWriter(tableVersion,txn,token,heapConglom,operationContext,execRow);
                 return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,dpw,operationContext);
             }
         };
@@ -602,7 +602,7 @@ public class ControlDataSet<V> implements DataSet<V> {
                 assert txn!=null:"Txn is null";
                 InsertPipelineWriter ipw = new InsertPipelineWriter(pkCols,
                         tableVersion,
-                        execRowDefinition,
+                        execRow,
                         autoIncrementRowLocationArray,
                         spliceSequences,
                         heapConglom,
@@ -623,8 +623,8 @@ public class ControlDataSet<V> implements DataSet<V> {
             public DataSetWriter build() throws StandardException{
                 assert txn!=null: "Txn is null";
                 UpdatePipelineWriter upw =new UpdatePipelineWriter(heapConglom,
-                        formatIds,columnOrdering,pkCols,pkColumns,tableVersion,
-                        txn,token,execRowDefinition,heapList,operationContext);
+                        columnOrdering,pkCols,pkColumns,tableVersion,
+                        txn,token,execRow,heapList,operationContext);
 
                 return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,upw,operationContext);
             }

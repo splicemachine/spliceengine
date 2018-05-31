@@ -22,6 +22,7 @@ import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.utils.ByteSlice;
 import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.hadoop.io.BytesWritable;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
@@ -255,24 +256,30 @@ public class HBaseRowLocation extends DataType implements RowLocation {
     public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
         if (unsafeArrayData.isNullAt(ordinal))
             setToNull();
-        else
+        else {
+            isNull = false;
             slice = ByteSlice.wrap(unsafeArrayData.getBinary(ordinal));
+        }
     }
 
     @Override
     public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
         if (unsafeRow.isNullAt(ordinal))
             setToNull();
-        else
+        else {
+            isNull = false;
             slice = ByteSlice.wrap(unsafeRow.getBinary(ordinal));
+        }
     }
 
     @Override
     public void read(Row row, int ordinal) throws StandardException {
         if (row.isNullAt(ordinal))
             setToNull();
-        else
+        else {
+            isNull = false;
             slice = ByteSlice.wrap((byte[]) row.get(ordinal));
+        }
     }
 
     @Override
@@ -300,6 +307,17 @@ public class HBaseRowLocation extends DataType implements RowLocation {
         if (isNull() || slice == null)
             return null;
         return slice.getByteCopy();
+    }
+
+    @Override
+    public boolean isVariableLength() {
+        return true;
+    }
+
+
+    @Override
+    public Object getHiveObject() throws StandardException {
+        return isNull()?null:new BytesWritable(slice.getByteCopy());
     }
 
 }

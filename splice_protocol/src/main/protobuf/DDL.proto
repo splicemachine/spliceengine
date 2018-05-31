@@ -198,8 +198,8 @@ message TentativeFK {
         optional int64 conglomerate = 2;
         /* Info about the constraint that is ultimately used in constraint violation error messages */
         optional FKConstraintInfo fkConstraintInfo = 3;
-        /* formatIds for the backing index of the FK we are creating */
-        repeated int32 backingIndexFormatIds = 4;
+        /* indexRow for the backing index of the FK we are creating */
+        required bytes indexRow = 4;
        /* conglom number of unique index or base table primary key our FK references */
         optional int64 referencedConglomerateNumber = 5;
         /* conglom number of the backing-index associated with the FK */
@@ -269,11 +269,12 @@ message Index {
         optional bool excludeNulls = 6; // Exclude Values where the first column is null
         optional bool excludeDefaults = 7; // Exclude Values where the first column is the default value
         optional bytes defaultValues = 8; // Default values for the index to validate for writing...
+        required bytes indexRow = 9; // Template with types for the indexRow..
 }
 
 message Table {
         required int64 conglomerate = 1; // Table Conglomerate
-        repeated int32 formatIds = 2; // Format ids
+        required bytes template = 2; // Format ids
         repeated int32 columnOrdering = 3; // The ordering of the columns in the table
         repeated bool descColumns = 4; // The source tables columnSort, all ascending right now
         required string tableVersion = 5; // Table Version for SerDe
@@ -290,7 +291,7 @@ message FKConstraintInfo {
     optional string tableName = 2;
     optional string columnNames = 3;
     optional string parentTableVersion = 4;
-    repeated int32 formatIds = 5;
+    required bytes indexRow = 5;
 }
 
 message NotifyJarLoader {

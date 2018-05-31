@@ -14,10 +14,6 @@
 
 package com.splicemachine.pipeline;
 
-import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.impl.sql.execute.RowUtil;
-import com.splicemachine.derby.utils.FormatableBitSetUtils;
 import org.spark_project.guava.base.Optional;
 import org.spark_project.guava.collect.Iterables;
 import org.spark_project.guava.collect.Multimap;
@@ -54,9 +50,7 @@ import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.ArrayList;
 import static com.splicemachine.pipeline.ConglomerateDescriptors.*;
-import java.util.List;
 
 /**
  * @author Scott Fines
@@ -123,12 +117,14 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
 
                 DataDictionary dataDictionary=transactionResource.getLcc().getDataDictionary();
                 ConglomerateDescriptor conglomerateDescriptor=dataDictionary.getConglomerateDescriptor(conglomId);
-
+                if (conglomerateDescriptor== null) {
+                    conglomerateDescriptor = dataDictionary.getConglomerateDescriptor(conglomId);
+                }
+                assert conglomerateDescriptor!=null:"conglomerate Descriptor is null for? " + conglomId;
                 if(conglomerateDescriptor!=null){
                     dataDictionary.getExecutionFactory().newExecutionContext(ContextService.getFactory().getCurrentContextManager());
                     //Hbase scan
                     TableDescriptor td=dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
-
                     if(td!=null){
                         startDirect(conglomId,transactionResource.getLcc(),dataDictionary,td,conglomerateDescriptor);
                     }
@@ -262,15 +258,15 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
             switch(cDescriptor.getConstraintType()){
                 case DataDictionary.PRIMARYKEY_CONSTRAINT:
                     constraintFactories.add(buildPrimaryKey(cDescriptor,osf,pef));
-                    fkGroup.buildForeignKeyCheckWriteFactory((ReferencedKeyConstraintDescriptor)cDescriptor);
+                    fkGroup.buildForeignKeyCheckWriteFactory(dataDictionary,td,(ReferencedKeyConstraintDescriptor)cDescriptor);
                     break;
                 case DataDictionary.UNIQUE_CONSTRAINT:
                     buildUniqueConstraint(cDescriptor,osf,pef);
-                    fkGroup.buildForeignKeyCheckWriteFactory((ReferencedKeyConstraintDescriptor)cDescriptor);
+                    fkGroup.buildForeignKeyCheckWriteFactory(dataDictionary,td,(ReferencedKeyConstraintDescriptor)cDescriptor);
                     break;
                 case DataDictionary.FOREIGNKEY_CONSTRAINT:
                     ForeignKeyConstraintDescriptor fkConstraintDescriptor=(ForeignKeyConstraintDescriptor)cDescriptor;
-                    fkGroup.buildForeignKeyInterceptWriteFactory(dataDictionary,fkConstraintDescriptor);
+                    fkGroup.buildForeignKeyInterceptWriteFactory(dataDictionary,td,fkConstraintDescriptor);
                     break;
                 default:
                     LOG.warn("Unknown Constraint on table "+conglomId+": type = "+cDescriptor.getConstraintType());
@@ -321,10 +317,11 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
                     // conglom descriptor for the current conglom number.
                     ConglomerateDescriptor srcConglomDesc=uniqueIndexConglom.isPresent()?uniqueIndexConglom.get():currentCongloms.iterator().next();
                     IndexDescriptor indexDescriptor=srcConglomDesc.getIndexDescriptor().getIndexDescriptor();
+                    IndexRowGenerator irg = srcConglomDesc.getIndexDescriptor();
                     // Fill the partial row with nulls of the correct type
                     ColumnDescriptorList cdl = td.getColumnDescriptorList();
                     DDLMessage.TentativeIndex ti=ProtoUtil.createTentativeIndex(lcc,td.getBaseConglomerateDescriptor().getConglomerateNumber(),
-                            indexConglom.get().getConglomerateNumber(),td,indexDescriptor,
+                            indexConglom.get().getConglomerateNumber(),td,irg,
                             td.getDefaultValue(indexConglom.get().getIndexDescriptor().baseColumnPositions()[0]));
                     IndexFactory indexFactory=IndexFactory.create(ti);
                     indexFactories.replace(indexFactory);

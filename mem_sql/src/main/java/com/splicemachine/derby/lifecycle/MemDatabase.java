@@ -24,6 +24,7 @@ import com.splicemachine.access.configuration.HConfigurationDefaultsList;
 import com.splicemachine.access.util.ReflectingConfigurationSource;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.concurrent.ConcurrentTicker;
+import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.si.MemSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -46,7 +47,6 @@ public class MemDatabase{
         MemSIEnvironment.INSTANCE = env;
         SConfiguration config = new ConfigurationBuilder().build(new HConfigurationDefaultsList().addConfig(new MemDatabaseTestConfig()),
                                                                  new ReflectingConfigurationSource());
-
         SIDriver.loadDriver(env);
         final SIDriver driver = env.getSIDriver();
         //start the database sequence

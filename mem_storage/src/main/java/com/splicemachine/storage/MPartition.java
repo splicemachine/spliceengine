@@ -14,7 +14,11 @@
 
 package com.splicemachine.storage;
 
+import com.splicemachine.access.impl.data.UnsafeRecord;
 import com.splicemachine.access.util.ByteComparisons;
+import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.functions.Version3DataScanner;
+import org.apache.spark.unsafe.Platform;
 import org.spark_project.guava.base.Predicate;
 import org.spark_project.guava.collect.BiMap;
 import org.spark_project.guava.collect.HashBiMap;
@@ -54,12 +58,19 @@ public class MPartition implements Partition{
     private AtomicLong writes=new AtomicLong(0l);
     private AtomicLong reads=new AtomicLong(0l);
     private AtomicLong sequenceGen = new AtomicLong(0l);
+    private String version;
 
-    public MPartition(String tableName,String partitionName){
+    public MPartition(String tableName,String partitionName, String version){
         this.partitionName=partitionName;
         this.tableName=tableName;
+        this.version = version;
         this.owner=new MPartitionServer();
     }
+
+    public MPartition(String tableName,String partitionName){
+        this(tableName,partitionName,"2.0");
+    }
+
 
     @Override
     public String getTableName(){
@@ -84,6 +95,10 @@ public class MPartition implements Partition{
     public void startOperation() throws IOException{
     }
 
+    public String getVersion() {
+        return this.version;
+    }
+
     @Override
     public void closeOperation() throws IOException{
     }
@@ -100,7 +115,7 @@ public class MPartition implements Partition{
             }
         });
         long curSeq = sequenceGen.get();
-        try(SetScanner ss=new SetScanner(curSeq,data.iterator(),get.lowTimestamp(),get.highTimestamp(),get.filter(),this,Metrics.noOpMetricFactory())){
+        try(SetScanner ss=new SetScanner(curSeq,data.iterator(),get.lowTimestamp(),get.highTimestamp(),get.filter(),this,Metrics.noOpMetricFactory(),get.familyQualifierMap())){
             List<DataCell> toReturn=ss.next(-1);
             if(toReturn.size()<=0) return null;
 
@@ -155,9 +170,8 @@ public class MPartition implements Partition{
     public DataScanner openScanner(DataScan scan,MetricFactory metricFactory) throws IOException{
         NavigableSet<DataCell> dataCells=getAscendingScanSet(scan);
         Iterator<DataCell> iter = scan.isDescendingScan()? dataCells.descendingIterator(): dataCells.iterator();
-
         long curSeq = sequenceGen.get();
-        return new SetScanner(curSeq,iter,scan.lowVersion(),scan.highVersion(),scan.getFilter(),this,metricFactory);
+        return new SetScanner(curSeq,iter,scan.lowVersion(),scan.highVersion(),scan.getFilter(),this,metricFactory,scan.getFamilyMap());
     }
 
 
@@ -502,9 +516,9 @@ public class MPartition implements Partition{
 
     private NavigableSet<DataCell> getAscendingScanSet(DataScan scan){
         NavigableSet<DataCell> dataCells;
-        if(memstore.size()<=0)
-            dataCells = EmptyNavigableSet.instance();
-        else{
+//        if(memstore.size()<=0)
+//            dataCells = EmptyNavigableSet.instance();
+//        else{
             byte[] startKey=scan.getStartKey();
             byte[] stopKey=scan.getStopKey();
             DataCell start;
@@ -530,7 +544,6 @@ public class MPartition implements Partition{
              */
             if(stop.compareTo(start)<0) return EmptyNavigableSet.instance();
             dataCells=memstore.subSet(start,true,stop,false);
-        }
         return dataCells;
     }
 
@@ -573,5 +586,15 @@ public class MPartition implements Partition{
     @Override
     public PartitionDescriptor getDescriptor() throws IOException {
         throw new UnsupportedOperationException("Operation not supported in mem storage engine");
+    }
+
+    public boolean isRedoPartition() {
+        return version.equals("3.0");
+    }
+
+    @Override
+    public boolean fastRollForward(DataCell dataCell, long effectiveTimestamp) {
+        Platform.putLong(dataCell.valueArray(),dataCell.valueOffset()+ UnsafeRecord.EFF_TS_INC,effectiveTimestamp);
+        return true;
     }
 }

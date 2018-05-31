@@ -60,7 +60,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 	Or, for one time service, you can enqueue a Serviceable Object by
 	daemon.enqueue(serviceableObject, true);  - urgent service
 	daemon.enqueue(serviceableObject, false); - non-urgent service
-
 	@see DaemonService
 	@see Serviceable
 */

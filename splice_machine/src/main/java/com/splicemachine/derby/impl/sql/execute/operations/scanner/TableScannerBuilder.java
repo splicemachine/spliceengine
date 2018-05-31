@@ -24,10 +24,12 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.storage.DataScanner;
@@ -83,15 +85,22 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     protected int[] partitionByColumns;
     protected boolean useSample = false;
     protected double sampleFraction = 0;
-    protected int splits;
-
+    protected FormatableBitSet accessedColumns;
     protected ExecRow defaultRow;
     protected FormatableBitSet defaultValueMap;
     protected byte[] token = SpliceClient.token;
+    protected int[] indexColsToMainColMap;
+    protected int splits;
 
     @Override
     public ScanSetBuilder<V> metricFactory(MetricFactory metricFactory){
         this.metricFactory = metricFactory;
+        return this;
+    }
+
+    @Override
+    public ScanSetBuilder<V> indexColsToMainColMap(int[] indexColsToMainColMap) {
+        this.indexColsToMainColMap = indexColsToMainColMap;
         return this;
     }
 
@@ -391,31 +400,56 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
         return this;
     }
 
-    public SITableScanner build(){
-            return new SITableScanner(
-                    scanner,
-                    region,
-                    template,
-                    scan,
-                    rowColumnMap,
-                    txn,
-                    keyColumnEncodingOrder,
-                    keyColumnSortOrder,
-                    keyColumnTypes,
-                    keyDecodingMap,
-                    accessedKeys,
-                    reuseRowLocation,
-                    indexName,
-                    tableVersion,
-                    filterFactory,
-                    demarcationPoint,
-                    optionalProbeValue,
-                    defaultRow,
-                    defaultValueMap);
+    public ScanSetBuilder<V> accessedColumns(FormatableBitSet accessedColumns){
+        this.accessedColumns=accessedColumns;
+        return this;
+    }
+
+    public StandardIterator<ExecRow> build(){
+            if (tableVersion.equals("3.0")) {
+                return new RedoTableScanner(accessedColumns,
+                        indexColsToMainColMap,
+                        scanner,
+                region,
+                template,
+                scan,
+                txn,
+                reuseRowLocation,
+                indexName,
+                tableVersion,
+                demarcationPoint,
+                optionalProbeValue,
+                defaultRow,
+                defaultValueMap);
+            } else {
+                return new SITableScanner(
+                        scanner,
+                        region,
+                        template,
+                        scan,
+                        rowColumnMap,
+                        txn,
+                        keyColumnEncodingOrder,
+                        keyColumnSortOrder,
+                        keyColumnTypes,
+                        keyDecodingMap,
+                        accessedKeys,
+                        reuseRowLocation,
+                        indexName,
+                        tableVersion,
+                        filterFactory,
+                        demarcationPoint,
+                        optionalProbeValue,
+                        defaultRow,
+                        defaultValueMap);
+            }
     }
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException{
+            out.writeBoolean(accessedColumns!=null);
+        if (accessedColumns!=null)
+            out.writeObject(accessedColumns);
             out.writeObject(template);
             writeScan(out);
             out.writeBoolean(rowColumnMap!=null);
@@ -426,6 +460,15 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                     out.writeInt(rowColumnMap[i]);
                 }
             }
+            out.writeBoolean(indexColsToMainColMap!=null);
+            if(indexColsToMainColMap!=null){
+                out.writeInt(indexColsToMainColMap.length);
+                //noinspection ForLoopReplaceableByForEach
+                for(int i=0;i<indexColsToMainColMap.length;++i){
+                    out.writeInt(indexColsToMainColMap[i]);
+                }
+            }
+
             writeTxn(out);
             ArrayUtil.writeByteArray(out, token);
             ArrayUtil.writeIntArray(out,keyColumnEncodingOrder);
@@ -503,12 +546,20 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     @Override
     public void readExternal(ObjectInput in) throws IOException,
             ClassNotFoundException{
-            template = (ExecRow)in.readObject();
+        if (in.readBoolean())
+            accessedColumns = (FormatableBitSet) in .readObject();
+        template = (ExecRow)in.readObject();
             scan=readScan(in);
             if(in.readBoolean()){
                 rowColumnMap=new int[in.readInt()];
                 for(int i=0;i<rowColumnMap.length;++i){
                     rowColumnMap[i]=in.readInt();
+                }
+            }
+            if(in.readBoolean()){
+                indexColsToMainColMap=new int[in.readInt()];
+                for(int i=0;i<indexColsToMainColMap.length;++i){
+                    indexColsToMainColMap[i]=in.readInt();
                 }
             }
             txn=readTxn(in);

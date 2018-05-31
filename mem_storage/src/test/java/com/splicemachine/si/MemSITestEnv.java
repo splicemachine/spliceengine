@@ -29,7 +29,6 @@ import com.splicemachine.si.testenv.SITestEnv;
 import com.splicemachine.si.testenv.TestTransactionSetup;
 import com.splicemachine.storage.*;
 import com.splicemachine.timestamp.api.TimestampSource;
-
 import java.io.IOException;
 
 /**
@@ -47,11 +46,13 @@ public class MemSITestEnv implements SITestEnv{
     private final DataFilterFactory filterFactory = MFilterFactory.INSTANCE;
     private final OperationStatusFactory operationStatusFactory =MOpStatusFactory.INSTANCE;
     private final TxnOperationFactory txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory,opFactory);
+    private boolean useRedoTransactor;
 
     public MemSITestEnv() throws IOException{
     }
 
-    public void initialize() throws IOException{
+    public void initialize(boolean useRedoTransactor) throws IOException{
+        this.useRedoTransactor = useRedoTransactor;
         createTransactionalTable(Bytes.toBytes("person"));
         this.personPartition = tableFactory.getTable("person");
     }
@@ -101,21 +102,47 @@ public class MemSITestEnv implements SITestEnv{
 
     @Override
     public Partition getPersonTable(TestTransactionSetup tts){
-        return new TxnPartition(personPartition,
-                tts.transactor,
-                NoopRollForward.INSTANCE,
-                txnOpFactory,
-                tts.readController,
-                NoOpReadResolver.INSTANCE);
+        if (useRedoTransactor) {
+            return new RedoTxnPartition(personPartition,
+                    tts.transactor,
+                    NoopRollForward.INSTANCE,
+                    txnOpFactory,
+                    tts.readController,
+                    NoOpReadResolver.INSTANCE,
+                    txnStore,
+                    opFactory
+            );
+        } else {
+            return new TxnPartition(personPartition,
+                    tts.transactor,
+                    NoopRollForward.INSTANCE,
+                    txnOpFactory,
+                    tts.readController,
+                    NoOpReadResolver.INSTANCE
+            );
+        }
     }
 
     @Override
     public Partition getPartition(String name,TestTransactionSetup tts) throws IOException{
-        return new TxnPartition(tableFactory.getTable(name),
-                tts.transactor,
-                NoopRollForward.INSTANCE,
-                txnOpFactory,
-                tts.readController,
-                NoOpReadResolver.INSTANCE);
+        if (useRedoTransactor) {
+            return new RedoTxnPartition(tableFactory.getTable(name),
+                    tts.transactor,
+                    NoopRollForward.INSTANCE,
+                    txnOpFactory,
+                    tts.readController,
+                    NoOpReadResolver.INSTANCE,
+                    txnStore,
+                    opFactory);
+        } else {
+            return new TxnPartition(tableFactory.getTable(name),
+                    tts.transactor,
+                    NoopRollForward.INSTANCE,
+                    txnOpFactory,
+                    tts.readController,
+                    NoOpReadResolver.INSTANCE);
+        }
+
+
     }
 }

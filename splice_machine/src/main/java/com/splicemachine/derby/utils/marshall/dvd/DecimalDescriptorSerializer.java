@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.utils.marshall.dvd;
 
+import com.splicemachine.db.iapi.types.NumberDataValue;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
@@ -48,12 +49,12 @@ class DecimalDescriptorSerializer implements DescriptorSerializer {
 
 		@Override
 		public void encode(MultiFieldEncoder fieldEncoder, DataValueDescriptor dvd, boolean desc) throws StandardException {
-			fieldEncoder.encodeNext((BigDecimal)dvd.getObject(),desc);
+			fieldEncoder.encodeNext( ((NumberDataValue)dvd).getBigDecimal(),desc);
 		}
 
 		@Override
 		public byte[] encodeDirect(DataValueDescriptor dvd, boolean desc) throws StandardException {
-				return Encoding.encode((BigDecimal)dvd.getObject(),desc);
+				return Encoding.encode(((NumberDataValue)dvd).getBigDecimal(),desc);
 		}
 
 		@Override

@@ -15,9 +15,9 @@ package com.splicemachine.orc.stream;
 
 import com.splicemachine.orc.OrcCorruptionException;
 import com.splicemachine.orc.metadata.OrcType.OrcTypeKind;
+import io.airlift.slice.SliceOutput;
 
 import java.io.IOException;
-import java.io.InputStream;
 
 import static com.splicemachine.orc.metadata.OrcType.OrcTypeKind.*;
 import static com.splicemachine.orc.stream.LongDecode.FixedBitSizes.*;
@@ -109,14 +109,14 @@ public final class LongDecode
         }
     }
 
-    public static long readSignedVInt(InputStream inputStream)
+    public static long readSignedVInt(OrcInputStream inputStream)
             throws IOException
     {
         long result = readUnsignedVInt(inputStream);
         return (result >>> 1) ^ -(result & 1);
     }
 
-    public static long readUnsignedVInt(InputStream inputStream)
+    public static long readUnsignedVInt(OrcInputStream inputStream)
             throws IOException
     {
         long result = 0;
@@ -125,7 +125,7 @@ public final class LongDecode
         do {
             b = inputStream.read();
             if (b == -1) {
-                throw new OrcCorruptionException("EOF while reading unsigned vint");
+                throw new OrcCorruptionException(inputStream.getOrcDataSourceId(),"EOF while reading unsigned vint");
             }
             result |= (b & 0b0111_1111) << offset;
             offset += 7;
@@ -133,7 +133,7 @@ public final class LongDecode
         return result;
     }
 
-    public static long readVInt(boolean signed, InputStream inputStream)
+    public static long readVInt(boolean signed, OrcInputStream inputStream)
             throws IOException
     {
         if (signed) {
@@ -149,7 +149,7 @@ public final class LongDecode
         return (value >>> 1) ^ -(value & 1);
     }
 
-    public static long readDwrfLong(InputStream input, OrcTypeKind type, boolean signed, boolean usesVInt)
+    public static long readDwrfLong(OrcInputStream input, OrcTypeKind type, boolean signed, boolean usesVInt)
             throws IOException
     {
         if (usesVInt) {
@@ -174,5 +174,32 @@ public final class LongDecode
         else {
             throw new IllegalArgumentException(type + " type is not supported");
         }
+    }
+    public static void writeVLong(SliceOutput buffer, long value, boolean signed)
+    {
+        if (signed) {
+            value = zigzagEncode(value);
+        }
+        writeVLongUnsigned(buffer, value);
+    }
+
+    private static void writeVLongUnsigned(SliceOutput output, long value)
+    {
+        while (true) {
+            // if there are less than 7 bits left, we are done
+            if ((value & ~0b111_1111) == 0) {
+                output.write((byte) value);
+                return;
+            }
+            else {
+                output.write((byte) (0x80 | (value & 0x7f)));
+                value >>>= 7;
+            }
+        }
+    }
+
+    private static long zigzagEncode(long value)
+    {
+        return (value << 1) ^ (value >> 63);
     }
 }

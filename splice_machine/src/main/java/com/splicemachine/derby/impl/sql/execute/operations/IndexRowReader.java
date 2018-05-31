@@ -14,11 +14,14 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.EngineDriver;
 import com.splicemachine.derby.stream.function.IteratorUtils;
 import com.splicemachine.si.impl.driver.SIDriver;
-import org.apache.spark.InterruptibleIterator;
-import org.apache.spark.TaskContext;
+import com.splicemachine.access.impl.data.UnsafeRecord;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.si.api.data.OperationFactory;
+import com.splicemachine.si.impl.SpliceQuery;
+import com.splicemachine.si.impl.driver.SIDriver;
+import org.apache.commons.lang.SerializationUtils;
 import org.spark_project.guava.collect.Lists;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -34,8 +37,6 @@ import com.splicemachine.storage.*;
 import com.splicemachine.storage.util.MapAttributes;
 import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
-import scala.collection.JavaConverters;
-
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.util.ArrayList;
@@ -74,8 +75,16 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
 
     private ExecRow heapRowToReturn;
     private ExecRow indexRowToReturn;
+    private String tableVersion;
+    protected UnsafeRecord unsafeRecord;
+    protected FormatableBitSet accessedCols;
+    protected byte[] spliceQuery;
+    protected OperationFactory baseOperationFactory;
+    protected ExecRow defaultRow;
+    protected FormatableBitSet defaultValueMap;
 
     IndexRowReader(Iterator<ExecRow> sourceIterator,
+                   FormatableBitSet accessedCols,
                    ExecRow outputTemplate,
                    TxnView txn,
                    int lookupBatchSize,
@@ -86,7 +95,12 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
                    KeyHashDecoder rowDecoder,
                    int[] indexCols,
                    TxnOperationFactory operationFactory,
-                   PartitionFactory tableFactory){
+                   PartitionFactory tableFactory,
+                   OperationFactory baseOperationFactory,
+                    String tableVersion,
+                   ExecRow defaultRow,
+                   FormatableBitSet defaultValueMap){
+//        assert accessedCols != null:"Accessed Cols is null";
         this.sourceIterator=sourceIterator;
         this.outputTemplate=outputTemplate;
         this.txn=txn;
@@ -95,16 +109,24 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
         this.mainTableConglomId=mainTableConglomId;
         this.predicateFilterBytes=predicateFilterBytes;
         this.tableFactory=tableFactory;
-        this.keyDecoder=new KeyDecoder(keyDecoder,0);
+        this.keyDecoder=!(tableVersion.equals("3.0"))?new KeyDecoder(keyDecoder,0):null;
         this.rowDecoder=rowDecoder;
         this.indexCols=indexCols;
         this.resultFutures=Lists.newArrayListWithCapacity(numConcurrentLookups);
         this.operationFactory = operationFactory;
+        this.tableVersion = tableVersion;
+        this.unsafeRecord = new UnsafeRecord();
+        this.accessedCols = accessedCols;
+        this.baseOperationFactory = baseOperationFactory;
+        this.defaultRow = defaultRow;
+        this.defaultValueMap = defaultValueMap;
     }
 
     public void close() throws IOException{
-        rowDecoder.close();
-        keyDecoder.close();
+        if (rowDecoder != null)
+            rowDecoder.close();
+        if (keyDecoder != null)
+            keyDecoder.close();
         if(entryDecoder!=null)
             entryDecoder.close();
     }
@@ -136,14 +158,27 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
             Pair<ExecRow, DataResult> next=currentResults.remove(0);
             //merge the results
             ExecRow nextScannedRow=next.getFirst();
+            // TODO FIX
             DataResult nextFetchedData=next.getSecond();
             byte[] rowKey = nextFetchedData.key();
-            if(entryDecoder==null)
-                entryDecoder=new EntryDecoder();
-            for(DataCell kv : nextFetchedData){
-                keyDecoder.decode(kv.keyArray(),kv.keyOffset(),kv.keyLength(),nextScannedRow);
-                rowDecoder.set(kv.valueArray(),kv.valueOffset(),kv.valueLength());
-                rowDecoder.decode(nextScannedRow);
+            if (keyDecoder == null) { // 3.0 Version
+                unsafeRecord.wrap(nextFetchedData.activeData());
+                nextScannedRow.setKey(rowKey);
+                unsafeRecord.getData(accessedCols,nextScannedRow);
+                if (defaultRow != null && defaultValueMap != null) {
+                    for (int i=defaultValueMap.anySetBit(); i>=0; i=defaultValueMap.anySetBit(i)) {
+                        if (nextScannedRow.getColumn(i+1).isNull())
+                            nextScannedRow.setColumn(i+1, defaultRow.getColumn(i+1).cloneValue(false));
+                    }
+                }
+            } else {
+                if (entryDecoder == null)
+                    entryDecoder = new EntryDecoder();
+                for (DataCell kv : nextFetchedData) {
+                    keyDecoder.decode(kv.keyArray(), kv.keyOffset(), kv.keyLength(), nextScannedRow);
+                    rowDecoder.set(kv.valueArray(), kv.valueOffset(), kv.valueLength());
+                    rowDecoder.decode(nextScannedRow);
+                }
             }
             nextScannedRow.setKey(rowKey);
             heapRowToReturn=nextScannedRow;
@@ -216,14 +251,20 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
             Attributable attributable = new MapAttributes();
             attributable.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL,predicateFilterBytes);
             operationFactory.encodeForReads(attributable,txn,false);
-
+            if (spliceQuery == null) {
+                SpliceQuery actSpliceQuery = new SpliceQuery(sourceRows.get(0).getSecond().getNewNullRow(), accessedCols, null);
+                baseOperationFactory.setQuery(attributable, actSpliceQuery);
+                spliceQuery = attributable.getAttribute(SIConstants.SI_QUERY);
+            }
+            attributable.addAttribute(SIConstants.SI_QUERY, spliceQuery);
             try(Partition table = tableFactory.getTable(Long.toString(mainTableConglomId))){
                 Iterator<DataResult> results=table.batchGet(attributable,rowKeys);
                 List<Pair<ExecRow, DataResult>> locations=Lists.newArrayListWithCapacity(sourceRows.size());
                 for(Pair<byte[],ExecRow> sourceRow : sourceRows){
                     if(!results.hasNext())
                         throw new IllegalStateException("Programmer error: incompatible iterator sizes!");
-                    locations.add(Pair.newPair(sourceRow.getSecond(),results.next().getClone()));
+                    DataResult dataResult = results.next();
+                    locations.add(Pair.newPair(sourceRow.getSecond(),dataResult.getClone()));
                 }
                 return locations;
             }

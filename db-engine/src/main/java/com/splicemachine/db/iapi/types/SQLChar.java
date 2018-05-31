@@ -47,6 +47,7 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.iapi.util.UTF8Util;
 import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.hadoop.io.Text;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
@@ -3315,7 +3316,7 @@ public class SQLChar
         if (isNull())
             unsafeRowWriter.setNullAt(ordinal);
         else {
-            unsafeRowWriter.write(ordinal, UTF8String.fromString(value));
+            unsafeRowWriter.write(ordinal, UTF8String.fromString(toString()));
         }
     }
 
@@ -3351,6 +3352,7 @@ public class SQLChar
         else {
             isNull = false;
             value = unsafeArrayData.getUTF8String(ordinal).toString();
+            setRaw(null,-1);
         }
     }
 
@@ -3366,11 +3368,16 @@ public class SQLChar
      */
     @Override
     public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
-        if (unsafeRow.isNullAt(ordinal))
-            setToNull();
-        else {
-            isNull = false;
-            value = unsafeRow.getUTF8String(ordinal).toString();
+        try {
+            if (unsafeRow.isNullAt(ordinal))
+                setToNull();
+            else {
+                isNull = false;
+                value = unsafeRow.getUTF8String(ordinal).toString();
+                setRaw(null,-1);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -3381,6 +3388,7 @@ public class SQLChar
         else {
             isNull = false;
             value = row.getString(ordinal);
+            setRaw(null,-1);
         }
     }
 
@@ -3396,12 +3404,27 @@ public class SQLChar
 
     @Override
     public void setSparkObject(Object sparkObject) throws StandardException {
+        assert sparkObject instanceof UTF8String:"Needs to be an instance of UTF8String";
         if (sparkObject == null)
             setToNull();
         else {
-            value = (String) sparkObject; // Autobox, must be something better.
+            value = ((UTF8String)sparkObject).toString(); // Autobox, must be something better.
             setIsNull(false);
         }
+    }
+
+    public boolean isVariableLength() {
+        return true;
+    }
+
+    @Override
+    public Object getSparkObject() throws StandardException {
+            return (isNull)?null:UTF8String.fromString(value);
+    }
+
+    @Override
+    public Object getHiveObject() throws StandardException {
+        return isNull()?null:new Text(value);
     }
 
 }

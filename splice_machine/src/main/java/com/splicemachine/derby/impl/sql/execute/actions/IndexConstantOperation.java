@@ -32,24 +32,23 @@ import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.derby.impl.sql.execute.index.BulkLoadIndexJob;
 import com.splicemachine.derby.impl.sql.execute.index.DistributedPopulateIndexJob;
 import com.splicemachine.derby.impl.sql.execute.index.PopulateIndexJob;
-import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.derby.stream.utils.StreamUtils;
+import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
-import com.splicemachine.derby.stream.output.WriteReadUtils;
-import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.storage.PartitionLoad;
+import org.apache.commons.lang3.SerializationUtils;
+import org.spark_project.guava.primitives.Ints;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.storage.PartitionLoad;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.primitives.Ints;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
@@ -119,6 +118,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
                                  long demarcationPoint,
                                  DDLMessage.TentativeIndex tentativeIndex,
                                  IndexDescriptor indexDescriptor,
+		 					     ExecRow compactBaseRow,
 								 boolean         preSplit,
 								 boolean         sampling,
 								 String          splitKeyPath,
@@ -138,14 +138,21 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
         Txn childTxn;
         try {
 			// This preps the scan to emulate TableScanOperation and use that code path
-			List<Integer> indexCols = tentativeIndex.getIndex().getIndexColsToMainColMapList();
-			List<Integer> allFormatIds = tentativeIndex.getTable().getFormatIdsList();
+			List<Integer> indexCols = tentativeIndex.getIndex().getIndexColsToMainColMapList(); // 1 based, needs to be 0 based...
+			int[] indexColsToMainColMapList = new int[indexCols.size()];
+			int[] baseColumnMapping = new int[indexCols.size()];
+			ExecRow template = (ExecRow) SerializationUtils.deserialize(tentativeIndex.getTable().getTemplate().toByteArray());
 			List<Integer> columnOrdering = tentativeIndex.getTable().getColumnOrderingList();
-			td.getColumnDescriptorList().elementAt(0).getType().getNull();
-			int[] rowDecodingMap = new int[allFormatIds.size()];
-			int[] baseColumnMap = new int[allFormatIds.size()];
+
+			FormatableBitSet accessedColumns = new FormatableBitSet(template.size());
+			for (int i = 0; i< indexColsToMainColMapList.length; i++) {
+				indexColsToMainColMapList[i] = indexCols.get(i)-1;// O Based
+				accessedColumns.set(indexCols.get(i)-1);
+			}
+
+			int[] rowDecodingMap = new int[template.size()];
+			int[] baseColumnMap = new int[template.size()];
 			int counter = 0;
-			int[] indexFormatIds = new int[indexCols.size()];
 			ExecRow indexDefaultRow = new ValueRow(indexCols.size());
 			FormatableBitSet defaultValueMap = new FormatableBitSet(indexCols.size());
 
@@ -153,7 +160,6 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 				rowDecodingMap[i] = -1;
 				if (indexCols.contains(i+1)) {
 					baseColumnMap[i] = counter;
-					indexFormatIds[counter] = allFormatIds.get(indexCols.get(indexCols.indexOf(i+1))-1);
 					indexDefaultRow.setColumn(counter+1, baseDefaultRow.getColumn(i+1));
 					if (!baseDefaultRow.getColumn(i+1).isNull())
 						defaultValueMap.set(counter);
@@ -190,26 +196,29 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 				dsp = EngineDriver.driver().processorFactory().localProcessor(null,null);
 
             childTxn = beginChildTransaction(indexTransaction, tentativeIndex.getIndex().getConglomerate());
-            ScanSetBuilder<ExecRow> builder = dsp.newScanSet(null, Long.toString(tentativeIndex.getTable().getConglomerate()));
-            builder.tableDisplayName(tableName)
-                    .demarcationPoint(demarcationPoint)
-                    .transaction(indexTransaction)
-                    .scan(DDLUtils.createFullScan())
-                    .keyColumnEncodingOrder(Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()))
-                    .reuseRowLocation(false)
-                    .rowDecodingMap(rowDecodingMap)
-                    .keyColumnTypes(ScanOperation.getKeyFormatIds(
-                            Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()),
-                            Ints.toArray(tentativeIndex.getTable().getFormatIdsList())
-                    ))
-                    .keyDecodingMap(ScanOperation.getKeyDecodingMap(accessedKeyCols,
-                            Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()),
-                            baseColumnMap
-                    ))
-                    .accessedKeyColumns(accessedKeyCols)
-                    .template(WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds))
-			         .defaultRow(indexDefaultRow, defaultValueMap);
+			ScanSetBuilder<ExecRow> builder = dsp.newScanSet(null, Long.toString(tentativeIndex.getTable().getConglomerate()));
+			builder.tableDisplayName(tableName)
+			.demarcationPoint(demarcationPoint)
+			.transaction(indexTransaction)
+			.scan(DDLUtils.createFullScan())
 
+			.accessedColumns(accessedColumns)
+			.indexColsToMainColMap(indexColsToMainColMapList)
+			.keyColumnEncodingOrder(Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()))
+			.reuseRowLocation(false)
+			.tableVersion(tentativeIndex.getTable().getTableVersion())
+			.rowDecodingMap(rowDecodingMap)
+			.keyColumnTypes(ScanOperation.getKeyFormatIds(
+					Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()),
+					template
+					))
+			.keyDecodingMap(ScanOperation.getKeyDecodingMap(accessedKeyCols,
+					Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()),
+					baseColumnMap
+					))
+			.accessedKeyColumns(accessedKeyCols)
+			.defaultRow(indexDefaultRow, defaultValueMap)
+			.template(compactBaseRow);
 			String scope = this.getScopeName();
 			String prefix = StreamUtils.getScopeString(this);
 			String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
@@ -221,12 +230,12 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
                 SConfiguration config = EngineDriver.driver().getConfiguration();
 				if (!preSplit) {
                     futureResult = olapClient.submit(new DistributedPopulateIndexJob(childTxn, builder, scope, jobGroup, prefix,
-                            tentativeIndex, indexFormatIds));
+                            tentativeIndex));
 				}
 				else {
                     ActivationHolder ah = new ActivationHolder(activation, null);
 					futureResult = olapClient.submit(new BulkLoadIndexJob(ah, childTxn, builder, scope, jobGroup, prefix, tentativeIndex,
-                            indexFormatIds, sampling, hfilePath, td.getVersion(), indexName));
+                            sampling, hfilePath, td.getVersion(), indexName));
 				}
                 while (result == null) {
                     try {
@@ -245,7 +254,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
                     }
                 }
 			} else
-				PopulateIndexJob.populateIndex(tentativeIndex,builder,prefix,indexFormatIds,scope,childTxn);
+				PopulateIndexJob.populateIndex(tentativeIndex,builder,prefix,scope,childTxn);
             childTxn.commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);

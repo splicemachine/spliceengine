@@ -23,32 +23,47 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.ForwardingLifecycleManager;
 import com.splicemachine.si.impl.ForwardingTxnView;
 import com.splicemachine.si.impl.txn.DDLTxnView;
-import com.splicemachine.si.impl.txn.InheritingTxnView;
-import com.splicemachine.si.impl.txn.LazyTxnView;
 import com.splicemachine.si.testenv.*;
 import com.splicemachine.utils.ByteSlice;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.spark_project.guava.collect.Lists;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("unchecked")
 @Category(ArchitectureSpecific.class)
+@RunWith(Parameterized.class)
 public class SITransactorTest {
     @Rule public ExpectedException error = ExpectedException.none();
     private static final byte[] DESTINATION_TABLE = Bytes.toBytes("1184");
     private boolean useSimple = true;
-    private static SITestEnv testEnv;
-    private static TestTransactionSetup transactorSetup;
+    private SITestEnv testEnv;
+    private TestTransactionSetup transactorSetup;
     private TxnLifecycleManager control;
     private TransactorTestUtility testUtility;
     private final List<Txn> createdParentTxns = Lists.newArrayList();
     private TxnStore txnStore;
+
+    private boolean useRedoTransactor;
+
+    @Parameterized.Parameters
+    public static Collection<Object> data() {
+//        return Arrays.asList(new Object[]{Boolean.FALSE,Boolean.TRUE});
+        return Arrays.asList(new Object[]{Boolean.TRUE, Boolean.FALSE});
+    }
+
+    public SITransactorTest(Boolean useRedoTransactor) {
+        this.useRedoTransactor = useRedoTransactor;
+    }
 
     @SuppressWarnings("unchecked")
     private void baseSetUp() {
@@ -58,22 +73,18 @@ public class SITransactorTest {
                 createdParentTxns.add(txn);
             }
         };
-        testUtility = new TransactorTestUtility(useSimple,testEnv, transactorSetup);
+        testUtility = useRedoTransactor?new RedoTransactorTestUtility(useSimple,testEnv,transactorSetup)
+                :new SITransactorTestUtility(useSimple,testEnv, transactorSetup);
         txnStore = transactorSetup.txnStore;
-    }
-
-    @BeforeClass
-    public static void classSetUp() throws IOException {
-        if(testEnv==null){
-            testEnv =SITestEnvironment.loadTestEnvironment();
-            transactorSetup = new TestTransactionSetup(testEnv,true);
-        }
-        testEnv.initialize(); // reinitialize from scratch
     }
 
     @Before
     public void setUp() throws IOException {
-
+        if(testEnv==null){
+            testEnv =SITestEnvironment.loadTestEnvironment();
+            transactorSetup = new TestTransactionSetup(testEnv,true,useRedoTransactor);
+            testEnv.initialize(useRedoTransactor); // reinitialize from scratch
+        }
         baseSetUp();
     }
 
@@ -118,6 +129,7 @@ public class SITransactorTest {
     }
 
     @Test
+    @Ignore
     public void testGetActiveTransactionsFiltersOutChildrenCommit() throws Exception {
         Txn parent = control.beginTransaction(DESTINATION_TABLE);
         Txn child = control.beginChildTransaction(noSubTxns(parent), parent.getIsolationLevel(), DESTINATION_TABLE);
@@ -212,7 +224,7 @@ public class SITransactorTest {
     @Test
     public void testCanRecordWriteTable() throws Exception {
         Txn parent = control.beginTransaction(DESTINATION_TABLE);
-        TxnView transaction = txnStore.getTransaction(parent.getTxnId(), true);
+        TxnView transaction = txnStore.getTransaction(null,parent.getTxnId(), true);
         Iterator<ByteSlice> destinationTables = transaction.getDestinationTables();
         Assert.assertArrayEquals("Incorrect write table!", DESTINATION_TABLE, destinationTables.next().getByteCopy());
     }
@@ -1317,13 +1329,13 @@ public class SITransactorTest {
         t2.commit();
 
 //        final Transaction transactionStatusA = transactorSetup.transactionStore.getTransaction(t2.commit();
-        TxnView t2Check = txnStore.getTransaction(t2.getTxnId());
+        TxnView t2Check = txnStore.getTransaction(null,t2.getTxnId());
         Assert.assertNotEquals("committing a child does not set a local commit timestamp", -1l, t2Check.getCommitTimestamp());
         Assert.assertEquals("child has effective commit timestamp even though parent has not committed!", -1l, t2Check.getEffectiveCommitTimestamp());
         long earlyCommit = t2Check.getCommitTimestamp();
         t1.commit();
 
-        t2Check = txnStore.getTransaction(t2.getTxnId());
+        t2Check = txnStore.getTransaction(null,t2.getTxnId());
         Assert.assertEquals("committing parent of dependent transaction should not change the commit time of the child",
                 earlyCommit, t2Check.getCommitTimestamp());
         Assert.assertTrue("incorrect effective commit timestamp!", t2Check.getEffectiveCommitTimestamp() >= 0);
@@ -1900,9 +1912,9 @@ public class SITransactorTest {
         Txn t2 = control.beginChildTransaction(noSubTxns(t1), t1.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.insertAge(t2, "moe49", 21);
         t2.commit();
-        TxnView toCheckA = txnStore.getTransaction(t2.getTxnId());
+        TxnView toCheckA = txnStore.getTransaction(null,t2.getTxnId());
         t1.commit();
-        TxnView toCheckB = txnStore.getTransaction(t2.getTxnId());
+        TxnView toCheckB = txnStore.getTransaction(null,t2.getTxnId());
         Assert.assertEquals("committing parent of independent transaction should not change the commit time of the child",
                 toCheckA.getCommitTimestamp(), toCheckB.getCommitTimestamp());
     }

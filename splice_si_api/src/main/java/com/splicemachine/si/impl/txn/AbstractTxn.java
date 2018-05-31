@@ -99,7 +99,7 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
         if (getSubId() == 0) {
             return rolledback.clone();
         } else {
-            return parentReference.getRolledback();
+            return parentReference!= null ?parentReference.getRolledback():null;
         }
     }
 

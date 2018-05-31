@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecAggregator;
 import com.splicemachine.db.iapi.types.*;
+import org.apache.spark.sql.types.Decimal;
 
 /**
  * Aggregator for SUM().  Defers most of its work
@@ -72,6 +73,9 @@ public  class SumAggregator
 						case StoredFormatIds.DOUBLE_TYPE_ID:
 								return new DoubleBufferedSumAggregator(64);
 						case StoredFormatIds.DECIMAL_TYPE_ID:
+							if (returnDataType.getPrecision() <= Decimal.MAX_LONG_DIGITS())
+								return new UnscaledDecimalBufferedSumAggregator(64,returnDataType.getPrecision(),returnDataType.getScale());
+							else
 								return new DecimalBufferedSumAggregator(64);
 						default: //default to Derby's typical behavior, which has crappy performance, but will work in all cases
 								return null;

@@ -15,13 +15,12 @@
 package com.splicemachine.pipeline.client;
 
 import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.si.api.txn.TxnView;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -33,6 +32,7 @@ import java.util.Set;
 public class BulkWrites{
     private Collection<BulkWrite> bulkWrites;
     private TxnView txn;
+    private ExecRow execRow;
     /*
      *a key to indicate which region to send the write to. This is really just
      * any region which is present on the destination region server
@@ -44,16 +44,17 @@ public class BulkWrites{
         bulkWrites=new ArrayList<>(0);
     }
 
-    public BulkWrites(Collection<BulkWrite> bulkWrites,TxnView txn){
-        this(bulkWrites,txn,null, null);
+    public BulkWrites(Collection<BulkWrite> bulkWrites,TxnView txn, ExecRow execRow){
+        this(bulkWrites,txn,null, null, execRow);
     }
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
-    public BulkWrites(Collection<BulkWrite> bulkWrites,TxnView txn,byte[] regionKey,byte[] token){
+    public BulkWrites(Collection<BulkWrite> bulkWrites,TxnView txn,byte[] regionKey,byte[] token, ExecRow execRow){
         this.bulkWrites=bulkWrites;
         this.txn=txn;
         this.regionKey=regionKey;
         this.token=token;
+        this.execRow = execRow;
     }
 
     @SuppressFBWarnings(value="EI_EXPOSE_REP", justification="Intentional")
@@ -119,6 +120,14 @@ public class BulkWrites{
 
         return bulkWrites.equals(that.bulkWrites);
 
+    }
+
+    public ExecRow getExecRow() {
+        return this.execRow;
+    }
+
+    public void setExecRow(ExecRow execRow) {
+        this.execRow = execRow;
     }
 
     @Override

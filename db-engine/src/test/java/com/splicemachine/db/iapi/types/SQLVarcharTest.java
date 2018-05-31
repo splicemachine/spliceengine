@@ -30,17 +30,13 @@
  */
 package com.splicemachine.db.iapi.types;
 
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
-import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
-
 import java.util.Arrays;
 
 /**
@@ -141,7 +137,7 @@ public class SQLVarcharTest extends SQLDataValueDescriptorTest {
                 Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
 
         }
-
+/*
         @Test
         public void testExecRowSparkRowConversion() throws StandardException {
                 ValueRow execRow = new ValueRow(1);
@@ -153,7 +149,7 @@ public class SQLVarcharTest extends SQLDataValueDescriptorTest {
                 execRow2.getColumn(1).setSparkObject(row.get(0));
                 Assert.assertEquals("ExecRow Mismatch",execRow,execRow2);
         }
-
+*/
         @Test
         public void testSelectivityWithParameter() throws Exception {
                 /* let only the first 3 rows take different values, all remaining rows use the default value 'ZZZZ' */
@@ -178,4 +174,5 @@ public class SQLVarcharTest extends SQLDataValueDescriptorTest {
                 double range = stats.selectivityExcludingValueIfSkewed(sqlVarchar);
                 Assert.assertTrue(range + " did not match expected value of 1.0d", (range == 1.0d));
         }
+
 }

@@ -17,6 +17,8 @@ package com.splicemachine.derby.impl.sql.execute.index;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.iapi.sql.olap.SuccessfulOlapResult;
@@ -24,7 +26,12 @@ import com.splicemachine.derby.stream.function.IndexTransformFunction;
 import com.splicemachine.derby.stream.function.KVPairFunction;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.output.DataSetWriter;
+import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.si.api.txn.TxnView;
+import org.apache.commons.lang3.SerializationUtils;
+import org.apache.spark.sql.types.StringType;
+import org.apache.spark.sql.types.VarcharType;
+
 import java.util.concurrent.Callable;
 
 /**
@@ -49,7 +56,7 @@ public class PopulateIndexJob implements Callable<Void> {
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
         dsp.setSchedulerPool("admin");
         dsp.setJobGroup(request.jobGroup, "");
-        populateIndex(request.tentativeIndex,request.scanSetBuilder,request.prefix,request.indexFormatIds,request.scope,request.childTxn);
+        populateIndex(request.tentativeIndex,request.scanSetBuilder,request.prefix,request.scope,request.childTxn);
         jobStatus.markCompleted(new SuccessfulOlapResult());
         return null;
     }
@@ -57,13 +64,15 @@ public class PopulateIndexJob implements Callable<Void> {
     public static DataSet<ExecRow> populateIndex(DDLMessage.TentativeIndex tentativeIndex,
                                                  ScanSetBuilder<ExecRow> scanSetBuilder,
                                                  String prefix,
-                                                 int[] indexFormatIds,
                                                  String scope,
                                                  TxnView childTxn
                                                     ) throws StandardException
     {
 
         DataSet<ExecRow> dataSet = scanSetBuilder.buildDataSet(prefix);
+        ExecRow execRow = scanSetBuilder.getTemplate().getClone();
+        ExecRow execRow1 = SerializationUtils.deserialize(tentativeIndex.getIndex().getIndexRow().toByteArray());
+        execRow1.setColumn(execRow.nColumns()+1,new HBaseRowLocation());
         OperationContext operationContext = scanSetBuilder.getOperationContext();
         PairDataSet dsToWrite = dataSet
                 .map(new IndexTransformFunction(tentativeIndex), null, false, true, scope + ": Prepare Index")
@@ -72,6 +81,7 @@ public class PopulateIndexJob implements Callable<Void> {
                 .operationContext(operationContext)
                 .destConglomerate(tentativeIndex.getIndex().getConglomerate())
                 .txn(childTxn)
+                .execRow(execRow1)
                 .build();
         return writer.write();
     }

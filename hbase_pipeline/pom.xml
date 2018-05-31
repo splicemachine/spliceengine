@@ -26,6 +26,12 @@
             <groupId>com.splicemachine</groupId>
             <artifactId>hbase_storage-${envClassifier}</artifactId>
             <version>2.8.0.1822-SNAPSHOT</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>guava</artifactId>
+                    <groupId>com.google.guava</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.hbase</groupId>
@@ -173,6 +179,10 @@
             <!--intentionally compile scope,we use this dependency at app compile and runtime-->
             <scope>test</scope>
             <exclusions>
+                <exclusion>
+                    <artifactId>hbase-prefix-tree</artifactId>
+                    <groupId>org.apache.hbase</groupId>
+                </exclusion>
                 <exclusion>
                     <artifactId>microsoft-windowsazure-storage-sdk</artifactId>
                     <groupId>com.microsoft.windowsazure.storage</groupId>

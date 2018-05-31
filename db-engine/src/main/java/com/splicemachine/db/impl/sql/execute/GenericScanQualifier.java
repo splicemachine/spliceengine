@@ -32,12 +32,13 @@
 package com.splicemachine.db.impl.sql.execute;
 
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
 import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
-
 import com.splicemachine.db.iapi.store.access.Qualifier;
-
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 
 /**
@@ -47,8 +48,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
  *	@version 0.1
  */
 
-public class GenericScanQualifier implements ScanQualifier
-{
+public class GenericScanQualifier implements ScanQualifier, Externalizable {
 
 	private int                 columnId        = -1;
     private int                 storagePosition = -1;
@@ -57,11 +57,9 @@ public class GenericScanQualifier implements ScanQualifier
 	private boolean             negateCR        = false;
 	private boolean             orderedNulls    = false;
 	private boolean             unknownRV       = false;
-
 	private boolean             properInit      = false;
 
-	public GenericScanQualifier() 
-	{
+	public GenericScanQualifier() {
 	}
 
 	/* 
@@ -71,8 +69,7 @@ public class GenericScanQualifier implements ScanQualifier
 	/** 
 	 * @see Qualifier#getColumnId
 	 */
-	public int getColumnId()
-	{
+	public int getColumnId() {
 		if (SanityManager.DEBUG)
 			SanityManager.ASSERT(properInit,	"properInit is expected to be true");
 		return columnId;
@@ -86,8 +83,7 @@ public class GenericScanQualifier implements ScanQualifier
     /**
 	 * @see Qualifier#getOrderable
 	 */
-	public DataValueDescriptor getOrderable()
-	{
+	public DataValueDescriptor getOrderable() {
 		if (SanityManager.DEBUG)
 			SanityManager.ASSERT(properInit,	"properInit is expected to be true");
 		return orderable;
@@ -221,6 +217,31 @@ public class GenericScanQualifier implements ScanQualifier
 	@Override
 	public int getVariantType() {
 		return SCAN_INVARIANT;
+	}
+
+
+	@Override
+	public void writeExternal(ObjectOutput out) throws IOException {
+		out.writeInt(columnId);
+		out.writeInt(storagePosition);
+		out.writeObject(orderable);
+		out.writeInt(operator);
+		out.writeBoolean(negateCR);
+		out.writeBoolean(orderedNulls);
+		out.writeBoolean(unknownRV);
+		out.writeBoolean(properInit);
+	}
+
+	@Override
+	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+		columnId = in.readInt();
+		storagePosition = in.readInt();
+		orderable = (DataValueDescriptor) in.readObject();
+		operator = in.readInt();
+		negateCR = in.readBoolean();
+		orderedNulls = in.readBoolean();
+		unknownRV = in.readBoolean();
+		properInit = in.readBoolean();
 	}
 }
 

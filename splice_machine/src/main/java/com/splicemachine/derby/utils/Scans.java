@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataType;
 import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
@@ -21,6 +22,7 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.SpliceQuery;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -28,8 +30,11 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
+import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
+
 import com.carrotsearch.hppc.BitSet;
 
 /**
@@ -86,8 +91,10 @@ public class Scans extends SpliceUtils {
                                  int[] keyTablePositionMap,
                                  DataValueFactory dataValueFactory,
                                  String tableVersion,
-                                 boolean rowIdKey) throws StandardException {
+                                 boolean rowIdKey,
+                                 ExecRow template) throws StandardException {
         assert dataValueFactory != null;
+        assert template != null;
         DataScan scan =SIDriver.driver().getOperationFactory().newDataScan(txn);//SpliceUtils.createScan(txn, scanColumnList != null && scanColumnList.anySetBit() == -1); // Here is the count(*) piece
         scan.returnAllVersions();
         try {
@@ -113,11 +120,20 @@ public class Scans extends SpliceUtils {
                 buildPredicateFilter(qualifiers, scanColumnList, scan, keyDecodingMap);
             }
 
+            v3Scan(scan,qualifiers,scanColumnList,template);
 
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
         return scan;
+    }
+
+    public static void v3Scan(DataScan scan, Qualifier[][] qualifiers, FormatableBitSet scanColumnList, ExecRow template) throws IOException {
+        SIDriver.driver().baseOperationFactory().setQuery(scan,new SpliceQuery(template,scanColumnList,qualifiers));
+    }
+
+    public SpliceQuery v3Scan(byte[] value) {
+        return (SpliceQuery) SerializationUtils.deserialize(value);
     }
 
     public static DataScan setupScan(DataValueDescriptor[] startKeyValue, int startSearchOperator,
@@ -132,10 +148,12 @@ public class Scans extends SpliceUtils {
                                  int[] keyTablePositionMap,
                                  DataValueFactory dataValueFactory,
                                  String tableVersion,
-                                 boolean rowIdKey) throws StandardException {
+                                 boolean rowIdKey,
+                                     ExecRow template) throws StandardException {
+        assert scanColumnList != null: "Passed in scan columns are null";
         return setupScan(startKeyValue, startSearchOperator, stopKeyValue, null, stopSearchOperator, qualifiers,
                 sortOrder, scanColumnList, txn, sameStartStopPosition, formatIds, null, keyDecodingMap,
-                keyTablePositionMap, dataValueFactory, tableVersion, rowIdKey);
+                keyTablePositionMap, dataValueFactory, tableVersion, rowIdKey,template);
     }
 
     public static void buildPredicateFilter(Qualifier[][] qualifiers,
@@ -305,38 +323,9 @@ public class Scans extends SpliceUtils {
             int[] baseColumnMap,
             DataValueDescriptor probeValue)
             throws StandardException {
-        assert row!=null:"row passed in is null";
-        assert qual_list!=null:"qualifier[][] passed in is null";
+        if (!qualifyAndRows(row,qual_list,baseColumnMap,probeValue))
+            return false;
         boolean     row_qualifies = true;
-        for (int i = 0; i < qual_list[0].length; i++) {
-            // process each AND clause
-            row_qualifies = false;
-            // process each OR clause.
-            Qualifier q = qual_list[0][i];
-            q.clearOrderableCache();
-            // Get the column from the possibly partial row, of the
-            // q.getColumnId()'th column in the full row.
-            DataValueDescriptor columnValue =
-                    (DataValueDescriptor) row[baseColumnMap!=null?baseColumnMap[q.getStoragePosition()]:q.getStoragePosition()];
-            if ( filterNull(q.getOperator(),columnValue,probeValue==null || i!=0?q.getOrderable():probeValue,q.getVariantType())) {
-                return false;
-            }
-            row_qualifies =
-                    columnValue.compare(
-                            q.getOperator(),
-                            probeValue==null || i!=0?q.getOrderable():probeValue,
-                            q.getOrderedNulls(),
-                            q.getUnknownRV());
-            if (q.negateCompareResult())
-                row_qualifies = !row_qualifies;
-//            System.out.println(String.format("And Clause -> value={%s}, operator={%s}, orderable={%s}, " +
-//                    "orderedNulls={%s}, unknownRV={%s}",
-//                    columnValue, q.getOperator(),q.getOrderable(),q.getOrderedNulls(),q.getUnknownRV()));
-            // Once an AND fails the whole Qualification fails - do a return!
-            if (!row_qualifies)
-                return(false);
-        }
-
         // all the qual[0] and terms passed, now process the OR clauses
         for (int and_idx = 1; and_idx < qual_list.length; and_idx++) {
             // loop through each of the "and" clause.
@@ -376,6 +365,43 @@ public class Scans extends SpliceUtils {
                 break;
         }
         return(row_qualifies);
+    }
+
+    public static boolean qualifyAndRows(
+            Object[]        row,
+            Qualifier[][]   qual_list,
+            int[] baseColumnMap,
+            DataValueDescriptor probeValue) throws StandardException {
+
+        assert row!=null:"row passed in is null";
+        assert qual_list!=null:"qualifier[][] passed in is null";
+        boolean     row_qualifies = true;
+        for (int i = 0; i < qual_list[0].length; i++) {
+            // process each AND clause
+            row_qualifies = false;
+            // process each OR clause.
+            Qualifier q = qual_list[0][i];
+            q.clearOrderableCache();
+            // Get the column from the possibly partial row, of the
+            // q.getColumnId()'th column in the full row.
+            DataValueDescriptor columnValue =
+                    (DataValueDescriptor) row[baseColumnMap!=null?baseColumnMap[q.getStoragePosition()]:q.getStoragePosition()];
+            if ( filterNull(q.getOperator(),columnValue,probeValue==null || i!=0?q.getOrderable():probeValue,q.getVariantType())) {
+                return false;
+            }
+            row_qualifies =
+                    columnValue.compare(
+                            q.getOperator(),
+                            probeValue==null || i!=0?q.getOrderable():probeValue,
+                            q.getOrderedNulls(),
+                            q.getUnknownRV());
+            if (q.negateCompareResult())
+                row_qualifies = !row_qualifies;
+            // Once an AND fails the whole Qualification fails - do a return!
+            if (!row_qualifies)
+                return(false);
+        }
+        return true;
     }
 
     public static boolean filterNull(int operator, DataValueDescriptor columnValue, DataValueDescriptor orderable, int variantType) {

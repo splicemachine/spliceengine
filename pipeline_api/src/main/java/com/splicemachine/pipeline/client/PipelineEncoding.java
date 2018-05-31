@@ -14,12 +14,14 @@
 
 package com.splicemachine.pipeline.client;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.encoding.ExpandedDecoder;
 import com.splicemachine.encoding.ExpandingEncoder;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.ByteSlice;
+import org.apache.commons.lang3.SerializationUtils;
 import org.spark_project.guava.collect.Iterators;
 
 import javax.annotation.Nonnull;
@@ -53,13 +55,15 @@ public class PipelineEncoding {
          */
         byte[] txnBytes = operationFactory.encode(bulkWrites.getTxn());
         byte[] token = bulkWrites.getToken();
+        byte[] execRowBytes = SerializationUtils.serialize(bulkWrites.getExecRow());
         if (token == null)
             token = new byte[0];
 
         int heapSize = bulkWrites.getBufferHeapSize();
-        ExpandingEncoder buffer = new ExpandingEncoder(heapSize+txnBytes.length+token.length);
+        ExpandingEncoder buffer = new ExpandingEncoder(heapSize+txnBytes.length+token.length+execRowBytes.length);
         buffer.rawEncode(txnBytes);
         buffer.rawEncode(token);
+        buffer.rawEncode(execRowBytes);
 
         //encode BulkWrite metadata
         Collection<BulkWrite> bws = bulkWrites.getBulkWrites();
@@ -90,7 +94,9 @@ public class PipelineEncoding {
         ExpandedDecoder decoder = new ExpandedDecoder(data);
         byte[] txnBytes = decoder.rawBytes();
         byte[] token = decoder.rawBytes();
+        byte[] execRowBytes = decoder.rawBytes();
         TxnView txn = operationFactory.decode(txnBytes,0,txnBytes.length);
+        ExecRow execRow = SerializationUtils.deserialize(execRowBytes);
         int bwSize = decoder.decodeInt();
         List<String> stringNames = new ArrayList<>(bwSize);
         for(int i=0;i<bwSize;i++) {
@@ -101,7 +107,7 @@ public class PipelineEncoding {
             flags[i] = decoder.decodeByte();
         }
 
-        return new BulkWrites(new BulkWriteCol(flags,data,decoder.currentOffset(),stringNames),txn,null,token);
+        return new BulkWrites(new BulkWriteCol(flags,data,decoder.currentOffset(),stringNames),txn,null,token,execRow);
     }
 
 

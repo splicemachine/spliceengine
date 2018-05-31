@@ -24,6 +24,7 @@ import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.derby.impl.SpliceSparkKryoRegistrator;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
+import org.apache.spark.sql.types.Decimal;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -117,8 +118,8 @@ public class SparkValueRowSerializerTest {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Output output = new Output(out);
         DecimalBufferedSumAggregator lbsa = new DecimalBufferedSumAggregator(64);
-        lbsa.add(new SQLDecimal(new BigDecimal(23.0)));
-        lbsa.add(new SQLDecimal(new BigDecimal(23.0)));
+        lbsa.add(new SQLDecimal(Decimal.apply(23.0)));
+        lbsa.add(new SQLDecimal(Decimal.apply(23.0)));
         kryo.writeClassAndObject(output, lbsa);
         output.close();
         InputStream in = new ByteArrayInputStream(out.toByteArray());

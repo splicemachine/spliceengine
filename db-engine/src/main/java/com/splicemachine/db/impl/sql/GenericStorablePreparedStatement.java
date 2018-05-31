@@ -152,7 +152,9 @@ public class GenericStorablePreparedStatement extends GenericPreparedStatement
         out.writeObject(getCursorInfo());
         out.writeBoolean(needsSavepoint());
         out.writeBoolean(isAtomic);
-        out.writeObject(executionConstants);
+        out.writeBoolean(executionConstants!=null);
+        if (executionConstants!=null)
+            out.writeObject(executionConstants);
         out.writeObject(resultDesc);
 
         // savedObjects may be null
@@ -183,7 +185,8 @@ public class GenericStorablePreparedStatement extends GenericPreparedStatement
         setCursorInfo((CursorInfo) in.readObject());
         setNeedsSavepoint(in.readBoolean());
         isAtomic = (in.readBoolean());
-        executionConstants = (ConstantAction) in.readObject();
+        if (in.readBoolean())
+            executionConstants = (ConstantAction) in.readObject();
         resultDesc = (ResultDescription) in.readObject();
 
         if (in.readBoolean()) {

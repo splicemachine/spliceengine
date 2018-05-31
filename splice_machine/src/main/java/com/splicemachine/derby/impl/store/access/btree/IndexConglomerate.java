@@ -29,13 +29,16 @@ import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.types.StringDataValue;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceScan;
 import com.splicemachine.derby.utils.ConglomerateUtils;
+import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -150,14 +153,14 @@ public class IndexConglomerate extends SpliceConglomerate{
             SanityManager.ASSERT((nUniqueColumns==nKeyFields) || (nUniqueColumns==(nKeyFields-1)));
         }
         try{
-//            ((SpliceTransaction)rawtran).elevate(Bytes.toBytes(Long.toString(containerId)));
             ConglomerateUtils.createConglomerate(isExternal,
                 containerId,
                 this,
                 ((SpliceTransaction)rawtran).getTxn(),
                     properties.getProperty(SIConstants.SCHEMA_DISPLAY_NAME_ATTR),
                     properties.getProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR),
-                    properties.getProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR));
+                    properties.getProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR),
+                    new ValueRow(template));
         }catch(Exception e){
             LOG.error(e.getMessage(),e);
         }
@@ -286,7 +289,7 @@ public class IndexConglomerate extends SpliceConglomerate{
             DynamicCompiledOpenConglomInfo dynamic_info) throws StandardException{
         SpliceLogUtils.trace(LOG,"open conglomerate id: %s",containerId);
         OpenSpliceConglomerate open_conglom=new OpenSpliceConglomerate(xact_manager,rawtran,hold,static_info,dynamic_info,this);
-        return new IndexController(open_conglom,rawtran,partitionFactory,opFactory,nUniqueColumns);
+        return new IndexController(open_conglom,rawtran,partitionFactory,opFactory,nUniqueColumns,SIDriver.driver().baseOperationFactory());
     }
 
     /**
@@ -324,7 +327,8 @@ public class IndexConglomerate extends SpliceConglomerate{
                 rawtran,
                 true,
                 opFactory,
-                partitionFactory);
+                partitionFactory,
+                SIDriver.driver().baseOperationFactory());
     }
 
     private DataValueDescriptor[] rowKeyForUniqueFields(DataValueDescriptor[] rowKey){
@@ -602,6 +606,12 @@ public class IndexConglomerate extends SpliceConglomerate{
     @Override
     public StructField getStructField(String columnName) {
         throw new RuntimeException("Not Implemented");
+    }
+
+
+    @Override
+    public Object getHiveObject() throws StandardException {
+        throw new UnsupportedOperationException("Not Implemented");
     }
 
 }

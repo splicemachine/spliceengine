@@ -66,7 +66,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public class SpliceDefaultCompactor extends DefaultCompactor {
-    private static final boolean allowSpark = true;
+    private static final boolean allowSpark = false;
     private static final Logger LOG = Logger.getLogger(SpliceDefaultCompactor.class);
     private long smallestReadPoint;
     private String conglomId;

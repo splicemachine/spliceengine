@@ -46,12 +46,14 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.hadoop.io.ByteWritable;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.Decimal;
 import org.apache.spark.sql.types.StructField;
 
 /**
@@ -756,6 +758,18 @@ public final class SQLTinyint
 		return isNull() ? null : BigDecimal.valueOf(value);
 	}
 
+	public Decimal getDecimal() {
+		return isNull() ? null : Decimal.apply(value);
+	}
+
+	@Override
+	public void setDecimal(Decimal decimal) throws StandardException {
+		if (decimal == null)
+			setToNull();
+		else
+			value = decimal.toByte();
+	}
+
 	/**
 	 *
 	 * Write to Project Tungsten Format (UnsafeRow)
@@ -863,6 +877,9 @@ public final class SQLTinyint
 		return value;
 	}
 
-
+	@Override
+	public Object getHiveObject() throws StandardException {
+		return isNull()?null:new ByteWritable(value);
+	}
 
 }

@@ -17,9 +17,12 @@ package com.splicemachine.si.impl.store;
 import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.txn.AbstractTxnStore;
 import org.spark_project.guava.cache.Cache;
 import org.spark_project.guava.cache.CacheBuilder;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
@@ -27,7 +30,7 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  *         Date: 9/5/14
  */
-public class SimpleCompletedTxnCacheSupplier implements TxnSupplier{
+public class SimpleCompletedTxnCacheSupplier extends AbstractTxnStore implements TxnSupplier{
     private final Cache<Long,TxnView> cache;
     private final TxnSupplier delegate;
     private final int maxSize;
@@ -40,19 +43,28 @@ public class SimpleCompletedTxnCacheSupplier implements TxnSupplier{
     }
 
     @Override
-    public TxnView getTransaction(final long txnId) throws IOException {
-        return getTransaction(txnId,false);
+    public HashMap<Long, TxnView> getTransactions(TxnView currentTxn, Set<Long> txnIds) throws IOException {
+        HashMap<Long, TxnView> txns = new HashMap<>(txnIds.size());
+        for (long txnId: txnIds) {
+            txns.put(txnId,getTransaction(currentTxn,txnId));
+        }
+        return txns;
     }
 
     @Override
-    public TxnView getTransaction(final long txnId,final  boolean getDestinationTables) throws IOException {
+    public TxnView getTransaction(TxnView currentTxn, final long txnId) throws IOException {
+        return getTransaction(currentTxn, txnId,false);
+    }
+
+    @Override
+    public TxnView getTransaction(TxnView currentTxn, final long txnId,final  boolean getDestinationTables) throws IOException {
         try {
-            return cache.get(txnId,new Callable<TxnView>() {
+            return getComparableTxn(cache.get(txnId,new Callable<TxnView>() {
                 @Override
                 public TxnView call() throws Exception {
-                    return delegate.getTransaction(txnId,getDestinationTables);
+                    return delegate.getBaseTransaction(currentTxn,txnId,getDestinationTables);
                 }
-            });
+            }),txnId);
         } catch (ExecutionException e) {
             throw (IOException)e.getCause();
         }
@@ -87,5 +99,24 @@ public class SimpleCompletedTxnCacheSupplier implements TxnSupplier{
 
     public int getMaxSize() {
         return maxSize;
+    }
+
+    @Override
+    public TxnView getBaseTransaction(TxnView currentTxn, long txnId) throws IOException {
+        return getBaseTransaction(currentTxn, txnId,false);
+    }
+
+    @Override
+    public TxnView getBaseTransaction(TxnView currentTxn, long txnId, boolean getDestinationTables) throws IOException {
+        try {
+            return cache.get(txnId,new Callable<TxnView>() {
+                @Override
+                public TxnView call() throws Exception {
+                    return delegate.getBaseTransaction(currentTxn, txnId,getDestinationTables);
+                }
+            });
+        } catch (ExecutionException e) {
+            throw (IOException)e.getCause();
+        }
     }
 }

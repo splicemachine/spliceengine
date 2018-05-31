@@ -25,9 +25,13 @@ import com.splicemachine.si.testenv.*;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.spark_project.guava.collect.Lists;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -47,15 +51,28 @@ import java.util.List;
  * Date: 8/21/14
  */
 @Category(ArchitectureSpecific.class)
+@RunWith(Parameterized.class)
 public class TransactionInteractionTest {
     @Rule public ExpectedException error = ExpectedException.none();
     private static final byte[] DESTINATION_TABLE = Bytes.toBytes("1184");
 
-    private static SITestEnv testEnv;
-    private static TestTransactionSetup transactorSetup;
+    private SITestEnv testEnv;
+    private TestTransactionSetup transactorSetup;
     private TxnLifecycleManager control;
     private TransactorTestUtility testUtility;
     private final List<Txn> createdParentTxns = Lists.newArrayList();
+
+    private boolean useRedoTransactor;
+
+    @Parameterized.Parameters
+    public static Collection<Object> data() {
+        return Arrays.asList(new Object[]{Boolean.FALSE,Boolean.TRUE});
+
+    }
+
+    public TransactionInteractionTest(Boolean useRedoTransactor) {
+        this.useRedoTransactor = useRedoTransactor;
+    }
 
     @SuppressWarnings("unchecked")
     private void baseSetUp() {
@@ -65,14 +82,16 @@ public class TransactionInteractionTest {
                 createdParentTxns.add(txn);
             }
         };
-        testUtility = new TransactorTestUtility(true,testEnv,transactorSetup);
+        testUtility = useRedoTransactor?new RedoTransactorTestUtility(true,testEnv,transactorSetup):
+                new SITransactorTestUtility(true,testEnv,transactorSetup);
     }
 
     @Before
     public void setUp() throws IOException {
         if(testEnv==null){
             testEnv=SITestEnvironment.loadTestEnvironment();
-            transactorSetup=new TestTransactionSetup(testEnv,true);
+            transactorSetup=new TestTransactionSetup(testEnv,true,useRedoTransactor);
+            testEnv.initialize(useRedoTransactor);
         }
         baseSetUp();
     }
@@ -100,10 +119,10 @@ public class TransactionInteractionTest {
         Assert.assertEquals("Incorrect parent transaction for grandchild!",child,grandchild.getParentTxnView());
         Assert.assertEquals("Incorrect grandparent transaction for grandchild!", user, grandchild.getParentTxnView().getParentTxnView());
         //now check that fetching the grandchild is still correct
-        TxnView userView = testEnv.getTxnStore().getTransaction(user.getTxnId());
-        TxnView childView = testEnv.getTxnStore().getTransaction(child.getTxnId());
+        TxnView userView = testEnv.getTxnStore().getTransaction(null,user.getTxnId());
+        TxnView childView = testEnv.getTxnStore().getTransaction(null,child.getTxnId());
         Assert.assertEquals("Incorrect parent transaction for child!",userView.getParentTxnView(),childView.getParentTxnView());
-        TxnView grandChildView = testEnv.getTxnStore().getTransaction(grandchild.getTxnId());
+        TxnView grandChildView = testEnv.getTxnStore().getTransaction(null,grandchild.getTxnId());
         Assert.assertEquals("Incorrect parent transaction for grandchild!", userView.getParentTxnView(), grandChildView.getParentTxnView());
     }
 
@@ -614,6 +633,7 @@ public class TransactionInteractionTest {
     }
 
     @Test
+    @Ignore ("JL TODO")
     public void rollbackDeleteThenUpdateIsCorrect() throws Exception{
         /*
          * Regression test for DB-4324. Turns out, if you delete a row, then roll it back, then

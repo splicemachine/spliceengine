@@ -141,10 +141,11 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
 
 
     /* Add factories for intercepting writes to FK backing indexes. */
-    public void buildForeignKeyInterceptWriteFactory(DataDictionary dataDictionary, ForeignKeyConstraintDescriptor fkConstraintDesc) throws StandardException {
+    public void buildForeignKeyInterceptWriteFactory(DataDictionary dataDictionary, TableDescriptor td, ForeignKeyConstraintDescriptor fkConstraintDesc) throws StandardException {
         ReferencedKeyConstraintDescriptor referencedConstraint = fkConstraintDesc.getReferencedConstraint();
         long referencedKeyConglomerateNum;
         // FK references unique constraint.
+
         if (referencedConstraint.getConstraintType() == DataDictionary.UNIQUE_CONSTRAINT) {
             referencedKeyConglomerateNum = referencedConstraint.getIndexConglomerateDescriptor(dataDictionary).getConglomerateNumber();
         }
@@ -152,12 +153,13 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
         else {
             referencedKeyConglomerateNum = referencedConstraint.getTableDescriptor().getHeapConglomerateId();
         }
-        FKConstraintInfo info = ProtoUtil.createFKConstraintInfo(fkConstraintDesc);
+        FKConstraintInfo info = ProtoUtil.createFKConstraintInfo(referencedConstraint.getTableDescriptor().getColumnDescriptorList(),fkConstraintDesc,dataDictionary);
+
         addChildIntercept(referencedKeyConglomerateNum, info);
     }
 
     /* Add factories for *checking* existence of FK referenced primary-key or unique-index rows. */
-    public void buildForeignKeyCheckWriteFactory(ReferencedKeyConstraintDescriptor cDescriptor) throws StandardException {
+    public void buildForeignKeyCheckWriteFactory(DataDictionary dataDictionary,TableDescriptor td, ReferencedKeyConstraintDescriptor cDescriptor) throws StandardException {
         ConstraintDescriptorList fks = cDescriptor.getForeignKeyConstraints(ConstraintDescriptor.ENABLED);
         if (fks.isEmpty()) {
             return;
@@ -171,7 +173,7 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
             try {
                 ConglomerateDescriptor backingIndexCd = foreignKeyConstraint.getIndexConglomerateDescriptor(null);
                 backingIndexConglomIds.add(backingIndexCd.getConglomerateNumber());
-                fkConstraintInfos.add(ProtoUtil.createFKConstraintInfo(foreignKeyConstraint));
+                fkConstraintInfos.add(ProtoUtil.createFKConstraintInfo(backingIndexColDescriptors, foreignKeyConstraint,dataDictionary));
             } catch (StandardException e) {
                 throw new RuntimeException(e);
             }

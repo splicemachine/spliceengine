@@ -187,6 +187,8 @@ public class DDLWatchRefresher{
          * This is to avoid processing a DDL change twice.
          *
          */
+
+
         for(Iterator<String> iterator=seenDDLChanges.iterator();iterator.hasNext();){
             String entry=iterator.next();
             if(!children.contains(entry)){
@@ -263,7 +265,7 @@ public class DDLWatchRefresher{
         long txnId = ddlChange.getTxnId();
         SIDriver driver = SIDriver.driver();
         TxnStore txnStore = driver.getTxnStore();
-        TxnView txn = txnStore.getTransaction(txnId);
+        TxnView txn = txnStore.getTransaction(null,txnId); // JL TODO
         return (txn == null || txn.getEffectiveState() == Txn.State.ROLLEDBACK);
     }
 

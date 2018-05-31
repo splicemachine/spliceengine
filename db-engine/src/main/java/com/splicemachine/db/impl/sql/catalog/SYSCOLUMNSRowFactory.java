@@ -60,12 +60,11 @@ import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
     static final String		TABLENAME_STRING = "SYSCOLUMNS";
 
-    protected static final int		SYSCOLUMNS_COLUMN_COUNT = 11;
+    protected static final int		SYSCOLUMNS_COLUMN_COUNT = 12;
 	/* Column #s for syscolumns (1 based) */
 
     //TABLEID is an obsolete name, it is better to use
     //REFERENCEID, but to make life easier you can use either
-    protected static final int		SYSCOLUMNS_TABLEID = 1;
     protected static final int		SYSCOLUMNS_REFERENCEID = 1;
     protected static final int		SYSCOLUMNS_COLUMNNAME = 2;
     protected static final int		SYSCOLUMNS_COLUMNNUMBER = 3;

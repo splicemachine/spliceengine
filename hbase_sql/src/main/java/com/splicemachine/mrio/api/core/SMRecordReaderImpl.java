@@ -20,7 +20,7 @@ import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.spark.SparkOperationContext;
@@ -31,7 +31,10 @@ import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.SpliceQuery;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.functions.Version3DataScanner;
+import com.splicemachine.si.impl.server.RedoTransactor;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.codec.binary.Base64;
@@ -59,7 +62,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 	protected HRegion hregion;
 	protected Configuration config;
 	protected RegionScanner mrs;
-	protected SITableScanner siTableScanner;
+	protected TableScanner tableScanner;
 	protected Scan scan;
 	protected ExecRow currentRow;
 	protected TableScannerBuilder builder;
@@ -118,6 +121,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 				// the split itself is more restrictive
 				scan.stopKey(tSplit.getEndRow());
 			}
+
 			setScan(((HScan) scan).unwrapDelegate());
 			// TODO (wjk): this seems weird (added with DB-4483)
 			this.statisticsRun = AbstractSMInputFormat.oneSplitPerRegion(config);
@@ -144,8 +148,8 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 				LOG.error("Calling next() on closed record reader");
 				throw new IOException("RecordReader is closed");
 			}
-			currentRow = siTableScanner.next();
-			rowLocation = siTableScanner.getCurrentRowLocation();
+			currentRow = tableScanner.next();
+			rowLocation = tableScanner.getCurrentRowLocation();
 			return currentRow != null;
 		} catch (StandardException e) {
 			throw new IOException(e);
@@ -258,16 +262,31 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 			long conglomId = Long.parseLong(hregion.getTableDesc().getTableName().getQualifierAsString());
             TransactionalRegion region=SIDriver.driver().transactionalPartition(conglomId,new RegionPartition(hregion));
             TxnView parentTxn = builder.getTxn();
-            this.localTxn = SIDriver.driver().lifecycleManager().beginChildTransaction(parentTxn, parentTxn.getIsolationLevel(), true, null);
+			this.localTxn = SIDriver.driver().lifecycleManager().beginChildTransaction(parentTxn, parentTxn.getIsolationLevel(), true, null);
+
+			SpliceQuery spliceQuery = SIDriver.driver().baseOperationFactory().getQuery(new HScan(scan));
+			assert spliceQuery!=null: "Query information is missing";
+			RedoTransactor.queryContext.set(spliceQuery);
+
+
+			// TODO 3.0 Logic
+
+
+
+			RegionPartition regionPartition = new RegionPartition(hregion);
+			RegionDataScanner rds = new RegionDataScanner(regionPartition,mrs,statisticsRun?Metrics.basicMetricFactory():Metrics.noOpMetricFactory());
+			Version3DataScanner v3ds = new Version3DataScanner(rds,16,localTxn,region.getTxnSupplier(),
+					regionPartition,spliceQuery,SIDriver.driver().baseOperationFactory(),SIDriver.driver().getOperationFactory());
+
             builder.region(region)
                     .template(template)
                     .transaction(localTxn)
                     .scan(new HScan(scan))
-                    .scanner(new RegionDataScanner(new RegionPartition(hregion),mrs,statisticsRun?Metrics.basicMetricFactory():Metrics.noOpMetricFactory()));
+                    .scanner(v3ds);
 			if (LOG.isTraceEnabled())
 				SpliceLogUtils.trace(LOG, "restart with builder=%s",builder);
-			siTableScanner = builder.build();
-			addCloseable(siTableScanner);
+			tableScanner = (TableScanner)builder.build();
+			addCloseable(tableScanner);
 		} else {
 			throw new IOException("htable not set");
 		}

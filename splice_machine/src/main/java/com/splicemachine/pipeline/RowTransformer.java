@@ -51,4 +51,6 @@ public interface RowTransformer extends Closeable  {
      */
     KVPair transform(KVPair kvPair) throws StandardException, IOException;
 
+    ExecRow getTemplateRow();
+
 }

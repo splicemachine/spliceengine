@@ -2618,6 +2618,11 @@ Guide.
                 <text>Invalid Properties list in FROM list.  The hint splits needs a positive integer and does not support '{0}'.</text>
                 <arg>tableName</arg>
             </msg>
+            <msg>
+                <name>42Y53</name>
+                <text>Invalid Properties list in FROM list.  The hint splits needs a positive integer and does not support '{0}'.</text>
+                <arg>tableName</arg>
+            </msg>
 
             <msg>
                 <name>42Y55</name>

@@ -18,14 +18,15 @@ import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
+import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.api.readresolve.ReadResolver;
 import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.server.Transactor;
-import com.splicemachine.si.impl.TxnPartition;
+import com.splicemachine.si.api.txn.TxnSupplier;
+import com.splicemachine.si.impl.RedoTxnPartition;
 import com.splicemachine.si.impl.driver.SIDriver;
-
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
 
@@ -38,9 +39,14 @@ public class MTxnPartitionFactory implements PartitionFactory<Object>{
     private final PartitionFactory baseFactory;
     private volatile boolean initialized = false;
     private volatile Transactor transactor;
+    private volatile Transactor redoTransactor;
     private volatile RollForward rollForward;
     private volatile TxnOperationFactory txnOpFactory;
-    private volatile TransactionReadController txnReadController;
+    private volatile TransactionReadController txnSIReadController;
+    private volatile TransactionReadController txnRedoReadController;
+    private volatile TxnSupplier txnSupplier;
+    private volatile OperationFactory operationFactory;
+
     private volatile ReadResolver readResolver;
 
     public MTxnPartitionFactory(PartitionFactory baseFactory){
@@ -49,17 +55,26 @@ public class MTxnPartitionFactory implements PartitionFactory<Object>{
 
     public MTxnPartitionFactory(MPartitionFactory baseFactory,
                                 Transactor transactor,
+                                Transactor redoTransactor,
                                 RollForward rollForward,
                                 TxnOperationFactory txnOpFactory,
-                                TransactionReadController txnReadController,
-                                ReadResolver readResolver){
+                                TransactionReadController txnSIReadController,
+                                TransactionReadController txnRedoReadController,
+                                ReadResolver readResolver,
+                                TxnSupplier txnSupplier,
+                                OperationFactory operationFactory){
         this.baseFactory=baseFactory;
         this.transactor=transactor;
         this.rollForward=rollForward;
         this.txnOpFactory=txnOpFactory;
-        this.txnReadController=txnReadController;
+        this.txnSIReadController=txnSIReadController;
+        this.txnRedoReadController = txnRedoReadController;
         this.readResolver=readResolver;
+        this.redoTransactor = redoTransactor;
+        this.txnSupplier = txnSupplier;
+        this.operationFactory = operationFactory;
         this.initialized = true;
+
     }
 
     @Override
@@ -96,7 +111,7 @@ public class MTxnPartitionFactory implements PartitionFactory<Object>{
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private Partition wrapPartition(Partition delegate){
-        return new TxnPartition(delegate,transactor,rollForward,txnOpFactory,txnReadController,readResolver);
+        return new RedoTxnPartition(delegate,redoTransactor,rollForward,txnOpFactory,txnRedoReadController,readResolver,txnSupplier,operationFactory);
     }
 
     private boolean initializeIfNeeded(Partition basePartition){
@@ -106,10 +121,14 @@ public class MTxnPartitionFactory implements PartitionFactory<Object>{
                 SIDriver driver = SIDriver.driver();
                 if(driver==null) return false;
                 transactor = driver.getTransactor();
+                redoTransactor = driver.getRedoTransactor();
                 rollForward = driver.getRollForward();
                 txnOpFactory = driver.getOperationFactory();
-                txnReadController = driver.readController();
+                txnRedoReadController = driver.getRedoReadContoller();
+                txnSIReadController = driver.getSiReadController();
                 readResolver = driver.getReadResolver(basePartition);
+                txnSupplier = driver.getTxnSupplier();
+                operationFactory = driver.baseOperationFactory();
                 initialized = true;
             }
         }

@@ -301,4 +301,18 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
     public PartitionDescriptor getDescriptor() throws IOException {
         return new HPartitionDescriptor(table.getTableDescriptor());
     }
+    @Override
+    public String getVersion() {
+        return "3.0"; // TODO FIX
+    }
+
+    @Override
+    public boolean isRedoPartition() {
+        return true; // TODO FIX
+    }
+
+    @Override
+    public boolean fastRollForward(DataCell dataCell, long effectiveTimestamp) {
+        return false;
+    }
 }

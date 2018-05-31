@@ -41,6 +41,7 @@ import static org.junit.Assert.assertEquals;
  */
 @Category(value = {SerialTest.class})
 @RunWith(Parameterized.class)
+@Ignore
 public class AddColumnWithDefaultIT extends SpliceUnitTest {
     private static final String CLASS_NAME = AddColumnWithDefaultIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);

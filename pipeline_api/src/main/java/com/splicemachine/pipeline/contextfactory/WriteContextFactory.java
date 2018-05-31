@@ -15,6 +15,7 @@
 package com.splicemachine.pipeline.contextfactory;
 
 import com.splicemachine.access.api.ServerControl;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.writehandler.SharedCallBufferFactory;
@@ -30,7 +31,8 @@ public interface WriteContextFactory<T> {
     WriteContext create(SharedCallBufferFactory indexSharedCallBuffer,
                         TxnView txn,
                         T key,
-                        ServerControl env) throws IOException, InterruptedException;
+                        ServerControl env,
+                        ExecRow execRow) throws IOException, InterruptedException;
 
     WriteContext create(SharedCallBufferFactory indexSharedCallBuffer,
                         TxnView txn, byte[] token,
@@ -39,7 +41,8 @@ public interface WriteContextFactory<T> {
                         boolean skipIndexWrites,
                         boolean skipConflictDetection,
                         boolean skipWAL,
-                        ServerControl env) throws IOException, InterruptedException;
+                        ServerControl env,
+                        ExecRow execRow) throws IOException, InterruptedException;
 
     /**
      * Creates a context that only updates side effects.

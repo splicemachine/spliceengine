@@ -15,6 +15,7 @@
 package com.splicemachine.storage;
 
 import com.splicemachine.access.util.ByteComparisons;
+import org.apache.commons.codec.binary.Hex;
 import org.spark_project.guava.primitives.Longs;
 import com.splicemachine.primitives.ByteComparator;
 import com.splicemachine.primitives.Bytes;
@@ -226,5 +227,16 @@ public class MCell implements DataCell{
 
     public long getSequence(){
         return sequenceCounter;
+    }
+
+    @Override
+    public String toString() {
+        return "{ key="+ Hex.encodeHexString(key)+","+
+                "value="+ Hex.encodeHexString(value)+","+
+                "family="+ Bytes.toString(family)+","+
+                "qualifier="+ Bytes.toString(qualifier)+","+
+                "cellType="+ cellType+","+
+                "version="+ version+","+
+                "sequenceCounter="+ sequenceCounter+"}";
     }
 }

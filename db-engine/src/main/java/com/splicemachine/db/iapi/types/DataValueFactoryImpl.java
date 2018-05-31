@@ -1195,6 +1195,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
         case StoredFormatIds.SQL_CLOB_ID: return new SQLClob();
         case StoredFormatIds.XML_ID: return new XML();
         case StoredFormatIds.SQL_ARRAY_ID: return new SQLArray();
+        case StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID: return new HBaseRowLocation();
         default:return null;
         }
     }

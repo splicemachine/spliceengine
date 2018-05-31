@@ -285,6 +285,9 @@
                 </executions>
                 <configuration>
                     <mainClass>com.splicemachine.derby.lifecycle.MemDatabase</mainClass>
+                    <arguments>
+                        <argument>-enableassertions</argument>
+                    </arguments>
                 </configuration>
             </plugin>
             <plugin>

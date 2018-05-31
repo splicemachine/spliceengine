@@ -16,9 +16,6 @@ package com.splicemachine.orc.stream;
 import com.splicemachine.orc.checkpoint.ByteArrayStreamCheckpoint;
 
 import java.io.IOException;
-
-import static com.splicemachine.orc.stream.OrcStreamUtils.readFully;
-import static com.splicemachine.orc.stream.OrcStreamUtils.skipFully;
 import static java.util.Objects.requireNonNull;
 
 public class ByteArrayStream
@@ -35,14 +32,14 @@ public class ByteArrayStream
             throws IOException
     {
         byte[] data = new byte[length];
-        readFully(inputStream, data, 0, length);
+        inputStream.readFully(data, 0, length);
         return data;
     }
 
     public void next(int length, byte[] data)
             throws IOException
     {
-        readFully(inputStream, data, 0, length);
+        inputStream.readFully(data, 0, length);
     }
 
     @Override
@@ -62,6 +59,6 @@ public class ByteArrayStream
     public void skip(long skipSize)
             throws IOException
     {
-        skipFully(inputStream, skipSize);
+        inputStream.skipFully(skipSize);
     }
 }

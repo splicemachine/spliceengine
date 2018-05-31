@@ -44,6 +44,9 @@ import com.splicemachine.mrio.api.core.SMTextInputFormat;
 import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
 import com.splicemachine.orc.predicate.SpliceORCPredicate;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.SpliceQuery;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.DataScan;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.LongWritable;
@@ -107,6 +110,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public <Op extends SpliceOperation,V> ScanSetBuilder<V> newScanSet(Op spliceOperation,String tableName) throws StandardException{
+
         return new SparkScanSetBuilder<>(this,tableName,spliceOperation); // tableName = conglomerate number
     }
 

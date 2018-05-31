@@ -1732,7 +1732,6 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
                 super.toHTMLString();
     }
 
-
     /**
      * Return whether or not the underlying ResultSet tree will return
      * a single row, at most.
@@ -1751,5 +1750,4 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         }
         return childResult.isOneRowResultSet();
     }
-
 }

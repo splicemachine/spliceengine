@@ -50,6 +50,7 @@ import com.splicemachine.derby.stream.spark.*;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.client.BulkWrite;
+import com.splicemachine.si.impl.SpliceQuery;
 import com.splicemachine.stream.ResultStreamer;
 import com.splicemachine.stream.StreamProtocol;
 import com.splicemachine.utils.ByteSlice;
@@ -166,16 +167,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(AvgAggregator.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(MaxMinAggregator.class,EXTERNALIZABLE_SERIALIZER);
 
-        instance.register(SQLDecimal.class,new DataValueDescriptorSerializer<SQLDecimal>(){
-            @Override
-            protected void writeValue(Kryo kryo, Output output, SQLDecimal object) throws StandardException {
-                kryo.writeObjectOrNull(output, object.getObject(), BigDecimal.class);
-            }
-            @Override
-            protected void readValue(Kryo kryo, Input input, SQLDecimal dvd) throws StandardException {
-                dvd.setBigDecimal(kryo.readObjectOrNull(input, BigDecimal.class));
-            }
-        });
+        instance.register(SQLDecimal.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(SQLDouble.class,new DataValueDescriptorSerializer<SQLDouble>(){
             @Override
             protected void writeValue(Kryo kryo, Output output, SQLDouble object) throws StandardException {
@@ -716,6 +708,9 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(JoinOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(DMLWriteOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(MiscOperation.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SpliceQuery.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(GenericScanQualifier.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(GenericQualifier.class,EXTERNALIZABLE_SERIALIZER);
 
         instance.register(LongBufferedSumAggregator.class,new Serializer<LongBufferedSumAggregator>(){
             @Override

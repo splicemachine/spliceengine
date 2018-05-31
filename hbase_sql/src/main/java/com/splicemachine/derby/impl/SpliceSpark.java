@@ -91,7 +91,7 @@ public class SpliceSpark {
     public static synchronized  Broadcast<SerializableWritable<Credentials>> getCredentials() {
         return credentials;
     }
-    
+
     /** This method is unsafe, it should only be used on tests are as a convenience when trying to
      * get a local Spark Context, it should never be used when implementing Splice operations or functions
      */

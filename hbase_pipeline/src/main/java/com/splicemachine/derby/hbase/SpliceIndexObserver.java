@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.hbase;
 
+import com.splicemachine.si.data.hbase.coprocessor.CoprocessorUtils;
+import org.spark_project.guava.base.Function;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.concurrent.SystemClock;
