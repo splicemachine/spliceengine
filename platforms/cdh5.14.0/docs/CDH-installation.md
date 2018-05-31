@@ -23,6 +23,7 @@ your cluster contains the prerequisite software components:
 * HDFS installed
 * YARN installed
 * ZooKeeper installed
+* Spark2 installed (2.2 Release 2 recommended)
 
 **NOTE:** The specific versions of these components that you need depend on your
 operating environment, and are called out in detail in the
