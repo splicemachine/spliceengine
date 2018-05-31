@@ -71,7 +71,13 @@ public class RoutineAliasInfo extends MethodAliasInfo
     /** Mask for the SECURITY INVOKER/DEFINER field */
     private static final short SECURITY_DEFINER_MASK = (short) 0x20;
 
-	private int parameterCount;
+	/** Number of fields added to RoutineAliasInfo
+	 * used for serialization and deserialization */
+	private int expansionNum = 1;
+
+    private String language;
+
+    private int parameterCount;
 
     /**
      * Types of the parameters. If there are no parameters
@@ -125,17 +131,21 @@ public class RoutineAliasInfo extends MethodAliasInfo
 	// What type of alias is this: PROCEDURE or FUNCTION?
 	private transient char aliasType;
 
+	// The bytes for compiled Python script
+	private byte[] compiledPyCode;
+
 	public RoutineAliasInfo() {
 	}
 
 	/**
 		Create a RoutineAliasInfo for an internal PROCEDURE.
 	*/
-	public RoutineAliasInfo(String methodName, int parameterCount, String[] parameterNames,
+	public RoutineAliasInfo(String methodName, String language,int parameterCount, String[] parameterNames,
                             TypeDescriptor[]	parameterTypes, int[] parameterModes, int dynamicResultSets, short parameterStyle, short sqlAllowed,
                             boolean isDeterministic ) {
 
         this(methodName,
+             language,
              parameterCount,
              parameterNames,
              parameterTypes,
@@ -146,13 +156,15 @@ public class RoutineAliasInfo extends MethodAliasInfo
              isDeterministic,
              false /* definersRights*/,
              true,
-             (TypeDescriptor) null);
+             (TypeDescriptor) null,
+				null);
 	}
 
 	/**
 		Create a RoutineAliasInfo for a PROCEDURE or FUNCTION
 	*/
     public RoutineAliasInfo(String methodName,
+                            String language,
                             int parameterCount,
                             String[] parameterNames,
                             TypeDescriptor[] parameterTypes,
@@ -163,10 +175,12 @@ public class RoutineAliasInfo extends MethodAliasInfo
                             boolean isDeterministic,
                             boolean definersRights,
                             boolean calledOnNullInput,
-                            TypeDescriptor returnType)
+                            TypeDescriptor returnType,
+							byte[] compiledPyCode)
 	{
 
 		super(methodName);
+		this.language = language;
 		this.parameterCount = parameterCount;
 		this.parameterNames = parameterNames;
 		this.parameterTypes = parameterTypes;
@@ -182,6 +196,7 @@ public class RoutineAliasInfo extends MethodAliasInfo
 
 		this.calledOnNullInput = calledOnNullInput;
 		this.returnType = returnType;
+		this.compiledPyCode = compiledPyCode;
 
 		if (SanityManager.DEBUG) {
 
@@ -219,6 +234,8 @@ public class RoutineAliasInfo extends MethodAliasInfo
 		}
 	}
 
+	public String getLanguage() { return language; }
+
 	public int getParameterCount() {
 		return parameterCount;
 	}
@@ -255,6 +272,8 @@ public class RoutineAliasInfo extends MethodAliasInfo
 	public short getSQLAllowed() {
 		return (short) (sqlOptions & SQL_ALLOWED_MASK);
 	}
+
+	public byte[] getCompiledPyCode() { return compiledPyCode;}
 
     public boolean isDeterministic()
     {
@@ -300,7 +319,7 @@ public class RoutineAliasInfo extends MethodAliasInfo
 		sqlOptions = in.readShort();
 		returnType = getStoredType(in.readObject());
 		calledOnNullInput = in.readBoolean();
-		in.readInt(); // future expansion.
+		expansionNum = in.readInt(); // future expansion.
 
 		if (parameterCount != 0) {
 			parameterNames = new String[parameterCount];
@@ -317,6 +336,10 @@ public class RoutineAliasInfo extends MethodAliasInfo
 			parameterNames = null;
 			parameterTypes = null;
 			parameterModes = null;
+		}
+		if(expansionNum == 1){
+			language = (String) in.readObject();
+			compiledPyCode = (byte[]) in.readObject();
 		}
 	}
     
@@ -356,12 +379,14 @@ public class RoutineAliasInfo extends MethodAliasInfo
 		out.writeShort(sqlOptions);
 		out.writeObject(returnType);
 		out.writeBoolean(calledOnNullInput);
-		out.writeInt(0); // future expansion
+		out.writeInt(1); // future expansion
 		if (parameterCount != 0) {
 			ArrayUtil.writeArrayItems(out, parameterNames);
 			ArrayUtil.writeArrayItems(out, parameterTypes);
 			ArrayUtil.writeIntArray(out, parameterModes);
 		}
+		out.writeObject(language);
+		out.writeObject(compiledPyCode);
 	}
  
 	/**
@@ -408,7 +433,9 @@ public class RoutineAliasInfo extends MethodAliasInfo
 			sb.append(" RETURNS ").append(returnType.getSQLstring());
 		}
 
-		sb.append(" LANGUAGE JAVA PARAMETER STYLE " );
+		sb.append(" LANGUAGE ");
+		sb.append(this.language);	// Language can now be Python
+		sb.append(" PARAMETER STYLE " );
 
 		switch( parameterStyle )
 		{

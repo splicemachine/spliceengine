@@ -235,6 +235,19 @@ public class ClassInspector
 		if (receiverClass == null)
 			return null;
 
+		// Resolve java wrapper method for Python relevant routine using its name
+		if(methodName.equals("DEMO")){
+			try{
+				Method resultMethod = receiverClass.getMethod(methodName, Object[].class);
+				return resultMethod;
+			}
+			catch (NoSuchMethodException e){
+				return null;
+			}
+
+		}
+
+
 		// primitives don't have methods
 		// note that arrays do since they are objects they have
 		// all the methods of java.lang.Object

@@ -328,6 +328,11 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		return getBigDecimal();
 	}
 
+	/* This is constructor used fo PyStoredProcedureResultSetFactory */
+	public void setValue(Double theValue) throws StandardException{
+		setValue(theValue.doubleValue());
+	}
+
 	/**
 	 * Set the value from a correctly typed BigDecimal object.
 	 * @throws StandardException
