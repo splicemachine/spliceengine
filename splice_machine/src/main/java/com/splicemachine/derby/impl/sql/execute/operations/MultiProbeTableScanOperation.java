@@ -26,6 +26,7 @@ import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunc
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataScan;
 
@@ -217,17 +218,15 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             DataSet<ExecRow> dataSet = dsp.getEmpty();
             OperationContext<MultiProbeTableScanOperation> operationContext = dsp.<MultiProbeTableScanOperation>createOperationContext(this);
             int i = 0;
-            List<DataSet<ExecRow>> datasets = new ArrayList<>(scans.size());
+            List<ScanSetBuilder<ExecRow>> datasets = new ArrayList<>(scans.size());
             for (DataScan scan : scans) {
                 deSiify(scan);
-                OperationContext opClone = operationContext.getClone();
-                MultiProbeTableScanOperation clone = (MultiProbeTableScanOperation) opClone.getOperation();
-                DataSet<ExecRow> ds = dsp.<MultiProbeTableScanOperation, ExecRow>newScanSet(clone, tableName)
+                ScanSetBuilder<ExecRow> ssb = dsp.<MultiProbeTableScanOperation, ExecRow>newScanSet(this, tableName)
                         .tableDisplayName(tableDisplayName)
-                        .activation(clone.getActivation())
+                        .activation(this.getActivation())
                         .transaction(txn)
                         .scan(scan)
-                        .template(clone.currentTemplate)
+                        .template(this.currentTemplate.getClone())
                         .tableVersion(tableVersion)
                         .indexName(indexName)
                         .reuseRowLocation(false)
@@ -239,9 +238,9 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                         .rowDecodingMap(getRowDecodingMap())
                         .baseColumnMap(baseColumnMap)
                         .optionalProbeValue(probeValues[i])
-                        .defaultRow(defaultRow, scanInformation.getDefaultValueMap())
-                        .buildDataSet(clone);
-                datasets.add(ds);
+                        .defaultRow(defaultRow, scanInformation.getDefaultValueMap());
+
+                datasets.add(ssb);
                 i++;
             }
             return dataSet.parallelProbe(datasets, operationContext).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
@@ -250,5 +249,5 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 throw StandardException.plainWrapException(e);
             }
     }
-        
+
 }

@@ -34,6 +34,7 @@ import com.splicemachine.derby.stream.function.TakeFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.stream.output.*;
 import com.splicemachine.derby.stream.output.delete.DeletePipelineWriter;
 import com.splicemachine.derby.stream.output.delete.DeleteTableWriterBuilder;
@@ -237,11 +238,11 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public DataSet<V> parallelProbe(List<DataSet<V>> dataSets, OperationContext<MultiProbeTableScanOperation> operationContext) {
+    public DataSet<V> parallelProbe(List<ScanSetBuilder<ExecRow>> scanSetBuilders, OperationContext<MultiProbeTableScanOperation> operationContext) {
         ExecutorService es = SIDriver.driver().getExecutorService();
-        FutureIterator<V> futureIterator = new FutureIterator<>(dataSets.size());
-        for (DataSet<V> dataSet: dataSets) {
-            futureIterator.appendFutureIterator(es.submit(new NonLazy(((ControlDataSet<V>) dataSet).iterator)));
+        FutureIterator<V> futureIterator = new FutureIterator<>(scanSetBuilders.size());
+        for (ScanSetBuilder<ExecRow> scanSetBuilder: scanSetBuilders) {
+            futureIterator.appendFutureIterator(es.submit(new NonLazy(scanSetBuilder, operationContext.getOperation())));
         }
         return new ControlDataSet<>(futureIterator);
     }
@@ -545,15 +546,26 @@ public class ControlDataSet<V> implements DataSet<V> {
      * Non Lazy Callable
      *
      */
-    private class NonLazy implements Callable<Iterator<V>>{
-        private final Iterator<V> lazyIterator;
+    private static class NonLazy<V> implements Callable<Iterator<V>>{
+        private Iterator<V> lazyIterator;
+        private MultiProbeTableScanOperation operation;
+        private ScanSetBuilder<ExecRow> scanSetBuilder;
 
-        public NonLazy(Iterator<V> lazyIterator){
-            this.lazyIterator=lazyIterator;
+        public NonLazy(ScanSetBuilder<ExecRow> scanSetBuilder, MultiProbeTableScanOperation operation) {
+            this.scanSetBuilder = scanSetBuilder;
+            this.operation = operation;
+        }
+
+        public NonLazy(Iterator<V> iterator) {
+            this.lazyIterator = iterator;
         }
 
         @Override
         public Iterator<V> call() throws Exception{
+            if (lazyIterator == null) {
+                DataSet<ExecRow> dataSet = scanSetBuilder.buildDataSet(operation);
+                lazyIterator = ((ControlDataSet) dataSet).iterator;
+            }
             lazyIterator.hasNext(); // Performs hbase call - make it non lazy.
             return lazyIterator;
         }
