@@ -15,6 +15,7 @@
 package com.splicemachine.customer;
 
 import com.splicemachine.db.shared.common.udt.UDTBase;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -24,6 +25,8 @@ public class Price extends UDTBase
   private static final int FIRST_VERSION = 0;
   public String currencyCode;
   public double amount;
+
+  public static double getAmount(Price price ) { return price.amount; }
 
   public Price()
   {
