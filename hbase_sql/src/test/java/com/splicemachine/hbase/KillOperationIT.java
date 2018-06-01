@@ -65,7 +65,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * Created by jyuan on 3/28/16.
  */
-@Category({SerialTest.class,SlowTest.class})
+@Category({SerialTest.class})
 @RunWith(Parameterized.class)
 public class KillOperationIT {
     private static final Logger LOG = Logger.getLogger(KillOperationIT.class);
