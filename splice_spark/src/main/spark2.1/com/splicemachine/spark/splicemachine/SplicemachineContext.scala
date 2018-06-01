@@ -13,8 +13,9 @@
  */
 package com.splicemachine.spark.splicemachine
 
-import java.security.PrivilegedExceptionAction
+import java.security.{PrivilegedExceptionAction, SecureRandom}
 import java.sql.Connection
+import java.util
 
 import com.splicemachine.EngineDriver
 import com.splicemachine.client.SpliceClient
@@ -33,24 +34,37 @@ import org.apache.spark.sql.{DataFrame, Dataset, Row}
 import org.apache.hadoop.mapreduce.Job
 import org.apache.spark.SerializableWritable
 import java.util.Properties
-import javassist.compiler.TokenId
 
+import javassist.compiler.TokenId
 import com.splicemachine.access.HConfiguration
 import com.splicemachine.access.hbase.HBaseConnectionFactory
+import com.splicemachine.derby.stream.ActivationHolder
+import org.apache.commons.lang.SerializationUtils
+import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.hadoop.fs.permission.FsPermission
 import org.apache.hadoop.hbase.security.token.AuthenticationTokenIdentifier
 import org.apache.hadoop.io.Text
 import org.apache.hadoop.security.{Credentials, UserGroupInformation}
 import org.apache.spark.broadcast.Broadcast
 import org.apache.hadoop.security.token.Token
 import org.apache.hadoop.hbase.security.token.TokenUtil
+import org.apache.hadoop.hbase.util.Bytes
 import org.apache.log4j.Logger
 import org.apache.spark.api.java.JavaRDD
+import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 
 object Holder extends Serializable {
   @transient lazy val log = Logger.getLogger(getClass.getName)
 }
 
-class SplicemachineContext(url: String) extends Serializable {
+class SplicemachineContext(options: Map[String, String]) extends Serializable {
+  val url = options.get(JDBCOptions.JDBC_URL).get
+  val configuration = HConfiguration.getConfiguration
+
+  def this(url: String) {
+    this(Map(JDBCOptions.JDBC_URL -> url));
+  }
+
   @transient var credentials = SparkHadoopUtil.get.getCurrentUserCredentials()
   var broadcastCredentials: Broadcast[SerializableWritable[Credentials]] = null
   JdbcDialects.registerDialect(new SplicemachineDialect)
@@ -73,7 +87,7 @@ class SplicemachineContext(url: String) extends Serializable {
     internalConnection
   }
 
-  @transient lazy val internalConnection : Connection = {
+  @transient val internalConnection : Connection = {
     Holder.log.debug("Splice Client in SplicemachineContext "+SpliceClient.isClient())
     SpliceClient.connectionString = url
     SpliceClient.setClient(HConfiguration.getConfiguration.getAuthenticationTokenEnabled, SpliceClient.Mode.MASTER)
@@ -229,8 +243,67 @@ class SplicemachineContext(url: String) extends Serializable {
       execute(s"ANALYZE TABLE $tableName ESTIMATE STATISTICS SAMPLE $samplePercent PERCENT")
   }
 
+  lazy val tempDirectory = {
+    val root = options.getOrElse(SpliceJDBCOptions.JDBC_TEMP_DIRECTORY, "/tmp")
+    HConfiguration.getConfiguration.authenticationNativeCreateCredentialsDatabase()
+    val fs = FileSystem.get(HConfiguration.unwrapDelegate())
+    val path = new Path(root, getRandomName())
+    fs.mkdirs(path, FsPermission.createImmutable(Integer.parseInt("711", 8).toShort))
+
+    SpliceSpark.getSession.sparkContext.addSparkListener(new SparkListener {
+      override def onApplicationEnd(applicationEnd: SparkListenerApplicationEnd): Unit = {
+        Holder.log.info("Removing " + path)
+        fs.delete(path, true)
+      }
+    })
+    path.toString
+  }
+
+  def getRandomName(): String = {
+    val name = new Array[Byte](20)
+    new SecureRandom().nextBytes(name)
+    Bytes.toHex(name)
+  }
+
+  /**
+    * SQL to Dataframe translation.  (Lazy)
+    *
+    * @param sql
+    * @return
+    */
   def df(sql: String): Dataset[Row] = {
     SparkUtils.resultSetToDF(internalConnection.createStatement().executeQuery(sql));
+  }
+
+  /**
+    * SQL to Dataframe translation.  (Lazy)
+    * Runs the query inside Splice Machine and sends the results to the Spark Adapter app
+    *
+    * @param sql
+    * @return
+    */
+  def internalDf(sql: String): Dataset[Row] = {
+    val connection = SpliceClient.getConnectionPool(
+      configuration.getAuthenticationTokenDebugConnections, configuration.getAuthenticationTokenMaxConnections).getConnection
+    try {
+      val id = getRandomName()
+
+      val fs = FileSystem.get(HConfiguration.unwrapDelegate())
+      fs.mkdirs(new Path(tempDirectory, id), FsPermission.createImmutable(Integer.parseInt("777", 8).toShort))
+      fs.setPermission(new Path(tempDirectory, id), FsPermission.createImmutable(Integer.parseInt("777", 8).toShort))
+
+      connection.prepareStatement(s"EXPORT('$tempDirectory/$id', true, 1, null, null, null) " + sql).execute()
+      SpliceSpark.getSession.read.csv(fs.getUri + s"$tempDirectory/$id")
+    } finally {
+      connection.close()
+    }
+  }
+
+  def internalRdd(schemaTableName: String,
+          columnProjection: Seq[String] = Nil): RDD[Row] = {
+    val columnList = SpliceJDBCUtil.listColumns(columnProjection.toArray)
+    val sqlText = s"SELECT $columnList FROM ${schemaTableName}"
+    internalDf(sqlText).rdd
   }
 
   def rdd(schemaTableName: String,
