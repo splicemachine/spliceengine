@@ -117,7 +117,7 @@ public class SpliceUDTIT extends SpliceUnitTest {
                     "PARAMETER STYLE JAVA\n"+
                     "NO SQL EXTERNAL NAME 'com.splicemachine.customer.CreatePrice.createPriceObject'");
 
-            s.execute("create function getAmount( price Price ) returns double language java parameter style java no sql\n" +
+            s.execute("create function getAmount( int ) returns double language java parameter style java no sql\n" +
                            "external name 'com.splicemachine.customer.Price.getAmount'\n" );
 
             s.execute("create table orders(orderID INT,customerID INT,totalPrice price)");
@@ -154,11 +154,11 @@ public class SpliceUDTIT extends SpliceUnitTest {
         Assert.assertTrue(rs.next());
         Assert.assertEquals(6, rs.getInt(1));
 
-        rs =  methodWatcher.executeQuery("SELECT count(*) from t1 where getAmount(makePrice('USD', t1.rawPrice)) > 1");
+        rs =  methodWatcher.executeQuery("SELECT count(*) from t1 where testconnection() < 'a'");
         Assert.assertTrue(rs.next());
-        Assert.assertEquals(4, rs.getInt(1));
+        Assert.assertEquals(6, rs.getInt(1));
 
-        rs =  methodWatcher.executeQuery("SELECT count(getAmount(makePrice('USD', t1.rawPrice))) from t1");
+        rs =  methodWatcher.executeQuery("SELECT count(testconnection()) from t1");
         Assert.assertTrue(rs.next());
         Assert.assertEquals(6, rs.getInt(1));
     }
