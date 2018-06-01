@@ -117,10 +117,10 @@ public class InsertOperationIT {
     @Test
     public void testInsertCharsIntoBigInt() throws Exception{
         //varchar
-        classWatcher.executeUpdate("create table tt1 (col1 int, col2 varchar(4), col3 bigint)");
+        classWatcher.executeUpdate("create table tt4 (col1 int, col2 varchar(4), col3 bigint)");
         classWatcher.executeUpdate("create table tt2(c1 int, c2 varchar(4), c3 bigint)");
-        classWatcher.executeUpdate("insert into tt1 values(2,'10',1)");
-        classWatcher.executeUpdate("insert into tt2 (c1, c3) select col1, col2 from tt1");
+        classWatcher.executeUpdate("insert into tt4 values(2,'10',1)");
+        classWatcher.executeUpdate("insert into tt2 (c1, c3) select col1, col2 from tt4");
         ResultSet res = classWatcher.executeQuery("select c3 from tt2");
         res.next();
         int x = res.getInt("c3");
