@@ -22,6 +22,7 @@ import com.splicemachine.db.iapi.sql.PreparedStatement;
 import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.utils.Pair;
+import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +36,7 @@ import java.util.Date;
  * Created by dgomezferro on 12/07/2017.
  */
 public class OperationManagerImpl implements OperationManager {
+    private static final Logger LOG = Logger.getLogger(OperationManagerImpl.class);
     private ConcurrentMap<UUID, RunningOperation> operations = new ConcurrentHashMap();
 
     public UUID registerOperation(SpliceOperation operation, Thread executingThread, Date submittedTime, DataSetProcessor.Type engine) {
@@ -80,7 +82,11 @@ public class OperationManagerImpl implements OperationManager {
         op.getThread().interrupt();
         ResultSet rs=activation.getResultSet();
         if (rs!=null && !rs.isClosed()) {
-            rs.close();
+            try {
+                rs.close();
+            } catch (Exception e) {
+                LOG.warn("Exception while closing ResultSet, probably due to forcefully killing the operation", e);
+            }
         }
 
         return true;

@@ -256,8 +256,13 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
             keyAccumulator.close();
         if(siFilter!=null)
             siFilter.getAccumulator().close();
-        if (regionScanner != null)
-            regionScanner.close();
+        if (regionScanner != null) {
+            try {
+                regionScanner.close();
+            } catch (Exception e) {
+                // ignore this exception, we are closing anyway
+            }
+        }
     }
 
     public TimeView getTime(){

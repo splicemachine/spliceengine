@@ -165,7 +165,7 @@ public class StreamableRDD<T> {
                 Boolean result = null;
                 while (result == null) {
                     try {
-                        result = Await.result(job, Duration.apply(10, TimeUnit.SECONDS));
+                        result = Await.result(job, Duration.apply(1, TimeUnit.SECONDS));
                     } catch (InterruptedException e) {
                         job.cancel();
                         throw new CancellationException("Interrupted");
