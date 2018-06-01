@@ -68,7 +68,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
     protected boolean isOneRowInnerJoin;
     protected boolean hasMatch;
     protected List<Future<Pair<OperationContext, Iterator<ExecRow>>>> futures;
-    protected BlockingQueue<OperationContext> activeContexts;
+    protected ArrayList<OperationContext> allContexts;
     protected TaskContext taskContext;
 
     protected ExecutorService executorService;
@@ -102,9 +102,11 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
     private void initOperationContexts() throws StandardException {
         try {
             operationContextList = new ArrayList<>(batchSize);
-            activeContexts = new ArrayBlockingQueue(batchSize);
+            allContexts = new ArrayList(batchSize);
             for (int i = 0; i < batchSize; ++i) {
-                operationContextList.add(operationContext.getClone());
+                OperationContext clone = operationContext.getClone();
+                operationContextList.add(clone);
+                allContexts.add(clone);
             }
         }
         catch (Exception e) {
@@ -115,7 +117,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
     @Override
     public void close() {
         StandardException se = null;
-        for (OperationContext ctx : activeContexts) {
+        for (OperationContext ctx : allContexts) {
             try {
                 ctx.getOperation().close();
             } catch (StandardException e) {
@@ -142,14 +144,12 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                 OperationContext context = operationContextList.remove(0);
                 GetNLJoinIterator getNLJoinIterator =  GetNLJoinIterator.makeGetNLJoinIterator(joinType,
                         context, execRow.getClone());
-                activeContexts.add(context);
                 futures.add(executorService.submit(getNLJoinIterator));
             }
             if (nLeftRows > 0) {
                 Future<Pair<OperationContext, Iterator<ExecRow>>> future = futures.remove(0);
                 Pair<OperationContext, Iterator<ExecRow>> result = future.get();
                 currentOperationContext = result.getFirst();
-                activeContexts.remove(currentOperationContext);
                 rightSideNLJIterator = result.getSecond();
                 leftRow = currentOperationContext.getOperation().getLeftOperation().getCurrentRow();
                 leftRowLocation = new HBaseRowLocation(leftRow.getKey());
