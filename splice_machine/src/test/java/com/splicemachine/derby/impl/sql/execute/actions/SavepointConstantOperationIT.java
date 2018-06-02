@@ -280,6 +280,7 @@ public class SavepointConstantOperationIT {
     }
 
 
+    @Ignore
     @Test
     @Category(HBaseTest.class) // the re-enabling is tracked in DB-6858
     public void testMorePersistedSavepointsInBatch() throws Exception {

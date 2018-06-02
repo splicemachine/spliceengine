@@ -17,10 +17,7 @@ package com.splicemachine.subquery;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 
 import java.sql.Connection;
 
@@ -179,6 +176,7 @@ public class Subquery_Flattening_NotExists_Union_IT {
         assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "");
     }
 
+    @Ignore
     @Test
     public void unionAll_correlated() throws Exception {
         String R = "" +
