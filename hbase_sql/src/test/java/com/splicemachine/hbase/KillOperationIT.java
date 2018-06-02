@@ -31,12 +31,7 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.log4j.Logger;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -214,6 +209,7 @@ public class KillOperationIT {
     }
 
 
+    @Ignore
     @Test
     public void testMultiProbeIsKilled() throws Exception {
         String sql= "select * from P a --splice-properties joinStrategy=nestedloop, useSpark="+useSpark + "\n" +
