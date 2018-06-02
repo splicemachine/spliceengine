@@ -279,6 +279,7 @@ public class SavepointConstantOperationIT {
     }
 
 
+    @Ignore
     @Test
     public void testMorePersistedSavepointsInBatch() throws Exception {
         ResultSet rs = conn1.query("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
