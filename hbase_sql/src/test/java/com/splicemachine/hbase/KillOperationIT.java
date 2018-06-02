@@ -60,6 +60,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * Created by jyuan on 3/28/16.
  */
+@Ignore
 @Category({SerialTest.class})
 @RunWith(Parameterized.class)
 public class KillOperationIT {
