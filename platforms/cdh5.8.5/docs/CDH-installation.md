@@ -195,7 +195,7 @@ use your data disks.
             <td><code>8192</code></td>
         </tr>
         <tr>
-            <td><code>NameNodeHandler Count</code></td>
+            <td><code>NameNode Handler Count</code></td>
             <td><code>64</code></td>
         </tr>
         <tr>
@@ -361,7 +361,7 @@ make these changes:
         </tr>
         <tr>
             <td><code>Graceful Shutdown Timeout</code></td>
-            <td><code>30 seconds</code></td>
+            <td><code>600 seconds</code></td>
         </tr>
         <tr>
             <td><code>HBase Service Advanced Configuration Snippet (Safety Valve) for hbase-site.xml</code></td>

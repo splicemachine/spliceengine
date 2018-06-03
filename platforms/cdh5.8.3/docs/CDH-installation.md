@@ -195,7 +195,7 @@ use your data disks.
             <td><code>8192</code></td>
         </tr>
         <tr>
-            <td><code>NameNodeHandler Count</code></td>
+            <td><code>NameNode Handler Count</code></td>
             <td><code>64</code></td>
         </tr>
         <tr>
@@ -361,7 +361,7 @@ make these changes:
         </tr>
         <tr>
             <td><code>Graceful Shutdown Timeout</code></td>
-            <td><code>30 seconds</code></td>
+            <td><code>600 seconds</code></td>
         </tr>
         <tr>
             <td><code>HBase Service Advanced Configuration Snippet (Safety Valve) for hbase-site.xml</code></td>
@@ -539,7 +539,7 @@ com.splicemachine.hbase.BackupEndpointObserver</code>
 
    ````
    <property><name>hbase.client.ipc.pool.size</name><value>10</value></property>
-   <property><name>hbase.zookeeper.property.tickTime</name>6000<value></value></property>
+   <property><name>hbase.zookeeper.property.tickTime</name><value>6000</value></property>
    <property><name>hfile.block.cache.size</name><value>.1</value></property>
    <property><name>splice.compression</name><value>snappy</value></property>
    <property><name>splice.txn.activeCacheSize</name><value>10240</value></property>
