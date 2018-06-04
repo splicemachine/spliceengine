@@ -18,6 +18,7 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -60,19 +61,21 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
     private HRegionInfo hri;
     private boolean isMajor;
     private SparkCompactionContext context;
+    private InetSocketAddress[] favoredNodes;
 
     public SparkCompactionFunction() {
 
     }
 
     public SparkCompactionFunction(long smallestReadPoint, byte[] namespace,
-                                   byte[] tableName, HRegionInfo hri, byte[] storeColumn, boolean isMajor) {
+                                   byte[] tableName, HRegionInfo hri, byte[] storeColumn, boolean isMajor, InetSocketAddress[] favoredNodes) {
         this.smallestReadPoint = smallestReadPoint;
         this.namespace = namespace;
         this.tableName = tableName;
         this.hri = hri;
         this.storeColumn = storeColumn;
         this.isMajor = isMajor;
+        this.favoredNodes = favoredNodes;
     }
 
     @Override
@@ -90,6 +93,12 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         out.write(storeColumn);
         out.writeBoolean(isMajor);
         out.writeObject(context);
+        out.writeInt(favoredNodes==null?0:favoredNodes.length);
+        if (favoredNodes != null) {
+            for (int i = 0; i< favoredNodes.length; i++) {
+                out.writeObject(favoredNodes[i]);
+            }
+        }
     }
 
     @Override
@@ -111,6 +120,10 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         in.readFully(storeColumn);
         isMajor = in.readBoolean();
         context = (SparkCompactionContext) in.readObject();
+        favoredNodes = new InetSocketAddress[in.readInt()];
+        for (int i = 0; i< favoredNodes.length; i++) {
+            favoredNodes[i] = (InetSocketAddress) in.readObject();
+        }
         SpliceSpark.setupSpliceStaticComponents();
     }
 
@@ -156,7 +169,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         SpliceDefaultCompactor sdc = new SpliceDefaultCompactor(conf, store, smallestReadPoint);
         CompactionRequest compactionRequest = new CompactionRequest(readersToClose);
         compactionRequest.setIsMajor(isMajor, isMajor);
-        List<Path> paths = sdc.sparkCompact(compactionRequest, context);
+        List<Path> paths = sdc.sparkCompact(compactionRequest, context, favoredNodes);
 
         if (LOG.isTraceEnabled()) {
             StringBuilder sb = new StringBuilder(100);
