@@ -377,14 +377,4 @@ public interface JoinStrategy {
 	 */
 	boolean isMemoryUsageUnderLimit(double totalMemoryConsumed);
 
-	/**
-	 * Is it OK for a hash-based join strategy to execute without
-	 * a hash key (without any equality join conditions).
-	 *
-	 * @return Whether or not the current join strategy being considered
-	 * is hashable with no hash key (no equijoin conditions).
-	 * @notes Currently broadcast join is the only hashable join strategy
-	 * that supports non-equijoin.
-	 */
-	public boolean isMissingHashKeyOK();
 }
