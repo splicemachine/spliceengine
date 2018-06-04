@@ -49,8 +49,6 @@ import java.util.Vector;
  */
 public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 
-    protected boolean missingHashKeyOK = false;
-
     public HashableJoinStrategy() {
     }
 
@@ -64,7 +62,9 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         int[] hashKeyColumns;
         ConglomerateDescriptor cd = null;
         OptimizerTrace tracer = optimizer.tracer();
-        this.missingHashKeyOK = false;
+        boolean foundUsablePredForEqualityHashJoin = false;
+        AccessPath ap = innerTable.getCurrentAccessPath();
+        ap.setMissingHashKeyOK(false);
 
 		/* If the innerTable is a VTI, then we must check to see if there are any
 		 * join columns in the VTI's parameters.  If so, then hash join is not feasible.
@@ -148,9 +148,9 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         if (SanityManager.DEBUG) {
             if (hashKeyColumns == null) {
                 if (skipKeyCheck)
-                    tracer.trace(OptimizerFlag.HJ_NO_EQUIJOIN_COLUMNS, 0, 0, 0.0, null);
+                    tracer.trace(OptimizerFlag.HJ_NO_EQUIJOIN_COLUMNS, 0, 0, 0.0, hashKeyColumns);
                 else
-                    tracer.trace(OptimizerFlag.HJ_SKIP_NO_JOIN_COLUMNS, 0, 0, 0.0, null);
+                    tracer.trace(OptimizerFlag.HJ_SKIP_NO_JOIN_COLUMNS, 0, 0, 0.0, hashKeyColumns);
             } else {
                 tracer.trace(OptimizerFlag.HJ_HASH_KEY_COLUMNS, 0, 0, 0.0, hashKeyColumns);
             }
@@ -189,10 +189,33 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
                 for (int i = 0; i < predList.size(); i++) {
                     pred = (Predicate)predList.getOptPredicate(i);
                     if (pred.isJoinPredicate()) {
-                        missingHashKeyOK = true;
-                        return true;
+                        ap.setMissingHashKeyOK(true);
+
+                        AndNode andNode = pred.getAndNode();
+                        if (!(andNode.getLeftOperand() instanceof BinaryRelationalOperatorNode))
+                            continue;
+
+                        BinaryRelationalOperatorNode leftNode =
+                                 (BinaryRelationalOperatorNode)andNode.getLeftOperand();
+
+                        // If we find an equality join predicate that could be used
+                        // for normal hash join when not pushed, we don't want to use
+                        // it for inequality hash join (which uses no hash key).
+                        // If this predicate is not an equality predicate, it's
+                        // usable, so skip the isScopedForPush test.
+                        if (leftNode.getOperator() != RelationalOperator.EQUALS_RELOP)
+                            continue;
+
+                        if (pred.isScopedForPush()) {
+                            foundUsablePredForEqualityHashJoin = true;
+                            break;
+                        }
                     }
                 }
+                if (ap.isMissingHashKeyOK() && !foundUsablePredForEqualityHashJoin)
+                    return true;
+
+                ap.setMissingHashKeyOK(false);
             }
         }
 
