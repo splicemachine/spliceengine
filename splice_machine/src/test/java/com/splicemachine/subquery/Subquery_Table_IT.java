@@ -964,6 +964,21 @@ public class Subquery_Table_IT {
         SubqueryITUtil.assertUnorderedResult(conn(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
     }
 
+    @Test
+    public void testSubqueryInOuterJoin() throws Exception {
+        String sql = "select 1 from tt1 left join (select a2 from tt2 where a2 not in (select a3 from tt3)) dt on a1=a2";
+        String expected = "1 |\n" +
+                "----\n" +
+                " 1 |\n" +
+                " 1 |\n" +
+                " 1 |\n" +
+                " 1 |";
+
+        ResultSet rs = conn().createStatement().executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
     private static void assertUnorderedResult(ResultSet rs, String expectedResult) throws Exception {
         assertEquals(expectedResult, TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
