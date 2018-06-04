@@ -347,15 +347,6 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         }
     }
 
-    /*
-    @Override
-    protected StoreFile.Writer createTmpWriter(FileDetails fd, long smallestReadPoint) throws IOException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"createTempWriter");
-        return super.createTmpWriter(fd, smallestReadPoint);
-    }
-    */
-
     @Override
     public List<Path> compactForTesting(Collection<StoreFile> filesToCompact, boolean isMajor) throws IOException {
         if (LOG.isTraceEnabled())
