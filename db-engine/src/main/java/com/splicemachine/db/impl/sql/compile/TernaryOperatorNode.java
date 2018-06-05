@@ -421,7 +421,7 @@ public class TernaryOperatorNode extends OperatorNode
 
     @Override
 	public boolean checkCRLevel(int level){
-		return leftOperand.checkCRLevel(level) || rightOperand.checkCRLevel(level) || receiver.checkCRLevel(level);
+		return leftOperand.checkCRLevel(level) || (rightOperand != null ? rightOperand.checkCRLevel(level) : false) || receiver.checkCRLevel(level);
 	}
 
 
