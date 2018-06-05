@@ -26,6 +26,7 @@ import org.junit.runner.Description;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Timestamp;
 
 
 /**
@@ -46,25 +47,46 @@ public class TernaryOperationIT {
     private static final SpliceTableWatcher tableWatcherB = new SpliceTableWatcher(
     	"B", schemaWatcher.schemaName, "(a int, b varchar(30), c varchar(30), d varchar(30), e varchar(30))");
 
+    // Table for 'timestampadd' and 'timestampdiff testing.
+    private static final SpliceTableWatcher tableWatcherC = new SpliceTableWatcher(
+            "C", schemaWatcher.schemaName, "(a int, b timestamp, c timestamp)");
+
+    // Table for 'trim' testing.
+    private static final SpliceTableWatcher tableWatcherD = new SpliceTableWatcher(
+            "D", schemaWatcher.schemaName, "(a int, b varchar(30), c varchar(30), d varchar(30))");
+
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
             .around(schemaWatcher)
             .around(tableWatcher)
             .around(tableWatcherB)
+            .around(tableWatcherC)
+            .around(tableWatcherD)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
                     try{
-                        PreparedStatement ps = classWatcher.prepareStatement("insert into "+ tableWatcher+" (c) values (?)");
-                        ps.setString(1,"this world is crazy");
+                        PreparedStatement ps = classWatcher.prepareStatement("insert into "+ tableWatcher+" (a, c) values (?, ?)");
+                        ps.setInt(1,1);
+                        ps.setString(2,"this world is crazy");
                         ps.execute();
 
-                        ps.setString(1,"nada");
+                        ps.setInt(1,2);
+                        ps.setString(2,"nada");
                         ps.execute();
 
-                        ps = classWatcher.prepareStatement("insert into "+ tableWatcher +"(b) values (?)");
+                        ps = classWatcher.prepareStatement("insert into "+ tableWatcher +"(a, b) values (?, ?)");
                         ps.setInt(1,3);
+                        ps.setInt(2,3);
                         ps.execute();
+
+                        ps = classWatcher.prepareStatement("insert into "+ tableWatcher +"(a,b,c) values (?, ?, ?)");
+                        ps.setInt(1,4);
+                        ps.setInt(2, 2);
+                        ps.setString(3,"hello world");
+                        ps.execute();
+
                         
                         // Each of the following inserted rows represent individual test units,
                         // including expected result (column 'e'), for less test code
@@ -106,6 +128,20 @@ public class TernaryOperationIT {
                         ps.setString(5,null);
                         ps.execute();
 
+                        ps = classWatcher.prepareStatement("insert into " + tableWatcherC + " (a, b, c) values (?, ?, ?)");
+                        ps.setInt(1, 1);
+                        ps.setTimestamp(2, Timestamp.valueOf("2013-03-23 09:45:00"));
+                        ps.setTimestamp(3, Timestamp.valueOf("2015-03-23 09:45:00"));
+                        ps.execute();
+
+                        ps = classWatcher.prepareStatement("insert into " + tableWatcherD + "(a, b, c, d) values (?, ?, ?, ?)");
+                        ps.setInt   (1,1);
+                        ps.setString(2,"welcome hello world");
+                        ps.setString(3,"   hello world  ");
+                        ps.setString(4,"hello");
+                        ps.execute();
+
+
                     }catch (Exception e) {
                         throw new RuntimeException(e);
                     }finally{
@@ -118,7 +154,7 @@ public class TernaryOperationIT {
 
     @Test
     public void testLocateWorks() throws Exception {
-        ResultSet rs =  methodWatcher.executeQuery("select locate('crazy',c) from " + tableWatcher);
+        ResultSet rs =  methodWatcher.executeQuery("select locate('crazy',c) from " + tableWatcher + " where a < 4");
         int count = 0;
         boolean nullFound=false;
         boolean zeroFound=false;
@@ -162,6 +198,61 @@ public class TernaryOperationIT {
             count++;
 	    }
 	    Assert.assertEquals("Incorrect row count", 5, count);
+    }
+
+    @Test
+    public void testTRIM() throws Exception {
+        ResultSet rs;
+        int iCell = 0;
+        String sql = "select a.a from a where exists ( select 1 from d where a.c = trim(d.c))";
+        rs = methodWatcher.executeQuery(sql);
+        while (rs.next()) {
+            iCell = rs.getInt(1);
+        }
+        Assert.assertEquals("Wrong trim result", 4, iCell);
+
+    }
+
+    @Test
+    public void testSubString() throws Exception {
+        ResultSet rs;
+        String sCell1 = null;
+        String sCell2 = null;
+        String sql = "select d,substr(b,9,5) from d";
+        rs = methodWatcher.executeQuery(sql);
+        while (rs.next()) {
+            sCell1 = rs.getString(1);
+            sCell2 = rs.getString(2);
+        }
+        Assert.assertEquals("Wrong substr result", sCell1, sCell2 );
+
+
+    }
+
+    @Test
+    public void testTIMESTAMPADD() throws Exception {
+        ResultSet rs;
+        Timestamp iCell1 = null;
+        Timestamp iCell2 = null;
+        String sql = "select c,TIMESTAMPADD(SQL_TSI_YEAR,2,b) from " + tableWatcherC;
+        rs = methodWatcher.executeQuery(sql);
+        while (rs.next()) {
+            iCell1 = rs.getTimestamp(1);
+            iCell2 = rs.getTimestamp(2);
+        }
+        Assert.assertEquals("Wrong timestampadd result", iCell1, iCell2);
+    }
+
+    @Test
+    public void testTIMESTAMPDIFF() throws Exception {
+        ResultSet rs;
+        int iCell = 0;
+        String sql = "select TIMESTAMPDIFF(SQL_TSI_YEAR,b,c) from " + tableWatcherC;
+        rs = methodWatcher.executeQuery(sql);
+        while (rs.next()) {
+            iCell = rs.getInt(1);
+        }
+        Assert.assertEquals("Wrong timestampdiff result", 2, iCell);
     }
 }
 
