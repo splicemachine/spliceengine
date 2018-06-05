@@ -903,6 +903,11 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .bigint("backupId")
                             .build());
 
+                    procedures.add(Procedure.newBuilder().name("VALIDATE_BACKUP")
+                            .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                            .varchar("directory", 32672)
+                            .bigint("backupId")
+                            .build());
                     /*
                      * Procedure to get a database property on all region servers in the cluster.
                      */

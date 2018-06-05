@@ -39,4 +39,6 @@ public interface BackupManager{
     void cancelDailyBackup(long jobId) throws StandardException;
 
     void cancelBackup() throws StandardException;
+
+    void validateBackup(String directory,long backupId)throws StandardException;
 }
