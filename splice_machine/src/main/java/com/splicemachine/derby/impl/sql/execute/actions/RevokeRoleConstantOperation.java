@@ -29,7 +29,6 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
-import com.splicemachine.si.impl.driver.SIDriver;
 
 import java.util.Iterator;
 import java.util.List;
@@ -69,7 +68,8 @@ public class RevokeRoleConstantOperation extends DDLConstantOperation {
         DataDictionary dd = lcc.getDataDictionary();
         TransactionController tc = lcc.getTransactionExecute();
         final String grantor = lcc.getCurrentUserId(activation);
-        final String groupuser = lcc.getCurrentGroupUser(activation);
+        final List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
+        String dbo = lcc.getDataDictionary().getAuthorizationDatabaseOwner();
 
         dd.startWriting(lcc);
         for (Iterator rIter = roleNames.iterator(); rIter.hasNext();) {
@@ -104,14 +104,12 @@ public class RevokeRoleConstantOperation extends DDLConstantOperation {
                 // rd = dd.findRoleGrantWithAdminToRoleOrPublic(grantor)
                 // if (rd != null) {
                 //   :
-                if (grantor.equals(lcc.getDataDictionary().
-                                       getAuthorizationDatabaseOwner())
-                        || (groupuser != null && groupuser.equals(lcc.getDataDictionary().
-                                getAuthorizationDatabaseOwner()))) {
+                if (grantor.equals(dbo)
+                        || (groupuserlist != null && groupuserlist.contains(dbo))) {
                     // All ok, we are database owner
                     if (SanityManager.DEBUG) {
                         SanityManager.ASSERT(
-                            rdDef.getGrantee().equals(grantor) || rdDef.getGrantee().equals(groupuser),
+                            rdDef.getGrantee().equals(grantor) || rdDef.getGrantee().equals(dbo),
                             "expected database owner in role grant descriptor");
                         SanityManager.ASSERT(
                             rdDef.isWithAdminOption(),

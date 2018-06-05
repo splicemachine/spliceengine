@@ -97,7 +97,7 @@ public interface SQLSessionContext {
     /**
      * Get the Group user of this SQL connection context
      */
-    public String getCurrentGroupUser();
+    public List<String> getCurrentGroupUser();
 
     /**
      * Set the schema of this SQL connection context
