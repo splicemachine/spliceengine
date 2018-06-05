@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.stream.function.merge;
 
-import org.spark_project.guava.base.Function;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -22,21 +21,23 @@ import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.ProjectRestrictOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iterator.merge.AbstractMergeJoinIterator;
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.Pair;
+import com.splicemachine.derby.utils.FormatableBitSetUtils;
+import org.spark_project.guava.base.Function;
 import org.spark_project.guava.collect.Iterators;
 import org.spark_project.guava.collect.PeekingIterator;
+
 import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedList;
 
 /**
  * Created by jleach on 6/9/15.
@@ -120,64 +121,56 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
         ExecRow startPosition = joinOperation.getRightResultSet().getStartPosition();
         int[] columnOrdering = getColumnOrdering(joinOperation.getRightResultSet());
         int nCols = startPosition != null ? startPosition.nColumns():0;
-        ExecRow scanStartOverride = null;
-        int[] scanKeys = null;
-        // If start row of right table scan has as many columns as key colummns of the table, cannot further
-        // narrow down scan space, so return right tabel scan start row.
-        if (nCols == columnOrdering.length) {
+        ExecRow scanStartOverride;
+
+        /* To see if we can further restrict the scan of the right table by expand the scan startPosition, we need to pick first values from the startPosition, if startPosition
+         * does not cover all the key columns, we can pick the values for the remaining consecutive key columns from firstHashRow
+         */
+        if (joinOperation.getRightResultSet() instanceof ProjectRestrictOperation) {
+            // With a ProjectRestrictOperation, the order of the columns could be re-arranged, so we can not easily map the rightHashKeys to the
+            // base table (including covering index) columns. So do not try to use the firstHashRow to further limit the scan for the right table.
             scanStartOverride = startPosition;
-            scanKeys = columnOrdering;
-        }
-        else {
+        } else if (nCols == columnOrdering.length) {
+            // the current scan startkey has covered the whole key column set, no need to expand further
+            scanStartOverride = startPosition;
+        } else {
+            int[] colToBaseTableMap = FormatableBitSetUtils.toCompactedIntArray(joinOperation.getRightResultSet().getAccessedColumns());
+
+            ExecRow newStartKey = new ValueRow(columnOrdering.length);
             int[] rightHashKeys = joinOperation.getRightHashKeys();
-            // Find valid hash column values to narrow down right scan. The valid hash columns must:
-            // 1) not be used as a start key for inner table scan
-            // 2) be consecutive
-            // 3) be a key column
-            LinkedList<Pair<Integer, Integer>> hashColumnIndexList = new LinkedList<>();
-            for (int i = 0; i < rightHashKeys.length; ++i) {
-                if (rightHashKeys[i] > nCols - 1) {
-                    if ((hashColumnIndexList.isEmpty() || hashColumnIndexList.getLast().getValue() == rightHashKeys[i] - 1) &&
-                            isKeyColumn(columnOrdering, rightHashKeys[i])) {
-                        hashColumnIndexList.add(new ImmutablePair<Integer, Integer>(i, rightHashKeys[i]));
-                    } else {
+
+            for (int i = 0; i < nCols; i++)
+                newStartKey.setColumn(i + 1, startPosition.getColumn(i + 1));
+
+            int len = nCols;
+            for (int i = len; i < columnOrdering.length; i++) {
+                int keyColumnBaseTablePosition = columnOrdering[i];
+                int j = 0;
+                for (; j < rightHashKeys.length; j++) {
+                    if (colToBaseTableMap[rightHashKeys[j]] == keyColumnBaseTablePosition) {
+                        newStartKey.setColumn(i + 1, firstHashRow.getColumn(j + 1));
+                        len++;
                         break;
                     }
                 }
+                //no match found for the given key column position
+                if (j >= rightHashKeys.length)
+                    break;
             }
 
-            scanStartOverride = new ValueRow(nCols + hashColumnIndexList.size());
-            if (startPosition != null) {
-                for (int i = 1; i <= startPosition.nColumns(); ++i) {
-                    scanStartOverride.setColumn(i, startPosition.getColumn(i));
-                }
-            }
-            for (int i = 0; i < hashColumnIndexList.size(); ++i) {
-                Pair<Integer, Integer> hashColumnIndex = hashColumnIndexList.get(i);
-                int index = hashColumnIndex.getKey();
-                scanStartOverride.setColumn(nCols + i + 1, firstHashRow.getColumn(index + 1));
-            }
-
-            // Scan key should include columns
-            // 1) preceding the first hash column, these columns are in the form of "col=constant"
-            // 2) all hash columns that are key columns
-            scanKeys = new int[hashColumnIndexList.size() + rightHashKeys[0]];
-            for (int i = 0; i < rightHashKeys[0]; ++i) {
-                scanKeys[i] = i;
-            }
-            for (int i = 0; i < hashColumnIndexList.size(); ++i) {
-                Pair<Integer, Integer> hashColumnIndex = hashColumnIndexList.get(i);
-                int colPos = hashColumnIndex.getValue();
-                scanKeys[rightHashKeys[0] + i] = colPos;
-            }
+            scanStartOverride = new ValueRow(len);
+            for (int i = 0; i < len; i++)
+                scanStartOverride.setColumn(i + 1, newStartKey.getColumn(i + 1));
         }
 
         ((BaseActivation)joinOperation.getActivation()).setScanStartOverride(scanStartOverride);
-        ((BaseActivation)joinOperation.getActivation()).setScanKeys(scanKeys);
-        if (startPosition != null) {
-            ((BaseActivation)joinOperation.getActivation()).setScanStopOverride(startPosition);
-        }
 
+        // we can only set the stop key if start key is from equality predicate like "key=constant"
+        if (startPosition != null) {
+            ScanInformation<ExecRow>  scanInfo = joinOperation.getRightResultSet().getScanInformation();
+            if (scanInfo != null && scanInfo.getSameStartStopPosition())
+                ((BaseActivation)joinOperation.getActivation()).setScanStopOverride(startPosition);
+        }
     }
 
 

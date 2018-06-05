@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
@@ -32,6 +33,7 @@ import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.Restriction;
 import com.splicemachine.derby.stream.function.ProjectRestrictMapFunction;
 import com.splicemachine.derby.stream.function.ProjectRestrictPredicateFunction;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -322,4 +324,14 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
     public String getVTIFileName() {
         return getSubOperations().get(0).getVTIFileName();
     }
+
+    @Override
+	public FormatableBitSet getAccessedColumns() throws StandardException {
+		return source.getAccessedColumns();
+	}
+
+	@Override
+	public ScanInformation<ExecRow> getScanInformation() {
+		return source.getScanInformation();
+	}
 }
