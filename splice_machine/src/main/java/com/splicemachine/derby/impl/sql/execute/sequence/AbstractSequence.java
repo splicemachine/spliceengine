@@ -65,15 +65,22 @@ public abstract class AbstractSequence implements Sequence, Externalizable{
 
     private void allocateBlock(boolean peek) throws StandardException{
         boolean success=false;
+        long absIncrement = incrementSteps < 0 ? -incrementSteps :
+                                                  incrementSteps;
         while(!success){
             updateLock.lock();
             try{
                 if(remaining.getAndDecrement()>0)
                     return;
                 currPosition.set(getCurrentValue());
-                success=atomicIncrement(currPosition.get()+(incrementSteps>blockAllocationSize?incrementSteps:blockAllocationSize));
+
+                // Use a multiple of the increment in order to honor the increment size.
+                long remainingCount = blockAllocationSize/absIncrement;
+                success=atomicIncrement(currPosition.get()+
+                        (absIncrement>blockAllocationSize?incrementSteps:
+                         incrementSteps*remainingCount));
                 if(success){
-                    long v = blockAllocationSize/incrementSteps;
+                    long v = remainingCount;
                     remaining.set(peek?v:v-1);
                 }
             }catch(IOException e){
