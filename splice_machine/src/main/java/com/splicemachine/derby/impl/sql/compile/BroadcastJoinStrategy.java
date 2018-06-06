@@ -133,7 +133,7 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
         boolean isHinted = currentAccessPath.isHintedJoinStrategy();
 
         if (isHinted || estimatedMemoryMB<regionThreshold && estimatedRowCount<rowCountThreshold &&
-                (!missingHashKeyOK || (innerTable instanceof FromBaseTable &&  // non-equality broadcast join only costed if using spark
+                (!currentAccessPath.isMissingHashKeyOK() || (innerTable instanceof FromBaseTable &&  // non-equality broadcast join only costed if using spark
                 ((FromBaseTable)innerTable).isSpark(((FromBaseTable)innerTable).getdataSetProcessorTypeForAccessPath(currentAccessPath))))) {
             double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost);
             double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity, outerCost.rowCount(), innerCost.rowCount());
@@ -172,14 +172,5 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
         return (totalMemoryinMB < regionThreshold);
     }
 
-    /**
-     *
-     * Is it OK for the current broadcast join to execute without a hash key (without any equality join conditions).
-     * This determination is made in HashableJoinStrategy.feasible().
-     * If true, all rows in the hash table have the same hash key.
-     *
-     */
-    @Override
-    public boolean isMissingHashKeyOK() {return missingHashKeyOK;}
 }
 

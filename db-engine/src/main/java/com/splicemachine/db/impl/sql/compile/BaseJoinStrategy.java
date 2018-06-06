@@ -263,5 +263,4 @@ public abstract class BaseJoinStrategy implements JoinStrategy{
         return true;
     }
 
-    public boolean isMissingHashKeyOK() {return false;}
 }

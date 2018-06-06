@@ -49,8 +49,6 @@ import java.util.Vector;
  */
 public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 
-    protected boolean missingHashKeyOK = false;
-
     public HashableJoinStrategy() {
     }
 
@@ -64,7 +62,9 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         int[] hashKeyColumns;
         ConglomerateDescriptor cd = null;
         OptimizerTrace tracer = optimizer.tracer();
-        this.missingHashKeyOK = false;
+        boolean foundUnPushedJoinPred = false;
+        AccessPath ap = innerTable.getCurrentAccessPath();
+        ap.setMissingHashKeyOK(false);
 
 		/* If the innerTable is a VTI, then we must check to see if there are any
 		 * join columns in the VTI's parameters.  If so, then hash join is not feasible.
@@ -148,9 +148,9 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         if (SanityManager.DEBUG) {
             if (hashKeyColumns == null) {
                 if (skipKeyCheck)
-                    tracer.trace(OptimizerFlag.HJ_NO_EQUIJOIN_COLUMNS, 0, 0, 0.0, null);
+                    tracer.trace(OptimizerFlag.HJ_NO_EQUIJOIN_COLUMNS, 0, 0, 0.0, hashKeyColumns);
                 else
-                    tracer.trace(OptimizerFlag.HJ_SKIP_NO_JOIN_COLUMNS, 0, 0, 0.0, null);
+                    tracer.trace(OptimizerFlag.HJ_SKIP_NO_JOIN_COLUMNS, 0, 0, 0.0, hashKeyColumns);
             } else {
                 tracer.trace(OptimizerFlag.HJ_HASH_KEY_COLUMNS, 0, 0, 0.0, hashKeyColumns);
             }
@@ -189,10 +189,22 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
                 for (int i = 0; i < predList.size(); i++) {
                     pred = (Predicate)predList.getOptPredicate(i);
                     if (pred.isJoinPredicate()) {
-                        missingHashKeyOK = true;
-                        return true;
+                        ap.setMissingHashKeyOK(true);
+
+                        AndNode andNode = pred.getAndNode();
+                        if (!(andNode.getLeftOperand() instanceof BinaryRelationalOperatorNode))
+                            continue;
+
+                        if (pred.isScopedForPush())
+                            continue;
+
+                        foundUnPushedJoinPred = true;
                     }
                 }
+                if (ap.isMissingHashKeyOK() && foundUnPushedJoinPred)
+                    return true;
+
+                ap.setMissingHashKeyOK(false);
             }
         }
 
