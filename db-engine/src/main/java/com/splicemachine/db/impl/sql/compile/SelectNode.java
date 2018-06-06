@@ -49,8 +49,6 @@ import org.spark_project.guava.base.Predicates;
 
 import java.util.*;
 
-import java.util.*;
-
 /**
  * A SelectNode represents the result set for any of the basic DML
  * operations: SELECT, INSERT, UPDATE, and DELETE.  (A RowResultSetNode
@@ -2512,7 +2510,7 @@ public class SelectNode extends ResultSetNode{
         int reusedTableNumber = referencedTableMap.getFirstSetBit();
         rowResultSetNode.setTableNumber(reusedTableNumber);
         /* Allocate a dummy referenced table map */
-        int numTables = getCompilerContext().getNumTables();
+        int numTables = getCompilerContext().getMaximalPossibleTableCount();
         JBitSet tableMap = new JBitSet(numTables);
         tableMap.set(reusedTableNumber);
         rowResultSetNode.setReferencedTableMap(tableMap);

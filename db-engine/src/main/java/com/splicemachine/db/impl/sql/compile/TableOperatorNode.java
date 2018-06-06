@@ -709,7 +709,7 @@ public abstract class TableOperatorNode extends FromTable{
                     predList,
                     getDataDictionary(),
                     null,
-                    getCompilerContext().getNumTables(),
+                    getCompilerContext().getMaximalPossibleTableCount(),
                     lcc);
             optimizer.prepForNextRound();
 
