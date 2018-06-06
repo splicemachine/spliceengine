@@ -62,7 +62,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         int[] hashKeyColumns;
         ConglomerateDescriptor cd = null;
         OptimizerTrace tracer = optimizer.tracer();
-        boolean foundUsablePredForEqualityHashJoin = false;
+        boolean foundUnPushedJoinPred = false;
         AccessPath ap = innerTable.getCurrentAccessPath();
         ap.setMissingHashKeyOK(false);
 
@@ -195,24 +195,13 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
                         if (!(andNode.getLeftOperand() instanceof BinaryRelationalOperatorNode))
                             continue;
 
-                        BinaryRelationalOperatorNode leftNode =
-                                 (BinaryRelationalOperatorNode)andNode.getLeftOperand();
-
-                        // If we find an equality join predicate that could be used
-                        // for normal hash join when not pushed, we don't want to use
-                        // it for inequality hash join (which uses no hash key).
-                        // If this predicate is not an equality predicate, it's
-                        // usable, so skip the isScopedForPush test.
-                        if (leftNode.getOperator() != RelationalOperator.EQUALS_RELOP)
+                        if (pred.isScopedForPush())
                             continue;
 
-                        if (pred.isScopedForPush()) {
-                            foundUsablePredForEqualityHashJoin = true;
-                            break;
-                        }
+                        foundUnPushedJoinPred = true;
                     }
                 }
-                if (ap.isMissingHashKeyOK() && !foundUsablePredForEqualityHashJoin)
+                if (ap.isMissingHashKeyOK() && foundUnPushedJoinPred)
                     return true;
 
                 ap.setMissingHashKeyOK(false);
