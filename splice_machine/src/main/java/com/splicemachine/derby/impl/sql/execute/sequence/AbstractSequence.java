@@ -67,8 +67,6 @@ public abstract class AbstractSequence implements Sequence, Externalizable{
         boolean success=false;
         long absIncrement = incrementSteps < 0 ? -incrementSteps :
                                                   incrementSteps;
-        long blockBoundary = incrementSteps < 0 ?
-                                    -blockAllocationSize : blockAllocationSize;
         while(!success){
             updateLock.lock();
             try{
