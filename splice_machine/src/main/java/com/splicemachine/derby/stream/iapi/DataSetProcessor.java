@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.stream.function.Partitioner;
+import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import org.apache.spark.sql.types.StructType;
 
 import java.io.InputStream;
@@ -263,4 +264,6 @@ public interface DataSetProcessor {
      */
 
     Boolean isCached(long conglomerateId) throws StandardException;
+
+    TableChecker getTableChecker(String schemaName, String tableName, DataSet tableDataSet, KeyHashDecoder decoder, ExecRow key);
 }

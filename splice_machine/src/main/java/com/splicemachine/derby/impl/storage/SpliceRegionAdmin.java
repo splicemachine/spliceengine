@@ -760,7 +760,7 @@ public class SpliceRegionAdmin {
         return preference;
     }
 
-    private static  ConglomerateDescriptor getIndex(TableDescriptor td, String indexName) {
+    public static  ConglomerateDescriptor getIndex(TableDescriptor td, String indexName) {
         ConglomerateDescriptorList list = td.getConglomerateDescriptorList();
         for (ConglomerateDescriptor searchCD :list) {
             if (searchCD.isIndex() && !searchCD.isPrimaryKey() && indexName != null &&
