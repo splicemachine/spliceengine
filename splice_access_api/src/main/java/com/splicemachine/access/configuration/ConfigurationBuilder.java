@@ -141,6 +141,7 @@ public class ConfigurationBuilder {
     public String upgradeForcedFrom;
     public String storageFactoryHome;
     public int nestedLoopJoinBatchSize;
+    public int maxCheckTableErrors;
 
     // PipelineConfiguration
     public int coreWriterThreads;

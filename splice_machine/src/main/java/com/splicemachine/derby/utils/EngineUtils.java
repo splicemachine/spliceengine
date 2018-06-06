@@ -54,6 +54,7 @@ public class EngineUtils{
         if (schema == null)
             schema = getCurrentSchema();
         else{
+            schema = schema.trim();
             int quoteStartIdx = schema.indexOf("\"");
             if(quoteStartIdx>=0){
                 int quoteEndIdx = schema.indexOf("\"",quoteStartIdx+1);
@@ -69,6 +70,7 @@ public class EngineUtils{
         if (table == null)
             throw PublicAPI.wrapStandardException(ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException());
         else {
+            table = table.trim();
             int quoteStartIdx = table.indexOf("\"");
             if(quoteStartIdx>=0){
                 int quoteEndIdx = table.indexOf("\"",quoteStartIdx+1);

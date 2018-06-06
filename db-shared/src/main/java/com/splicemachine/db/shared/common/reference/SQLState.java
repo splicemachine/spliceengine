@@ -2013,6 +2013,8 @@ public interface SQLState {
 	String WRONG_REGION_NAME_TYPE 									= "TS004";
 	String REGION_NOT_ADJACENT                                      = "TS005";
 	String SPLIT_KEY_CANNOT_BE_NULL									= "TS006";
+	String INVALID_CONSISTENCY_LEVEL                                = "TS007";
+    String INVALID_PARAMETER                                        = "TS008";
 
 	String OLAP_SERVER_CONNECTION                                   = "OS001";
 	String TIMESTAMP_SERVER_CONNECTION                              = "TSS01";
