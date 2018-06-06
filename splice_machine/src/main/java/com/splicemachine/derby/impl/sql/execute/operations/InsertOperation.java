@@ -14,47 +14,51 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-
+import com.splicemachine.EngineDriver;
+import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.types.HBaseRowLocation;
-import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
-import com.splicemachine.derby.impl.load.ImportUtils;
-import com.splicemachine.derby.stream.iapi.*;
-import com.splicemachine.derby.stream.output.*;
-import com.splicemachine.utils.IntArrays;
-import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.si.api.server.ClusterHealth;
-import com.splicemachine.storage.Partition;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
-import com.splicemachine.EngineDriver;
-import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.HasIncrement;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.compile.InsertNode;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.output.DataSetWriter;
+import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
+import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.stream.output.insert.InsertPipelineWriter;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.api.server.ClusterHealth;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.Partition;
+import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Pair;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 
 /**
@@ -220,21 +224,31 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
      */
     @Override
     public DataValueDescriptor increment(int columnPosition,long increment) throws StandardException{
+        long nextIdentityColumnValue;
         assert activation!=null && spliceSequences!=null:"activation or sequences are null";
-        nextIncrement=((BaseActivation)activation).ignoreSequence()?-1:spliceSequences[columnPosition-1].getNext();
+        nextIdentityColumnValue=((BaseActivation)activation).ignoreSequence()?-1:spliceSequences[columnPosition-1].getNext();
         this.getActivation().getLanguageConnectionContext().setIdentityValue(nextIncrement);
         if(rowTemplate==null)
             rowTemplate=getExecRowDefinition();
         DataValueDescriptor dvd=rowTemplate.cloneColumn(columnPosition);
-        dvd.setValue(nextIncrement);
+        dvd.setValue(nextIdentityColumnValue);
+        synchronized (this) {
+            if (increment > 0) {
+                if (nextIdentityColumnValue > nextIncrement)
+                    nextIncrement = nextIdentityColumnValue;
+            }
+            else {
+                if (nextIdentityColumnValue < nextIncrement)
+                    nextIncrement = nextIdentityColumnValue;
+            }
+        }
         return dvd;
     }
 
     @Override
     public void close() throws StandardException{
         super.close();
-        if(nextIncrement!=-1) // Do we do this twice?
-            this.getActivation().getLanguageConnectionContext().setIdentityValue(nextIncrement);
+        this.getActivation().getLanguageConnectionContext().setIdentityValue(nextIncrement);
     }
 
     private boolean isSingleRowResultSet(){

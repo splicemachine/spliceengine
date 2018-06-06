@@ -14,10 +14,15 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import com.carrotsearch.hppc.IntOpenHashSet;
+import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.test_dao.TableDAO;
+import org.apache.log4j.Logger;
+import org.junit.*;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
+import org.spark_project.guava.collect.Lists;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -27,22 +32,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntOpenHashSet;
-import com.splicemachine.derby.test.framework.*;
-import org.spark_project.guava.collect.Lists;
-import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
-import org.junit.runner.Description;
-
-import com.splicemachine.test_dao.TableDAO;
+import static org.junit.Assert.*;
 
 /**
  * Test to validate that GENERATED columns work correctly.
@@ -421,6 +411,165 @@ public class GeneratedColumnIT {
                 }
                 Assert.assertEquals("Incorrect returned row count!",rowCount,count);
             }
+        }finally{
+            try{
+                conn.rollback();
+                conn.reset();
+            }catch(Exception e){
+                Assert.fail("Unable to rollback:"+e.getMessage());
+            }
+        }
+    }
+
+    @Test
+    public void testMultiRowInsert() throws Exception {
+        String tableName = "t3".toUpperCase();
+        String tableRef = schemaWatcher.schemaName+"."+tableName;
+        TestConnection conn = methodWatcher.getOrCreateConnection();
+        conn.setAutoCommit(false);
+        try(Statement s = conn.createStatement()){
+            s.execute(String.format("create table %s(c1 int generated always as identity(start with 1,increment by 1)," +
+                                    "c2 int, primary key(c1))", tableRef));
+            int rowCount=0;
+            for(int i=0;i<13;i++){
+                rowCount+=s.executeUpdate(String.format("insert into %s(c2) values (1),(2),(3),(4),(5),(6),(7),(8),(9),(10)"
+                ,tableRef));
+                rowCount+=s.executeUpdate(String.format("insert into %s(c2) select c1 from %s",tableRef,tableRef));
+            }
+
+
+            try(ResultSet rs=s.executeQuery(String.format("SELECT * FROM %s order by c1",tableRef))){
+                int lastValue=0;
+                int count=0;
+                while(rs.next()){
+                    count++;
+                    int next=rs.getInt(1);
+                    Assert.assertFalse("Returned null!",rs.wasNull()); //ensure sequence is never null
+                    Assert.assertTrue("Returned data out of order!",next==lastValue+1); //ensure sequence is sorted (ORDER BY clause)
+                    lastValue=next;
+                }
+                Assert.assertEquals("Incorrect returned row count!",rowCount,count);
+            }
+            try(ResultSet rs=s.executeQuery(String.format("SELECT max(c1) FROM %s",tableRef))){
+                Assert.assertTrue("No rows returned!",rs.next());
+                int max=rs.getInt(1);
+                Assert.assertFalse("Returned null!",rs.wasNull());
+                Assert.assertEquals("Wrong last value!", 163820, max);
+            }
+
+
+            tableName = "t4".toUpperCase();
+            tableRef = schemaWatcher.schemaName+"."+tableName;
+            s.execute(String.format("create table %s(c1 int generated always as identity(start with -100,increment by 3000)," +
+            "c2 int, primary key(c1))", tableRef));
+            rowCount=0;
+            for(int i=0;i<8;i++){
+                rowCount+=s.executeUpdate(String.format("insert into %s(c2) values (1),(2),(3),(4),(5),(6),(7),(8),(9),(10)"
+                ,tableRef));
+                rowCount+=s.executeUpdate(String.format("insert into %s(c2) select c1 from %s",tableRef,tableRef));
+            }
+
+            try(ResultSet rs=s.executeQuery(String.format("SELECT * FROM %s order by c1",tableRef))){
+                int lastValue=-3100;
+                int count=0;
+                while(rs.next()){
+                    count++;
+                    int next=rs.getInt(1);
+                    Assert.assertFalse("Returned null!",rs.wasNull()); //ensure sequence is never null
+                    Assert.assertTrue("Returned data out of order!",next==lastValue+3000); //ensure sequence is sorted (ORDER BY clause)
+                    lastValue=next;
+                }
+                Assert.assertEquals("Incorrect returned row count!",rowCount,count);
+            }
+            try(ResultSet rs=s.executeQuery(String.format("SELECT max(c1) FROM %s",tableRef))){
+                Assert.assertTrue("No rows returned!",rs.next());
+                int max=rs.getInt(1);
+                Assert.assertFalse("Returned null!",rs.wasNull());
+                Assert.assertEquals("Wrong last value!", 15296900, max);
+            }
+
+            tableName = "t5".toUpperCase();
+            tableRef = schemaWatcher.schemaName+"."+tableName;
+            s.execute(String.format("create table %s(c1 int generated always as identity(start with 1000,increment by -9999)," +
+            "c2 int, primary key(c1))", tableRef));
+            rowCount=0;
+            rowCount+=s.executeUpdate(String.format("insert into %s(c2) values (1),(2),(3),(4),(5),(6),(7),(8),(9),(10)"
+            ,tableRef));
+            rowCount+=s.executeUpdate(String.format("insert into %s(c2) select c1 from %s",tableRef,tableRef));
+
+            try(ResultSet rs=s.executeQuery(String.format("SELECT * FROM %s order by c1 desc",tableRef))){
+                int lastValue=10999;
+                int count=0;
+                while(rs.next()){
+                    count++;
+                    int next=rs.getInt(1);
+                    Assert.assertFalse("Returned null!",rs.wasNull()); //ensure sequence is never null
+                    Assert.assertTrue("Returned data out of order!",next==lastValue-9999); //ensure sequence is sorted (ORDER BY clause)
+                    lastValue=next;
+                }
+                Assert.assertEquals("Incorrect returned row count!",rowCount,count);
+            }
+            try(ResultSet rs=s.executeQuery(String.format("SELECT min(c1) FROM %s",tableRef))){
+                Assert.assertTrue("No rows returned!",rs.next());
+                int min=rs.getInt(1);
+                Assert.assertFalse("Returned null!",rs.wasNull());
+                Assert.assertEquals("Wrong last value!", -188981, min);
+            }
+            tableName = "t6".toUpperCase();
+            tableRef = schemaWatcher.schemaName+"."+tableName;
+            s.execute(String.format("create table %s(c1 int generated always as identity(start with -1000,increment by -10000)," +
+            "c2 int, primary key(c1))", tableRef));
+            rowCount=0;
+            rowCount+=s.executeUpdate(String.format("insert into %s(c2) values (1),(2),(3),(4),(5),(6),(7),(8),(9),(10)"
+            ,tableRef));
+            rowCount+=s.executeUpdate(String.format("insert into %s(c2) select c1 from %s",tableRef,tableRef));
+
+            try(ResultSet rs=s.executeQuery(String.format("SELECT * FROM %s order by c1 desc",tableRef))){
+                int lastValue=9000;
+                int count=0;
+                while(rs.next()){
+                    count++;
+                    int next=rs.getInt(1);
+                    Assert.assertFalse("Returned null!",rs.wasNull()); //ensure sequence is never null
+                    Assert.assertTrue("Returned data out of order!",next==lastValue-10000); //ensure sequence is sorted (ORDER BY clause)
+                    lastValue=next;
+                }
+                Assert.assertEquals("Incorrect returned row count!",rowCount,count);
+            }
+            try(ResultSet rs=s.executeQuery(String.format("SELECT min(c1) FROM %s",tableRef))){
+                Assert.assertTrue("No rows returned!",rs.next());
+                int min=rs.getInt(1);
+                Assert.assertFalse("Returned null!",rs.wasNull());
+                Assert.assertEquals("Wrong last value!", -191000, min);
+            }
+            tableName = "t7".toUpperCase();
+            tableRef = schemaWatcher.schemaName+"."+tableName;
+            s.execute(String.format("create table %s(c1 int generated always as identity(start with -1,increment by -23000)," +
+            "c2 int, primary key(c1))", tableRef));
+            rowCount=0;
+            rowCount+=s.executeUpdate(String.format("insert into %s(c2) values (1),(2),(3),(4),(5),(6),(7),(8),(9),(10)"
+            ,tableRef));
+            rowCount+=s.executeUpdate(String.format("insert into %s(c2) select c1 from %s",tableRef,tableRef));
+
+            try(ResultSet rs=s.executeQuery(String.format("SELECT * FROM %s order by c1 desc",tableRef))){
+                int lastValue=22999;
+                int count=0;
+                while(rs.next()){
+                    count++;
+                    int next=rs.getInt(1);
+                    Assert.assertFalse("Returned null!",rs.wasNull()); //ensure sequence is never null
+                    Assert.assertTrue("Returned data out of order!",next==lastValue-23000); //ensure sequence is sorted (ORDER BY clause)
+                    lastValue=next;
+                }
+                Assert.assertEquals("Incorrect returned row count!",rowCount,count);
+            }
+            try(ResultSet rs=s.executeQuery(String.format("SELECT min(c1) FROM %s",tableRef))){
+                Assert.assertTrue("No rows returned!",rs.next());
+                int min=rs.getInt(1);
+                Assert.assertFalse("Returned null!",rs.wasNull());
+                Assert.assertEquals("Wrong last value!", -437001, min);
+            }
+
         }finally{
             try{
                 conn.rollback();
