@@ -76,6 +76,8 @@ public class OlapServerMaster implements Watcher {
             final ServerName serverName = ServerName.parseServerName(args[0]);
             final int port = Integer.parseInt(args[1]);
             new OlapServerMaster(serverName, port).run();
+        } catch (Throwable t) {
+            LOG.error("Failed due to unexpected exception, exiting forcefully", t);
         } finally {
             // Some issue prevented us from exiting normally
             System.exit(-1);
