@@ -263,6 +263,60 @@
                 </configuration>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.0.0</version>
+                <configuration>
+                    <artifactSet>
+                        <excludes>
+                            <exclude>org.scala-lang:*</exclude>
+                            <exclude>org.apache.spark:*</exclude>
+                        </excludes>
+                    </artifactSet>
+                    <relocations>
+                        <relocation>
+                            <pattern>com.fasterxml</pattern>
+                            <shadedPattern>splice.com.fasterxml</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>org.codehaus.jackson</pattern>
+                            <shadedPattern>splice.org.codehaus.jackson</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>org.jboss.netty</pattern>
+                            <shadedPattern>splice.org.jboss.netty</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>io.netty</pattern>
+                            <shadedPattern>org.spark_project.io.netty</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>javax.ws</pattern>
+                            <shadedPattern>splice.javax.ws</shadedPattern>
+                        </relocation>
+                    </relocations>
+                    <filters>
+                        <filter>
+                            <artifact>*:*</artifact>
+                            <excludes>
+                                <exclude>META-INF/*.SF</exclude>
+                                <exclude>META-INF/*.DSA</exclude>
+                                <exclude>META-INF/*.RSA</exclude>
+                            </excludes>
+                        </filter>
+                    </filters>
+                    <shadedArtifactAttached>true</shadedArtifactAttached>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <artifactId>maven-antrun-plugin</artifactId>
                 <executions>
                     <execution>
