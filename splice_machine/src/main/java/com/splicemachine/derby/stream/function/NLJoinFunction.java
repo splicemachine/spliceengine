@@ -125,8 +125,10 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                 LOG.error("Exception while closing operation", e);
             }
         }
-        for (Future<Pair<OperationContext, Iterator<ExecRow>>> future : futures) {
-            future.cancel(true);
+        if (futures != null) {
+            for (Future<Pair<OperationContext, Iterator<ExecRow>>> future : futures) {
+                future.cancel(true);
+            }
         }
         if (se != null)
             Exceptions.throwAsRuntime(se);

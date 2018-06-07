@@ -43,7 +43,6 @@ import java.util.*;
  * A set of static methods to supply easier access to contexts.
  */
 public final class ContextService{
-
     private static final Logger LOG = Logger.getLogger(ContextService.class);
 
     private static volatile ContextService factory;
