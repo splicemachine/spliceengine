@@ -226,11 +226,14 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
                 }
                 remoteQueryClient.close();
             }
-            if(closeables!=null){
-                for(AutoCloseable closeable : closeables){
-                    closeable.close();
+            synchronized (this) {
+                isOpen=false;
+                if (closeables != null) {
+                    for (AutoCloseable closeable : closeables) {
+                        closeable.close();
+                    }
+                    closeables = null;
                 }
-                closeables=null;
             }
             clearCurrentRow();
             for(SpliceOperation op : getSubOperations())
@@ -258,7 +261,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
                     subqueryTrackingArray[index].close();
                 }
             }
-            isOpen=false;
             operationContext = null;
         }catch(Exception e){
             throw Exceptions.parseException(e);
@@ -400,12 +402,22 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         return StringUtils.join(this.getClass().getSimpleName().replace("Operation","").split("(?=[A-Z])"), " ");
     }
 
+    @Override
+    public void reset() {
+        isOpen = true;
+        isKilled = false;
+        isTimedout = false;
+        for (SpliceOperation op : getSubOperations()) {
+            op.reset();
+        }
+    }
+
     public void openCore(DataSetProcessor dsp) throws StandardException{
         try {
 
             if (LOG.isTraceEnabled())
                 LOG.trace(String.format("openCore %s", this));
-            isOpen = true;
+            reset();
             String sql = activation.getPreparedStatement().getSource();
             if (!(this instanceof ExplainOperation || activation.isMaterialized()))
                 activation.materialize();
@@ -858,6 +870,15 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     }
 
     public synchronized void registerCloseable(AutoCloseable closeable) throws StandardException{
+        if (!isOpen) {
+            try {
+                // The operation is closed, trigger the closeable right away
+                closeable.close();
+            } catch (Exception e) {
+                LOG.error("Exception while closing", e);
+            }
+            return;
+        }
         if(closeables==null)
             closeables=new ArrayList<>(1);
         closeables.add(closeable);
