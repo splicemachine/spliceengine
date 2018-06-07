@@ -291,6 +291,7 @@ public class ValueRow implements ExecRow, Externalizable {
 	{
         hash = 0;
 		column = value;
+		ncols = value ==null?0:value.length;
 	}
 		
 	// Set the number of columns in the row to ncols, preserving

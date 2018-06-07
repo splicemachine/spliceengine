@@ -35,6 +35,7 @@ import java.math.BigDecimal;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.shared.common.reference.SQLState;
+import org.apache.spark.sql.types.Decimal;
 import org.joda.time.DateTime;
 
 /**
@@ -124,7 +125,7 @@ public class TruncateFunctionUtil {
         if (valueToTrunc < 1) {
             // short circuit if we know answer is zero (valueToTrunc<1 && valueToTrunc>=0 && truncPlaces<0)
             if (valueToTrunc >= 0 && truncPlaces.getInt() <= 0) {
-                returnValue.setBigDecimal(new BigDecimal(0));
+                returnValue.setDecimal(Decimal.apply(0l,returnValue.getDecimalValuePrecision(),returnValue.getDecimalValuePrecision()));
                 return returnValue;
             }
             roundingMode = BigDecimal.ROUND_CEILING;

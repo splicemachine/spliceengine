@@ -80,6 +80,8 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
     protected FormatableBitSet accessedCols;
     protected byte[] spliceQuery;
     protected OperationFactory baseOperationFactory;
+    protected ExecRow defaultRow;
+    protected FormatableBitSet defaultValueMap;
 
     IndexRowReader(Iterator<ExecRow> sourceIterator,
                    FormatableBitSet accessedCols,
@@ -95,7 +97,9 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
                    TxnOperationFactory operationFactory,
                    PartitionFactory tableFactory,
                    OperationFactory baseOperationFactory,
-                    String tableVersion){
+                    String tableVersion,
+                   ExecRow defaultRow,
+                   FormatableBitSet defaultValueMap){
 //        assert accessedCols != null:"Accessed Cols is null";
         this.sourceIterator=sourceIterator;
         this.outputTemplate=outputTemplate;
@@ -114,6 +118,8 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
         this.unsafeRecord = new UnsafeRecord();
         this.accessedCols = accessedCols;
         this.baseOperationFactory = baseOperationFactory;
+        this.defaultRow = defaultRow;
+        this.defaultValueMap = defaultValueMap;
     }
 
     public void close() throws IOException{
@@ -152,12 +158,19 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
             Pair<ExecRow, DataResult> next=currentResults.remove(0);
             //merge the results
             ExecRow nextScannedRow=next.getFirst();
+            // TODO FIX
             DataResult nextFetchedData=next.getSecond();
             byte[] rowKey = nextFetchedData.key();
             if (keyDecoder == null) { // 3.0 Version
                 unsafeRecord.wrap(nextFetchedData.activeData());
                 nextScannedRow.setKey(rowKey);
                 unsafeRecord.getData(accessedCols,nextScannedRow);
+                if (defaultRow != null && defaultValueMap != null) {
+                    for (int i=defaultValueMap.anySetBit(); i>=0; i=defaultValueMap.anySetBit(i)) {
+                        if (nextScannedRow.getColumn(i+1).isNull())
+                            nextScannedRow.setColumn(i+1, defaultRow.getColumn(i+1).cloneValue(false));
+                    }
+                }
             } else {
                 if (entryDecoder == null)
                     entryDecoder = new EntryDecoder();

@@ -171,6 +171,13 @@ RedoTableScanner<Data> implements TableScanner {
                 } else {
                     unsafeRecord.getData(indexColsToMainColMap, template);
                 }
+                //fill the unpopulated non-null columns with default values
+                if (defaultRow != null && defaultValueMap != null) {
+                    for (int i=defaultValueMap.anySetBit(); i>=0; i=defaultValueMap.anySetBit(i)) {
+                        if (template.getColumn(i+1).isNull())
+                            template.setColumn(i+1, defaultRow.getColumn(i+1).cloneValue(false));
+                    }
+                }
                 setRowLocation(currentKeyValue);
                 return template;
             }

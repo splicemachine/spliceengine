@@ -54,8 +54,10 @@ public class IndexRowReaderBuilder implements Externalizable{
     private boolean[] mainTableKeyColumnSortOrder;
     private int[] mainTableKeyDecodingMap;
     private FormatableBitSet mainTableAccessedKeyColumns;
-    private int[] execRowTypeFormatIds;
     protected FormatableBitSet accessedCols;
+    protected ExecRow defaultRow;
+    protected FormatableBitSet defaultValueMap;
+
     /*
      * A Map from the physical location of the Index columns in the INDEX scanned row
      * and the decoded output row.
@@ -65,18 +67,23 @@ public class IndexRowReaderBuilder implements Externalizable{
     private int[] mainTableKeyColumnTypes;
     private TxnView txn;
 
+
+
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public IndexRowReaderBuilder indexColumns(int[] indexCols){
         this.indexCols=indexCols;
         return this;
     }
 
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
-    public IndexRowReaderBuilder execRowTypeFormatIds(int[] execRowTypeFormatIds){
-        this.execRowTypeFormatIds=execRowTypeFormatIds;
+    public IndexRowReaderBuilder defaultRow(ExecRow defaultRow){
+        this.defaultRow=defaultRow;
         return this;
     }
 
+    public IndexRowReaderBuilder defaultValueMap(FormatableBitSet defaultValueMap){
+        this.defaultValueMap=defaultValueMap;
+        return this;
+    }
 
     public IndexRowReaderBuilder mainTableVersion(String mainTableVersion){
         this.tableVersion=mainTableVersion;
@@ -210,7 +217,9 @@ public class IndexRowReaderBuilder implements Externalizable{
                 txnOperationFactory,
                 tableFactory,
                 driver.baseOperationFactory(),
-                tableVersion);
+                tableVersion,
+                defaultRow,
+                defaultValueMap);
     }
 
     @Override
@@ -236,6 +245,8 @@ public class IndexRowReaderBuilder implements Externalizable{
         ArrayUtil.writeIntArray(out,indexCols);
         out.writeUTF(tableVersion);
         ArrayUtil.writeIntArray(out,mainTableKeyColumnTypes);
+        out.writeObject(defaultValueMap);
+
     }
 
     @Override
@@ -244,6 +255,7 @@ public class IndexRowReaderBuilder implements Externalizable{
         lookupBatchSize=in.readInt();
         numConcurrentLookups=in.readInt();
         outputTemplate = (ExecRow) in.readObject();
+        defaultRow = outputTemplate.getClone();
         mainTableConglomId=in.readLong();
         mainTableRowDecodingMap=ArrayUtil.readIntArray(in);
         mainTableAccessedRowColumns=(FormatableBitSet)in.readObject();
@@ -256,5 +268,6 @@ public class IndexRowReaderBuilder implements Externalizable{
         indexCols=ArrayUtil.readIntArray(in);
         tableVersion=in.readUTF();
         mainTableKeyColumnTypes=ArrayUtil.readIntArray(in);
+        defaultValueMap = (FormatableBitSet) in.readObject();
     }
 }

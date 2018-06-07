@@ -516,9 +516,9 @@ public class MPartition implements Partition{
 
     private NavigableSet<DataCell> getAscendingScanSet(DataScan scan){
         NavigableSet<DataCell> dataCells;
-        if(memstore.size()<=0)
-            dataCells = EmptyNavigableSet.instance();
-        else{
+//        if(memstore.size()<=0)
+//            dataCells = EmptyNavigableSet.instance();
+//        else{
             byte[] startKey=scan.getStartKey();
             byte[] stopKey=scan.getStopKey();
             DataCell start;
@@ -544,7 +544,6 @@ public class MPartition implements Partition{
              */
             if(stop.compareTo(start)<0) return EmptyNavigableSet.instance();
             dataCells=memstore.subSet(start,true,stop,false);
-        }
         return dataCells;
     }
 

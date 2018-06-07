@@ -18,7 +18,6 @@ import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.unsafe.Platform;
-import org.roaringbitmap.RoaringBitmap;
 
 import java.util.Iterator;
 
@@ -95,6 +94,7 @@ public class UnsafeRecord implements Record<byte[]> {
     }
 
     public UnsafeRecord(DataCell dataCell) {
+        assert dataCell != null: "dataCell is null";
         this.keyObject = dataCell.keyArray();
         this.keyOffset = dataCell.keyOffset();
         this.keyLength = dataCell.keyLength();
@@ -106,6 +106,7 @@ public class UnsafeRecord implements Record<byte[]> {
     }
 
     public void wrap(DataCell dataCell) {
+        assert dataCell != null: "dataCell is null";
         this.keyObject = dataCell.keyArray();
         this.keyOffset = dataCell.keyOffset();
         this.keyLength = dataCell.keyLength();
@@ -117,6 +118,7 @@ public class UnsafeRecord implements Record<byte[]> {
     }
 
     public void wrap(KVPair kvPair, boolean isActiveRecord, long version) {
+        assert kvPair != null: "kvPair is null";
         ByteSlice rowKey = kvPair.rowKeySlice();
         this.keyObject = rowKey.array();
         this.keyOffset = rowKey.offset();

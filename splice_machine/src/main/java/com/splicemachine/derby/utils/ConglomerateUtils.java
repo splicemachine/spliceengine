@@ -355,9 +355,9 @@ public class ConglomerateUtils{
                         0l, true);
                 record.setNumberOfColumns(1);
                 record.setTxnId1(txn.getTxnId());
-                ExecRow execRow = new ValueRow(1);
-                execRow.setRowArray(new DataValueDescriptor[]{new SQLBlob()});
-                record.setData(new DataValueDescriptor[]{new SQLBlob(DerbyBytesUtil.toBytes(conglomerate))});
+                ExecRow execRow = new ValueRow(2);
+                execRow.setRowArray(new DataValueDescriptor[]{new SQLBlob(),new SQLBlob()});
+                record.setData(new DataValueDescriptor[]{new SQLBlob(DerbyBytesUtil.toBytes(conglomerate)), new SQLBlob(org.apache.commons.lang3.SerializationUtils.serialize(execRow))});
                 SIDriver.driver().baseOperationFactory().setTemplate(put,execRow);
                 put.addCell(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES, SIConstants.PACKED_COLUMN_BYTES, 1, record.getValue());
                 table.put(put);
