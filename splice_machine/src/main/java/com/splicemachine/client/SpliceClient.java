@@ -35,12 +35,14 @@ public class SpliceClient {
     private static ScheduledExecutorService service = Executors.newScheduledThreadPool(2,
             new ThreadFactoryBuilder().setNameFormat("SpliceTokenRenewer").setDaemon(true).build());
 
-    public static synchronized void setClient(Mode mode) {
+    public static synchronized void setClient(boolean tokenEnabled, Mode mode) {
         if (!isClient) {
             isClient = true;
-            if (mode.equals(Mode.MASTER))
-                grantHBasePrivileges();
-            initializeTokenInternal();
+            if (tokenEnabled) {
+                if (mode.equals(Mode.MASTER))
+                    grantHBasePrivileges();
+                initializeTokenInternal();
+            }
         }
     }
 

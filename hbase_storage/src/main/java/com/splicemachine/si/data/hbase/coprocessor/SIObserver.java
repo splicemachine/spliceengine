@@ -56,8 +56,11 @@ import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.security.AccessDeniedException;
 import org.apache.hadoop.hbase.security.User;
+import org.apache.hadoop.hbase.security.access.Permission;
+import org.apache.hadoop.hbase.security.access.TableAuthManager;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.Iterables;
@@ -101,6 +104,8 @@ public class SIObserver extends BaseRegionObserver{
     private TxnOperationFactory txnOperationFactory;
     private OperationStatusFactory operationStatusFactory;
     private TransactionalRegion region;
+    private TableAuthManager authManager = null;
+    private boolean authTokenEnabled;
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException{
@@ -109,6 +114,8 @@ public class SIObserver extends BaseRegionObserver{
             RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment) e;
             TableName tableName = rce.getRegion().getTableDesc().getTableName();
             doesTableNeedSI(tableName);
+            HBaseSIEnvironment env = HBaseSIEnvironment.loadEnvironment(new SystemClock(), ZkUtils.getRecoverableZooKeeper());
+            SIDriver driver = env.getSIDriver();
             if (tableEnvMatch) {
                 try{
                     conglomId=Long.parseLong(tableName.getQualifierAsString());
@@ -116,8 +123,6 @@ public class SIObserver extends BaseRegionObserver{
                     SpliceLogUtils.warn(LOG,"Unable to parse conglomerate id for table %s",tableName);
                     conglomId=-1;
                 }
-                HBaseSIEnvironment env = HBaseSIEnvironment.loadEnvironment(new SystemClock(), ZkUtils.getRecoverableZooKeeper());
-                SIDriver driver = env.getSIDriver();
                 operationStatusFactory = driver.getOperationStatusLib();
                 //noinspection unchecked
                 txnOperationFactory = new SimpleTxnOperationFactory(driver.getExceptionFactory(), HOperationFactory.INSTANCE);
@@ -132,6 +137,10 @@ public class SIObserver extends BaseRegionObserver{
                 );
                 Tracer.traceRegion(region.getTableName(), rce.getRegion());
             }
+            RegionCoprocessorEnvironment regionEnv = (RegionCoprocessorEnvironment) e;
+            ZooKeeperWatcher zk = regionEnv.getRegionServerServices().getZooKeeper();
+            this.authManager = TableAuthManager.get(zk, e.getConfiguration());
+            this.authTokenEnabled = driver.getConfiguration().getAuthenticationTokenEnabled();
             super.start(e);
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
@@ -369,6 +378,9 @@ public class SIObserver extends BaseRegionObserver{
             return;
 
         if (RpcUtils.isAccessAllowed())
+            return;
+
+        if (!authTokenEnabled && authManager.authorize(user, Permission.Action.ADMIN))
             return;
 
         throw new AccessDeniedException("Insufficient permissions for user " +
