@@ -16,6 +16,7 @@ package com.splicemachine.derby.stream.spark;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ZeroCopyLiteralByteString;
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -187,7 +188,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         }
         if (in.readBoolean()) {
             SpliceClient.connectionString = in.readUTF();
-            SpliceClient.setClient(SpliceClient.Mode.EXECUTOR);
+            SpliceClient.setClient(HConfiguration.getConfiguration().getAuthenticationTokenEnabled(), SpliceClient.Mode.EXECUTOR);
         }
         badRecordsSeen = in.readLong();
         badRecordThreshold = in.readLong();
