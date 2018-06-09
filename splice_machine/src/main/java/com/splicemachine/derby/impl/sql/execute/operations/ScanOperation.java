@@ -333,7 +333,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
 
         return scanInformation.getScan(getCurrentTransaction(),
                 ((BaseActivation)activation).getScanStartOverride(),getKeyDecodingMap(),
-                ((BaseActivation)activation).getScanKeys(),((BaseActivation)activation).getScanStopOverride());
+                ((BaseActivation)activation).getScanStopOverride());
     }
 
     @Override
@@ -414,6 +414,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         return super.getScopeName();
     }
 
+    @Override
     public ScanInformation<ExecRow> getScanInformation() {
         return scanInformation;
     }
@@ -438,5 +439,10 @@ public abstract class ScanOperation extends SpliceBaseOperation{
 
     public int getSplits() {
         return splits;
+    }
+
+    @Override
+    public FormatableBitSet getAccessedColumns() throws StandardException{
+        return scanInformation.getAccessedColumns();
     }
 }
