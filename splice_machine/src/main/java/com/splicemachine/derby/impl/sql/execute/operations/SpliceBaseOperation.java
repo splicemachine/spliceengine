@@ -42,6 +42,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -958,4 +959,13 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         return uuid;
     }
 
+    @Override
+    public FormatableBitSet getAccessedColumns() throws StandardException {
+        throw new RuntimeException("getAccessedColumns not implemented");
+    }
+
+    @Override
+    public ScanInformation<ExecRow> getScanInformation() {
+        throw new RuntimeException("getScanInformation not implemented");
+    }
 }
