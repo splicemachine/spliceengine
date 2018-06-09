@@ -14,23 +14,25 @@
 
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.db.iapi.types.DataType;
-import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
-import com.splicemachine.db.iapi.types.HBaseRowLocation;
-import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.storage.*;
+import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.types.DataType;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
+import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
+import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.DataScan;
+import com.splicemachine.storage.EntryPredicateFilter;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
-import com.carrotsearch.hppc.BitSet;
 
 /**
  * Utility methods and classes related to building HBase Scans
@@ -81,7 +83,6 @@ public class Scans extends SpliceUtils {
                                  TxnView txn,
                                  boolean sameStartStopPosition,
                                  int[] formatIds,
-                                 int[] startScanKeys,
                                  int[] keyDecodingMap,
                                  int[] keyTablePositionMap,
                                  DataValueFactory dataValueFactory,
@@ -107,7 +108,7 @@ public class Scans extends SpliceUtils {
             }
             attachScanKeys(scan, startKeyValue, startSearchOperator,
                     stopKeyValue, stopKeyPrefix, stopSearchOperator,
-                    sortOrder, formatIds, startScanKeys, keyTablePositionMap, keyDecodingMap, dataValueFactory, tableVersion, rowIdKey);
+                    sortOrder, formatIds, keyTablePositionMap, keyDecodingMap, dataValueFactory, tableVersion, rowIdKey);
 
             if (!rowIdKey) {
                 buildPredicateFilter(qualifiers, scanColumnList, scan, keyDecodingMap);
@@ -134,7 +135,7 @@ public class Scans extends SpliceUtils {
                                  String tableVersion,
                                  boolean rowIdKey) throws StandardException {
         return setupScan(startKeyValue, startSearchOperator, stopKeyValue, null, stopSearchOperator, qualifiers,
-                sortOrder, scanColumnList, txn, sameStartStopPosition, formatIds, null, keyDecodingMap,
+                sortOrder, scanColumnList, txn, sameStartStopPosition, formatIds, keyDecodingMap,
                 keyTablePositionMap, dataValueFactory, tableVersion, rowIdKey);
     }
 
@@ -191,7 +192,6 @@ public class Scans extends SpliceUtils {
                                        int stopSearchOperator,
                                        boolean[] sortOrder,
                                        int[] columnTypes, //the types of the column in the ENTIRE Row
-                                       int[] startScanKeys,
                                        int[] keyTablePositionMap, //the location in the ENTIRE row of the key columns
                                        int[] keyDecodingMap,
                                        DataValueFactory dataValueFactory,

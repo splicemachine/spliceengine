@@ -341,6 +341,23 @@ public class MergeJoinIT extends SpliceUnitTest {
                 .withRows(rows(
                         row(1, "1", 0, 200)))
                 .create();
+        
+        new TableCreator(conn)
+                .withCreate("create table tt1 (a1 int, b1 int, c1 int, d1 int, e1 int, primary key(e1, d1, c1))")
+                .withInsert("insert into tt1 values(?,?,?,?,?)")
+                .withIndex("create index idx_tt1 on tt1 (d1, b1)")
+                .withIndex("create index idx2_tt1 on tt1 (a1, c1)")
+                .withRows(rows(
+                        row(3, 30, 300, 3000, 30000), row(5, 50, 500, 5000, 50000)))
+                .create();
+        new TableCreator(conn)
+                .withCreate("create table tt2 (a2 int, b2 int, c2 int, d2 int, e2 int, primary key(e2, d2, c2))")
+                .withInsert("insert into tt2 values(?,?,?,?,?)")
+                .withIndex("create index idx_tt2 on tt2 (d2, b2)")
+                .withIndex("create index idx2_tt2 on tt2 (a2, c2)")
+                .withRows(rows(
+                        row(3, 30, 300, 3000, 30000), row(5, 50, 500, 5000, 50000)))
+                .create();
     }
     @Test
     public void testSimpleJoinOverAllStrategies() throws Exception {
@@ -572,6 +589,427 @@ public class MergeJoinIT extends SpliceUnitTest {
             count++;
         }
         Assert.assertEquals(1, count);
+    }
+
+    @Test
+    public void testRightTableScanKeyWithGEPredidateOnLeadingIndexColumn() throws Exception {
+        /* test query with inequality scan key on right table's leading pk column (e2>20000) */
+        /* Q1 : e2 >20000 */
+        String sql = "select d1, e1, d2, e2 from tt1, tt2 --splice-properties joinStrategy=MERGE, useSpark=false\n where e1=e2 and e2 > 20000";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String expected = "D1  | E1   | D2  | E2   |\n" +
+                "--------------------------\n" +
+                "3000 |30000 |3000 |30000 |\n" +
+                "5000 |50000 |5000 |50000 |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //test spark path
+        sql = "select d1, e1, d2, e2 from tt1, tt2 --splice-properties joinStrategy=MERGE, useSpark=true\n where e1=e2 and e2 > 20000";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* Q2: e2 >=30000 where 30000 is the first row in right table */
+        sql = "select d1, e1, d2, e2 from tt1, tt2 --splice-properties joinStrategy=MERGE, useSpark=false\n where e1=e2 and e2 >= 30000";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sql = "select d1, e1, d2, e2 from tt1, tt2 --splice-properties joinStrategy=MERGE, useSpark=true\n where e1=e2 and e2 >= 30000";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* Q3: e2 > 30000 */
+        sql = "select d1, e1, d2, e2 from tt1, tt2 --splice-properties joinStrategy=MERGE, useSpark=false\n where e1=e2 and e2 > 30000";
+        expected = "D1  | E1   | D2  | E2   |\n" +
+                "--------------------------\n" +
+                "5000 |50000 |5000 |50000 |";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sql = "select d1, e1, d2, e2 from tt1, tt2 --splice-properties joinStrategy=MERGE, useSpark=true\n where e1=e2 and e2 > 30000";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+    }
+
+    @Test
+    public void testRightTableScanKeyWithLEPredicateOnLeadingIndexColumn() throws Exception {
+        /* test query with inequality scan key on right table's leading pk column (e2<50000) */
+        String sql = "select d1, e1, d2, e2 from tt1, tt2 --splice-properties joinStrategy=MERGE, useSpark=false\n where e1=e2 and e2 < 50000";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String expected = "D1  | E1   | D2  | E2   |\n" +
+                "--------------------------\n" +
+                "3000 |30000 |3000 |30000 |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //test spark path
+        sql = "select d1, e1, d2, e2 from tt1, tt2 --splice-properties joinStrategy=MERGE, useSpark=true\n where e1=e2 and e2 < 50000";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testRightTableScanKeyWithEqualityPredicateOnLeadingIndexColumn() throws Exception {
+        /* test query with equality scan key on right table's leading pk column (e2=50000) */
+        String sql = "select d1, e1, d2, e2 from tt1, tt2 --splice-properties joinStrategy=MERGE, useSpark=false\n where e1=e2 and e2 = 50000";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String expected = "D1  | E1   | D2  | E2   |\n" +
+                "--------------------------\n" +
+                "5000 |50000 |5000 |50000 |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //test spark path
+        sql = "select d1, e1, d2, e2 from tt1, tt2 --splice-properties joinStrategy=MERGE, useSpark=true\n where e1=e2 and e2 = 50000";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testRightTableScanKeyCombiningGEStartKeyAndHashColumnValue() throws Exception {
+        String sql = "select d1, e1, d2, e2 from tt1, tt2 --splice-properties joinStrategy=MERGE, useSpark=false\n where e2 = 30000 and e1 =30000 and d2 > 2000 and d1=d2 and c1=c2";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String expected = "D1  | E1   | D2  | E2   |\n" +
+                "--------------------------\n" +
+                "3000 |30000 |3000 |30000 |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //test spark path
+        sql = "select d1, e1, d2, e2 from tt1, tt2 --splice-properties joinStrategy=MERGE, useSpark=true\n where e2 = 30000 and e1 =30000 and d2 > 2000 and d1=d2 and c1=c2";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testRightTableScanKeyCombiningEqualStartKeyAndHashColumnValue() throws Exception {
+        String sql = "select d1, e1, d2, e2 from tt1, tt2 --splice-properties joinStrategy=MERGE, useSpark=false\n where e2 = 30000 and e1 =30000 and d2 = 3000 and d1=d2 and c1=c2";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String expected = "D1  | E1   | D2  | E2   |\n" +
+                "--------------------------\n" +
+                "3000 |30000 |3000 |30000 |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //test spark path
+        sql = "select d1, e1, d2, e2 from tt1, tt2 --splice-properties joinStrategy=MERGE, useSpark=true\n where e2 = 30000 and e1 =30000 and d2 = 3000 and d1=d2 and c1=c2";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testRightTableScanKeyCombiningGEStartKeyAndHashColumnValueCoveringIndex() throws Exception {
+        /* idx_tt2 (d2, b2) is used, idx_tt2 has index columns whose positions in the base table are reversed, so there is a projectrestrict operation
+           on top of the IndexScan, we cannot take advantage of the first qualified left on the join column to further restrict the scan of right table
+          */
+        String sql = "select d1, b1, d2, b2 from tt1, tt2 --splice-properties index=idx_tt2, joinStrategy=MERGE, useSpark=false\n where d2 > 2000 and d1=d2 and b1=b2";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String expected = "D1  |B1 | D2  |B2 |\n" +
+                "--------------------\n" +
+                "3000 |30 |3000 |30 |\n" +
+                "5000 |50 |5000 |50 |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //test spark path
+        sql = "select d1, b1, d2, b2 from tt1, tt2 --splice-properties index=idx_tt2, joinStrategy=MERGE, useSpark=true\n where d2 > 2000 and d1=d2 and b1=b2";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testRightTableScanKeyCombiningEqualStartKeyAndHashColumnValueCoveringIndex() throws Exception {
+         /* idx_tt2 (d2, b2) is used, idx_tt2 has index columns whose positions in the base table are reversed, so there is a projectrestrict operation
+           on top of the IndexScan, we cannot take advantage of the first qualified left on the join column to further restrict the scan of right table
+          */
+        String sql = "select d1, b1, d2, b2 from tt1, tt2 --splice-properties index=idx_tt2, joinStrategy=MERGE, useSpark=false\n where d2 = 3000 and d1=d2 and b1=b2";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String expected = "D1  |B1 | D2  |B2 |\n" +
+                "--------------------\n" +
+                "3000 |30 |3000 |30 |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //test spark path
+        sql = sql = "select d1, b1, d2, b2 from tt1, tt2 --splice-properties index=idx_tt2, joinStrategy=MERGE, useSpark=true\n where d2 = 3000 and d1=d2 and b1=b2";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testRightTaleScanKeyCombiningGEStartKeyAndHashColumnValueCoveringIndex2() throws Exception {
+         /* idx2_tt2 (a2, c2) is used, idx2_tt2 has index columns whose positions in the base table are in the same order, so there is no projectrestrict operation
+           on top of the IndexScan, we can take advantage of the first qualified left on the join column to further restrict the scan of right table
+          */
+        String sql = "select a1, c1, a2, c2 from tt1, tt2 --splice-properties index=idx2_tt2, joinStrategy=MERGE, useSpark=false\n where a2 > 2 and a1=a2 and c1=c2";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String expected = "A1 |C1  |A2 |C2  |\n" +
+                "------------------\n" +
+                " 3 |300 | 3 |300 |\n" +
+                " 5 |500 | 5 |500 |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //test spark path
+        sql = "select a1, c1, a2, c2 from tt1, tt2 --splice-properties index=idx2_tt2, joinStrategy=MERGE, useSpark=true\n where a2 > 2 and a1=a2 and c1=c2";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testRightTaleScanKeyCombiningEqualStartKeyAndHashColumnValueCoveringIndex2() throws Exception {
+         /* idx2_tt2 (a2, c2) is used, idx2_tt2 has index columns whose positions in the base table are in the same order, so there is no projectrestrict operation
+           on top of the IndexScan, we can take advantage of the first qualified left on the join column to further restrict the scan of right table
+          */
+        String sql = "select a1, c1, a2, c2 from tt1, tt2 --splice-properties index=idx2_tt2, joinStrategy=MERGE, useSpark=false\n where a2 = 3 and a1=a2 and c1=c2";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String expected = "A1 |C1  |A2 |C2  |\n" +
+                "------------------\n" +
+                " 3 |300 | 3 |300 |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //test spark path
+        sql = sql = "select a1, c1, a2, c2 from tt1, tt2 --splice-properties index=idx2_tt2, joinStrategy=MERGE, useSpark=true\n where a2 = 3 and a1=a2 and c1=c2";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testRightTableScanKeyWithGEPredidateOnLeadingIndexColumnOuterJoin() throws Exception {
+        /* test query with inequality scan key on right table's leading pk column (e2>20000) */
+        /* Q1 : e2 >20000 */
+        String sql = "select d1, e1, d2, e2 from tt1 left join tt2 --splice-properties joinStrategy=MERGE, useSpark=false\n on e1=e2 and e2 > 20000";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String expected = "D1  | E1   | D2  | E2   |\n" +
+                "--------------------------\n" +
+                "3000 |30000 |3000 |30000 |\n" +
+                "5000 |50000 |5000 |50000 |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //test spark path
+        sql = "select d1, e1, d2, e2 from tt1 left join tt2 --splice-properties joinStrategy=MERGE, useSpark=true\n on e1=e2 and e2 > 20000";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* Q2: e2 >=30000 where 30000 is the first row in right table */
+        sql = "select d1, e1, d2, e2 from tt1 left join tt2 --splice-properties joinStrategy=MERGE, useSpark=false\n on e1=e2 and e2 >= 30000";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sql = "select d1, e1, d2, e2 from tt1 left join tt2 --splice-properties joinStrategy=MERGE, useSpark=true\n on e1=e2 and e2 >= 30000";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* Q3: e2 > 30000 */
+        sql = "select d1, e1, d2, e2 from tt1 left join tt2 --splice-properties joinStrategy=MERGE, useSpark=false\n on e1=e2 and e2 > 30000";
+        expected = "D1  | E1   | D2  | E2   |\n" +
+                "--------------------------\n" +
+                "3000 |30000 |NULL |NULL  |\n" +
+                "5000 |50000 |5000 |50000 |";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sql = "select d1, e1, d2, e2 from tt1 left join tt2 --splice-properties joinStrategy=MERGE, useSpark=true\n on e1=e2 and e2 > 30000";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+    }
+
+    @Test
+    public void testRightTableScanKeyWithLEPredicateOnLeadingIndexColumnLeftJoin() throws Exception {
+        /* test query with inequality scan key on right table's leading pk column (e2<50000) */
+        String sql = "select d1, e1, d2, e2 from tt1 left join tt2 --splice-properties joinStrategy=MERGE, useSpark=false\n on e1=e2 and e2 < 50000";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String expected = "D1  | E1   | D2  | E2   |\n" +
+                "--------------------------\n" +
+                "3000 |30000 |3000 |30000 |\n" +
+                "5000 |50000 |NULL |NULL  |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //test spark path
+        sql = "select d1, e1, d2, e2 from tt1 left join tt2 --splice-properties joinStrategy=MERGE, useSpark=true\n on e1=e2 and e2 < 50000";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testRightTableScanKeyWithEqualityPredicateOnLeadingIndexColumnLeftJoin() throws Exception {
+        /* test query with equality scan key on right table's leading pk column (e2=50000) */
+        String sql = "select d1, e1, d2, e2 from tt1 left join tt2 --splice-properties joinStrategy=MERGE, useSpark=false\n on e1=e2 and e2 = 50000";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String  expected = "D1  | E1   | D2  | E2   |\n" +
+                "--------------------------\n" +
+                "3000 |30000 |NULL |NULL  |\n" +
+                "5000 |50000 |5000 |50000 |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //test spark path
+        sql = "select d1, e1, d2, e2 from tt1 left join tt2 --splice-properties joinStrategy=MERGE, useSpark=true\n on e1=e2 and e2 = 50000";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testRightTableScanKeyCombiningGEStartKeyAndHashColumnValueLeftJoin() throws Exception {
+        String sql = "select d1, e1, d2, e2 from tt1 left join tt2 --splice-properties joinStrategy=MERGE, useSpark=false\n on e2 = 30000 and e1 =30000 and d2 > 2000 and d1=d2 and c1=c2";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String expected = "D1  | E1   | D2  | E2   |\n" +
+                "--------------------------\n" +
+                "3000 |30000 |3000 |30000 |\n" +
+                "5000 |50000 |NULL |NULL  |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //test spark path
+        sql = "select d1, e1, d2, e2 from tt1 left join tt2 --splice-properties joinStrategy=MERGE, useSpark=true\n on e2 = 30000 and e1 =30000 and d2 > 2000 and d1=d2 and c1=c2";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testRightTableScanKeyCombiningEqualStartKeyAndHashColumnValueLeftJoin() throws Exception {
+        String sql = "select d1, e1, d2, e2 from tt1 left join tt2 --splice-properties joinStrategy=MERGE, useSpark=false\n on e2 = 30000 and e1 =30000 and d2 = 3000 and d1=d2 and c1=c2";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String expected = "D1  | E1   | D2  | E2   |\n" +
+                "--------------------------\n" +
+                "3000 |30000 |3000 |30000 |\n" +
+                "5000 |50000 |NULL |NULL  |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //test spark path
+        sql = "select d1, e1, d2, e2 from tt1 left join tt2 --splice-properties joinStrategy=MERGE, useSpark=true\n on e2 = 30000 and e1 =30000 and d2 = 3000 and d1=d2 and c1=c2";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testRightTableScanKeyCombiningGEStartKeyAndHashColumnValueCoveringIndexLeftJoin() throws Exception {
+        /* idx_tt2 (d2, b2) is used, idx_tt2 has index columns whose positions in the base table are reversed, so there is a projectrestrict operation
+           on top of the IndexScan, we cannot take advantage of the first qualified left on the join column to further restrict the scan of right table
+          */
+        String sql = "select d1, b1, d2, b2 from tt1 left join tt2 --splice-properties index=idx_tt2, joinStrategy=MERGE, useSpark=false\n on d2 > 2000 and d1=d2 and b1=b2";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String expected = "D1  |B1 | D2  |B2 |\n" +
+                "--------------------\n" +
+                "3000 |30 |3000 |30 |\n" +
+                "5000 |50 |5000 |50 |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //test spark path
+        sql = "select d1, b1, d2, b2 from tt1 left join tt2 --splice-properties index=idx_tt2, joinStrategy=MERGE, useSpark=true\n on d2 > 2000 and d1=d2 and b1=b2";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testRightTableScanKeyCombiningEqualStartKeyAndHashColumnValueCoveringIndexLeftJoin() throws Exception {
+         /* idx_tt2 (d2, b2) is used, idx_tt2 has index columns whose positions in the base table are reversed, so there is a projectrestrict operation
+           on top of the IndexScan, we cannot take advantage of the first qualified left on the join column to further restrict the scan of right table
+          */
+        String sql = "select d1, b1, d2, b2 from tt1 left join tt2 --splice-properties index=idx_tt2, joinStrategy=MERGE, useSpark=false\n on d2 = 3000 and d1=d2 and b1=b2";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String expected = "D1  |B1 | D2  | B2  |\n" +
+                "----------------------\n" +
+                "3000 |30 |3000 | 30  |\n" +
+                "5000 |50 |NULL |NULL |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //test spark path
+        sql = sql = "select d1, b1, d2, b2 from tt1 left join tt2 --splice-properties index=idx_tt2, joinStrategy=MERGE, useSpark=true\n on d2 = 3000 and d1=d2 and b1=b2";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testRightTaleScanKeyCombiningGEStartKeyAndHashColumnValueCoveringIndexLeftJoin2() throws Exception {
+         /* idx2_tt2 (a2, c2) is used, idx2_tt2 has index columns whose positions in the base table are in the same order, so there is no projectrestrict operation
+           on top of the IndexScan, we can take advantage of the first qualified left on the join column to further restrict the scan of right table
+          */
+        String sql = "select a1, c1, a2, c2 from tt1 left join tt2 --splice-properties index=idx2_tt2, joinStrategy=MERGE, useSpark=false\n on a2 > 2 and a1=a2 and c1=c2";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String expected = "A1 |C1  |A2 |C2  |\n" +
+                "------------------\n" +
+                " 3 |300 | 3 |300 |\n" +
+                " 5 |500 | 5 |500 |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //test spark path
+        sql = "select a1, c1, a2, c2 from tt1 left join tt2 --splice-properties index=idx2_tt2, joinStrategy=MERGE, useSpark=true\n on a2 > 2 and a1=a2 and c1=c2";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testRightTaleScanKeyCombiningEqualStartKeyAndHashColumnValueCoveringIndexLeftJoin2() throws Exception {
+         /* idx2_tt2 (a2, c2) is used, idx2_tt2 has index columns whose positions in the base table are in the same order, so there is no projectrestrict operation
+           on top of the IndexScan, we can take advantage of the first qualified left on the join column to further restrict the scan of right table
+          */
+        String sql = "select a1, c1, a2, c2 from tt1 left join tt2 --splice-properties index=idx2_tt2, joinStrategy=MERGE, useSpark=false\n on a2 = 3 and a1=a2 and c1=c2";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String expected = "A1 |C1  | A2  | C2  |\n" +
+                "---------------------\n" +
+                " 3 |300 |  3  | 300 |\n" +
+                " 5 |500 |NULL |NULL |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //test spark path
+        sql = sql = "select a1, c1, a2, c2 from tt1 left join tt2 --splice-properties index=idx2_tt2, joinStrategy=MERGE, useSpark=true\n on a2 = 3 and a1=a2 and c1=c2";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
     }
 
     @Test

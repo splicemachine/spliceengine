@@ -279,11 +279,11 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
 
     @Override
     public DataScan getScan(TxnView txn) throws StandardException {
-        return getScan(txn, null, null, null, null);
+        return getScan(txn, null, null, null);
     }
 
     @Override
-    public DataScan getScan(TxnView txn, ExecRow startKeyOverride, int[] keyDecodingMap, int[] startScanKeys, ExecRow stopKeyPrefix) throws StandardException {
+    public DataScan getScan(TxnView txn, ExecRow startKeyOverride, int[] keyDecodingMap, ExecRow stopKeyPrefix) throws StandardException {
         boolean sameStartStop = startKeyOverride == null && sameStartStopPosition;
         ExecRow startPosition = getStartPosition();
         ExecRow stopPosition = sameStartStop ? startPosition : getStopPosition();
@@ -327,7 +327,6 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
                 getAccessedColumns(),
                 txn, sameStartStop,
                 conglomerate.getFormat_ids(),
-                startScanKeys,
                 keyDecodingMap,
                 FormatableBitSetUtils.toCompactedIntArray(getAccessedColumns()),
                 activation.getDataValueFactory(),
@@ -401,4 +400,8 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
 
     }
 
+    @Override
+    public boolean getSameStartStopPosition() {
+        return sameStartStopPosition;
+    }
 }

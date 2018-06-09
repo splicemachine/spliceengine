@@ -59,7 +59,7 @@ public interface ScanInformation<T> {
 
     DataScan getScan(TxnView txn) throws StandardException;
 
-    DataScan getScan(TxnView txn, T startKeyHint,int[] keyDecodingMap, int[] scanKeys, T stopKeyPrefix) throws StandardException;
+    DataScan getScan(TxnView txn, T startKeyHint,int[] keyDecodingMap, T stopKeyPrefix) throws StandardException;
 
     Qualifier[][] getScanQualifiers() throws StandardException;
 
@@ -76,4 +76,6 @@ public interface ScanInformation<T> {
     ExecRow getDefaultRow() throws StandardException;
 
     FormatableBitSet getDefaultValueMap() throws StandardException;
+
+    boolean getSameStartStopPosition();
 }
