@@ -189,7 +189,7 @@ public class StatementTablePermission extends StatementSchemaPermission
 		if((authorization == NONE || authorization == UNAUTHORIZED) && currentGroupuserlist != null ) {
 			for (String currentGroupuser : currentGroupuserlist) {
 				authorization = oneAuthHasPermissionOnTable(dd, currentGroupuser, forGrant);
-				if (authorization != NONE)
+				if (authorization == AUTHORIZED)
 					break;
 			}
 
@@ -206,7 +206,7 @@ public class StatementTablePermission extends StatementSchemaPermission
 			if((authorizationSchema == NONE || authorizationSchema == UNAUTHORIZED ) && currentGroupuserlist != null ) {
 				for (String currentGroupuser : currentGroupuserlist) {
 					authorizationSchema = oneAuthHasPermissionOnSchema(dd, currentGroupuser, forGrant);
-					if (authorizationSchema != NONE)
+					if (authorizationSchema == AUTHORIZED)
 						break;
 				}
 			}
