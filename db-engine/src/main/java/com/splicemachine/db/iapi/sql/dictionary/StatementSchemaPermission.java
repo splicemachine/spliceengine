@@ -169,7 +169,7 @@ public class StatementSchemaPermission extends StatementPermission
 		if((authorization == NONE || authorization == UNAUTHORIZED) && currentGroupuserlist != null ) {
 			for (String currentGroupuser : currentGroupuserlist) {
 				authorization = oneAuthHasPermissionOnSchema(dd, currentGroupuser, forGrant);
-				if (authorization != NONE)
+				if (authorization == AUTHORIZED)
 					break;
 			}
 		}
