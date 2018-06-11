@@ -48,6 +48,7 @@ stack_version_unformatted = str(config['hostLevelParams']['stack_version'])
 # e.g. 2.3.0.0-2130
 full_version = default("/commandParams/version", None)
 hdp_version = full_version
+stack_root = Script.get_stack_root()
 
 hdfs_site = config['configurations']['hdfs-site']
 default_fs = config['configurations']['core-site']['fs.defaultFS']
@@ -59,6 +60,7 @@ hadoop_conf_dir = conf_select.get_hadoop_conf_dir()
 security_enabled = config['configurations']['cluster-env']['security_enabled']
 kinit_path_local = get_kinit_path(default('/configurations/kerberos-env/executable_search_paths', None))
 dfs_type = default("/commandParams/dfs_type", "")
+splice_pid_file = "/tmp/splice-ambari-master.pid"
 
 
 import functools
