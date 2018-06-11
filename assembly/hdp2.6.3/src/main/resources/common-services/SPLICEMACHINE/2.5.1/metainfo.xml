@@ -42,6 +42,27 @@
                         </customCommand>
                     </customCommands>
                 </component>
+                <component>
+                    <name>SPLICEMACHINE_INSTALL_MASTER</name>
+                    <displayName>Splicemachine Install Master</displayName>
+                    <category>MASTER</category>
+                    <cardinality>1+</cardinality>
+                    <commandScript>
+                        <script>scripts/splice_install_master.py</script>
+                        <scriptType>PYTHON</scriptType>
+                        <timeout>600</timeout>
+                    </commandScript>
+                    <customCommands>
+                        <customCommand>
+                            <name>CUSTOM_INSTALL</name>
+                            <commandScript>
+                                <script>scripts/splice_install_master.py</script>
+                                <scriptType>PYTHON</scriptType>
+                                <timeout>600</timeout>
+                            </commandScript>
+                        </customCommand>
+                    </customCommands>
+                </component>
             </components>
             <osSpecifics>
                 <osSpecific>
