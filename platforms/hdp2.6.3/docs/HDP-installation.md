@@ -74,31 +74,36 @@ After install the rpm,restart ambari-server using 'service ambari-server restart
 
 Follow the steps to install splicemachine server.
 
-1.click the action button on the left buttom of the ambari page,then click on 'Add Services'
+1. Click the action button on the left bottom of the ambari page,then click on 'Add Services'
 
 <img src="docs/add_services.jpg" alt="Add Service" width="400" height="200">
 
-2.choose splice machine from the 'add service wizard'
+2. Choose splice machine from the 'add service wizard'
 
 <img src="docs/add_service_wizard.jpg" alt="Add Service Wizard" width="400" height="200">
 
-3.choose hosts needed to install splice machine,only choose hosts that have hbase region server installed.Then click next.
+3. Choose the master machine. It need to be the same machine with HBase master.
+
+4. Choose hosts needed to install splice machine,only choose hosts that have hbase region server 
+installed.Then click next.
 
 <img src="docs/choose_hosts.jpeg" alt="Choose hosts" width="400" height="200">
 
-4.On the page of custom services,no properties need to customize by hand unless you would like to add Apache Ranger Support.
+5. On the page of custom services,no properties need to customize by hand unless you would like to
+ add Apache Ranger Support.
 
 <img src="docs/custom_services.jpeg" alt="Custom Services" width="400" height="200">
 
-5.please review all the configuration change made by ambari and click OK to continue.
+6. Please review all the configuration change made by ambari and click OK to continue.
 
 <img src="docs/dependent_config.jpeg" alt="dependent_config.jpeg" width="400" height="200">
 
-6.please click next all the way down to this page ,then click 'deploy',after that finishes,splice machine is installed.
+7. Please click next all the way down to this page ,then click 'deploy',after that finishes,splice
+ machine is installed.
 
 <img src="docs/review.jpeg" alt="dependent_config.jpeg" width="400" height="200">
 
-7.restart all the services affected to start splice machine!
+8. Restart all the services affected to start splice machine!
 
 
 
