@@ -69,7 +69,6 @@ import com.splicemachine.db.impl.sql.compile.CompilerContextImpl;
 import com.splicemachine.db.impl.sql.execute.*;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.log4j.Priority;
 
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
@@ -372,7 +371,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             stmtLogger.setLevel(Level.OFF);
         }
 
-        String maxStatementLogLenStr = PropertyUtil.getServiceProperty(getTransactionCompile(),
+        String maxStatementLogLenStr = PropertyUtil.getCachedDatabaseProperty(getTransactionCompile(),
                 "derby.language.maxStatementLogLen");
         maxStatementLogLen = maxStatementLogLenStr == null ? -1 : Integer.valueOf
                 (maxStatementLogLenStr);
