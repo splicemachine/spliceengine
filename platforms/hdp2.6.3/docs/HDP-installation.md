@@ -86,7 +86,7 @@ Follow the steps to install splicemachine server.
 
 <img src="docs/choose_hosts.jpeg" alt="Choose hosts" width="400" height="200">
 
-4.O On the page of custom services,no properties need to customize by hand unless you would like to add Apache Ranger Support.
+4.On the page of custom services,no properties need to customize by hand unless you would like to add Apache Ranger Support.
 
 <img src="docs/custom_services.jpeg" alt="Custom Services" width="400" height="200">
 
@@ -148,6 +148,10 @@ the admin plugin for Splice Machine is added to the Ranger web application.
 
 The service can be installed by executing the following from a command line on the machine where the Ambari Service resides.
 
+You can download the file `ranger-servicedef-splicemachine.json` at [here](https://raw.githubusercontent.com/splicemachine/spliceengine/branch-2.5/assembly/hdp2.6.3/src/main/resources/stacks/HDP/2.6/services/SPLICEMACHINE/configuration/ranger-servicedef-splicemachine.json).
+
+Then post this file to Ranger API. `admin:admin` here is Ranger's username and password.
+
 ```
 curl -sS -u admin:admin -H "Content-Type: application/json" -X POST http://localhost:6080/service/plugins/definitions -d @/home/splice/ranger-servicedef-splicemachine.json
 ```
@@ -180,6 +184,8 @@ Once this is done, you can change the authorization scheme to RANGER by adding t
    ````
 
 It is set to **NATIVE** by default.
+
+### Modify the Log Location
 
 #### Query Statement log
 
