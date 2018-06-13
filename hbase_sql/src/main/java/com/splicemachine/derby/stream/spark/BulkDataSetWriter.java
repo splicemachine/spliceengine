@@ -104,11 +104,12 @@ public class BulkDataSetWriter  {
                     }
                     int count = 0;
                     for (Partition partition : partitions) {
+                        String regionName = partition.getName();
                         byte[] startKey = partition.getStartKey();
                         byte[] endKey = partition.getEndKey();
                         Path regionPath = getRandomFilename(tablePath);
                         Path familyPath = new Path(regionPath, "V");
-                        bulkImportPartitions.add(new BulkImportPartition(conglom, startKey, endKey, familyPath.toString()));
+                        bulkImportPartitions.add(new BulkImportPartition(conglom, regionName, startKey, endKey, familyPath.toString()));
                         count++;
                         if (LOG.isDebugEnabled()) {
                             SpliceLogUtils.debug(LOG, "start key: %s", Bytes.toHex(startKey));
