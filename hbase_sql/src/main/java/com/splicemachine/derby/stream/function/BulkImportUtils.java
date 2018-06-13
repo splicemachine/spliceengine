@@ -63,7 +63,7 @@ public class BulkImportUtils implements Serializable{
                 }
                 if (start == null  || start.length == 0) {
                     // start key is empty
-                    if (Bytes.compareTo(end, key) < 0)
+                    if (Bytes.compareTo(end, key) <= 0)
                         return -1;
                     else
                         return 0;
