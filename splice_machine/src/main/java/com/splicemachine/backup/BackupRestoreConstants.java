@@ -21,16 +21,11 @@ package com.splicemachine.backup;
 import java.nio.charset.Charset;
 
 public class BackupRestoreConstants {
-    private static Charset UTF8_CHARSET = Charset.forName("UTF-8");
-
     public static final String BACKUP_DIR = "backup";
     public static final String BACKUP_DATA_DIR = "data";
     public static final String BACKUP_RECORD_FILE_NAME = "SYSBACKUP";
     public static final String REGION_FILE_NAME = ".regioninfo";
     public static final String ARCHIVE_DIR = "archive";
-    public static final byte[] BACKUP_TYPE_FULL_BYTES = "FULL".getBytes(UTF8_CHARSET);
-    public static final byte[] BACKUP_TYPE_INCR_BYTES = "INCR".getBytes(UTF8_CHARSET);
     public static final String BACKUP_JOB_GROUP = "Backup";
     public static final String RESTORE_JOB_GROUP = "Restore";
-    public static final long BACKUP_JOB_TIMEOUT = 30000;
 }

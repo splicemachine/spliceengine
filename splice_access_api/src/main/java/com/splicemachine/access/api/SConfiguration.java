@@ -101,6 +101,12 @@ public interface SConfiguration {
 
     long getBackupTimeout();
 
+    long getBackupMaxBandwidthMB();
+
+    boolean getBackupUseDistcp();
+
+    int getBackupIOBufferSize();
+
     String getCompressionAlgorithm();
 
     String getNamespace();

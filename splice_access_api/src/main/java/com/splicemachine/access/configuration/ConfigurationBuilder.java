@@ -99,6 +99,9 @@ public class ConfigurationBuilder {
     public int backupParallelism;
     public long backupKeepAliveInterval;
     public long backupTimeout;
+    public long backupMaxBandwidthMB;
+    public boolean backupUseDistcp;
+    public int backupIOBufferSize;
 
     // SQLConfiguration
     public boolean debugDumpBindTree;

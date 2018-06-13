@@ -182,7 +182,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
     }
 
     @Override
-    public boolean isRestoreNode() {
+    public boolean isRestoreMode() {
         return this.restoreMode;
     }
 

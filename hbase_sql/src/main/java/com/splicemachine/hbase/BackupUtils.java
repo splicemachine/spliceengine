@@ -186,7 +186,7 @@ public class BackupUtils {
         try {
             RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
             String spliceBackupPath = HConfiguration.getConfiguration().getBackupPath();
-            boolean isRestoreMode = SIDriver.driver().lifecycleManager().isRestoreNode();
+            boolean isRestoreMode = SIDriver.driver().lifecycleManager().isRestoreMode();
             if (!isRestoreMode) {
                 if (BackupUtils.existsDatabaseBackup(fs, rootDir)) {
                     if (LOG.isDebugEnabled()) {
