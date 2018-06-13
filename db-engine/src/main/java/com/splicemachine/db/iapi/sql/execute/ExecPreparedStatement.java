@@ -60,6 +60,8 @@ public interface ExecPreparedStatement
 
     String getSource();
 
+	String getSessionPropertyValues();
+
 	/**
 	 *	Get the Execution constants. This routine is called at Execution time.
 	 *

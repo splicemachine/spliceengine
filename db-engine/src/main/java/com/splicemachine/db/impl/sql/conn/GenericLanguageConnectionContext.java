@@ -3697,9 +3697,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                                   ParameterValueSet pvs) {
         if (stmtLogger.isInfoEnabled()) {
             stmtLogger.info(String.format(
-                    "Start executing query. %s, uuid=%s, engine=%s, %s, paramsCount=%d, params=[ %s ]",
+                    "Start executing query. %s, uuid=%s, engine=%s, %s, paramsCount=%d, params=[ %s ], sessionProperties=[ %s ]",
                     getLogHeader(), uuid, engine, formatLogStmt(ps.getSource()),
-                    pvs.getParameterCount(), pvs.toString()));
+                    pvs.getParameterCount(), pvs.toString(), ps.getSessionPropertyValues()));
         }
     }
 
