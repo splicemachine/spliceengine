@@ -41,7 +41,6 @@ import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.services.monitor.ModuleFactory;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.*;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
@@ -410,6 +409,10 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
                 (statement == null) ? "null" : statement.getSource();
     }
 
+    @Override
+    public String getSessionPropertyValues() {
+        return (statement == null) ? "null" : statement.getSessionPropertyValues();
+    }
     @Override
     public void setSource(String text) {
         sourceTxt = text;
