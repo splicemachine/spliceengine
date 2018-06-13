@@ -145,6 +145,16 @@ public class HBaseConfiguration implements ConfigurationDefault {
 
     public static final String SPLICE_BACKUP_TIMEOUT = "splice.backup.timeout";
     public static final long DEFAULT_SPLICE_BACKUP_TIMEOUT = 10 * DEFAULT_SPLICE_BACKUP_KEEPALIVE_INTERVAL;
+
+    public static final String SPLICE_BACKUP_MAX_BANDWIDTH_MB = "splice.backup.max.bandwidth.mb";
+    public static final long DEFAULT_SPLICE_BACKUP_MAX_BANDWIDTH_MB = 100;
+
+    public static final String SPLICE_BACKUP_USE_DISTCP = "splice.backup.use.distcp";
+    public static final boolean DEFAULT_SPLICE_USE_DISTCP = false;
+
+    public static final String SPLICE_BACKUP_IO_BUFFER_SIZE = "splice.backup.io.buffer.size";
+    public static final int DEFAULT_SPLICE_BACKUP_IO_BUFFER_SIZE = 64*1024;
+
     /**
      * The Path in zookeeper for storing the maximum reserved timestamp
      * from the ZkTimestampSource implementation.
@@ -206,5 +216,8 @@ public class HBaseConfiguration implements ConfigurationDefault {
         builder.backupParallelism = configurationSource.getInt(SPLICE_BACKUP_PARALLELISM, DEFAULT_SPLICE_BACKUP_PARALLELISM);
         builder.backupKeepAliveInterval = configurationSource.getLong(SPLICE_BACKUP_KEEPALIVE_INTERVAL, DEFAULT_SPLICE_BACKUP_KEEPALIVE_INTERVAL);
         builder.backupTimeout = configurationSource.getLong(SPLICE_BACKUP_TIMEOUT, DEFAULT_SPLICE_BACKUP_TIMEOUT);
+        builder.backupMaxBandwidthMB = configurationSource.getLong(SPLICE_BACKUP_MAX_BANDWIDTH_MB, DEFAULT_SPLICE_BACKUP_MAX_BANDWIDTH_MB);
+        builder.backupUseDistcp = configurationSource.getBoolean(SPLICE_BACKUP_USE_DISTCP, DEFAULT_SPLICE_USE_DISTCP);
+        builder.backupIOBufferSize = configurationSource.getInt(SPLICE_BACKUP_IO_BUFFER_SIZE, DEFAULT_SPLICE_BACKUP_IO_BUFFER_SIZE);
     }
 }
