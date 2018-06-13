@@ -73,7 +73,7 @@ public class GenericStatement implements Statement{
     private final boolean isForReadOnly;
     private int prepareIsolationLevel;
     private GenericStorablePreparedStatement preparedStmt;
-    private String sessionPropertyValues;
+    private String sessionPropertyValues = "null";
 
     /**
      * Constructor for a Statement given the text of the statement in a String
@@ -201,6 +201,11 @@ public class GenericStatement implements Statement{
 
     @Override
     public String getSource(){ return statementText; }
+
+    @Override
+    public String getSessionPropertyValues() {
+        return sessionPropertyValues;
+    }
 
     public String getCompilationSchema(){ return compilationSchema.getDescriptorName(); }
 
