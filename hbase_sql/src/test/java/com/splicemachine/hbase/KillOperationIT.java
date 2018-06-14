@@ -60,7 +60,6 @@ import static org.junit.Assert.assertTrue;
 /**
  * Created by jyuan on 3/28/16.
  */
-@Ignore
 @Category({SerialTest.class})
 @RunWith(Parameterized.class)
 public class KillOperationIT {
@@ -210,7 +209,6 @@ public class KillOperationIT {
     }
 
 
-    @Ignore
     @Test
     public void testMultiProbeIsKilled() throws Exception {
         String sql= "select * from P a --splice-properties joinStrategy=nestedloop, useSpark="+useSpark + "\n" +

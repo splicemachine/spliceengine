@@ -34,6 +34,7 @@ package com.splicemachine.db.iapi.services.context;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
+import org.apache.log4j.Logger;
 
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -44,6 +45,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
  * A set of static methods to supply easier access to contexts.
  */
 public final class ContextService{
+    private static final Logger LOG = Logger.getLogger(ContextService.class);
     private static volatile ContextService INSTANCE;
 
     private HeaderPrintWriter errorStream;
@@ -527,8 +529,6 @@ public final class ContextService{
      * </UL>
      */
     public void setCurrentContextManager(ContextManager cm){
-
-
         if(SanityManager.DEBUG){
             Thread me=Thread.currentThread();
 

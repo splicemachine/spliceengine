@@ -331,6 +331,9 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
      */
     void openCore(DataSetProcessor dsp) throws StandardException;
 
+
+    void reset();
+
     /**
      *
      * Register a resource to be closed when the activation is closed.
