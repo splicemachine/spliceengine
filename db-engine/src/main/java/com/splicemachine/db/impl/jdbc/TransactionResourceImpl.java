@@ -522,8 +522,8 @@ public final class TransactionResourceImpl
 
         //DERBY-4856 thread dump
         boolean result = cm.cleanupOnError(e, diagActive);
-		csf.removeContext(cm);
-		return result;
+        csf.removeContext(cm);
+        return result;
 	}
 
 	boolean isIdle()
