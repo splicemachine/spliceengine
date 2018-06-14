@@ -177,7 +177,7 @@ public class StatementTablePermission extends StatementSchemaPermission
 	{
 		DataDictionary dd = lcc.getDataDictionary();
         String currentUserId = lcc.getCurrentUserId(activation);
-        String currentGroupuser = lcc.getCurrentGroupUser(activation);
+        List<String> currentGroupuserlist = lcc.getCurrentGroupUser(activation);
 
 		// Let check the table level first
 		int authorization =
@@ -186,8 +186,13 @@ public class StatementTablePermission extends StatementSchemaPermission
 		if(authorization == NONE || authorization == UNAUTHORIZED ) {
 			authorization = oneAuthHasPermissionOnTable(dd, currentUserId, forGrant);
 		}
-		if((authorization == NONE || authorization == UNAUTHORIZED) && currentGroupuser != null ) {
-			authorization = oneAuthHasPermissionOnTable(dd, currentGroupuser, forGrant);
+		if((authorization == NONE || authorization == UNAUTHORIZED) && currentGroupuserlist != null ) {
+			for (String currentGroupuser : currentGroupuserlist) {
+				authorization = oneAuthHasPermissionOnTable(dd, currentGroupuser, forGrant);
+				if (authorization == AUTHORIZED)
+					break;
+			}
+
 		}
 
 		// Let see if we have schema level privileges. We overwrite only it there is no privileges for tables
@@ -198,8 +203,12 @@ public class StatementTablePermission extends StatementSchemaPermission
 			if(authorizationSchema == NONE || authorizationSchema == UNAUTHORIZED ) {
 				authorizationSchema = oneAuthHasPermissionOnSchema(dd, currentUserId, forGrant);
 			}
-			if((authorizationSchema == NONE || authorizationSchema == UNAUTHORIZED ) && currentGroupuser != null ) {
-				authorizationSchema = oneAuthHasPermissionOnSchema(dd, currentGroupuser, forGrant);
+			if((authorizationSchema == NONE || authorizationSchema == UNAUTHORIZED ) && currentGroupuserlist != null ) {
+				for (String currentGroupuser : currentGroupuserlist) {
+					authorizationSchema = oneAuthHasPermissionOnSchema(dd, currentGroupuser, forGrant);
+					if (authorizationSchema == AUTHORIZED)
+						break;
+				}
 			}
 
 			// we overwrite the authorization type with what we found for schemas
@@ -227,8 +236,12 @@ public class StatementTablePermission extends StatementSchemaPermission
 							Authorizer.PUBLIC_AUTHORIZATION_ID,
 							dbo);
 				}
-				if (rd == null && currentGroupuser != null) {
-					rd = dd.getRoleGrantDescriptor(role, currentGroupuser, dbo);
+				if (rd == null && currentGroupuserlist != null) {
+					for (String currentGroupuser : currentGroupuserlist) {
+						rd = dd.getRoleGrantDescriptor(role, currentGroupuser, dbo);
+						if (rd != null)
+							break;
+					}
 				}
 
 				if (rd == null) {
