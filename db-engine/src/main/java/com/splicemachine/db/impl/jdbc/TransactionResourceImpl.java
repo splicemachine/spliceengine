@@ -521,7 +521,9 @@ public final class TransactionResourceImpl
 			SanityManager.ASSERT(cm != null, "cannot cleanup on error with null context manager");
 
         //DERBY-4856 thread dump
-        return cm.cleanupOnError(e, diagActive);
+        boolean result = cm.cleanupOnError(e, diagActive);
+        csf.removeContext(cm);
+        return result;
 	}
 
 	boolean isIdle()
