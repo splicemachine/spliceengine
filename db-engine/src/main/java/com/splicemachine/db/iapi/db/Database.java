@@ -31,16 +31,17 @@
 
 package com.splicemachine.db.iapi.db;
 
-import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.jdbc.AuthenticationService;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.jdbc.AuthenticationService;
-import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 
 import java.io.InputStream;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -85,7 +86,7 @@ public interface Database extends com.splicemachine.db.database.Database, Locale
 	 *
 	 * @exception StandardException thrown if unable to create the connection.
 	 */
-	public LanguageConnectionContext setupConnection(ContextManager cm, String user, String groupuser, String drdaID, String dbname,
+	public LanguageConnectionContext setupConnection(ContextManager cm, String user, List<String> groupuserlist, String drdaID, String dbname,
 													 CompilerContext.DataSetProcessorType dataSetProcessorType,
 													 boolean skipStats,
 													 double defaultSelectivityFactor,
