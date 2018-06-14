@@ -1160,8 +1160,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
         if (dd.usesSqlAuthorization()) {
             String databaseOwner = dd.getAuthorizationDatabaseOwner();
             String currentUser = lcc.getStatementContext().getSQLSessionContext().getCurrentUser();
-            String groupUser = lcc.getStatementContext().getSQLSessionContext().getCurrentGroupUser();
-            if (!(databaseOwner.equals(currentUser) || databaseOwner.equals(groupUser))) {
+            List<String> groupUserlist = lcc.getStatementContext().getSQLSessionContext().getCurrentGroupUser();
+            if (!(databaseOwner.equals(currentUser) || (groupUserlist != null && groupUserlist.contains(databaseOwner)))) {
                 throw StandardException.newException(SQLState.DBO_ONLY);
             }
         }

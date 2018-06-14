@@ -130,14 +130,18 @@ public abstract class StatementPermission
 		DataDictionary dd = lcc.getDataDictionary();
 		TransactionController tc = lcc.getTransactionExecute();
 		ExecPreparedStatement ps = activation.getPreparedStatement();
-		String currentGroupuser = lcc.getCurrentGroupUser(activation);
+		List<String> currentGroupuserlist = lcc.getCurrentGroupUser(activation);
 
         PermissionsDescriptor perm =
             getPermissionDescriptor( lcc.getCurrentUserId(activation), dd );
 		if( !isCorrectPermission( perm ) ) { perm = getPermissionDescriptor(Authorizer.PUBLIC_AUTHORIZATION_ID, dd ); }
 
-		if( !isCorrectPermission( perm ) && currentGroupuser != null ) {
-			perm = getPermissionDescriptor(currentGroupuser, dd );
+		if( !isCorrectPermission( perm ) && currentGroupuserlist != null ) {
+			for (String currentGroupuser : currentGroupuserlist) {
+				perm = getPermissionDescriptor(currentGroupuser, dd );
+				// if the groupuser has the correct permission, we're done
+				if ( isCorrectPermission( perm ) ) { return; }
+			}
 		}
         // if the user/groupuser has the correct permission, we're done
 		if ( isCorrectPermission( perm ) ) { return; }
@@ -163,8 +167,12 @@ public abstract class StatementPermission
 					Authorizer.PUBLIC_AUTHORIZATION_ID,
 					dbo);
 			}
-			if (rd == null && currentGroupuser != null) {
-				rd = dd.getRoleGrantDescriptor(role, currentGroupuser, dbo);
+			if (rd == null && currentGroupuserlist != null) {
+				for (String currentGroupuser : currentGroupuserlist) {
+					rd = dd.getRoleGrantDescriptor(role, currentGroupuser, dbo);
+					if (rd != null)
+						break;
+				}
 			}
 
 			if (rd == null) {
