@@ -80,7 +80,7 @@ class SplicemachineContext(url: String) extends Serializable {
   @transient lazy val internalConnection : Connection = {
     Holder.log.debug("Splice Client in SplicemachineContext "+SpliceClient.isClient())
     SpliceClient.connectionString = url
-    SpliceClient.setClient(SpliceClient.Mode.MASTER)
+    SpliceClient.setClient(HConfiguration.getConfiguration.getAuthenticationTokenEnabled, SpliceClient.Mode.MASTER)
 
     val principal = System.getProperty("spark.yarn.principal")
     val keytab = System.getProperty("spark.yarn.keytab")
@@ -88,7 +88,6 @@ class SplicemachineContext(url: String) extends Serializable {
     if (principal != null && keytab != null) {
       Holder.log.info(f"Authenticating as ${principal} with keytab ${keytab}")
 
-      val configuration = HConfiguration.unwrapDelegate()
       val ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab)
       UserGroupInformation.setLoginUser(ugi)
 
