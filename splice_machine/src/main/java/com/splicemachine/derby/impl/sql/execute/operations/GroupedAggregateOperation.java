@@ -152,6 +152,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
+
         OperationContext<GroupedAggregateOperation> operationContext = dsp.createOperationContext(this);
         DataSet set = source.getDataSet(dsp);
 

@@ -156,6 +156,9 @@ public class AnyOperation extends SpliceBaseOperation {
 
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
+
         // we are consuming the dataset, get a ResultDataSet
         Iterator<ExecRow> iterator = source.getResultDataSet(dsp).toLocalIterator();
         if (iterator.hasNext())
