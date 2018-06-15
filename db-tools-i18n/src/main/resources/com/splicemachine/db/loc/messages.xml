@@ -2743,6 +2743,20 @@ Guide.
             </msg>
 
             <msg>
+                <name>42Y86</name>
+                <text>Invalid session property '{0}' specified. The case-insensitive session properties that are currently supported are '{1}'. </text>
+                <arg>sessionPropertyName</arg>
+                <arg>propertyNameList</arg>
+            </msg>
+
+            <msg>
+                <name>42Y87</name>
+                <text>Invalid session property value '{0}' specified, '{1}' is expected. </text>
+                <arg>sessionPropertyValue</arg>
+                <arg>expectedVal</arg>
+            </msg>
+
+            <msg>
                 <name>42Y90</name>
                 <text>FOR UPDATE is not permitted in this type of statement.  </text>
             </msg>

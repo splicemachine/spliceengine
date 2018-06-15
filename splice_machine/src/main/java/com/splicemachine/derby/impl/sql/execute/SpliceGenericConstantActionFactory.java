@@ -384,6 +384,12 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
     }
 
     @Override
+    public ConstantAction getSetSessionPropertyConstantAction(Properties properties) {
+        SpliceLogUtils.trace(LOG,"getSetSessionPropertyConstantAction {%s}", properties.toString());
+        return new SetSessionPropertyConstantOperation(properties);
+    }
+
+    @Override
     public ConstantAction getUpdateConstantAction(long conglomId,
                                                   int tableType,
                                                   StaticCompiledOpenConglomInfo heapSCOCI,
