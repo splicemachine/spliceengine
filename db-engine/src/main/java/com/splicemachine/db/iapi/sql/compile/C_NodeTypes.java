@@ -267,9 +267,11 @@ int CREATE_INDEX_NODE = 146;
 	int DROP_PIN_NODE = 256;
 	int ARRAY_OPERATOR_NODE = 257;
 	int ARRAY_CONSTANT_NODE = 258;
+	int SET_SESSION_PROPERTY_NODE = 259;
+	int CURRENT_SESSION_PROPERTY_NODE = 260;
 
 	// Final value in set, keep up to date!
-	int FINAL_VALUE = ARRAY_CONSTANT_NODE;
+	int FINAL_VALUE = CURRENT_SESSION_PROPERTY_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision

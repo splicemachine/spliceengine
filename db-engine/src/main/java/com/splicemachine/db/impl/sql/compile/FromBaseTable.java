@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
@@ -552,8 +553,14 @@ public class FromBaseTable extends FromTable {
         }
 
         /* check if we need to inherent some property from the connection */
-        skipStats = getLanguageConnectionContext().getSkipStats();
-        defaultSelectivityFactor = getLanguageConnectionContext().getDefaultSelectivityFactor();
+        Boolean skipStatsObj = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.SKIPSTATS);
+        skipStats = skipStatsObj==null?false:skipStatsObj.booleanValue();
+        Double defaultSelectivityFactorObj = (Double)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR);
+        defaultSelectivityFactor = defaultSelectivityFactorObj==null?-1d:defaultSelectivityFactorObj.doubleValue();
+        Boolean useSparkObj = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.USESPARK);
+        if (useSparkObj != null)
+            dataSetProcessorType = useSparkObj.booleanValue() ? CompilerContext.DataSetProcessorType.FORCED_SPARK:CompilerContext.DataSetProcessorType.FORCED_CONTROL;
+
         if (defaultSelectivityFactor > 0)
             skipStats = true;
 
