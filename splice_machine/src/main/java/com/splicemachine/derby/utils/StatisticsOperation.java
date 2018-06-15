@@ -88,6 +88,9 @@ public class StatisticsOperation extends SpliceBaseOperation {
 
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
+
         dsp.setSchedulerPool("admin");
         try {
             DataSet statsDataSet;

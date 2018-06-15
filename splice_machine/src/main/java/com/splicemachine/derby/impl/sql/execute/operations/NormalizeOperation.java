@@ -283,6 +283,9 @@ public class NormalizeOperation extends SpliceBaseOperation{
     @SuppressWarnings("unchecked")
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException{
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
+
         DataSet<ExecRow> sourceSet=source.getDataSet(dsp);
         OperationContext operationContext=dsp.createOperationContext(this);
         operationContext.pushScope();

@@ -110,6 +110,9 @@ public class MergeJoinOperation extends JoinOperation {
 
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
+
         OperationContext<JoinOperation> operationContext = dsp.<JoinOperation>createOperationContext(this);
         DataSet<ExecRow> left = leftResultSet.getDataSet(dsp);
         

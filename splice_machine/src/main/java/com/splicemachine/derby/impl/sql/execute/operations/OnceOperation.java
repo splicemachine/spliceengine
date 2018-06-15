@@ -239,7 +239,10 @@ public class OnceOperation extends SpliceBaseOperation {
 
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        // We are consuming the dataset, get a resultDataSet
+		if (!isOpen)
+			throw new IllegalStateException("Operation is not open");
+
+		// We are consuming the dataset, get a resultDataSet
         DataSet<ExecRow> raw = source.getResultDataSet(dsp);
         final Iterator<ExecRow> iterator = raw.toLocalIterator();
         ExecRow result;

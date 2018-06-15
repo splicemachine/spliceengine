@@ -347,6 +347,9 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     @SuppressWarnings({ "unchecked" })
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException{
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
+
         if(statusDirectory != null) {
             // if we have a status directory, we're an import and so permissive
             dsp.setPermissive(statusDirectory, getVTIFileName(), failBadRecordCount);

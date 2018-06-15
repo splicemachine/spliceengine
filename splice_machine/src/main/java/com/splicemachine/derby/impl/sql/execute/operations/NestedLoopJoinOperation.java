@@ -93,7 +93,10 @@ public class NestedLoopJoinOperation extends JoinOperation {
 
 
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        DataSet<ExecRow> left = leftResultSet.getDataSet(dsp);
+		if (!isOpen)
+			throw new IllegalStateException("Operation is not open");
+
+		DataSet<ExecRow> left = leftResultSet.getDataSet(dsp);
         OperationContext<NestedLoopJoinOperation> operationContext = dsp.createOperationContext(this);
 
         operationContext.pushScope();
