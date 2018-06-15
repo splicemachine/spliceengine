@@ -116,6 +116,9 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
+
         OperationContext operationContext = dsp.createOperationContext(this);
         DataSet<ExecRow> dataSet = source.getDataSet(dsp);
 
