@@ -118,6 +118,9 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
+
         OperationContext<ScalarAggregateOperation> operationContext = dsp.createOperationContext(this);
         DataSet<ExecRow> dsSource = source.getDataSet(dsp);
         DataSet<ExecRow> ds = dsSource.mapPartitions(new ScalarAggregateFlatMapFunction(operationContext, false), false, /*pushScope=*/true, "First Aggregation");

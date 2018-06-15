@@ -65,10 +65,7 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
             initRightScan(leftPeekingIterator);
         }
         final SpliceOperation rightSide = joinOperation.getRightOperation();
-        /* for spark execution, the ScanOperation for the right may have been marked closed by other spark tasks
-           in the same thread, reset it to open since we still have open scanners on it
-         */
-        rightSide.setOpen();
+        rightSide.reset();
         DataSetProcessor dsp =EngineDriver.driver().processorFactory().bulkProcessor(getOperation().getActivation(), rightSide);
         final Iterator<ExecRow> rightIterator = Iterators.transform(rightSide.getDataSet(dsp).toLocalIterator(), new Function<ExecRow, ExecRow>() {
             @Override

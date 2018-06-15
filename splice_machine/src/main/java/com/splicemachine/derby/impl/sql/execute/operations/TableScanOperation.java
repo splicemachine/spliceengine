@@ -306,6 +306,9 @@ public class TableScanOperation extends ScanOperation{
      */
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException{
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
+
         assert currentTemplate!=null:"Current Template Cannot Be Null";
         return getTableScannerBuilder(dsp);
     }

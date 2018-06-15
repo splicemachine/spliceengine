@@ -150,6 +150,9 @@ public class UnionOperation extends SpliceBaseOperation {
     @SuppressWarnings("rawtypes")
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+		if (!isOpen)
+			throw new IllegalStateException("Operation is not open");
+
 		OperationContext operationContext = dsp.createOperationContext(this);
 		DataSet<ExecRow> left = leftResultSet.getDataSet(dsp);
 		DataSet<ExecRow> right = rightResultSet.getDataSet(dsp);

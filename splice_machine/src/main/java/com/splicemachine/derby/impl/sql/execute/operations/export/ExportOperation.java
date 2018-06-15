@@ -178,6 +178,9 @@ public class ExportOperation extends SpliceBaseOperation {
     @SuppressWarnings("unchecked")
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
+
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "getDataSet(): begin");
         DataSet<ExecRow> dataset = source.getDataSet(dsp);

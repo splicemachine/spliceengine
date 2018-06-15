@@ -188,6 +188,9 @@ public class BatchOnceOperation extends SpliceBaseOperation {
 
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
+
         DataSet set = source.getDataSet(dsp);
         OperationContext<BatchOnceOperation> operationContext = dsp.createOperationContext(this);
         return set.mapPartitions(new BatchOnceFunction(operationContext));

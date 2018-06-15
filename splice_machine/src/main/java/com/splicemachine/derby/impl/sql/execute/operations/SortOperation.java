@@ -197,6 +197,9 @@ public class SortOperation extends SpliceBaseOperation{
 
     @SuppressWarnings({"rawtypes","unchecked"})
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException{
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
+
         OperationContext operationContext=dsp.createOperationContext(this);
         DataSet dataSet=source.getDataSet(dsp).map(new CloneFunction<>(operationContext));
 

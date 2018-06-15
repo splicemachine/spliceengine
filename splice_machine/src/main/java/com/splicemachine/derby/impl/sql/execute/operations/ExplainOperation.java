@@ -181,6 +181,9 @@ public class ExplainOperation extends SpliceBaseOperation {
     }
 
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
+
         OperationContext operationContext = dsp.createOperationContext(this);
         operationContext.pushScope();
         try {
