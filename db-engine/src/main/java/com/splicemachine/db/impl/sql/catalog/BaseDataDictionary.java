@@ -143,7 +143,6 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 									"SYSFILES",
 									"SYSTRIGGERS",
                                     "SYSTABLEPERMS",
-                                    "SYSSCHEMAPERMS",
                                     "SYSCOLPERMS",
                                     "SYSROUTINEPERMS",
 									"SYSROLES",
@@ -157,9 +156,11 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
                                     "SYSCOLUMNSTATS",
                                     "SYSPHYSICALSTATS",
                                     "SYSTABLESTATS",
+									"SYSDUMMY1",
+									"SYSSCHEMAPERMS",
 									"SYSSNAPSHOTS",
 									"SYSTOKENS",
-                                    "SYSDUMMY1"
+                                    "SYSSOURCECODE"
     };
 
 	protected	static final int		NUM_NONCORE = nonCoreNames.length;
@@ -193,6 +194,7 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 												"SYSCS_INPLACE_COMPRESS_TABLE",
 												"SYSCS_COMPRESS_TABLE",
 												"SYSCS_MODIFY_PASSWORD",
+												"SYSCS_SAVE_SOURCECODE",
 												};
 	
 	/**

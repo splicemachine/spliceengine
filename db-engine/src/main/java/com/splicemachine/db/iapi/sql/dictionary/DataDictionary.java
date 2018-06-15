@@ -240,6 +240,8 @@ public interface DataDictionary{
     int SYSSCHEMAPERMS_CATALOG_NUM=30;
     int SYSSNAPSHOT_NUM=31;
     int SYSTOKENS_NUM=32;
+    int SYSSOURCECODE_CATALOG_NUM=33;
+
     /* static finals for constraints
      * (Here because they are needed by parser, compilation and execution.)
 	 */
@@ -2143,4 +2145,6 @@ public interface DataDictionary{
     void deleteToken(byte[] token) throws StandardException;
 
     TokenDescriptor getToken(byte[] token) throws StandardException;
+
+    void saveSourceCode(SourceCodeDescriptor descriptor, TransactionController tc) throws StandardException;
 }
