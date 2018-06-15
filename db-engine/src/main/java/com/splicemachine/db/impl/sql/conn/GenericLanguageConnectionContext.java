@@ -138,8 +138,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     private StringBuffer sb;
     private CompilerContext.DataSetProcessorType type;
-    private boolean skipStats;
-    private double defaultSelectivityFactor;
 
     private final String ipAddress;
     private Database db;
@@ -325,6 +323,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     private String lastLogStmt;
     private String lastLogStmtFormat;
+    private SessionPropertiesImpl sessionProperties;
 
     /* constructor */
     public GenericLanguageConnectionContext(
@@ -359,9 +358,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         this.instanceNumber=instanceNumber;
         this.drdaID=drdaID;
         this.dbname=dbname;
-        this.skipStats = skipStats;
-        this.defaultSelectivityFactor = defaultSelectivityFactor;
-
         /* Find out whether or not to log info on executing statements to error log
          */
         String logStatementProperty=PropertyUtil.getServiceProperty(getTransactionCompile(),"derby.language.logStatementText");
@@ -383,6 +379,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         stmtValidators=new ArrayList<>();
         triggerTables=new ArrayList<>();
         limiter=ControlExecutionLimiter.NO_OP;
+        sessionProperties = new SessionPropertiesImpl();
+        // transfer setting of skipStats and defaultSelectivityFactor from jdbc connnection string to sessionProperties
+        if (skipStats)
+            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.SKIPSTATS, new Boolean(skipStats).toString());
+        if (defaultSelectivityFactor > 0)
+            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR, new Double(defaultSelectivityFactor).toString());
     }
 
     /**
@@ -828,6 +830,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         getCurrentSQLSessionContext().setUser(getSessionUserId());
 
         referencedColumnMap=new WeakHashMap<>();
+
+        sessionProperties.resetAll();
     }
 
     // debug methods
@@ -3263,6 +3267,26 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
+    public void setSessionProperties(Properties newProperties) {
+        for (Object property: newProperties.keySet()) {
+            SessionProperties.PROPERTYNAME propertyName = (SessionProperties.PROPERTYNAME)property;
+            sessionProperties.setProperty(propertyName, newProperties.get(property));
+        }
+
+        return;
+    }
+
+    @Override
+    public SessionProperties getSessionProperties() {
+        return sessionProperties;
+    }
+
+    @Override
+    public String getCurrentSessionPropertyDelimited() {
+        return sessionProperties.getAllProperties();
+    }
+
+    @Override
     public boolean roleIsSettable(Activation a,String role) throws StandardException{
 
         DataDictionary dd=getDataDictionary();
@@ -3593,16 +3617,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public boolean getSkipStats() {
-        return skipStats;
-    }
-
-    @Override
-    public double getDefaultSelectivityFactor() {
-        return defaultSelectivityFactor;
-    }
-
-    @Override
     public String getClientIPAddress() {
         return ipAddress;
     }
@@ -3666,9 +3680,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                                   ParameterValueSet pvs) {
         if (stmtLogger.isInfoEnabled()) {
             stmtLogger.info(String.format(
-                    "Start executing query. %s, uuid=%s, engine=%s, %s, paramsCount=%d, params=[ %s ]",
+                    "Start executing query. %s, uuid=%s, engine=%s, %s, paramsCount=%d, params=[ %s ], sessionProperties=[ %s ]",
                     getLogHeader(), uuid, engine, formatLogStmt(ps.getSource()),
-                    pvs.getParameterCount(), pvs.toString()));
+                    pvs.getParameterCount(), pvs.toString(), ps.getSessionPropertyValues()));
         }
     }
 

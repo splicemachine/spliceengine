@@ -114,4 +114,11 @@ public interface Statement
 	 *	@return the SQL string this statement is for.
 	 */
 	String getSource();
+
+
+	/**
+	 * Return the String of session property values set when the plan is compiled
+	 * @return the String of session property values set when the plan is compiled
+	 */
+	String getSessionPropertyValues();
 }

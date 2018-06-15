@@ -31,25 +31,22 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.services.compiler.LocalField;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.store.access.Qualifier;
-
-import java.lang.reflect.Modifier;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.services.compiler.LocalField;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
+import java.lang.reflect.Modifier;
 import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
-import java.util.Vector;
 
 /**
      SpecialFunctionNode handles system SQL functions.
@@ -70,6 +67,7 @@ import java.util.Vector;
 	 <LI> CURRENT SCHEMA
 	 <LI> CURRENT ISOLATION
 	 <LI> IDENTITY_VAL_LOCAL
+     <LI> CURRENT SESSION_PROPERTY
 
 	 </UL>
 
@@ -172,7 +170,7 @@ public class SpecialFunctionNode extends ValueNode
 			dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(
 				// size: 2+(2*128) start and end text quote plus max # of
 				// escapes
-				Types.VARCHAR, true, 2+(2*128)); 
+				Types.VARCHAR, true, 2+(2*128));
 			//SQL spec Section 6.4 Syntax Rule 4 says that the collation type
 			//of these functions will be the collation of character set
 			//SQL_IDENTIFIER. In Derby's case, that will mean, the collation of
@@ -180,6 +178,18 @@ public class SpecialFunctionNode extends ValueNode
 			//be implicit. (set by default)
 			break;
 
+		case C_NodeTypes.CURRENT_SESSION_PROPERTY_NODE:
+			sqlName = "CURRENT SESSION_PROPERTY";
+			methodName = "getCurrentSessionPropertyDelimited";
+			methodType = "java.lang.String";
+			dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(
+					Types.VARCHAR, true, 32672);
+			//SQL spec Section 6.4 Syntax Rule 4 says that the collation type
+			//of these functions will be the collation of character set
+			//SQL_IDENTIFIER. In Derby's case, that will mean, the collation of
+			//these functions will be UCS_BASIC. The collation derivation will
+			//be implicit. (set by default)
+			break;
 		case C_NodeTypes.IDENTITY_VAL_NODE:
 			sqlName = "IDENTITY_VAL_LOCAL";
 			methodName = "getIdentityValue";
