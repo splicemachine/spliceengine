@@ -121,6 +121,9 @@ public class WindowOperation extends SpliceBaseOperation {
 
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
+
         OperationContext<WindowOperation> operationContext = dsp.createOperationContext(this);
         operationContext.pushScopeForOp(OperationContext.Scope.WINDOW);
         DataSet dataSet = source.getDataSet(dsp).map(new CloneFunction<>(operationContext));

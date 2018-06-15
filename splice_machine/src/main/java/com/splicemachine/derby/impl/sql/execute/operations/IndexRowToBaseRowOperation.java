@@ -291,6 +291,9 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
+
         if(readerBuilder==null){
             SConfiguration configuration=EngineDriver.driver().getConfiguration();
             int indexBatchSize = configuration.getIndexBatchSize();

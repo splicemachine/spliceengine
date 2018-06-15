@@ -111,6 +111,9 @@ public class MiscOperation extends NoRowsOperation{
 
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException{
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
+
         setup();
 
         activation.getConstantAction().executeConstantAction(activation);

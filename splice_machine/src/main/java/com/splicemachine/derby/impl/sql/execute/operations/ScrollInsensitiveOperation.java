@@ -267,6 +267,9 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
+
         OperationContext operationContext = dsp.createOperationContext(this);
         // we are returning data to the client, get a resultDataSet
         DataSet<ExecRow> sourceSet = source.getResultDataSet(dsp);
