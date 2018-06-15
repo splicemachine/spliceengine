@@ -245,6 +245,9 @@ public class DistinctScanOperation extends ScanOperation {
      * @throws StandardException
      */
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
+
         assert currentTemplate != null: "Current Template Cannot Be Null";
         int[] execRowTypeFormatIds = new int[currentTemplate.nColumns()];
         for (int i = 0; i< currentTemplate.nColumns(); i++) {

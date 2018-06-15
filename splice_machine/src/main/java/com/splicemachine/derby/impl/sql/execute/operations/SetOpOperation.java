@@ -155,6 +155,9 @@ public class SetOpOperation extends SpliceBaseOperation {
 
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
+
         OperationContext operationContext = dsp.createOperationContext(this);
         if (this.opType==IntersectOrExceptNode.INTERSECT_OP) {
             return leftSource.getDataSet(dsp).intersect(

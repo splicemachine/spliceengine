@@ -65,6 +65,7 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
             initRightScan(leftPeekingIterator);
         }
         final SpliceOperation rightSide = joinOperation.getRightOperation();
+        rightSide.reset();
         DataSetProcessor dsp =EngineDriver.driver().processorFactory().bulkProcessor(getOperation().getActivation(), rightSide);
         final Iterator<ExecRow> rightIterator = Iterators.transform(rightSide.getDataSet(dsp).toLocalIterator(), new Function<ExecRow, ExecRow>() {
             @Override

@@ -137,6 +137,8 @@ public class CachedOperation extends SpliceBaseOperation {
 
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
 
         if (rows.size() > 0) {
             DataSet dataSet = dsp.createDataSet(rows.iterator());

@@ -294,7 +294,10 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        if (alwaysFalse) {
+		if (!isOpen)
+			throw new IllegalStateException("Operation is not open");
+
+		if (alwaysFalse) {
             return dsp.getEmpty();
         }
         OperationContext operationContext = dsp.createOperationContext(this);

@@ -147,6 +147,9 @@ public class CallStatementOperation extends NoRowsOperation {
 
 	@Override
 	public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+		if (!isOpen)
+			throw new IllegalStateException("Operation is not open");
+
 		OperationContext<CallStatementOperation> operationContext = dsp.createOperationContext(this);
 
         call();

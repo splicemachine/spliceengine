@@ -211,6 +211,9 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
 
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
+
         try {
             TxnView txn = getCurrentTransaction();
             DataValueDescriptor[] probeValues = ((MultiProbeDerbyScanInformation)scanInformation).getProbeValues();

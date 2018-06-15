@@ -310,6 +310,9 @@ public class RowOperation extends SpliceBaseOperation{
      */
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException{
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
+
         ExecRow execRow=new ValueRow(1);
         execRow.setColumn(1,new SQLInteger(123));
         return dsp.singleRowDataSet(execRow)

@@ -189,6 +189,9 @@ public class RowCountOperation extends SpliceBaseOperation {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
+
         if (bypass) {
             return source.getDataSet(dsp);
         }

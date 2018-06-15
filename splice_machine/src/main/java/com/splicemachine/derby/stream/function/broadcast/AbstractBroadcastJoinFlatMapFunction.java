@@ -114,6 +114,7 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
 
                 return Streams.wrap(FluentIterable.from(() -> {
                     try{
+                        operation.reset();
                         DataSet<ExecRow> rightDataSet = operation.getRightOperation().getDataSet(dsp);
                         if (operation.getRightHashKeys().length != 0)
                             rightDataSet = rightDataSet.filter(new InnerJoinNullFilterFunction(operationContext,operation.getRightHashKeys()));
