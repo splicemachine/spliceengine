@@ -134,11 +134,12 @@ public class PAXEncodingState extends EncodingState {
     public int encode(Cell cell) throws IOException {
         try {
             byte[] valueBytes = new byte[12];
-            Base.U.putLong(valueBytes,16,cell.getTimestamp());
-            Base.U.putInt(valueBytes,24,counter);
+            Base.U.putLong(valueBytes,16l,cell.getTimestamp());
+            Base.U.putInt(valueBytes,24l,counter);
             byte[] rowKey = genRowKey(cell);
             if (LOG.isTraceEnabled()) {
-                SpliceLogUtils.trace(LOG,"key to insert into radix key=%s, timestamp=%d",Bytes.toHex(cell.getRowArray(), cell.getRowOffset(), cell.getRowLength()),cell.getTimestamp());
+                SpliceLogUtils.trace(LOG,"key to insert into radix key=%s, timestamp=%d",
+                        Bytes.toHex(cell.getRowArray(), cell.getRowOffset(), cell.getRowLength()),cell.getTimestamp());
                 items.add(Bytes.toHex(rowKey, 0, rowKey.length));
             }
             radixTree.insert(rowKey, 0, rowKey.length, valueBytes, 0, valueBytes.length);
@@ -146,13 +147,12 @@ public class PAXEncodingState extends EncodingState {
             hcell.set(cell);
             unsafeRecord.wrap(hcell);
             unsafeRecord.getData(dataToRetrieve, execRow);
-            writtenExecRow.getColumn(1).setValue(cell.getTimestamp()); // Tombstone
-            writtenExecRow.getColumn(2).setValue(cell.getTypeByte()); // TxnID
-            writtenExecRow.getColumn(3).setValue(cell.getSequenceId());// Effective Timestamp
+            writtenExecRow.getColumn(1).setValue(cell.getTimestamp()); // Version
+            writtenExecRow.getColumn(2).setValue(cell.getTypeByte()); // Type
+            writtenExecRow.getColumn(3).setValue(cell.getSequenceId());// Sequence ID
             writtenExecRow.getColumn(4).setValue(unsafeRecord.hasTombstone()); // Tombstone
             writtenExecRow.getColumn(5).setValue(unsafeRecord.getTxnId1()); // TxnID
             writtenExecRow.getColumn(6).setValue(unsafeRecord.getEffectiveTimestamp());// Effective Timestamp
-//            System.out.println("writtenExecRow ->"+ writtenExecRow);
             for (int i = 0; i < structFields.size(); i++) {
                     oi.setStructFieldData(orcStruct, structFields.get(i),
                                     writtenExecRow.getColumn(i + 1).getHiveObject());

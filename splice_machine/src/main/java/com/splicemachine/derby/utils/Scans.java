@@ -323,38 +323,9 @@ public class Scans extends SpliceUtils {
             int[] baseColumnMap,
             DataValueDescriptor probeValue)
             throws StandardException {
-        assert row!=null:"row passed in is null";
-        assert qual_list!=null:"qualifier[][] passed in is null";
+        if (!qualifyAndRows(row,qual_list,baseColumnMap,probeValue))
+            return false;
         boolean     row_qualifies = true;
-        for (int i = 0; i < qual_list[0].length; i++) {
-            // process each AND clause
-            row_qualifies = false;
-            // process each OR clause.
-            Qualifier q = qual_list[0][i];
-            q.clearOrderableCache();
-            // Get the column from the possibly partial row, of the
-            // q.getColumnId()'th column in the full row.
-            DataValueDescriptor columnValue =
-                    (DataValueDescriptor) row[baseColumnMap!=null?baseColumnMap[q.getStoragePosition()]:q.getStoragePosition()];
-            if ( filterNull(q.getOperator(),columnValue,probeValue==null || i!=0?q.getOrderable():probeValue,q.getVariantType())) {
-                return false;
-            }
-            row_qualifies =
-                    columnValue.compare(
-                            q.getOperator(),
-                            probeValue==null || i!=0?q.getOrderable():probeValue,
-                            q.getOrderedNulls(),
-                            q.getUnknownRV());
-            if (q.negateCompareResult())
-                row_qualifies = !row_qualifies;
-//            System.out.println(String.format("And Clause -> value={%s}, operator={%s}, orderable={%s}, " +
-//                    "orderedNulls={%s}, unknownRV={%s}",
-//                    columnValue, q.getOperator(),q.getOrderable(),q.getOrderedNulls(),q.getUnknownRV()));
-            // Once an AND fails the whole Qualification fails - do a return!
-            if (!row_qualifies)
-                return(false);
-        }
-
         // all the qual[0] and terms passed, now process the OR clauses
         for (int and_idx = 1; and_idx < qual_list.length; and_idx++) {
             // loop through each of the "and" clause.
@@ -394,6 +365,43 @@ public class Scans extends SpliceUtils {
                 break;
         }
         return(row_qualifies);
+    }
+
+    public static boolean qualifyAndRows(
+            Object[]        row,
+            Qualifier[][]   qual_list,
+            int[] baseColumnMap,
+            DataValueDescriptor probeValue) throws StandardException {
+
+        assert row!=null:"row passed in is null";
+        assert qual_list!=null:"qualifier[][] passed in is null";
+        boolean     row_qualifies = true;
+        for (int i = 0; i < qual_list[0].length; i++) {
+            // process each AND clause
+            row_qualifies = false;
+            // process each OR clause.
+            Qualifier q = qual_list[0][i];
+            q.clearOrderableCache();
+            // Get the column from the possibly partial row, of the
+            // q.getColumnId()'th column in the full row.
+            DataValueDescriptor columnValue =
+                    (DataValueDescriptor) row[baseColumnMap!=null?baseColumnMap[q.getStoragePosition()]:q.getStoragePosition()];
+            if ( filterNull(q.getOperator(),columnValue,probeValue==null || i!=0?q.getOrderable():probeValue,q.getVariantType())) {
+                return false;
+            }
+            row_qualifies =
+                    columnValue.compare(
+                            q.getOperator(),
+                            probeValue==null || i!=0?q.getOrderable():probeValue,
+                            q.getOrderedNulls(),
+                            q.getUnknownRV());
+            if (q.negateCompareResult())
+                row_qualifies = !row_qualifies;
+            // Once an AND fails the whole Qualification fails - do a return!
+            if (!row_qualifies)
+                return(false);
+        }
+        return true;
     }
 
     public static boolean filterNull(int operator, DataValueDescriptor columnValue, DataValueDescriptor orderable, int variantType) {

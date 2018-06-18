@@ -427,7 +427,6 @@ public class RedoTransactor implements Transactor{
                                      byte[] family, byte[] column,
                                      TxnView transaction, ConflictResults conflictResults, boolean skipWAL, ExecRow execRow) throws IOException{
         assert execRow!=null:"Exec Row is null";
-        long txnIdLong=transaction.getTxnId();
 //                if (LOG.isTraceEnabled()) LOG.trace(String.format("table = %s, kvPair = %s, txnId = %s", table.toString(), kvPair.toString(), txnIdLong));
         DataPut newPut;
         try {
@@ -443,40 +442,40 @@ public class RedoTransactor implements Transactor{
                     newPut = opFactory.newPut(kvPair.getRowKey());
                     newPut.addCell(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES,SIConstants.PACKED_COLUMN_BYTES,kvPairRecord.getVersion(),kvPairRecord.getValue());
                 } else {
-                    printoutPair(kvPair,execRow,"Delete with record to delete", table);
+//                    printoutPair(kvPair,execRow,"Delete with record to delete", table);
                     kvPairRecord.setHasTombstone(true);
                     kvPairRecord.setTxnId1(transaction.getTxnId());
                     UnsafeRecord unsafeRecord = new UnsafeRecord();
                     unsafeRecord.wrap(possibleLegacyRecord.activeData());
                     Record[] unsafeRecords = unsafeRecord.updateRecord(kvPairRecord, execRow);
-                    printout(unsafeRecords[0],execRow,"Delete Active Record", table);
-                    printout(unsafeRecords[1],execRow,"Delete Redo Record", table);
+//                    printout(unsafeRecords[0],execRow,"Delete Active Record", table);
+//                    printout(unsafeRecords[1],execRow,"Delete Redo Record", table);
                     newPut = opFactory.newPut(kvPair.getRowKey());
                     newPut.addCell(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES,SIConstants.PACKED_COLUMN_BYTES,unsafeRecords[0].getVersion(),unsafeRecords[0].getValue());
                     newPut.addCell(SIConstants.DEFAULT_FAMILY_REDO_BYTES,SIConstants.PACKED_COLUMN_BYTES,unsafeRecords[1].getVersion(),unsafeRecords[1].getValue());
                 }
             } else if (kvPair.getType() == KVPair.Type.INSERT) {
                 if (possibleLegacyRecord == null) {
-                    printoutPair(kvPair,execRow,"Single Insert", table);
+//                    printoutPair(kvPair,execRow,"Single Insert", table);
                     newPut = opFactory.newPut(kvPair.getRowKey());
                     newPut.addCell(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES,SIConstants.PACKED_COLUMN_BYTES,kvPairRecord.getVersion(),kvPairRecord.getValue());
                 }
                 else {
-                    printoutPair(kvPair,execRow,"Update Active Record Insert", table);
+//                    printoutPair(kvPair,execRow,"Update Active Record Insert", table);
                     UnsafeRecord unsafeRecord = new UnsafeRecord();
                     unsafeRecord.wrap(possibleLegacyRecord.activeData());
-                    printout(unsafeRecord,execRow,"Legacy Active Record Insert", table);
+//                    printout(unsafeRecord,execRow,"Legacy Active Record Insert", table);
 
                     Record[] unsafeRecords = unsafeRecord.updateRecord(kvPairRecord, execRow);
-                    printout(unsafeRecords[0],execRow,"Insert Active Record", table);
-                    printout(unsafeRecords[1],execRow,"Insert Redo Record", table);
+//                    printout(unsafeRecords[0],execRow,"Insert Active Record", table);
+//                    printout(unsafeRecords[1],execRow,"Insert Redo Record", table);
                     newPut = opFactory.newPut(kvPair.getRowKey());
                     newPut.addCell(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES,SIConstants.PACKED_COLUMN_BYTES,unsafeRecords[0].getVersion(),unsafeRecords[0].getValue());
                     newPut.addCell(SIConstants.DEFAULT_FAMILY_REDO_BYTES,SIConstants.PACKED_COLUMN_BYTES,unsafeRecords[1].getVersion(),unsafeRecords[1].getValue());
                 }
             } else if (kvPair.getType() == KVPair.Type.UPDATE) {
                 if (possibleLegacyRecord == null) {
-                    printoutPair(kvPair,execRow,"Single Update", table);
+  //                  printoutPair(kvPair,execRow,"Single Update", table);
                     newPut = opFactory.newPut(kvPair.getRowKey());
                     newPut.addCell(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES,SIConstants.PACKED_COLUMN_BYTES,kvPairRecord.getVersion(),kvPairRecord.getValue());
                 }
@@ -484,8 +483,8 @@ public class RedoTransactor implements Transactor{
                     UnsafeRecord unsafeRecord = new UnsafeRecord();
                     unsafeRecord.wrap(possibleLegacyRecord.activeData());
                     Record[] unsafeRecords = unsafeRecord.updateRecord(kvPairRecord, execRow);
-                    printout(unsafeRecords[0],execRow,"Update Active Record", table);
-                    printout(unsafeRecords[1],execRow,"Update Redo Record", table);
+   //                 printout(unsafeRecords[0],execRow,"Update Active Record", table);
+   //                 printout(unsafeRecords[1],execRow,"Update Redo Record", table);
                     newPut = opFactory.newPut(kvPair.getRowKey());
                     newPut.addCell(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES,SIConstants.PACKED_COLUMN_BYTES,unsafeRecords[0].getVersion(),unsafeRecords[0].getValue());
                     newPut.addCell(SIConstants.DEFAULT_FAMILY_REDO_BYTES,SIConstants.PACKED_COLUMN_BYTES,unsafeRecords[1].getVersion(),unsafeRecords[1].getValue());

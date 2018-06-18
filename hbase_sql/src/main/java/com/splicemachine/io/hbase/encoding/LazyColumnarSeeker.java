@@ -73,6 +73,10 @@ public class LazyColumnarSeeker {
         this.bb = bb;
     }
 
+    public void setByteBuffer(ByteBuffer bb) {
+        this.bb = bb;
+    }
+
     public void init() throws IOException, StandardException {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"Lazy Seeker Init");
@@ -191,7 +195,6 @@ public class LazyColumnarSeeker {
         // Write Data
         writtenExecRow = writtenExecRow.fromSparkRow(new ColumnarBatchRow(row, schema));
         long version = writtenExecRow.getColumn(1).getLong();
-    //    System.out.println("writtenExecRow ->" + writtenExecRow);
         unsafeRecord.setKey(rowKey,0,rowKey.length-1);
         unsafeRecord.setHasTombstone(writtenExecRow.getColumn(1).getBoolean());
         unsafeRecord.setTxnId1(writtenExecRow.getColumn(2).getLong());
@@ -203,6 +206,7 @@ public class LazyColumnarSeeker {
         // Do we need to do this multiple times?
         System.arraycopy(writtenExecRow.getRowArray(),6,dataRow.getRowArray(),0,writtenExecRow.length()-6);
         unsafeRecord.setData(fbs,dataRow.getRowArray());
+        System.out.println("writtenExecRow ->" + writtenExecRow);
         return unsafeRecord.getValue();
     }
 }

@@ -119,6 +119,7 @@ public class SIObserver extends BaseRegionObserver{
                 HBaseSIEnvironment env = HBaseSIEnvironment.loadEnvironment(new SystemClock(), ZkUtils.getRecoverableZooKeeper());
                 SIDriver driver = env.getSIDriver();
                 operationStatusFactory = driver.getOperationStatusLib();
+                operationFactory = driver.baseOperationFactory();
                 //noinspection unchecked
                 txnOperationFactory = new SimpleTxnOperationFactory(driver.getExceptionFactory(), HOperationFactory.INSTANCE);
                 //noinspection unchecked
@@ -222,11 +223,11 @@ public class SIObserver extends BaseRegionObserver{
             assert spliceQuery!=null: "Transaction information is missing";
 
             TxnView txn=txnOperationFactory.fromReads(attribute,0,attribute.length);
-
+            System.out.println("scanCaching->" + scan.getCaching());
             return new SIObserverScanner(s, spliceQuery,
                     region.unwrap(), txn, region.getTxnSupplier(),
                     SIDriver.driver().baseOperationFactory(),
-                    SIDriver.driver().getOperationFactory(),scan.getCaching());
+                    SIDriver.driver().getOperationFactory(),(scan.getCaching() >= 1024?1024:scan.getCaching()));
 
         }   else
             return super.postScannerOpen(e, scan, s);

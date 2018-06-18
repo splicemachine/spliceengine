@@ -135,6 +135,7 @@ public class TruncateFunctionUtil {
         BigDecimal y;
         if (value == null || ! (value instanceof BigDecimal)) {
             // could be integer.  trunc as decimal.
+            returnValue.setDecimal(Decimal.apply(valueToTrunc));
             y = new BigDecimal(String.valueOf(valueToTrunc)).setScale(truncPlaces.getInt(), roundingMode);
         } else {
             y = ((BigDecimal)value).setScale(truncPlaces.getInt(), roundingMode);

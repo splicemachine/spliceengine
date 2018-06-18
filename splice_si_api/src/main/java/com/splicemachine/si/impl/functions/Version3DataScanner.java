@@ -61,32 +61,36 @@ public class Version3DataScanner implements DataScanner {
         return dataScanner.next(-1);
     }
 
+    private void forLoopBatch() throws IOException {
+        for (int i = 0; i < batchSize; i++) {
+            List<DataCell> dataCells = nextDataCells();
+            if (dataCells.isEmpty()) {
+                bufferedRows[i] = null;
+            } else {
+                count++;
+                bufferedRows[i] = dataCells.get(0);
+            }
+        }
+        long[] txnIds = getTxnIDs(bufferedRows, unsafeRecord);
+        long[] effectiveTxnIds = getEffectiveTimestamps(bufferedRows, unsafeRecord);
+        HashSet<Long> txnsToLookup = getTxnsToLookup(txnIds, effectiveTxnIds, currentTxn);
+        HashMap<Long, TxnView> currentMap = getTxns(currentTxn, txnSupplier, txnsToLookup);
+        handleRolledbackAndCommittedTxns(currentMap, txnIds, effectiveTxnIds);
+        isVisible = isVisible(currentMap, txnIds, currentTxn);
+        rollForward(currentMap,txnIds, bufferedRows, p, currentTxn);
+        DataCell[] redoCells = getRedoDataCells(bufferedRows,isVisible,unsafeRecord);
+        if (redoCells != null)
+            applyRedoLogic(bufferedRows,isVisible,redoCells,unsafeRecord,p,redoScanner,currentTxn,txnSupplier,spliceQuery,operationFactory,txnOperationFactory);
+        batchIdx = 0;
+    }
+
     @Nonnull
     @Override
     public List<DataCell> next(int limit) throws IOException {
         while (true) {
             if (batchSize < batchIdx+1) {
-                for (int i = 0; i < batchSize; i++) {
-                    List<DataCell> dataCells = nextDataCells();
-                    if (dataCells.isEmpty()) {
-                        bufferedRows[i] = null;
-                    } else {
-                        count++;
-                        bufferedRows[i] = dataCells.get(0);
-                    }
-                }
+                forLoopBatch();
 
-                long[] txnIds = getTxnIDs(bufferedRows, unsafeRecord);
-                long[] effectiveTxnIds = getEffectiveTimestamps(bufferedRows, unsafeRecord);
-                HashSet<Long> txnsToLookup = getTxnsToLookup(txnIds, effectiveTxnIds, currentTxn);
-                HashMap<Long, TxnView> currentMap = getTxns(currentTxn, txnSupplier, txnsToLookup);
-                handleRolledbackAndCommittedTxns(currentMap, txnIds, effectiveTxnIds);
-                isVisible = isVisible(currentMap, txnIds, currentTxn);
-                rollForward(currentMap,txnIds, bufferedRows, p, currentTxn);
-                DataCell[] redoCells = getRedoDataCells(bufferedRows,isVisible,unsafeRecord);
-                if (redoCells != null)
-                    applyRedoLogic(bufferedRows,isVisible,redoCells,unsafeRecord,p,redoScanner,currentTxn,txnSupplier,spliceQuery,operationFactory,txnOperationFactory);
-                batchIdx = 0;
             }
             if (isVisible.get(batchIdx)) {
                 unsafeRecord.wrap(bufferedRows[batchIdx]);

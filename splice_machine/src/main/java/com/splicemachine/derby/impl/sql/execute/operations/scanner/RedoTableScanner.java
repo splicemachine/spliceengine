@@ -74,6 +74,7 @@ RedoTableScanner<Data> implements TableScanner {
     protected final TxnView txn;
     private ExecRow defaultRow;
     private FormatableBitSet defaultValueMap;
+    private int[] accessedColumnsIntArray;
 
 
     protected RedoTableScanner(FormatableBitSet accessedColumns,
@@ -104,6 +105,8 @@ RedoTableScanner<Data> implements TableScanner {
         this.tableVersion = tableVersion;
         this.indexColsToMainColMap = indexColsToMainColMap;
         assert !(accessedColumns == null && indexColsToMainColMap ==null):"All nulls";
+        if (accessedColumns != null)
+            accessedColumnsIntArray = accessedColumns.getIntArray();
         unsafeRecord = new UnsafeRecord();
         this.defaultRow = defaultRow;
         this.defaultValueMap = defaultValueMap;
@@ -167,7 +170,7 @@ RedoTableScanner<Data> implements TableScanner {
                     continue;
                 measureOutputSize(keyValues);
                 if (accessedColumns!=null) {
-                    unsafeRecord.getData(accessedColumns, template);
+                    unsafeRecord.getData(accessedColumnsIntArray, template);
                 } else {
                     unsafeRecord.getData(indexColsToMainColMap, template);
                 }

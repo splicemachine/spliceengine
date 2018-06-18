@@ -93,6 +93,9 @@ public class ConglomerateUtils{
                 SIDriver.driver().baseOperationFactory().setQuery(get,spliceQuery);
                 DataResult result = partition.get(get, null);
                 DataCell dataCell = result.activeData();
+                if (dataCell == null) {
+                    throw new RuntimeException("missing conglomerate " + conglomId);
+                }
                 UnsafeRecord unsafeRecord = new UnsafeRecord();
                 unsafeRecord.wrap(dataCell);
                 unsafeRecord.getData(new int[]{0,1},execRow);

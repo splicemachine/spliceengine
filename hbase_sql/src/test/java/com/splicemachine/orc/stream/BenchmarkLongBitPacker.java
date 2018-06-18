@@ -25,7 +25,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import static com.splicemachine.orc.stream.TestingBitPackingUtils.unpackGeneric;
-
+/*
 @SuppressWarnings("MethodMayBeStatic")
 @State(Scope.Thread)
 @Fork(2)
@@ -33,8 +33,10 @@ import static com.splicemachine.orc.stream.TestingBitPackingUtils.unpackGeneric;
 @Measurement(iterations = 5, time = 500, timeUnit = TimeUnit.MILLISECONDS)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @BenchmarkMode(Mode.AverageTime)
+*/
 public class BenchmarkLongBitPacker
 {
+    /*
     @Benchmark
     public Object baselineLength1(BenchmarkData data)
             throws Throwable
@@ -228,4 +230,5 @@ public class BenchmarkLongBitPacker
                 .build();
         new Runner(options).run();
     }
+    */
 }

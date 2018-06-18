@@ -27,23 +27,24 @@ import org.apache.log4j.Logger;
  */
 public class StreamLogUtils {
     private static Logger LOG = Logger.getLogger(StreamLogUtils.class);
+    private static boolean isTraceEnabled = LOG.isTraceEnabled();
 
     public static void logOperationRecord(ExecRow locatedRow, OperationContext operationContext) {
-        if (LOG.isTraceEnabled()) {
+        if (isTraceEnabled) {
             SpliceOperation op = operationContext.getOperation();
             SpliceLogUtils.trace(LOG, "%s (%d) -> %s", op.getName(),op.resultSetNumber(), locatedRow);
         }
     }
 
     public static void logOperationRecord(ExecRow locatedRow, SpliceOperation operation) {
-        if (LOG.isTraceEnabled()) {
+        if (isTraceEnabled) {
             SpliceLogUtils.trace(LOG, "%s (%d) -> %s", operation.getName(),operation.resultSetNumber(), locatedRow);
         }
     }
 
 
     public static void logOperationRecordWithMessage(ExecRow locatedRow, OperationContext operationContext, String message) {
-        if (LOG.isTraceEnabled()) {
+        if (isTraceEnabled) {
             SpliceOperation op = operationContext.getOperation();
             SpliceLogUtils.trace(LOG, "%s (%d) [%s] -> %s", op.getName(),op.resultSetNumber(), message, locatedRow);
         }

@@ -60,6 +60,13 @@ public class PAXDataBlockEncoder implements DataBlockEncoder {
     }
 
     @Override
+    public EncodedSeeker createSeeker(KeyValue.KVComparator comparator, HFileBlockDecodingContext decodingCtx) {
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG,"createSeeker decodingCtx=%s",decodingCtx);
+        return new PAXEncodedSeeker(decodingCtx.getHFileContext().isIncludesMvcc());
+    }
+
+    @Override
     public ByteBuffer decodeKeyValues(DataInputStream source, HFileBlockDecodingContext decodingCtx) throws IOException {
         throw new UnsupportedOperationException("Not Supported");
     }
@@ -71,12 +78,6 @@ public class PAXDataBlockEncoder implements DataBlockEncoder {
         return paxEncodedSeeker.getValueShallowCopy();
     }
 
-    @Override
-    public EncodedSeeker createSeeker(KeyValue.KVComparator comparator, HFileBlockDecodingContext decodingCtx) {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"createSeeker decodingCtx=%s",decodingCtx);
-        return new PAXEncodedSeeker(decodingCtx.getHFileContext().isIncludesMvcc());
-    }
 
     @Override
     public HFileBlockEncodingContext newDataBlockEncodingContext(

@@ -205,7 +205,7 @@ public class UnsafeRecord implements Record<byte[]> {
         getData(accessedColumns == null?IntArrays.count(dvds.length):accessedColumns.getIntArray(),dvds);
     }
 
-    private int[] bitSetToIntArray(BitSet accessedColumns, DataValueDescriptor[] dvds) {
+    public int[] bitSetToIntArray(BitSet accessedColumns, DataValueDescriptor[] dvds) {
         if (accessedColumns == null) {
             return IntArrays.count(dvds.length);
         } else {
