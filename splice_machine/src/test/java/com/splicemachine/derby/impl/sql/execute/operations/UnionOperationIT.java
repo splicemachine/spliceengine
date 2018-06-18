@@ -319,6 +319,21 @@ public class UnionOperationIT {
         }
     }
 
+    /* Regression test for DB-7154 */
+    @Test
+    public void testUnionMaterializedSubquery() throws Exception {
+        try(Statement s = conn.createStatement()){
+            try(ResultSet rs=s.executeQuery("\n" +
+                    "select IBMREQD from SYSIBM.SYSDUMMY1 where IBMREQD in\n" +
+                    "(select a.IBMREQD from SYSIBM.SYSDUMMY1 a join SYSIBM.SYSDUMMY1 b\n" +
+                    "on 1 = 1 \n" +
+                    "UNION \n" +
+                    "select IBMREQD from SYSIBM.SYSDUMMY1 )")){
+                assertTrue(rs.next());
+                assertEquals("Y", rs.getString(1));
+            }
+        }
+    }
 
     /* Regression test for DB-1026 */
     @Test
