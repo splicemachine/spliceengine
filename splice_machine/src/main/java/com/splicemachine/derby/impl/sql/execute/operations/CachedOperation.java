@@ -71,8 +71,8 @@ public class CachedOperation extends SpliceBaseOperation {
             super.init(context);
             source.init(context);
             if (!populated) {
-                populateCache();
                 populated = true;
+                populateCache();
             }
         }
         catch (IOException e) {
