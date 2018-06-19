@@ -70,10 +70,7 @@ public class CachedOperation extends SpliceBaseOperation {
         try {
             super.init(context);
             source.init(context);
-            if (!populated) {
-                populateCache();
-                populated = true;
-            }
+            populateCache();
         }
         catch (IOException e) {
             throw Exceptions.parseException(e);
@@ -99,10 +96,7 @@ public class CachedOperation extends SpliceBaseOperation {
         out.writeObject(source);
 
         try {
-            if (!populated) {
-                populated = true;
-                populateCache();
-            }
+            populateCache();
         } catch (StandardException e) {
             throw new IOException(e);
         }
@@ -171,6 +165,11 @@ public class CachedOperation extends SpliceBaseOperation {
     }
 
     private void populateCache() throws StandardException {
+        if (populated)
+            return;
+        // We have to mark it populated first, otherwise if we serialize the operation tree while populating it (for
+        // instance if there's a NLJ downstream) we would try to populate it again. See DB-7154 for more details
+        populated = true;
 
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         int maxMemoryPerTable = lcc.getOptimizerFactory().getMaxMemoryPerTable();
