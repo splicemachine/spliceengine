@@ -22,6 +22,7 @@ import java.util.Iterator;
 public class PAXEncodedSeeker implements DataBlockEncoder.EncodedSeeker {
     public static final DateTimeZone HIVE_STORAGE_TIME_ZONE = DateTimeZone.getDefault();
     private static Logger LOG = Logger.getLogger(PAXEncodedSeeker.class);
+    public static final int HBASE_OFFSET = 4;
     protected boolean includeMvccVersion;
 //    protected ByteBuffer buffer;
     private ReadOnlyArt readOnlyArt;
@@ -41,13 +42,13 @@ public class PAXEncodedSeeker implements DataBlockEncoder.EncodedSeeker {
         try {
                 int passedInBufferPosition = buffer.position();
             if (LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG,"setCurrentBuffer with position=%d, arrayOffset=%d",passedInBufferPosition,passedInBufferPosition);
+                SpliceLogUtils.debug(LOG,"setCurrentBuffer with position=%d, arrayOffset=%d"
+                        ,passedInBufferPosition,passedInBufferPosition);
             int sizeOfTree = buffer.getInt();
             if (LOG.isDebugEnabled())
                 SpliceLogUtils.debug(LOG,"sizeOfTree=%d",sizeOfTree);
             readOnlyArt = new ReadOnlyArt(buffer.slice());
-            // Magic # needs to be 4?
-            buffer.position(sizeOfTree+passedInBufferPosition+4);
+            buffer.position(sizeOfTree+passedInBufferPosition+HBASE_OFFSET);
             lazyColumnarSeeker = new LazyColumnarSeeker(buffer.slice());
             rewind();
         } catch (Exception e) {
@@ -100,8 +101,8 @@ public class PAXEncodedSeeker implements DataBlockEncoder.EncodedSeeker {
             ByteBuffer[] value = rowIterator.next();
             if (LOG.isTraceEnabled())
                 SpliceLogUtils.trace(LOG, "tree fetch key=%s, position=%d", Base.toHex(value[0].array()), Bytes.toInt(value[1].array()));
-            int rowPosition = Base.U.getInt(value[1].array(),24);
-            currentCell = new PAXActiveCell(rowPosition,value[0].array(),lazyColumnarSeeker,Base.U.getLong(value[1].array(),16));
+            int rowPosition = Base.U.getInt(value[1].array(),24L);
+            currentCell = new PAXActiveCell(rowPosition,value[0].array(),lazyColumnarSeeker,Base.U.getLong(value[1].array(),16L));
             return true;
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -114,16 +115,16 @@ public class PAXEncodedSeeker implements DataBlockEncoder.EncodedSeeker {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"seek to key in block seekBefore=%s, key=%s",seekBefore,Base.toHex(key,offset,length));
         try {
-                if (seekBefore) {
-                    Iterator<ByteBuffer[]> reverseIterator = readOnlyArt.getReverseIterator(key, offset, length, null, 0, 0);
-                    if (reverseIterator.next() == null) {
+            if (seekBefore) {
+                Iterator<ByteBuffer[]> reverseIterator = readOnlyArt.getReverseIterator(key, offset, length, null, 0, 0);
+                if (reverseIterator.next() == null) {
 
 
-                    }
-                } else {
-                    rowIterator = readOnlyArt.getIterator(key, offset, length, null, 0, 0);
-                    next();
                 }
+            } else {
+                rowIterator = readOnlyArt.getIterator(key, offset, length, null, 0, 0);
+                next();
+            }
             return 0;
         } catch (Exception e) {
             throw new RuntimeException(e);

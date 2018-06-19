@@ -153,6 +153,8 @@ public class SIObserver extends BaseRegionObserver{
     public void preGetOp(ObserverContext<RegionCoprocessorEnvironment> e,Get get,List<Cell> results) throws IOException{
         checkAccess();
         try {
+            if (operationFactory == null)
+                operationFactory = SIDriver.driver().baseOperationFactory();
             if (operationFactory != null) {
                 SpliceQuery spliceQuery = operationFactory.getQuery(new HGet(get));
                 if (spliceQuery != null)
@@ -223,7 +225,6 @@ public class SIObserver extends BaseRegionObserver{
             assert spliceQuery!=null: "Transaction information is missing";
 
             TxnView txn=txnOperationFactory.fromReads(attribute,0,attribute.length);
-            System.out.println("scanCaching->" + scan.getCaching());
             return new SIObserverScanner(s, spliceQuery,
                     region.unwrap(), txn, region.getTxnSupplier(),
                     SIDriver.driver().baseOperationFactory(),
