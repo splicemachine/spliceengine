@@ -488,11 +488,6 @@ public final class UpdateNode extends DMLModStatementNode
 			}
 		}
 
-        /* Bind the expressions */
-        getCompilerContext().pushCurrentPrivType(getPrivType()); // Update privilege
-        super.bindExpressions();
-        getCompilerContext().popCurrentPrivType();
-
 		if (targetVTI == null)
 		{
 			/*
