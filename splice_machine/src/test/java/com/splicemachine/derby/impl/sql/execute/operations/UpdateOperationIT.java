@@ -522,6 +522,7 @@ public class UpdateOperationIT {
     @Test
     public void testUpdateUsindIndexLookupViaControl() throws Exception {
         TestConnection conn = methodWatcher.getOrCreateConnection();
+        boolean oldAutoCommit = conn.getAutoCommit();
         conn.setAutoCommit(false);
 
         try {
@@ -570,12 +571,14 @@ public class UpdateOperationIT {
         } finally {
             // roll back the update
             conn.rollback();
+            conn.setAutoCommit(oldAutoCommit);
         }
     }
 
     @Test
     public void testUpdateUsindIndexLookupViaSpark() throws Exception {
         TestConnection conn = methodWatcher.getOrCreateConnection();
+        boolean oldAutoCommit = conn.getAutoCommit();
         conn.setAutoCommit(false);
 
         try {
@@ -624,12 +627,41 @@ public class UpdateOperationIT {
         } finally {
             // roll back the update
             conn.rollback();
+            conn.setAutoCommit(oldAutoCommit);
+        }
+    }
+
+    //DB-2714
+    @Test
+    public void testUpdateWithRowId() throws Exception {
+        TestConnection conn = methodWatcher.getOrCreateConnection();
+        boolean oldAutoCommit = conn.getAutoCommit();
+        conn.setAutoCommit(false);
+
+        try (Statement s = conn.createStatement()) {
+            /* update Q1 -- simple update*/
+            String sql = "update t2 set a2 = 800 where rowid=(select rowid from t2 where a2=8)";
+            int n = s.executeUpdate(sql);
+            Assert.assertEquals("Incorrect number of rows updated", 1, n);
+
+            String expected = "A2  | B2  |C2  |\n" +
+                    "----------------\n" +
+                    "10  |1000 |III |\n" +
+                    "800 |1000 |GGG |";
+            ResultSet rs = methodWatcher.executeQuery("select * from t2");
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs.close();
+        } finally {
+            // roll back the update
+            conn.rollback();
+            conn.setAutoCommit(oldAutoCommit);
         }
     }
 
     // Used by previous tests (testUpdateMultiColumnOneSub*)
     private int doTestUpdateMultiColumnOneSubSyntax(String outerWhere) throws Exception {
         Connection conn = methodWatcher.getOrCreateConnection();
+        boolean oldAutoCommit = conn.getAutoCommit();
         conn.setAutoCommit(false);
         try{
             StringBuilder sb=new StringBuilder(200);
@@ -648,6 +680,7 @@ public class UpdateOperationIT {
             }
         }finally{
             conn.rollback();
+            conn.setAutoCommit(oldAutoCommit);
         }
     }
 
