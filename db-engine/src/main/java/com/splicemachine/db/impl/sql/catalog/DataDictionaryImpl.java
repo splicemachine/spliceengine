@@ -7097,10 +7097,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             rowLocations.add((RowLocation) indexRow1.getColumn(
                     indexRow1.nColumns()).cloneValue(true));
         }
-        System.out.println("hey row locations->" + Arrays.toString(rowLocations.toArray()));
         heapCC.batchFetch(rowLocations,outRows,null);
-        System.out.println("hey row locations(2)->" + Arrays.toString(rowLocations.toArray()));
-        System.out.println(keyRow);
         if (outRows.size() != i) {
             if(SanityManager.DEBUG){
                 // it can not be possible for heap row to disappear while
