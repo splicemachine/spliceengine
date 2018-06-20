@@ -891,13 +891,13 @@
             <properties>
                 <envClassifier>hdp2.6.1</envClassifier>
                 <envHbase>hbase1.1.2.2.6</envHbase>
-                <hadoop.version>2.7.3.2.6.3.0-235</hadoop.version>
-                <hbase.version>1.1.2.2.6.3.0-235</hbase.version>
-                <hive.version>2.1.0.2.6.3.0-235</hive.version>
-                <zookeeper.version>3.4.6.2.6.3.0-235</zookeeper.version>
-                <spark.version>2.2.0.2.6.3.0-235</spark.version>
+                <hadoop.version>2.7.3.2.6.1.0-129</hadoop.version>
+                <hbase.version>1.1.2.2.6.1.0-129</hbase.version>
+                <hive.version>1.2.1000.2.6.1.0-129</hive.version>
+                <zookeeper.version>3.4.6.2.6.1.0-129</zookeeper.version>
+                <spark.version>2.1.1.2.6.1.0-129</spark.version>
                 <spark.major.version>spark2.2</spark.major.version>
-                <kafka.version>0.10.1.2.6.3.0-235</kafka.version>
+                <kafka.version>0.10.1.2.6.1.0-129</kafka.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
             </properties>
             <modules>
@@ -947,13 +947,13 @@
             <properties>
                 <envClassifier>hdp2.6.5</envClassifier>
                 <envHbase>hbase1.1.2.2.6</envHbase>
-                <hadoop.version>2.7.3.2.6.3.0-235</hadoop.version>
-                <hbase.version>1.1.2.2.6.3.0-235</hbase.version>
-                <hive.version>2.1.0.2.6.3.0-235</hive.version>
-                <zookeeper.version>3.4.6.2.6.3.0-235</zookeeper.version>
-                <spark.version>2.2.0.2.6.3.0-235</spark.version>
+                <hadoop.version>2.7.3.2.6.5.0-292</hadoop.version>
+                <hbase.version>1.1.2.2.6.5.0-292</hbase.version>
+                <hive.version>1.2.1000.2.6.5.0-292</hive.version>
+                <zookeeper.version>3.4.6.2.6.5.0-292</zookeeper.version>
+                <spark.version>2.3.0.2.6.5.0-292</spark.version>
                 <spark.major.version>spark2.2</spark.major.version>
-                <kafka.version>0.10.1.2.6.3.0-235</kafka.version>
+                <kafka.version>1.0.0.2.6.5.0-292</kafka.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
             </properties>
             <modules>
