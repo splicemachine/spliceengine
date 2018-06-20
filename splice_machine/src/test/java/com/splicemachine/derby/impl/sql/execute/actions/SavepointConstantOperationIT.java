@@ -67,6 +67,10 @@ public class SavepointConstantOperationIT {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
+        // we check the number of transactions created during these tests, we have to wait a few seconds to make sure
+        // all previous connections have been properly closed, otherwise they might create some transactions during the
+        // execution of this test
+        Thread.sleep(10000);
         conn1 = classWatcher.getOrCreateConnection();
         conn2 = classWatcher.createConnection();
     }
@@ -279,7 +283,6 @@ public class SavepointConstantOperationIT {
     }
 
 
-    @Ignore
     @Test
     public void testMorePersistedSavepointsInBatch() throws Exception {
         ResultSet rs = conn1.query("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");

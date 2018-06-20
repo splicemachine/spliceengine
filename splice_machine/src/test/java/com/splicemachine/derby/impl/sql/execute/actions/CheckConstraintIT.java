@@ -83,6 +83,7 @@ public class CheckConstraintIT extends SpliceUnitTest {
     public void tearDown() throws Exception{
         conn.rollback();
         conn.reset();
+        conn.close();
     }
 
     @Test
