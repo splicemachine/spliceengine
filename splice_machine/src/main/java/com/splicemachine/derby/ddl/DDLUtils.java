@@ -376,6 +376,8 @@ public class DDLUtils {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preDropSchema with change=%s",change);
         dd.getDataDictionaryCache().schemaCacheRemove(change.getDropSchema().getSchemaName());
+        dd.getDataDictionaryCache().oidSchemaCacheRemove(ProtoUtil.getDerbyUUID(change.getDropSchema().getSchemaUUID()));
+
     }
 
     public static void preUpdateSchemaOwner(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
@@ -390,6 +392,7 @@ public class DDLUtils {
             prepared = transactionResource.marshallTransaction(txn);
             // remove corresponding schema canche entry
             dd.getDataDictionaryCache().schemaCacheRemove(change.getUpdateSchemaOwner().getSchemaName());
+            dd.getDataDictionaryCache().oidSchemaCacheRemove(ProtoUtil.getDerbyUUID(change.getUpdateSchemaOwner().getSchemaUUID()));
             // clear permission cache as it has out-of-date permission info for the schema
             dd.getDataDictionaryCache().clearPermissionCache();
             // clear  TableDescriptor cache as it may reference the schema with an out-of-date authorization id
@@ -901,6 +904,9 @@ public class DDLUtils {
             else if (type == DDLMessage.RevokePrivilege.Type.REVOKE_ROUTINE_PRIVILEGE) {
                 preRevokeRoutinePrivilege(revokePrivilege.getRevokeRoutinePrivilege(), dd, dm, lcc);
             }
+            else if (type == DDLMessage.RevokePrivilege.Type.REVOKE_SCHEMA_PRIVILEGE) {
+                preRevokeSchemaPrivilege(revokePrivilege.getRevokeSchemaPrivilege(), dd, dm, lcc);
+            }
             else if (type == DDLMessage.RevokePrivilege.Type.REVOKE_GENERIC_PRIVILEGE) {
                 preRevokeGenericPrivilege(revokePrivilege.getRevokeGenericPrivilege(), dd, dm, lcc);
             }
@@ -937,6 +943,34 @@ public class DDLUtils {
         dd.getDataDictionaryCache().permissionCacheRemove(tablePermsDesc);
         dm.invalidateFor(tablePermsDesc, DependencyManager.REVOKE_PRIVILEGE, lcc);
         dm.invalidateFor(td, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
+    }
+
+    private static void preRevokeSchemaPrivilege(DDLMessage.RevokeSchemaPrivilege revokeSchemaPrivilege,
+                                                DataDictionary dd,
+                                                DependencyManager dm,
+                                                LanguageConnectionContext lcc) throws StandardException{
+
+        BasicUUID uuid = ProtoUtil.getDerbyUUID(revokeSchemaPrivilege.getSchemaId());
+        BasicUUID objectId = ProtoUtil.getDerbyUUID(revokeSchemaPrivilege.getPermObjectId());
+        SchemaDescriptor sd = dd.getSchemaDescriptor(uuid, null);
+
+        SchemaPermsDescriptor schemaPermsDesc =
+                new SchemaPermsDescriptor(
+                        dd,
+                        revokeSchemaPrivilege.getGrantee(),
+                        revokeSchemaPrivilege.getGrantor(),
+                        uuid,
+                        revokeSchemaPrivilege.getSelectPerm(),
+                        revokeSchemaPrivilege.getDeletePerm(),
+                        revokeSchemaPrivilege.getInsertPerm(),
+                        revokeSchemaPrivilege.getUpdatePerm(),
+                        revokeSchemaPrivilege.getReferencesPerm(),
+                        revokeSchemaPrivilege.getTriggerPerm(),
+                        revokeSchemaPrivilege.getModifyPerm());
+        schemaPermsDesc.setUUID(objectId);
+        dd.getDataDictionaryCache().permissionCacheRemove(schemaPermsDesc);
+        dm.invalidateFor(schemaPermsDesc, DependencyManager.REVOKE_PRIVILEGE, lcc);
+        dm.invalidateFor(sd, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
     }
 
     private static void preRevokeColumnPrivilege(DDLMessage.RevokeColumnPrivilege revokeColumnPrivilege,

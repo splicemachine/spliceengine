@@ -114,7 +114,7 @@ public class SchemaPermsDescriptor  extends PermissionsDescriptor {
 
     public String toString()
     {
-        return "tablePerms: grantee=" + getGrantee() +
+        return "schemaPerms: grantee=" + getGrantee() +
                 ",tablePermsUUID=" + getUUID() +
                 ",grantor=" + getGrantor() +
                 ",schemaUUID=" + getSchemaUUID() +
