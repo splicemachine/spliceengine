@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
@@ -51,6 +52,7 @@ public class MemTxnStore implements TxnStore{
     private TxnLifecycleManager tc;
     private final long txnTimeOutIntervalMs;
     private final ExceptionFactory exceptionFactory;
+    private final ActiveTxnTracker activeTransactions;
 
 
     public MemTxnStore(Clock clock,TimestampSource commitTsGenerator,ExceptionFactory exceptionFactory,long txnTimeOutIntervalMs){
@@ -60,6 +62,7 @@ public class MemTxnStore implements TxnStore{
         this.lockStriper=LongStripedSynchronizer.stripedReadWriteLock(16,false);
         this.exceptionFactory = exceptionFactory;
         this.clock = clock;
+        this.activeTransactions = new ActiveTxnTracker();
     }
 
     @Override
@@ -137,6 +140,20 @@ public class MemTxnStore implements TxnStore{
         }
     }
 
+    @Override
+    public void registerActiveTransaction(Txn txn) {
+        activeTransactions.registerActiveTxn(txn.getBeginTimestamp());
+    }
+
+    @Override
+    public void unregisterActiveTransaction(long txnId) {
+        activeTransactions.unregisterActiveTxn(txnId);
+    }
+
+    @Override
+    public Long oldestActiveTransaction() {
+        return activeTransactions.oldestActiveTransaction();
+    }
     @Override
     public void rollback(long txnId) throws IOException{
         ReadWriteLock readWriteLock=lockStriper.get(txnId);
