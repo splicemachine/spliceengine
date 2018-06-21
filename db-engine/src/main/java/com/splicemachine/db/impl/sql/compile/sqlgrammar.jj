@@ -7470,6 +7470,14 @@ valueExpressionPrimary() throws StandardException :
 						getContextManager());
 	}
 |
+    LOOKAHEAD({getToken(2).kind == SESSION_PROPERTY})
+    <CURRENT> <SESSION_PROPERTY>
+    {
+        return (ValueNode) nodeFactory.getNode(
+                    C_NodeTypes.CURRENT_SESSION_PROPERTY_NODE,
+                    getContextManager());
+    }
+|
 	LOOKAHEAD({getToken(2).kind == ISOLATION}) 
 	<CURRENT> <ISOLATION>
 	{
@@ -8494,11 +8502,6 @@ generalValueSpecification() throws StandardException :
 	{
 		return parm;
 	}
-|
-	parm = currentSessionPropertyNode()
-	{
-		return parm;
-	}
 }
 
 ValueNode
@@ -8547,23 +8550,6 @@ currentRoleNode() throws StandardException :
 	}
 }
 
-/*
- * <A NAME="currentSessionPropertyNode">currentSessionPropertyNode</A>
- */
-ValueNode
-currentSessionPropertyNode() throws StandardException :
-{
-}
-{
-	<CURRENT> <SESSION_PROPERTY>
-	{
-        checkVersion( DataDictionary.DD_VERSION_DERBY_10_5, "SESSION_PROPERTIES");
-		checkSqlStandardAccess("CURRENT_SESSION_PROPERTY");
-		return (ValueNode) nodeFactory.getNode(
-			C_NodeTypes.CURRENT_SESSION_PROPERTY_NODE,
-			getContextManager());
-	}
-}
 
 /*
  * <A NAME="newInvocation">newInvocation</A>
@@ -13152,11 +13138,6 @@ DB2DefaultOption(String columnName) throws StandardException :
 	{
 		return value;
 	}
-|
-    value = currentSessionPropertyNode()
-    {
-        return value;
-    }
 |
 	LOOKAHEAD({
 				getToken(1).kind == DATE ||
