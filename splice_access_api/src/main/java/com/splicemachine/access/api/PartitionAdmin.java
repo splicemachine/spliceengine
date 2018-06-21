@@ -70,4 +70,5 @@ public interface PartitionAdmin extends AutoCloseable{
 
     List<byte[]> hbaseOperation(String table, String operation, byte[] bytes) throws IOException;
 
+    void markDropped(long conglomId, long txn) throws IOException;
 }

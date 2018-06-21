@@ -20,4 +20,8 @@ package com.splicemachine.access.api;
 public interface TableDescriptor {
 
     String getTableName();
+
+    String getTransactionId();
+
+    String getDroppedTransactionId();
 }
