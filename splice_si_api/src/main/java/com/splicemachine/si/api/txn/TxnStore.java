@@ -33,6 +33,12 @@ public interface TxnStore extends TxnSupplier{
      */
     void recordNewTransaction(Txn txn) throws IOException;
 
+    void registerActiveTransaction(Txn txn);
+
+    void unregisterActiveTransaction(long txnId);
+
+    Long oldestActiveTransaction();
+
     void rollback(long txnId) throws IOException;
 
     void rollbackSubtransactions(long txnId, LongHashSet subtransactions) throws IOException;

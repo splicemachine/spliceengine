@@ -3702,7 +3702,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private String getLogHeader() {
         return String.format(
                 "XID=%s, SessionID=%s, Database=%s, DRDAID=%s, UserID=%s",
-                getTransactionExecute().getActiveStateTxIdString(),
+                getTransactionExecute().getTransactionIdString(),
                 getInstanceNumber(),
                 getDbname(),
                 getDrdaID(),

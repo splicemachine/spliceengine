@@ -233,6 +233,17 @@ public class ConglomerateUtils{
         createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,schemaDisplayName, tableDisplayName,indexDisplayName,partitionSize);
     }
 
+
+    public static void markConglomerateDropped(long conglomId, Txn txn) throws StandardException {
+        SIDriver driver=SIDriver.driver();
+        PartitionFactory tableFactory=driver.getTableFactory();
+        try (PartitionAdmin admin = tableFactory.getAdmin()) {
+            admin.markDropped(conglomId, txn.getTxnId());
+        } catch (Exception e) {
+            SpliceLogUtils.logAndThrow(LOG, "Error Creating Conglomerate", Exceptions.parseException(e));
+        }
+    }
+
     /**
      * Stores information about a new conglomerate, specified by {@code tableName}.
      *
@@ -258,7 +269,7 @@ public class ConglomerateUtils{
         PartitionFactory tableFactory=driver.getTableFactory();
         if (!isExternal) {
             try (PartitionAdmin admin = tableFactory.getAdmin()) {
-                PartitionCreator partitionCreator = admin.newPartition().withName(tableName).withDisplayNames(new String[]{schemaDisplayName, tableDisplayName, indexDisplayName});
+                PartitionCreator partitionCreator = admin.newPartition().withName(tableName).withDisplayNames(new String[]{schemaDisplayName, tableDisplayName, indexDisplayName}).withTransactionId(txn.getTxnId());
                 if (partitionSize > 0)
                     partitionCreator = partitionCreator.withPartitionSize(partitionSize);
                 partitionCreator.create();

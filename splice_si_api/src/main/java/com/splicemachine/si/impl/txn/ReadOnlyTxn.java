@@ -168,6 +168,10 @@ public class ReadOnlyTxn extends AbstractTxn{
                     shouldContinue=!state.compareAndSet(currState,State.COMMITTED);
             }
         }while(shouldContinue);
+
+        if (ROOT_TRANSACTION.equals(parentTxn)) {
+            tc.unregisterActiveTransaction(getBeginTimestamp());
+        }
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"After commit: txn=%s",this);
     }
@@ -175,6 +179,10 @@ public class ReadOnlyTxn extends AbstractTxn{
     @Override
     public void rollback() throws IOException{
         subRollback();
+
+        if (ROOT_TRANSACTION.equals(parentTxn)) {
+            tc.unregisterActiveTransaction(getBeginTimestamp());
+        }
     }
 
     @Override
