@@ -151,6 +151,9 @@ public class WritableTxn extends AbstractTxn{
                     case ROLLEDBACK:
                         throw exceptionFactory.cannotCommit(txnId, state);
                     case ACTIVE:
+                        if (ROOT_TRANSACTION.equals(parentTxn)) {
+                            tc.unregisterActiveTransaction(getBeginTimestamp());
+                        }
                         commitTimestamp = tc.commit(txnId);
                         state = State.COMMITTED;
                 }
@@ -190,6 +193,9 @@ public class WritableTxn extends AbstractTxn{
                         return;
                 }
 
+                if (ROOT_TRANSACTION.equals(parentTxn)) {
+                    tc.unregisterActiveTransaction(getBeginTimestamp());
+                }
                 tc.rollback(txnId);
                 state = State.ROLLEDBACK;
             }
