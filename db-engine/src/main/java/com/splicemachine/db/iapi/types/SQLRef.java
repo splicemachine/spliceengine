@@ -348,16 +348,27 @@ public class SQLRef extends DataType implements RefDataValue {
      */
 	@Override
 	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
-		if (value==null)
-				value = new SQLRowId();
-		value.read(unsafeRow,ordinal);
+        if (unsafeRow.isNullAt(ordinal))
+            setToNull();
+        else {
+            if (value == null)
+                value = new SQLRowId();
+            value.read(unsafeRow, ordinal);
+            isNull = evaluateNull();
+        }
 	}
 
 	@Override
 	public void read(Row row, int ordinal) throws StandardException {
-		if (row.isNullAt(ordinal) || value == null)
-			value = new SQLRowId();
-		value.read(row,ordinal);
+		if (row.isNullAt(ordinal))
+            setToNull();
+        else {
+            if (value == null) {
+                value = new SQLRowId();
+            }
+            value.read(row, ordinal);
+            isNull = evaluateNull();
+        }
 	}
 
 
