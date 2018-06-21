@@ -153,12 +153,11 @@ the admin plugin for Splice Machine is added to the Ranger web application.
 
 The service can be installed by executing the following from a command line on the machine where the Ambari Service resides.
 
-You can download the file `ranger-servicedef-splicemachine.json` at [here](https://raw.githubusercontent.com/splicemachine/spliceengine/branch-2.5/assembly/hdp2.6.3/src/main/resources/stacks/HDP/2.6/services/SPLICEMACHINE/configuration/ranger-servicedef-splicemachine.json).
-
-Then post this file to Ranger API. `admin:admin` here is Ranger's username and password.
+Then post this file to Ranger API. Run the command bellow on master. `admin:admin` here is 
+Ranger's username and password.
 
 ```
-curl -sS -u admin:admin -H "Content-Type: application/json" -X POST http://localhost:6080/service/plugins/definitions -d @/home/splice/ranger-servicedef-splicemachine.json
+curl -sS -u admin:admin -H "Content-Type: application/json" -X POST http://localhost:6080/service/plugins/definitions -d @/var/lib/ambari-server/resources/stacks/HDP/2.6/services/SPLICEMACHINE/configuration/ranger-servicedef-splicemachine.json
 ```
 
 
