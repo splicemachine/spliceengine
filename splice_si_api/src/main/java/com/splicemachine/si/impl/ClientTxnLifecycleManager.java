@@ -219,6 +219,11 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
     }
 
     @Override
+    public void unregisterActiveTransaction(long txnId) throws IOException{
+        store.unregisterActiveTransaction(txnId);
+    }
+
+    @Override
     public void rollbackSubtransactions(long txnId, LongHashSet rolledback) throws IOException {
         if(restoreMode){
             return; // we are in restore mode, don't try to access the store
@@ -247,6 +252,10 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
         if (subId == 0) {
             //record the transaction on the transaction table--network call
             store.recordNewTransaction(newTxn);
+            if (parentTxn == Txn.ROOT_TRANSACTION) {
+                // keep track of this transaction
+                store.registerActiveTransaction(newTxn);
+            }
             keepAliveScheduler.scheduleKeepAlive(newTxn);
         }
 
@@ -273,7 +282,10 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
 		 */
         if(parentTxn.equals(Txn.ROOT_TRANSACTION)){
             long beginTimestamp=timestampSource.nextTimestamp();
-            return ReadOnlyTxn.createReadOnlyParentTransaction(beginTimestamp,beginTimestamp,isolationLevel,this,exceptionFactory,additive);
+            Txn newTxn = ReadOnlyTxn.createReadOnlyParentTransaction(beginTimestamp, beginTimestamp, isolationLevel, this, exceptionFactory, additive);
+            // keep track of this transaction
+            store.registerActiveTransaction(newTxn);
+            return newTxn;
         }else{
             return ReadOnlyTxn.createReadOnlyChildTransaction(parentTxn,this,additive,exceptionFactory);
         }

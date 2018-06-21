@@ -39,8 +39,12 @@ import org.junit.rules.TestRule;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.HashSet;
 import java.util.Set;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author Scott Fines
@@ -51,6 +55,8 @@ public class VacuumIT extends SpliceUnitTest{
     public static final String CLASS_NAME = VacuumIT.class.getSimpleName().toUpperCase();
     protected static String TABLE = "T";
     protected static String TABLEA = "A";
+    protected static String TABLED = "D";
+    protected static String TABLEE = "E";
 
 	private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	@ClassRule
@@ -67,11 +73,17 @@ public class VacuumIT extends SpliceUnitTest{
             .schemaName, "(name varchar(40), title varchar(40), age int)");
     protected static SpliceTableWatcher spliceTableAWatcher = new SpliceTableWatcher(TABLEA, spliceSchemaWatcher
             .schemaName, "(name varchar(40), title varchar(40), age int)");
+    protected static SpliceTableWatcher spliceTableDWatcher = new SpliceTableWatcher(TABLED, spliceSchemaWatcher
+            .schemaName, "(name varchar(40), title varchar(40), age int)");
+    protected static SpliceTableWatcher spliceTableEWatcher = new SpliceTableWatcher(TABLEE, spliceSchemaWatcher
+            .schemaName, "(name varchar(40), title varchar(40), age int)");
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
             .around(spliceTableWatcher)
-            .around(spliceTableAWatcher);
+            .around(spliceTableAWatcher)
+            .around(spliceTableDWatcher)
+            .around(spliceTableEWatcher);
 
 	@Test
 	public void testVacuumDoesNotBreakStuff() throws Exception {
@@ -88,15 +100,179 @@ public class VacuumIT extends SpliceUnitTest{
                 callableStatement.execute();
             }
             Set<String> afterTables=getConglomerateSet(admin.listTables());
-            Assert.assertTrue(beforeTables.contains(conglomerateString));
+            assertTrue(beforeTables.contains(conglomerateString));
             Assert.assertFalse(afterTables.contains(conglomerateString));
             Set<String> deletedTables=getDeletedTables(beforeTables,afterTables);
             for(String t : deletedTables){
                 long conglom=new Long(t);
-                Assert.assertTrue(conglom>=DataDictionary.FIRST_USER_TABLE_NUMBER);
+                assertTrue(conglom>=DataDictionary.FIRST_USER_TABLE_NUMBER);
             }
         }
     }
+
+    @Test
+    public void testVacuumDoesNotDeleteConcurrentCreatedTable() throws Exception {
+        Connection connection = spliceClassWatcher.getOrCreateConnection();
+        connection.createStatement().execute(String.format("drop table %s.b if exists", CLASS_NAME));
+        connection.commit();
+
+        boolean autoCommit = connection.getAutoCommit();
+        connection.setAutoCommit(false);
+        try {
+            try (ResultSet rs = connection.createStatement().executeQuery("select * from sys.systables")) {
+                assertTrue(rs.next());
+            }
+
+            try (Connection connection2 = spliceClassWatcher.createConnection()) {
+                connection2.createStatement().execute(String.format("create table %s.b (i int)", CLASS_NAME));
+                long[] conglomerates = SpliceAdmin.getConglomNumbers(connection2, CLASS_NAME, "B");
+
+
+                try (Admin admin = ConnectionFactory.createConnection(new Configuration()).getAdmin()) {
+                    try (CallableStatement callableStatement = connection.prepareCall("call SYSCS_UTIL.VACUUM()")) {
+                        callableStatement.execute();
+                    }
+                    for (long congId : conglomerates) {
+                        // make sure the table exists in HBase and hasn't been dropped by VACUUM
+                        admin.getTableDescriptor(TableName.valueOf("splice:" + congId));
+                    }
+                }
+            }
+        } finally {
+            connection.commit();
+            connection.setAutoCommit(autoCommit);
+        }
+    }
+
+    @Test
+    public void testVacuumDoesNotDeleteTablePossiblyInUse() throws Exception {
+        Connection connection = spliceClassWatcher.getOrCreateConnection();
+
+        boolean autoCommit = connection.getAutoCommit();
+        connection.setAutoCommit(false);
+        try {
+            try (ResultSet rs = connection.createStatement().executeQuery(String.format("select * from %s.e", CLASS_NAME))) {
+                rs.next();
+            }
+
+            long[] conglomerates = SpliceAdmin.getConglomNumbers(connection, CLASS_NAME, "E");
+
+            try (Connection connection2 = spliceClassWatcher.createConnection()) {
+                connection2.createStatement().execute(String.format("drop table %s.e", CLASS_NAME));
+
+                try (Admin admin = ConnectionFactory.createConnection(new Configuration()).getAdmin()) {
+                    try (CallableStatement callableStatement = connection2.prepareCall("call SYSCS_UTIL.VACUUM()")) {
+                        callableStatement.execute();
+                    }
+                    for (long congId : conglomerates) {
+                        // make sure the table exists in HBase and hasn't been dropped by VACUUM
+                        admin.getTableDescriptor(TableName.valueOf("splice:" + congId));
+                    }
+
+                    // Now commit
+                    connection.commit();
+
+                    try (CallableStatement callableStatement = connection2.prepareCall("call SYSCS_UTIL.VACUUM()")) {
+                        callableStatement.execute();
+                    }
+                    
+                    for (long congId : conglomerates) {
+                        // make sure the table has been dropped by VACUUM
+                        assertFalse("Dropped table not in use hasn't been vaccumed", admin.tableExists(TableName.valueOf("splice:" + congId)));
+                    }
+                }
+            }
+
+        } finally {
+            connection.commit();
+            connection.setAutoCommit(autoCommit);
+        }
+    }
+
+
+    @Test
+    public void testVacuumDoesNotBlockOnExistingTransactions() throws Exception {
+        Connection connection = spliceClassWatcher.getOrCreateConnection();
+        connection.createStatement().execute(String.format("drop table %s.b if exists", CLASS_NAME));
+        connection.commit();
+
+        boolean autoCommit = connection.getAutoCommit();
+        connection.setAutoCommit(false);
+        try {
+            connection.createStatement().execute(String.format("create table %s.b (i int)", CLASS_NAME));
+
+            try (Connection connection2 = spliceClassWatcher.createConnection()) {
+                long[] conglomerates = SpliceAdmin.getConglomNumbers(connection, CLASS_NAME, "B");
+
+                try (CallableStatement callableStatement = connection2.prepareCall("call SYSCS_UTIL.VACUUM()")) {
+                    callableStatement.execute();
+                }
+
+                try (Admin admin = ConnectionFactory.createConnection(new Configuration()).getAdmin()) {
+                    for (long congId : conglomerates) {
+                        // make sure the table exists in HBase and hasn't been dropped by VACUUM
+                        admin.getTableDescriptor(TableName.valueOf("splice:" + congId));
+                    }
+                }
+            }
+        } finally {
+            connection.commit();
+            connection.setAutoCommit(autoCommit);
+        }
+    }
+
+    @Test
+    public void testVacuumDoesNotRemoveTablesWithoutTransactionId() throws Exception {
+
+        Connection connection = spliceClassWatcher.getOrCreateConnection();
+
+        long[] conglomerates = SpliceAdmin.getConglomNumbers(connection, CLASS_NAME, "D");
+
+        try (Admin admin = ConnectionFactory.createConnection(new Configuration()).getAdmin()) {
+            for (long congId : conglomerates) {
+                // make sure the table exists in HBase and hasn't been dropped by VACUUM
+                TableName tn = TableName.valueOf("splice:" + congId);
+                HTableDescriptor td = admin.getTableDescriptor(tn);
+                admin.disableTable(tn);
+                admin.deleteTable(tn);
+                td.setValue(SIConstants.TRANSACTION_ID_ATTR, null);
+                admin.createTable(td);
+            }
+        }
+
+        try {
+            try (CallableStatement callableStatement = connection.prepareCall("call SYSCS_UTIL.VACUUM()")) {
+                callableStatement.execute();
+            }
+
+            try (Admin admin = ConnectionFactory.createConnection(new Configuration()).getAdmin()) {
+                for (long congId : conglomerates) {
+                    // make sure the table exists in HBase and hasn't been dropped by VACUUM
+                    admin.getTableDescriptor(TableName.valueOf("splice:" + congId));
+                }
+            }
+
+            // now drop the table
+            try (CallableStatement callableStatement = connection.prepareCall(String.format("drop table %s.D", CLASS_NAME))) {
+                callableStatement.execute();
+            }
+
+            try (CallableStatement callableStatement = connection.prepareCall("call SYSCS_UTIL.VACUUM()")) {
+                callableStatement.execute();
+            }
+
+            try (Admin admin = ConnectionFactory.createConnection(new Configuration()).getAdmin()) {
+                for (long congId : conglomerates) {
+                    // make sure the table doesn't exists in HBase anymore
+                    assertFalse("Dropped table didnt get vacuumed",admin.tableExists(TableName.valueOf("splice:" + congId)));
+                }
+            }
+
+        } finally {
+            connection.commit();
+        }
+    }
+
 
     @Test
     public void testVacuumDisabledTable() throws Exception {
@@ -115,12 +291,12 @@ public class VacuumIT extends SpliceUnitTest{
                 callableStatement.execute();
             }
             Set<String> afterTables=getConglomerateSet(admin.listTables());
-            Assert.assertTrue(beforeTables.contains(conglomerateString));
+            assertTrue(beforeTables.contains(conglomerateString));
             Assert.assertFalse(afterTables.contains(conglomerateString));
             Set<String> deletedTables=getDeletedTables(beforeTables,afterTables);
             for(String t : deletedTables){
                 long conglom=new Long(t);
-                Assert.assertTrue(conglom>=DataDictionary.FIRST_USER_TABLE_NUMBER);
+                assertTrue(conglom>=DataDictionary.FIRST_USER_TABLE_NUMBER);
             }
         }
     }

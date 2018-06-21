@@ -219,6 +219,8 @@ public interface TxnLifecycleManager{
 
     void rollbackSubtransactions(long txnId, LongHashSet rolledback) throws IOException;
 
+    void unregisterActiveTransaction(long txnId) throws IOException;
+
     /**
      * "Chains" a new transaction to the old one.
      * <p/>
