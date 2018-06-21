@@ -58,6 +58,12 @@ public class PipelinePartitionCreator implements PartitionCreator{
     }
 
     @Override
+    public PartitionCreator withTransactionId(long txnId) throws IOException {
+        baseCreator = baseCreator.withTransactionId(txnId);
+        return this;
+    }
+
+    @Override
     public PartitionCreator withDisplayNames(String[] displayNames){
         baseCreator = baseCreator.withDisplayNames(displayNames);
         return this;
