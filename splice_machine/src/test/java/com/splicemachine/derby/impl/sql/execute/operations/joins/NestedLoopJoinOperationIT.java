@@ -17,20 +17,15 @@ package com.splicemachine.derby.impl.sql.execute.operations.joins;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.test_tools.TableCreator;
-import org.junit.*;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 
-import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 
-import static com.splicemachine.test_tools.Rows.row;
-import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -41,43 +36,10 @@ import static org.junit.Assert.fail;
 public class NestedLoopJoinOperationIT extends SpliceUnitTest {
 
     private static final String SCHEMA = NestedLoopJoinOperationIT.class.getSimpleName().toUpperCase();
-    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
     @ClassRule
     public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SCHEMA);
-    @ClassRule
-    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-            .around(schemaWatcher);
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
-
-
-    public static void createData(Connection conn, String schemaName) throws Exception {
-
-        new TableCreator(conn)
-                .withCreate("create table t1(a1 int, b1 int, c1 int, primary key (a1))")
-                .withInsert("insert into t1 values(?,?,?)")
-                .withRows(rows(
-                        row(1,1,1),
-                        row(2,2,2),
-                        row(3,3,3)))
-                .create();
-
-        new TableCreator(conn)
-                .withCreate("create table t2(a2 int, b2 int, c2 int, primary key (a2))")
-                .withInsert("insert into t2 values(?,?,?)")
-                .withRows(rows(
-                        row(1,1,1),
-                        row(2,2,2),
-                        row(3,3,3)))
-                .create();
-
-        conn.commit();
-    }
-
-    @BeforeClass
-    public static void createDataSet() throws Exception {
-        createData(spliceClassWatcher.getOrCreateConnection(), schemaWatcher.toString());
-    }
 
     /* Regression test for DB-1027 */
     @Test
@@ -167,67 +129,4 @@ public class NestedLoopJoinOperationIT extends SpliceUnitTest {
         Assert.assertEquals("Broadcast Returned Extra Row",1,SpliceUnitTest.resultSetSize(rs)); //DB-4883
     }
 
-    @Test
-    public void testNLJInNonFlatternedScalarSubquery() throws Exception {
-        /* test control path */
-        String sql = "select (select max(b1) from t1,t2) as X from t1  --splice-properties useSpark=false";
-        String expected = "X |\n" +
-                "----\n" +
-                " 3 |\n" +
-                " 3 |\n" +
-                " 3 |";
-
-        ResultSet rs = methodWatcher.executeQuery(sql);
-        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
-
-        /* test spark path */
-        sql = "select (select max(b1) from t1,t2) as X from t1  --splice-properties useSpark=true";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
-    }
-
-    @Test
-    public void testUpdateWithNLJInNonFlatternedScalarSubquery() throws Exception {
-        TestConnection conn = methodWatcher.getOrCreateConnection();
-        boolean oldAutoCommit = conn.getAutoCommit();
-        conn.setAutoCommit(false);
-
-        try (Statement s = conn.createStatement()) {
-            /* update Q1 through control */
-            String sql = "update t1  --splice-proeprties useSpark=false\n " +
-                    "set b1=(select max(b1) from t1 inner join t2 on 1=1) where a1=1";
-            int n = s.executeUpdate(sql);
-            Assert.assertEquals("Incorrect number of rows updated", 1, n);
-
-            String expected = "A1 |B1 |C1 |\n" +
-                    "------------\n" +
-                    " 1 | 3 | 1 |\n" +
-                    " 2 | 2 | 2 |\n" +
-                    " 3 | 3 | 3 |";
-            ResultSet rs = methodWatcher.executeQuery("select * from t1");
-            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-            rs.close();
-
-            /* update Q1 through spark again */
-            sql = "update t1  --splice-proeprties useSpark=true\n " +
-                    "set b1=(select min(b1) from t1 inner join t2 on 1=1) where a1=1";
-            n = s.executeUpdate(sql);
-            Assert.assertEquals("Incorrect number of rows updated", 1, n);
-
-            expected = "A1 |B1 |C1 |\n" +
-                    "------------\n" +
-                    " 1 | 2 | 1 |\n" +
-                    " 2 | 2 | 2 |\n" +
-                    " 3 | 3 | 3 |";
-            rs = methodWatcher.executeQuery("select * from t1");
-            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-            rs.close();
-        } finally {
-            // roll back the update
-            conn.rollback();
-            conn.setAutoCommit(oldAutoCommit);
-        }
-    }
 }
