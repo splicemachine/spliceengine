@@ -74,6 +74,12 @@ public class HPartitionCreator implements PartitionCreator{
     }
 
     @Override
+    public PartitionCreator withTransactionId(long txnId) throws IOException {
+        descriptor.setValue(SIConstants.TRANSACTION_ID_ATTR, Long.toString(txnId));
+        return this;
+    }
+
+    @Override
     public Partition create() throws IOException{
         assert descriptor!=null: "No table to create!";
         descriptor.addFamily(userDataFamilyDescriptor);

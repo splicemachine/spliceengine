@@ -42,5 +42,7 @@ public interface PartitionCreator{
 
     PartitionCreator withCoprocessor(String coprocessor) throws IOException;
 
+    PartitionCreator withTransactionId(long txnId) throws IOException;
+
     Partition create() throws IOException;
 }
