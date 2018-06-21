@@ -100,8 +100,8 @@ public class SchemaPrivilegeInfo extends BasicPrivilegeInfo
 			String grantee = (String) itr.next();
 			if( schemaPermsDesc != null)
 			{
-				if (dd.addRemovePermissionsDescriptor( grant, schemaPermsDesc, grantee, tc) == DataDictionary.PermissionOperation.REMOVE)
-				{
+				DataDictionary.PermissionOperation action = dd.addRemovePermissionsDescriptor( grant, schemaPermsDesc, grantee, tc);
+				if (action == DataDictionary.PermissionOperation.REMOVE) {
 					privileges_revoked = true;
 					dd.getDependencyManager().invalidateFor
 							(schemaPermsDesc,
@@ -115,6 +115,8 @@ public class SchemaPrivilegeInfo extends BasicPrivilegeInfo
 					// Dependents.
 					dd.getDependencyManager().invalidateFor
 							(sd, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
+				}
+				if (action != DataDictionary.PermissionOperation.NOCHANGE) {
 					SchemaPermsDescriptor schemaPermsDescriptor =
 							new SchemaPermsDescriptor(dd, schemaPermsDesc.getGrantee(),
 									schemaPermsDesc.getGrantor(), schemaPermsDesc.getSchemaUUID(),

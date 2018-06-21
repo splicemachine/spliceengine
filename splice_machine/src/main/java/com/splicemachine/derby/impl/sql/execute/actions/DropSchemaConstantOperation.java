@@ -14,15 +14,16 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
 
 /**
@@ -72,7 +73,7 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
         SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
         dd.dropAllSchemaPermDescriptors(sd.getObjectID(),tc);
         sd.drop(lcc, activation);
-        DDLMessage.DDLChange ddlChange = ProtoUtil.createDropSchema(tc.getActiveStateTxn().getTxnId(), schemaName);
+        DDLMessage.DDLChange ddlChange = ProtoUtil.createDropSchema(tc.getActiveStateTxn().getTxnId(), schemaName, (BasicUUID)sd.getUUID());
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
     }
 

@@ -91,15 +91,15 @@ public class RoutinePrivilegeInfo extends PrivilegeInfo
 			// warning.
 			boolean privileges_revoked = false;
 			String grantee = (String) itr.next();
-			if (dd.addRemovePermissionsDescriptor( grant, routinePermsDesc, grantee, tc) == DataDictionary.PermissionOperation.REMOVE)
-			{
-				privileges_revoked = true;	
+			DataDictionary.PermissionOperation action = dd.addRemovePermissionsDescriptor( grant, routinePermsDesc, grantee, tc);
+			if (action == DataDictionary.PermissionOperation.REMOVE) {
+				privileges_revoked = true;
 				//Derby currently supports only restrict form of revoke execute
 				//privilege and that is why, we are sending invalidation action 
 				//as REVOKE_PRIVILEGE_RESTRICT rather than REVOKE_PRIVILEGE
 				dd.getDependencyManager().invalidateFor
-					(routinePermsDesc,
-					 DependencyManager.REVOKE_PRIVILEGE_RESTRICT, lcc);
+						(routinePermsDesc,
+								DependencyManager.REVOKE_PRIVILEGE_RESTRICT, lcc);
 
 				// When revoking a privilege from a Routine we need to
 				// invalidate all GPSs refering to it. But GPSs aren't
@@ -108,9 +108,10 @@ public class RoutinePrivilegeInfo extends PrivilegeInfo
 				// INTERNAL_RECOMPILE_REQUEST to the AliasDescriptor's
 				// Dependents.
 				dd.getDependencyManager().invalidateFor
-					(aliasDescriptor,
-					 DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
-
+						(aliasDescriptor,
+								DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
+			}
+			if (action != DataDictionary.PermissionOperation.NOCHANGE) {
                 RoutinePermsDescriptor routinePermsDescriptor =
                         new RoutinePermsDescriptor(dd, routinePermsDesc.getGrantee(), routinePermsDesc.getGrantor(),
                                 routinePermsDesc.getRoutineUUID());
