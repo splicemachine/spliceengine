@@ -125,17 +125,21 @@ public class GenericPrivilegeInfo extends PrivilegeInfo
             // warning.
             boolean privileges_revoked = false;
             String grantee = (String) grantee1;
-            if (dd.addRemovePermissionsDescriptor(grant, permDesc, grantee, tc) == DataDictionary.PermissionOperation.REMOVE) {
-                //
-                // We fall in here if we are performing REVOKE.
-                //
-                privileges_revoked = true;
-                int invalidationType = _restrict ? DependencyManager.REVOKE_PRIVILEGE_RESTRICT : DependencyManager.REVOKE_PRIVILEGE;
+			DataDictionary.PermissionOperation action = dd.addRemovePermissionsDescriptor( grant, permDesc, grantee, tc);
+            if (action == DataDictionary.PermissionOperation.REMOVE){
+				//
+				// We fall in here if we are performing REVOKE.
+				//
+				privileges_revoked = true;
+				int invalidationType = _restrict ? DependencyManager.REVOKE_PRIVILEGE_RESTRICT : DependencyManager.REVOKE_PRIVILEGE;
 
-                dd.getDependencyManager().invalidateFor(permDesc, invalidationType, lcc);
+				dd.getDependencyManager().invalidateFor(permDesc, invalidationType, lcc);
 
-                // Now invalidate all GPSs refering to the object.
-                dd.getDependencyManager().invalidateFor(_tupleDescriptor, invalidationType, lcc);
+				// Now invalidate all GPSs refering to the object.
+				dd.getDependencyManager().invalidateFor(_tupleDescriptor, invalidationType, lcc);
+			}
+
+			if (action != DataDictionary.PermissionOperation.NOCHANGE) {
                 PermDescriptor permDescriptor = ddg.newPermDescriptor
                         (permDesc.getUUID(), objectTypeName, objectID, _privilege, currentUser, grantee, false);
                 result.add(permDescriptor);

@@ -1001,7 +1001,13 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     @Override
     public SchemaDescriptor getSchemaDescriptor(UUID schemaId,TransactionController tc) throws StandardException{
-        return getSchemaDescriptorBody(schemaId,TransactionController.ISOLATION_REPEATABLE_READ,tc);
+        SchemaDescriptor sd = dataDictionaryCache.oidSchemaCacheFind(schemaId);
+        if (sd != null)
+            return sd;
+        sd = getSchemaDescriptorBody(schemaId,TransactionController.ISOLATION_REPEATABLE_READ,tc);
+        if (sd != null)
+            dataDictionaryCache.oidSchemaCacheAdd(schemaId, sd);
+        return sd;
     }
 
     /**
@@ -9150,14 +9156,16 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     @Override
     public SchemaPermsDescriptor getSchemaPermissions(UUID schemaPermsUUID, String authorizationId) throws StandardException{
         SchemaPermsDescriptor key=new SchemaPermsDescriptor(this,authorizationId,null,schemaPermsUUID);
-        return getUncachedSchemaPermsDescriptor(key);
+        return (SchemaPermsDescriptor)getPermissions(key);
     }
 
     public Object getPermissions(PermissionsDescriptor key) throws StandardException{
 
-        PermissionsDescriptor permissions = dataDictionaryCache.permissionCacheFind(key);
-        if (permissions != null)
-            return permissions;
+        Optional<PermissionsDescriptor> optional = dataDictionaryCache.permissionCacheFind(key);
+        if (optional != null)
+            return optional.orNull();
+
+        PermissionsDescriptor permissions = null;
 
         if( key instanceof TablePermsDescriptor) {
 
@@ -9235,6 +9243,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 }
             }
         }
+        else if (key instanceof SchemaPermsDescriptor) {
+            SchemaPermsDescriptor schemaPermsKey = (SchemaPermsDescriptor) key;
+            permissions = getUncachedSchemaPermsDescriptor(schemaPermsKey);
+        }
         else if( key instanceof PermDescriptor)
         {
             PermDescriptor permKey = (PermDescriptor) key;
@@ -9266,7 +9278,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             }
         }
 
-        dataDictionaryCache.permissionCacheAdd(key, permissions);
+        dataDictionaryCache.permissionCacheAdd(key, permissions==null? Optional.<PermissionsDescriptor>absent():Optional.of(permissions));
 
         return permissions;
     }

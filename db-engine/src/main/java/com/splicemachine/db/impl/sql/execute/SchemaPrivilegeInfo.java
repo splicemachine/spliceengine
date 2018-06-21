@@ -97,20 +97,23 @@ public class SchemaPrivilegeInfo extends BasicPrivilegeInfo
 
             String grantee = (String) grantee1;
             if (schemaPermsDesc != null) {
-                if (dd.addRemovePermissionsDescriptor(grant, schemaPermsDesc, grantee, tc) == DataDictionary.PermissionOperation.REMOVE) {
-                    privileges_revoked = true;
-                    dd.getDependencyManager().invalidateFor
-                            (schemaPermsDesc,
-                                    DependencyManager.REVOKE_PRIVILEGE, lcc);
+				DataDictionary.PermissionOperation action = dd.addRemovePermissionsDescriptor(grant, schemaPermsDesc, grantee, tc);
+                if (action == DataDictionary.PermissionOperation.REMOVE) {
+					privileges_revoked = true;
+					dd.getDependencyManager().invalidateFor
+							(schemaPermsDesc,
+									DependencyManager.REVOKE_PRIVILEGE, lcc);
 
-                    // When revoking a privilege from a Table we need to
-                    // invalidate all GPSs refering to it. But GPSs aren't
-                    // Dependents of SchemaPermsDescr, but of the
-                    // SchemaDescriptor itself, so we must send
-                    // INTERNAL_RECOMPILE_REQUEST to the SchemaDescriptor's
-                    // Dependents.
-                    dd.getDependencyManager().invalidateFor
-                            (sd, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
+					// When revoking a privilege from a Table we need to
+					// invalidate all GPSs refering to it. But GPSs aren't
+					// Dependents of SchemaPermsDescr, but of the
+					// SchemaDescriptor itself, so we must send
+					// INTERNAL_RECOMPILE_REQUEST to the SchemaDescriptor's
+					// Dependents.
+					dd.getDependencyManager().invalidateFor
+							(sd, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
+				}
+				if (action != DataDictionary.PermissionOperation.NOCHANGE) {
                     SchemaPermsDescriptor schemaPermsDescriptor =
                             new SchemaPermsDescriptor(dd, schemaPermsDesc.getGrantee(),
                                     schemaPermsDesc.getGrantor(), schemaPermsDesc.getSchemaUUID(),

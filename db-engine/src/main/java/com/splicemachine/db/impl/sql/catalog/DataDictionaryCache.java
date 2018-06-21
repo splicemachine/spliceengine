@@ -71,13 +71,14 @@ public class DataDictionaryCache {
     private ManagedCache<TableKey,TableDescriptor> nameTdCache;
     private ManagedCache<TableKey,SPSDescriptor> spsNameCache;
     private ManagedCache<String,SequenceUpdater> sequenceGeneratorCache;
-    private ManagedCache<PermissionsDescriptor,PermissionsDescriptor> permissionsCache;
+    private ManagedCache<PermissionsDescriptor,Optional<PermissionsDescriptor>> permissionsCache;
     private ManagedCache<Long,List<PartitionStatisticsDescriptor>> partitionStatisticsCache;
     private ManagedCache<UUID, SPSDescriptor> storedPreparedStatementCache;
     private ManagedCache<Long,Conglomerate> conglomerateCache;
     private ManagedCache<Long,ConglomerateDescriptor> conglomerateDescriptorCache;
     private ManagedCache<GenericStatement,GenericStorablePreparedStatement> statementCache;
     private ManagedCache<String,SchemaDescriptor> schemaCache;
+    private ManagedCache<UUID, SchemaDescriptor> oidSchemaCache;
     private ManagedCache<String,AliasDescriptor> aliasDescriptorCache;
     private ManagedCache<String,Optional<RoleGrantDescriptor>> roleCache;
     private ManagedCache<String,List<String>> defaultRoleCache;
@@ -87,7 +88,7 @@ public class DataDictionaryCache {
     private DataDictionary dd;
     public static final String [] cacheNames = new String[] {"oidTdCache", "nameTdCache", "spsNameCache", "sequenceGeneratorCache", "permissionsCache", "partitionStatisticsCache",
             "storedPreparedStatementCache", "conglomerateCache", "statementCache", "schemaCache", "aliasDescriptorCache", "roleCache", "defaultRoleCache", "roleGrantCache",
-            "tokenCache", "propertyCache", "conglomerateDescriptorCache"};
+            "tokenCache", "propertyCache", "conglomerateDescriptorCache", "oldSchemaCache"};
 
     private int getCacheSize(Properties startParams, String propertyName, int defaultValue) throws StandardException {
         String value = startParams.getProperty(propertyName);
@@ -162,6 +163,8 @@ public class DataDictionaryCache {
         statementCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize
                 (statementCacheSize).removalListener(dependentInvalidator).build());
         schemaCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(
+                schemaCacheSize).build());
+        oidSchemaCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(
                 schemaCacheSize).build());
         aliasDescriptorCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats()
                 .maximumSize(aliasDescriptorCacheSize).build());
@@ -266,13 +269,13 @@ public class DataDictionaryCache {
         partitionStatisticsCache.invalidate(conglomID);
     }
 
-    public void permissionCacheAdd(PermissionsDescriptor key, PermissionsDescriptor permissions) throws StandardException {
+    public void permissionCacheAdd(PermissionsDescriptor key, Optional<PermissionsDescriptor> optional) throws StandardException {
         if (!dd.canWriteCache(null))
             return;
         if (LOG.isDebugEnabled())
             LOG.debug("permissionCacheAdd " + key);
-        if (key != null && permissions != null) {
-            permissionsCache.put(key, permissions);
+        if (key != null) {
+            permissionsCache.put(key, optional);
         }
     }
 
@@ -289,7 +292,7 @@ public class DataDictionaryCache {
 
     }
 
-    public PermissionsDescriptor permissionCacheFind(PermissionsDescriptor desc) throws StandardException {
+    public Optional<PermissionsDescriptor> permissionCacheFind(PermissionsDescriptor desc) throws StandardException {
         if (!dd.canReadCache(null))
             return null;
         if (LOG.isDebugEnabled())
@@ -384,6 +387,35 @@ public class DataDictionaryCache {
         schemaCache.invalidate(schemaName);
     }
 
+    public SchemaDescriptor oidSchemaCacheFind(UUID schemaID) throws StandardException {
+        if (!dd.canReadCache(null))
+            return null;
+        SchemaDescriptor sd = oidSchemaCache.getIfPresent(schemaID);
+        if (LOG.isDebugEnabled())
+            LOG.debug("oidSchemaCacheFind " + schemaID + (sd !=null ? ": found" : ": null"));
+        return sd;
+    }
+
+    public void oidSchemaCacheAdd(UUID schemaID, SchemaDescriptor descriptor) throws StandardException {
+        if (!dd.canWriteCache(null))
+            return;
+        if (LOG.isDebugEnabled())
+            LOG.debug("oidSchemaCacheAdd " + schemaID + " : " + descriptor);
+        oidSchemaCache.put(schemaID,descriptor);
+    }
+
+    public void oidSchemaCacheRemove(UUID schemaID) throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("oidSchemaCacheRemove " + schemaID);
+        oidSchemaCache.invalidate(schemaID);
+    }
+
+    public void clearOidSchemaCache() throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("clearOidSchemaCache ");
+        oidSchemaCache.invalidateAll();
+    }
+
     public void storedPreparedStatementCacheRemove(SPSDescriptor desc) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("storedPreparedStatementCacheRemove " + desc);
@@ -415,6 +447,7 @@ public class DataDictionaryCache {
         partitionStatisticsCache.invalidateAll();
         storedPreparedStatementCache.invalidateAll();
         schemaCache.invalidateAll();
+        oidSchemaCache.invalidateAll();
         statementCache.invalidateAll();
         roleCache.invalidateAll();
         defaultRoleCache.invalidateAll();
@@ -431,6 +464,7 @@ public class DataDictionaryCache {
         nameTdCache.invalidateAll();
         partitionStatisticsCache.invalidateAll();
         schemaCache.invalidateAll();
+        oidSchemaCache.invalidateAll();
         sequenceGeneratorCache.invalidateAll();
         permissionsCache.invalidateAll();
         statementCache.invalidateAll();
@@ -624,7 +658,7 @@ public class DataDictionaryCache {
     public void registerJMX(MBeanServer mbs) throws Exception{
         try{
             ManagedCache [] mc = new ManagedCache[] {oidTdCache, nameTdCache, spsNameCache, sequenceGeneratorCache, permissionsCache, partitionStatisticsCache, storedPreparedStatementCache,
-                    conglomerateCache, statementCache, schemaCache, aliasDescriptorCache, roleCache, defaultRoleCache, roleGrantCache, tokenCache, propertyCache, conglomerateDescriptorCache};
+                    conglomerateCache, statementCache, schemaCache, aliasDescriptorCache, roleCache, defaultRoleCache, roleGrantCache, tokenCache, propertyCache, conglomerateDescriptorCache, oidSchemaCache};
             //Passing in objects from mc array and names of objects from cacheNames array (static above)
             for(int i = 0; i < mc.length; i++){
                 ObjectName cacheName = new ObjectName("com.splicemachine.db.impl.sql.catalog:type="+cacheNames[i]);

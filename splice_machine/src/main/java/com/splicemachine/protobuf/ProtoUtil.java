@@ -62,17 +62,20 @@ public class ProtoUtil {
                 .build();
     }
 
-    public static DDLChange createDropSchema(long txnId, String schemaName) {
+    public static DDLChange createDropSchema(long txnId, String schemaName, BasicUUID schemaUUID) {
         return DDLChange.newBuilder().setTxnId(txnId).setDropSchema(DropSchema.newBuilder()
-                .setSchemaName(schemaName).build())
+                .setSchemaName(schemaName)
+                .setSchemaUUID(transferDerbyUUID(schemaUUID))
+                .build())
                 .setDdlChangeType(DDLChangeType.DROP_SCHEMA)
                 .build();
     }
 
-    public static DDLChange createUpdateSchemaOwner(long txnId, String schemaName, String ownerName) {
+    public static DDLChange createUpdateSchemaOwner(long txnId, String schemaName, String ownerName, BasicUUID schemaUUID) {
         return DDLChange.newBuilder().setTxnId(txnId).setUpdateSchemaOwner(UpdateSchemaOwner.newBuilder()
                 .setSchemaName(schemaName)
                 .setOwnerName(ownerName)
+                .setSchemaUUID(transferDerbyUUID(schemaUUID))
                 .build())
                 .setDdlChangeType(DDLChangeType.UPDATE_SCHEMA_OWNER)
                 .build();
@@ -555,6 +558,7 @@ public class ProtoUtil {
                 .setGrantor(permissionsDescriptor.getGrantor())
                 .setGrantee(permissionsDescriptor.getGrantee())
                 .setGrantable(permissionsDescriptor.isGrantable())
+                .setPermission(permissionsDescriptor.getPermission())
                 .setRestrict(restrict)
                 .build();
 
