@@ -223,6 +223,32 @@ public class SessionPropertyIT extends SpliceUnitTest {
         conn.close();
     }
 
+    @Test
+    public void testCurrentTimeSyntax() throws Exception {
+        String sql = "select count(*) from (values current time) dt";
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String expected = "1 |\n" +
+                "----\n" +
+                " 1 |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        sql = "select count(*) from (values current_time) dt";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        sql = "select count(*) from (values current date) dt";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        sql = "select count(*) from (values current_date) dt";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
     private void rowContainsQuery(int level, String query, String contains, TestConnection con) throws Exception {
         try(ResultSet resultSet = con.query(query)){
             for(int i=0;i<level;i++){
