@@ -63,6 +63,7 @@ public class MPartitionFactory implements PartitionFactory<Object>{
 
     private class Creator implements PartitionCreator{
         private String name;
+        private long txnId;
 
         @Override
         public PartitionCreator withName(String name){
@@ -72,6 +73,12 @@ public class MPartitionFactory implements PartitionFactory<Object>{
 
         @Override
         public PartitionCreator withCoprocessor(String coprocessor) throws IOException{
+            //no-op
+            return this;
+        }
+
+        @Override
+        public PartitionCreator withTransactionId(long txnId) throws IOException {
             //no-op
             return this;
         }
