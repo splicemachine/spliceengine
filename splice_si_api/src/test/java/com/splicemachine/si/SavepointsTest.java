@@ -15,6 +15,7 @@
 package com.splicemachine.si;
 
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.txn.TransactionMissing;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnStore;
@@ -72,9 +73,16 @@ public class SavepointsTest {
     }
 
     @After
-    public void tearDown() throws Exception{
-        for(Txn txn : createdParentTxns){
-            txn.rollback(); // rollback the transaction to prevent contamination
+    public void tearDown() throws Exception {
+        for (Txn id : createdParentTxns) {
+            try {
+                TxnView txn = txnStore.getTransaction(id.getTxnId());
+                if ((txn != null && txn.getEffectiveState().isFinal()) || id.getState().isFinal())
+                    continue;
+            } catch (TransactionMissing missing) {
+                continue;
+            }
+            id.rollback();
         }
     }
 
