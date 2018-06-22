@@ -52,7 +52,7 @@ public class TimestampV2DescriptorSerializer extends TimestampV1DescriptorSerial
 
 
     public static long formatLong(Timestamp timestamp) throws StandardException {
-        long millis = SQLTimestamp.checkBounds(timestamp);
+        long millis = SQLTimestamp.checkV2Bounds(timestamp);
         long micros = timestamp.getNanos() / NANOS_TO_MICROS;
         return millis * MICROS_TO_SECOND + micros;
     }

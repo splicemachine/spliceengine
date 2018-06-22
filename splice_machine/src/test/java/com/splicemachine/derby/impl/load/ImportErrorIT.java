@@ -183,6 +183,7 @@ public class ImportErrorIT extends SpliceUnitTest {
                     schema.schemaName, "DB1082", inputFilePath,
                     0, BADDIR.getCanonicalPath()));
 
+            destFile.delete();
             try(ResultSet rs = s.executeQuery("select * from DB1082")){
                 Assert.assertTrue("no rows found!",rs.next());
             }
@@ -421,7 +422,9 @@ public class ImportErrorIT extends SpliceUnitTest {
 
         try(Statement s = conn.createStatement()){
             s.execute("drop table if exists TS");
+            s.execute("call syscs_util.syscs_set_global_database_property('derby.database.createTablesWithVersion2Serializer', 'true')");
             s.execute("create table TS(a1 BIGINT, b1 timestamp, primary key(a1))");
+            s.execute("call syscs_util.syscs_set_global_database_property('derby.database.createTablesWithVersion2Serializer', 'false')");
             s.execute("call syscs_util.syscs_set_global_database_property('derby.database.convertOutOfRangeTimeStamps', 'false')");
             s.execute("CALL SYSCS_UTIL.SYSCS_EMPTY_STATEMENT_CACHE()");
 

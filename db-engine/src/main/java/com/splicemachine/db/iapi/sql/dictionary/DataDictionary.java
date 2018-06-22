@@ -1698,6 +1698,9 @@ public interface DataDictionary{
      *                         parent is null) or LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT (if parent is not
      *                         null). The error message is created by getting the name and type of the
      *                         tuple and parent.
+     * @param buildVersion2Descriptor If true, causes a table
+     *                                descriptor with table version of 2.0
+     *                                to be built.
      * @param tc               the transaction controller to use to do all of this.
      * @see DataDictionary#SYSCONGLOMERATES_CATALOG_NUM
      * @see com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl#duplicateDescriptorException
@@ -1707,7 +1710,8 @@ public interface DataDictionary{
                        TupleDescriptor parent,
                        int catalogNumber,
                        boolean allowsDuplicates,
-                       TransactionController tc) throws StandardException;
+                       TransactionController tc,
+                       boolean buildVersion2Descriptor) throws StandardException;
 
     /**
      * array version of addDescriptor.

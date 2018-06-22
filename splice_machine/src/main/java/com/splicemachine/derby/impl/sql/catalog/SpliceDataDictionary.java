@@ -552,7 +552,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             dropTableDescriptor(td, sd, tc);
             td.setColumnSequence(td.getColumnSequence() + 1);
             // add the table descriptor with new name
-            addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc);
+            addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
 
             DataValueDescriptor storableDV = getDataValueFactory().getNullBoolean(null);
             int colNumber = td.getNumberOfColumns() + 1;
@@ -572,7 +572,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                     0,
                     td.getColumnSequence());
 
-            addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+            addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc, false);
 
             // now add the column to the tables column descriptor list.
             td.getColumnDescriptorList().add(columnDescriptor);
@@ -591,7 +591,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             dropTableDescriptor(td, sd, tc);
             td.setColumnSequence(td.getColumnSequence()+1);
             // add the table descriptor with new name
-            addDescriptor(td,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc);
+            addDescriptor(td,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
 
             DataValueDescriptor storableDV;
             int colNumber;
@@ -610,7 +610,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
                 columnDescriptor = new ColumnDescriptor("NUMPARTITIONS",9,9,dtd,new SQLLongint(1),null,td,uuid,0,0,8);
 
-                addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+                addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc,false);
                 // now add the column to the tables column descriptor list.
                 td.getColumnDescriptorList().add(columnDescriptor);
                 updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
@@ -625,7 +625,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
             columnDescriptor =  new ColumnDescriptor("STATSTYPE",10,10,dtd,new SQLInteger(0),null,td,uuid,0,0, 9);
 
-            addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+            addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc, false);
             td.getColumnDescriptorList().add(columnDescriptor);
             updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
 
@@ -638,7 +638,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
 
             columnDescriptor =  new ColumnDescriptor("SAMPLEFRACTION",11,11,dtd,new SQLDouble(0),null,td,uuid,0,0,10);
-            addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+            addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc, false);
             td.getColumnDescriptorList().add(columnDescriptor);
 
             updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
@@ -655,15 +655,15 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         dropTableDescriptor(td, sd, tc);
         td.setColumnSequence(td.getColumnSequence()+1);
         // add the table descriptor with new name
-        addDescriptor(td,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc);
+        addDescriptor(td,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
 
         // add the two newly added columns statType and sampleFraction
         ColumnDescriptor columnDescriptor = new ColumnDescriptor("STATS_TYPE",10,10,DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER),null,null,td,td.getUUID(),0,0,9);
-        addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+        addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc, false);
         td.getColumnDescriptorList().add(columnDescriptor);
 
         columnDescriptor = new ColumnDescriptor("SAMPLE_FRACTION",11,11,DataTypeDescriptor.getBuiltInDataTypeDescriptor((Types.DOUBLE)),null,null,td,td.getUUID(),0,0,10);
-        addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+        addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc, false);
         td.getColumnDescriptorList().add(columnDescriptor);
 
         ViewDescriptor vd=getViewDescriptor(td);
@@ -671,7 +671,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         DataDescriptorGenerator ddg=getDataDescriptorGenerator();
         vd=ddg.newViewDescriptor(td.getUUID(),"SYSTABLESTATISTICS",
                 SYSTABLESTATISTICSRowFactory.STATS_VIEW_SQL,0,sd.getUUID());
-        addDescriptor(vd,sd,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc);
+        addDescriptor(vd,sd,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
         SpliceLogUtils.info(LOG, "SYS.SYSVIEWS upgraded: updated view SYSTABLESTATISTICS with two more columns: STATSTYPE, SAMPLEFRACTION.");
     }
 
@@ -723,7 +723,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         DataDescriptorGenerator ddg=getDataDescriptorGenerator();
         vd=ddg.newViewDescriptor(td.getUUID(),"SYSTABLESTATISTICS",
                 SYSTABLESTATISTICSRowFactory.STATS_VIEW_SQL,0,sd.getUUID());
-        addDescriptor(vd,sd,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc);
+        addDescriptor(vd,sd,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
         SpliceLogUtils.info(LOG, "SYS.SYSVIEWS upgraded: updated view SYSTABLESTATISTICS's definition");
     }
 
@@ -744,7 +744,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         DataDescriptorGenerator ddg=getDataDescriptorGenerator();
         TableDescriptor view=ddg.newTableDescriptor("SYSTABLESTATISTICS",
                 sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
-        addDescriptor(view,sysSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc);
+        addDescriptor(view,sysSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
         UUID viewId=view.getUUID();
         ColumnDescriptor[] tableViewCds=SYSTABLESTATISTICSRowFactory.getViewColumns(view,viewId);
         addDescriptorArray(tableViewCds,view,DataDictionary.SYSCOLUMNS_CATALOG_NUM,false,tc);
@@ -755,7 +755,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         ViewDescriptor vd=ddg.newViewDescriptor(viewId,"SYSTABLESTATISTICS",
                 SYSTABLESTATISTICSRowFactory.STATS_VIEW_SQL,0,sysSchema.getUUID());
-        addDescriptor(vd,sysSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc);
+        addDescriptor(vd,sysSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
     }
 
     private void createSysColumnStatsView(TransactionController tc) throws StandardException{
@@ -765,7 +765,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         DataDescriptorGenerator ddg=getDataDescriptorGenerator();
         TableDescriptor view=ddg.newTableDescriptor("SYSCOLUMNSTATISTICS",
                 sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
-        addDescriptor(view,sysSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc);
+        addDescriptor(view,sysSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
         UUID viewId=view.getUUID();
         ColumnDescriptor[] tableViewCds=SYSCOLUMNSTATISTICSRowFactory.getViewColumns(view,viewId);
         addDescriptorArray(tableViewCds,view,DataDictionary.SYSCOLUMNS_CATALOG_NUM,false,tc);
@@ -775,7 +775,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         ViewDescriptor vd=ddg.newViewDescriptor(viewId,"SYSCOLUMNSTATISTICS",
                 SYSCOLUMNSTATISTICSRowFactory.STATS_VIEW_SQL,0,sysSchema.getUUID());
-        addDescriptor(vd,sysSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc);
+        addDescriptor(vd,sysSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
     }
 
     private void elevateTxnForDictionaryOperations(LanguageConnectionContext lcc) throws StandardException{
@@ -889,7 +889,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             dropTableDescriptor(td, sd, tc);
             td.setColumnSequence(td.getColumnSequence()+1);
             // add the table descriptor with new name
-            addDescriptor(td,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc);
+            addDescriptor(td,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
 
             ColumnDescriptor columnDescriptor;
             UUID uuid = getUUIDFactory().createUUID();
@@ -905,7 +905,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             columnDescriptor = new ColumnDescriptor(SYSSCHEMAPERMSRowFactory.MODIFYPRIV_COL_NAME,colNumber,
                     colNumber,dtd,null,null,td,uuid,0,0,td.getColumnSequence());
 
-            addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+            addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc,false);
             // now add the column to the tables column descriptor list.
             td.getColumnDescriptorList().add(columnDescriptor);
             updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
@@ -930,7 +930,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         dropTableDescriptor(td, sd, tc);
         td.setColumnSequence(td.getColumnSequence()+1);
         // add the table descriptor with new name
-        addDescriptor(td,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc);
+        addDescriptor(td,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
 
         ColumnDescriptor columnDescriptor;
         UUID uuid = getUUIDFactory().createUUID();
@@ -946,7 +946,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         columnDescriptor = new ColumnDescriptor("DEFAULTROLE",colNumber,
                 colNumber,dtd,null,null,td,uuid,0,0,td.getColumnSequence());
 
-        addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+        addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc,false);
         // now add the column to the tables column descriptor list.
         td.getColumnDescriptorList().add(columnDescriptor);
         updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
@@ -969,7 +969,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             }
         }
         ConglomerateDescriptor cgd = bootstrapOneIndex(systemSchemaDesc, tc, ddg, ti, SYSROLESRowFactory.SYSROLES_INDEX_EE_DEFAULT_IDX, ti.getHeapConglomerate());
-        addDescriptor(cgd,sd,SYSCONGLOMERATES_CATALOG_NUM,false,tc);
+        addDescriptor(cgd,sd,SYSCONGLOMERATES_CATALOG_NUM,false,tc,false);
 
         /* purge td dictionary cache as it may have the sysrole td without the new index info */
         dataDictionaryCache.clearNameTdCache();

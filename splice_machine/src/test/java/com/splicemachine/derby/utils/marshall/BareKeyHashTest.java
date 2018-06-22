@@ -14,24 +14,24 @@
 
 package com.splicemachine.derby.utils.marshall;
 
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.collect.Sets;
-import com.splicemachine.derby.impl.load.ImportTestUtils;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.load.ImportTestUtils;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
 import com.splicemachine.utils.kryo.KryoPool;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.spark_project.guava.collect.Lists;
+import org.spark_project.guava.collect.Sets;
 
 import java.util.*;
 

@@ -97,7 +97,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 	 */
 	public static final String ORIGINAL_TABLE_VERSION = "1.0";
 	//the current version for creating new tables with
-	public static final String CURRENT_TABLE_VERSION = "2.0";
+	public static final String CURRENT_TABLE_VERSION = "3.0";
 	
 	// all indexes are unique.
 
@@ -160,6 +160,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		String 					storedAs = null;
 		String 					location = null;
 		String 					compression = null;
+		SQLVarchar              tableVersion = null;
 		// NOT USED ANYMORE, for backward compatibility only
 		@Deprecated
 		boolean 				isPinned = false;
@@ -241,7 +242,12 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 			//NOT USED ANYMORE, for backward compatibility only
 			isPinned = descriptor.isPinned();
             purgeDeletedRows = descriptor.purgeDeletedRows();
+			tableVersion = descriptor.getVersion() == null ?
+		                 	new SQLVarchar(CURRENT_TABLE_VERSION) :
+			                new SQLVarchar(descriptor.getVersion());
 		}
+		else
+			tableVersion = new SQLVarchar(CURRENT_TABLE_VERSION);
 
 		/* Insert info into systables */
 
@@ -268,7 +274,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		row.setColumn(SYSTABLES_LOCKGRANULARITY, new SQLChar(lockGranularity));
 
 		/* 6th column is VERSION (varchar(128)) */
-		row.setColumn(SYSTABLES_VERSION,new SQLVarchar(CURRENT_TABLE_VERSION));
+		row.setColumn(SYSTABLES_VERSION, tableVersion);
 
         row.setColumn(SYSTABLES_COLUMN_SEQUENCE,new SQLInteger(columnSequence));
 

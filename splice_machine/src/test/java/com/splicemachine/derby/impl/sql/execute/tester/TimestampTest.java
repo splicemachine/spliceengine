@@ -19,8 +19,10 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+
 import java.sql.Timestamp;
 
 /**
@@ -32,11 +34,11 @@ import java.sql.Timestamp;
 @Category(ArchitectureIndependent.class)
 public class TimestampTest {
 
-
+    @Ignore("Version 2.0 Timestamp bounds were removed by SPLICE-1212.")
     @Test
     public void testBounds() throws StandardException {
-        Timestamp tsMin = new Timestamp(SQLTimestamp.MIN_TIMESTAMP - 1);
-        Timestamp tsMax = new Timestamp(SQLTimestamp.MAX_TIMESTAMP + 1);
+        Timestamp tsMin = new Timestamp(SQLTimestamp.MIN_V2_TIMESTAMP - 1);
+        Timestamp tsMax = new Timestamp(SQLTimestamp.MAX_V2_TIMESTAMP + 1);
         Timestamp tsOk = new Timestamp(0);
 
         SQLTimestamp sts = new SQLTimestamp();
