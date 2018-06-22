@@ -99,6 +99,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                                 .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
                                 .varchar("directory", 32672)
                                 .bigint("backupId")
+                                .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
                                 .build();
                         procedures.set(i, restore);
                     } else if(BACKUP_DATABASE_NAME.equals(sysProc.getName())) {
@@ -901,6 +902,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
                             .varchar("directory", 32672)
                             .bigint("backupId")
+                            .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
                             .build());
 
                     procedures.add(Procedure.newBuilder().name("VALIDATE_BACKUP")
