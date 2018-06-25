@@ -9275,7 +9275,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             }
         }
 
-        dataDictionaryCache.permissionCacheAdd(key, permissions==null? Optional.<PermissionsDescriptor>absent():Optional.of(permissions));
+        dataDictionaryCache.permissionCacheAdd(key, Optional.fromNullable(permissions));
 
         return permissions;
     }
