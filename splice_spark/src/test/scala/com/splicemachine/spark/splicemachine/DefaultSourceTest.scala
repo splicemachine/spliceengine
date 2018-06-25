@@ -53,6 +53,13 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     assert(df.count == 10)
   }
 
+
+  test("read from internal execution datasource api") {
+    val df = sqlContext.read.options(internalExecutionOptions).splicemachine
+    assert(splicemachineContext.tableExists(internalTN))
+    assert(df.count == 10)
+  }
+
   test("insertion") {
     val df = sqlContext.read.options(internalOptions).splicemachine
     val changedDF = df.withColumn("C6_INT", when(col("C6_INT").leq(10), col("C6_INT").plus(10)) )
