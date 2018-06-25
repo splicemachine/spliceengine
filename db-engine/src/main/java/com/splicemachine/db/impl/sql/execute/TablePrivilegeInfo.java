@@ -136,20 +136,25 @@ public class TablePrivilegeInfo extends BasicPrivilegeInfo
 
             String grantee = (String) grantee1;
             if (tablePermsDesc != null) {
-                if (dd.addRemovePermissionsDescriptor(grant, tablePermsDesc, grantee, tc) == DataDictionary.PermissionOperation.REMOVE) {
-                    privileges_revoked = true;
-                    dd.getDependencyManager().invalidateFor
-                            (tablePermsDesc,
-                                    DependencyManager.REVOKE_PRIVILEGE, lcc);
+				DataDictionary.PermissionOperation action = dd.addRemovePermissionsDescriptor( grant, tablePermsDesc, grantee, tc);
+                if (action == DataDictionary.PermissionOperation.REMOVE) {
+					privileges_revoked = true;
+					dd.getDependencyManager().invalidateFor
+							(tablePermsDesc,
+									DependencyManager.REVOKE_PRIVILEGE, lcc);
 
-                    // When revoking a privilege from a Table we need to
-                    // invalidate all GPSs refering to it. But GPSs aren't
-                    // Dependents of TablePermsDescr, but of the
-                    // TableDescriptor itself, so we must send
-                    // INTERNAL_RECOMPILE_REQUEST to the TableDescriptor's
-                    // Dependents.
-                    dd.getDependencyManager().invalidateFor
-                            (td, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
+					// When revoking a privilege from a Table we need to
+					// invalidate all GPSs refering to it. But GPSs aren't
+					// Dependents of TablePermsDescr, but of the
+					// TableDescriptor itself, so we must send
+					// INTERNAL_RECOMPILE_REQUEST to the TableDescriptor's
+					// Dependents.
+					dd.getDependencyManager().invalidateFor
+							(td, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
+				}
+
+				if (action != DataDictionary.PermissionOperation.NOCHANGE) {
+					// we need to invalidate the permission cache for both revoke and grant
                     TablePermsDescriptor tablePermsDescriptor =
                             new TablePermsDescriptor(dd, tablePermsDesc.getGrantee(),
                                     tablePermsDesc.getGrantor(), tablePermsDesc.getTableUUID(),
