@@ -74,6 +74,7 @@ message DropSchema {
         optional int64 baseConglomerate = 1;
         optional int64 conglomerate = 2;
         required string schemaName = 3;
+        required UUID schemaUUID = 4;
 }
 
 message DropTable {
@@ -177,6 +178,7 @@ message RevokePrivilege {
 message UpdateSchemaOwner {
         required string schemaName = 1;
         required string ownerName = 2;
+        required UUID schemaUUID = 3;
 }
 
 message GrantRevokeRole {
