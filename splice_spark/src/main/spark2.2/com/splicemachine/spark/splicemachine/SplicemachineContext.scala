@@ -61,8 +61,7 @@ object Holder extends Serializable {
   */
 class SplicemachineContext(options: Map[String, String]) extends Serializable {
   val url = options.get(JDBCOptions.JDBC_URL).get
-  val configuration = HConfiguration.getConfiguration
-
+  
   def this(url: String) {
     this(Map(JDBCOptions.JDBC_URL -> url));
   }
@@ -411,6 +410,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @return
     */
   def internalDf(sql: String): Dataset[Row] = {
+
+    val configuration = HConfiguration.getConfiguration
 
     val connection = SpliceClient.getConnectionPool(
       configuration.getAuthenticationTokenDebugConnections, configuration.getAuthenticationTokenMaxConnections).getConnection
