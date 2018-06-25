@@ -89,6 +89,12 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     JDBCOptions.JDBC_URL -> defaultJDBCURL
   )
 
+  val internalExecutionOptions = Map(
+    JDBCOptions.JDBC_TABLE_NAME -> internalTN,
+    JDBCOptions.JDBC_URL -> defaultJDBCURL
+  )
+
+
   val statOptions = Map(
     JDBCOptions.JDBC_TABLE_NAME -> "SYS.SYSTABLESTATISTICS",
     JDBCOptions.JDBC_URL -> defaultJDBCURL
