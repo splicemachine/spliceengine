@@ -30,7 +30,7 @@ public interface BackupManager{
 
     long getRunningBackup() throws StandardException;
 
-    void restoreDatabase(String directory,long backupId, boolean sync)throws StandardException;
+    void restoreDatabase(String directory,long backupId, boolean sync, boolean validate)throws StandardException;
 
     void removeBackup(List<Long> backupIds) throws StandardException;
 
@@ -39,4 +39,6 @@ public interface BackupManager{
     void cancelDailyBackup(long jobId) throws StandardException;
 
     void cancelBackup() throws StandardException;
+
+    void validateBackup(String directory,long backupId)throws StandardException;
 }

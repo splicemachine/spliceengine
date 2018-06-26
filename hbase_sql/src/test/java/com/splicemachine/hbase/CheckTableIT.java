@@ -266,6 +266,24 @@ public class CheckTableIT extends SpliceUnitTest {
     @Test
     public void negativeTests() throws Exception {
 
+
+        try {
+            spliceClassWatcher.execute(String.format("call syscs_util.check_table('%s', '%s', null, 1, null)", SCHEMA_NAME, A, getResourceDirectory(), A));
+            Assert.assertTrue("Should fail!", false);
+        }
+        catch (SQLException e) {
+            Assert.assertEquals(e.getSQLState(), "TS008");
+        }
+
+        try {
+            spliceClassWatcher.execute(String.format("call syscs_util.check_table('%s', '%s', null, 1, ' ')", SCHEMA_NAME, A, getResourceDirectory(), A));
+            Assert.assertTrue("Should fail!", false);
+        }
+
+        catch (SQLException e) {
+            Assert.assertEquals(e.getSQLState(), "TS008");
+        }
+
         try {
             spliceClassWatcher.execute(String.format("call syscs_util.check_table('%s', '%s', null, 3, '%s/check-%s.out')", SCHEMA_NAME, A, getResourceDirectory(), A));
             Assert.assertTrue("Should fail!", false);
