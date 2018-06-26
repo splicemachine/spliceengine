@@ -46,6 +46,7 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueFactory;
+import com.splicemachine.db.impl.sql.misc.CommentStripper;
 
 import java.util.List;
 
@@ -84,9 +85,11 @@ public interface LanguageConnectionFactory {
 		@param compilationSchema schema
 		@param statementText the text for the statement
 		@param forReadOnly true if concurrency mode is CONCUR_READ_ONLY
+	    @param lcc the language connection context where the statement is created/submitted
 		@return	The Statement
 	 */
-	Statement getStatement(SchemaDescriptor compilationSchema, String statementText, boolean forReadOnly);
+	Statement getStatement(SchemaDescriptor compilationSchema, String statementText, boolean forReadOnly,
+						   LanguageConnectionContext lcc) throws StandardException;
 
 	/**
 		Get a new LanguageConnectionContext. this holds things
@@ -175,4 +178,6 @@ public interface LanguageConnectionFactory {
 
 
     public Parser newParser(CompilerContext cc);
+
+    public CommentStripper newCommentStripper();
 }

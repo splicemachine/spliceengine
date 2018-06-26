@@ -418,6 +418,11 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
         sourceTxt = text;
     }
 
+    @Override
+    public String getSourceTxt() {
+        return sourceTxt;
+    }
+
     public final void setSPSName(String name) {
         spsName = name;
     }

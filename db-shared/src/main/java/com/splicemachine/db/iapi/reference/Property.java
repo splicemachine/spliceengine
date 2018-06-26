@@ -1332,4 +1332,11 @@ public interface Property {
 	String CONVERT_OUT_OF_RANGE_TIMESTAMPS =
 	        "derby.database.convertOutOfRangeTimeStamps";
 
+	/**
+	 * If true, do not support optimization to allow statements with only comment difference
+	 * to reuse statment cache
+	 */
+	String MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_DISABLED =
+			"derby.database.matchStmtCacheIgnoreCommentOptimizationDisabled";
+
 }

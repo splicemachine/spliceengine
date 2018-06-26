@@ -27,12 +27,7 @@ import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.ResubmitDistributedException;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
-import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
-import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
-import com.splicemachine.db.iapi.sql.execute.RowChanger;
-import com.splicemachine.db.iapi.sql.execute.TargetResultSet;
+import com.splicemachine.db.iapi.sql.execute.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
@@ -497,9 +492,28 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     }
 
     private void logExecutionStart(DataSetProcessor dsp) {
+        boolean ignoreComentOptDisabled = activation.getLanguageConnectionContext().getIgnoreCommentOptDisabled();
+        ExecPreparedStatement ps = activation.getPreparedStatement();
+        /* if matching statement cache ignore comment optimization is disabled, just use the stmt text in the preparedStatement;
+           however, if this optimization is turned on, the statement text in the preparedStatment may not reflect the original statement
+           that the user submitted(it could be a statement which differs from the user submitted one in comments).
+           We need to log the original statement text, which is passed down through lcc.lastlogstmt.
+           In both cases, there is a scenario where for internally generated statement, we explicitly set the sourceText, for example,
+           a triggered statement(GenericTriggerExecutor.compile(), in those cases, we want to honor/use the explicitly set sourceText.
+         */
+        String stmtForLogging;
+        if (ignoreComentOptDisabled) {
+            stmtForLogging = ps.getSource();
+        } else {
+            if (ps.getSourceTxt() == null)
+                stmtForLogging = activation.getLanguageConnectionContext().getOrigStmtTxt();
+            else
+                stmtForLogging = ps.getSourceTxt();
+        }
+
         activation.getLanguageConnectionContext().logStartExecuting(
-                uuid.toString(), dsp.getType().toString(),
-                activation.getPreparedStatement(),
+                uuid.toString(), dsp.getType().toString(), stmtForLogging,
+                ps,
                 activation.getParameterValueSet()
         );
     }
