@@ -1,0 +1,89 @@
+options
+{
+	STATIC = false;
+	LOOKAHEAD = 1;
+	DEBUG_PARSER = false;
+	DEBUG_LOOKAHEAD = false;
+	DEBUG_TOKEN_MANAGER = false;
+	ERROR_REPORTING = true;
+	USER_TOKEN_MANAGER = false;
+	USER_CHAR_STREAM = true;
+	CACHE_TOKENS = true;
+	UNICODE_INPUT = true;
+}
+
+PARSER_BEGIN(SQLCommentStripper)
+
+package com.splicemachine.db.impl.sql.misc;
+
+import com.splicemachine.db.impl.sql.misc.ParseException;
+import com.splicemachine.db.impl.sql.misc.Token;
+import com.splicemachine.db.impl.sql.misc.TokenMgrError;
+import com.splicemachine.db.impl.sql.misc.SQLCommentStripperConstants;
+import com.splicemachine.db.impl.sql.misc.CharStream;
+
+import com.splicemachine.db.iapi.error.StandardException;
+
+public class SQLCommentStripper {
+
+}
+
+PARSER_END(SQLCommentStripper)
+
+TOKEN_MGR_DECLS :
+{
+	int commentNestingDepth = 0;
+}
+
+MORE : {<"/*"> {commentNestingDepth = 1;} : IN_COMMENT}
+
+<IN_COMMENT> MORE :
+{
+    <"/*"> {commentNestingDepth +=1;}
+}
+
+<IN_COMMENT> SKIP :
+{
+    <"*/">
+    {
+        commentNestingDepth -= 1;
+        SwitchTo(commentNestingDepth==0 ? DEFAULT : IN_COMMENT);
+    }
+}
+
+<IN_COMMENT> MORE :
+{
+    < ~[] >
+}
+
+TOKEN :
+{
+    <OPEN_QUOTE: "'"> : IN_QUOTATION
+}
+
+<IN_QUOTATION> TOKEN :
+{
+    <QUOTED_TEXT: (~["'"])*>
+|   <CLOSE_QUOTE: "'"> : DEFAULT
+}
+
+TOKEN :
+{
+    <LINE_COMMENT: "--" (~["\n","\r"])* ("\n" | "\r" | "\r\n")>
+|   <TEXT: ~[]>
+}
+
+
+String strip() throws StandardException :
+{
+    Token t;
+    StringBuilder sb = new StringBuilder();
+}
+{
+    (( t= <TEXT> | t= <QUOTED_TEXT> | t= <OPEN_QUOTE> | t=<LINE_COMMENT> | t= <CLOSE_QUOTE>  )
+     {sb.append(t.image);}
+    )* <EOF>
+    {
+       return sb.toString();
+    }
+}
