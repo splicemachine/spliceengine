@@ -85,6 +85,12 @@ public class SpliceTableAdmin {
 
     public static void CHECK_TABLE(String schemaName, String tableName, String indexName, int level,
                                    String outputFile, final ResultSet[] resultSet) throws Exception {
+
+        if (outputFile == null || outputFile.trim().length() == 0) {
+            throw StandardException.newException(SQLState.INVALID_PARAMETER, "outputFile", outputFile==null?"null":outputFile);
+        }
+
+        outputFile = outputFile.trim();
         if (tableName == null && indexName == null) {
             CHECK_SCHEMA(schemaName, level, outputFile, resultSet);
         }

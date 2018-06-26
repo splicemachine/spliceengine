@@ -50,6 +50,46 @@ public class BackupSystemProcedures {
 
     private static Logger LOG = Logger.getLogger(BackupSystemProcedures.class);
 
+    public static void VALIDATE_BACKUP(String directory, long backupId, ResultSet[] resultSets) throws StandardException, SQLException {
+
+        IteratorNoPutResultSet inprs = null;
+        Connection conn = SpliceAdmin.getDefaultConn();
+        LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+        Activation activation = lcc.getLastActivation();
+
+        try {
+            BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
+            backupManager.validateBackup(directory, backupId);
+            ResultColumnDescriptor[] rcds = {
+                    new GenericColumnDescriptor("Results", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 1024))
+            };
+            ExecRow template = new ValueRow(1);
+            template.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
+            List<ExecRow> rows = Lists.newArrayList();
+            SQLWarning warning = activation.getWarnings();
+            if (warning == null) {
+                template.getColumn(1).setValue("No corruptions found for backup.");
+                rows.add(template.getClone());
+            }
+            else {
+                while (warning != null) {
+                    String warningMessage = warning.getLocalizedMessage();
+                    template.getColumn(1).setValue(warningMessage);
+                    rows.add(template.getClone());
+                    warning = warning.getNextWarning();
+                }
+            }
+
+            inprs = new IteratorNoPutResultSet(rows, rcds, lcc.getLastActivation());
+            inprs.openCore();
+            resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class),inprs,false,null,true);
+        } catch (Throwable t) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
+            SpliceLogUtils.error(LOG, "Backup validation error", t);
+            t.printStackTrace();
+        }
+    }
+
     public static void SYSCS_BACKUP_DATABASE(String directory, String type, ResultSet[] resultSets)
             throws StandardException, SQLException {
         type = type.trim();
@@ -86,7 +126,7 @@ public class BackupSystemProcedures {
      * @throws StandardException
      * @throws SQLException
      */
-    public static void SYSCS_RESTORE_DATABASE(String directory, long backupId, ResultSet[] resultSets) throws StandardException, SQLException {
+    public static void SYSCS_RESTORE_DATABASE(String directory, long backupId, boolean validate, ResultSet[] resultSets) throws StandardException, SQLException {
         IteratorNoPutResultSet inprs = null;
 
         Connection conn = SpliceAdmin.getDefaultConn();
@@ -98,11 +138,11 @@ public class BackupSystemProcedures {
             if ( (runningBackupId = backupManager.getRunningBackup()) != 0) {
                 throw StandardException.newException(SQLState.NO_RESTORE_DURING_BACKUP, runningBackupId);
             }
-            backupManager.restoreDatabase(directory,backupId, true);
+            backupManager.restoreDatabase(directory,backupId, true, validate);
 
             // Print reboot statement
             ResultColumnDescriptor[] rcds = {
-                    new GenericColumnDescriptor("result", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 30)),
+                    new GenericColumnDescriptor("result", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
                     new GenericColumnDescriptor("warnings", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 1024))
             };
             ExecRow template = new ValueRow(2);
@@ -111,20 +151,25 @@ public class BackupSystemProcedures {
 
             Activation activation = lcc.getLastActivation();
             SQLWarning warning = activation.getWarnings();
-            while (warning != null) {
-                String warningMessage = warning.getLocalizedMessage();
-                template.getColumn(1).setValue(warning.getSQLState());
-                template.getColumn(2).setValue(warning.getLocalizedMessage());
+            if (warning != null) {
+                while (warning != null) {
+                    template.getColumn(1).setValue(warning.getSQLState());
+                    template.getColumn(2).setValue(warning.getLocalizedMessage());
+                    rows.add(template.getClone());
+                    warning = warning.getNextWarning();
+                }
+                template.getColumn(1).setValue("Found inconsistencies in backup");
+                template.getColumn(2).setValue("To force a restore, set valid to false");
                 rows.add(template.getClone());
-                warning = warning.getNextWarning();
             }
-            template.getColumn(1).setValue("Restore completed");
-            template.getColumn(2).setValue("Database has to be rebooted");
-            rows.add(template.getClone());
-
+            else {
+                template.getColumn(1).setValue("Restore completed");
+                template.getColumn(2).setValue("Database has to be rebooted");
+                rows.add(template.getClone());
+                LOG.info("Restore completed. Database reboot is required.");
+            }
             inprs = new IteratorNoPutResultSet(rows,rcds,lcc.getLastActivation());
             inprs.openCore();
-            LOG.info("Restore completed. Database reboot is required.");
 
         } catch (Throwable t) {
             ResultColumnDescriptor[] rcds = {
@@ -190,7 +235,7 @@ public class BackupSystemProcedures {
      * @throws StandardException
      * @throws SQLException
      */
-    public static void SYSCS_RESTORE_DATABASE_ASYNC(String directory, long backupId, ResultSet[] resultSets) throws StandardException, SQLException {
+    public static void SYSCS_RESTORE_DATABASE_ASYNC(String directory, long backupId, boolean validate, ResultSet[] resultSets) throws StandardException, SQLException {
         IteratorNoPutResultSet inprs = null;
 
         Connection conn = SpliceAdmin.getDefaultConn();
@@ -202,7 +247,7 @@ public class BackupSystemProcedures {
             if ( (runningBackupId = backupManager.getRunningBackup()) != 0) {
                 throw StandardException.newException(SQLState.NO_RESTORE_DURING_BACKUP, runningBackupId);
             }
-            backupManager.restoreDatabase(directory,backupId, false);
+            backupManager.restoreDatabase(directory,backupId, false, validate);
 
             // Print reboot statement
             ResultColumnDescriptor[] rcds = {
