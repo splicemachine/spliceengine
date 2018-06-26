@@ -293,7 +293,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       fs.setPermission(new Path(tempDirectory, id), FsPermission.createImmutable(Integer.parseInt("777", 8).toShort))
 
       connection.prepareStatement(s"EXPORT('$tempDirectory/$id', true, 1, null, null, null) " + sql).execute()
-      SpliceSpark.getSession.read.csv(fs.getUri + s"$tempDirectory/$id")
+      // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
+      SpliceSpark.getSession.read.option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").csv(fs.getUri + s"$tempDirectory/$id")
     } finally {
       connection.close()
     }
