@@ -835,7 +835,7 @@
                 <hive.version>1.2.1000.2.6.1.0-129</hive.version>
                 <zookeeper.version>3.4.6.2.6.1.0-129</zookeeper.version>
                 <spark.version>2.1.1.2.6.1.0-129</spark.version>
-                <spark.major.version>spark2.2</spark.major.version>
+                <spark.major.version>spark2.1</spark.major.version>
                 <kafka.version>0.10.1.2.6.1.0-129</kafka.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
             </properties>
