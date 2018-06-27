@@ -168,7 +168,8 @@
                                         jmxutils,
                                         jol-core,
                                         slice,
-                                        orc-protobuf
+                                        orc-protobuf,
+                                        spark-avro_2.11
                                     </includeArtifactIds>
                                 </configuration>
                             </execution>
@@ -589,7 +590,8 @@
                                         splice_encryption,
                                         akka-remote_${scala.binary.version},
                                         splicemachine-${envClassifier}-${spark.version}_${scala.binary.version},
-                                        super-csv
+                                        super-csv,
+                                        spark-avro_2.11
                                     </includeArtifactIds>
                                 </configuration>
                             </execution>
