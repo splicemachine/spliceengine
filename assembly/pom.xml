@@ -611,7 +611,7 @@
                                     <classifier>splicemachine</classifier>
                                     <version>${envClassifier}.${project.version}.${parcel.patch}</version>
                                     <group>Applications/Internet</group>
-                                    <licence>Copyright © 2018 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</licence>
+                                    <license>Copyright © 2018 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</license>
                                     <requires>
                                         <require>python > 2.6</require>
                                     </requires>
@@ -624,7 +624,24 @@
                                                 </source>
                                             </sources>
                                         </mapping>
+                                        <mapping>
+                                            <directory>/var/lib/splicemachine</directory>
+                                            <sources>
+                                                <source>
+                                                    <location>common/src/main/resources/bin/sqlshell.sh</location>
+                                                </source>
+                                            </sources>
+                                            <filemode>
+                                                755
+                                            </filemode>
+                                            <directoryIncluded>
+                                                false
+                                            </directoryIncluded>
+                                        </mapping>
                                     </mappings>
+                                    <postinstallScriptlet>
+                                      <script>sed -i 's/##SPLICELIBDIR##/\/var\/lib\/splicemachine/g' /var/lib/splicemachine/sqlshell.sh</script>
+                                    </postinstallScriptlet>
                                 </configuration>
                             </execution>
                             <execution>
@@ -638,7 +655,7 @@
                                     <name>splicemachine_ambari_service</name>
                                     <version>${envClassifier}.${project.version}.${parcel.patch}</version>
                                     <group>Applications/Internet</group>
-                                    <licence>Copyright © 2018 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</licence>
+                                    <license>Copyright © 2018 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</license>
                                     <requires>
                                         <require>python > 2.6</require>
                                         <require>ambari-server > 2.2</require>
