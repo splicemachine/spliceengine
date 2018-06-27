@@ -37,22 +37,6 @@ class SpliceInstallMaster(Script):
     import params
 
     hbase_user = params.config['configurations']['hbase-env']['hbase_user']
-    user_group = params.config['configurations']['cluster-env']["user_group"]
-    splicemachine_conf_dir = '/etc/splicemachine/conf'
-    hdfs_audit_spool = params.config['configurations']['ranger-splicemachine-audit'][
-       'xasecure.audit.destination.hdfs.batch.filespool.dir']
-    solr_audit_spool = params.config['configurations']['ranger-splicemachine-audit'][
-       'xasecure.audit.destination.solr.batch.filespool.dir']
-    policy_cache_dir = params.config['configurations']['ranger-splicemachine-security'][
-       'ranger.plugin.splicemachine.policy.cache.dir']
-    hdfs_audit_dir = params.config['configurations']['ranger-splicemachine-audit'][
-       'xasecure.audit.destination.hdfs.dir']
-
-    params.HdfsResource(hdfs_audit_dir,
-                        type="directory",
-                        action="create_on_execute",
-                        owner=hbase_user
-                        )
 
     params.HdfsResource("/user/splice",
                         type="directory",
@@ -91,6 +75,15 @@ class SpliceInstallMaster(Script):
     Link(os.path.join(ranger_plugins_dir, db_client_jar),
          to = os.path.join(splice_lib_dir, splice_ranger_jar))
 
+    hbase_user = params.config['configurations']['hbase-env']['hbase_user']
+    hdfs_audit_dir = params.config['configurations']['ranger-splicemachine-audit'][
+       'xasecure.audit.destination.hdfs.dir']
+
+    params.HdfsResource(hdfs_audit_dir,
+                        type="directory",
+                        action="create_on_execute",
+                        owner=hbase_user
+                        )
 
   def search_file(self, dir, pattern):
     for file in os.listdir(dir):

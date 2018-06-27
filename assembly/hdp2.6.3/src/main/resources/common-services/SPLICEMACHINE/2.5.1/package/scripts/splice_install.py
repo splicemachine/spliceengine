@@ -21,6 +21,10 @@ class SpliceInstall(Script):
   def configure(self, env):
     import params
     print 'Configure the client'
+    if params.config['configurations'].get('ranger-env') is not None:
+      self.install_ranger()
+
+  def install_ranger(self):
     hbase_user = params.config['configurations']['hbase-env']['hbase_user']
     user_group = params.config['configurations']['cluster-env']["user_group"]
     splicemachine_conf_dir = '/etc/splicemachine/conf'
