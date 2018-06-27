@@ -12,7 +12,8 @@
   ~ You should have received a copy of the GNU Affero General Public License along with Splice Machine.
   ~ If not, see <http://www.gnu.org/licenses/>.
   -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <artifactId>hbase_sql-${envClassifier}</artifactId>
     <description>SQL engine based on HBase</description>
@@ -51,11 +52,17 @@
             <artifactId>akka-remote_${scala.binary.version}</artifactId>
             <version>2.4.8</version>
         </dependency>
-	<dependency>
-	    <groupId>com.github.databricks</groupId>
-	    <artifactId>spark-avro_${scala.binary.version}</artifactId>
-	    <version>204864b6cf</version>
-	</dependency>
+        <dependency>
+            <groupId>com.databricks</groupId>
+            <artifactId>spark-avro_2.11</artifactId>
+            <version>4.0.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scala-library</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>splice_aws</artifactId>
@@ -721,7 +728,9 @@
                             <goal>verify</goal>
                         </goals>
                         <configuration>
-                            <excludedGroups>com.splicemachine.test.SerialTest, com.splicemachine.test.RestoreTest, ${excluded.categories}</excludedGroups>
+                            <excludedGroups>com.splicemachine.test.SerialTest, com.splicemachine.test.RestoreTest,
+                                ${excluded.categories}
+                            </excludedGroups>
                             <parallel>classes</parallel>
                             <threadCount>1</threadCount>
                             <!-- -sf- single-threaded for now -->
@@ -768,13 +777,14 @@
                 <executions>
                     <execution>
                         <id>############### standalone build ###############</id>
-			<!-- run as jenkins to build standalone. use deploy. mvn deploy. -->
+                        <!-- run as jenkins to build standalone. use deploy. mvn deploy. -->
                         <phase>test</phase>
                         <configuration>
                             <tasks>
                                 <delete dir="../assembly/standalone/target"/>
-                                <mkdir  dir="../assembly/standalone/target"/>
-                                <copydir src="../assembly/standalone/template" dest="../assembly/standalone/target/splicemachine" includes="**/*"/>
+                                <mkdir dir="../assembly/standalone/target"/>
+                                <copydir src="../assembly/standalone/template"
+                                         dest="../assembly/standalone/target/splicemachine" includes="**/*"/>
                                 <chmod file="../assembly/standalone/target/splicemachine/bin/*.sh" perm="ugo+rx"/>
                             </tasks>
                         </configuration>
@@ -787,20 +797,23 @@
                         <phase>deploy</phase>
                         <configuration>
                             <target>
-                                    <copy todir="../assembly/standalone/target/splicemachine/lib">
-                                        <fileset dir="../assembly/standalone/template/conf" includes="yarn-site.xml"/>
+                                <copy todir="../assembly/standalone/target/splicemachine/lib">
+                                    <fileset dir="../assembly/standalone/template/conf" includes="yarn-site.xml"/>
                                 </copy>
                                 <copy todir="../assembly/standalone/target/splicemachine/lib">
-                                        <fileset dir="target/dependency" includes="*.jar"/>
+                                    <fileset dir="target/dependency" includes="*.jar"/>
                                 </copy>
                                 <copy todir="../assembly/standalone/target/splicemachine/lib">
-                                        <fileset dir="target" includes="*.jar" excludes="*sources.jar"/>
+                                    <fileset dir="target" includes="*.jar" excludes="*sources.jar"/>
                                 </copy>
                                 <copy todir="../assembly/standalone/target/splicemachine/jdbc-driver">
-                                        <fileset dir="target/dependency" includes="db-client*.jar"/>
+                                    <fileset dir="target/dependency" includes="db-client*.jar"/>
                                 </copy>
-                                <tar compression="gzip" destfile="../assembly/standalone/target/SPLICEMACHINE-${project.version}.standalone.tar.gz">
-                                        <tarfileset username="root" group="root" filemode="755" dir="../assembly/standalone/target/splicemachine" prefix="splicemachine"/>
+                                <tar compression="gzip"
+                                     destfile="../assembly/standalone/target/SPLICEMACHINE-${project.version}.standalone.tar.gz">
+                                    <tarfileset username="root" group="root" filemode="755"
+                                                dir="../assembly/standalone/target/splicemachine"
+                                                prefix="splicemachine"/>
                                 </tar>
                             </target>
                         </configuration>
@@ -814,7 +827,8 @@
                         <configuration>
                             <skip>${skipTests}</skip>
                             <target name="StartSpliceServer" unless="${server.skip.start}">
-                                <taskdef resource="net/sf/antcontrib/antcontrib.properties" classpathref="maven.plugin.classpath"/>
+                                <taskdef resource="net/sf/antcontrib/antcontrib.properties"
+                                         classpathref="maven.plugin.classpath"/>
                                 <if>
                                     <istrue value="${failTasksRandomly}"/>
                                     <!-- run with chaos monkey (default) -->
@@ -835,7 +849,8 @@
                                 </if>
                                 <property name="classpath.test" refid="maven.test.classpath"/>
                                 <!--suppress MavenModelInspection -->
-                                <java classname="com.splicemachine.test.SpliceTestPlatformWait" classpath="${classpath.test}" spawn="false">
+                                <java classname="com.splicemachine.test.SpliceTestPlatformWait"
+                                      classpath="${classpath.test}" spawn="false">
                                     <arg value="localhost"/>
                                     <arg value="1527"/>
                                 </java>
@@ -1179,14 +1194,19 @@
                                 <argument>-Dcom.sun.management.jmxremote.port=10102</argument>
                                 <argument>-Dsplice.authentication=NATIVE</argument>
                                 <argument>-Dcom.splicemachine.enableLegacyAsserts=true</argument>
-                                <argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
+                                <argument>
+                                    -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
+                                </argument>
                                 <argument>-Xmx6g</argument>
                                 <argument>-Xms1g</argument>
                                 <!-- Spark Sys props -->
                                 <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
-				<argument>-Dsplice.spark.eventLog.enabled=true</argument>
-				<argument>-Dsplice.spark.eventLog.dir=${project.build.directory}/SpliceTestYarnPlatform/</argument>
-                                <argument>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse</argument>
+                                <argument>-Dsplice.spark.eventLog.enabled=true</argument>
+                                <argument>
+                                    -Dsplice.spark.eventLog.dir=${project.build.directory}/SpliceTestYarnPlatform/
+                                </argument>
+                                <argument>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse
+                                </argument>
                                 <!--                                <argument>-Dsplice.spark.broadcast.factory=org.apache.spark.broadcast.HttpBroadcastFactory</argument> -->
                                 <argument>-Dsplice.spark.driver.host=localhost</argument>
                                 <argument>-Dsplice.spark.driver.cores=1</argument>
@@ -1200,11 +1220,15 @@
                                 <argument>
                                     -Dsplice.spark.executor.extraClassPath=${project.build.directory}/classes:${project.build.directory}/dependency/*
                                 </argument>
-                                <argument>-Dspark.executor.extraLibraryPath=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}</argument>
+                                <argument>
+                                    -Dspark.executor.extraLibraryPath=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}
+                                </argument>
                                 <argument>
                                     -Dspark.yarn.jars=${project.build.directory}/classes,${project.build.directory}/dependency/*
                                 </argument>
-                                <argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
+                                <argument>
+                                    -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
+                                </argument>
                                 <argument>-Dsplice.spark.executor.instances=1</argument>
                                 <argument>-Dsplice.spark.executor.memory=2000M</argument>
                                 <argument>-Dsplice.spark.io.compression.lz4.blockSize=32k</argument>
@@ -1222,7 +1246,8 @@
                                     -Dsplice.spark.scheduler.allocation.file=${project.basedir}/src/main/resources/fairscheduler.xml
                                 </argument>
                                 <argument>-Dsplice.spark.scheduler.mode=FAIR</argument>
-                                <argument>-Dsplice.spark.serializer=com.splicemachine.serializer.SpliceKryoSerializer</argument>
+                                <argument>-Dsplice.spark.serializer=com.splicemachine.serializer.SpliceKryoSerializer
+                                </argument>
                                 <argument>-Dsplice.spark.shuffle.compress=false</argument>
                                 <argument>-Dsplice.spark.driver.extraJavaOptions=
                                     -Dhbase.rootdir=${project.build.directory}/hbase
@@ -1239,10 +1264,12 @@
                                     -enableassertions
                                     ${jacocoAgent}
                                 </argument>
-				<argument>-Dsplice.spark.yarn.user=${user.name}</argument>
-				<argument>-Dsplice.olapServer.classpath=${project.build.directory}/dependency/javax.servlet-api-3.1.0.jar:${project.build.directory}/classes</argument>
+                                <argument>-Dsplice.spark.yarn.user=${user.name}</argument>
+                                <argument>
+                                    -Dsplice.olapServer.classpath=${project.build.directory}/dependency/javax.servlet-api-3.1.0.jar:${project.build.directory}/classes
+                                </argument>
                                 <argument>-Dsplice.olapServer.extraJavaOptions=
-					-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
+                                    -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                     -Dhbase.rootdir=${project.build.directory}/hbase
                                     -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4025
                                     -enableassertions
@@ -1317,7 +1344,9 @@
                                 <argument>-Djava.awt.headless=true</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
-                                <argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
+                                <argument>
+                                    -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
+                                </argument>
                                 <argument>-Xmx4g</argument>
                                 <argument>-Xmn128m</argument>
                                 <argument>-XX:+UseConcMarkSweepGC</argument>
@@ -1436,13 +1465,15 @@
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Djava.awt.headless=true</argument>
                                 <argument>-Dzookeeper.sasl.client=false</argument>
-				<argument>-Dspark.ui.retainedJobs=3000</argument>
-				<argument>-Dspark.ui.retainedStages=3000</argument>
+                                <argument>-Dspark.ui.retainedJobs=3000</argument>
+                                <argument>-Dspark.ui.retainedStages=3000</argument>
                                 <argument>-Dcom.sun.management.jmxremote.ssl=false</argument>
                                 <argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
-                                <argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
-				<argument>org.apache.spark.deploy.history.HistoryServer</argument>
-				<argument>${project.build.directory}/SpliceTestYarnPlatform/</argument>
+                                <argument>
+                                    -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
+                                </argument>
+                                <argument>org.apache.spark.deploy.history.HistoryServer</argument>
+                                <argument>${project.build.directory}/SpliceTestYarnPlatform/</argument>
                             </arguments>
                         </configuration>
                     </plugin>
@@ -1529,7 +1560,9 @@
                         <artifactId>maven-surefire-plugin</artifactId>
                         <configuration>
                             <additionalClasspathElements>
-                                <additionalClasspathElement>${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}</additionalClasspathElement>
+                                <additionalClasspathElement>
+                                    ${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}
+                                </additionalClasspathElement>
                             </additionalClasspathElements>
                         </configuration>
                     </plugin>
@@ -1575,12 +1608,15 @@
                                 <argument>-Dcom.sun.management.jmxremote.port=10102</argument>
                                 <argument>-Dsplice.authentication=NATIVE</argument>
                                 <argument>-Dcom.splicemachine.enableLegacyAsserts=true</argument>
-                                <argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
+                                <argument>
+                                    -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
+                                </argument>
                                 <argument>-Xmx6g</argument>
                                 <argument>-Xms1g</argument>
                                 <!-- Spark Sys props -->
                                 <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
-                                <argument>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse</argument>
+                                <argument>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse
+                                </argument>
                                 <!--                                <argument>-Dsplice.spark.broadcast.factory=org.apache.spark.broadcast.HttpBroadcastFactory</argument> -->
                                 <argument>-Dsplice.spark.driver.host=localhost</argument>
                                 <argument>-Dsplice.spark.driver.cores=1</argument>
@@ -1596,11 +1632,15 @@
                                 <argument>
                                     -Dsplice.spark.executor.extraClassPath=${project.build.directory}/classes:${project.build.directory}/dependency/*
                                 </argument>
-                                <argument>-Dspark.executor.extraLibraryPath=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}</argument>
+                                <argument>
+                                    -Dspark.executor.extraLibraryPath=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}
+                                </argument>
                                 <argument>
                                     -Dspark.yarn.jars=${project.build.directory}/classes,${project.build.directory}/dependency/*
                                 </argument>
-                                <argument>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/</argument>
+                                <argument>
+                                    -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
+                                </argument>
                                 <argument>-Dsplice.spark.executor.instances=1</argument>
                                 <argument>-Dsplice.spark.executor.memory=2g</argument>
                                 <argument>-Dsplice.spark.io.compression.lz4.blockSize=32k</argument>
@@ -1618,7 +1658,8 @@
                                     -Dsplice.spark.scheduler.allocation.file=${project.basedir}/src/main/resources/fairscheduler.xml
                                 </argument>
                                 <argument>-Dsplice.spark.scheduler.mode=FAIR</argument>
-                                <argument>-Dsplice.spark.serializer=com.splicemachine.serializer.SpliceKryoSerializer</argument>
+                                <argument>-Dsplice.spark.serializer=com.splicemachine.serializer.SpliceKryoSerializer
+                                </argument>
                                 <argument>-Dsplice.spark.shuffle.compress=false</argument>
                                 <argument>-Dsplice.spark.executor.extraJavaOptions=
                                     -Dhbase.rootdir=${project.build.directory}/hbase
