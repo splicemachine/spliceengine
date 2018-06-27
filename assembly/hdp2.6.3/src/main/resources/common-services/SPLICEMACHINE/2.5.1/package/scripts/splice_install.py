@@ -1,10 +1,12 @@
-import sys
-import sys
+import sys, os, fnmatch
 from resource_management.libraries.script.script import Script
 from resource_management.core.resources import Directory
+from resource_management.core.resources.system import Execute, Link
 from resource_management.libraries.resources import XmlConfig
+from resource_management.libraries.functions import format
 from resource_management import *
 from urlparse import urlparse
+
 
 reload(sys)
 sys.setdefaultencoding('utf8')
@@ -18,7 +20,11 @@ class SpliceInstall(Script):
 
   def configure(self, env):
     import params
-    print 'Configure the client';
+    print 'Configure the client'
+    if params.config['configurations'].get('ranger-env') is not None:
+      self.install_ranger()
+
+  def install_ranger(self):
     hbase_user = params.config['configurations']['hbase-env']['hbase_user']
     user_group = params.config['configurations']['cluster-env']["user_group"]
     splicemachine_conf_dir = '/etc/splicemachine/conf'
@@ -66,14 +72,6 @@ class SpliceInstall(Script):
                group = user_group,
                )
 
-    params.HdfsResource(hdfs_audit_dir,
-                        type="directory",
-                        action="create_on_execute",
-                        owner=hbase_user
-                        )
-
-def somethingcustom(self, env):
-    print 'Something custom';
 
 if __name__ == "__main__":
   SpliceInstall().execute()

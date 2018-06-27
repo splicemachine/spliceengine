@@ -42,6 +42,39 @@
                         </customCommand>
                     </customCommands>
                 </component>
+                <component>
+                    <name>SPLICEMACHINE_INSTALL_MASTER</name>
+                    <displayName>Splicemachine Install Master</displayName>
+                    <category>MASTER</category>
+                    <cardinality>1+</cardinality>
+                    <commandScript>
+                        <script>scripts/splice_install_master.py</script>
+                        <scriptType>PYTHON</scriptType>
+                        <timeout>600</timeout>
+                    </commandScript>
+                    <configFiles>
+                        <configFile>
+                            <type>xml</type>
+                            <fileName>ranger-splicemachine-audit.xml</fileName>
+                            <dictionaryName>ranger-splicemachine-audit</dictionaryName>
+                        </configFile>
+                        <configFile>
+                            <type>env</type>
+                            <fileName>ranger-splicemachine-security.xml</fileName>
+                            <dictionaryName>ranger-splicemachine-security</dictionaryName>
+                        </configFile>
+                    </configFiles>
+                    <customCommands>
+                        <customCommand>
+                            <name>CUSTOM_INSTALL</name>
+                            <commandScript>
+                                <script>scripts/splice_install_master.py</script>
+                                <scriptType>PYTHON</scriptType>
+                                <timeout>600</timeout>
+                            </commandScript>
+                        </customCommand>
+                    </customCommands>
+                </component>
             </components>
             <osSpecifics>
                 <osSpecific>
