@@ -91,7 +91,8 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
 
   val internalExecutionOptions = Map(
     JDBCOptions.JDBC_TABLE_NAME -> internalTN,
-    JDBCOptions.JDBC_URL -> defaultJDBCURL
+    JDBCOptions.JDBC_URL -> defaultJDBCURL,
+    SpliceJDBCOptions.JDBC_INTERNAL_QUERIES -> "true"
   )
 
 
