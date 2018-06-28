@@ -1,6 +1,6 @@
 package org.apache.spark.sql.execution.datasources.jdbc
 
-import com.splicemachine.spark.splicemachine.{SpliceJDBCUtil, SplicemachineContext}
+import com.splicemachine.spark.splicemachine.{SpliceJDBCOptions, SpliceJDBCUtil, SplicemachineContext}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.jdbc.JdbcDialects
 import org.apache.spark.sql.types.StructType
@@ -15,7 +15,8 @@ case class SpliceRelation(jdbcOptions: JDBCOptions)(@transient val sqlContext: S
   with PrunedFilteredScan
   with InsertableRelation {
 
-  private val context: SplicemachineContext = new SplicemachineContext(jdbcOptions.url)
+  import scala.collection.JavaConverters._
+  private val context: SplicemachineContext = new SplicemachineContext(Map() ++ jdbcOptions.asProperties.asScala)
 
   override val needConversion: Boolean = true
 
@@ -55,7 +56,11 @@ case class SpliceRelation(jdbcOptions: JDBCOptions)(@transient val sqlContext: S
         s"SELECT $columnList FROM ${jdbcOptions.table} WHERE $myWhereClause"
       else
         s"SELECT $columnList FROM ${jdbcOptions.table}"
-    val dataFrame = context.df(sqlText)
+
+    val internal = jdbcOptions.asProperties.getProperty(SpliceJDBCOptions.JDBC_INTERNAL_QUERIES, "false").toBoolean
+
+    val dataFrame = if (internal) context.internalDf(sqlText) else context.df(sqlText)
+
     userSchema = Option.apply(dataFrame.schema)
     dataFrame.rdd
   }
