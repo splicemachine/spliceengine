@@ -259,9 +259,9 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   }
 
   def getRandomName(): String = {
-    val name = new Array[Byte](20)
+    val name = new Array[Byte](32)
     new SecureRandom().nextBytes(name)
-    Bytes.toHex(name)
+    Bytes.toHex(name)+"-"+System.nanoTime()
   }
 
   /**
