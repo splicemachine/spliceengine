@@ -30,6 +30,7 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.sql.*;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.Executor;
 
 import com.splicemachine.db.client.am.*;
@@ -53,6 +54,7 @@ import org.ietf.jgss.GSSName;
 import org.ietf.jgss.Oid;
 
 import javax.security.auth.Subject;
+import javax.security.auth.kerberos.KerberosPrincipal;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.*;
 
@@ -631,7 +633,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
 
         try {
             Subject subject = Subject.getSubject(AccessController.getContext());
-            if (subject == null) {
+            if (!containsPrincipal(subject)) {
                 Configuration configuration = new JaasConfiguration("spliceClient", principal, keytab);
                 Configuration.setConfiguration(configuration);
 
@@ -730,6 +732,19 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
                     new ClientMessageId(SQLState.AUTH_ERROR_KERBEROS_CLIENT),
                     e);
         }
+    }
+
+    private boolean containsPrincipal(Subject subject) {
+        if (subject == null)
+            return false;
+
+        Set<KerberosPrincipal> principals = subject.getPrincipals(KerberosPrincipal.class);
+        for (KerberosPrincipal principal : principals) {
+            if (principal.getName().equals(this.principal)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 
