@@ -27,9 +27,12 @@ package com.splicemachine.db.client.net;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.security.AccessController;
+import java.security.Principal;
 import java.security.PrivilegedAction;
 import java.sql.*;
+import java.util.Iterator;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.Executor;
 
 import com.splicemachine.db.client.am.*;
@@ -631,7 +634,19 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
 
         try {
             Subject subject = Subject.getSubject(AccessController.getContext());
-            if (subject == null) {
+            boolean match = false;
+            if (subject != null) {
+                Set<Principal> principals = subject.getPrincipals();
+                for (Iterator it = principals.iterator(); it.hasNext();){
+                    Principal p = (Principal) it.next();
+                    String name = p.getName();
+                    if (principal.compareTo(name) == 0){
+                        match = true;
+                        break;
+                    }
+                }
+            }
+            if (subject ==null || !match) {
                 Configuration configuration = new JaasConfiguration("spliceClient", principal, keytab);
                 Configuration.setConfiguration(configuration);
 
