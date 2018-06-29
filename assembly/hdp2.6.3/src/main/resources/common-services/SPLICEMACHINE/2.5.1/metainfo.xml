@@ -46,9 +46,7 @@
                 <config-type>hdfs-site</config-type>
                 <config-type>hbase-site</config-type>
                 <config-type>hbase-env</config-type>
-                <config-type>hive-env</config-type>
                 <config-type>spark2-env</config-type>
-                <config-type>zeppelin-env</config-type>
                 <config-type>zoo.cfg</config-type>
                 <config-type>yarn-site</config-type>
             </configuration-dependencies>
