@@ -1001,11 +1001,13 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     @Override
     public SchemaDescriptor getSchemaDescriptor(UUID schemaId,TransactionController tc) throws StandardException{
-        SchemaDescriptor sd = dataDictionaryCache.oidSchemaCacheFind(schemaId);
+        SchemaDescriptor sd = null;
+        if (schemaId != null)
+            sd = dataDictionaryCache.oidSchemaCacheFind(schemaId);
         if (sd != null)
             return sd;
         sd = getSchemaDescriptorBody(schemaId,TransactionController.ISOLATION_REPEATABLE_READ,tc);
-        if (sd != null)
+        if (schemaId != null && sd != null)
             dataDictionaryCache.oidSchemaCacheAdd(schemaId, sd);
         return sd;
     }
