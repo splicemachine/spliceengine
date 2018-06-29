@@ -99,7 +99,7 @@ public class OlapServerMaster implements Watcher {
             UserGroupInformation original = UserGroupInformation.getCurrentUser();
             try {
                 LOG.info("Login with principal (" + principal +") and keytab (" + keytab +")");
-                ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab);
+                UserGroupInformation.loginUserFromKeytab(principal, keytab);
             } catch (IOException e) {
                 LOG.error("Error while authenticating user " + principal + " with keytab " + keytab, e);
                 throw new RuntimeException(e);
@@ -111,6 +111,7 @@ public class OlapServerMaster implements Watcher {
             // YARN. It also copies over any delegation tokens that might have been created by the
             // client, which will then be transferred over when starting executors (until new ones
             // are created by the periodic task).
+            ugi = UserGroupInformation.getCurrentUser();
             SparkHadoopUtil.get().transferCredentials(original, ugi);
         } else {
             String user = System.getProperty("splice.spark.yarn.user", "hbase");
