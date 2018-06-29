@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.homeless.TestUtils;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -55,6 +56,9 @@ public class ViewConstantOperationIT extends SpliceUnitTest {
     public static final String VIEW_NAME_1 = "emp_full1";
     public static final String VIEW_NAME_2 = "emp_full2";
 
+    public static final String USER1 = "VIEWUSER";
+    public static final String PASSWORD1 = "viewuser";
+
     protected static SpliceSchemaWatcher tableSchema = new SpliceSchemaWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher viewSchema = new SpliceSchemaWatcher(CLASS_NAME+"_View");
 
@@ -62,6 +66,8 @@ public class ViewConstantOperationIT extends SpliceUnitTest {
     private static String ePrivDef = "(id int not null, dob varchar(10) not null, ssn varchar(12) not null)";
     protected static SpliceTableWatcher empNameTable = new SpliceTableWatcher(EMP_NAME_TABLE,CLASS_NAME, eNameDef);
     protected static SpliceTableWatcher empPrivTable = new SpliceTableWatcher(EMP_PRIV_TABLE,CLASS_NAME, ePrivDef);
+
+    private static SpliceUserWatcher    spliceUserWatcher1 = new SpliceUserWatcher(USER1, PASSWORD1);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -88,7 +94,8 @@ public class ViewConstantOperationIT extends SpliceUnitTest {
                         spliceClassWatcher.closeAll();
                     }
                 }
-            });
+            })
+            .around(spliceUserWatcher1);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -379,5 +386,39 @@ public class ViewConstantOperationIT extends SpliceUnitTest {
         } catch (SQLException e) {
             Assert.assertTrue(e.getCause().getMessage().contains("already exists"));
         }
+    }
+
+    @Test
+    public void testCreateViewWithNoDefaultSchema() throws Exception {
+        methodWatcher.execute(format("grant all privileges on schema %s to %s", tableSchema.schemaName, spliceUserWatcher1.userName));
+        methodWatcher.execute(format("grant all privileges on schema %s to %s", viewSchema.schemaName, spliceUserWatcher1.userName));
+
+        TestConnection user1Conn = spliceClassWatcher.createConnection(USER1, PASSWORD1);
+
+        // create a view by user1
+        user1Conn.execute(format("create view %s.emp_view_test as select * from %s.%s", viewSchema.schemaName, tableSchema.schemaName, EMP_NAME_TABLE));
+
+        // check the view definition
+        ResultSet rs = methodWatcher.executeQuery("select viewdefinition, compilationschemaid from sys.sysviews where viewdefinition like '%emp_view_test%'");
+        String expected = "VIEWDEFINITION                                              | COMPILATIONSCHEMAID |\n" +
+                "--------------------------------------------------------------------------------------------------------------------------------\n" +
+                "create view VIEWCONSTANTOPERATIONIT_VIEW.emp_view_test as select * from VIEWCONSTANTOPERATIONIT.emp_name |        NULL         |";
+        Assert.assertEquals("Expect compilationschemid to be null", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // check if select on view can go through
+        rs = user1Conn.query(format("select * from %s.emp_view_test", viewSchema.schemaName));
+        expected = "ID | FNAME |   LNAME   |\n" +
+                "------------------------\n" +
+                " 1 | Jeff  |Cunningham |\n" +
+                " 2 | Bill  |   Gates   |\n" +
+                " 3 | John  |   Jones   |\n" +
+                " 4 |Warren |  Buffet   |\n" +
+                " 5 |  Tom  |   Jones   |";
+        Assert.assertEquals("Expect compilationschemid to be null", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //drop view
+        user1Conn.execute(format("drop view %s.emp_view_test", viewSchema.schemaName));
     }
 }
