@@ -32,8 +32,6 @@ config = Script.get_config()
 
 zookeeper_znode_parent = config['configurations']['hbase-site']['zookeeper.znode.parent']
 hbase_zookeeper_quorum = config['configurations']['hbase-site']['hbase.zookeeper.quorum']
-zeppelin_host = config['configurations']['zeppelin-ambari-config']['zeppelin.host.publicname']
-zeppelin_port = str(config['configurations']['zeppelin-config']['zeppelin.server.port'])
 
 # detect spark queue
 # if 'spark.yarn.queue' in config['configurations']['spark-defaults']:
