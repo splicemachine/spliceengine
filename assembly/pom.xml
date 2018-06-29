@@ -626,16 +626,33 @@
                                         <require>python > 2.6</require>
                                     </requires>
                                     <mappings>
-                                        <mapping>
-                                            <directory>/var/lib/splicemachine</directory>
-                                            <sources>
-                                                <source>
-                                                    <location>${project.build.directory}/dependency</location>
-                                                </source>
-                                            </sources>
-                                        </mapping>
-                                    </mappings>
-                                </configuration>
+                                            <mapping>
+                                                <directory>/var/lib/splicemachine</directory>
+                                                <sources>
+                                                    <source>
+                                                        <location>${project.build.directory}/dependency</location>
+                                                    </source>
+                                                </sources>
+                                            </mapping>
+                                            <mapping>
+                                                <directory>/var/lib/splicemachine</directory>
+                                                <sources>
+                                                    <source>
+                                                        <location>common/src/main/resources/bin/sqlshell.sh</location>
+                                                    </source>
+                                                </sources>
+                                                <filemode>
+                                                    755
+                                                </filemode>
+                                                <directoryIncluded>
+                                                    false
+                                                </directoryIncluded>
+                                            </mapping>
+                                        </mappings>
+                                        <postinstallScriptlet>
+                                          <script>sed -i 's/##SPLICELIBDIR##/\/var\/lib\/splicemachine/g' /var/lib/splicemachine/sqlshell.sh</script>
+                                        </postinstallScriptlet>
+                                    </configuration>
                             </execution>
                             <execution>
                                 <id>generate-ambari-service</id>
