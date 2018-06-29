@@ -96,6 +96,7 @@ public class OlapServerMaster implements Watcher {
         // Initialize clients to ResourceManager and NodeManagers
         Configuration conf = HConfiguration.unwrapDelegate();
 
+        UserGroupInformation.isSecurityEnabled();
         AMRMClientAsync<AMRMClient.ContainerRequest> rmClient = getClient(conf);
 
         LOG.info("Registered with Resource Manager");
