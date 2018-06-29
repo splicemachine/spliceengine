@@ -1077,6 +1077,34 @@
             </modules>
         </profile>
         <profile>
+            <id>cdh5.13.3</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>cdh5.13.3</value>
+                </property>
+            </activation>
+            <properties>
+                <cdh.parcel.version>5.13.3</cdh.parcel.version>
+                <envClassifier>cdh5.13.3</envClassifier>
+                <envHbase>hbase1.2.0</envHbase>
+                <hadoop.version>2.6.0-cdh5.13.3</hadoop.version>
+                <hbase.version>1.2.0-cdh5.13.3</hbase.version>
+                <hive.version>1.1.0-cdh5.13.3</hive.version>
+                <spark.major.version>spark2.2</spark.major.version>
+                <zookeeper.version>3.4.5-cdh5.13.3</zookeeper.version>
+                <spark.version>2.2.0.cloudera2</spark.version>
+                <kafka.version>0.10.2-kafka-2.2.0</kafka.version>
+                <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+                <module>splice_spark</module>
+            </modules>
+        </profile>
+        <profile>
             <id>cdh5.14.0</id>
             <activation>
                 <property>
