@@ -89,45 +89,6 @@ public class OlapServerMaster implements Watcher {
         // Initialize clients to ResourceManager and NodeManagers
         Configuration conf = HConfiguration.unwrapDelegate();
 
-        AMRMClientAsync.CallbackHandler allocListener = new AMRMClientAsync.CallbackHandler() {
-            @Override
-            public void onContainersCompleted(List<ContainerStatus> statuses) {
-            }
-
-            @Override
-            public void onContainersAllocated(List<Container> containers) {
-            }
-
-            @Override
-            public void onShutdownRequest() {
-                LOG.warn("Shutting down");
-                end.set(true);
-            }
-
-            @Override
-            public void onNodesUpdated(List<NodeReport> updatedNodes) {
-            }
-
-            @Override
-            public float getProgress() {
-                return 0;
-            }
-
-            @Override
-            public void onError(Throwable e) {
-                LOG.error("Unexpected error", e);
-                end.set(true);
-            }
-        };
-        AMRMClientAsync<AMRMClient.ContainerRequest> rmClient = AMRMClientAsync.createAMRMClientAsync(1000, allocListener);
-        rmClient.init(conf);
-        rmClient.start();
-
-        // Register with ResourceManager
-        rmClient.registerApplicationMaster(Utils.localHostName(), 0, "");
-
-        LOG.info("Registered with Resource Manager");
-
         String principal = System.getProperty("splice.spark.yarn.principal");
         String keytab = System.getProperty("splice.spark.yarn.keytab");
 
@@ -149,6 +110,45 @@ public class OlapServerMaster implements Watcher {
 
         UserGroupInformation.setLoginUser(ugi);
         ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
+            AMRMClientAsync.CallbackHandler allocListener = new AMRMClientAsync.CallbackHandler() {
+                @Override
+                public void onContainersCompleted(List<ContainerStatus> statuses) {
+                }
+
+                @Override
+                public void onContainersAllocated(List<Container> containers) {
+                }
+
+                @Override
+                public void onShutdownRequest() {
+                    LOG.warn("Shutting down");
+                    end.set(true);
+                }
+
+                @Override
+                public void onNodesUpdated(List<NodeReport> updatedNodes) {
+                }
+
+                @Override
+                public float getProgress() {
+                    return 0;
+                }
+
+                @Override
+                public void onError(Throwable e) {
+                    LOG.error("Unexpected error", e);
+                    end.set(true);
+                }
+            };
+            AMRMClientAsync<AMRMClient.ContainerRequest> rmClient = AMRMClientAsync.createAMRMClientAsync(1000, allocListener);
+            rmClient.init(conf);
+            rmClient.start();
+
+            // Register with ResourceManager
+            rmClient.registerApplicationMaster(Utils.localHostName(), 0, "");
+
+            LOG.info("Registered with Resource Manager");
+            
             try {
                 submitSparkApplication(conf, ugi);
             } catch (Exception e) {
@@ -160,12 +160,14 @@ public class OlapServerMaster implements Watcher {
 
                 throw e;
             }
+
+            rmClient.unregisterApplicationMaster(
+                    FinalApplicationStatus.SUCCEEDED, "", "");
+            rmClient.stop();
+            
             return null;
         });
 
-        rmClient.unregisterApplicationMaster(
-                FinalApplicationStatus.SUCCEEDED, "", "");
-        rmClient.stop();
 
         System.exit(0);
     }
