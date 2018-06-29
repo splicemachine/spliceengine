@@ -37,6 +37,7 @@ import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.log4j.Logger;
+import org.apache.spark.deploy.SparkHadoopUtil;
 import org.apache.spark.util.Utils;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -95,13 +96,22 @@ public class OlapServerMaster implements Watcher {
         UserGroupInformation ugi;
 
         if (principal != null && keytab != null) {
-                try {
-                    LOG.info("Login with principal (" + principal +") and keytab (" + keytab +")");
-                    ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab);
-                } catch (IOException e) {
-                    LOG.error("Error while authenticating user " + principal + " with keytab " + keytab, e);
-                    throw new RuntimeException(e);
-                }
+            UserGroupInformation original = UserGroupInformation.getCurrentUser();
+            try {
+                LOG.info("Login with principal (" + principal +") and keytab (" + keytab +")");
+                ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab);
+            } catch (IOException e) {
+                LOG.error("Error while authenticating user " + principal + " with keytab " + keytab, e);
+                throw new RuntimeException(e);
+            }
+
+            // Taken from Spark's ApplicationMaster ugi initialization
+            //
+            // Transfer the original user's tokens to the new user, since that's needed to connect to
+            // YARN. It also copies over any delegation tokens that might have been created by the
+            // client, which will then be transferred over when starting executors (until new ones
+            // are created by the periodic task).
+            SparkHadoopUtil.get().transferCredentials(original, ugi);
         } else {
             String user = System.getProperty("splice.spark.yarn.user", "hbase");
             LOG.info("Login with user");
