@@ -819,6 +819,33 @@
                 <module>splice_spark</module>
             </modules>
         </profile>
+        <profile>
+            <id>hdp2.6.1</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>hdp2.6.1</value>
+                </property>
+            </activation>
+            <properties>
+                <envClassifier>hdp2.6.1</envClassifier>
+                <envHbase>hbase1.1.2.2.6</envHbase>
+                <hadoop.version>2.7.3.2.6.1.0-129</hadoop.version>
+                <hbase.version>1.1.2.2.6.1.0-129</hbase.version>
+                <hive.version>1.2.1000.2.6.1.0-129</hive.version>
+                <zookeeper.version>3.4.6.2.6.1.0-129</zookeeper.version>
+                <spark.version>2.1.1.2.6.1.0-129</spark.version>
+                <spark.major.version>spark2.1</spark.major.version>
+                <kafka.version>0.10.1.2.6.1.0-129</kafka.version>
+                <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+                <module>splice_spark</module>
+            </modules>
+        </profile>
 
         <profile>
             <id>hdp2.6.3</id>
