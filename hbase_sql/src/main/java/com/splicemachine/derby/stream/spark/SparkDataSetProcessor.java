@@ -566,8 +566,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
                 // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
                 options.put("timestampFormat","yyyy-MM-dd'T'HH:mm:ss.SSSZZ");
-                options.put("escape", characterDelimiter);
-                options.put("sep", columnDelimiter);
+                if (characterDelimiter!=null)
+                    options.put("escape", characterDelimiter);
+                if (columnDelimiter != null)
+                    options.put("sep", columnDelimiter);
 
                 table = SpliceSpark.getSession().read().options(options).csv(location);
 
