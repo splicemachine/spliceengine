@@ -14,8 +14,8 @@
 
 package com.splicemachine.pipeline.config;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
-import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
+import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
@@ -39,7 +39,7 @@ public class SharedWriteConfiguration extends BaseWriteConfiguration {
 
     private static final Logger LOG = Logger.getLogger(SharedWriteConfiguration.class);
 
-    private final List<Pair<WriteContext, ObjectObjectOpenHashMap<KVPair, KVPair>>> sharedMainMutationList = new CopyOnWriteArrayList<>();
+    private final List<Pair<WriteContext, ObjectObjectHashMap<KVPair, KVPair>>> sharedMainMutationList = new CopyOnWriteArrayList<>();
     private final AtomicInteger completedCount = new AtomicInteger(0);
     private final int maxRetries;
     private final long pause;
@@ -51,7 +51,7 @@ public class SharedWriteConfiguration extends BaseWriteConfiguration {
     }
 
     @Override
-    public void registerContext(WriteContext context, ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap) {
+    public void registerContext(WriteContext context, ObjectObjectHashMap<KVPair, KVPair> indexToMainMutationMap) {
         sharedMainMutationList.add(Pair.newPair(context,indexToMainMutationMap));
         completedCount.incrementAndGet();
     }
@@ -64,7 +64,7 @@ public class SharedWriteConfiguration extends BaseWriteConfiguration {
     @Override
     public WriteResponse partialFailure(BulkWriteResult result, BulkWrite request) throws ExecutionException {
         try {
-            IntObjectOpenHashMap<WriteResult> failedRows = result.getFailedRows();
+            IntObjectHashMap<WriteResult> failedRows = result.getFailedRows();
             boolean canRetry = true;
             boolean regionTooBusy = false;
             for (IntObjectCursor<WriteResult> cursor : failedRows) {
@@ -93,7 +93,7 @@ public class SharedWriteConfiguration extends BaseWriteConfiguration {
                     int row = cursor.key;
                     KVPair kvPair = indexMutations.get(row);
                     WriteResult mutationResult = cursor.value;
-                    for (Pair<WriteContext, ObjectObjectOpenHashMap<KVPair, KVPair>> pair : sharedMainMutationList) {
+                    for (Pair<WriteContext, ObjectObjectHashMap<KVPair, KVPair>> pair : sharedMainMutationList) {
                         KVPair main = pair.getSecond().get(kvPair);
                         WriteContext context = pair.getFirst();
                         // The "main" kvPair from the context may not match the one from the context that failed.

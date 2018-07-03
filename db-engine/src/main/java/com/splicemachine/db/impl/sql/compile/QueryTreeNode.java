@@ -32,8 +32,8 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.carrotsearch.hppc.LongArrayList;
-import com.carrotsearch.hppc.LongLongOpenHashMap;
-import com.carrotsearch.hppc.LongObjectOpenHashMap;
+import com.carrotsearch.hppc.LongLongHashMap;
+import com.carrotsearch.hppc.LongObjectHashMap;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.catalog.types.RowMultiSetImpl;
@@ -1720,9 +1720,9 @@ public abstract class QueryTreeNode implements Node, Visitable{
      * its source column on a table. This allows translation from a column reference at
      * any node below into the ResultColumn projected from the passed ResultColumnList.
      */
-    public LongObjectOpenHashMap<ResultColumn> rsnChainMap()
+    public LongObjectHashMap<ResultColumn> rsnChainMap()
             throws StandardException {
-        LongObjectOpenHashMap<ResultColumn> chain = LongObjectOpenHashMap.newInstance();
+        LongObjectHashMap<ResultColumn> chain = new LongObjectHashMap<>();
         List<ResultColumn> cols = RSUtils.collectNodes(this, ResultColumn.class);
         for (ResultColumn rc : cols) {
             long top = rc.getCoordinates();
@@ -1735,11 +1735,11 @@ public abstract class QueryTreeNode implements Node, Visitable{
         return chain;
     }
 
-    public LongLongOpenHashMap childParentMap()
+    public LongLongHashMap childParentMap()
             throws StandardException {
         // Lots of duplication, thus the HashSet
         Set<ResultColumn> cols = new HashSet<>(RSUtils.collectNodes(this, ResultColumn.class));
-        LongLongOpenHashMap chain = LongLongOpenHashMap.newInstance(cols.size(),LongLongOpenHashMap.DEFAULT_LOAD_FACTOR);
+        LongLongHashMap chain = new LongLongHashMap(cols.size());
         for (ResultColumn rc : cols) {
             if (rc.getExpression() ==null)
                 continue;

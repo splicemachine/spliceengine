@@ -14,7 +14,7 @@
 
 package com.splicemachine.si.api.txn;
 
-import com.carrotsearch.hppc.LongOpenHashSet;
+import com.carrotsearch.hppc.LongHashSet;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.ByteSlice;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -143,8 +143,8 @@ public interface Txn extends TxnView{
         }
 
         @Override
-        public LongOpenHashSet getRolledback() {
-            return new LongOpenHashSet();
+        public LongHashSet getRolledback() {
+            return new LongHashSet();
         }
 
         @Override
@@ -219,7 +219,7 @@ public interface Txn extends TxnView{
     void addRolledback(long subId);
 
     /** Set of subtransactions that have been rolledback */
-    LongOpenHashSet getRolledback();
+    LongHashSet getRolledback();
 
     /** Rollback this transaction and all its subtransactions */
     void subRollback();

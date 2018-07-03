@@ -14,7 +14,7 @@
 
 package com.splicemachine.si.impl;
 
-import com.carrotsearch.hppc.LongOpenHashSet;
+import com.carrotsearch.hppc.LongHashSet;
 import com.splicemachine.si.api.filter.RowAccumulator;
 import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.readresolve.ReadResolver;
@@ -43,7 +43,7 @@ public class SimpleTxnFilter implements TxnFilter{
     private final TxnView myTxn;
     private final ReadResolver readResolver;
     //per row fields
-    private final LongOpenHashSet visitedTxnIds=new LongOpenHashSet();
+    private final LongHashSet visitedTxnIds=new LongHashSet();
     private Long tombstonedTxnRow = null;
     private Long antiTombstonedTxnRow = null;
     private final ByteSlice rowKey=new ByteSlice();
