@@ -2,6 +2,7 @@ package com.splicemachine.derby.security;
 
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test.SerialTest;
 import org.junit.Before;
@@ -16,6 +17,7 @@ import java.sql.ResultSet;
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.assertFailed;
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.resultSetSize;
 import static java.lang.String.format;
+import static junit.framework.TestCase.fail;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -53,6 +55,10 @@ public class PermissionIT {
 
     private String selectQuery      = format("select a1 from %s.%s", SCHEMA1, TABLE);
     private String analyzeQuery     = format("analyze table %s.%s", SCHEMA1,TABLE);
+    private String createTableQuery = format("create table %s.t11 (a11 int, b11 int)", SCHEMA1);
+    private String createTableQuery2 = format("create table %s.t12 (a12 int, b12 int)", SCHEMA1);
+    private String dropTableQuery = format("drop table %s.t11", SCHEMA1);
+    private String dropTableQuery2 = format("drop table %s.t12", SCHEMA1);
 
     @Before
     public  void setUpClass() throws Exception {
@@ -103,6 +109,45 @@ public class PermissionIT {
     }
 
     @Test
+    public void testAddOnSchemaPrivilege() throws Exception {
+        adminConn.execute(format("revoke all privileges on schema %s from %s", SCHEMA1, ROLE1));
+        //step  1: grant select
+        adminConn.execute( format("GRANT SELECT ON SCHEMA %s TO %s", SCHEMA1,ROLE1) );
+
+        // step 2: check user1 can access the table
+        ResultSet rs = user1Conn.query(selectQuery);
+        assertEquals("Expected to have SELECT privileges", 1, resultSetSize(rs));
+        rs.close();
+
+        rs= user1Conn2.query(selectQuery);
+        assertEquals("Expected to have SELECT privileges", 1, resultSetSize(rs));
+        rs.close();
+
+        // step 3: check user1 can not create table
+        assertFailed(user1Conn, createTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user1Conn2, createTableQuery2, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+
+        // step 4: grant all privileges
+        adminConn.execute( format("GRANT ALL PRIVILEGES ON SCHEMA %s TO %s", SCHEMA1,ROLE1) );
+
+        // step 5: check user1 can now create/drop table
+        try {
+            user1Conn.execute(createTableQuery);
+            user1Conn2.execute(dropTableQuery);
+        } catch (Exception e) {
+            fail("create/drop table should run successfully.");
+        }
+
+        try {
+            user1Conn.execute(createTableQuery2);
+            user1Conn2.execute(dropTableQuery2);
+        } catch (Exception e) {
+            fail("create/drop table should run successfully.");
+        }
+        adminConn.execute(format("revoke all privileges on schema %s from %s", SCHEMA1, ROLE1));
+    }
+
+    @Test
     public void testCachedTablePrivilege() throws Exception {
         adminConn.execute(format("revoke all privileges on schema %s from %s", SCHEMA1, ROLE1));
         adminConn.execute( format("GRANT ALL PRIVILEGES ON TABLE %s.%s TO %s", SCHEMA1,TABLE, ROLE1) );
@@ -129,6 +174,49 @@ public class PermissionIT {
 
         rs= user1Conn2.query(selectQuery);
         assertEquals("Expected to have SELECT privileges", 1, resultSetSize(rs));
+        rs.close();
+
+        adminConn.execute(format("revoke all privileges on table %s.%s from %s", SCHEMA1, TABLE, ROLE1));
+    }
+
+    @Test
+    public void testAddOnTablePrivilege() throws Exception {
+        adminConn.execute(format("revoke all privileges on schema %s from %s", SCHEMA1, ROLE1));
+        adminConn.execute(format("revoke all privileges on table %s.%s from %s", SCHEMA1, TABLE, ROLE1));
+
+        // step 1: grant select to role1
+        adminConn.execute( format("GRANT SELECT ON TABLE %s.%s TO %s", SCHEMA1,TABLE, ROLE1) );
+
+        // step 2: user1 can access the table
+        ResultSet rs = user1Conn.query(selectQuery);
+        assertEquals("Expected to have SELECT privileges", 1, resultSetSize(rs));
+        rs.close();
+
+        rs= user1Conn2.query(selectQuery);
+        assertEquals("Expected to have SELECT privileges", 1, resultSetSize(rs));
+        rs.close();
+
+        // step 3: user1 cannot update table
+        assertFailed(user1Conn, createTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+        assertFailed(user1Conn2, createTableQuery2, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+
+        // step 4: grant update privilege also to role1
+        adminConn.execute( format("GRANT ALL PRIVILEGES ON TABLE %s.%s TO %s", SCHEMA1,TABLE, ROLE1) );
+
+        //step 5: user1 can update t1 on a1
+        user1Conn.execute(format("update %s.%s set a1=10", SCHEMA1, TABLE));
+        rs = user1Conn.query(selectQuery);
+        assertEquals("A1 |\n" +
+                "----\n" +
+                "10 |", TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        //use another connection to update the value back
+        user1Conn2.execute(format("update %s.%s set a1=1", SCHEMA1, TABLE));
+        rs = user1Conn2.query(selectQuery);
+        assertEquals("A1 |\n" +
+                "----\n" +
+                " 1 |", TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
 
         adminConn.execute(format("revoke all privileges on table %s.%s from %s", SCHEMA1, TABLE, ROLE1));
