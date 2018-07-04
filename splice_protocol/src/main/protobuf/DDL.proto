@@ -128,17 +128,12 @@ message RevokeTablePrivilege {
 }
 
 message RevokeColumnPrivilege {
-        enum OpType {
-            GRANT_OP = 0;
-            REVOKE_OP = 1;
-        }
         required UUID tableId = 1;
         required string type = 2;
         optional bytes columns = 3;
         required string grantor = 4;
         required string grantee = 5;
         optional UUID permObjectId = 6;
-        required OpType op = 7;
 }
 
 message RevokeRoutinePrivilege {
@@ -167,12 +162,17 @@ message RevokePrivilege {
             REVOKE_GENERIC_PRIVILEGE = 3;
             REVOKE_SCHEMA_PRIVILEGE = 4;
         }
+        enum OpType {
+            GRANT_OP = 0;
+            REVOKE_OP = 1;
+        }
         required Type type = 1;
         optional RevokeTablePrivilege   revokeTablePrivilege = 2;
         optional RevokeColumnPrivilege  revokeColumnPrivilege = 3;
         optional RevokeRoutinePrivilege revokeRoutinePrivilege = 4;
         optional RevokeGenericPrivilege revokeGenericPrivilege = 5;
         optional RevokeSchemaPrivilege  revokeSchemaPrivilege = 6;
+        required OpType op = 7;
 }
 
 message UpdateSchemaOwner {
