@@ -143,10 +143,31 @@ If you're using Kerberos, you need to add this option to your HBase Master Java 
    ````
    -Dsplice.spark.hadoop.fs.hdfs.impl.disable.cache=true
    ````
+   
 ### Enabling Ranger for Authorization
 
 Splice Machine installs with Native authorization configured; native
 authorization uses the Splice Machine dictionary tables to determine permissions on database objects.
+
+
+#### Config Splice Machine Ambari Service
+
+
+In the tab:  Advanced ranger-splicemachine-audit
+
+1. Check audit to HDFS
+2. Check audit to SOLR
+3. For the config: xasecure.audit.destination.solr.urls change localhost to the hostname / node 
+for SOLR
+4. Set xasecure.audit.is.enabled to true
+
+In the tab:  Advanced ranger-splicemachine-security
+
+1. Update ranger.plugin.splicemachine.policy.rest.url
+2. Change localhost to the host / node for Ranger Server
+
+
+#### Add Ranger Service for Splice Machine
 
 Before changing the authorization scheme, the Splice Machine ranger service needs to be installed.  As part of the Splice Machine Ambari Service, 
 the admin plugin for Splice Machine is added to the Ranger web application.
@@ -159,27 +180,53 @@ Ranger's username and password.
 ```
 curl -sS -u admin:admin -H "Content-Type: application/json" -X POST http://localhost:6080/service/plugins/definitions -d @/var/lib/ambari-server/resources/stacks/HDP/2.6/services/SPLICEMACHINE/configuration/ranger-servicedef-splicemachine.json
 ```
+1. Go to Ranger admin web page.
+2. You should see SpliceMachine Plugin
+3. Click on the plus sign (+) next to SpliceMachine
+4. Need to add a Service: the service name is the same name as you configured in
+`ranger.plugin.splicemachine.service.name`, which is `splicemachine` by default.
 
+Note: if you see some error like this when click "test connection":
 
-The configuration of Ranger occurs as part of the configuration for the Splice Machine service.  There are two key configurations for the audit and the security settings.
+```
+Unable to retrieve any files using given parameters, You can still save the repository and start
+creating policies, but you would not be able to use autocomplete for resource names.
+Check ranger_admin.log for more info.
 
-<img src="docs/ranger_splicemachine_audit.jpeg" alt="ranger_splicemachine_audit.jpeg" width="400" height="200">
+org.apache.ranger.plugin.client.HadoopException: Unable to login to Hadoop environment [splicemachine]. 
+Unable to login to Hadoop environment [splicemachine]. 
+Unable to decrypt password due to error. 
+Input length must be multiple of 8 when decrypting with padded cipher. 
+```
 
-Audit functionality in the xml is **off** by default.  To configure, select the _xasecure.audit.is.enabled_ box and then select whether you want SOLR, HDFS, or both.  The properties will need to modified by hand.
+It is because of a [Ranger bug](https://issues.apache.org/jira/browse/RANGER-1640?attachmentOrder=asc).
+You can ignore the error and test if autocomplete is working later.
 
-<img src="docs/ranger_splicemachine_security.jpeg" alt="ranger_splicemachine_security.jpeg" width="400" height="200">
+#### Config Ranger Policies
 
-The security configuration requires that _ranger.plugin.splicemachine.service.name_ be set to the name of the service in the Ranger UI.
-
-
+Once you save the service then click on the service name you just created.
+You should see a several policies for the splice user.
 The following policy is required so SYSIBM routines can support database connectivity.
 
 | Required Policy Name | Logic | Users |
 |--------------|------|------|
 | SYSIBM| `Schema=SYSIBM,routine=*,permissions=execute` | `All users/groups that will use the database`
 
+Note: when you create database user with
 
-##### Configurations
+```sql
+call syscs_util.syscs_create_user('ranger_test', 'admin');
+```
+
+Actually the username is parsed as uppercase. So you need to config the username as `RANGER_TEST`
+ in Ranger. If you want to create a database user with lower case, quote the username with double
+  quote in a single quote:
+  
+```sql
+call syscs_util.syscs_create_user('"ranger_test"', 'admin');
+```
+
+##### Config HBase
 
 Once this is done, you can change the authorization scheme to RANGER by adding this option to your HBase Region Server Java Configuration Options:
 

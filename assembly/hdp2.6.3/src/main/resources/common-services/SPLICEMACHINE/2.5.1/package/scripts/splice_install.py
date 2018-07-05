@@ -25,6 +25,7 @@ class SpliceInstall(Script):
       self.install_ranger()
 
   def install_ranger(self):
+    import params
     hbase_user = params.config['configurations']['hbase-env']['hbase_user']
     user_group = params.config['configurations']['cluster-env']["user_group"]
     splicemachine_conf_dir = '/etc/splicemachine/conf'

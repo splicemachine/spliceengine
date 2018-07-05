@@ -73,7 +73,7 @@ class SpliceInstallMaster(Script):
     Link(os.path.join(ranger_plugins_dir, splice_ranger_jar),
          to = os.path.join(splice_lib_dir, splice_ranger_jar))
     Link(os.path.join(ranger_plugins_dir, db_client_jar),
-         to = os.path.join(splice_lib_dir, splice_ranger_jar))
+         to = os.path.join(splice_lib_dir, db_client_jar))
 
     hbase_user = params.config['configurations']['hbase-env']['hbase_user']
     hdfs_audit_dir = params.config['configurations']['ranger-splicemachine-audit'][
