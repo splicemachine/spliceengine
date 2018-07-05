@@ -576,12 +576,12 @@ public class HdfsImport {
 
         // unescape separator chars if need be
         try {
-            characterDelimiter = unescape(characterDelimiter);
+            characterDelimiter = ImportUtils.unescape(characterDelimiter);
         } catch (IOException e) {
             throw PublicAPI.wrapStandardException(ErrorState.ILLEGAL_DELIMITER_CHAR.newException("character", characterDelimiter));
         }
         try {
-            columnDelimiter = unescape(columnDelimiter);
+            columnDelimiter = ImportUtils.unescape(columnDelimiter);
         } catch (IOException e) {
             throw PublicAPI.wrapStandardException(ErrorState.ILLEGAL_DELIMITER_CHAR.newException("column", columnDelimiter));
         }
@@ -848,75 +848,6 @@ public class HdfsImport {
         return StringUtil.quoteStringLiteral(string);
     }
 
-    static String unescape(String str) throws IOException {
-        if (str == null || str.toUpperCase().equals("NULL")) {
-            return str;
-        }
-        StringBuilder unescaped = new StringBuilder(4);
-        int sz = str.length();
-        boolean hadControl = false;
-        boolean hadBackslash = false;
-        for (int i = 0; i < sz; i++) {
-            char ch = str.charAt(i);
-            if (hadControl) {
-                // support ctrl chars
-                switch (ch) {
-                    case 'A':
-                    case 'a':
-                        unescaped.append('\u0001');
-                        break;
-                    case 'M':
-                    case 'm':
-                        unescaped.append('\n');
-                        break;
-                    default:
-                        throw new IOException("Unsupported control char '"+str+"'");
-                }
-                continue;
-            } else if (hadBackslash) {
-                // handle an escaped value
-                hadBackslash = false;
-                switch (ch) {
-                    case '\\':
-                        unescaped.append('\\');
-                        break;
-                    case '\'':
-                        unescaped.append('\'');
-                        break;
-                    case '\"':
-                        unescaped.append('"');
-                        break;
-                    case 'r':
-                        unescaped.append('\r');
-                        break;
-                    case 'f':
-                        unescaped.append('\f');
-                        break;
-                    case 't':
-                        unescaped.append('\t');
-                        break;
-                    case 'n':
-                        unescaped.append('\n');
-                        break;
-                    case 'b':
-                        unescaped.append('\b');
-                        break;
-                    default :
-                        throw new IOException("Unsupported escape char '"+str+"'");
-                }
-                continue;
-            } else if (ch == '\\') {
-                hadBackslash = true;
-                continue;
-            } else if (ch == '^') {
-                hadControl = true;
-                continue;
-            }
-            unescaped.append(ch);
-        }
-
-        return unescaped.toString();
-    }
 
     private static String[] getPKList(LanguageConnectionContext lcc,
                                    String schemaName,

@@ -26,34 +26,34 @@ public class HdfsImportCharacterTest {
     @Test
     public void testUnescape() throws Exception {
         // Not supporting unicode yet
-        assertEquals("\u0001", HdfsImport.unescape("^A"));
-        assertEquals("\u0001", HdfsImport.unescape("^a"));
+        assertEquals("\u0001", ImportUtils.unescape("^A"));
+        assertEquals("\u0001", ImportUtils.unescape("^a"));
 
-        assertEquals("\b", HdfsImport.unescape("\\b"));
-        assertEquals("\b", HdfsImport.unescape("\b"));
-//        assertEquals("\b", HdfsImport.unescape("\\u0008"));
+        assertEquals("\b", ImportUtils.unescape("\\b"));
+        assertEquals("\b", ImportUtils.unescape("\b"));
+//        assertEquals("\b", ImportUtils.unescape("\\u0008"));
 
-        assertEquals("\t", HdfsImport.unescape("\\t"));
-        assertEquals("\t", HdfsImport.unescape("\t"));
-//        assertEquals("\t", HdfsImport.unescape("\\u0009"));
+        assertEquals("\t", ImportUtils.unescape("\\t"));
+        assertEquals("\t", ImportUtils.unescape("\t"));
+//        assertEquals("\t", ImportUtils.unescape("\\u0009"));
 
-        assertEquals("\f", HdfsImport.unescape("\\f"));
-        assertEquals("\f", HdfsImport.unescape("\f"));
-//        assertEquals("\f", HdfsImport.unescape("\\u000C"));
+        assertEquals("\f", ImportUtils.unescape("\\f"));
+        assertEquals("\f", ImportUtils.unescape("\f"));
+//        assertEquals("\f", ImportUtils.unescape("\\u000C"));
 
-        assertEquals("\n", HdfsImport.unescape("\\n"));
-        assertEquals("\n", HdfsImport.unescape("\n"));
-        assertEquals("\n", HdfsImport.unescape("^M"));
-        assertEquals("\n", HdfsImport.unescape("^m"));
-//        assertEquals("\n", HdfsImport.unescape("\\u000A"));
+        assertEquals("\n", ImportUtils.unescape("\\n"));
+        assertEquals("\n", ImportUtils.unescape("\n"));
+        assertEquals("\n", ImportUtils.unescape("^M"));
+        assertEquals("\n", ImportUtils.unescape("^m"));
+//        assertEquals("\n", ImportUtils.unescape("\\u000A"));
 
-        assertEquals("\r", HdfsImport.unescape("\\r"));
-        assertEquals("\r", HdfsImport.unescape("\r"));
-//        assertEquals("\r", HdfsImport.unescape("\\u000D"));
+        assertEquals("\r", ImportUtils.unescape("\\r"));
+        assertEquals("\r", ImportUtils.unescape("\r"));
+//        assertEquals("\r", ImportUtils.unescape("\\u000D"));
 
-//        assertEquals("\0", HdfsImport.unescape("\\u0000"));
-        assertEquals("\"", HdfsImport.unescape("\\\""));
-        assertEquals("\"", HdfsImport.unescape("\""));
+//        assertEquals("\0", ImportUtils.unescape("\\u0000"));
+        assertEquals("\"", ImportUtils.unescape("\\\""));
+        assertEquals("\"", ImportUtils.unescape("\""));
     }
 
     @Test
