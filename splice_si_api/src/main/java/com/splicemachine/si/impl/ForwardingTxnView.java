@@ -14,7 +14,7 @@
 
 package com.splicemachine.si.impl;
 
-import com.carrotsearch.hppc.LongOpenHashSet;
+import com.carrotsearch.hppc.LongHashSet;
 import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
@@ -61,7 +61,7 @@ public abstract class ForwardingTxnView extends AbstractTxn {
     @Override public boolean allowsWrites() { return delegate.allowsWrites(); }
     @Override public void subRollback() { delegate.subRollback(); }
     @Override
-    public LongOpenHashSet getRolledback() {
+    public LongHashSet getRolledback() {
         return delegate.getRolledback();
     }
 

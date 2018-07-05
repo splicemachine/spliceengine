@@ -14,7 +14,7 @@
 
 package com.splicemachine.si.impl;
 
-import com.carrotsearch.hppc.LongOpenHashSet;
+import com.carrotsearch.hppc.LongHashSet;
 import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
@@ -92,7 +92,7 @@ public class UnsupportedLifecycleManager implements TxnLifecycleManager {
 		}
 
 	@Override
-	public void rollbackSubtransactions(long txnId, LongOpenHashSet rolledback) throws IOException {
+	public void rollbackSubtransactions(long txnId, LongHashSet rolledback) throws IOException {
 		throw new UnsupportedOperationException("Cannot rollback subtransactions from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
 	}
 

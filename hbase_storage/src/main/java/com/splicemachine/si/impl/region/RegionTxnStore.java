@@ -270,7 +270,7 @@ public class RegionTxnStore implements TxnPartition{
             SpliceLogUtils.trace(LOG,"getActiveTxnIds beforeTs=%d, afterTs=%s, destinationTable=%s",beforeTs,afterTs,destinationTable);
 
         Source<TxnMessage.Txn> activeTxn=getActiveTxns(afterTs,beforeTs,destinationTable);
-        LongArrayList lal=LongArrayList.newInstance();
+        LongArrayList lal=new LongArrayList();
         while(activeTxn.hasNext()){
             TxnMessage.Txn next=activeTxn.next();
             TxnMessage.TxnInfo info=next.getInfo();

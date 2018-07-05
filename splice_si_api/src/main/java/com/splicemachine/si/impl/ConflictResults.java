@@ -14,35 +14,35 @@
 
 package com.splicemachine.si.impl;
 
-import com.carrotsearch.hppc.LongOpenHashSet;
+import com.carrotsearch.hppc.LongHashSet;
 
 public class ConflictResults {
 
     /* careful mutable */
-    public static final ConflictResults NO_CONFLICT = new ConflictResults(LongOpenHashSet.from(), false);
+    public static final ConflictResults NO_CONFLICT = new ConflictResults(LongHashSet.from(), false);
 
-    private LongOpenHashSet childConflicts;
-    private LongOpenHashSet additiveConflicts;
+    private LongHashSet childConflicts;
+    private LongHashSet additiveConflicts;
     private boolean hasTombstone;
 
     public ConflictResults() {
     }
 
-    private ConflictResults(LongOpenHashSet childConflicts, boolean hasTombstone) {
+    private ConflictResults(LongHashSet childConflicts, boolean hasTombstone) {
         this.childConflicts = childConflicts;
         this.hasTombstone = hasTombstone;
     }
 
     public void addChild(long txnId) {
         if (childConflicts == null) {
-            childConflicts = LongOpenHashSet.newInstanceWithCapacity(1, 0.9f);
+            childConflicts = new LongHashSet(1, 0.9f);
         }
         childConflicts.add(txnId);
     }
 
     public void addAdditive(long txnId) {
         if (additiveConflicts == null) {
-            additiveConflicts = LongOpenHashSet.newInstanceWithCapacity(1, 0.9f);
+            additiveConflicts = new LongHashSet(1, 0.9f);
         }
         additiveConflicts.add(txnId);
     }
@@ -59,7 +59,7 @@ public class ConflictResults {
         return additiveConflicts != null;
     }
 
-    public LongOpenHashSet getChildConflicts() {
+    public LongHashSet getChildConflicts() {
         return childConflicts;
     }
 }

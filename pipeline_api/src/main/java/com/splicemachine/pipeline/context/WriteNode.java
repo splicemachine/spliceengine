@@ -19,7 +19,7 @@ import java.util.Map;
 
 import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.kvpair.KVPair;
-import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
+import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import com.splicemachine.pipeline.writehandler.WriteHandler;
@@ -102,7 +102,7 @@ public class WriteNode implements WriteContext {
 
     @Override
     public CallBuffer<KVPair> getSharedWriteBuffer(byte[] conglomBytes,
-                                                   ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap,
+                                                   ObjectObjectHashMap<KVPair, KVPair> indexToMainMutationMap,
                                                    int maxSize, boolean useAsyncWriteBuffers, TxnView txn, byte[] token) throws Exception {
         return pipelineWriteContext.getSharedWriteBuffer(conglomBytes, indexToMainMutationMap, maxSize, useAsyncWriteBuffers, txn, token);
     }

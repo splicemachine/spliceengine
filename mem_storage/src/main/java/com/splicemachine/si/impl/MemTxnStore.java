@@ -15,7 +15,7 @@
 package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongArrayList;
-import com.carrotsearch.hppc.LongOpenHashSet;
+import com.carrotsearch.hppc.LongHashSet;
 import com.splicemachine.si.constants.SIConstants;
 import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.primitives.Longs;
@@ -157,7 +157,7 @@ public class MemTxnStore implements TxnStore{
     }
 
     @Override
-    public void rollbackSubtransactions(long txnId, LongOpenHashSet subtransactions) throws IOException {
+    public void rollbackSubtransactions(long txnId, LongHashSet subtransactions) throws IOException {
         long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
 
         ReadWriteLock readWriteLock=lockStriper.get(beginTS);
@@ -177,11 +177,11 @@ public class MemTxnStore implements TxnStore{
         }
     }
 
-    private Txn getRolledbackSubtxns(long txnId, Txn txn, LongOpenHashSet subtransactions) {
-        final LongOpenHashSet subs = subtransactions.clone();
+    private Txn getRolledbackSubtxns(long txnId, Txn txn, LongHashSet subtransactions) {
+        final LongHashSet subs = subtransactions.clone();
         return new ForwardingTxnView(txn){
             @Override
-            public LongOpenHashSet getRolledback() {
+            public LongHashSet getRolledback() {
                 return subs;
             }
         };

@@ -14,7 +14,7 @@
 
 package com.splicemachine.pipeline.config;
 
-import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
+import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
@@ -45,7 +45,7 @@ public interface WriteConfiguration {
 
     MetricFactory getMetricFactory();
 
-    void registerContext(WriteContext context, ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap);
+    void registerContext(WriteContext context, ObjectObjectHashMap<KVPair, KVPair> indexToMainMutationMap);
 
     PipelineExceptionFactory getExceptionFactory();
 
