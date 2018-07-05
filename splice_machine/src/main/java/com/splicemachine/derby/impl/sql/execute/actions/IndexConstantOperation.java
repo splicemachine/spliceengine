@@ -193,6 +193,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             ScanSetBuilder<ExecRow> builder = dsp.newScanSet(null, Long.toString(tentativeIndex.getTable().getConglomerate()));
             builder.tableDisplayName(tableName)
                     .demarcationPoint(demarcationPoint)
+			        .tableVersion(tentativeIndex.getTable().getTableVersion())
                     .transaction(indexTransaction)
                     .scan(DDLUtils.createFullScan())
                     .keyColumnEncodingOrder(Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()))

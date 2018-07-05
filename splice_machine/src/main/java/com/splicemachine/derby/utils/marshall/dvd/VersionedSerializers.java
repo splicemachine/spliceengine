@@ -33,7 +33,8 @@ public class VersionedSerializers {
         else if (V1SerializerMap.VERSION.equals(version))
             return V1SerializerMap.instance(true);
         else
-            return latestTypes();
+            throw new IllegalArgumentException();  // msirek-temp
+            //return latestTypes();
     }
 
     public static TypeProvider latestTypes() {
@@ -51,8 +52,10 @@ public class VersionedSerializers {
         else if (V1SerializerMap.VERSION.equals(version))
             return V1SerializerMap.instance(sparse);
 
+        throw new IllegalArgumentException();  // msirek-temp
+
         //when in doubt, assume it's the latest version
-        return latestVersion(sparse);
+        //return latestVersion(sparse);  msirek-temp
     }
 
     /**
