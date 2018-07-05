@@ -566,6 +566,19 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     }
 
+    @Test //DB-6809
+    public void testReadTextExternalTableDelimiter() throws Exception {
+        methodWatcher.executeUpdate(String.format("create external table external_t1 (col1 int, col2 varchar(20), col3 date)" +
+                "ROW FORMAT DELIMITED FIELDS TERMINATED BY '|' ESCAPED BY '\\\\' LINES TERMINATED BY '\\n'" +
+                " STORED AS TEXTFILE LOCATION '%s'", getResourceDirectory()+"test_external_text"));
+        ResultSet rs = methodWatcher.executeQuery("select * from external_t1");
+        Assert.assertEquals("COL1 | COL2   |   COL3    |\n" +
+                "---------------------------\n" +
+                "  1  |SPLI\"CE |2014-05-20 |\n" +
+                "  2  |MACHINE |2015-09-02 |" ,TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+
     @Test
     public void testWriteReadFromSimpleTextExternalTable() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table simple_text (col1 int, col2 varchar(24), col3 boolean)" +
