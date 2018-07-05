@@ -1091,6 +1091,7 @@
                 <hadoop.version>2.6.0-cdh5.14.0</hadoop.version>
                 <hbase.version>1.2.0-cdh5.14.0</hbase.version>
                 <hive.version>1.1.0-cdh5.14.0</hive.version>
+                <guava.version>15.0</guava.version>
                 <spark.major.version>spark2.2</spark.major.version>
                 <zookeeper.version>3.4.5-cdh5.14.0</zookeeper.version>
                 <!-- <spark.version>2.2.0.cloudera2</spark.version> -->
