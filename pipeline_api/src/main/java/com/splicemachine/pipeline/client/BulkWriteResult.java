@@ -14,8 +14,8 @@
 
 package com.splicemachine.pipeline.client;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
-import com.carrotsearch.hppc.IntOpenHashSet;
+import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.esotericsoftware.kryo.Kryo;
@@ -30,25 +30,25 @@ import com.splicemachine.pipeline.context.WriteContext;
  */
 public class BulkWriteResult {
 		private WriteResult globalStatus;
-		private IntOpenHashSet notRunRows;
-		private IntObjectOpenHashMap<WriteResult> failedRows;
+		private IntHashSet notRunRows;
+		private IntObjectHashMap<WriteResult> failedRows;
 
 		private transient WriteContext writeContext;
 		private transient int position;
 
 		public BulkWriteResult() {
-				notRunRows = new IntOpenHashSet();
-				failedRows = new IntObjectOpenHashMap<>();
+				notRunRows = new IntHashSet();
+				failedRows = new IntObjectHashMap<>();
 		}
 
 		public BulkWriteResult(WriteContext writeContext, WriteResult globalStatus) {
-				notRunRows = new IntOpenHashSet();
-				failedRows = new IntObjectOpenHashMap<>();
+				notRunRows = new IntHashSet();
+				failedRows = new IntObjectHashMap<>();
 				this.writeContext = writeContext;
 				this.globalStatus = globalStatus;
 		}
 
-		public BulkWriteResult(WriteResult globalStatus, IntOpenHashSet notRunRows, IntObjectOpenHashMap<WriteResult> failedRows){
+		public BulkWriteResult(WriteResult globalStatus, IntHashSet notRunRows, IntObjectHashMap<WriteResult> failedRows){
 				this.notRunRows = notRunRows;
 				this.failedRows = failedRows;
 				this.globalStatus = globalStatus;
@@ -59,11 +59,11 @@ public class BulkWriteResult {
 				this.globalStatus = globalStatus;
 		}
 
-		public IntObjectOpenHashMap<WriteResult> getFailedRows() {
+		public IntObjectHashMap<WriteResult> getFailedRows() {
 				return failedRows;
 		}
 
-		public IntOpenHashSet getNotRunRows() {
+		public IntHashSet getNotRunRows() {
 				return notRunRows;
 		}
 
@@ -132,12 +132,12 @@ public class BulkWriteResult {
 				public BulkWriteResult read(Kryo kryo, Input input, Class<BulkWriteResult> type) {
 						WriteResult globalStatus = kryo.readObject(input,WriteResult.class);
 						int notRunSize = input.readInt();
-						IntOpenHashSet notRunRows = new IntOpenHashSet(notRunSize);
+						IntHashSet notRunRows = new IntHashSet(notRunSize);
 						for(int i=0;i<notRunSize;i++){
 								notRunRows.add(input.readInt());
 						}
 						int failedSize = input.readInt();
-						IntObjectOpenHashMap<WriteResult> failedRows = new IntObjectOpenHashMap<>(failedSize,0.9f);
+						IntObjectHashMap<WriteResult> failedRows = new IntObjectHashMap<>(failedSize,0.9f);
 						for(int i=0;i<failedSize;i++){
 								int k = input.readInt();
 								WriteResult result = kryo.readObject(input,WriteResult.class);

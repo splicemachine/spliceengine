@@ -164,7 +164,7 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
                 .encodeNext(txn.getIsolationLevel().encode())
                 .encodeNext(txn.allowsWrites());
 
-        LongArrayList parentTxnIds=LongArrayList.newInstance();
+        LongArrayList parentTxnIds= new LongArrayList();
         byte[] build=encodeParentIds(txn,parentTxnIds);
         encoder.setRawBytes(build);
         return encoder.build();

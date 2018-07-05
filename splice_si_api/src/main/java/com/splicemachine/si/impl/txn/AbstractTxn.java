@@ -14,7 +14,7 @@
 
 package com.splicemachine.si.impl.txn;
 
-import com.carrotsearch.hppc.LongOpenHashSet;
+import com.carrotsearch.hppc.LongHashSet;
 import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public abstract class AbstractTxn extends AbstractTxnView implements Txn {
 
     private AtomicLong counter;
-    protected LongOpenHashSet rolledback = new LongOpenHashSet();
+    protected LongHashSet rolledback = new LongHashSet();
     protected Set<Txn> children = new HashSet<>();
     protected Txn parentReference;
     private boolean subtransactionsAllowed = true;
@@ -95,7 +95,7 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
     }
 
     @Override
-    public LongOpenHashSet getRolledback() {
+    public LongHashSet getRolledback() {
         if (getSubId() == 0) {
             return rolledback.clone();
         } else {
