@@ -245,5 +245,5 @@ public interface TxnLifecycleManager{
      */
     void enterRestoreMode();
 
-    boolean isRestoreNode();
+    boolean isRestoreMode();
 }
