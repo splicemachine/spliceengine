@@ -89,6 +89,9 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  int backupParallelism;
     private final  long backupKeepAliveInterval;
     private final  long backupTimeout;
+    private final  long backupMaxBandwidthMB;
+    private final  boolean backupUseDistcp;
+    private final  int backupIOBufferSize;
 
     // OperationConfiguration
     private final  int sequenceBlockSize;
@@ -335,6 +338,18 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public long getBackupTimeout() {
         return backupTimeout;
+    }
+    @Override
+    public long getBackupMaxBandwidthMB() {
+        return backupMaxBandwidthMB;
+    }
+    @Override
+    public boolean getBackupUseDistcp() {
+        return backupUseDistcp;
+    }
+    @Override
+    public int getBackupIOBufferSize() {
+        return backupIOBufferSize;
     }
     @Override
     public String getCompressionAlgorithm() {
@@ -800,6 +815,9 @@ public final class SConfigurationImpl implements SConfiguration {
         backupParallelism = builder.backupParallelism;
         backupKeepAliveInterval = builder.backupKeepAliveInterval;
         backupTimeout = builder.backupTimeout;
+        backupMaxBandwidthMB = builder.backupMaxBandwidthMB;
+        backupUseDistcp = builder.backupUseDistcp;
+        backupIOBufferSize = builder.backupIOBufferSize;
         compressionAlgorithm = builder.compressionAlgorithm;
         namespace = builder.namespace;
         spliceRootPath = builder.spliceRootPath;
