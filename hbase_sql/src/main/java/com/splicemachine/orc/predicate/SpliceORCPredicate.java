@@ -29,6 +29,7 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.sql.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -119,11 +120,6 @@ public class SpliceORCPredicate implements OrcPredicate, Externalizable {
                    string, so need to convert the date string to days also
                  */
                 DataValueDescriptor orderable = q.getOrderable();
-                if (structType.fields()[baseColumnMap[q.getStoragePosition()]].dataType() instanceof DateType &&
-                        orderable instanceof SQLChar) {
-                    orderable = new SQLDate(DateWritable.dateToDays(java.sql.Date.valueOf(orderable.getString())));
-                }
-
                 switch (q.getOperator()) {
                     case com.splicemachine.db.iapi.types.DataType.ORDER_OP_LESSTHAN:
                     case com.splicemachine.db.iapi.types.DataType.ORDER_OP_LESSOREQUALS:
@@ -344,8 +340,8 @@ public class SpliceORCPredicate implements OrcPredicate, Externalizable {
         }
         else if (dataType instanceof DateType) {
             DateStatistics dateStatistics = columnStatistics.getDateStatistics();
-            statsEval.minimumDVD = new SQLDate(dateStatistics.getMin());
-            statsEval.maximumDVD = new SQLDate(dateStatistics.getMax());
+            statsEval.minimumDVD = new SQLDate(new Date(DateWritable.daysToMillis(dateStatistics.getMin())));
+            statsEval.maximumDVD = new SQLDate(new Date(DateWritable.daysToMillis(dateStatistics.getMax())));
         }
         else if (dataType instanceof IntegerType) {
             IntegerStatistics integerStatistics = columnStatistics.getIntegerStatistics();
