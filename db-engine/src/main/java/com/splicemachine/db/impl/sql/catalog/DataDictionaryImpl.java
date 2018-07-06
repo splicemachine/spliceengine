@@ -9436,14 +9436,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 //just return
                 return PermissionOperation.NOCHANGE;
             }
-            if(!add){
-                //set the uuid of the passed permission descriptor to 
-                //corresponding rows's uuid in permissions system table. The
-                //permission descriptor's uuid is required to have the 
-                //dependency manager send the revoke privilege action to
-                //all the dependent objects on that permission descriptor.
-                rf.setUUIDOfThePassedDescriptor(existingRow,perm);
-            }
+
+            //set the uuid of the passed permission descriptor to
+            //corresponding rows's uuid in permissions system table. The
+            //permission descriptor's uuid is required to have the
+            //dependency manager send the revoke privilege action to
+            //all the dependent objects on that permission descriptor.
+            rf.setUUIDOfThePassedDescriptor(existingRow,perm);
+
             if(changedColCount<0){
                 // No permissions left in the current row
                 ti.deleteRow(tc,key,primaryIndexNumber);

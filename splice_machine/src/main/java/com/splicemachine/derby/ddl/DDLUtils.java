@@ -889,6 +889,8 @@ public class DDLUtils {
         try {
             DDLMessage.RevokePrivilege revokePrivilege = change.getRevokePrivilege();
             DDLMessage.RevokePrivilege.Type type = revokePrivilege.getType();
+            DDLMessage.RevokePrivilege.OpType op = revokePrivilege.getOp();
+            boolean isGrant = (op == DDLMessage.RevokePrivilege.OpType.GRANT_OP);
 
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
             transactionResource = new SpliceTransactionResourceImpl();
@@ -896,19 +898,19 @@ public class DDLUtils {
             prepared = transactionResource.marshallTransaction(txn);
             LanguageConnectionContext lcc = transactionResource.getLcc();
             if (type == DDLMessage.RevokePrivilege.Type.REVOKE_TABLE_PRIVILEGE) {
-                preRevokeTablePrivilege(revokePrivilege.getRevokeTablePrivilege(), dd, dm, lcc);
+                preRevokeTablePrivilege(revokePrivilege.getRevokeTablePrivilege(), dd, dm, lcc, isGrant);
             }
             else if (type == DDLMessage.RevokePrivilege.Type.REVOKE_COLUMN_PRIVILEGE) {
-                preRevokeColumnPrivilege(revokePrivilege.getRevokeColumnPrivilege(), dd, dm, lcc);
+                preRevokeColumnPrivilege(revokePrivilege.getRevokeColumnPrivilege(), dd, dm, lcc, isGrant);
             }
             else if (type == DDLMessage.RevokePrivilege.Type.REVOKE_ROUTINE_PRIVILEGE) {
-                preRevokeRoutinePrivilege(revokePrivilege.getRevokeRoutinePrivilege(), dd, dm, lcc);
+                preRevokeRoutinePrivilege(revokePrivilege.getRevokeRoutinePrivilege(), dd, dm, lcc, isGrant);
             }
             else if (type == DDLMessage.RevokePrivilege.Type.REVOKE_SCHEMA_PRIVILEGE) {
-                preRevokeSchemaPrivilege(revokePrivilege.getRevokeSchemaPrivilege(), dd, dm, lcc);
+                preRevokeSchemaPrivilege(revokePrivilege.getRevokeSchemaPrivilege(), dd, dm, lcc, isGrant);
             }
             else if (type == DDLMessage.RevokePrivilege.Type.REVOKE_GENERIC_PRIVILEGE) {
-                preRevokeGenericPrivilege(revokePrivilege.getRevokeGenericPrivilege(), dd, dm, lcc);
+                preRevokeGenericPrivilege(revokePrivilege.getRevokeGenericPrivilege(), dd, dm, lcc, isGrant);
             }
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
@@ -921,7 +923,8 @@ public class DDLUtils {
     private static void preRevokeTablePrivilege(DDLMessage.RevokeTablePrivilege revokeTablePrivilege,
                                                 DataDictionary dd,
                                                 DependencyManager dm,
-                                                LanguageConnectionContext lcc) throws StandardException{
+                                                LanguageConnectionContext lcc,
+                                                boolean isGrant) throws StandardException{
 
         BasicUUID uuid = ProtoUtil.getDerbyUUID(revokeTablePrivilege.getTableId());
         BasicUUID objectId = ProtoUtil.getDerbyUUID(revokeTablePrivilege.getPermObjectId());
@@ -940,15 +943,18 @@ public class DDLUtils {
                 revokeTablePrivilege.getReferencesPerm(),
                 revokeTablePrivilege.getTriggerPerm());
         tablePermsDesc.setUUID(objectId);
+        if (!isGrant) {
+            dm.invalidateFor(tablePermsDesc, DependencyManager.REVOKE_PRIVILEGE, lcc);
+            dm.invalidateFor(td, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
+        }
         dd.getDataDictionaryCache().permissionCacheRemove(tablePermsDesc);
-        dm.invalidateFor(tablePermsDesc, DependencyManager.REVOKE_PRIVILEGE, lcc);
-        dm.invalidateFor(td, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
     }
 
     private static void preRevokeSchemaPrivilege(DDLMessage.RevokeSchemaPrivilege revokeSchemaPrivilege,
                                                 DataDictionary dd,
                                                 DependencyManager dm,
-                                                LanguageConnectionContext lcc) throws StandardException{
+                                                LanguageConnectionContext lcc,
+                                                boolean isGrant) throws StandardException{
 
         BasicUUID uuid = ProtoUtil.getDerbyUUID(revokeSchemaPrivilege.getSchemaId());
         BasicUUID objectId = ProtoUtil.getDerbyUUID(revokeSchemaPrivilege.getPermObjectId());
@@ -968,17 +974,21 @@ public class DDLUtils {
                         revokeSchemaPrivilege.getTriggerPerm(),
                         revokeSchemaPrivilege.getModifyPerm());
         schemaPermsDesc.setUUID(objectId);
+        if (!isGrant) {
+            dm.invalidateFor(schemaPermsDesc, DependencyManager.REVOKE_PRIVILEGE, lcc);
+            dm.invalidateFor(sd, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
+        }
         dd.getDataDictionaryCache().permissionCacheRemove(schemaPermsDesc);
-        dm.invalidateFor(schemaPermsDesc, DependencyManager.REVOKE_PRIVILEGE, lcc);
-        dm.invalidateFor(sd, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
     }
 
     private static void preRevokeColumnPrivilege(DDLMessage.RevokeColumnPrivilege revokeColumnPrivilege,
                                                  DataDictionary dd,
                                                  DependencyManager dm,
-                                                 LanguageConnectionContext lcc) throws StandardException{
+                                                 LanguageConnectionContext lcc,
+                                                 boolean isGrant) throws StandardException{
 
         BasicUUID uuid = ProtoUtil.getDerbyUUID(revokeColumnPrivilege.getTableId());
+        BasicUUID objectId = ProtoUtil.getDerbyUUID(revokeColumnPrivilege.getPermObjectId());
         TableDescriptor td = dd.getTableDescriptor(uuid);
         ColPermsDescriptor colPermsDescriptor =
             new ColPermsDescriptor(
@@ -988,14 +998,14 @@ public class DDLUtils {
                 uuid,
                 revokeColumnPrivilege.getType(),
                 revokeColumnPrivilege.hasColumns()?new FormatableBitSet(revokeColumnPrivilege.getColumns().toByteArray()):null);
-        boolean isGrant = revokeColumnPrivilege.getOp() == DDLMessage.RevokeColumnPrivilege.OpType.GRANT_OP;
+        colPermsDescriptor.setUUID(objectId);
+
         if (!isGrant) {
             // only revoke statements need to invalidate the dependent objects
-            BasicUUID objectId = ProtoUtil.getDerbyUUID(revokeColumnPrivilege.getPermObjectId());
-            colPermsDescriptor.setUUID(objectId);
             dm.invalidateFor(colPermsDescriptor, DependencyManager.REVOKE_PRIVILEGE, lcc);
             dm.invalidateFor(td, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
         }
+
         // both grant and revoke column permissions need to trigger cache invalidation
         dd.getDataDictionaryCache().permissionCacheRemove(colPermsDescriptor);
     }
@@ -1003,7 +1013,8 @@ public class DDLUtils {
     private static void preRevokeRoutinePrivilege(DDLMessage.RevokeRoutinePrivilege revokeRoutinePrivilege,
                                                   DataDictionary dd,
                                                   DependencyManager dm,
-                                                  LanguageConnectionContext lcc) throws StandardException{
+                                                  LanguageConnectionContext lcc,
+                                                  boolean isGrant) throws StandardException{
 
         BasicUUID uuid = ProtoUtil.getDerbyUUID(revokeRoutinePrivilege.getRountineId());
         BasicUUID objectId = ProtoUtil.getDerbyUUID(revokeRoutinePrivilege.getPermObjectId());
@@ -1015,19 +1026,22 @@ public class DDLUtils {
                 uuid);
         routinePermsDescriptor.setUUID(objectId);
 
-        dd.getDataDictionaryCache().permissionCacheRemove(routinePermsDescriptor);
-        dm.invalidateFor(routinePermsDescriptor, DependencyManager.REVOKE_PRIVILEGE_RESTRICT, lcc);
+        if (!isGrant) {
+            dm.invalidateFor(routinePermsDescriptor, DependencyManager.REVOKE_PRIVILEGE_RESTRICT, lcc);
 
-        AliasDescriptor aliasDescriptor = dd.getAliasDescriptor(objectId);
-        if (aliasDescriptor != null) {
-            dm.invalidateFor(aliasDescriptor, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
+            AliasDescriptor aliasDescriptor = dd.getAliasDescriptor(objectId);
+            if (aliasDescriptor != null) {
+                dm.invalidateFor(aliasDescriptor, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
+            }
         }
+        dd.getDataDictionaryCache().permissionCacheRemove(routinePermsDescriptor);
     }
 
     private static void preRevokeGenericPrivilege(DDLMessage.RevokeGenericPrivilege revokeGenericPrivilege,
                                                   DataDictionary dd,
                                                   DependencyManager dm,
-                                                  LanguageConnectionContext lcc) throws StandardException{
+                                                  LanguageConnectionContext lcc,
+                                                  boolean isGrant) throws StandardException{
 
         BasicUUID uuid = ProtoUtil.getDerbyUUID(revokeGenericPrivilege.getId());
         BasicUUID objectId = ProtoUtil.getDerbyUUID(revokeGenericPrivilege.getPermObjectId());
@@ -1041,22 +1055,23 @@ public class DDLUtils {
                 revokeGenericPrivilege.getGrantor(),
                 revokeGenericPrivilege.getGrantee(),
                 revokeGenericPrivilege.getGrantable());
-        int invalidationType = revokeGenericPrivilege.getRestrict() ?
-            DependencyManager.REVOKE_PRIVILEGE_RESTRICT : DependencyManager.REVOKE_PRIVILEGE;
+        if (!isGrant) {
+            int invalidationType = revokeGenericPrivilege.getRestrict() ?
+                    DependencyManager.REVOKE_PRIVILEGE_RESTRICT : DependencyManager.REVOKE_PRIVILEGE;
 
+            dm.invalidateFor(permDescriptor, invalidationType, lcc);
+
+            PrivilegedSQLObject privilegedSQLObject = null;
+            if (revokeGenericPrivilege.getObjectType().compareToIgnoreCase("SEQUENCE") == 0) {
+                privilegedSQLObject = dd.getSequenceDescriptor(objectId);
+            } else {
+                privilegedSQLObject = dd.getAliasDescriptor(objectId);
+            }
+            if (privilegedSQLObject != null) {
+                dm.invalidateFor(privilegedSQLObject, invalidationType, lcc);
+            }
+        }
         dd.getDataDictionaryCache().permissionCacheRemove(permDescriptor);
-        dm.invalidateFor(permDescriptor, invalidationType, lcc);
-
-        PrivilegedSQLObject privilegedSQLObject = null;
-        if (revokeGenericPrivilege.getObjectType().compareToIgnoreCase("SEQUENCE") == 0) {
-            privilegedSQLObject = dd.getSequenceDescriptor(objectId);
-        }
-        else {
-            privilegedSQLObject = dd.getAliasDescriptor(objectId);
-        }
-        if (privilegedSQLObject != null) {
-            dm.invalidateFor(privilegedSQLObject, invalidationType, lcc);
-        }
     }
 
     public static void preGrantRevokeRole(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
