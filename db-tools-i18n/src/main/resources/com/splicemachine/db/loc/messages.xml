@@ -1003,6 +1003,10 @@ Guide.
                 <name>28503</name>
                 <text>Error during Kerberos client initialization, check configuration.</text>
             </msg>
+            <msg>
+                <name>28504</name>
+		<text>Error accessing Keytab</text>
+            </msg>
 
         </family>
 
