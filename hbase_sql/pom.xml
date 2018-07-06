@@ -63,6 +63,18 @@
                     <groupId>org.apache.httpcomponents</groupId>
                     <artifactId>httpcore</artifactId>
                 </exclusion>
+		        <exclusion>
+                    <groupId>com.twitter</groupId>
+                    <artifactId>parquet-hadoop</artifactId>
+                </exclusion>
+		        <exclusion>
+                    <groupId>com.twitter</groupId>
+                    <artifactId>parquet-column</artifactId>
+                </exclusion>
+		        <exclusion>
+                    <groupId>com.twitter</groupId>
+                    <artifactId>parquet-avro</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
