@@ -461,7 +461,7 @@ public class ProtoUtil {
                 .build();
     }
 
-    public static DDLChange createRevokeSchemaPrivilege(long txnId, SchemaPermsDescriptor permissionsDescriptor) {
+    public static DDLChange createRevokeSchemaPrivilege(long txnId, SchemaPermsDescriptor permissionsDescriptor, boolean grant) {
         RevokeSchemaPrivilege revokeSchemaPrivilege = RevokeSchemaPrivilege.newBuilder()
                 .setSchemaId(transferDerbyUUID((BasicUUID) permissionsDescriptor.getSchemaUUID()))
                 .setSelectPerm(permissionsDescriptor.getSelectPriv())
@@ -477,6 +477,7 @@ public class ProtoUtil {
                 .build();
         RevokePrivilege revokePrivilege = RevokePrivilege.newBuilder()
                 .setType(RevokePrivilege.Type.REVOKE_SCHEMA_PRIVILEGE)
+                .setOp(grant? RevokePrivilege.OpType.GRANT_OP: RevokePrivilege.OpType.REVOKE_OP)
                 .setRevokeSchemaPrivilege(revokeSchemaPrivilege)
                 .build();
 
@@ -484,7 +485,7 @@ public class ProtoUtil {
                 .setTxnId(txnId).setRevokePrivilege(revokePrivilege).build();
     }
 
-    public static DDLChange createRevokeTablePrivilege(long txnId, TablePermsDescriptor permissionsDescriptor) {
+    public static DDLChange createRevokeTablePrivilege(long txnId, TablePermsDescriptor permissionsDescriptor, boolean grant) {
         RevokeTablePrivilege revokeTablePrivilege = RevokeTablePrivilege.newBuilder()
                 .setTableId(transferDerbyUUID((BasicUUID) permissionsDescriptor.getTableUUID()))
                 .setSelectPerm(permissionsDescriptor.getSelectPriv())
@@ -499,6 +500,7 @@ public class ProtoUtil {
                 .build();
         RevokePrivilege revokePrivilege = RevokePrivilege.newBuilder()
                 .setType(RevokePrivilege.Type.REVOKE_TABLE_PRIVILEGE)
+                .setOp(grant? RevokePrivilege.OpType.GRANT_OP: RevokePrivilege.OpType.REVOKE_OP)
                 .setRevokeTablePrivilege(revokeTablePrivilege)
                 .build();
 
@@ -513,18 +515,15 @@ public class ProtoUtil {
                 .setType(permissionsDescriptor.getType())
                 .setGrantee(permissionsDescriptor.getGrantee())
                 .setGrantor(permissionsDescriptor.getGrantor())
-                .setOp(grant? RevokeColumnPrivilege.OpType.GRANT_OP: RevokeColumnPrivilege.OpType.REVOKE_OP);
+                .setPermObjectId(transferDerbyUUID((BasicUUID) permissionsDescriptor.getUUID()));
         if (permissionsDescriptor.getColumns()!=null)
             builder.setColumns(ByteString.copyFrom(permissionsDescriptor.getColumns().getByteArray()));
-
-        /* for grant operation, perm UUID may not be set */
-        if (!grant)
-            builder.setPermObjectId(transferDerbyUUID((BasicUUID) permissionsDescriptor.getUUID()));
 
         RevokeColumnPrivilege revokeColumnPrivilege = builder.build();
 
         RevokePrivilege revokePrivilege = RevokePrivilege.newBuilder()
                 .setType(RevokePrivilege.Type.REVOKE_COLUMN_PRIVILEGE)
+                .setOp(grant? RevokePrivilege.OpType.GRANT_OP: RevokePrivilege.OpType.REVOKE_OP)
                 .setRevokeColumnPrivilege(revokeColumnPrivilege)
                 .build();
 
@@ -532,7 +531,7 @@ public class ProtoUtil {
                 .setTxnId(txnId).setRevokePrivilege(revokePrivilege).build();
     }
 
-    public static DDLChange createRevokeRoutinePrivilege(long txnId, RoutinePermsDescriptor permissionsDescriptor) {
+    public static DDLChange createRevokeRoutinePrivilege(long txnId, RoutinePermsDescriptor permissionsDescriptor, boolean grant) {
 
         RevokeRoutinePrivilege revokeRoutinePrivilege = RevokeRoutinePrivilege.newBuilder()
                 .setRountineId(transferDerbyUUID((BasicUUID) permissionsDescriptor.getRoutineUUID()))
@@ -543,6 +542,7 @@ public class ProtoUtil {
 
         RevokePrivilege revokePrivilege = RevokePrivilege.newBuilder()
                 .setType(RevokePrivilege.Type.REVOKE_ROUTINE_PRIVILEGE)
+                .setOp(grant? RevokePrivilege.OpType.GRANT_OP: RevokePrivilege.OpType.REVOKE_OP)
                 .setRevokeRoutinePrivilege(revokeRoutinePrivilege)
                 .build();
 
@@ -550,7 +550,7 @@ public class ProtoUtil {
                 .setTxnId(txnId).setRevokePrivilege(revokePrivilege).build();
     }
 
-    public static DDLChange createRevokeGenericPrivilege(long txnId, PermDescriptor permissionsDescriptor, boolean restrict) {
+    public static DDLChange createRevokeGenericPrivilege(long txnId, PermDescriptor permissionsDescriptor, boolean restrict, boolean grant) {
         RevokeGenericPrivilege revokeGenericPrivilege = RevokeGenericPrivilege.newBuilder()
                 .setId(transferDerbyUUID((BasicUUID) permissionsDescriptor.getPermObjectId()))
                 .setObjectType(permissionsDescriptor.getObjectType())
@@ -564,6 +564,7 @@ public class ProtoUtil {
 
         RevokePrivilege revokePrivilege = RevokePrivilege.newBuilder()
                 .setType(RevokePrivilege.Type.REVOKE_GENERIC_PRIVILEGE)
+                .setOp(grant? RevokePrivilege.OpType.GRANT_OP: RevokePrivilege.OpType.REVOKE_OP)
                 .setRevokeGenericPrivilege(revokeGenericPrivilege)
                 .build();
         return DDLChange.newBuilder().setDdlChangeType(DDLChangeType.REVOKE_PRIVILEGE)
