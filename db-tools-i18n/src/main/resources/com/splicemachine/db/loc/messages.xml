@@ -9272,6 +9272,28 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <arg>tableName</arg>
                <arg>operation</arg>
            </msg>
+           <msg>
+               <name>EXT37</name>
+               <text>Cannot grant permissions when Splice Machine is attached to Ranger.  Please use the Ranger UI.</text>
+           </msg>
+
+           <msg>
+               <name>EXT38</name>
+               <text>Cannot revoke permissions when Splice Machine is attached to Ranger.  Please use the Ranger UI.</text>
+           </msg>
+
+           <msg>
+               <name>EXT39</name>
+               <text>Access Denied for Sentry, user '{0}' does not have privileges to execute: {1}</text>
+               <arg>userName</arg>
+               <arg>execute</arg>
+           </msg>
+
+           <msg>
+               <name>EXT40</name>
+               <text>Role {0} already exists in Sentry.</text>
+               <arg>role</arg>
+           </msg>
        </family>
     </section>
 

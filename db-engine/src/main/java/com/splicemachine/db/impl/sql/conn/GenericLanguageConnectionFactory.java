@@ -34,6 +34,8 @@ package com.splicemachine.db.impl.sql.conn;
 import com.splicemachine.db.iapi.db.Database;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.*;
+import com.splicemachine.db.iapi.services.authorization.AuthorizationFactory;
+import com.splicemachine.db.iapi.services.authorization.AuthorizationFactoryService;
 import com.splicemachine.db.iapi.services.cache.CacheManager;
 import com.splicemachine.db.iapi.services.cache.Cacheable;
 import com.splicemachine.db.iapi.services.cache.CacheableFactory;
@@ -88,6 +90,7 @@ public class GenericLanguageConnectionFactory
 	private 	ClassFactory			classFactory;
 	private 	NodeFactory				nodeFactory;
 	private 	PropertyFactory			pf;
+	private AuthorizationFactory        authorizationFactory;
 
 	private		int						nextLCCInstanceNumber;
 
@@ -416,5 +419,13 @@ public class GenericLanguageConnectionFactory
 	protected synchronized int getNextLCCInstanceNumber()
 	{
 		return nextLCCInstanceNumber++;
+	}
+
+	@Override
+	public AuthorizationFactory getAuthorizationFactory() {
+		if (authorizationFactory==null) {
+			authorizationFactory = AuthorizationFactoryService.newAuthorizationFactory();
+		}
+		return authorizationFactory;
 	}
 }

@@ -122,4 +122,10 @@ public class StatementRolePermission extends StatementPermission
     {
         return "StatementRolePermission: " + roleName + " " + getPrivName();
     }
+
+    @Override
+    public Type getType() {
+        return Type.ROLE;
+    }
+
 }

@@ -67,6 +67,11 @@ public class ConfigurationBuilder {
     public int authenticationTokenMaxConnections;
     public int authenticationTokenPermissionCacheSize;
 
+    // Authorization Configuration
+    public String authorizationScheme;
+    public String rangerServiceName;
+    public int sentryPollingInterval;
+
     // StatsConfiguration
     public double fallbackNullFraction;
     public double optimizerExtraQualifierMultiplier;

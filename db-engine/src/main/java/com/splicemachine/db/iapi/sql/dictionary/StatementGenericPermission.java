@@ -119,4 +119,11 @@ public final class StatementGenericPermission extends StatementPermission
 	{
 		return "StatementGenericPermission( " + _objectID + ", " + _objectType + ", " + _privilege + " )";
 	}
+
+	@Override
+	public Type getType() {
+		return Type.GENERIC;
+	}
+
+
 }
