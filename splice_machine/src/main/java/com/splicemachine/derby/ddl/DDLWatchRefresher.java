@@ -15,7 +15,6 @@
 package com.splicemachine.derby.ddl;
 
 import com.splicemachine.SqlExceptionFactory;
-import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.ddl.DDLMessage.*;
@@ -253,8 +252,11 @@ public class DDLWatchRefresher{
      * @throws IOException
      */
     protected boolean isTimeout(DDLChange ddlChange) throws IOException{
-        long txnId = ddlChange.getTxnId();
         SIDriver driver = SIDriver.driver();
+        // Cannot resolve txn in restore mode
+        if (driver.lifecycleManager().isRestoreMode())
+            return false;
+        long txnId = ddlChange.getTxnId();
         TxnStore txnStore = driver.getTxnStore();
         TxnView txn = txnStore.getTransaction(txnId);
         return (txn == null || txn.getEffectiveState() == Txn.State.ROLLEDBACK);
