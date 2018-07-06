@@ -1439,6 +1439,7 @@ public enum ErrorState{
     AUTH_CANNOT_SET_READ_WRITE("25505"),
     AUTH_INVALID_USER_NAME("28502"),
     AUTH_ERROR_KERBEROS_CLIENT("28503"),
+    AUTH_ERROR_KEYTAB_LOCALIZATION("28504"),
 
     /*
     ** Dependency manager
