@@ -64,6 +64,12 @@ public final class SConfigurationImpl implements SConfiguration {
     public int authenticationTokenMaxConnections;
     public int authenticationTokenPermissionCacheSize;
 
+    // Authorization Configuration
+    private final String authorizationScheme;
+    private final String rangerServiceName;
+    private final int sentryPollingInterval;
+
+
     // DDLConfiguration
     private final  long ddlDrainingInitialWait;
     private final  long ddlDrainingMaximumWait;
@@ -496,6 +502,20 @@ public final class SConfigurationImpl implements SConfiguration {
         return olapServerSubmitAttempts;
     }
     @Override
+    public String getAuthorizationScheme() {
+        return authorizationScheme;
+    }
+    @Override
+    public String getRangerServiceName() {
+        return rangerServiceName;
+    }
+    @Override
+    public int getSentryPollingInterval() {
+        return sentryPollingInterval;
+    }
+
+
+    @Override
     public int getOlapServerMemory() {
         return olapServerMemory;
     }
@@ -756,6 +776,9 @@ public final class SConfigurationImpl implements SConfiguration {
         authenticationTokenMaxConnections = builder.authenticationTokenMaxConnections;
         authenticationTokenPermissionCacheSize = builder.authenticationTokenPermissionCacheSize;
         authenticationTokenMaxLifetime = builder.authenticationTokenMaxLifetime;
+        authorizationScheme = builder.authorizationScheme;
+        rangerServiceName = builder.rangerServiceName;
+        sentryPollingInterval = builder.sentryPollingInterval;
         fallbackNullFraction = builder.fallbackNullFraction;
         optimizerExtraQualifierMultiplier = builder.optimizerExtraQualifierMultiplier;
         cardinalityPrecision = builder.cardinalityPrecision;
