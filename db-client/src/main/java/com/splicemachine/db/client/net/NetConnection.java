@@ -24,6 +24,7 @@
  */
 package com.splicemachine.db.client.net;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.security.AccessController;
@@ -634,6 +635,8 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         try {
             Subject subject = Subject.getSubject(AccessController.getContext());
             if (!containsPrincipal(subject)) {
+                localizeKeytab();
+
                 Configuration configuration = new JaasConfiguration("spliceClient", principal, keytab);
                 Configuration.setConfiguration(configuration);
 
@@ -649,12 +652,12 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
                 @Override
                 public Exception run() {
                     try {
-                    /*
-                     * This Oid is used to represent the Kerberos version 5 GSS-API
-                     * mechanism. It is defined in RFC 1964. We will use this Oid
-                     * whenever we need to indicate to the GSS-API that it must
-                     * use Kerberos for some purpose.
-                     */
+                        /*
+                         * This Oid is used to represent the Kerberos version 5 GSS-API
+                         * mechanism. It is defined in RFC 1964. We will use this Oid
+                         * whenever we need to indicate to the GSS-API that it must
+                         * use Kerberos for some purpose.
+                         */
                         Oid krb5Oid = new Oid("1.2.840.113554.1.2.2");
 
                         GSSManager manager = GSSManager.getInstance();
@@ -727,6 +730,8 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
             if (exception != null) {
                 throw exception;
             }
+        } catch (SqlException se) {
+            throw se;
         } catch (Exception e) {
             throw new SqlException(agent_.logWriter_,
                     new ClientMessageId(SQLState.AUTH_ERROR_KERBEROS_CLIENT),
@@ -747,6 +752,27 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         return false;
     }
 
+    private void localizeKeytab() throws SqlException {
+        if (keytab == null || !keytab.startsWith("hdfs:/")) {
+            return;
+        }
+
+        ResourceLocalizer localizer = ResourceLocalizerService.getService();
+        if (localizer == null) {
+            throw new SqlException(agent_.logWriter_,
+                    new ClientMessageId(SQLState.AUTH_ERROR_KEYTAB_LOCALIZATION));
+        }
+
+        String localFile = null;
+        try {
+            localFile = localizer.copyToLocal(keytab);
+        } catch (IOException e) {
+            throw new SqlException(agent_.logWriter_,
+                    new ClientMessageId(SQLState.AUTH_ERROR_KEYTAB_LOCALIZATION),
+                    e);
+        }
+        keytab = localFile;
+    }
 
     private void flowUSRIDONLconnect() throws SqlException {
         flowServerAttributesAndKeyExchange(NetConfiguration.SECMEC_USRIDONL,
