@@ -36,7 +36,9 @@ import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.log4j.Logger;
+import org.apache.spark.deploy.SparkHadoopUtil;
 import org.apache.spark.util.Utils;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -45,6 +47,8 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 
 import java.io.IOException;
+import java.security.PrivilegedAction;
+import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.List;
 import java.util.Timer;
@@ -65,6 +69,9 @@ public class OlapServerMaster implements Watcher {
     private final int port;
     private RecoverableZooKeeper rzk;
     private String masterPath;
+
+    UserGroupInformation ugi;
+    UserGroupInformation yarnUgi;
 
     public OlapServerMaster(ServerName serverName, int port) {
         this.serverName = serverName;
@@ -89,58 +96,22 @@ public class OlapServerMaster implements Watcher {
         // Initialize clients to ResourceManager and NodeManagers
         Configuration conf = HConfiguration.unwrapDelegate();
 
-        AMRMClientAsync.CallbackHandler allocListener = new AMRMClientAsync.CallbackHandler() {
-            @Override
-            public void onContainersCompleted(List<ContainerStatus> statuses) {
-            }
-
-            @Override
-            public void onContainersAllocated(List<Container> containers) {
-            }
-
-            @Override
-            public void onShutdownRequest() {
-                LOG.warn("Shutting down");
-                end.set(true);
-            }
-
-            @Override
-            public void onNodesUpdated(List<NodeReport> updatedNodes) {
-            }
-
-            @Override
-            public float getProgress() {
-                return 0;
-            }
-
-            @Override
-            public void onError(Throwable e) {
-                LOG.error("Unexpected error", e);
-                end.set(true);
-            }
-        };
-        AMRMClientAsync<AMRMClient.ContainerRequest> rmClient = AMRMClientAsync.createAMRMClientAsync(1000, allocListener);
-        rmClient.init(conf);
-        rmClient.start();
-
-        // Register with ResourceManager
-        rmClient.registerApplicationMaster(Utils.localHostName(), 0, "");
+        UserGroupInformation.isSecurityEnabled();
+        AMRMClientAsync<AMRMClient.ContainerRequest> rmClient = getClient(conf);
 
         LOG.info("Registered with Resource Manager");
 
         String principal = System.getProperty("splice.spark.yarn.principal");
         String keytab = System.getProperty("splice.spark.yarn.keytab");
 
-        UserGroupInformation ugi;
-
         if (principal != null && keytab != null) {
-                try {
-                    LOG.info("Login with principal (" + principal +") and keytab (" + keytab +")");
-                    ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab);
-                } catch (IOException e) {
-                    LOG.error("Error while authenticating user " + principal + " with keytab " + keytab, e);
-                    throw new RuntimeException(e);
-                }
+            try {
+                LOG.info("Login with principal (" + principal +") and keytab (" + keytab +")");
+                ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab);
+            } catch (IOException e) {
+                LOG.error("Error while authenticating user " + principal + " with keytab " + keytab, e);
+                throw new RuntimeException(e);
+            }
         } else {
             String user = System.getProperty("splice.spark.yarn.user", "hbase");
             LOG.info("Login with user");
@@ -150,7 +121,7 @@ public class OlapServerMaster implements Watcher {
         UserGroupInformation.setLoginUser(ugi);
         ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
             try {
-                submitSparkApplication(conf, ugi);
+                submitSparkApplication(conf);
             } catch (Exception e) {
                 LOG.error("Unexpected exception when submitting Spark application with authentication", e);
 
@@ -170,7 +141,7 @@ public class OlapServerMaster implements Watcher {
         System.exit(0);
     }
 
-    private void submitSparkApplication(Configuration conf, UserGroupInformation ugi) throws IOException, InterruptedException, KeeperException {
+    private void submitSparkApplication(Configuration conf) throws IOException, InterruptedException, KeeperException {
         rzk = ZKUtil.connect(conf, null);
 
         HBaseSIEnvironment env=HBaseSIEnvironment.loadEnvironment(new SystemClock(),rzk);
@@ -205,10 +176,12 @@ public class OlapServerMaster implements Watcher {
         publishServer(rzk, serverName, hostname, port);
 
         SpliceSpark.getContextUnsafe(); // kickstart Spark
-        
+
         while(!end.get()) {
             Thread.sleep(10000);
             ugi.checkTGTAndReloginFromKeytab();
+            if (yarnUgi != null)
+                yarnUgi.checkTGTAndReloginFromKeytab();
         }
 
         LOG.info("OlapServerMaster shutting down");
@@ -257,5 +230,79 @@ public class OlapServerMaster implements Watcher {
                 }
             }
         }
+    }
+
+    public AMRMClientAsync<AMRMClient.ContainerRequest> getClient(Configuration conf) throws IOException, YarnException, InterruptedException {
+
+        String principal = System.getProperty("splice.spark.yarn.principal");
+        String keytab = System.getProperty("splice.spark.yarn.keytab");
+
+        if (principal != null && keytab != null) {
+            UserGroupInformation original = UserGroupInformation.getCurrentUser();
+            try {
+                LOG.info("Login with principal (" + principal +") and keytab (" + keytab +")");
+                UserGroupInformation.loginUserFromKeytab(principal, keytab);
+
+            } catch (IOException e) {
+                LOG.error("Error while authenticating user " + principal + " with keytab " + keytab, e);
+                throw new RuntimeException(e);
+            }
+
+            yarnUgi = UserGroupInformation.getCurrentUser();
+            SparkHadoopUtil.get().transferCredentials(original, yarnUgi);
+        }
+
+
+        if (yarnUgi != null) {
+            return yarnUgi.doAs(new PrivilegedExceptionAction<AMRMClientAsync<AMRMClient.ContainerRequest>>() {
+                @Override
+                public AMRMClientAsync<AMRMClient.ContainerRequest> run() throws Exception {
+                    return initClient(conf);
+                }
+            });
+        } else {
+            return initClient(conf);
+        }
+    }
+
+    private AMRMClientAsync<AMRMClient.ContainerRequest> initClient(Configuration conf) throws YarnException, IOException {
+        AMRMClientAsync.CallbackHandler allocListener = new AMRMClientAsync.CallbackHandler() {
+            @Override
+            public void onContainersCompleted(List<ContainerStatus> statuses) {
+            }
+
+            @Override
+            public void onContainersAllocated(List<Container> containers) {
+            }
+
+            @Override
+            public void onShutdownRequest() {
+                LOG.warn("Shutting down");
+                end.set(true);
+            }
+
+            @Override
+            public void onNodesUpdated(List<NodeReport> updatedNodes) {
+            }
+
+            @Override
+            public float getProgress() {
+                return 0;
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                LOG.error("Unexpected error", e);
+                end.set(true);
+            }
+        };
+        AMRMClientAsync<AMRMClient.ContainerRequest> rmClient = AMRMClientAsync.createAMRMClientAsync(1000, allocListener);
+        rmClient.init(conf);
+        rmClient.start();
+
+        // Register with ResourceManager
+        rmClient.registerApplicationMaster(Utils.localHostName(), 0, "");
+
+        return rmClient;
     }
 }
