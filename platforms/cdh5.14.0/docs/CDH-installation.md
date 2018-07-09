@@ -56,29 +56,29 @@ Machine on your cluster:
    </thead>
    <tbody>
        <tr>
-           <td rowspan="6" style="vertical-align:top"><bold>5.8.3</bold></td>
+           <td rowspan="6" style="vertical-align:top"><bold>5.14.0</bold></td>
            <td>EL6</td>
-           <td>[https://s3.amazonaws.com/splice-releases/2.5.0.1802/cluster/parcel/cdh5.8.3/SPLICEMACHINE-2.5.0.1802.cdh5.8.3.p0.540-el6.parcel]</td>
+           <td>[https://s3.amazonaws.com/splice-releases/2.7.0.1827/cluster/parcel/cdh5.14.0/SPLICEMACHINE-2.7.0.1827.cdh5.14.0.p0.116-el6.parcel]</td>
        </tr>
        <tr>
            <td>EL7</td>
-           <td>[https://s3.amazonaws.com/splice-releases/2.5.0.1802/cluster/parcel/cdh5.8.3/SPLICEMACHINE-2.5.0.1802.cdh5.8.3.p0.540-el7.parcel]</td>
+           <td>[https://s3.amazonaws.com/splice-releases/2.7.0.1827/cluster/parcel/cdh5.14.0/SPLICEMACHINE-2.7.0.1827.cdh5.14.0.p0.116-el7.parcel]</td>
        </tr>
        <tr>
            <td>Precise</td>
-           <td>[https://s3.amazonaws.com/splice-releases/2.5.0.1802/cluster/parcel/cdh5.8.3/SPLICEMACHINE-2.5.0.1802.cdh5.8.3.p0.540-el6.precise]</td>
+           <td>[https://s3.amazonaws.com/splice-releases/2.7.0.1827/cluster/parcel/cdh5.14.0/SPLICEMACHINE-2.7.0.1827.cdh5.14.0.p0.116-precise.parcel]</td>
        </tr>
        <tr>
            <td>SLES11</td>
-           <td>[https://s3.amazonaws.com/splice-releases/2.5.0.1802/cluster/parcel/cdh5.8.3/SPLICEMACHINE-2.5.0.1802.cdh5.8.3.p0.540-sles11.parcel]</td>
+           <td>[https://s3.amazonaws.com/splice-releases/2.7.0.1827/cluster/parcel/cdh5.14.0/SPLICEMACHINE-2.7.0.1827.cdh5.14.0.p0.116-sles11.parcel]</td>
        </tr>
        <tr>
            <td>Trusty</td>
-           <td>[https://s3.amazonaws.com/splice-releases/2.5.0.1802/cluster/parcel/cdh5.8.3/SPLICEMACHINE-2.5.0.1802.cdh5.8.3.p0.540-trusty.parcel]</td>
+           <td>[https://s3.amazonaws.com/splice-releases/2.7.0.1827/cluster/parcel/cdh5.14.0/SPLICEMACHINE-2.7.0.1827.cdh5.14.0.p0.116-trusty.parcel]</td>
        </tr>
        <tr>
            <td>Wheezy</td>
-           <td>[https://s3.amazonaws.com/splice-releases/2.5.0.1802/cluster/parcel/cdh5.8.3/SPLICEMACHINE-2.5.0.1802.cdh5.8.3.p0.540-wheezy.parcel]</a></td>
+           <td>[https://s3.amazonaws.com/splice-releases/2.7.0.1827/cluster/parcel/cdh5.14.0/SPLICEMACHINE-2.7.0.1827.cdh5.14.0.p0.116-wheezy.parcel]</a></td>
         </tr>
     </tbody>
    </table>
