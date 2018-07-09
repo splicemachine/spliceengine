@@ -10,7 +10,7 @@ MapR-managed cluster. Follow these steps:
 4. [Stop Cluster Services](#stop-cluster-services)
 5. [Restart Cluster Services](#restart-cluster-services)
 6. [Create the Splice Machine Event Log Directory](#create-the-splice-machine-event-log-directory)
-7. Make any needed [Optional Configuration Modifications](#optional-configuration modifications)
+7. Make any needed [Optional Configuration Modifications](#optional-configuration-modifications)
 8. [Verify your Splice Machine Installation](#verify-your-Splice-Machine-installation)
 
 **NOTE:** MapR Secure Clusters Only Work with the Enterprise Edition of Splice Machine;
@@ -42,7 +42,7 @@ your cluster contains the prerequisite software components:
   currently coexist with Spark 1.x on a cluster:
   * If `MEP version 1.x` is in use, you must remove the `Spark 1.x`
     packages from your cluster, as described below, in [Removing Spark
-    Packages from Your Cluster.](#Removing)
+    Packages from Your Cluster.](#removing-spark-packages-from-your-cluster)
   * MEP version 2.0 bundles Spark 2.0, and will not cause conflicts with
     Splice Machine.
 
@@ -256,7 +256,7 @@ that Splice Machine uses to LDAP by following the simple instructions in
 
 Splice Machine logs all SQL statements by default, storing the log
 entries in your region server's logs, as described in our [Using
-Logging](developers_tuning_logging) topic. You can modify where Splice
+Logging](https://doc.splicemachine.com/developers_tuning_logging) topic. You can modify where Splice
 Machine stores logs as follows:
 
 1. Append the following configuration information to the `/opt/mapr/hbase/hbase-1.1.1/conf/log4jd/properties` file _on each node_ in your cluster:
@@ -292,8 +292,8 @@ Machine stores logs as follows:
     * OR, restart the HBase service _on each node_ in your cluster by issuing these commands from your Master node:
 
       ````
-      sudo -su mapr maprcli node services -hbmaster restart -nodes **&lt;master node&gt;** <br />
-      sudo -su mapr maprcli node services -hbregionserver restart -nodes  **&lt;regional node 1&gt; &lt;regional node 2&gt; ... &lt;regional node n&gt;**
+      sudo -su mapr maprcli node services -hbmaster restart -nodes **<master node>** <br />
+      sudo -su mapr maprcli node services -hbregionserver restart -nodes  **<regional node 1> <regional node 2> ... <regional node n>**
       ````
       
 #### OLAP Server Log
