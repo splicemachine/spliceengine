@@ -8,7 +8,7 @@ Cloudera-managed cluster. Follow these steps:
 3.  [Stop Hadoop Services](#stop-hadoop-services)
 4.  [Make Cluster Modifications for Splice Machine](#make-cluster-modifications-for-splice-machine)
 5.  [Configure Hadoop Services](#configure-hadoop-services)
-6.  Make any needed [Optional Configuration Modifications](#optional-cluster-modifications)
+6.  Make any needed [Optional Configuration Modifications](#optional-configuration-modifications)
 7.  [Deploy the Client Configuration](#deploy-the-client-configuration)
 8.  [Restart the Cluster](#restart-the-cluster)
 9.  [Verify your Splice Machine Installation](#verify-your-splice-machine-installation)
@@ -132,11 +132,11 @@ the cluster on
 Now it's time to make a few modifications in the Hadoop services
 configurations:
 
-* [Configure and Restart the Management Service](#Configur)
-* [Configure ZooKeeper](#Configur4)
-* [Configure HDFS](#Configur5)
-* [Configure YARN](#Configur2)
-* [Configure HBASE](#Configur3)
+* [Configure and Restart the Management Service](#configure-and-restart-the-management-service)
+* [Configure ZooKeeper](#configure-zookeeper)
+* [Configure HDFS](#configure-hdfs)
+* [Configure YARN](#configure-yarn)
+* [Configure HBASE](#configure-hbase)
 
 ### Configure and Restart the Management Service
 
@@ -566,7 +566,7 @@ There are a few configuration modifications you might want to make:
 * [Modify the Authentication Mechanism](#modify-the-authentication-mechanism) if you want to
   authenticate users with something other than the default *native
   authentication* mechanism.
-* [Modify the Log Location](#modify-the-logging-location) if you want your Splice Machine
+* [Modify the Log Location](#modify-the-log-location) if you want your Splice Machine
   log entries stored somewhere other than in the logs for your region
   servers.
 
@@ -593,7 +593,7 @@ You can use <a href="https://www.cloudera.com/documentation/enterprise/5-8-x/top
 
 Splice Machine logs all SQL statements by default, storing the log
 entries in your region server's logs, as described in our [Using
-Logging](developers_tuning_logging) topic. You can modify where Splice
+Logging](https://doc.splicemachine.com/developers_tuning_logging) topic. You can modify where Splice
 Machine stroes logs by adding the following snippet to your *RegionServer Logging
 Advanced Configuration Snippet (Safety Valve)* section of your HBase
 Configuration:
