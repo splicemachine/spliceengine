@@ -54,7 +54,9 @@ Set up a local `yum` repo on an Ambari server node (or a node that all the nodes
 
 Install the splicemachine custom ambari service rpm using the following command:
 
-    `sudo yum install splicemachine_ambari_service`
+````
+sudo yum install splicemachine_ambari_service
+````
 
 After installing the rpm, restart the ambari-server using the `ambari-server restart` service.
 
