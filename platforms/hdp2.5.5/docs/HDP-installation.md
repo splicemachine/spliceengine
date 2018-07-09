@@ -565,7 +565,7 @@ If you're using Kerberos, you need to add this option to your HBase Master Java 
 
 Splice Machine logs all SQL statements by default, storing the log
 entries in your region server's logs, as described in our [Using
-Logging](developers_tuning_logging) topic. You can modify where Splice
+Logging](https://doc.splicemachine.com/developers_tuning_logging) topic. You can modify where Splice
 Machine stores logs by adding the following snippet to your *RegionServer Logging
 Advanced Configuration Snippet (Safety Valve)* section of your HBase
 Configuration:
