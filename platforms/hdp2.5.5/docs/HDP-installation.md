@@ -51,14 +51,9 @@ Perform the following steps **on each node** in your cluster:
         </thead>
         <tbody>
                <tr>
-                   <td><strong>2.7</strong></td>
-                   <td><strong>2.5.5</strong></td>
-                   <td><a href="https://s3.console.aws.amazon.com/s3/object/splice-releases/2.6.1.1745/cluster/installer/hdp2.5.5/SPLICEMACHINE-2.6.1.1745.hdp2.5.5.p0.121.tar.gz">https://s3.console.aws.amazon.com/s3/object/splice-releases/2.6.1.1745/cluster/installer/hdp2.5.5/SPLICEMACHINE-2.6.1.1745.hdp2.5.5.p0.121.tar.gz</a></td>
-                </tr>
-               <tr>
                    <td><strong>2.5</strong></td>
                    <td><strong>2.5.5</strong></td>
-                   <td><a href="https://s3.amazonaws.com/splice-releases/2.5.0.1802/cluster/installer/hdp2.5.5/SPLICEMACHINE-2.5.0.1802.hdp2.5.5.p0.540.tar.gz">https://s3.amazonaws.com/splice-releases/2.5.0.1802/cluster/installer/hdp2.5.5/SPLICEMACHINE-2.5.0.1802.hdp2.5.5.p0.540.tar.gz</a></td>
+                   <td><a href="https://s3.amazonaws.com/splice-releases/2.5.0.1827/cluster/installer/hdp2.5.5/SPLICEMACHINE-2.5.0.1827.hdp2.5.5.p0.803.tar.gz">https://s3.amazonaws.com/splice-releases/2.5.0.1827/cluster/installer/hdp2.5.5/SPLICEMACHINE-2.5.0.1827.hdp2.5.5.p0.803.tar.gz</a></td>
                 </tr>
         </tbody>
    </table>
@@ -565,7 +560,7 @@ If you're using Kerberos, you need to add this option to your HBase Master Java 
 
 Splice Machine logs all SQL statements by default, storing the log
 entries in your region server's logs, as described in our [Using
-Logging](developers_tuning_logging) topic. You can modify where Splice
+Logging](https://doc.splicemachine.com/developers_tuning_logging) topic. You can modify where Splice
 Machine stores logs by adding the following snippet to your *RegionServer Logging
 Advanced Configuration Snippet (Safety Valve)* section of your HBase
 Configuration:
