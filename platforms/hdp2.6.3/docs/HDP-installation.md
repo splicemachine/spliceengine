@@ -47,7 +47,7 @@ Set up a local `yum` repo on an Ambari server node (or a node that all the nodes
     baseurl=http://your_node_url/ambari-repo
     enabled=1
     gpgcheck=0
-  ````
+    ````
 7. Run `yum list | grep splicemachine` to make sure the custom repo is up and running.  
 
 ### Install the Splice Machine Ambari service **on each node** in your cluster:
