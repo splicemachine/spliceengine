@@ -64,25 +64,31 @@ After installing the rpm, restart the ambari-server using the `ambari-server res
 
 Follow the steps to install splicemachine server:
 
-1. Click the action button on the left bottom of the Ambari page,then click `Add Services`:
+1. Click the action button on the left bottom of the Ambari page, then click `Add Services`:
+
    <img src="docs/add_services.jpg" alt="Add Service" width="400" height="200">
 
-2. Choose `splice machine` from the `add service wizard`
+2. Choose `splice machine` from the `add service wizard`:
+
    <img src="docs/add_service_wizard.jpg" alt="Add Service Wizard" width="400" height="200">
 
 3. Choose the master machine. It needs to be the HBase Master machine.
 
 4. Choose hosts needed to install splice machine; only choose hosts that have hbase region server 
 installed. Then click `next`.
+
    <img src="docs/choose_hosts.jpeg" alt="Choose hosts" width="400" height="200">
 
 5. You only need to customize properties page if you want to add [Apache Ranger Support](#enabling-ranger-for-authorization).
+
    <img src="docs/custom_services.jpeg" alt="Custom Services" width="400" height="200">
 
 6. Review all the configuration change made by aAbari and click `OK` to continue.
+
    <img src="docs/dependent_config.jpeg" alt="dependent_config.jpeg" width="400" height="200">
 
 7. Click `next` at the bottom of the page, then click `deploy`. Once this completes, Splice Machine is installed.
+
    <img src="docs/review.jpeg" alt="dependent_config.jpeg" width="400" height="200">
 
 8. Restart all affected services to start Splice Machine!
@@ -166,7 +172,7 @@ Note: `admin:admin` here is Ranger's username and password.
 
    Note: if you see an error such as the following, try `test connection`:
 
-   ````
+    ````
 Unable to retrieve any files using given parameters, You can still save the repository and start
 creating policies, but you would not be able to use autocomplete for resource names.
 Check ranger_admin.log for more info.
@@ -175,7 +181,7 @@ org.apache.ranger.plugin.client.HadoopException: Unable to login to Hadoop envir
 Unable to login to Hadoop environment [splicemachine]. 
 Unable to decrypt password due to error. 
 Input length must be multiple of 8 when decrypting with padded cipher. 
-   ````
+    ````
 
    This error is due to a [Ranger bug](https://issues.apache.org/jira/browse/RANGER-1640?attachmentOrder=asc).
 You can ignore the error and test if autocomplete is working later.
