@@ -927,7 +927,8 @@ public class MergeJoinIT extends SpliceUnitTest {
     @Test
     public void testRightTableScanKeyCombiningGEStartKeyAndHashColumnValueCoveringIndexLeftJoin() throws Exception {
         /* idx_tt2 (d2, b2) is used, idx_tt2 has index columns whose positions in the base table are reversed, so there is a projectrestrict operation
-           on top of the IndexScan, we cannot take advantage of the first qualified left on the join column to further restrict the scan of right table
+           on top of the IndexScan, with DB-7182, we should still be able to take advantage of the first qualified left on the join column to further
+           restrict the scan of right table
           */
         String sql = "select d1, b1, d2, b2 from tt1 left join tt2 --splice-properties index=idx_tt2, joinStrategy=MERGE, useSpark=false\n on d2 > 2000 and d1=d2 and b1=b2";
 
@@ -949,7 +950,8 @@ public class MergeJoinIT extends SpliceUnitTest {
     @Test
     public void testRightTableScanKeyCombiningEqualStartKeyAndHashColumnValueCoveringIndexLeftJoin() throws Exception {
          /* idx_tt2 (d2, b2) is used, idx_tt2 has index columns whose positions in the base table are reversed, so there is a projectrestrict operation
-           on top of the IndexScan, we cannot take advantage of the first qualified left on the join column to further restrict the scan of right table
+           on top of the IndexScan, with DB-7182, we should still be able to take advantage of the first qualified left on the join column to further
+           restrict the scan of right table
           */
         String sql = "select d1, b1, d2, b2 from tt1 left join tt2 --splice-properties index=idx_tt2, joinStrategy=MERGE, useSpark=false\n on d2 = 3000 and d1=d2 and b1=b2";
 
@@ -1007,6 +1009,48 @@ public class MergeJoinIT extends SpliceUnitTest {
 
         //test spark path
         sql = sql = "select a1, c1, a2, c2 from tt1 left join tt2 --splice-properties index=idx2_tt2, joinStrategy=MERGE, useSpark=true\n on a2 = 3 and a1=a2 and c1=c2";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testRightHashKeyHasExpression() throws Exception {
+        /* the predicate c1+3=c2+3 have expression, though c2+3 will be a hash field for the merge join,
+           we won't be using this hash field to restrict the search for right table
+         */
+        String sql = "select d1, e1, d2, e2 from tt1 left join tt2 --splice-properties joinStrategy=MERGE, useSpark=false\n on e2 > 30000 and e1 = e2 and d1=d2 and c1+3=c2+3";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String expected = "D1  | E1   | D2  | E2   |\n" +
+                "--------------------------\n" +
+                "3000 |30000 |NULL |NULL  |\n" +
+                "5000 |50000 |5000 |50000 |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //test spark path
+        sql = "select d1, e1, d2, e2 from tt1 left join tt2 --splice-properties joinStrategy=MERGE, useSpark=true\n on e2 > 30000 and e1 = e2 and d1=d2 and c1+3=c2+3";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+    }
+
+    @Test
+    public void testRightHashKeyHasExpressionUsingCoveringIndex() throws Exception {
+        String sql = "select d1, b1, d2, b2 from tt1 left join tt2 --splice-properties index=idx_tt2, joinStrategy=MERGE, useSpark=false\n on d1=d2 and b1+3=b2+3";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String expected = "D1  |B1 | D2  |B2 |\n" +
+                "--------------------\n" +
+                "3000 |30 |3000 |30 |\n" +
+                "5000 |50 |5000 |50 |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //test spark path
+        sql = sql = "select d1, b1, d2, b2 from tt1 left join tt2 --splice-properties index=idx_tt2, joinStrategy=MERGE, useSpark=true\n on d1=d2 and b1+3=b2+3";
         rs = methodWatcher.executeQuery(sql);
         assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
