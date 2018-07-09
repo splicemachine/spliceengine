@@ -1250,6 +1250,16 @@ public class ExternalTableIT extends SpliceUnitTest{
         resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
         assertEquals(expected, resultString);
         rs.close();
+
+        rs = methodWatcher.executeQuery("select * from t_date where c1>=date('2017-07-27') order by 1");
+
+        expected = "C1     |\n" +
+                "------------\n" +
+                "2017-07-27 |";
+
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals(expected, resultString);
+        rs.close();
     }
 
     @Test
