@@ -7,11 +7,10 @@ Hortonworks Ambari-managed cluster. Follow these steps:
 
 1. [Verify Prerequisites](#verify-prerequisites)
 2. [Download and Install Splice Machine](#download-and-install-splice-machine)
-3. [Stop Hadoop Services](#stop-hadoop-services)
-4. [Configure Hadoop Services](#configure-hadoop-services)
-5. [Start Any Additional Services](#start-any-additional-services)
-6. Make any needed [Optional Configuration Modifications](#optional-configuration-modifications)
-7. [Verify your Splice Machine Installation](#verify-your-splice-machine-installation)
+3. [Install Splice Machine Using Ambari Service](#install-splice-machine-using-ambari-service)
+4. [Start Any Additional Services](#start-any-additional-services)
+5. Make any needed [Optional Configuration Modifications](#optional-configuration-modifications)
+6. [Verify your Splice Machine Installation](#verify-your-splice-machine-installation)
 
 ## Verify Prerequisites
 
@@ -70,7 +69,7 @@ Perform the following steps **on each node** in your cluster:
 After install the rpm,restart ambari-server using 'service ambari-server restart'
 
 
-## install splicemachine using ambari service
+## Install Splice Machine Using Ambari Service
 
 Follow the steps to install splicemachine server.
 
@@ -242,7 +241,7 @@ It is set to **NATIVE** by default.
 
 Splice Machine logs all SQL statements by default, storing the log
 entries in your region server's logs, as described in our [Using
-Logging](developers_tuning_logging) topic. You can modify where Splice
+Logging](https://doc.splicemachine.com/developers_tuning_logging) topic. You can modify where Splice
 Machine stores logs by adding the following snippet to your *RegionServer Logging
 Advanced Configuration Snippet (Safety Valve)* section of your HBase
 Configuration:
