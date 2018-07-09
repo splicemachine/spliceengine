@@ -5,13 +5,13 @@
 This topic describes installing and configuring Splice Machine on a
 Hortonworks Ambari-managed cluster. Follow these steps:
 
+
 1. [Verify Prerequisites](#verify-prerequisites)
 2. [Download and Install Splice Machine](#download-and-install-splice-machine)
-3. [Stop Hadoop Services](#stop-hadoop-services)
-4. [Configure Hadoop Services](#configure-hadoop-services)
-5. [Start Any Additional Services](#start-any-additional-services)
-6. Make any needed [Optional Configuration Modifications](#optional-configuration-modifications)
-7. [Verify your Splice Machine Installation](#verify-your-splice-machine-installation)
+3. [Install Splice Machine Using Ambari Service](#install-splice-machine-using-ambari-service)
+4. [Start Any Additional Services](#start-any-additional-services)
+5. Make any needed [Optional Configuration Modifications](#optional-configuration-modifications)
+6. [Verify your Splice Machine Installation](#verify-your-splice-machine-installation)
 
 ## Verify Prerequisites
 
@@ -33,74 +33,66 @@ operating environment, and are called out in detail in the
 
 ## Download and Install Splice Machine
 
-Setup local yum repo on ambari server node ( or a node that all the nodes in the cluster can access) :
+Set up a local `yum` repo on an Ambari server node (or a node that all the nodes in the cluster can access):
 
-0.make sure there is a http server on the node that your_node_url is accessable.
-
-1.make sure createrepo is installed on the node ( use 'yum install createrepo' to confirm)
-
-2.put the splicemachine rpm under /var/www/html/ambari-repo/ ( or the path you choose)
-
-3.use 'createrepo /var/www/html/ambari-repo/' to create the repo metadata
-
-4.open the url your_node_url/ambari-repo to confirm it can be accessed by yum
-
-5.put a file named splicemachine.repo under /etc/yums.repo.d/
-
-the content is as below 
-
-  ````
-  [splicemachine]
-  name=SpliceMachine Repo
-  baseurl=http://your_node_url/ambari-repo
-  enabled=1
-  gpgcheck=0
-  ````
-  
-6. rum yum list | grep splicemachine to make sure the custom repo is up and running.  
-
-Perform the following steps **on each node** in your cluster:
-
-1.  install the splicemachine  custom ambari service rpm using following command (take version 2.5.0.1811 for example) :
+1. Make sure there is a http server on the node that <your_node_url> is accessible.
+2. Make sure `createrepo` is installed on the node ( use 'yum install createrepo' to confirm).
+3. Put the `splicemachine` rpm under `/var/www/html/ambari-repo/` ( or the path you choose).
+4. Use 'createrepo /var/www/html/ambari-repo/' to create the repo metadata.
+5. Open the url `<your_node_url>/ambari-repo to` confirm it can be accessed by `yum`.
+6. Add a file named `splicemachine.repo` under `/etc/yums.repo.d/`, with the following content:
 
     ````
-    sudo yum install splicemachine_ambari_service
+    [splicemachine]
+    name=SpliceMachine Repo
+    baseurl=http://your_node_url/ambari-repo
+    enabled=1
+    gpgcheck=0
     ````
+7. Run `yum list | grep splicemachine` to make sure the custom repo is up and running.
 
-After install the rpm,restart ambari-server using 'service ambari-server restart'
+### Install the Splice Machine Ambari service **on each node** in your cluster:
 
+Install the splicemachine custom ambari service rpm using the following command:
 
-## install splicemachine using ambari service
+````
+sudo yum install splicemachine_ambari_service
+````
 
-Follow the steps to install splicemachine server.
+After installing the rpm, restart the ambari-server using the `ambari-server restart` service.
 
-1.click the action button on the left buttom of the ambari page,then click on 'Add Services'
+## Install Splice Machine Using the Ambari Service
 
-<img src="docs/add_services.jpg" alt="Add Service" width="400" height="200">
+Follow the steps to install splicemachine server:
 
-2.choose splice machine from the 'add service wizard'
+1. Click the action button on the left bottom of the Ambari page, then click `Add Services`:
 
-<img src="docs/add_service_wizard.jpg" alt="Add Service Wizard" width="400" height="200">
+   <img src="docs/add_services.jpg" alt="Add Service" width="400" height="200">
 
-3.choose hosts needed to install splice machine,only choose hosts that have hbase region server installed.Then click next.
+2. Choose `splice machine` from the `add service wizard`:
 
-<img src="docs/choose_hosts.jpeg" alt="Choose hosts" width="400" height="200">
+   <img src="docs/add_service_wizard.jpg" alt="Add Service Wizard" width="400" height="200">
 
-4.O On the page of custom services,no properties need to customize by hand.
+3. Choose the master machine. It needs to be the HBase Master machine.
 
-<img src="docs/custom_services.jpeg" alt="Custom Services" width="400" height="200">
+4. Choose hosts needed to install splice machine; only choose hosts that have hbase region server
+installed. Then click `next`.
 
-5.please review all the configuration change made by ambari and click OK to continue.
+   <img src="docs/choose_hosts.jpeg" alt="Choose hosts" width="400" height="200">
 
-<img src="docs/dependent_config.jpeg" alt="dependent_config.jpeg" width="400" height="200">
+5. You only need to customize properties page if you want to add [Apache Ranger Support](#enabling-ranger-for-authorization).
 
-6.please click next all the way down to this page ,then click 'deploy',after that finishes,splice machine is installed.
+   <img src="docs/custom_services.jpeg" alt="Custom Services" width="400" height="200">
 
-<img src="docs/review.jpeg" alt="dependent_config.jpeg" width="400" height="200">
+6. Review all the configuration change made by aAbari and click `OK` to continue.
 
-7.restart all the services affected to start splice machine!
+   <img src="docs/dependent_config.jpeg" alt="dependent_config.jpeg" width="400" height="200">
 
+7. Click `next` at the bottom of the page, then click `deploy`. Once this completes, Splice Machine is installed.
 
+   <img src="docs/review.jpeg" alt="dependent_config.jpeg" width="400" height="200">
+
+8. Restart all affected services to start Splice Machine!
 
 ## Start any Additional Services
 
@@ -131,7 +123,7 @@ configuring user names and passwords.
 You can disable authentication or change the authentication mechanism
 that Splice Machine uses to LDAP by following the simple instructions in
 [Configuring Splice Machine
-Authentication](https://doc.splicemachine.com/onprem_install_configureauth.html){: .WithinBook}
+Authentication](https://doc.splicemachine.com/onprem_install_configureauth.html).
 
 If you're using Kerberos, you need to add this option to your HBase Master Java Configuration Options:
 
@@ -145,7 +137,7 @@ If you're using Kerberos, you need to add this option to your HBase Master Java 
 
 Splice Machine logs all SQL statements by default, storing the log
 entries in your region server's logs, as described in our [Using
-Logging](developers_tuning_logging) topic. You can modify where Splice
+Logging](https://doc.splicemachine.com/developers_tuning_logging) topic. You can modify where Splice
 Machine stores logs by adding the following snippet to your *RegionServer Logging
 Advanced Configuration Snippet (Safety Valve)* section of your HBase
 Configuration:
