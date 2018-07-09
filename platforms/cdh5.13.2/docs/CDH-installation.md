@@ -8,7 +8,7 @@ Cloudera-managed cluster. Follow these steps:
 3.  [Stop Hadoop Services](#stop-hadoop-services)
 4.  [Make Cluster Modifications for Splice Machine](#make-cluster-modifications-for-splice-machine)
 5.  [Configure Hadoop Services](#configure-hadoop-services)
-6.  Make any needed [Optional Configuration Modifications](#optional-cluster-modifications)
+6.  Make any needed [Optional Configuration Modifications](#optional-configuration-modifications)
 7.  [Deploy the Client Configuration](#deploy-the-client-configuration)
 8.  [Restart the Cluster](#restart-the-cluster)
 9.  [Verify your Splice Machine Installation](#verify-your-splice-machine-installation)
