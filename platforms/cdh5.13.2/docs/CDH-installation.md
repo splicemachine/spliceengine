@@ -132,11 +132,11 @@ the cluster on
 Now it's time to make a few modifications in the Hadoop services
 configurations:
 
-* [Configure and Restart the Management Service](#Configur)
-* [Configure ZooKeeper](#Configur4)
-* [Configure HDFS](#Configur5)
-* [Configure YARN](#Configur2)
-* [Configure HBASE](#Configur3)
+* [Configure and Restart the Management Service](#configure-and-restart-the-management-service)
+* [Configure ZooKeeper](#configure-zookeeper)
+* [Configure HDFS](#configure-hdfs)
+* [Configure YARN](#configure-yarn)
+* [Configure HBASE](#configure-hbase)
 
 ### Configure and Restart the Management Service
 
