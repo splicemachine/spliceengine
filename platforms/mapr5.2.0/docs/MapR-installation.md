@@ -96,7 +96,7 @@ in your cluster:
     <tbody>
         <tr>
            <td><strong>2.7</strong></td>
-           <td><strong>2.5.0</strong></td>
+           <td><strong>5.2.0</strong></td>
            <td><a href="https://s3.amazonaws.com/splice-releases/2.7.0.1827/cluster/installer/mapr5.2.0/SPLICEMACHINE-2.7.0.1827.mapr5.2.0.p0.116.tar.gz">https://s3.amazonaws.com/splice-releases/2.7.0.1827/cluster/installer/mapr5.2.0/SPLICEMACHINE-2.7.0.1827.mapr5.2.0.p0.116.tar.gz</a></td>
         </tr>
     </tbody>
