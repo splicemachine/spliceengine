@@ -54,9 +54,7 @@ Set up a local `yum` repo on an Ambari server node (or a node that all the nodes
 
 Install the splicemachine custom ambari service rpm using the following command:
 
-    ````
-    sudo yum install splicemachine_ambari_service
-    ````
+    `sudo yum install splicemachine_ambari_service`
 
 After installing the rpm, restart the ambari-server using the `ambari-server restart` service.
 
@@ -172,7 +170,7 @@ Note: `admin:admin` here is Ranger's username and password.
 
    Note: if you see an error such as the following, try `test connection`:
 
-    ````
+````
 Unable to retrieve any files using given parameters, You can still save the repository and start
 creating policies, but you would not be able to use autocomplete for resource names.
 Check ranger_admin.log for more info.
@@ -181,7 +179,7 @@ org.apache.ranger.plugin.client.HadoopException: Unable to login to Hadoop envir
 Unable to login to Hadoop environment [splicemachine]. 
 Unable to decrypt password due to error. 
 Input length must be multiple of 8 when decrypting with padded cipher. 
-    ````
+````
 
    This error is due to a [Ranger bug](https://issues.apache.org/jira/browse/RANGER-1640?attachmentOrder=asc).
 You can ignore the error and test if autocomplete is working later.
