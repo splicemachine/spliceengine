@@ -21,14 +21,13 @@ import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.ProjectRestrictOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iterator.merge.AbstractMergeJoinIterator;
-import com.splicemachine.derby.utils.FormatableBitSetUtils;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.collect.Iterators;
 import org.spark_project.guava.collect.PeekingIterator;
@@ -123,41 +122,46 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
         /* To see if we can further restrict the scan of the right table by expand the scan startPosition, we need to pick first values from the startPosition, if startPosition
          * does not cover all the key columns, we can pick the values for the remaining consecutive key columns from firstHashRow
          */
-        if (joinOperation.getRightResultSet() instanceof ProjectRestrictOperation) {
-            // With a ProjectRestrictOperation, the order of the columns could be re-arranged, so we can not easily map the rightHashKeys to the
-            // base table (including covering index) columns. So do not try to use the firstHashRow to further limit the scan for the right table.
-            scanStartOverride = startPosition;
-        } else if (nCols == columnOrdering.length) {
+        if (nCols == columnOrdering.length) {
             // the current scan startkey has covered the whole key column set, no need to expand further
             scanStartOverride = startPosition;
         } else {
-            int[] colToBaseTableMap = FormatableBitSetUtils.toCompactedIntArray(joinOperation.getRightResultSet().getAccessedColumns());
+            // this is 0-based array, the column positions in the array are also 0-based.
+            int[] colToBaseTableMap = ((MergeJoinOperation)joinOperation).getRightHashKeyToBaseTableMap();
 
-            ExecRow newStartKey = new ValueRow(columnOrdering.length);
-            int[] rightHashKeys = joinOperation.getRightHashKeys();
+            // we cannot map the hash fields back to the base table column position, so cannot utilize the hash field value
+            // to restrict the rigth table scan
+            if (colToBaseTableMap == null)
+                scanStartOverride = startPosition;
+            else {
 
-            for (int i = 0; i < nCols; i++)
-                newStartKey.setColumn(i + 1, startPosition.getColumn(i + 1));
+                ExecRow newStartKey = new ValueRow(columnOrdering.length);
+                int[] rightHashKeys = joinOperation.getRightHashKeys();
 
-            int len = nCols;
-            for (int i = len; i < columnOrdering.length; i++) {
-                int keyColumnBaseTablePosition = columnOrdering[i];
-                int j = 0;
-                for (; j < rightHashKeys.length; j++) {
-                    if (colToBaseTableMap[rightHashKeys[j]] == keyColumnBaseTablePosition) {
-                        newStartKey.setColumn(i + 1, firstHashRow.getColumn(j + 1));
-                        len++;
-                        break;
+                for (int i = 0; i < nCols; i++)
+                    newStartKey.setColumn(i + 1, startPosition.getColumn(i + 1));
+
+                int len = nCols;
+                for (int i = len; i < columnOrdering.length; i++) {
+                    int keyColumnBaseTablePosition = columnOrdering[i];
+                    int j = 0;
+                    for (; j < rightHashKeys.length; j++) {
+                        // both columnOrdering and colToBaseTableMap are 0-based
+                        if (colToBaseTableMap[j] == keyColumnBaseTablePosition) {
+                            newStartKey.setColumn(i + 1, firstHashRow.getColumn(j + 1));
+                            len++;
+                            break;
+                        }
                     }
+                    //no match found for the given key column position
+                    if (j >= rightHashKeys.length)
+                        break;
                 }
-                //no match found for the given key column position
-                if (j >= rightHashKeys.length)
-                    break;
-            }
 
-            scanStartOverride = new ValueRow(len);
-            for (int i = 0; i < len; i++)
-                scanStartOverride.setColumn(i + 1, newStartKey.getColumn(i + 1));
+                scanStartOverride = new ValueRow(len);
+                for (int i = 0; i < len; i++)
+                    scanStartOverride.setColumn(i + 1, newStartKey.getColumn(i + 1));
+            }
         }
 
         ((BaseActivation)joinOperation.getActivation()).setScanStartOverride(scanStartOverride);

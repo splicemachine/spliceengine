@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
@@ -1810,6 +1811,25 @@ public class JoinNode extends TableOperatorNode{
             int rightHashKeysItem=acb.addItem(FormatableIntHolder.getFormatableIntHolders(rightHashKeys));
             mb.push(rightHashKeysItem);
             numArgs++;
+
+            //if it is merge join, we may be able to leverage the first qualified left row to combine with the existing scan start key of
+            // right table, and further restrict the scan of the right table(this optimization is in AbstractMergeJionFlatMapFunction.initRightScan()).
+            // There could be two scenarios that this optimization can be applied:
+            // 1. right table is directly a TableScan or IndexScan(FromBaseTableNode)
+            // 2. there is one or more ProjectRestrictNode on top of the TableScan/IndexScan, but the hash fields are a direct mapping from
+            //    the base table fields
+            // For both case, we need to compute a mapping of the rightHashKeys to the base table column to extend the scan start key on
+            // the base table
+
+            if (isMergeJoin(rightResultSet)) {
+                int[] rightHashKeyToBaseTableMap = mapRightHashKeysToBaseTableColumns(rightHashKeys, rightResultSet);
+                int rightHashKeyToBaseTableMapItem = (rightHashKeyToBaseTableMap == null) ?
+                        -1 :
+                        acb.addItem(FormatableIntHolder.getFormatableIntHolders(rightHashKeyToBaseTableMap));
+                mb.push(rightHashKeyToBaseTableMapItem);
+                numArgs++;
+            }
+
         }
         // Get our final cost estimate based on child estimates.
         costEstimate=getFinalCostEstimate();
@@ -1914,6 +1934,15 @@ public class JoinNode extends TableOperatorNode{
             result=nodeOpt.getTrulyTheBestAccessPath().getJoinStrategy() instanceof HashableJoinStrategy;
         }
 
+        return result;
+    }
+
+    private boolean isMergeJoin(ResultSetNode node) {
+        boolean result = false;
+        if (node instanceof Optimizable) {
+            Optimizable nodeOpt=(Optimizable)node;
+            result=nodeOpt.getTrulyTheBestAccessPath().getJoinStrategy().getJoinStrategyType() == JoinStrategy.JoinStrategyType.MERGE;
+        }
         return result;
     }
 
@@ -2031,5 +2060,58 @@ public class JoinNode extends TableOperatorNode{
         markReferencedResultColumns(refedcolmnList);
 
         return this;
+    }
+
+    // map right table of merge join's hash key to the corresponding base table field (0-based)
+    private int[] mapRightHashKeysToBaseTableColumns(int[] rightHashKeys, ResultSetNode rightResultSet) {
+        int[] rightHashKeysToBaseTableMap = null;
+
+        //get the FromBaseTableNode corresponding to the TableScan/IndexScan
+        ResultSetNode baseTableNode = rightResultSet;
+        while ((baseTableNode != null) && !(baseTableNode instanceof FromBaseTable)) {
+            if (baseTableNode instanceof ProjectRestrictNode)
+                baseTableNode = ((ProjectRestrictNode) baseTableNode).getChildResult();
+            else {
+                /* not a direct mapping, return immediately */
+                return rightHashKeysToBaseTableMap;
+            }
+        }
+        if (baseTableNode == null)
+            return rightHashKeysToBaseTableMap;
+
+        // get the mapping of target to source table field for the FromBaseTable node.
+        FormatableBitSet referencedCols = ((FromBaseTable) baseTableNode).getReferencedCols();
+        int[] colToBaseTableMap = new int[referencedCols.getNumBitsSet()];
+        int count = 0;
+        for (int i = referencedCols.anySetBit(); i >= 0; i = referencedCols.anySetBit(i)) {
+            colToBaseTableMap[count] = i;
+            count++;
+        }
+
+        rightHashKeysToBaseTableMap = new int[rightHashKeys.length];
+
+        for (int i=0; i< rightHashKeys.length; i++) {
+            rightHashKeysToBaseTableMap[i] = -1;
+            ResultColumn rs = rightResultSet.getResultColumns().elementAt(rightHashKeys[i]);
+            while ((rs != null) && (rs instanceof ResultColumn)) {
+                // we have arrived at a FromBaseTable node, and the hash field maps to a single base table field
+                if (rs.getExpression() instanceof BaseColumnNode) {
+                    rightHashKeysToBaseTableMap[i] = colToBaseTableMap[rs.getVirtualColumnId() - 1];
+                    break;
+                }
+
+                ValueNode source = rs.getExpression();
+                if (source instanceof VirtualColumnNode) {
+                    rs = ((VirtualColumnNode)source).getSourceResultColumn();
+                } else if (source instanceof ColumnReference) {
+                    rs = ((ColumnReference)source).getSourceResultColumn();
+                } else {
+                    // for all other scenarios including expressions, it is not a direct mapping,
+                    // so we will not continue the mapping.
+                    break;
+                }
+            }
+        }
+        return rightHashKeysToBaseTableMap;
     }
 }

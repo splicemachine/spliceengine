@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.stream.function.CountJoinedLeftFunction;
@@ -41,8 +42,10 @@ public class MergeJoinOperation extends JoinOperation {
     private static final Logger LOG = Logger.getLogger(MergeJoinOperation.class);
     private int leftHashKeyItem;
     private int rightHashKeyItem;
+    private int rightHashKeyToBaseTableMapItem;
     public int[] leftHashKeys;
     public int[] rightHashKeys;
+    public int[] rightHashKeyToBaseTableMap;
     // for overriding
     public boolean wasRightOuterJoin = false;
 
@@ -64,6 +67,7 @@ public class MergeJoinOperation extends JoinOperation {
                               int rightNumCols,
                               int leftHashKeyItem,
                               int rightHashKeyItem,
+                              int rightHashKeyToBaseTableMapItem,
                               Activation activation,
                               GeneratedMethod restriction,
                               int resultSetNumber,
@@ -80,7 +84,17 @@ public class MergeJoinOperation extends JoinOperation {
                  optimizerEstimatedCost, userSuppliedOptimizerOverrides);
         this.leftHashKeyItem = leftHashKeyItem;
         this.rightHashKeyItem = rightHashKeyItem;
+        this.rightHashKeyToBaseTableMapItem = rightHashKeyToBaseTableMapItem;
         init();
+    }
+
+    protected int[] generateRightHashKeyToBaseTableMap(int rightHashKeyToBaseTableMapItem) {
+        FormatableIntHolder[] fihArray = (FormatableIntHolder[]) activation.getPreparedStatement().getSavedObject(rightHashKeyToBaseTableMapItem);
+        int[] cols = new int[fihArray.length];
+        for (int i = 0, s = fihArray.length; i < s; i++){
+            cols[i] = fihArray[i].getInt();
+        }
+        return cols;
     }
 
     @Override
@@ -88,9 +102,14 @@ public class MergeJoinOperation extends JoinOperation {
     	super.init(context);
         leftHashKeys = generateHashKeys(leftHashKeyItem);
         rightHashKeys = generateHashKeys(rightHashKeyItem);
+        if (rightHashKeyToBaseTableMapItem != -1)
+            rightHashKeyToBaseTableMap = generateRightHashKeyToBaseTableMap(rightHashKeyToBaseTableMapItem);
+        else
+            rightHashKeyToBaseTableMap = null;
     	if (LOG.isDebugEnabled()) {
     		SpliceLogUtils.debug(LOG,"left hash keys {%s}",Arrays.toString(leftHashKeys));
     		SpliceLogUtils.debug(LOG,"right hash keys {%s}",Arrays.toString(rightHashKeys));
+            SpliceLogUtils.debug(LOG,"right hash keys to base table map {%s}",Arrays.toString(rightHashKeyToBaseTableMap));
     	}
     }
 
@@ -99,6 +118,7 @@ public class MergeJoinOperation extends JoinOperation {
         super.writeExternal(out);
         out.writeInt(leftHashKeyItem);
         out.writeInt(rightHashKeyItem);
+        out.writeInt(rightHashKeyToBaseTableMapItem);
     }
 
     @Override
@@ -106,6 +126,7 @@ public class MergeJoinOperation extends JoinOperation {
         super.readExternal(in);
         leftHashKeyItem = in.readInt();
         rightHashKeyItem = in.readInt();
+        rightHashKeyToBaseTableMapItem = in.readInt();
     }
 
     @Override
@@ -141,5 +162,9 @@ public class MergeJoinOperation extends JoinOperation {
     @Override
     public int[] getRightHashKeys() {
         return rightHashKeys;
+    }
+
+    public int[] getRightHashKeyToBaseTableMap() {
+	    return rightHashKeyToBaseTableMap;
     }
 }
