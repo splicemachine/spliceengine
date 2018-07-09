@@ -38,15 +38,15 @@ Set up a local `yum` repo on an Ambari server node (or a node that all the nodes
 2. Make sure `createrepo` is installed on the node ( use 'yum install createrepo' to confirm).
 3. Put the `splicemachine` rpm under `/var/www/html/ambari-repo/` ( or the path you choose).
 4. Use 'createrepo /var/www/html/ambari-repo/' to create the repo metadata.
-5. Open the url `<your_node_url>/ambari-repo to` confirm it can be accessed by `yum`.
-6  Add a file named `splicemachine.repo` under `/etc/yums.repo.d/`, with the following content:
+5. Open the url `<your_node_url>/ambari-repo to` confirm it can be accessed by `yum`. 
+6. Add a file named `splicemachine.repo` under `/etc/yums.repo.d/`, with the following content:
 
-  ````
-  [splicemachine]
-  name=SpliceMachine Repo
-  baseurl=http://your_node_url/ambari-repo
-  enabled=1
-  gpgcheck=0
+    ````
+    [splicemachine]
+    name=SpliceMachine Repo
+    baseurl=http://your_node_url/ambari-repo
+    enabled=1
+    gpgcheck=0
   ````
 7. Run `yum list | grep splicemachine` to make sure the custom repo is up and running.  
 
@@ -58,32 +58,32 @@ Install the splicemachine custom ambari service rpm using the following command:
     sudo yum install splicemachine_ambari_service
     ````
 
-After installing the rpm, restart ambari-server using service `ambari-server restart`
+After installing the rpm, restart the ambari-server using the `ambari-server restart` service.
 
 ## Install Splice Machine Using the Ambari Service
 
 Follow the steps to install splicemachine server:
 
 1. Click the action button on the left bottom of the Ambari page,then click `Add Services`:
-<img src="docs/add_services.jpg" alt="Add Service" width="400" height="200">
+   <img src="docs/add_services.jpg" alt="Add Service" width="400" height="200">
 
 2. Choose `splice machine` from the `add service wizard`
-<img src="docs/add_service_wizard.jpg" alt="Add Service Wizard" width="400" height="200">
+   <img src="docs/add_service_wizard.jpg" alt="Add Service Wizard" width="400" height="200">
 
 3. Choose the master machine. It needs to be the HBase Master machine.
 
 4. Choose hosts needed to install splice machine; only choose hosts that have hbase region server 
 installed. Then click `next`.
-<img src="docs/choose_hosts.jpeg" alt="Choose hosts" width="400" height="200">
+   <img src="docs/choose_hosts.jpeg" alt="Choose hosts" width="400" height="200">
 
 5. You only need to customize properties page if you want to add [Apache Ranger Support](#enabling-ranger-for-authorization).
-<img src="docs/custom_services.jpeg" alt="Custom Services" width="400" height="200">
+   <img src="docs/custom_services.jpeg" alt="Custom Services" width="400" height="200">
 
 6. Review all the configuration change made by aAbari and click `OK` to continue.
-<img src="docs/dependent_config.jpeg" alt="dependent_config.jpeg" width="400" height="200">
+   <img src="docs/dependent_config.jpeg" alt="dependent_config.jpeg" width="400" height="200">
 
 7. Click `next` at the bottom of the page, then click `deploy`. Once this completes, Splice Machine is installed.
-<img src="docs/review.jpeg" alt="dependent_config.jpeg" width="400" height="200">
+   <img src="docs/review.jpeg" alt="dependent_config.jpeg" width="400" height="200">
 
 8. Restart all affected services to start Splice Machine!
 
@@ -117,7 +117,7 @@ configuring user names and passwords.
 You can disable authentication or change the authentication mechanism
 that Splice Machine uses to LDAP by following the simple instructions in
 [Configuring Splice Machine
-Authentication](https://doc.splicemachine.com/onprem_install_configureauth.html){: .WithinBook}
+Authentication](https://doc.splicemachine.com/onprem_install_configureauth.html).
 
 If you're using Kerberos, you need to add this option to your HBase Master Java Configuration Options:
 
@@ -153,31 +153,31 @@ Before changing the authorization scheme, the Splice Machine ranger service need
 
 The service can be installed by executing the following from a command line on the machine where the Ambari Service resides, then posting this file to Ranger API. Run the command below on master. 
 
-Note: `admin:admin` here is Ranger's username and password.
-
 ```
 curl -sS -u admin:admin -H "Content-Type: application/json" -X POST http://localhost:6080/service/plugins/definitions -d @/var/lib/ambari-server/resources/stacks/HDP/2.6/services/SPLICEMACHINE/configuration/ranger-servicedef-splicemachine.json
 ```
+
+Note: `admin:admin` here is Ranger's username and password.
 
 1. Go to the Ranger admin web page, where you should see the SpliceMachine plug-in.
 2. Click the plus sign (`+`) next to `SpliceMachine`
 3. You need to add a Service, the name of which is the same name that you configured in
 `ranger.plugin.splicemachine.service.name`. The default value for this name is `splicemachine`.
 
-Note: if you see an error such as the following, try `test connection`:
+   Note: if you see an error such as the following, try `test connection`:
 
-```
-    Unable to retrieve any files using given parameters, You can still save the repository and start
-    creating policies, but you would not be able to use autocomplete for resource names.
-    Check ranger_admin.log for more info.
+   ````
+Unable to retrieve any files using given parameters, You can still save the repository and start
+creating policies, but you would not be able to use autocomplete for resource names.
+Check ranger_admin.log for more info.
 
-    org.apache.ranger.plugin.client.HadoopException: Unable to login to Hadoop environment [splicemachine]. 
-    Unable to login to Hadoop environment [splicemachine]. 
-    Unable to decrypt password due to error. 
-    Input length must be multiple of 8 when decrypting with padded cipher. 
-```
+org.apache.ranger.plugin.client.HadoopException: Unable to login to Hadoop environment [splicemachine]. 
+Unable to login to Hadoop environment [splicemachine]. 
+Unable to decrypt password due to error. 
+Input length must be multiple of 8 when decrypting with padded cipher. 
+   ````
 
-This error is due to a [Ranger bug](https://issues.apache.org/jira/browse/RANGER-1640?attachmentOrder=asc).
+   This error is due to a [Ranger bug](https://issues.apache.org/jira/browse/RANGER-1640?attachmentOrder=asc).
 You can ignore the error and test if autocomplete is working later.
 
 #### Configure Ranger Policies
@@ -191,7 +191,7 @@ The following policy is required so that `SYSIBM` routines can support database 
 |--------------|------|------|
 | SYSIBM| `Schema=SYSIBM,routine=*,permissions=execute` | `All users/groups that will use the database`
 
-Note: when you create a database user with a statement like this:
+Note that when you create a database user with a statement like this:
 
 ```sql
 call syscs_util.syscs_create_user('ranger_test', 'admin');
