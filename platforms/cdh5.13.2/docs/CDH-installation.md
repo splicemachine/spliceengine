@@ -566,7 +566,7 @@ There are a few configuration modifications you might want to make:
 * [Modify the Authentication Mechanism](#modify-the-authentication-mechanism) if you want to
   authenticate users with something other than the default *native
   authentication* mechanism.
-* [Modify the Log Location](#modify-the-logging-location) if you want your Splice Machine
+* [Modify the Log Location](#modify-the-log-location) if you want your Splice Machine
   log entries stored somewhere other than in the logs for your region
   servers.
 
@@ -593,7 +593,7 @@ You can use <a href="https://www.cloudera.com/documentation/enterprise/5-8-x/top
 
 Splice Machine logs all SQL statements by default, storing the log
 entries in your region server's logs, as described in our [Using
-Logging](developers_tuning_logging) topic. You can modify where Splice
+Logging](https://doc.splicemachine.com/developers_tuning_logging) topic. You can modify where Splice
 Machine stroes logs by adding the following snippet to your *RegionServer Logging
 Advanced Configuration Snippet (Safety Valve)* section of your HBase
 Configuration:
