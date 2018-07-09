@@ -292,8 +292,8 @@ Machine stores logs as follows:
     * OR, restart the HBase service _on each node_ in your cluster by issuing these commands from your Master node:
 
       ````
-      sudo -su mapr maprcli node services -hbmaster restart -nodes **<master node>** <br />
-      sudo -su mapr maprcli node services -hbregionserver restart -nodes  **<regional node 1> <regional node 2> ... <regional node n>**
+      sudo -su mapr maprcli node services -hbmaster restart -nodes <master node> <br />
+      sudo -su mapr maprcli node services -hbregionserver restart -nodes  <regional node 1> <regional node 2> ... <regional node n>
       ````
       
 #### OLAP Server Log
