@@ -80,7 +80,7 @@ in your cluster:
 
 1. Download the installer for your version.
 
-   Which Splice Machine installer (gzip) package you need depends upon which Splice Machine version you're installing and which version of MapR you are using. Here are the URLs for Splice Machine Releases 2.7 and 2.5:
+   New installer tarballs are created for each release; the ones listed below are recent versions. For the latest, stable release for your platform/version, contact Splice Machine.
 
    <table>
     <col />
