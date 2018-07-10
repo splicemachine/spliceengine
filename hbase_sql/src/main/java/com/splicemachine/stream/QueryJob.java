@@ -72,6 +72,11 @@ public class QueryJob implements Callable<Void>{
             String userId = queryRequest.userId;
             jobName = userId + " <" + session + "," + txnId + ">";
 
+            LOG.info("Running query for user/session: " + userId + "," + session);
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Query: " + sql);
+            }
+
             dsp.setJobGroup(jobName, sql);
             dsp.clearBroadcastedOperation();
             dataset = root.getDataSet(dsp);
@@ -88,6 +93,9 @@ public class QueryJob implements Callable<Void>{
             streamableRDD.submit();
 
             status.markCompleted(new QueryResult(numPartitions));
+
+            LOG.info("Completed query for session: " + session);
+
         } catch (CancellationException e) {
             if (jobName != null)
                 SpliceSpark.getContext().sc().cancelJobGroup(jobName);
