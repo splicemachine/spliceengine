@@ -976,6 +976,19 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
     @Test
+    public void testReadInCompatibleAttributeDataTypeAvro() throws Exception {
+        try{
+            methodWatcher.executeUpdate(String.format("create external table failing_data_type_attribute(col1 int, col2 varchar(24), col4 varchar(24))" +
+                    "STORED AS AVRO LOCATION '%s'", getResourceDirectory()+"avro_simple_file_test"));
+            ResultSet rs = methodWatcher.executeQuery("select COL2 from failing_data_type_attribute where col1=1");
+        } catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception",
+                    "The field 'c1':'StringType' defined in the table is not compatible with the field 'c1':'IntegerType' defined in the external file '"+getResourceDirectory()+"avro_simple_file_test'",
+                    e.getMessage());
+        }
+    }
+
+    @Test
     public void testReadPassedConstraint() throws Exception {
             methodWatcher.executeUpdate(String.format("create external table failing_correct_attribute(col1 varchar(24), col2 varchar(24), col4 varchar(24))" +
                     "STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_sample_one"));
