@@ -488,7 +488,8 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                         StructField definedField = template.schema().fields()[i];
                         if (!definedField.dataType().equals(externalField.dataType())) {
                             if (!supportAvroDateToString(storedAs,externalField,definedField)) {
-                                throw StandardException.newException(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, definedField.name(), externalField.name(), location);
+                                throw StandardException.newException(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, definedField.name(),definedField.dataType().toString(),
+                                        externalField.name(), externalField.dataType().toString(),location);
                             }
                         }
                     }
