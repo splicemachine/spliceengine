@@ -76,46 +76,52 @@ public class AsynchronousDDLWatcher implements DDLWatcher,CommunicationListener{
     public void start() throws IOException {
         if(!checker.initialize(this))
             return; //we aren't a server, so do nothing further
-        // run refresh() synchronously the first time
-        if(!refresher.refreshDDL(ddlListeners)) return;
 
-        refreshThread.submit(new Runnable() {
-            @Override
-            public void run() {
-                /*
-                 * We loop infinitely here, and rely on daemon threads to allow
-                 * us to shut down properly. This way, we will just always be running
-                 * as long as we are up.
-                 */
-                //noinspection InfiniteLoopStatement
-                while(true){
-                    int signalledWhileRefresh;
-                    int currentSignalSize = requestCount.get();
-                    try{
-                        if(!refresher.refreshDDL(ddlListeners)) return;
-                    }catch(Throwable e){
-                        LOG.error("Failed to refresh ddl",e);
-                    }
+        try {
+            // run refresh() synchronously the first time
+            if (!refresher.refreshDDL(ddlListeners)) return;
 
-                    refreshNotifierLock.lock();
-                    try{
-                        signalledWhileRefresh = requestCount.addAndGet(-currentSignalSize);
-                        //someone notified us while we were refreshing, so don't go to sleep yet
-                        if(signalledWhileRefresh!=0)
-                            continue;
-                        /*
-                         * Wait to be notified, but only up to the refresh interval. After that,
-                         * we go ahead and refresh anyway.
-                         */
-                        refreshNotifierCondition.await(refreshWaitMs,TimeUnit.MILLISECONDS);
-                    }catch (InterruptedException e) {
-                        LOG.error("Interrupted while forcibly refreshing, terminating thread");
-                    } finally{
-                        refreshNotifierLock.unlock();
+            refreshThread.submit(new Runnable() {
+                @Override
+                public void run() {
+                    /*
+                     * We loop infinitely here, and rely on daemon threads to allow
+                     * us to shut down properly. This way, we will just always be running
+                     * as long as we are up.
+                     */
+                    //noinspection InfiniteLoopStatement
+                    while (true) {
+                        int signalledWhileRefresh;
+                        int currentSignalSize = requestCount.get();
+                        try {
+                            if (!refresher.refreshDDL(ddlListeners)) return;
+                        } catch (Throwable e) {
+                            LOG.error("Failed to refresh ddl", e);
+                        }
+
+                        refreshNotifierLock.lock();
+                        try {
+                            signalledWhileRefresh = requestCount.addAndGet(-currentSignalSize);
+                            //someone notified us while we were refreshing, so don't go to sleep yet
+                            if (signalledWhileRefresh != 0)
+                                continue;
+                            /*
+                             * Wait to be notified, but only up to the refresh interval. After that,
+                             * we go ahead and refresh anyway.
+                             */
+                            refreshNotifierCondition.await(refreshWaitMs, TimeUnit.MILLISECONDS);
+                        } catch (InterruptedException e) {
+                            LOG.error("Interrupted while forcibly refreshing, terminating thread");
+                        } finally {
+                            refreshNotifierLock.unlock();
+                        }
                     }
                 }
-            }
-        });
+            });
+        } catch (Exception e) {
+            LOG.error("Unexpected exception while starting DDLWatcher", e);
+            // Swallow exception to prevent boot process from failing, we've already registered in ZK so it should be fine
+        }
     }
 
     public void signalRefresh() {
