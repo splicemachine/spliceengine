@@ -3471,4 +3471,8 @@ public class FromBaseTable extends FromTable {
         else
             return false;
     }
+
+    public FormatableBitSet getReferencedCols() {
+        return referencedCols;
+    }
 }
