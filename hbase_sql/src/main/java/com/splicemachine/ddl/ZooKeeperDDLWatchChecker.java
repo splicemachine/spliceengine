@@ -88,7 +88,16 @@ public class ZooKeeperDDLWatchChecker implements DDLWatchChecker{
 
     @Override
     public DDLMessage.DDLChange getChange(String changeId) throws IOException{
-        byte[] data = ZkUtils.getData(zkClient.changePath+"/"+changeId);
+        byte[] data;
+        try {
+            data = ZkUtils.getData(zkClient.changePath + "/" + changeId);
+        } catch (IOException e) {
+            if (e.getCause() instanceof KeeperException.NoNodeException) {
+                // the node doesn't exit, return null
+                return null;
+            }
+            throw e;
+        }
         return DDLMessage.DDLChange.newBuilder()
                 .mergeFrom(DDLMessage.DDLChange.parseFrom(data))
                 .setChangeId(changeId).build();
