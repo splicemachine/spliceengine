@@ -902,6 +902,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             NoPutResultSet leftResultSet, int leftNumCols,
             NoPutResultSet rightResultSet, int rightNumCols,
             int leftHashKeyItem, int rightHashKeyItem,
+            int rightHashKeyToBaseTableMapItem,
             GeneratedMethod joinClause, int resultSetNumber,
             GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
             boolean oneRowRightSide, boolean notExistsRightSide,
@@ -915,6 +916,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
             JoinOperation op = new MergeLeftOuterJoinOperation(left.getOperation(), leftNumCols,
                     right.getOperation(), rightNumCols,leftHashKeyItem,rightHashKeyItem,
+                    rightHashKeyToBaseTableMapItem,
                     leftResultSet.getActivation(), joinClause,
                     resultSetNumber,
                     emptyRowFun,
@@ -1046,7 +1048,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
     public NoPutResultSet getMergeJoinResultSet(
             NoPutResultSet leftResultSet, int leftNumCols,
             NoPutResultSet rightResultSet, int rightNumCols,
-            int leftHashKeyItem, int rightHashKeyItem, GeneratedMethod joinClause,
+            int leftHashKeyItem, int rightHashKeyItem,
+            int rightHashKeyToBaseTableMapItem,
+            GeneratedMethod joinClause,
             int resultSetNumber, boolean oneRowRightSide,
             boolean notExistsRightSide, boolean rightFromSSQ, double optimizerEstimatedRowCount,
             double optimizerEstimatedCost,
@@ -1057,7 +1061,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
             ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
             JoinOperation op = new MergeJoinOperation(left.getOperation(), leftNumCols,
-                    right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem, leftResultSet.getActivation(), joinClause, resultSetNumber,
+                    right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem, rightHashKeyToBaseTableMapItem, leftResultSet.getActivation(), joinClause, resultSetNumber,
                     oneRowRightSide, notExistsRightSide, rightFromSSQ, optimizerEstimatedRowCount,
                     optimizerEstimatedCost, userSuppliedOptimizerOverrides);
             op.setExplainPlan(explainPlan);
