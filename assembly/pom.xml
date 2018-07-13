@@ -606,7 +606,9 @@
                                         super-csv,
                                         spark-avro_2.11,
                                         splice_ranger_admin-${envClassifier},
-                                        splice_ranger_service-${envClassifier}
+                                        splice_ranger_service-${envClassifier},
+                                        c3p0,
+                                        mchange-commons-java
                                     </includeArtifactIds>
                                 </configuration>
                             </execution>
