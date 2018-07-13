@@ -68,8 +68,6 @@ public class Vacuum{
 
     public void vacuumDatabase() throws SQLException{
 
-        ensurePriorTransactionsComplete();
-
         //get all the conglomerates from sys.sysconglomerates
         PreparedStatement ps = null;
         ResultSet rs = null;
@@ -91,6 +89,7 @@ public class Vacuum{
 
         //get all the tables from HBaseAdmin
         try {
+            long oldestActive = getOldestActiveTransaction();
             Iterable<TableDescriptor> hTableDescriptors = partitionAdmin.listTables();
 
             if (LOG.isTraceEnabled()) {
@@ -111,6 +110,18 @@ public class Vacuum{
                         }
                         continue; //ignore system tables
                     }
+                    if (table.getTransactionId() != null) {
+                        TxnView txn = SIDriver.driver().getTxnSupplier().getTransaction(Long.parseLong(table.getTransactionId()));
+                        if (txn.getEffectiveBeginTimestamp() >= oldestActive) {
+                            // This conglomerate was created by a "recent" transaction (newer than the oldest active txn)
+                            // ignore it in case it's still in use
+
+                            if (LOG.isInfoEnabled()) {
+                                LOG.info("Ignoring recently created table: " + table.getTableName() + " by transaction " + txn.getTxnId());
+                            }
+                            continue;
+                        }
+                    }
                     if(!activeConglomerates.contains(tableConglom)){
                         LOG.info("Deleting inactive table: " + table.getTableName());
                         partitionAdmin.deleteTable(tableName[1]);
@@ -124,6 +135,8 @@ public class Vacuum{
                     LOG.info("Ignoring non-numeric table name: " + table.getTableName());
                 }
             }
+        } catch (StandardException e) {
+            throw PublicAPI.wrapStandardException(e);
         } catch (IOException e) {
             LOG.error("Vacuum Unexpected exception", e);
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
@@ -132,72 +145,35 @@ public class Vacuum{
         }
     }
 
-    /*
-     * We have to make sure that all prior transactions complete. Once that happens, we know that the worldview
-     * of all outstanding transactions is the same as ours--so if a conglomerate doesn't exist in sysconglomerates,
-     * then it's not useful anymore.
-     */
-    private void ensurePriorTransactionsComplete() throws SQLException {
+    private long getOldestActiveTransaction() throws StandardException {
         EmbedConnection embedConnection = (EmbedConnection)connection;
 
         TransactionController transactionExecute = embedConnection.getLanguageConnection().getTransactionExecute();
-        TxnView activeStateTxn = ((SpliceTransactionManager) transactionExecute).getActiveStateTxn();
+        TxnView txn = ((SpliceTransactionManager) transactionExecute).getActiveStateTxn();
 
-        //wait for all transactions prior to us to complete, but only wait for so long
-        try{
-            long activeTxn = waitForConcurrentTransactions(activeStateTxn);
-            if(activeTxn>0){
-                //we can't do anything, blow up
-                throw PublicAPI.wrapStandardException(
-                        ErrorState.DDL_ACTIVE_TRANSACTIONS.newException("VACUUM", activeTxn));
-            }
-
-        }catch(StandardException se){
-            throw PublicAPI.wrapStandardException(se);
-        }
-    }
-
-    private long waitForConcurrentTransactions(TxnView txn) throws StandardException {
         ActiveTransactionReader reader = new ActiveTransactionReader(0l,txn.getTxnId(),null);
-        SConfiguration config = EngineDriver.driver().getConfiguration();
-        long timeRemaining = config.getDdlDrainingMaximumWait();
-        long pollPeriod = config.getDdlDrainingInitialWait();
-        int tryNum = 1;
+
         long activeTxn;
 
         try {
-            do {
-                activeTxn = -1l;
+            activeTxn = txn.getEffectiveBeginTimestamp();
 
-                TxnView next;
-                try (Stream<TxnView> activeTransactions = reader.getActiveTransactions()){
-                    while((next = activeTransactions.next())!=null){
-                        long txnId = next.getTxnId();
-                        if(txnId!=txn.getTxnId()){
-                            activeTxn = txnId;
-                            break;
-                        }
+            TxnView next;
+            try (Stream<TxnView> activeTransactions = reader.getActiveTransactions()){
+                while((next = activeTransactions.next())!=null){
+                    long txnId = next.getEffectiveBeginTimestamp();
+                    if(txnId < activeTxn){
+                        activeTxn = txnId;
+                        break;
                     }
                 }
+            }
 
-                if(activeTxn<0) return activeTxn; //no active transactions
-
-                long time = System.currentTimeMillis();
-
-                try {
-                    Thread.sleep(Math.min(tryNum*pollPeriod,timeRemaining));
-                } catch (InterruptedException e) {
-                    throw new IOException(e);
-                }
-                timeRemaining-=(System.currentTimeMillis()-time);
-                tryNum++;
-            } while (timeRemaining>0);
+            return activeTxn;
         } catch (IOException | StreamException e) {
             throw Exceptions.parseException(e);
         }
-
-        return activeTxn;
-    } // end waitForConcurrentTransactions
+    }
 
     public void shutdown() throws SQLException {
         try {
