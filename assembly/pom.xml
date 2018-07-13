@@ -599,7 +599,9 @@
                                         splicemachine-${envClassifier}-${spark.version}_${scala.binary.version},
                                         super-csv,
                                         splice_ranger_admin-${envClassifier},
-                                        splice_ranger_service-${envClassifier}
+                                        splice_ranger_service-${envClassifier},
+                                        c3p0,
+                                        mchange-commons-java
                                     </includeArtifactIds>
                                 </configuration>
                             </execution>
@@ -621,7 +623,7 @@
                                     <classifier>splicemachine</classifier>
                                     <version>${envClassifier}.${project.version}.${parcel.patch}</version>
                                     <group>Applications/Internet</group>
-                                    <licence>Copyright © 2018 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</licence>
+                                    <license>Copyright © 2018 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</license>
                                     <requires>
                                         <require>python > 2.6</require>
                                     </requires>
@@ -665,7 +667,7 @@
                                     <name>splicemachine_ambari_service</name>
                                     <version>${envClassifier}.${project.version}.${parcel.patch}</version>
                                     <group>Applications/Internet</group>
-                                    <licence>Copyright © 2018 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</licence>
+                                    <license>Copyright © 2018 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</license>
                                     <requires>
                                         <require>python > 2.6</require>
                                         <require>ambari-server > 2.2</require>
