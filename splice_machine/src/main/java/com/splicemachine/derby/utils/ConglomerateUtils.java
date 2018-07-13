@@ -258,7 +258,7 @@ public class ConglomerateUtils{
         PartitionFactory tableFactory=driver.getTableFactory();
         if (!isExternal) {
             try (PartitionAdmin admin = tableFactory.getAdmin()) {
-                PartitionCreator partitionCreator = admin.newPartition().withName(tableName).withDisplayNames(new String[]{schemaDisplayName, tableDisplayName, indexDisplayName});
+                PartitionCreator partitionCreator = admin.newPartition().withName(tableName).withDisplayNames(new String[]{schemaDisplayName, tableDisplayName, indexDisplayName}).withTransactionId(txn.getTxnId());
                 if (partitionSize > 0)
                     partitionCreator = partitionCreator.withPartitionSize(partitionSize);
                 partitionCreator.create();
