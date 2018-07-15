@@ -321,7 +321,8 @@ public abstract class IdUtil
 	private static boolean idChar(boolean first,int c)
 	{
 		if (((c>='a' && c<='z') || (c>='A' && c<='Z')) ||
-			(!first &&(c>='0' && c<='9')) || (!first &&c =='_') )
+			(!first &&(c>='0' && c<='9')) || (!first &&c =='_') ||
+				(!first && c=='-') || (!first && c =='.'))
 			return true;
 		else if (Character.isLetter((char) c))
 			return true;
