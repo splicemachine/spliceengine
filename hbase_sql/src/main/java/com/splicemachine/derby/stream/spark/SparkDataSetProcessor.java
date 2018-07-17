@@ -130,7 +130,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public <V> DataSet<V> singleRowDataSet(V value, Object caller) {
         String scope = StreamUtils.getScopeString(caller);
-            SpliceSpark.pushScope(scope);
+        SpliceSpark.pushScope(scope);
         try {
             JavaRDD rdd1 = SpliceSpark.getContext().parallelize(Collections.singletonList(value), 1);
             rdd1.setName(RDDName.SINGLE_ROW_DATA_SET.displayName());
@@ -328,9 +328,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public <V> DataSet<V> readAvroFile(int[] baseColumnMap, int[] partitionColumnMap, String location,
-                                          OperationContext context, Qualifier[][] qualifiers,
-                                          DataValueDescriptor probeValue,  ExecRow execRow,
-                                          boolean useSample, double sampleFraction) throws StandardException {
+                                       OperationContext context, Qualifier[][] qualifiers,
+                                       DataValueDescriptor probeValue,  ExecRow execRow,
+                                       boolean useSample, double sampleFraction) throws StandardException {
         try {
             Dataset<Row> table = null;
             try {
@@ -412,11 +412,14 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public void createEmptyExternalFile(ExecRow execRows, int[] baseColumnMap, int[] partitionBy, String storedAs,  String location, String compression) throws StandardException {
         try{
-
             StructType schema = AvroUtils.supportAvroDateType(execRows.schema(),storedAs);
-
-            Dataset<Row> empty = SpliceSpark.getSession()
-                        .createDataFrame(new ArrayList<Row>(), schema);
+            SparkSession spliceSpark = SpliceSpark.getSession();
+            if (storedAs != null && storedAs.toLowerCase().equals("a")){
+                if (compression.toLowerCase().equals("zlib"))
+                    compression = "deflate";
+                spliceSpark.conf().set("spark.sql.avro.compression.codec",compression);
+            }
+            Dataset<Row> empty = spliceSpark.createDataFrame(new ArrayList<Row>(), schema);
 
             List<Column> cols = new ArrayList();
             for (int i = 0; i < baseColumnMap.length; i++) {
@@ -426,23 +429,23 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             for (int i = 0; i < partitionBy.length; i++) {
                 partitionByCols.add(ValueRow.getNamedColumn(partitionBy[i]));
             }
-                if (storedAs!=null) {
-                    if (storedAs.toLowerCase().equals("p")) {
-                        empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
-                                .mode(SaveMode.Append).parquet(location);
-                    }
-                    else if (storedAs.toLowerCase().equals("a")) {
-                        empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
-                                .mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);
-                    }
-                    else if (storedAs.toLowerCase().equals("o")) {
-                        empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
-                                .mode(SaveMode.Append).orc(location);
-                    }
-                    if (storedAs.toLowerCase().equals("t")) {
-                        // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
-                        empty.write().option("compression",compression).option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").mode(SaveMode.Append).csv(location);
-                    }
+            if (storedAs!=null) {
+                if (storedAs.toLowerCase().equals("p")) {
+                    empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
+                            .mode(SaveMode.Append).parquet(location);
+                }
+                else if (storedAs.toLowerCase().equals("a")) {
+                    empty.write().partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
+                            .mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);
+                }
+                else if (storedAs.toLowerCase().equals("o")) {
+                    empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
+                            .mode(SaveMode.Append).orc(location);
+                }
+                if (storedAs.toLowerCase().equals("t")) {
+                    // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
+                    empty.write().option("compression",compression).option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").mode(SaveMode.Append).csv(location);
+                }
             }
 
 
@@ -508,7 +511,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public <V> DataSet<V> readORCFile(int[] baseColumnMap,int[] partitionColumnMap, String location,
-                                          OperationContext context, Qualifier[][] qualifiers,
+                                      OperationContext context, Qualifier[][] qualifiers,
                                       DataValueDescriptor probeValue, ExecRow execRow,
                                       boolean useSample, double sampleFraction, boolean statsjob) throws StandardException {
         assert baseColumnMap != null:"baseColumnMap Null";
@@ -529,7 +532,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     NullWritable.class,
                     Row.class,
                     configuration)
-                            .values();
+                    .values();
 
             if (useSample) {
                 return new SparkDataSet(rows.sample(false,sampleFraction).map(new RowToLocatedRowFunction(context, execRow)));
@@ -556,8 +559,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public <V> DataSet<ExecRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
-                                      OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow,
-                                                boolean useSample, double sampleFraction) throws StandardException {
+                                             OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow,
+                                             boolean useSample, double sampleFraction) throws StandardException {
         assert baseColumnMap != null:"baseColumnMap Null";
         try {
             Dataset<Row> table = null;
