@@ -31,12 +31,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import org.apache.log4j.Logger;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
@@ -46,14 +40,7 @@ import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.LanguageFactory;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-import com.splicemachine.db.iapi.sql.compile.NodeFactory;
-import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
-import com.splicemachine.db.iapi.sql.compile.Optimizer;
-import com.splicemachine.db.iapi.sql.compile.RowOrdering;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -61,7 +48,10 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.execute.WindowFunctionInfo;
 import com.splicemachine.db.impl.sql.execute.WindowFunctionInfoList;
-import org.spark_project.guava.base.Predicates;
+import com.splicemachine.utils.Pair;
+import org.apache.log4j.Logger;
+
+import java.util.*;
 
 
 /**
@@ -1092,58 +1082,43 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     /**
      * Determine if the given RCL contains an RC equivalent to the the given RC.<br/>
      * Equivalency is determined by an RC representing the same column in the same table in the same schema
-     * as defined by the RC's ColumnDescriptor.
+     * as determined by the RC's ColumnDescriptor and the base column node it originates
      * @param rc the RC for which to search
      * @param rcl the RCL to search
      * @return true if the given RCL contains an equivalent RC
      * @throws StandardException
      */
     private static boolean contains(ResultColumn rc, ResultColumnList rcl) throws StandardException {
-        return new ResultColumnFinder(rc).containsEquivalent(rcl);
+        return findEquivalent(rc, rcl) != null;
     }
 
     /**
      * Find the matching RC in or below <code>currentNode</code> and return it or its equivalent.<br/>
      * Equivalency is determined by an RC representing the same column in the same table in the same schema
-     * as defined by the RC's ColumnDescriptor.
+     * as defined by the RC's ColumnDescriptor and the base column node it originates
      * <p/>
      * If the matching RC is below the <code>currentNode</code>, RC->CR pairs are created and added on the end
      * of intermediate result set node RCLs. If a matching RC is not found, null is returned.
-     * @param rcToMatch the result column that we're looking for in or below <code>currentNode</code>
+     * @param rc the result column that we're looking for in or below <code>currentNode</code>
      * @param currentNode the result set node (and its progeny) in which to look for a matching result column
      * @return a result column residing in <code>currentNode</code> that matches the given <code>rcToMatch</code>
      * @throws StandardException
      */
-    private static ResultColumn findOrPullUpRC(ResultColumn rcToMatch, ResultSetNode currentNode, RCtoCRfactory rCtoCRfactory)
+    private static ResultColumn findOrPullUpRC(ResultColumn rc, ResultSetNode currentNode, RCtoCRfactory rCtoCRfactory)
         throws StandardException {
-        return findOrPullUpRC(new ResultColumnFinder(rcToMatch), currentNode, rCtoCRfactory);
-    }
+        if (rc == null)
+            return null;
 
-    /**
-     * Find the matching RC in the <code>currentNode</code> or below and return it or its equivalent.<br/>
-     * Equivalency is defined by the <code>finder</code>.
-     * <p/>
-     * If the matching RC is below the <code>currentNode</code>, RC->CR pairs are created and added on the end
-     * of intermediate result set node RCLs. If a matching RC is not found, null is returned.
-     * @param finder a predicate with which to apply criteria on candidate result columns
-     * @param currentNode the result set node (and its progeny) in which to look for a matching result column
-     * @param rCtoCRfactory factory used to create nodes if needed
-     * @return a result column residing in or under <code>currentNode</code> that matches the criteria
-     * given in <code>finder</code>.
-     * @throws StandardException
-     */
-    private static ResultColumn findOrPullUpRC(ColumnFinder finder, ResultSetNode currentNode, RCtoCRfactory rCtoCRfactory)
-        throws StandardException {
         if (currentNode instanceof FromBaseTable) {
             // we've gone too far
             return null;
         }
 
-        ResultColumn matchedRC = finder.findEquivalent(currentNode.getResultColumns());
+        ResultColumn matchedRC = findEquivalent(rc, currentNode.getResultColumns());
         // match at this level. if not null, return it to next stack frame. if null, recurse...
         if (matchedRC == null) {
             if (currentNode instanceof SingleChildResultSetNode) {
-                matchedRC = findOrPullUpRC(finder, ((SingleChildResultSetNode)currentNode).getChildResult(), rCtoCRfactory);
+                matchedRC = findOrPullUpRC(rc, ((SingleChildResultSetNode)currentNode).getChildResult(), rCtoCRfactory);
             }
 
             // we've either returned a matching RC from previous stack frame or we never found one (null)
@@ -1161,87 +1136,79 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         return matchedRC;
     }
 
-    private interface ColumnFinder {
-        ResultColumn findEquivalent(ResultColumnList rcl);
-        boolean containsEquivalent(ResultColumnList rcl);
-    }
-
-    /**
-     * A class that can be used to find a ResultColumn (RC) equivalent to a supplied RC in a given
-     * ResultColumnList (RCL).
-     * <p/>
-     * RC equivalence is defined as the same column from the same table in the same schema.
-     * <p/>
-     * These methods search the given RCL only. There is recursion done to find a non-null
-     * ColumnDescriptor (CD) by which the RC can be identified.
-     * @see #findColumnDescriptor(ResultColumn)
-     */
-    private static class ResultColumnFinder implements ColumnFinder {
-        private final org.spark_project.guava.base.Predicate<ColumnDescriptor> predicate;
-
-        ResultColumnFinder(ResultColumn srcRC) {
-            assert srcRC != null : "ResultColumnFinder predicate cannot accept a null source ResultColumn.";
-            ColumnDescriptor srcColDesc = findColumnDescriptor(srcRC);
-            if (srcColDesc != null) {
-                this.predicate = Predicates.equalTo(srcColDesc);
-            } else {
-                // we can never match an empty ColumnDescriptor
-                this.predicate = Predicates.alwaysFalse();
-            }
-        }
-
-        /**
-         * Find an equivalent (same schema, table, column) ResultColumn in the given
-         * ResultColumnList.
-         * @param rcl the ResultColumnList to search
-         * @return the equivalent RC from the given RCL or null
-         */
-        public ResultColumn findEquivalent(ResultColumnList rcl) {
-            for (ResultColumn col : rcl) {
-                if (predicate.apply(findColumnDescriptor(col))) {
-                    return col;
-                }
-            }
+    public static ResultColumn findEquivalent(ResultColumn srcRC, ResultColumnList rcl) {
+        if (srcRC == null)
             return null;
+        Pair<ColumnDescriptor, BaseColumnNode> basePair = findResultcolumnIdentifier(srcRC);
+        for (ResultColumn col : rcl) {
+            if (isMatchingResultColumn(col, basePair))
+                return col;
         }
-
-        /**
-         * Determine if the equivalent RC lives in the given RCL
-         * @param rcl the ResultColumnList to search
-         * @return true if an equivalent RC lives in this RCL
-         */
-        public boolean containsEquivalent(ResultColumnList rcl) {
-            return findEquivalent(rcl) != null;
-        }
+        return null;
     }
 
     /**
-     * Find a column descriptor for a given RC.
+     * Find the column descriptor and base column node that can identify a given RC.
      * <p/>
      * Part of the frustration with Derby is the inability to identify the source
-     * of a given result column at all points in the AST.  A ResultColumn has a
-     * ColumnDescriptor (CD) field, but it's not always populated.  The CD is supposed
-     * to have schema, table and column names but they're also not always present or
-     * maybe partially present, like just column name.
+     * of a given result column at all points in the AST.
      * <p/>
-     * This recursive method is an effort to follow the the lineage of an RC to a
-     * populated CD, if present.
+     * This recursive method is an effort to follow the the lineage of an RC to its origin.
+     * The previous approach to use columnDescriptor by itself to identify an RC is
+     * problematic as it cannot differentiate the result columns originated from the
+     * multiple instances of the same table.
      * @param rc the result column to identify
-     * @return the RC's ColumnDescriptor or null if none found.
+     * @return the column descriptor and base column pair corresponding to the RC or null if none found.
      */
-    private static ColumnDescriptor findColumnDescriptor(ResultColumn rc) {
-        ColumnDescriptor colDesc = rc.getTableColumnDescriptor();
-        if (colDesc != null) {
-            return colDesc;
+    private static Pair findResultcolumnIdentifier(ResultColumn rc) {
+        ColumnDescriptor columnDescriptor = null;
+
+        while (rc != null) {
+            if (columnDescriptor == null)
+                columnDescriptor = rc.getTableColumnDescriptor();
+            ValueNode exp = rc.getExpression();
+            if (exp != null && exp instanceof BaseColumnNode) {
+                return new Pair<>(columnDescriptor, exp);
+            }
+
+            rc = (exp != null ? getResultColumn(exp) : null);
         }
-        ValueNode exp = rc.getExpression();
-        ResultColumn childRC = (exp != null ? getResultColumn(exp) : null);
-        if (childRC != null) {
-            colDesc = findColumnDescriptor(childRC);
-        }
-        return colDesc;
+        return new Pair<>(columnDescriptor, null);
     }
 
+    // base column node is the main variable we use to find matching result column, if two result columns originate from
+    // the same source, their column descriptor should also be the same, so we use column descriptor as a way to possibly
+    // filter out unmatched result column quicker
+    private static boolean isMatchingResultColumn(ResultColumn rc, Pair<ColumnDescriptor, BaseColumnNode> searchingPair) {
+        // if we cannot locate the original base column node, we cannot tell if it is a match or not, thus return false.
+        if (searchingPair.getSecond() == null)
+            return false;
+        // if column descriptor is not null, we may be able to use it to rule out unmatched fields quickly
+        boolean testCD = searchingPair.getFirst() != null;
+        while (rc != null) {
+            if (testCD) {
+                ColumnDescriptor cd = rc.getTableColumnDescriptor();
+                if (cd != null) {
+                    if (cd != searchingPair.getFirst()) {
+                        // if column descriptor does not match, the rc cannot be a match
+                        return false;
+                    } else {
+                        // column descriptor matches, we no longer need to test, just focus on the comparison of base column node
+                        testCD = false;
+                    }
+                }
+            }
+            ValueNode exp = rc.getExpression();
+            if (exp != null && exp instanceof BaseColumnNode) {
+                if (exp == searchingPair.getSecond())
+                    return true;
+                else
+                    return false;
+            }
+            rc = (exp != null ? getResultColumn(exp) : null);
+        }
+        return false;
+    }
     /**
      * Get the immediate child source result column from an expression, if one exists.
      * <p/>
