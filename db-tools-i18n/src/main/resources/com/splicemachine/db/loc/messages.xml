@@ -9201,6 +9201,11 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <arg>snapshotName</arg>
            </msg>
 
+           <msg>
+               <name>SNA04</name>
+               <text>External table '{0}' is not supported for snapshot </text>
+               <arg>snapshotName</arg>
+           </msg>
 
            <msg>
                <name>TS001</name>
