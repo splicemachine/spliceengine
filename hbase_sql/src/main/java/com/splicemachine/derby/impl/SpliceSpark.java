@@ -40,6 +40,7 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.broadcast.Broadcast;
 import org.apache.spark.rdd.RDDOperationScope;
 import org.apache.spark.sql.SparkSession;
+import org.xerial.snappy.OSInfo;
 import scala.Tuple2;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
@@ -78,7 +79,7 @@ public class SpliceSpark {
     public static synchronized SparkSession getSession() {
         String threadName = Thread.currentThread().getName();
         if (!SpliceClient.isClient() && !threadName.startsWith("olap-worker-")) {
-             // Not running on the Olap Server... raise exception. Use getSessionUnsafe() if you know what you are doing.
+            // Not running on the Olap Server... raise exception. Use getSessionUnsafe() if you know what you are doing.
             throw new RuntimeException("Trying to get a SparkSession from outside the OlapServer");
         }
         return getSessionUnsafe();
@@ -91,7 +92,7 @@ public class SpliceSpark {
     public static synchronized  Broadcast<SerializableWritable<Credentials>> getCredentials() {
         return credentials;
     }
-    
+
     /** This method is unsafe, it should only be used on tests are as a convenience when trying to
      * get a local Spark Context, it should never be used when implementing Splice operations or functions
      */
@@ -184,7 +185,7 @@ public class SpliceSpark {
             }
         }
     }
-    
+
     public static synchronized void setupSpliceStaticComponents() throws IOException {
         try {
             if (!spliceStaticComponentsSetup && isRunningOnSpark()) {
@@ -198,14 +199,14 @@ public class SpliceSpark {
                 SIEnvironment env = SpliceClient.isClient() && tokenEnabled ?
                         AdapterSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper(),SpliceClient.getConnectionPool(debugConnections,maxConnections)) :
                         HBaseSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper());
-                
+
                 SIDriver driver = env.getSIDriver();
 
                 //make sure the configuration is correct
                 SConfiguration config=driver.getConfiguration();
 
                 LOG.info("Splice Client in SpliceSpark "+SpliceClient.isClient());
-                
+
                 //boot derby components
                 new EngineLifecycleService(new DistributedDerbyStartup(){
                     @Override public void distributedStart() throws IOException{ }
@@ -234,6 +235,11 @@ public class SpliceSpark {
                 HBaseRegionLoads.INSTANCE.startWatching();
 
                 spliceStaticComponentsSetup = true;
+
+                // SPLICE-2115, workaround for snappy-java-1.0.4.1 on Mac
+                if (OSInfo.getOSName().equals("Mac")) {
+                    System.setProperty("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");
+                }
             }
         } catch (RuntimeException e) {
             LOG.error("Unexpected error setting up Splice components", e);
@@ -323,7 +329,6 @@ public class SpliceSpark {
 
         // TODO can this be set/overridden fwith system property, why do we use SpliceConstants?
         conf.set("spark.io.compression.codec",HConfiguration.getConfiguration().getSparkIoCompressionCodec());
-        conf.set("spark.sql.avro.compression.codec","uncompressed");
 
          /*
             Application Properties
@@ -398,7 +403,7 @@ public class SpliceSpark {
         SpliceSpark.getContext().setLocalProperty("spark.rdd.scope", null);
         SpliceSpark.getContext().setLocalProperty("spark.rdd.scope.noOverride", null);
     }
-    
+
     public synchronized static void setContext(JavaSparkContext sparkContext) {
         session = SparkSession.builder().config(sparkContext.getConf()).getOrCreate(); // Claims this is a singleton from documentation
         ctx = sparkContext;

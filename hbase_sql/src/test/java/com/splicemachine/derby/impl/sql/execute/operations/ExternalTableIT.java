@@ -881,34 +881,59 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
     @Test
-    public void testWriteReadFromCompressedAvroExternalTable() throws Exception {
-        methodWatcher.executeUpdate(String.format("create external table compressed_avro_test (col1 varchar(24))" +
-                " COMPRESSED WITH SNAPPY STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"compressed_avro_test"));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into compressed_avro_test values ('XXXX')," +
+    public void testWriteReadFromUnCompressedAvroExternalTable() throws Exception {
+        methodWatcher.executeUpdate(String.format("create external table uncompressed_avro_test (col1 varchar(24))" +
+                " STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"uncompressed_avro_test"));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into uncompressed_avro_test values ('XXXX')," +
                 "('YYYY')"));
         Assert.assertEquals("insertCount is wrong",2,insertCount);
-        ResultSet rs = methodWatcher.executeQuery("select * from compressed_avro_test");
+        ResultSet rs = methodWatcher.executeQuery("select * from uncompressed_avro_test");
+        Assert.assertEquals("COL1 |\n" +
+                "------\n" +
+                "XXXX |\n" +
+                "YYYY |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+    @Test
+    public void testWriteReadFromCompressedSnappyAvroExternalTable() throws Exception {
+        methodWatcher.executeUpdate(String.format("create external table compressed_snappy_avro_test (col1 varchar(24))" +
+                " COMPRESSED WITH SNAPPY STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"compressed_snappy_avro_test"));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into compressed_snappy_avro_test values ('XXXX')," +
+                "('YYYY')"));
+        Assert.assertEquals("insertCount is wrong",2,insertCount);
+        ResultSet rs = methodWatcher.executeQuery("select * from compressed_snappy_avro_test");
+        Assert.assertEquals("COL1 |\n" +
+                "------\n" +
+                "XXXX |\n" +
+                "YYYY |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+    @Test
+    public void testWriteReadFromCompressedZlibAvroExternalTable() throws Exception {
+        methodWatcher.executeUpdate(String.format("create external table compressed_zlib_avro_test (col1 varchar(24))" +
+                " COMPRESSED WITH ZLIB STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"compressed_zlib_avro_test"));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into compressed_zlib_avro_test values ('XXXX')," +
+                "('YYYY')"));
+        Assert.assertEquals("insertCount is wrong",2,insertCount);
+        ResultSet rs = methodWatcher.executeQuery("select * from compressed_zlib_avro_test");
         Assert.assertEquals("COL1 |\n" +
                 "------\n" +
                 "XXXX |\n" +
                 "YYYY |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
-
     @Test
     public void testReadFailingNumberAttributeConstraint() throws Exception {
         try{
-                methodWatcher.executeUpdate(String.format("create external table failing_number_attribute(col1 varchar(24), col2 varchar(24), col3 int, col4 int)" +
-                        "STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_sample_one"));
-                ResultSet rs = methodWatcher.executeQuery("select COL2 from failing_number_attribute where col1='AAA'");
-                Assert.assertEquals("COL2 |\n" +
-                        "------\n" +
-                        " AAA |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-                 Assert.fail("Exception not thrown");
-            } catch (SQLException e) {
+            methodWatcher.executeUpdate(String.format("create external table failing_number_attribute(col1 varchar(24), col2 varchar(24), col3 int, col4 int)" +
+                    "STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_sample_one"));
+            ResultSet rs = methodWatcher.executeQuery("select COL2 from failing_number_attribute where col1='AAA'");
+            Assert.assertEquals("COL2 |\n" +
+                    "------\n" +
+                    " AAA |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+            Assert.fail("Exception not thrown");
+        } catch (SQLException e) {
 
-                Assert.assertEquals("Wrong Exception","EXT23",e.getSQLState());
-            }
+            Assert.assertEquals("Wrong Exception","EXT23",e.getSQLState());
+        }
     }
 
     @Test
@@ -990,12 +1015,12 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     @Test
     public void testReadPassedConstraint() throws Exception {
-            methodWatcher.executeUpdate(String.format("create external table failing_correct_attribute(col1 varchar(24), col2 varchar(24), col4 varchar(24))" +
-                    "STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_sample_one"));
-            ResultSet rs = methodWatcher.executeQuery("select COL2 from failing_correct_attribute where col1='AAA'");
-            Assert.assertEquals("COL2 |\n" +
-                    "------\n" +
-                    " AAA |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        methodWatcher.executeUpdate(String.format("create external table failing_correct_attribute(col1 varchar(24), col2 varchar(24), col4 varchar(24))" +
+                "STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_sample_one"));
+        ResultSet rs = methodWatcher.executeQuery("select COL2 from failing_correct_attribute where col1='AAA'");
+        Assert.assertEquals("COL2 |\n" +
+                "------\n" +
+                " AAA |",TestUtils.FormattedResult.ResultFactory.toString(rs));
 
     }
 
@@ -1043,13 +1068,13 @@ public class ExternalTableIT extends SpliceUnitTest{
     public void testWriteReadFromCompressedErrorTextExternalTable() throws Exception {
         try{
 
-                methodWatcher.executeUpdate(String.format("create external table compressed_ignored_text (col1 int, col2 varchar(24))" +
-                        "COMPRESSED WITH SNAPPY STORED AS TEXTFILE LOCATION '%s'", getExternalResourceDirectory()+"compressed_ignored_text"));
+            methodWatcher.executeUpdate(String.format("create external table compressed_ignored_text (col1 int, col2 varchar(24))" +
+                    "COMPRESSED WITH SNAPPY STORED AS TEXTFILE LOCATION '%s'", getExternalResourceDirectory()+"compressed_ignored_text"));
 
-                Assert.fail("Exception not thrown");
-            } catch (SQLException e) {
-                Assert.assertEquals("Wrong Exception","EXT17",e.getSQLState());
-            }
+            Assert.fail("Exception not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception","EXT17",e.getSQLState());
+        }
     }
 
     @Test
@@ -1734,7 +1759,7 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
     @Test
-     public void testCollectStatsText() throws Exception {
+    public void testCollectStatsText() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table t1_csv (col1 int, col2 char(24))" +
                 " STORED AS TEXTFILE LOCATION '%s'", getExternalResourceDirectory()+"t1_csv_test"));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into t1_csv values (1,'XXXX')," +
