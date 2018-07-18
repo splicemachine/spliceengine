@@ -1271,6 +1271,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
         {
             throw StandardException.newException(SQLState.TABLE_NOT_FOUND, tableName);
         }
+        if (td.isExternal())
+            throw StandardException.newException(SQLState.SNAPSHOT_EXTERNAL_TABLE_UNSUPPORTED, tableName);
 
         List<String> snapshotList = Lists.newArrayList();
         try {
