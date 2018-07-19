@@ -727,10 +727,6 @@ public class SparkDataSet<V> implements DataSet<V> {
                     rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowFunction()),
                     context.getOperation().getExecRowDefinition().schema());
 
-            List<Column> cols = new ArrayList();
-            for (int i = 0; i < baseColumnMap.length; i++) {
-                    cols.add(new Column(ValueRow.getNamedColumn(baseColumnMap[i])));
-            }
             List<String> partitionByCols = new ArrayList();
             for (int i = 0; i < partitionBy.length; i++) {
                 partitionByCols.add(ValueRow.getNamedColumn(partitionBy[i]));
@@ -760,13 +756,9 @@ public class SparkDataSet<V> implements DataSet<V> {
             Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
                     rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowFunction()),
                     context.getOperation().getExecRowDefinition().schema());
-            List<Column> cols = new ArrayList();
-            for (int i = 0; i < baseColumnMap.length; i++) {
-                cols.add(new Column(ValueRow.getNamedColumn(baseColumnMap[i])));
-            }
-            List<Column> partitionByCols = new ArrayList();
+            List<String> partitionByCols = new ArrayList();
             for (int i = 0; i < partitionBy.length; i++) {
-                partitionByCols.add(new Column(ValueRow.getNamedColumn(partitionBy[i])));
+                partitionByCols.add(ValueRow.getNamedColumn(partitionBy[i]));
             }
             if (partitionBy.length > 0) {
                 List<Column> repartitionCols = new ArrayList();
@@ -795,10 +787,7 @@ public class SparkDataSet<V> implements DataSet<V> {
             Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
                     rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowFunction()),
                     context.getOperation().getExecRowDefinition().schema());
-            List<Column> cols = new ArrayList();
-            for (int i = 0; i < baseColumnMap.length; i++) {
-                cols.add(new Column(ValueRow.getNamedColumn(baseColumnMap[i])));
-            }
+
             // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
             insertDF.write().option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ")
                     .mode(SaveMode.Append).csv(location);
