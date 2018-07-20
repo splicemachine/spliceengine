@@ -46,6 +46,7 @@ public class MergeLeftOuterJoinOperation extends MergeJoinOperation {
                                        int leftHashKeyItem,
                                        int rightHashKeyItem,
                                        int rightHashKeyToBaseTableMapItem,
+                                       int rightHashKeySortOrderItem,
                                        Activation activation,
                                        GeneratedMethod restriction,
                                        int resultSetNumber,
@@ -57,7 +58,8 @@ public class MergeLeftOuterJoinOperation extends MergeJoinOperation {
                                        double optimizerEstimatedRowCount,
                                        double optimizerEstimatedCost,
                                        String userSuppliedOptimizerOverrides) throws StandardException {
-        super(leftResultSet, leftNumCols, rightResultSet, rightNumCols, leftHashKeyItem, rightHashKeyItem, rightHashKeyToBaseTableMapItem,
+        super(leftResultSet, leftNumCols, rightResultSet, rightNumCols, leftHashKeyItem, rightHashKeyItem,
+                 rightHashKeyToBaseTableMapItem, rightHashKeySortOrderItem,
                  activation, restriction, resultSetNumber, oneRowRightSide, notExistsRightSide, rightFromSSQ,
                  optimizerEstimatedRowCount, optimizerEstimatedCost, userSuppliedOptimizerOverrides);
         SpliceLogUtils.trace(LOG, "instantiate");
