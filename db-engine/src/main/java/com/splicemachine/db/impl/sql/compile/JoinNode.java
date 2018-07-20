@@ -76,6 +76,7 @@ public class JoinNode extends TableOperatorNode{
     // Splice Additions
     public int[] leftHashKeys;
     public int[] rightHashKeys;
+    public int[] rightHashKeySortOrders = null;
     protected boolean flattenableJoin=true;
     List<AggregateNode> aggregateVector;
     SubqueryList subqueryList;
@@ -1821,12 +1822,18 @@ public class JoinNode extends TableOperatorNode{
             // For both case, we need to compute a mapping of the rightHashKeys to the base table column to extend the scan start key on
             // the base table
 
-            if (isMergeJoin(rightResultSet)) {
+            if (isMergeJoin()) {
                 int[] rightHashKeyToBaseTableMap = mapRightHashKeysToBaseTableColumns(rightHashKeys, rightResultSet);
                 int rightHashKeyToBaseTableMapItem = (rightHashKeyToBaseTableMap == null) ?
                         -1 :
                         acb.addItem(FormatableIntHolder.getFormatableIntHolders(rightHashKeyToBaseTableMap));
                 mb.push(rightHashKeyToBaseTableMapItem);
+                numArgs++;
+
+                // pass down the sort order information for the right hash fields
+                int rightHashKeySortOrderItem = (rightHashKeySortOrders == null) ?
+                        -1 : acb.addItem(FormatableIntHolder.getFormatableIntHolders(rightHashKeySortOrders));
+                mb.push(rightHashKeySortOrderItem);
                 numArgs++;
             }
 
@@ -1937,10 +1944,11 @@ public class JoinNode extends TableOperatorNode{
         return result;
     }
 
-    private boolean isMergeJoin(ResultSetNode node) {
+    public boolean
+    isMergeJoin() {
         boolean result = false;
-        if (node instanceof Optimizable) {
-            Optimizable nodeOpt=(Optimizable)node;
+        if (rightResultSet instanceof Optimizable) {
+            Optimizable nodeOpt=(Optimizable)rightResultSet;
             result=nodeOpt.getTrulyTheBestAccessPath().getJoinStrategy().getJoinStrategyType() == JoinStrategy.JoinStrategyType.MERGE;
         }
         return result;

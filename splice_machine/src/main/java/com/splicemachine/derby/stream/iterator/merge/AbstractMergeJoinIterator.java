@@ -18,6 +18,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
+import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.PeekingIterator;
@@ -45,6 +46,7 @@ public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, It
     private transient boolean hasNext = false;
     protected boolean forSSQ = false;
     protected boolean isSemiJoin = false;
+    protected int[] hashKeySortOrders;
 
     /**
      * MergeJoinRows constructor. Note that keys for left & right sides
@@ -76,12 +78,18 @@ public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, It
             forSSQ = true;
         if (mergeJoinOperation.isOneRowRightSide())
             isSemiJoin = true;
+        hashKeySortOrders = ((MergeJoinOperation)mergeJoinOperation).getRightHashKeySortOrders();
     }
 
     private int compare(ExecRow left, ExecRow right) throws StandardException {
         for (int i = 0, s = joinKeys.length; i < s; i = i + 2) {
             int result = left.getColumn(joinKeys[i])
                     .compare(right.getColumn(joinKeys[i + 1]));
+            //we need to handle cases where index columns are stored in descending order
+            if (hashKeySortOrders != null && hashKeySortOrders[i/2] == 0) {
+                result = -result;
+            }
+
             if (result != 0) {
                 return result;
             }

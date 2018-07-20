@@ -43,9 +43,11 @@ public class MergeJoinOperation extends JoinOperation {
     private int leftHashKeyItem;
     private int rightHashKeyItem;
     private int rightHashKeyToBaseTableMapItem;
+    private int rightHashKeySortOrderItem;
     public int[] leftHashKeys;
     public int[] rightHashKeys;
     public int[] rightHashKeyToBaseTableMap;
+    public int[] rightHashKeySortOrders;
     // for overriding
     public boolean wasRightOuterJoin = false;
 
@@ -68,6 +70,7 @@ public class MergeJoinOperation extends JoinOperation {
                               int leftHashKeyItem,
                               int rightHashKeyItem,
                               int rightHashKeyToBaseTableMapItem,
+                              int rightHashKeySortOrderItem,
                               Activation activation,
                               GeneratedMethod restriction,
                               int resultSetNumber,
@@ -85,11 +88,12 @@ public class MergeJoinOperation extends JoinOperation {
         this.leftHashKeyItem = leftHashKeyItem;
         this.rightHashKeyItem = rightHashKeyItem;
         this.rightHashKeyToBaseTableMapItem = rightHashKeyToBaseTableMapItem;
+        this.rightHashKeySortOrderItem = rightHashKeySortOrderItem;
         init();
     }
 
-    protected int[] generateRightHashKeyToBaseTableMap(int rightHashKeyToBaseTableMapItem) {
-        FormatableIntHolder[] fihArray = (FormatableIntHolder[]) activation.getPreparedStatement().getSavedObject(rightHashKeyToBaseTableMapItem);
+    protected int[] generateIntArray(int item) {
+        FormatableIntHolder[] fihArray = (FormatableIntHolder[]) activation.getPreparedStatement().getSavedObject(item);
         int[] cols = new int[fihArray.length];
         for (int i = 0, s = fihArray.length; i < s; i++){
             cols[i] = fihArray[i].getInt();
@@ -103,13 +107,19 @@ public class MergeJoinOperation extends JoinOperation {
         leftHashKeys = generateHashKeys(leftHashKeyItem);
         rightHashKeys = generateHashKeys(rightHashKeyItem);
         if (rightHashKeyToBaseTableMapItem != -1)
-            rightHashKeyToBaseTableMap = generateRightHashKeyToBaseTableMap(rightHashKeyToBaseTableMapItem);
+            rightHashKeyToBaseTableMap = generateIntArray(rightHashKeyToBaseTableMapItem);
         else
             rightHashKeyToBaseTableMap = null;
+        if (rightHashKeySortOrderItem != -1)
+            rightHashKeySortOrders = generateIntArray(rightHashKeySortOrderItem);
+        else
+            rightHashKeySortOrders = null;
+
     	if (LOG.isDebugEnabled()) {
     		SpliceLogUtils.debug(LOG,"left hash keys {%s}",Arrays.toString(leftHashKeys));
     		SpliceLogUtils.debug(LOG,"right hash keys {%s}",Arrays.toString(rightHashKeys));
             SpliceLogUtils.debug(LOG,"right hash keys to base table map {%s}",Arrays.toString(rightHashKeyToBaseTableMap));
+            SpliceLogUtils.debug(LOG,"right hash keys' sort order {%s}", Arrays.toString(rightHashKeySortOrders));
     	}
     }
 
@@ -119,6 +129,7 @@ public class MergeJoinOperation extends JoinOperation {
         out.writeInt(leftHashKeyItem);
         out.writeInt(rightHashKeyItem);
         out.writeInt(rightHashKeyToBaseTableMapItem);
+        out.writeInt(rightHashKeySortOrderItem);
     }
 
     @Override
@@ -127,6 +138,7 @@ public class MergeJoinOperation extends JoinOperation {
         leftHashKeyItem = in.readInt();
         rightHashKeyItem = in.readInt();
         rightHashKeyToBaseTableMapItem = in.readInt();
+        rightHashKeySortOrderItem = in.readInt();
     }
 
     @Override
@@ -166,5 +178,9 @@ public class MergeJoinOperation extends JoinOperation {
 
     public int[] getRightHashKeyToBaseTableMap() {
 	    return rightHashKeyToBaseTableMap;
+    }
+
+    public int[] getRightHashKeySortOrders() {
+	    return rightHashKeySortOrders;
     }
 }
