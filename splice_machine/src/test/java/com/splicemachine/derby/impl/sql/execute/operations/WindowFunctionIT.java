@@ -4143,4 +4143,36 @@ public class WindowFunctionIT extends SpliceUnitTest {
         rs.close();
 
     }
+
+    @Test
+    public void testCaseExpressionWithColumnsfromMultipleInstanceOfSameTable() throws Exception {
+        String sqlText =
+                String.format("select X.empname, X.salary, X.deptno, case when dept.Nome_Dep is null then dept_def.Nome_Dep else dept.Nome_Dep end as deptName," +
+                        "max(X.salary) over (partition by X.deptno), rank() over (partition by X.deptno order by X.salary) from " +
+                        "%1$s as X --splice-properties useSpark=%3$s\n" +
+                        "          left join %2$s as dept on X.deptno= dept.id " +
+                        "          left join %2$s as dept_def on dept_def.id=1" +
+                        "order by X.deptno, X.empname", EMP_2_REF, this.getTableReference(DEPARTAMENTOS), this.useSpark);
+
+        String expected = "EMPNAME |SALARY |DEPTNO |    DEPTNAME     |  5   | 6 |\n" +
+                "-------------------------------------------------------\n" +
+                "Benjamin | 7500  |   1   |     Vendas      |9000  | 1 |\n" +
+                "   Tom   | 7600  |   1   |     Vendas      |9000  | 2 |\n" +
+                "  Wendy  | 9000  |   1   |     Vendas      |9000  | 3 |\n" +
+                "  Henry  | 8500  |   2   |       IT        |9500  | 2 |\n" +
+                "  Paul   | 7700  |   2   |       IT        |9500  | 1 |\n" +
+                " Robert  | 9500  |   2   |       IT        |9500  | 3 |\n" +
+                "  Dora   | 8500  |   3   |Recursos Humanos |8500  | 3 |\n" +
+                "  Mary   | 7500  |   3   |Recursos Humanos |8500  | 2 |\n" +
+                " Samuel  | 6900  |   3   |Recursos Humanos |8500  | 1 |\n" +
+                " Daniel  | 6500  |   4   |     Vendas      |7800  | 1 |\n" +
+                "  Mark   | 7200  |   4   |     Vendas      |7800  | 2 |\n" +
+                " Ricardo | 7800  |   4   |     Vendas      |7800  | 3 |\n" +
+                "  Bill   | 12000 |   5   |     Vendas      |12000 | 3 |\n" +
+                " Solomon | 10000 |   5   |     Vendas      |12000 | 1 |\n" +
+                "  Susan  | 10000 |   5   |     Vendas      |12000 | 1 |";
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
 }
