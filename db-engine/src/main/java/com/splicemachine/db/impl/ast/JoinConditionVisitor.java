@@ -33,18 +33,24 @@ package com.splicemachine.db.impl.ast;
 
 
 import com.carrotsearch.hppc.LongLongHashMap;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.impl.sql.compile.*;
-import org.spark_project.guava.base.Function;
-import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
+import org.spark_project.guava.base.Function;
 import org.spark_project.guava.base.Predicates;
-import org.spark_project.guava.collect.*;
+import org.spark_project.guava.collect.Collections2;
+import org.spark_project.guava.collect.Iterables;
+import org.spark_project.guava.collect.Lists;
+import org.spark_project.guava.collect.Sets;
 import org.spark_project.guava.primitives.Ints;
+
 import java.sql.SQLException;
 import java.util.*;
 
@@ -178,9 +184,64 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
             }
         }
 
-        Set<Predicate> equiJoinPreds =
-                Sets.filter(Sets.newLinkedHashSet(PredicateUtils.PLtoList(j.joinPredicates)),
-                        PredicateUtils.isEquiJoinPred);
+        // the joinPrediates are sorted in the order of the predicate's indexPosition which is important to merge join,
+        // so we want to maintain the order
+        List<Predicate> equiJoinPreds = PredicateUtils.PLtoList(j.joinPredicates);
+        Iterator<Predicate> it = equiJoinPreds.iterator();
+        boolean isMergeJoin = j.isMergeJoin();
+        while (it.hasNext()) {
+            Predicate p = it.next();
+            if (!PredicateUtils.isEquiJoinPred.apply(p))
+                it.remove();
+            else if (isMergeJoin) {
+                if (p.getIndexPosition() < 0) {
+
+                    // the predicate is not on an index column, so no sort order info availabe,
+                    // this column/predicate cannot be used by merge join to compare row and determine when
+                    // to stop searching the matching right row for a left row, so take it out from the equiJoinPreds.
+                    // this is consistent with MergeJoinStrategy.mergeable() which also does not use such predicate
+                    // to qualify merge join
+                    it.remove();
+                } else {
+                    // when we get here, the join predicate much be an equality predicate on an index column
+                    // but we still need to disqualify predicate with expression as MergeJoinStrategy.mergeable() does
+                    // not consider such predicates. Including such predicates could lead to wrong result, for example:
+                    // given "a2=-a1", a1 and a2 will be negatively correlated.
+                    ValueNode valueNode = p.getAndNode().getLeftOperand();
+                    if (valueNode instanceof BinaryRelationalOperatorNode) {
+                        if ((((BinaryRelationalOperatorNode) valueNode).getLeftOperand() instanceof ColumnReference) &&
+                                ((BinaryRelationalOperatorNode) valueNode).getRightOperand() instanceof ColumnReference)
+                            continue;
+                    }
+                    it.remove();
+                }
+            }
+        }
+
+        // populate rightHashKeySortOrders for merge join, we need this information when comparing the source rows for
+        // a merge join
+        if (isMergeJoin) {
+            // get the index's ascDesc info
+            ConglomerateDescriptor currentCd=((FromTable)j.getRightResultSet()).getTrulyTheBestAccessPath().getConglomerateDescriptor();
+            IndexRowGenerator innerRowGen= currentCd != null ? currentCd.getIndexDescriptor(): null;
+
+            boolean[] ascInfo = (innerRowGen != null)? innerRowGen.isAscending(): null;
+
+            j.rightHashKeySortOrders = new int[equiJoinPreds.size()];
+            int index = 0;
+
+            for (Predicate p: equiJoinPreds) {
+                int indexPosition = p.getIndexPosition();
+                // the predicate is on index column, record the sort order of this column
+                // 1 means asc, 0 means desc
+                if (ascInfo != null) {
+                    j.rightHashKeySortOrders[index++] = ascInfo[indexPosition] ? 1 : 0;
+                } else {
+                    // primary key does not have explicit ascInfo set, but it is always in asc order
+                    j.rightHashKeySortOrders[index++] = 1;
+                }
+            }
+        }
 
         Pair<List<Integer>, List<Integer>> indices = findHashIndices(j, equiJoinPreds);
         if (LOG.isDebugEnabled())

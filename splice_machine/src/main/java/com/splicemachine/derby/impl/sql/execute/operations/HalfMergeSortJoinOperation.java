@@ -70,7 +70,8 @@ public class HalfMergeSortJoinOperation extends MergeJoinOperation {
                                       double optimizerEstimatedCost,
                                       String userSuppliedOptimizerOverrides)
             throws StandardException {
-        super(leftResultSet, leftNumCols, rightResultSet, rightNumCols, leftHashKeyItem, rightHashKeyItem, -1, activation, restriction,
+        super(leftResultSet, leftNumCols, rightResultSet, rightNumCols, leftHashKeyItem, rightHashKeyItem,
+                -1, -1, activation, restriction,
                 resultSetNumber, oneRowRightSide, notExistsRightSide, rightFromSSQ, optimizerEstimatedRowCount, optimizerEstimatedCost, userSuppliedOptimizerOverrides);
     }
 
