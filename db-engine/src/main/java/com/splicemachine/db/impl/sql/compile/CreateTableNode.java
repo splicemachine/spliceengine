@@ -77,7 +77,7 @@ public class CreateTableNode extends DDLStatementNode
 	String              		  storageFormat;
 	CharConstantNode              location;
 	String              		  compression;
-
+    boolean                       mergeSchema;
 
 
 	/**
@@ -105,7 +105,8 @@ public class CreateTableNode extends DDLStatementNode
 			Object linesTerminatedByChar,
 			Object storageFormat,
 			Object location,
-			Object compression
+			Object compression,
+			Object mergeSchema
 		)
 		throws StandardException
 	{
@@ -136,6 +137,7 @@ public class CreateTableNode extends DDLStatementNode
 		this.storageFormat = (String) storageFormat;
 		this.location = (CharConstantNode) location;
 		this.compression = (String) compression;
+        this.mergeSchema = (Boolean)mergeSchema;
 	}
 
 	/**
@@ -592,25 +594,26 @@ public class CreateTableNode extends DDLStatementNode
 
 		return(
             getGenericConstantActionFactory().getCreateTableConstantAction(
-                sd.getSchemaName(),
-                getRelativeName(),
-                tableType,
-                colInfos,
-                conActions,
-                properties,
-                lockGranularity,
-                onCommitDeleteRows,
-                onRollbackDeleteRows,
-                queryString,
-				isExternal,
-				terminationChar!=null?terminationChar.value.getString():null,
-				escapedByChar!=null?escapedByChar.value.getString():null,
-				linesTerminatedByChar!=null?linesTerminatedByChar.value.getString():null,
-				storageFormat,
-				location!=null?location.value.getString():null,
-				compression
-					));
-	}
+                    sd.getSchemaName(),
+                    getRelativeName(),
+                    tableType,
+                    colInfos,
+                    conActions,
+                    properties,
+                    lockGranularity,
+                    onCommitDeleteRows,
+                    onRollbackDeleteRows,
+                    queryString,
+                    isExternal,
+                    terminationChar!=null?terminationChar.value.getString():null,
+                    escapedByChar!=null?escapedByChar.value.getString():null,
+                    linesTerminatedByChar!=null?linesTerminatedByChar.value.getString():null,
+                    storageFormat,
+                    location!=null?location.value.getString():null,
+                    compression,
+                    mergeSchema
+            ));
+    }
 
 	/**
 	 * Accept the visitor for all visitable children of this node.

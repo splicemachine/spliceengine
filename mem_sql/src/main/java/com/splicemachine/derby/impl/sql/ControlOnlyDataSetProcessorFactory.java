@@ -139,7 +139,7 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
         }
 
         @Override
-        public StructType getExternalFileSchema(String storedAs, String location) {
+        public StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema) {
             if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "DistributedWrapper#getExternalFileSchema()");
             //no-op
