@@ -1299,12 +1299,12 @@ public class ExternalTablePartitionIT {
 
     // tests for creating an external table from an existing file:
 
-    @Test @Ignore // SPLICE-1807
+    @Test
     public void testParquetPartitionExisting() throws Exception {
         try {
-            methodWatcher.executeUpdate(String.format("create external table parquet_partition_existing (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col char)" +
-                    "partitioned by (col4, col2,col1) STORED AS PARQUET LOCATION '%s'", SpliceUnitTest.getResourceDirectory()+"parquet_partition_existing"));
-            ResultSet rs = methodWatcher.executeQuery("select * from parquet_partition_existing");
+            methodWatcher.executeUpdate(String.format("create external table parquet_partition_existing (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char)" +
+                    "partitioned by (col4, col2) STORED AS PARQUET LOCATION '%s'", SpliceUnitTest.getResourceDirectory()+"parquet_partition_existing"));
+            ResultSet rs = methodWatcher.executeQuery("select * from parquet_partition_existing order by 1");
             assertEquals("COL1 |COL2 |COL3  |COL4 |COL5 |COL6 |\n" +
                     "-------------------------------------\n" +
                     " 111 | AAA |true  | 111 | 1.1 |  a  |\n" +
@@ -1316,17 +1316,35 @@ public class ExternalTablePartitionIT {
                     " 1.1 | AAA |  a  |\n" +
                     " 2.2 | BBB |  b  |\n" +
                     " 3.3 | CCC |  c  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+
+            methodWatcher.execute("drop table parquet_partition_existing");
+
+            methodWatcher.executeUpdate(String.format("create external table parquet_partition_existing (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char)" +
+                    "partitioned by (col4, col2) STORED AS PARQUET LOCATION '%s' merge schema", SpliceUnitTest.getResourceDirectory()+"parquet_partition_existing"));
+            rs = methodWatcher.executeQuery("select * from parquet_partition_existing order by 1");
+            assertEquals("COL1 |COL2 |COL3  |COL4 |COL5 |COL6 |\n" +
+                    "-------------------------------------\n" +
+                    " 111 | AAA |true  | 111 | 1.1 |  a  |\n" +
+                    " 222 | BBB |false | 222 | 2.2 |  b  |\n" +
+                    " 333 | CCC |true  | 333 | 3.3 |  c  |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs2 = methodWatcher.executeQuery("select col5, col2, col6 from parquet_partition_existing");
+            assertEquals("COL5 |COL2 |COL6 |\n" +
+                    "------------------\n" +
+                    " 1.1 | AAA |  a  |\n" +
+                    " 2.2 | BBB |  b  |\n" +
+                    " 3.3 | CCC |  c  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+
         } catch (SQLException e) {
             Assert.fail("An exception should not be thrown. Error: " + e.getMessage());
         }
     }
 
-    @Test @Ignore // SPLICE-1807
+    @Test
     public void testAvroPartitionExisting() throws Exception {
         try {
             methodWatcher.executeUpdate(String.format("create external table avro_partition_existing (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char)" +
-                    "partitioned by (col4, col2, col1) STORED AS AVRO LOCATION '%s'", SpliceUnitTest.getResourceDirectory()+"avro_partition_existing"));
-            ResultSet rs = methodWatcher.executeQuery("select * from avro_partition_existing");
+                    "partitioned by (col4, col2) STORED AS AVRO LOCATION '%s'", SpliceUnitTest.getResourceDirectory()+"avro_partition_existing"));
+            ResultSet rs = methodWatcher.executeQuery("select * from avro_partition_existing order by 1");
             assertEquals("COL1 |COL2 |COL3  |COL4 |COL5 |COL6 |\n" +
                     "-------------------------------------\n" +
                     " 111 | AAA |true  | 111 | 1.1 |  a  |\n" +
@@ -1338,23 +1356,56 @@ public class ExternalTablePartitionIT {
                     " 1.1 | AAA |  a  |\n" +
                     " 2.2 | BBB |  b  |\n" +
                     " 3.3 | CCC |  c  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
-        } catch (SQLException e) {
-            Assert.fail("An exception should not be thrown. Error: " + e.getMessage());
-        }
-    }
 
-    @Test @Ignore // SPLICE-1807
-    public void testOrcPartitionExisting() throws Exception {
-        try {
-            methodWatcher.executeUpdate(String.format("create external table orc_partition_existing (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char)" +
-                    "partitioned by (col4, col2, col1) STORED AS ORC LOCATION '%s'", SpliceUnitTest.getResourceDirectory()+"orc_partition_existing"));
-            ResultSet rs = methodWatcher.executeQuery("select * from orc_partition_existing");
+            methodWatcher.execute("drop table avro_partition_existing");
+            methodWatcher.executeUpdate(String.format("create external table avro_partition_existing (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char)" +
+                    "partitioned by (col4, col2) STORED AS AVRO LOCATION '%s' merge schema", SpliceUnitTest.getResourceDirectory()+"avro_partition_existing"));
+            rs = methodWatcher.executeQuery("select * from avro_partition_existing order by 1");
             assertEquals("COL1 |COL2 |COL3  |COL4 |COL5 |COL6 |\n" +
                     "-------------------------------------\n" +
                     " 111 | AAA |true  | 111 | 1.1 |  a  |\n" +
                     " 222 | BBB |false | 222 | 2.2 |  b  |\n" +
                     " 333 | CCC |true  | 333 | 3.3 |  c  |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-            ResultSet rs2 = methodWatcher.executeQuery("select col5, col2, col6 from orc_partition_existing");
+            rs2 = methodWatcher.executeQuery("select col5, col2, col6 from avro_partition_existing");
+            assertEquals("COL5 |COL2 |COL6 |\n" +
+                    "------------------\n" +
+                    " 1.1 | AAA |  a  |\n" +
+                    " 2.2 | BBB |  b  |\n" +
+                    " 3.3 | CCC |  c  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+
+        } catch (SQLException e) {
+            Assert.fail("An exception should not be thrown. Error: " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void testOrcPartitionExisting() throws Exception {
+        try {
+            methodWatcher.executeUpdate(String.format("create external table orc_partition_existing (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char)" +
+                    "partitioned by (col4, col2) STORED AS ORC LOCATION '%s'", SpliceUnitTest.getResourceDirectory()+"orc_partition_existing"));
+            ResultSet rs = methodWatcher.executeQuery("select * from orc_partition_existing order by 1");
+            assertEquals("COL1 |COL2 |COL3  |COL4 |COL5 |COL6 |\n" +
+                    "-------------------------------------\n" +
+                    " 111 | AAA |true  | 111 | 1.1 |  a  |\n" +
+                    " 222 | BBB |false | 222 | 2.2 |  b  |\n" +
+                    " 333 | CCC |true  | 333 | 3.3 |  c  |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+            ResultSet rs2 = methodWatcher.executeQuery("select col5, col2, col6 from orc_partition_existing order by 1");
+            assertEquals("COL5 |COL2 |COL6 |\n" +
+                    "------------------\n" +
+                    " 1.1 | AAA |  a  |\n" +
+                    " 2.2 | BBB |  b  |\n" +
+                    " 3.3 | CCC |  c  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+
+            methodWatcher.execute("drop table orc_partition_existing");
+            methodWatcher.executeUpdate(String.format("create external table orc_partition_existing (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char)" +
+                    "partitioned by (col4, col2) STORED AS ORC LOCATION '%s' merge schema", SpliceUnitTest.getResourceDirectory()+"orc_partition_existing"));
+            rs = methodWatcher.executeQuery("select * from orc_partition_existing order by 1");
+            assertEquals("COL1 |COL2 |COL3  |COL4 |COL5 |COL6 |\n" +
+                    "-------------------------------------\n" +
+                    " 111 | AAA |true  | 111 | 1.1 |  a  |\n" +
+                    " 222 | BBB |false | 222 | 2.2 |  b  |\n" +
+                    " 333 | CCC |true  | 333 | 3.3 |  c  |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs2 = methodWatcher.executeQuery("select col5, col2, col6 from orc_partition_existing order by 1");
             assertEquals("COL5 |COL2 |COL6 |\n" +
                     "------------------\n" +
                     " 1.1 | AAA |  a  |\n" +
