@@ -839,7 +839,15 @@ public final class SQLDate extends DataType
 	{
         if (isNull())
             return null;
-		return Date.valueOf(java.time.LocalDate.of(getYear(encodedDate),getMonth(encodedDate),getDay(encodedDate)));
+		if (cal == null) {
+			cal = GREGORIAN_CALENDAR.get();
+		}
+		cal.clear();
+		SQLDate.setDateInCalendar(cal, encodedDate);
+		return Date.valueOf(java.time.LocalDate.of(
+				cal.get(Calendar.YEAR),
+				cal.get(Calendar.MONTH)+1,
+				cal.get(Calendar.DAY_OF_MONTH)));
 	}
 	
 	
