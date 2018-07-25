@@ -360,27 +360,86 @@ public class ExternalTableIT extends SpliceUnitTest{
         String tablePath = getResourceDirectory()+"parquet_sample_one";
 
         File newFile = new File(tablePath);
-        newFile.createNewFile();
-        long lastModified = newFile.lastModified();
-
+        String[] files = newFile.list();
+        int count = files.length;
 
         methodWatcher.executeUpdate(String.format("create external table table_to_existing_file (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
                 " STORED AS PARQUET LOCATION '%s'",tablePath));
-        Assert.assertEquals(String.format("File : %s have been modified and it shouldn't",tablePath),lastModified,newFile.lastModified());
+
+        files = newFile.list();
+        int count2 = files.length;
+        Assert.assertEquals(String.format("File : %s have been modified and it shouldn't",tablePath),count, count2);
+
+        ResultSet rs = methodWatcher.executeQuery("select * from table_to_existing_file order by 1");
+        String actual = TestUtils.FormattedResult.ResultFactory.toString(rs);
+        String expected =
+                "COL1 |COL2 |COL3 |\n" +
+                        "------------------\n" +
+                        " AAA | AAA | AAA |\n" +
+                        " BBB | BBB | BBB |\n" +
+                        " CCC | CCC | CCC |";
+        Assert.assertEquals(actual, expected, actual);
+    }
+
+    @Test
+    public void createParquetTableMergeSchema() throws  Exception{
+        String tablePath = getResourceDirectory()+"parquet_sample_one";
+
+        methodWatcher.executeUpdate(String.format("create external table parquet_table_to_existing_file (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
+                " STORED AS PARQUET LOCATION '%s' merge schema",tablePath));
+
+        ResultSet rs = methodWatcher.executeQuery("select * from parquet_table_to_existing_file order by 1");
+        String actual = TestUtils.FormattedResult.ResultFactory.toString(rs);
+        String expected =
+                "COL1 |COL2 |COL3 |\n" +
+                "------------------\n" +
+                " AAA | AAA | AAA |\n" +
+                " BBB | BBB | BBB |\n" +
+                " CCC | CCC | CCC |";
+        Assert.assertEquals(actual, expected, actual);
+    }
+
+    @Test
+    public void createAvroTableMergeSchema() throws  Exception{
+        String tablePath = getResourceDirectory()+"avro_simple_file_test";
+
+        methodWatcher.executeUpdate(String.format("create external table avro_table_to_existing_file (col1 int, col2 int, col3 int)" +
+                " STORED AS AVRO LOCATION '%s'",tablePath));
+
+        ResultSet rs = methodWatcher.executeQuery("select * from avro_table_to_existing_file order by 1");
+        String actual = TestUtils.FormattedResult.ResultFactory.toString(rs);
+        String expected = "COL1 |COL2 |COL3 |\n" +
+                "------------------\n" +
+                "  1  |  1  |  1  |\n" +
+                "  2  |  2  |  2  |\n" +
+                "  3  |  3  |  3  |";
+
+        Assert.assertEquals(actual, expected, actual);
     }
 
     @Test
     public void testFileExistingNotDeletedAvro() throws  Exception{
         String tablePath = getResourceDirectory()+"avro_simple_file_test";
-
         File newFile = new File(tablePath);
-        newFile.createNewFile();
-        long lastModified = newFile.lastModified();
-
+        String[] files = newFile.list();
+        int count = files.length;
 
         methodWatcher.executeUpdate(String.format("create external table table_to_existing_file_avro (col1 int, col2 int, col3 int)" +
                 " STORED AS AVRO LOCATION '%s'",tablePath));
-        Assert.assertEquals(String.format("File : %s have been modified and it shouldn't",tablePath),lastModified,newFile.lastModified());
+
+        files = newFile.list();
+        int count2 = files.length;
+        Assert.assertEquals(String.format("File : %s have been modified and it shouldn't",tablePath),count,count2);
+
+        ResultSet rs = methodWatcher.executeQuery("select * from table_to_existing_file_avro order by 1");
+        String actual = TestUtils.FormattedResult.ResultFactory.toString(rs);
+        String expected = "COL1 |COL2 |COL3 |\n" +
+                "------------------\n" +
+                "  1  |  1  |  1  |\n" +
+                "  2  |  2  |  2  |\n" +
+                "  3  |  3  |  3  |";
+
+        Assert.assertEquals(actual, expected, actual);
     }
 
     @Test
