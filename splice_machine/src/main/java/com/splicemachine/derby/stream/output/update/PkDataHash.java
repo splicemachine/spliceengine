@@ -15,7 +15,6 @@
 package com.splicemachine.derby.stream.output.update;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
@@ -74,20 +73,16 @@ public class PkDataHash implements DataHash<ExecRow> {
             serializers = VersionedSerializers.forVersion(tableVersion, false).getSerializers(currentRow);
         int i = 0;
         for (int col:keyColumns) {
-            if (col > -1) {
+            if (col > 0) {
                 DataValueDescriptor dvd = currentRow.getRowArray()[col];
                 DescriptorSerializer serializer = serializers[col];
                 serializer.encode(encoder,dvd,false);
-                DerbyBytesUtil.skip(decoder, kdvds[i++], serializer);
+                DerbyBytesUtil.skip(decoder, kdvds[i++], serializer, tableVersion);
             } else {
-                // msirek-temp : We should never get here.  All columns in the
-                // PK should be defined.
-                throw StandardException.newException(SQLState.LANG_INVALID_FUNCTION_ARGUMENT,
-                                                     "Internal error in Primary Key representation.");
-//                int offset = decoder.offset();
-//                DerbyBytesUtil.skip(decoder,kdvds[i++], null);
-//                int limit = decoder.offset()-1-offset;
-//                encoder.setRawBytes(decoder.array(),offset,limit);
+                int offset = decoder.offset();
+                DerbyBytesUtil.skip(decoder,kdvds[i++], null, tableVersion);
+                int limit = decoder.offset()-1-offset;
+                encoder.setRawBytes(decoder.array(),offset,limit);
             }
         }
     }

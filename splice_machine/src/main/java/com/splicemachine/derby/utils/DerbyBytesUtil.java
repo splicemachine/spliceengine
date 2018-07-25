@@ -129,17 +129,17 @@ public class DerbyBytesUtil {
         }
     }
 
-    public static void skip(MultiFieldDecoder rowDecoder, DataValueDescriptor dvd, DescriptorSerializer serializer) {
+    public static void skip(MultiFieldDecoder rowDecoder, DataValueDescriptor dvd, DescriptorSerializer serializer, String tableVersion) {
         dvd.setToNull();
-        skipField(rowDecoder, dvd, serializer);
+        skipField(rowDecoder, dvd, serializer, tableVersion);
     }
 
-    public static void skipField(MultiFieldDecoder rowDecoder, DataValueDescriptor dvd, DescriptorSerializer serializer) {
+    public static void skipField(MultiFieldDecoder rowDecoder, DataValueDescriptor dvd, DescriptorSerializer serializer, String tableVersion) {
         if (isDoubleType(dvd))
             rowDecoder.skipDouble();
         else if (isFloatType(dvd))
             rowDecoder.skipFloat();
-        else if (serializer != null ? serializer.isScalarType() : isScalarType(dvd, null))
+        else if (serializer != null ? serializer.isScalarType() : isScalarType(dvd, tableVersion))
             rowDecoder.skipLong();
         else
             rowDecoder.skip();

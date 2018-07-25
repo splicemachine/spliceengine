@@ -82,13 +82,6 @@ public class BroadcastJoinMemoryLimitIT extends SpliceUnitTest {
         conn.createStatement().executeQuery(format(
                 "CALL SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','T2', true)",
                 schemaName));
-                                                             // msirek-temp->
-
-        conn.commit();
-        conn.createStatement().executeUpdate(format(
-        "call syscs_util.syscs_set_global_database_property('derby.database.createTablesWithVersion2Serializer', 'true')",
-        schemaName));
-                                                             // <-msirek-temp
 
         conn.commit();
     }

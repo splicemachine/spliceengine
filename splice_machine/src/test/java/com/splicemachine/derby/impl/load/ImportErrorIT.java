@@ -422,10 +422,8 @@ public class ImportErrorIT extends SpliceUnitTest {
 
         try(Statement s = conn.createStatement()){
             s.execute("drop table if exists TS");
-            s.execute("call syscs_util.syscs_set_global_database_property('derby.database.createTablesWithVersion2Serializer', 'true')");
             s.execute("create table TS(a1 BIGINT, b1 timestamp, primary key(a1))");
-            s.execute("call syscs_util.syscs_set_global_database_property('derby.database.createTablesWithVersion2Serializer', 'false')");
-            s.execute("call syscs_util.syscs_set_global_database_property('derby.database.convertOutOfRangeTimeStamps', 'false')");
+            s.execute("call syscs_util.syscs_set_global_database_property('derby.database.convertOutOfRangeTimeStamps', 'true')");
             s.execute("CALL SYSCS_UTIL.SYSCS_EMPTY_STATEMENT_CACHE()");
 
             try{
@@ -446,11 +444,12 @@ public class ImportErrorIT extends SpliceUnitTest {
                 schema.schemaName, "TS", inputFilePath,
                 0, BADDIR.getCanonicalPath()));
 
-                Assert.fail("No SQLException was thrown!");
+                s.execute("call syscs_util.syscs_set_global_database_property('derby.database.convertOutOfRangeTimeStamps', 'false')");
+
             }
             // IMPORT must fail if conversion of bad timestamps is disabled.
             catch(SQLException se){
-                Assert.assertEquals("SE009",se.getSQLState());
+                Assert.fail("Out of range timestamp not converted!");
             }
         }
 
@@ -458,6 +457,17 @@ public class ImportErrorIT extends SpliceUnitTest {
             s.execute("DELETE FROM TS");
             s.execute("call syscs_util.syscs_set_global_database_property('derby.database.convertOutOfRangeTimeStamps', 'true')");
             s.execute("CALL SYSCS_UTIL.SYSCS_EMPTY_STATEMENT_CACHE()");
+
+            boolean extendedTimestamps = true;
+            try(ResultSet rs = s.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_GLOBAL_DATABASE_PROPERTY('derby.database.createTablesWithVersion2Serializer')")) {
+                if (rs.next()) {
+                    String aStr = rs.getString(2); //a value
+                    if (!rs.wasNull()) {
+                        if (aStr.equals("true"))
+                            extendedTimestamps = false;
+                    }
+                }
+            }
 
             s.execute(format("call SYSCS_UTIL.IMPORT_DATA(" +
             "'%s'," +  // schema name
@@ -477,7 +487,14 @@ public class ImportErrorIT extends SpliceUnitTest {
             0, BADDIR.getCanonicalPath()));
 
             try(ResultSet rs = s.executeQuery("select EXTRACT(YEAR from b1) from TS order by 1")){
-                String expectedResult = "1  |\n" +
+                String expectedResult = extendedTimestamps ? "1  |\n" +
+                "------\n" +
+                "  1  |\n" +
+                " 100 |\n" +
+                "2017 |\n" +
+                "3100 |\n" +
+                "9999 |" :
+                "1  |\n" +
                 "------\n" +
                 "1677 |\n" +
                 "1677 |\n" +
@@ -486,6 +503,7 @@ public class ImportErrorIT extends SpliceUnitTest {
                 "2262 |";
                 assertEquals(expectedResult, TestUtils.FormattedResult.ResultFactory.toString(rs));
             }
+            s.execute("call syscs_util.syscs_set_global_database_property('derby.database.convertOutOfRangeTimeStamps', 'false')");
         }
     }
 }
