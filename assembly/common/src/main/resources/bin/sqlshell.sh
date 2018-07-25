@@ -212,7 +212,14 @@ else
       fi
    fi
    IJ_SYS_ARGS+=" -Dij.connection.splice=jdbc:splice://${HOST}:${PORT}/splicedb${SSL}${KERBEROS}"
-   export JAVA_TOOL_OPTIONS="-Dij.user=$USER -Dij.password=$PASS"
+   export JAVA_TOOL_OPTIONS="-Dij.user='\"$USER\"' -Dij.password=$PASS"
+fi
+
+if [ ! -z "${CLIENT_SSL_KEYSTORE}" ]; then
+  SSL_ARGS="-Djavax.net.ssl.keyStore=${CLIENT_SSL_KEYSTORE} \
+   -Djavax.net.ssl.keyStorePassword=${CLIENT_SSL_KEYSTOREPASSWD} \
+   -Djavax.net.ssl.trustStore=${CLIENT_SSL_TRUSTSTORE} \
+   -Djavax.netDjavax.net.ssl.trustStore.ssl.trustStorePassword=${CLIENT_SSL_TRUSTSTOREPASSWD}"
 fi
 
 if hash rlwrap 2>/dev/null; then
