@@ -17,6 +17,7 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.HBaseTest;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -149,6 +150,16 @@ public class DefaultRoleIT {
         adminConn.execute(format(grantPrivilegeTemplate, SCHEMA3, ROLE3));
         adminConn.execute(format(grantPrivilegeTemplate, SCHEMA4, ROLE4));
         adminConn.execute(format(grantPrivilegeTemplate, SCHEMA5, ROLE5));
+    }
+
+    @AfterClass
+    public static void tearDown() throws Exception {
+        spliceClassWatcherAdmin.execute(format("drop role %s", ROLE1));
+        spliceClassWatcherAdmin.execute(format("drop role %s", ROLE2));
+        spliceClassWatcherAdmin.execute(format("drop role %s", ROLE3));
+        spliceClassWatcherAdmin.execute(format("drop role %s", ROLE4));
+        spliceClassWatcherAdmin.execute(format("drop role %s", ROLE5));
+        spliceClassWatcherAdmin.execute(format("call syscs_util.syscs_drop_user('%s')", USER1));
     }
 
     @Test

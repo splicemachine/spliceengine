@@ -1923,10 +1923,9 @@ public interface DataDictionary{
      *
      * @param roleName The name of the role whose definition we seek
      * @param grantee  The grantee
-     * @param grantor  The grantor
      * @throws StandardException error
      */
-    RoleGrantDescriptor getRoleGrantDescriptor(String roleName,String grantee,String grantor) throws StandardException;
+    RoleGrantDescriptor getRoleGrantDescriptor(String roleName,String grantee) throws StandardException;
 
 
     /**
