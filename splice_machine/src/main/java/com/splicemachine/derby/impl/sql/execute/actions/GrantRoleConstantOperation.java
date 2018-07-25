@@ -107,9 +107,12 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
                         || (groupuserlist != null && groupuserlist.contains(dbo))) {
                     // All ok, we are database owner
                     if (SanityManager.DEBUG) {
-                        SanityManager.ASSERT(
-                            rdDef.getGrantee().equals(grantor) || rdDef.getGrantee().equals(dbo),
-                            "expected database owner in role grant descriptor");
+                        // When there is an LDAP admin group mapped to splice(DB-6636), role may be created by a user different
+                        // from grantor but belonging to the admin LDAP group, the below check could be violated
+                        // so comment it out
+                        //SanityManager.ASSERT(
+                        //    rdDef.getGrantee().equals(grantor) || rdDef.getGrantee().equals(dbo),
+                        //    "expected database owner in role grant descriptor");
                         SanityManager.ASSERT(
                             rdDef.isWithAdminOption(),
                             "expected role definition to have ADMIN OPTION");
@@ -121,7 +124,7 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
 
                 // Has it already been granted?
                 RoleGrantDescriptor rgd =
-                    dd.getRoleGrantDescriptor(role, grantee, grantor);
+                    dd.getRoleGrantDescriptor(role, grantee);
 
                 if (rgd != null &&
                         withAdminOption && !rgd.isWithAdminOption()) {
@@ -159,7 +162,7 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
                         dd.getRoleDefinitionDescriptor(grantee);
 
                     if (granteeDef != null) {
-                        checkCircularity(role, grantee, grantor, tc, dd);
+                        checkCircularity(role, grantee, tc, dd);
                     }
 
                     rgd = ddg.newRoleGrantDescriptor(
@@ -197,14 +200,12 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
      *
      * @param role The role about to be granted
      * @param grantee The role to which {@code role} is to be granted
-     * @param grantor Who does the granting
      * @throws StandardException normal error policy. Throws
      *                           AUTH_ROLE_GRANT_CIRCULARITY if a
      *                           circularity is detected.
      */
     private void checkCircularity(String role,
                                   String grantee,
-                                  String grantor,
                                   TransactionController tc,
                                   DataDictionary dd)
             throws StandardException {
