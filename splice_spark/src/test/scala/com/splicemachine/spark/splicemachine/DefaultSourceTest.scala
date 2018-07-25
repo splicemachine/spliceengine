@@ -56,8 +56,12 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
 
   test("read from internal execution datasource api") {
     val df = sqlContext.read.options(internalExecutionOptions).splicemachine
+    df.printSchema()
+    assert(splicemachineContext.getSchema(internalTN).equals(df.schema))
     assert(splicemachineContext.tableExists(internalTN))
     assert(df.count == 10)
+    val result = df.collect()
+    assert(result.length == 10)
   }
 
   test("insertion") {
@@ -75,6 +79,17 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     val newDF = sqlContext.read.options(internalOptions).splicemachine
     assert(newDF.count == 20)
   }
+
+  test("insertion reading from internal execution") {
+    val df = sqlContext.read.options(internalExecutionOptions).splicemachine
+    val changedDF = df.withColumn("C6_INT", when(col("C6_INT").leq(10), col("C6_INT").plus(10)))
+    splicemachineContext.insert(changedDF.rdd, changedDF.schema, internalTN)
+    val newDF = sqlContext.read.options(internalExecutionOptions).splicemachine
+    assert(newDF.count == 20)
+    val result = df.collect()
+    assert(result.length == 20)
+  }
+
 
   test("commit insertion") {
     val conn : Connection = splicemachineContext.getConnection()
