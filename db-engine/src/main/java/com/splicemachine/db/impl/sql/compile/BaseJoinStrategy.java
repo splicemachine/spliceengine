@@ -132,7 +132,8 @@ public abstract class BaseJoinStrategy implements JoinStrategy{
                                       String lines,
                                       String storedAs,
                                       String location,
-                                      int partitionReferenceItem
+                                      int partitionReferenceItem,
+                                      boolean mergeSchema
                                       )
             throws StandardException{
         mb.push(innerTable.getBaseTableName());
@@ -202,6 +203,7 @@ public abstract class BaseJoinStrategy implements JoinStrategy{
         pushNullableString(mb,storedAs);
         pushNullableString(mb,location);
         mb.push(partitionReferenceItem);
+        mb.push(mergeSchema);
     }
 
     /**

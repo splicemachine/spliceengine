@@ -116,7 +116,7 @@ public class FromBaseTable extends FromTable {
     int splits;
     long defaultRowCount;
     double defaultSelectivityFactor = -1d;
-
+    boolean mergeSchema = false;
     /*
     ** The number of rows to bulkFetch.
     ** Initially it is unset.  If the user
@@ -697,10 +697,13 @@ public class FromBaseTable extends FromTable {
                 } catch (Exception parseDoubleE) {
                     throw StandardException.newException(SQLState.LANG_INVALID_SELECTIVITY, value);
                 }
+            } else if (key.equals("mergeSchema")) {
+                mergeSchema = true;
+
             }else {
                 // No other "legal" values at this time
                 throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key,
-                        "index, constraint, joinStrategy, useSpark, pin, skipStats, splits, useDefaultRowcount, defaultSelectivityFactor");
+                        "index, constraint, joinStrategy, useSpark, pin, skipStats, splits, useDefaultRowcount, defaultSelectivityFactor, mergeSchema");
             }
 
 
@@ -2321,7 +2324,8 @@ public class FromBaseTable extends FromTable {
                 tableDescriptor.getLines(),
                 tableDescriptor.getStoredAs(),
                 tableDescriptor.getLocation(),
-                partitionReferenceItem
+                partitionReferenceItem,
+                mergeSchema
         );
 
         // compute the default row

@@ -290,8 +290,10 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                 String storedAs,
                                                 String location,
                                                 int partitionByRefItem,
+                                                boolean mergeSchema,
                                                 GeneratedMethod defaultRowFunc,
-                                                int defaultValueMapItem)
+                                                int defaultValueMapItem
+                                                )
             throws StandardException {
         SpliceLogUtils.trace(LOG, "getTableScanResultSet");
         try{
@@ -333,6 +335,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     storedAs,
                     location,
                     partitionByRefItem,
+                    mergeSchema,
                     defaultRowFunc,
                     defaultValueMapItem);
             op.setExplainPlan(explainPlan);
@@ -696,8 +699,10 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             String storedAs,
             String location,
             int partitionByRefItem,
+            boolean mergeSchema,
             GeneratedMethod defaultRowFunc,
-            int defaultValueMapItem)
+            int defaultValueMapItem
+            )
 
             throws StandardException {
         try{
@@ -742,6 +747,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     storedAs,
                     location,
                     partitionByRefItem,
+                    mergeSchema,
                     defaultRowFunc,
                     defaultValueMapItem
                     );

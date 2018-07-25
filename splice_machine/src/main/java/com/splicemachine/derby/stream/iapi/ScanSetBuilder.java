@@ -273,4 +273,6 @@ public interface ScanSetBuilder<V>{
      * @return
      */
     ScanSetBuilder<V> defaultRow(ExecRow defaultRow, FormatableBitSet defaultValueMap);
+
+    ScanSetBuilder<V> mergeSchema(boolean mergeSchema);
 }

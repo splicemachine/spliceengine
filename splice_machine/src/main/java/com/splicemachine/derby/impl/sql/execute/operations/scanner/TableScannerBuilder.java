@@ -88,6 +88,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     protected ExecRow defaultRow;
     protected FormatableBitSet defaultValueMap;
     protected byte[] token = SpliceClient.token;
+    protected boolean mergeSchema;
 
     @Override
     public ScanSetBuilder<V> metricFactory(MetricFactory metricFactory){
@@ -714,6 +715,12 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     public ScanSetBuilder<V> defaultRow(ExecRow defaultRow, FormatableBitSet defaultValueMap){
         this.defaultRow=defaultRow;
         this.defaultValueMap = defaultValueMap;
+        return this;
+    }
+
+    @Override
+    public ScanSetBuilder<V> mergeSchema(boolean mergeSchema) {
+        this.mergeSchema = mergeSchema;
         return this;
     }
 

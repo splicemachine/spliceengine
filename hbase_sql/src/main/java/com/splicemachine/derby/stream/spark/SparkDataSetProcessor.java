@@ -38,7 +38,7 @@ import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.stream.function.RowToLocatedRowAvroFunction;
 import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
 import com.splicemachine.derby.stream.iapi.*;
-import com.splicemachine.derby.stream.utils.AvroUtils;
+import com.splicemachine.derby.stream.utils.ExternalTableUtils;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.mrio.api.core.SMTextInputFormat;
@@ -51,7 +51,6 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
@@ -60,6 +59,7 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.*;
+import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
@@ -302,15 +302,33 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
 
     @Override
-    public <V> DataSet<V> readParquetFile(int[] baseColumnMap, int[] partitionColumnMap, String location,
-                                          OperationContext context, Qualifier[][] qualifiers,
-                                          DataValueDescriptor probeValue,  ExecRow execRow,
-                                          boolean useSample, double sampleFraction) throws StandardException {
+    public <V> DataSet<V> readParquetFile(StructType tableSchema, int[] baseColumnMap, int[] partitionColumnMap,
+                                          String location, OperationContext context, Qualifier[][] qualifiers,
+                                          DataValueDescriptor probeValue,  ExecRow execRow, boolean useSample,
+                                          double sampleFraction, boolean mergeSchema) throws StandardException {
         try {
             Dataset<Row> table = null;
+
             try {
-                table = SpliceSpark.getSession().read().parquet(location);
+                String[] files = ImportUtils.getFileSystem(location).getExistingFiles(location, "*");
+                if (files.length == 1 && files[0].equals("_SUCCESS")) // Handle Empty Directory
+                    return getEmpty();
+
+                // Infer schema from external files
+                StructType dataSchema = getExternalFileSchema("p", location, mergeSchema);
+                ExternalTableUtils.checkSchema(tableSchema, dataSchema, partitionColumnMap, location);
+
+                // set partition column datatype, because the inferred type is not always correct
+                setPartitionColumnTypes(dataSchema, partitionColumnMap, tableSchema);
+
+
+                table = SpliceSpark.getSession()
+                        .read()
+                        .schema(dataSchema)
+                        .parquet(location);
+
                 sortColumns(table.schema().fields(), partitionColumnMap);
+
             } catch (Exception e) {
                 return handleExceptionInCaseOfEmptySet(e,location);
             }
@@ -332,18 +350,49 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         }
     }
 
+    private void setPartitionColumnTypes(StructType dataSchema, int[] baseColumnMap, StructType tableSchema) {
+
+        int ncolumns = dataSchema.fields().length;
+        int nPartitions = baseColumnMap.length;
+        for (int i = 0; i < baseColumnMap.length; ++i) {
+            String name = dataSchema.fields()[ncolumns-i-1].name();
+            org.apache.spark.sql.types.DataType type = tableSchema.fields()[baseColumnMap[nPartitions-i-1]].dataType();
+            boolean nullable = tableSchema.fields()[baseColumnMap[nPartitions-i-1]].nullable();
+            Metadata metadata = tableSchema.fields()[baseColumnMap[nPartitions-i-1]].metadata();
+            StructField field = new StructField(name, type, nullable, metadata);
+            dataSchema.fields()[ncolumns-i-1] = field;
+        }
+    }
+
     @Override
-    public <V> DataSet<V> readAvroFile(int[] baseColumnMap, int[] partitionColumnMap, String location,
-                                          OperationContext context, Qualifier[][] qualifiers,
-                                          DataValueDescriptor probeValue,  ExecRow execRow,
-                                          boolean useSample, double sampleFraction) throws StandardException {
+    public <V> DataSet<V> readAvroFile(StructType tableSchema, int[] baseColumnMap, int[] partitionColumnMap,
+                                       String location, OperationContext context, Qualifier[][] qualifiers,
+                                       DataValueDescriptor probeValue,  ExecRow execRow,
+                                       boolean useSample, double sampleFraction, boolean mergeSchema) throws StandardException {
         try {
             Dataset<Row> table = null;
             try {
+                String[] files = ImportUtils.getFileSystem(location).getExistingFiles(location, "*");
+                if (files.length == 1 && files[0].equals("_SUCCESS")) // Handle Empty Directory
+                    return getEmpty();
+
+                // Infer schema from external files
+                StructType dataSchema = getExternalFileSchema("a", location, mergeSchema);
+
+                tableSchema =  ExternalTableUtils.supportAvroDateType(tableSchema, "a");
+
+                // set partition column datatype, because the inferred type is not always correct
+                setPartitionColumnTypes(dataSchema, partitionColumnMap, tableSchema);
+
+                ExternalTableUtils.checkSchema(tableSchema, dataSchema, partitionColumnMap, location);
+
                 SparkSession spark = SpliceSpark.getSession();
                 // Creates a DataFrame from a specified file
-                table = spark.read().format("com.databricks.spark.avro").load(location);
+                table = spark.read().schema(dataSchema).format("com.databricks.spark.avro").load(location);
+
                 sortColumns(table.schema().fields(), partitionColumnMap);
+
+
             } catch (Exception e) {
                 return handleExceptionInCaseOfEmptySet(e,location);
             }
@@ -417,13 +466,24 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             }
             try {
                 Dataset dataset = null;
+                String mergeSchemaOption = mergeSchema ? "true" : "false";
                 if (storedAs != null) {
                     if (storedAs.toLowerCase().equals("p")) {
-                        dataset = SpliceSpark.getSession().read().parquet(location);
+                        dataset = SpliceSpark.getSession()
+                                .read()
+                                .option("mergeSchema", mergeSchemaOption)
+                                .parquet(location);
                     } else if (storedAs.toLowerCase().equals("a")) {
-                        dataset = SpliceSpark.getSession().read().format("com.databricks.spark.avro").load(location);
+                        // spark does not support schema merging for avro
+                        dataset = SpliceSpark.getSession()
+                                .read()
+                                .format("com.databricks.spark.avro")
+                                .load(location);
                     } else if (storedAs.toLowerCase().equals("o")) {
-                        dataset = SpliceSpark.getSession().read().orc(location);
+                        // spark does not support schema merging for orc
+                        dataset = SpliceSpark.getSession()
+                                .read()
+                                .orc(location);
                     }
                     if (storedAs.toLowerCase().equals("t")) {
                         // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
@@ -480,39 +540,33 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     public void createEmptyExternalFile(ExecRow execRows, int[] baseColumnMap, int[] partitionBy, String storedAs,  String location, String compression) throws StandardException {
         try{
 
-            StructType schema = AvroUtils.supportAvroDateType(execRows.schema(),storedAs);
+            StructType schema = ExternalTableUtils.supportAvroDateType(execRows.schema(),storedAs);
 
             Dataset<Row> empty = SpliceSpark.getSession()
                         .createDataFrame(new ArrayList<Row>(), schema);
 
-            List<Column> cols = new ArrayList();
-            for (int i = 0; i < baseColumnMap.length; i++) {
-                cols.add(new Column(ValueRow.getNamedColumn(baseColumnMap[i])));
-            }
             List<String> partitionByCols = new ArrayList();
             for (int i = 0; i < partitionBy.length; i++) {
                 partitionByCols.add(ValueRow.getNamedColumn(partitionBy[i]));
             }
-                if (storedAs!=null) {
-                    if (storedAs.toLowerCase().equals("p")) {
-                        empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
-                                .mode(SaveMode.Append).parquet(location);
-                    }
-                    else if (storedAs.toLowerCase().equals("a")) {
-                        empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
-                                .mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);
-                    }
-                    else if (storedAs.toLowerCase().equals("o")) {
-                        empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
-                                .mode(SaveMode.Append).orc(location);
-                    }
-                    if (storedAs.toLowerCase().equals("t")) {
-                        // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
-                        empty.write().option("compression",compression).option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").mode(SaveMode.Append).csv(location);
-                    }
+            if (storedAs!=null) {
+                if (storedAs.toLowerCase().equals("p")) {
+                    empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
+                            .mode(SaveMode.Append).parquet(location);
+                }
+                else if (storedAs.toLowerCase().equals("a")) {
+                    empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
+                            .mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);
+                }
+                else if (storedAs.toLowerCase().equals("o")) {
+                    empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
+                            .mode(SaveMode.Append).orc(location);
+                }
+                else if (storedAs.toLowerCase().equals("t")) {
+                    // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
+                    empty.write().option("compression",compression).option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").mode(SaveMode.Append).csv(location);
+                }
             }
-
-
         }
 
         catch (Exception e) {
@@ -581,6 +635,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         assert baseColumnMap != null:"baseColumnMap Null";
         assert partitionColumnMap != null:"partitionColumnMap Null";
         try {
+            String[] files = ImportUtils.getFileSystem(location).getExistingFiles(location, "*");
+            if (files.length == 1 && files[0].equals("_SUCCESS")) // Handle Empty Directory
+                return getEmpty();
+
             SpliceORCPredicate predicate = new SpliceORCPredicate(qualifiers,baseColumnMap,execRow.createStructType(baseColumnMap));
             Configuration configuration = new Configuration(HConfiguration.unwrapDelegate());
             configuration.set(SpliceOrcNewInputFormat.SPLICE_PREDICATE,predicate.serialize());

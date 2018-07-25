@@ -136,9 +136,9 @@ public interface DataSetProcessor {
      * @return
      * @throws StandardException
      */
-    <V> DataSet<V> readParquetFile(int[] baseColumnMap, int[] partitionColumnMap, String location,
-                                   OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow,
-                                   boolean useSample, double sampleFraction) throws StandardException ;
+    <V> DataSet<V> readParquetFile(StructType schema, int[] baseColumnMap, int[] partitionColumnMap, String location,
+                                   OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,
+                                   ExecRow execRow, boolean useSample, double sampleFraction, boolean mergeSchema) throws StandardException;
 
     /**
      *
@@ -153,9 +153,9 @@ public interface DataSetProcessor {
      * @return
      * @throws StandardException
      */
-    <V> DataSet<V> readAvroFile(int[] baseColumnMap, int[] partitionColumnMap, String location,
-                                   OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow,
-                                   boolean useSample, double sampleFraction) throws StandardException ;
+    <V> DataSet<V> readAvroFile(StructType schema, int[] baseColumnMap, int[] partitionColumnMap, String location,
+                                OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,
+                                ExecRow execRow, boolean useSample, double sampleFraction, boolean mergeSchema) throws StandardException;
 
 
     /**
