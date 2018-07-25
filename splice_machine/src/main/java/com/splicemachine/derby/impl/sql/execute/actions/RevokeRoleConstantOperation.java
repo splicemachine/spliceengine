@@ -109,9 +109,12 @@ public class RevokeRoleConstantOperation extends DDLConstantOperation {
                         || (groupuserlist != null && groupuserlist.contains(dbo))) {
                     // All ok, we are database owner
                     if (SanityManager.DEBUG) {
-                        SanityManager.ASSERT(
-                            rdDef.getGrantee().equals(grantor) || rdDef.getGrantee().equals(dbo),
-                            "expected database owner in role grant descriptor");
+                        // When there is an LDAP admin group mapped to splice(DB-6636), role may be created by a user different
+                        // from grantor but belonging to the admin LDAP group, the below check could be violated
+                        // so comment it out
+                        //SanityManager.ASSERT(
+                        //    rdDef.getGrantee().equals(grantor) || rdDef.getGrantee().equals(dbo),
+                        //    "expected database owner in role grant descriptor");
                         SanityManager.ASSERT(
                             rdDef.isWithAdminOption(),
                             "expected role definition to have ADMIN OPTION");
@@ -122,7 +125,7 @@ public class RevokeRoleConstantOperation extends DDLConstantOperation {
                 }
 
                 RoleGrantDescriptor rd =
-                    dd.getRoleGrantDescriptor(role, grantee, grantor);
+                    dd.getRoleGrantDescriptor(role, grantee);
 
                 if (rd != null && withAdminOption) {
                     // NOTE: Never called yet, withAdminOption not yet

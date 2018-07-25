@@ -506,7 +506,6 @@ public abstract class DDLConstantAction implements ConstantAction
 		List<String> roleList = lcc.getCurrentRoles(activation);
 		RoleGrantDescriptor rootGrant = null;
 
-		String dbo = dd.getAuthorizationDatabaseOwner();
         String currentUser = lcc.getCurrentUserId(activation);
 		PermissionsDescriptor permDesc = null;
 
@@ -519,13 +518,12 @@ public abstract class DDLConstantAction implements ConstantAction
 
 			// determine how we got to be able use this role
 			rootGrant =
-					dd.getRoleGrantDescriptor(role, currentUser, dbo);
+					dd.getRoleGrantDescriptor(role, currentUser);
 
 			if (rootGrant == null) {
 				rootGrant = dd.getRoleGrantDescriptor(
 						role,
-						Authorizer.PUBLIC_AUTHORIZATION_ID,
-						dbo);
+						Authorizer.PUBLIC_AUTHORIZATION_ID);
 			}
 
 			// If not found in current role, get transitive
