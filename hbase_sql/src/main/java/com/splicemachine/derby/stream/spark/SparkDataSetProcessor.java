@@ -357,7 +357,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 fs = FileSystem.get(URI.create(location), conf);
                 String fileName = getFile(fs, location);
                 if (fileName != null) {
-                    temp = new Path(location, "_temp");
+                    temp = new Path(location, "temp");
                     fs.mkdirs(temp);
                     SpliceLogUtils.info(LOG, "created temporary directory %s", temp);
 
