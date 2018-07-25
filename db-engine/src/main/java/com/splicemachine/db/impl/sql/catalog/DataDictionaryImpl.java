@@ -68,7 +68,7 @@ import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import org.apache.commons.lang3.tuple.ImmutableTriple;
+import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.collect.FluentIterable;
@@ -2462,7 +2462,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 authId,
                 tc,
                 SYSSCHEMAPERMS_CATALOG_NUM,
-                SYSSCHEMAPERMSRowFactory.GRANTEE_COL_NUM_IN_GRANTEE_SCHEMA_GRANTOR_INDEX,
+                SYSSCHEMAPERMSRowFactory.GRANTEE_SCHEMA_GRANTOR_INDEX_NUM,
                 SYSSCHEMAPERMSRowFactory.
                         GRANTEE_COL_NUM_IN_GRANTEE_SCHEMA_GRANTOR_INDEX);
 
@@ -2489,6 +2489,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 SYSROUTINEPERMSRowFactory.GRANTEE_ALIAS_GRANTOR_INDEX_NUM,
                 SYSROUTINEPERMSRowFactory.
                         GRANTEE_COL_NUM_IN_GRANTEE_ALIAS_GRANTOR_INDEX);
+
+        dropPermsByGrantee(
+                authId,
+                tc,
+                SYSPERMS_CATALOG_NUM,
+                SYSPERMSRowFactory.GRANTEE_OBJECTID_GRANTOR_INDEX_NUM,
+                SYSPERMSRowFactory.
+                        GRANTEE_COL_NUM_IN_GRANTEE_OBJECTID_GRANTOR_INDEX);
     }
 
 
@@ -9702,43 +9710,38 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      *
      * @param roleName The name of the role we're interested in.
      * @param grantee  The grantee
-     * @param grantor  The grantor
      * @return The descriptor for the role grant
      * @throws StandardException Thrown on error
-     * @see DataDictionary#getRoleGrantDescriptor(String,String,String)
+     * @see DataDictionary#getRoleGrantDescriptor(String,String)
      */
     @Override
     public RoleGrantDescriptor getRoleGrantDescriptor(String roleName,
-                                                      String grantee,
-                                                      String grantor) throws StandardException{
+                                                      String grantee) throws StandardException{
         DataValueDescriptor roleNameOrderable;
         DataValueDescriptor granteeOrderable;
-        DataValueDescriptor grantorOrderable;
 
-        ImmutableTriple roleGrantTriple = new ImmutableTriple<>(roleName, grantee, grantor);
-        Optional<RoleGrantDescriptor> optional = dataDictionaryCache.roleGrantCacheFind(roleGrantTriple);
+        Pair<String, String> roleGrantPair = new Pair<>(roleName, grantee);
+        Optional<RoleGrantDescriptor> optional = dataDictionaryCache.roleGrantCacheFind(roleGrantPair);
         if (optional!=null)
             return optional.orNull();
 
         TabInfoImpl ti=getNonCoreTI(SYSROLES_CATALOG_NUM);
 
-		/* Use aliasNameOrderable, granteeOrderable and
-		 * grantorOrderable in both start and stop position for scan.
+		/* Use aliasNameOrderable, granteeOrderable
+		 * in both start and stop position for scan.
 		 */
         roleNameOrderable=new SQLVarchar(roleName);
         granteeOrderable=new SQLVarchar(grantee);
-        grantorOrderable=new SQLVarchar(grantor);
 
-		/* Set up the start/stop position for the scan */
-        ExecIndexRow keyRow=exFactory.getIndexableRow(3);
-        keyRow.setColumn(1,roleNameOrderable);
-        keyRow.setColumn(2,granteeOrderable);
-        keyRow.setColumn(3,grantorOrderable);
+        /* Set up the start/stop position for the scan */
+        ExecIndexRow keyRow = exFactory.getIndexableRow(2);
+        keyRow.setColumn(1, roleNameOrderable);
+        keyRow.setColumn(2, granteeOrderable);
 
         RoleGrantDescriptor rgd = (RoleGrantDescriptor)
                 getDescriptorViaIndex(SYSROLESRowFactory.SYSROLES_INDEX_ID_EE_OR_IDX,keyRow,null,ti,null,null,false);
 
-        dataDictionaryCache.roleGrantCacheAdd(roleGrantTriple,rgd==null?Optional.<RoleGrantDescriptor>absent():Optional.of(rgd));
+        dataDictionaryCache.roleGrantCacheAdd(roleGrantPair,rgd==null?Optional.<RoleGrantDescriptor>absent():Optional.of(rgd));
         return rgd;
     }
 

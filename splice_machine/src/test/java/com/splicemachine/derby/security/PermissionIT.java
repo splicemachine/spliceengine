@@ -5,6 +5,7 @@ import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test.SerialTest;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -74,6 +75,13 @@ public class PermissionIT {
         user1Conn = spliceClassWatcherAdmin.createConnection(USER1, PASSWORD1);
 
         user1Conn2 = spliceClassWatcherAdmin.createConnection(remoteURLTemplate, USER1, PASSWORD1);
+
+    }
+
+    @AfterClass
+    public static void tearDown() throws Exception {
+        spliceClassWatcherAdmin.execute(format("drop role %s", ROLE1));
+        spliceClassWatcherAdmin.execute(format("call syscs_util.syscs_drop_user('%s')", USER1));
 
     }
 

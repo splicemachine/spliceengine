@@ -46,7 +46,7 @@ import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.utils.ByteSlice;
-import org.apache.commons.lang3.tuple.Triple;
+import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.cache.CacheBuilder;
 import org.spark_project.guava.cache.RemovalListener;
@@ -82,7 +82,7 @@ public class DataDictionaryCache {
     private ManagedCache<String,AliasDescriptor> aliasDescriptorCache;
     private ManagedCache<String,Optional<RoleGrantDescriptor>> roleCache;
     private ManagedCache<String,List<String>> defaultRoleCache;
-    private ManagedCache<Triple<String, String, String>, Optional<RoleGrantDescriptor>> roleGrantCache;
+    private ManagedCache<Pair<String, String>, Optional<RoleGrantDescriptor>> roleGrantCache;
     private ManagedCache<ByteSlice,TokenDescriptor> tokenCache;
     private ManagedCache<String, Optional<String>> propertyCache;
     private DataDictionary dd;
@@ -559,7 +559,7 @@ public class DataDictionaryCache {
         defaultRoleCache.invalidateAll();
     }
 
-    public void roleGrantCacheAdd(Triple<String, String, String> key, Optional<RoleGrantDescriptor> optional) throws StandardException {
+    public void roleGrantCacheAdd(Pair<String, String> key, Optional<RoleGrantDescriptor> optional) throws StandardException {
         if (!dd.canUseCache(null))
             return;
         if (LOG.isDebugEnabled())
@@ -567,7 +567,7 @@ public class DataDictionaryCache {
         roleGrantCache.put(key,optional);
     }
 
-    public Optional<RoleGrantDescriptor> roleGrantCacheFind(Triple<String, String, String> key) throws StandardException {
+    public Optional<RoleGrantDescriptor> roleGrantCacheFind(Pair<String, String> key) throws StandardException {
         if (!dd.canUseCache(null))
             return null;
         if (LOG.isDebugEnabled())
@@ -575,10 +575,16 @@ public class DataDictionaryCache {
         return roleGrantCache.getIfPresent(key);
     }
 
-    public void roleGrantCacheRemove(Triple<String, String, String> key) throws StandardException {
+    public void roleGrantCacheRemove(Pair<String, String> key) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("roleGrantCacheRemove " + key);
         roleGrantCache.invalidate(key);
+    }
+
+    public void clearRoleGrantCache() {
+        if (LOG.isDebugEnabled())
+            LOG.debug("clearRoleGrantCache ");
+        roleGrantCache.invalidateAll();
     }
 
     public void tokenCacheAdd(byte[] token, TokenDescriptor tokenDescriptor) throws StandardException {
