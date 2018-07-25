@@ -213,7 +213,7 @@ else
       fi
    fi
    IJ_SYS_ARGS+=" -Dij.connection.splice=jdbc:splice://${HOST}:${PORT}/splicedb${SSL}${KERBEROS}"
-   export JAVA_TOOL_OPTIONS="-Dij.user=\"$USER\" -Dij.password=$PASS"
+   export JAVA_TOOL_OPTIONS="-Dij.user='\"$USER\"' -Dij.password=$PASS"
 fi
 
 
