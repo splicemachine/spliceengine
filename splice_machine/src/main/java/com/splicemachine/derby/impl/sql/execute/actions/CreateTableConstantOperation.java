@@ -17,11 +17,14 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
-import com.splicemachine.db.client.am.Types;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.derby.impl.load.ImportUtils;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.procedures.external.DistributedCreateExternalTableJob;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.procedures.external.DistributedGetSchemaExternalJob;
@@ -44,15 +47,20 @@ import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.execute.RowUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
+import java.io.IOException;
+import java.sql.SQLWarning;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class CreateTableConstantOperation extends DDLConstantOperation {
     private static final Logger LOG = Logger.getLogger(CreateTableConstantOperation.class);
@@ -74,7 +82,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
     private String storedAs;
     private String location;
     private String compression;
-
+    private boolean mergeSchema;
 
 
     /**
@@ -108,8 +116,8 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             String lines,
             String storedAs,
             String location,
-            String compression
-            ) {
+            String compression,
+            boolean mergeSchema) {
         this.schemaName = schemaName;
         this.tableName = tableName;
         this.tableType = tableType;
@@ -126,6 +134,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         this.storedAs = storedAs;
         this.location = location;
         this.compression = compression;
+        this.mergeSchema = mergeSchema;
 
         if (SanityManager.DEBUG) {
             if (tableType == TableDescriptor.BASE_TABLE_TYPE && lockGranularity != TableDescriptor.TABLE_LOCK_GRANULARITY &&
@@ -465,34 +474,30 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                     String pathToParent = location.substring(0, location.lastIndexOf("/"));
                     ImportUtils.validateWritable(pathToParent.toString(), false);
                     EngineDriver.driver().getOlapClient().execute(new DistributedCreateExternalTableJob(delimited, escaped, lines, storedAs, location, compression, partitionby, jobGroup, template));
+
                 } else if(fileInfo.exists() && fileInfo.isDirectory() && fileInfo.fileCount() > 0 && storedAs.compareToIgnoreCase("t") != 0) {
-                    GetSchemaExternalResult result = EngineDriver.driver().getOlapClient().execute(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs));
-
-                    StructType externalSchema = result.getSchema();
-
-                    //Make sure we have the same amount of attributes in the definition compared to the external file
-                    if (externalSchema.fields().length != template.length()) {
-                        throw StandardException.newException(SQLState.INCONSISTENT_NUMBER_OF_ATTRIBUTE, template.length(), externalSchema.fields().length, location);
-                    }
-
-                    // test types equivalence. Make sure that the type defined correspond
-                    // to what is really in the external file.
-
-                    /*
-                      if the pre-existing external file was partitioned, its partitioned columns will be placed at the end of the columns in externalSchema.
-                      this may cause externalSchema to be out of order, which may cause dataTypes to not match and thus throw an error.
-                     */
-                    for (int i = 0; i < externalSchema.fields().length; i++) {
-                        //compare the datatype
-                        StructField externalField = externalSchema.fields()[i];
-                        StructField definedField = template.schema().fields()[i];
-                        if (!definedField.dataType().equals(externalField.dataType())) {
-                            if (!supportAvroDateToString(storedAs,externalField,definedField)) {
-                                throw StandardException.newException(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, definedField.name(),definedField.dataType().toString(),
-                                        externalField.name(), externalField.dataType().toString(),location);
-                            }
+                    Future<GetSchemaExternalResult> futureResult = EngineDriver.driver().getOlapClient().submit(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs, mergeSchema));
+                    GetSchemaExternalResult result = null;
+                    SConfiguration config = EngineDriver.driver().getConfiguration();
+                    while (result == null) {
+                        try {
+                            result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
+                        } catch (InterruptedException e) {
+                            //we were interrupted processing, so we're shutting down. Nothing to be done, just die gracefully
+                            Thread.currentThread().interrupt();
+                            throw new IOException(e);
+                        } catch (ExecutionException e) {
+                            throw Exceptions.rawIOException(e.getCause());
+                        } catch (TimeoutException e) {
+                        /*
+                         * A TimeoutException just means that tickTime expired. That's okay, we just stick our
+                         * head up and make sure that the client is still operating
+                         */
                         }
                     }
+                    StructType externalSchema = result.getSchema();
+
+                    checkSchema(externalSchema, activation);
                 } else if(!fileInfo.isDirectory()) {
                     throw StandardException.newException(SQLState.DIRECTORY_REQUIRED, location);
                 }
@@ -503,6 +508,68 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         }
     }
 
+    private void checkSchema(StructType externalSchema, Activation activation) throws StandardException {
+
+        ExecRow template = new ValueRow(columnInfo.length);
+        DataValueDescriptor[] dvds = template.getRowArray();
+        for (int i = 0; i < columnInfo.length; ++i) {
+            dvds[i] = columnInfo[i].dataType.getNull();
+        }
+
+        //Make sure we have the same amount of attributes in the definition compared to the external file
+        if (externalSchema.fields().length != template.length()) {
+            throw StandardException.newException(SQLState.INCONSISTENT_NUMBER_OF_ATTRIBUTE, template.length(), externalSchema.fields().length, location);
+        }
+
+        int nPartitionColumns = 0;
+        for (ColumnInfo column:columnInfo) {
+            if (column.partitionPosition >= 0)
+                nPartitionColumns++;
+        }
+
+        ExecRow nonPartitionColumns = new ValueRow(template.nColumns()-nPartitionColumns);
+        DataValueDescriptor[] dvds1 = nonPartitionColumns.getRowArray();
+        ExecRow partitionColumns = new ValueRow(nPartitionColumns);
+        DataValueDescriptor[] dvds2 = partitionColumns.getRowArray();
+
+        int index1 = 0;
+        for(int i = 0; i < columnInfo.length; ++i) {
+            if (columnInfo[i].partitionPosition >=0) {
+                dvds2[columnInfo[i].partitionPosition] = dvds[i];
+            }
+            else {
+                dvds1[index1++] = dvds[i];
+            }
+        }
+
+        // Compare non-partition columns
+        for (int i = 0; i < nonPartitionColumns.nColumns(); ++i) {
+            //compare the data type
+            StructField externalField = externalSchema.fields()[i];
+            StructField definedField = nonPartitionColumns.schema().fields()[i];
+            if (!definedField.dataType().equals(externalField.dataType())) {
+                if (!supportAvroDateToString(storedAs,externalField,definedField)) {
+                    throw StandardException.newException(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, definedField.name(),definedField.dataType().toString(),
+                            externalField.name(), externalField.dataType().toString(),location);
+                }
+            }
+        }
+
+        // Compare partition columns
+        for (int i = 0; i < partitionColumns.nColumns(); ++i) {
+            StructField externalField = externalSchema.fields()[nonPartitionColumns.nColumns() + i];
+            StructField definedField = partitionColumns.schema().fields()[i];
+            if (!definedField.dataType().equals(externalField.dataType())) {
+                if (!supportAvroDateToString(storedAs,externalField,definedField)) {
+                    Object[] objects = new Object[]{definedField.name(),definedField.dataType().toString(),
+                            externalField.name(), externalField.dataType().toString(),location};
+                    SQLWarning warning = StandardException.newWarning(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, objects);
+                    activation.addWarning(warning);
+                }
+            }
+        }
+
+    }
     private boolean supportAvroDateToString(String storedAs, StructField externalField, StructField definedField){
         return storedAs.toLowerCase().equals("a") && externalField.dataType().equals(DataTypes.StringType) && definedField.dataType().equals(DataTypes.DateType);
     }

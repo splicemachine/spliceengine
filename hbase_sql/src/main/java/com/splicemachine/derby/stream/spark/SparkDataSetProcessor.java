@@ -47,6 +47,11 @@ import com.splicemachine.orc.predicate.SpliceORCPredicate;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
@@ -63,6 +68,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.net.URI;
 import java.util.*;
 
 /**
@@ -382,25 +388,57 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
     @Override
-    public StructType getExternalFileSchema(String storedAs, String location) throws StandardException {
+    public StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema) throws StandardException {
         StructType schema = null;
+        Configuration conf = HConfiguration.unwrapDelegate();
+        FileSystem fs = null;
+        Path temp = null;
+        // normalize location string
+        location = new Path(location).toString();
         try {
+
+            if (!mergeSchema) {
+                fs = FileSystem.get(URI.create(location), conf);
+                String fileName = getFile(fs, location);
+                if (fileName != null) {
+                    temp = new Path(location, "_temp");
+                    fs.mkdirs(temp);
+                    SpliceLogUtils.info(LOG, "created temporary directory %s", temp);
+
+                    // Copy a data file to temp directory
+                    int index = fileName.indexOf(location);
+                    if (index != -1) {
+                        String s = fileName.substring(index + location.length() + 1);
+                        Path destDir = new Path(temp, s);
+                        FileUtil.copy(fs, new Path(fileName), fs, destDir, false, conf);
+                        location = temp.toString();
+                    }
+                }
+            }
             try {
+                Dataset dataset = null;
                 if (storedAs != null) {
                     if (storedAs.toLowerCase().equals("p")) {
-                        schema = SpliceSpark.getSession().read().parquet(location).schema();
+                        dataset = SpliceSpark.getSession().read().parquet(location);
                     } else if (storedAs.toLowerCase().equals("a")) {
-                        schema = SpliceSpark.getSession().read().format("com.databricks.spark.avro").load(location).schema();
+                        dataset = SpliceSpark.getSession().read().format("com.databricks.spark.avro").load(location);
                     } else if (storedAs.toLowerCase().equals("o")) {
-                        schema = SpliceSpark.getSession().read().orc(location).schema();
+                        dataset = SpliceSpark.getSession().read().orc(location);
                     }
                     if (storedAs.toLowerCase().equals("t")) {
                         // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
                         schema = SpliceSpark.getSession().read().option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").csv(location).schema();
                     }
+                    dataset.printSchema();
+                    schema = dataset.schema();
                 }
             } catch (Exception e) {
                 handleExceptionInCaseOfEmptySet(e, location);
+            } finally {
+                if (!mergeSchema && fs != null && temp!= null && fs.exists(temp)){
+                    fs.delete(temp, true);
+                    SpliceLogUtils.info(LOG, "deleted temporary directory %s", temp);
+                }
             }
         }catch (Exception e) {
             throw StandardException.newException(SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
@@ -408,6 +446,35 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
         return schema;
     }
+
+    /**
+     * Return a data file from external table storage directory
+     * @param fs
+     * @param location
+     * @return
+     * @throws IOException
+     */
+    private String getFile(FileSystem fs, String location) throws IOException {
+
+        Path path = new Path(location);
+        String name = path.getName();
+
+        if (!fs.isDirectory(path) && !name.startsWith(".") && !name.equals("_SUCCESS"))
+            return location;
+        else {
+            FileStatus[] fileStatuses = fs.listStatus(path);
+            if (!fs.isDirectory(path) || fileStatuses.length == 0)
+                return null;
+            for (FileStatus fileStatus : fileStatuses) {
+                String file = getFile(fs, fileStatus.getPath().toString());
+                if (file != null)
+                    return file;
+            }
+        }
+        return  null;
+    }
+
+
 
     @Override
     public void createEmptyExternalFile(ExecRow execRows, int[] baseColumnMap, int[] partitionBy, String storedAs,  String location, String compression) throws StandardException {
