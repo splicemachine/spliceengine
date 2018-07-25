@@ -80,6 +80,8 @@ public class SYSPERMSRowFactory extends PermissionsCatalogRowFactory {
     public static final int PERMS_OBJECTID_IDX_NUM = 1;
     public static final int GRANTEE_OBJECTID_GRANTOR_INDEX_NUM = 2;
 
+    public static final int GRANTEE_COL_NUM_IN_GRANTEE_OBJECTID_GRANTOR_INDEX = 1;
+
     private static final boolean[] uniqueness = { true, false, true };
 
     private static final String[] uuids = {
