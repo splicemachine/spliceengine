@@ -47,8 +47,8 @@ import com.splicemachine.si.impl.txn.LazyTxnView;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
+import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.apache.log4j.Logger;
 
 import java.io.*;
@@ -827,6 +827,11 @@ public class DDLUtils {
             }
 
             dd.getDataDictionaryCache().roleCacheRemove(change.getDropRole().getRoleName());
+            // role grant cache may have entries of this role being granted to others, so need to invalidate
+            dd.getDataDictionaryCache().clearRoleGrantCache();
+            // permission cache may have permission entries related to this role, so need to invalidate
+            dd.getDataDictionaryCache().clearPermissionCache();
+
         } catch (Exception e) {
             e.printStackTrace();
             throw StandardException.plainWrapException(e);
@@ -1091,7 +1096,7 @@ public class DDLUtils {
             String roleName = change.getGrantRevokeRole().getRoleName();
             String granteeName = change.getGrantRevokeRole().getGranteeName();
             String grantorName = change.getGrantRevokeRole().getGrantorName();
-            dd.getDataDictionaryCache().roleGrantCacheRemove(new ImmutableTriple<>(roleName, granteeName, grantorName));
+            dd.getDataDictionaryCache().roleGrantCacheRemove(new Pair<>(roleName, granteeName));
         } catch (Exception e) {
             e.printStackTrace();
             throw StandardException.plainWrapException(e);

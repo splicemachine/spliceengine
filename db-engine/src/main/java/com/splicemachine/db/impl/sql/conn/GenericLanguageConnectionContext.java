@@ -3294,17 +3294,20 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
         RoleGrantDescriptor grantDesc=null;
         String currentUser=getCurrentUserId(a);
+        List<String> groupuserList = getCurrentGroupUser(a);
 
-        if(currentUser.equals(dbo)){
+        if(currentUser.equals(dbo) || (groupuserList != null && groupuserList.contains(dbo))){
             grantDesc=dd.getRoleDefinitionDescriptor(role);
         }else{
+            // since DB-6636, we allow non-splice admin user, roles' grantor is no longer necessary splice(dbo)
+            // set grantor to null to fetch grant description regardless of the grantor
             grantDesc=dd.getRoleGrantDescriptor
-                    (role,currentUser,dbo);
+                    (role,currentUser);
 
             if(grantDesc==null){
                 // or if not, via PUBLIC?
                 grantDesc=dd.getRoleGrantDescriptor
-                        (role,Authorizer.PUBLIC_AUTHORIZATION_ID,dbo);
+                        (role,Authorizer.PUBLIC_AUTHORIZATION_ID);
             }
         }
         return grantDesc!=null;

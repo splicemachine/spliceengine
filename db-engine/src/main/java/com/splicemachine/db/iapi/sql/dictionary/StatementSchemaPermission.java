@@ -184,19 +184,17 @@ public class StatementSchemaPermission extends StatementPermission
 				// to PUBLIC: A revoked role which is current for this
 				// session, is lazily set to none when it is attempted
 				// used.
-				String dbo = dd.getAuthorizationDatabaseOwner();
 				RoleGrantDescriptor rd = dd.getRoleGrantDescriptor
-						(role, currentUserId, dbo);
+						(role, currentUserId);
 
 				if (rd == null) {
 					rd = dd.getRoleGrantDescriptor(
 							role,
-							Authorizer.PUBLIC_AUTHORIZATION_ID,
-							dbo);
+							Authorizer.PUBLIC_AUTHORIZATION_ID);
 				}
 				if (rd == null && currentGroupuserlist != null) {
 					for (String currentGroupuser : currentGroupuserlist) {
-						rd = dd.getRoleGrantDescriptor(role, currentGroupuser, dbo);
+						rd = dd.getRoleGrantDescriptor(role, currentGroupuser);
 						if (rd != null)
 							break;
 					}
