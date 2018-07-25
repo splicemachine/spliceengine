@@ -422,9 +422,25 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       fs.mkdirs(new Path(tempDirectory, id), FsPermission.createImmutable(Integer.parseInt("777", 8).toShort))
       fs.setPermission(new Path(tempDirectory, id), FsPermission.createImmutable(Integer.parseInt("777", 8).toShort))
 
+      val schema = resolveQuery(connection, sql, false)
+      val schemaNoTime = resolveQuery(connection, sql, true)
+
       connection.prepareStatement(s"EXPORT('$tempDirectory/$id', true, 1, null, null, null) " + sql).execute()
       // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
-      SpliceSpark.getSession.read.option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").csv(fs.getUri + s"$tempDirectory/$id")
+      var df = SpliceSpark.getSession.read.option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").schema(schemaNoTime).csv(fs.getUri + s"$tempDirectory/$id")
+
+      // Columns of type TIME are serialized with a HH:mm:ss format, which is incompatible with the Timestamp format
+      // Deserialize them as Strings and parse the strings into Timestamps here
+      if (!schema.equals(schemaNoTime)) {
+        for ((ft, f) <- schema.fields zip schemaNoTime.fields) {
+          if (!ft.equals(f)) {
+            import org.apache.spark.sql.functions._
+            val name = ft.name
+            df = df.withColumn(name, unix_timestamp(col(name), "HH:mm:ss").cast(TimestampType))
+          }
+        }
+      }
+      df
     } finally {
       connection.close()
     }
@@ -758,6 +774,23 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       JDBCOptions.JDBC_URL -> url,
       JDBCOptions.JDBC_TABLE_NAME -> schemaTableName)
     JDBCRDD.resolveTable(new JDBCOptions(newSpliceOptions))
+  }
+
+  val dialect = new SplicemachineDialect
+  val dialectNoTime = new SplicemachineDialectNoTime
+  def resolveQuery(connection: Connection, sql: String, noTime: Boolean): StructType = {
+    try {
+      val rs = connection.prepareStatement(s"select * from ($sql) a where 1=0 ").executeQuery()
+
+      try {
+        if (noTime)
+          JdbcUtils.getSchema(rs, dialectNoTime)
+        else
+          JdbcUtils.getSchema(rs, dialect)
+      } finally {
+        rs.close()
+      }
+    }
   }
 
   /**
