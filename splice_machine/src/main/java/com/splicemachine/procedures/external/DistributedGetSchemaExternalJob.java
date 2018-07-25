@@ -34,17 +34,19 @@ public class DistributedGetSchemaExternalJob extends DistributedJob implements E
     private String location;
     private String storedAs;
     private String jobGroup;
+    private boolean mergeSchema;
 
     public DistributedGetSchemaExternalJob() {
     }
 
     public DistributedGetSchemaExternalJob(String location,
                                            String jobGroup,
-                                           String storedAs) {
+                                           String storedAs,
+                                           boolean mergeSchema) {
         this.storedAs = storedAs;
         this.location = location;
         this.jobGroup = jobGroup;
-
+        this.mergeSchema = mergeSchema;
     }
 
     @Override
@@ -69,6 +71,7 @@ public class DistributedGetSchemaExternalJob extends DistributedJob implements E
             out.writeUTF(location);
 
         out.writeUTF(jobGroup);
+        out.writeBoolean(mergeSchema);
     }
 
     @Override
@@ -77,8 +80,7 @@ public class DistributedGetSchemaExternalJob extends DistributedJob implements E
         storedAs    = in.readBoolean()?in.readUTF():null;
         location    = in.readBoolean()?in.readUTF():null;
         jobGroup    = in.readUTF();
-
-
+        mergeSchema = in.readBoolean();
     }
 
 
@@ -92,5 +94,5 @@ public class DistributedGetSchemaExternalJob extends DistributedJob implements E
 
     public String getStoredAs(){ return storedAs; }
 
-
+    public boolean mergeSchema() {return mergeSchema;}
 }

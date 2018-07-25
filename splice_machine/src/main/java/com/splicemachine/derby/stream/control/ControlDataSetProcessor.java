@@ -357,9 +357,9 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public StructType getExternalFileSchema(String storedAs, String location) {
+    public StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema) throws StandardException {
         DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
-        return proc.getExternalFileSchema(storedAs,location);
+        return proc.getExternalFileSchema(storedAs,location,mergeSchema);
     }
 
     @Override

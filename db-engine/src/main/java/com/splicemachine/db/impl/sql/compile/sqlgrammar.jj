@@ -2905,6 +2905,7 @@ TOKEN [IGNORE_CASE] :
 |	<WEEKDAY: "weekday">
 |	<WEEKDAYNAME: "weekdayname">
 |	<WHEN: "when">
+|   <MERGE: "merge">
 }
 
 /*
@@ -11692,6 +11693,7 @@ tableDefinition() throws StandardException :
 	ValueNode              linesTerminatedByChar = null;
 	String              storageFormat = null;
 	ValueNode              location = null;
+	boolean                mergeSchema = false;
 	OrderByList orderCols = null;
     ValueNode[] offsetClauses = new ValueNode[ OFFSET_CLAUSE_COUNT ];
 	ValueNode[] topNOut = new ValueNode[ 1 ];
@@ -11722,6 +11724,7 @@ tableDefinition() throws StandardException :
             [<STORED> <AS> storageFormat = storedAs() ]
 			[<COMMA>]
             [<LOCATION> {location = literal();}]
+            [<MERGE> <SCHEMA> {mergeSchema = Boolean.TRUE;}]
 			{
 			validateParameters(isExternal, storageFormat, terminationChar, escapedByChar,
                         linesTerminatedByChar, location,compression, partitionedResultColumns, tableElementList);
@@ -11739,6 +11742,7 @@ tableDefinition() throws StandardException :
 										storageFormat,
 										location,
 										compression,
+										mergeSchema,
 										getContextManager());
 			}
 		|
@@ -11757,6 +11761,7 @@ tableDefinition() throws StandardException :
                         [<STORED> <AS> storageFormat = storedAs() ]
             			[<COMMA>]
                         [<LOCATION> {location = literal();}]
+                        [<COMMA>]
 			<AS>
 			queryExpression = queryExpression(null, NO_SET_OP, topNOut)
             [ orderCols = orderByClause(null) ]

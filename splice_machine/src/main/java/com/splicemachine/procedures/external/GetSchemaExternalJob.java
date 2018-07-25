@@ -57,7 +57,7 @@ public class GetSchemaExternalJob implements Callable<Void> {
         dsp.setSchedulerPool("admin");
         dsp.setJobGroup(request.getJobGroup(), "");
 
-        StructType externalSchema = dsp.getExternalFileSchema(request.getStoredAs(), request.getLocation());
+        StructType externalSchema = dsp.getExternalFileSchema(request.getStoredAs(), request.getLocation(), request.mergeSchema());
         jobStatus.markCompleted(new GetSchemaExternalResult(externalSchema));
         return null;
     }
