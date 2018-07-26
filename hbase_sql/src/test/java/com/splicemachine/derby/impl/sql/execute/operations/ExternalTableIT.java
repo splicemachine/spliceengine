@@ -2626,5 +2626,38 @@ public class ExternalTableIT extends SpliceUnitTest{
                 " 3 |TX | NULL  |\n" +
                 " 4 |NJ |100.01 |";
         Assert.assertEquals(actual, expected, actual);
+
+        methodWatcher.execute("insert into parquet_schema_evolution values (5, 'PA', 200)");
+        rs = methodWatcher.executeQuery("select * from parquet_schema_evolution order by 1");
+        actual = TestUtils.FormattedResult.ResultFactory.toString(rs);
+        expected =
+                "C1 |C2 |  C3   |\n" +
+                "----------------\n" +
+                " 1 |CA | NULL  |\n" +
+                " 2 |NY | NULL  |\n" +
+                " 3 |TX | NULL  |\n" +
+                " 4 |NJ |100.01 |\n" +
+                " 5 |PA | 200.0 |";
+        Assert.assertEquals(actual, expected, actual);
+    }
+
+
+    @Test
+    public void testReadWriteAvroFromHive() throws Exception {
+
+        methodWatcher.execute(String.format("create external table t_avro (col1 varchar(30), col2 int)" +
+                " STORED AS AVRO LOCATION '%s'", getResourceDirectory() + "t_avro"));
+
+        methodWatcher.execute("insert into t_avro values ('John', 18)");
+        ResultSet rs = methodWatcher.executeQuery("select * from t_avro order by 1");
+        String actual = TestUtils.FormattedResult.ResultFactory.toString(rs);
+        String expected =
+                "COL1  |COL2 |\n" +
+                "-------------\n" +
+                "John  | 18  |\n" +
+                " Sam  | 22  |\n" +
+                "Scott | 25  |\n" +
+                " Tom  | 20  |";
+        Assert.assertEquals(actual, expected, actual);
     }
 }
