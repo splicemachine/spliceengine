@@ -266,27 +266,27 @@ public interface DataSet<V> extends //Iterable<V>,
      *
      * Write Parquet File to the Hadoop Filesystem compliant location.
      *
-     * @param baseColumnMap
+     * @param dsp
      * @param partitionBy
      * @param location
      * @param context
      * @return
      */
-    DataSet<ExecRow> writeParquetFile(int[] baseColumnMap, int[] partitionBy, String location, String compression,
+    DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp, int[] partitionBy, String location, String compression,
                                          OperationContext context) ;
 
     /**
      *
      * Write Avro File to the Hadoop Filesystem compliant location.
      *
-     * @param baseColumnMap
+     * @param dsp
      * @param partitionBy
      * @param location
      * @param context
      * @return
      */
-    DataSet<ExecRow> writeAvroFile(int[] baseColumnMap, int[] partitionBy, String location, String compression,
-                                         OperationContext context) ;
+    DataSet<ExecRow> writeAvroFile(DataSetProcessor dsp, int[] partitionBy, String location,
+                                   String compression, OperationContext context) ;
 
 
     /**
