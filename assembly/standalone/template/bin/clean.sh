@@ -9,7 +9,7 @@ DB_DIR="${BASE_DIR}"/db
 
 # if server still running, fail - must stop first
 SPID=$(ps -ef | awk '/SpliceTestPlatform|SpliceSinglePlatform|SpliceTestClusterParticipant/ && !/awk/ {print $2}')
-ZPID=$(ps -ef | awk '/zoo/ && !/awk/ {print $2}')
+ZPID=$(ps -ef | awk '/zookeeper/ && !/awk/ {print $2}')
 YPID=$(ps -ef | awk '/spliceYarn|SpliceTestYarnPlatform|CoarseGrainedScheduler|ExecutorLauncher/ && !/awk/ {print $2}')
 KPID=$(ps -ef | awk '/TestKafkaCluster/ && !/awk/ {print $2}')
 if [[ -n ${SPID} || -n ${ZPID} ]] || [[ -n ${YPID} || -n ${KPID} ]]; then
