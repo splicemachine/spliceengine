@@ -137,7 +137,8 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
             String lines,
             String storedAs,
             String location,
-            int partitionReferenceItem
+            int partitionReferenceItem,
+            boolean mergeSchema
             ) throws StandardException{
         ExpressionClassBuilder acb=(ExpressionClassBuilder)acbi;
         int numArgs;
@@ -159,9 +160,9 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
 		 * sorted, 3) the in-list column position in the index or primary key.
 		 */
         if(genInListVals){
-            numArgs=38;
+            numArgs=39;
         }else{
-            numArgs=35;
+            numArgs=36;
         }
 
 
@@ -208,7 +209,8 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
                 lines,
                 storedAs,
                 location,
-                partitionReferenceItem
+                partitionReferenceItem,
+                mergeSchema
                 );
 
         return numArgs;

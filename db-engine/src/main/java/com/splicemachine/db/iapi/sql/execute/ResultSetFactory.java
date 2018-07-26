@@ -35,7 +35,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultSet;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 /**
  * ResultSetFactory provides a wrapper around all of
@@ -936,6 +935,7 @@ public interface ResultSetFactory {
 								String storedAs,
 								String location,
 								int partitionByRefItem,
+                                boolean mergeSchema,
 								GeneratedMethod defaultRowFunc,
 								int defaultValueMapItem
 								)
@@ -995,6 +995,7 @@ public interface ResultSetFactory {
 								String storedAs,
 								String location,
 								int partitionByRefItem,
+                                boolean mergeSchema,
 								GeneratedMethod defaultRowFunc,
 								int defaultValueMapItem
 								)

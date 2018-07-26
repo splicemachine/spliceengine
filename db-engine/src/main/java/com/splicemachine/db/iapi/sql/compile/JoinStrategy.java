@@ -288,7 +288,8 @@ public interface JoinStrategy {
 							String lines,
 							String storedAs,
 							String location,
-							int partitionRefItem)
+							int partitionRefItem,
+							boolean mergeSchema)
 					throws StandardException;
 
 	/**

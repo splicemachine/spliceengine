@@ -55,7 +55,7 @@ public class TableScanOperation extends ScanOperation{
     protected int[] baseColumnMap;
     protected static final String NAME=TableScanOperation.class.getSimpleName().replaceAll("Operation","");
     protected byte[] tableNameBytes;
-
+    protected boolean mergeSchema;
     /**
      *
      * Return the nice formatted name for the Table Scan operation.
@@ -157,8 +157,10 @@ public class TableScanOperation extends ScanOperation{
                               String storedAs,
                               String location,
                               int partitionByRefItem,
+                              boolean mergeSchema,
                               GeneratedMethod defaultRowFunc,
-                              int defaultValueMapItem) throws StandardException{
+                              int defaultValueMapItem
+                              ) throws StandardException{
         super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,
                 sameStartStopPosition,rowIdKey,qualifiersField,resultRowAllocator,lockMode,tableLocked,isolationLevel,
                 colRefItem,indexColItem,oneRowScan,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion,
@@ -173,6 +175,7 @@ public class TableScanOperation extends ScanOperation{
         this.tableNameBytes=Bytes.toBytes(this.tableName);
         this.indexColItem=indexColItem;
         this.indexName=indexName;
+        this.mergeSchema = mergeSchema;
         init();
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"isTopResultSet=%s,optimizerEstimatedCost=%f,optimizerEstimatedRowCount=%f",isTopResultSet,optimizerEstimatedCost,optimizerEstimatedRowCount);
@@ -196,6 +199,7 @@ public class TableScanOperation extends ScanOperation{
         indexColItem=in.readInt();
         if(in.readBoolean())
             indexName=in.readUTF();
+        mergeSchema = in.readBoolean();
     }
     /**
      *
@@ -214,6 +218,7 @@ public class TableScanOperation extends ScanOperation{
         out.writeBoolean(indexName!=null);
         if(indexName!=null)
             out.writeUTF(indexName);
+        out.writeBoolean(mergeSchema);
     }
 
     /**
@@ -363,6 +368,7 @@ public class TableScanOperation extends ScanOperation{
                 .location(location)
                 .partitionByColumns(getPartitionColumnMap())
                 .defaultRow(defaultRow,scanInformation.getDefaultValueMap())
+                .mergeSchema(mergeSchema)
                 .buildDataSet(this).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
     }
 }
