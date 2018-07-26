@@ -886,7 +886,7 @@
             <properties>
                 <envClassifier>hdp2.6.4</envClassifier>
                 <envHbase>hbase1.1.2.2.6</envHbase>
-                <hadoop.version>2.7.3.2.6.3.0-235</hadoop.version>
+                <hadoop.version>2.7.3.2.6.4.0-91</hadoop.version>
                 <hbase.version>1.1.2.2.6.4.0-91</hbase.version>
                 <hive.version>2.1.0.2.6.4.0-91</hive.version>
                 <zookeeper.version>3.4.6.2.6.4.0-91</zookeeper.version>
