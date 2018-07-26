@@ -18,7 +18,7 @@
 
 # if server still running, fail - must stop first
 SPID=$(ps -ef | awk '/SpliceTestPlatform|SpliceSinglePlatform|SpliceTestClusterParticipant/ && !/awk/ {print $2}')
-ZPID=$(ps -ef | awk '/zoo/ && !/awk/ {print $2}')
+ZPID=$(ps -ef | awk '/zookeeper/ && !/awk/ {print $2}')
 YPID=$(ps -ef | awk '/spliceYarn|SpliceTestYarnPlatform|CoarseGrainedScheduler|ExecutorLauncher/ && !/awk/ {print $2}')
 KPID=$(ps -ef | awk '/TestKafkaCluster/ && !/awk/ {print $2}')
 if [[ -n ${SPID} || -n ${ZPID} ]] || [[ -n ${YPID} || -n ${KPID} ]]; then
@@ -107,7 +107,7 @@ pushd "${RUN_DIR}" > /dev/null
 /bin/rm -f *.log*
 
 ZOO_LOG="${RUN_DIR}/zoo.log"
-echo "Starting Zoo. Log file is ${ZOO_LOG}"
+echo "Starting ZooKeeper. Log file is ${ZOO_LOG}"
 
 
 # TODO eventually move - need cp script to consolidate as part of prepare package
