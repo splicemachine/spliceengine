@@ -24,7 +24,7 @@ _kill_em_all () {
    [[ -n $P ]] && echo "Found Yarn. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
 
    P=$(ps -ef | awk '/zookeeper/ && !/awk/ {print $2}')
-   [[ -n $P ]] && echo "Found Zoo. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
+   [[ -n $P ]] && echo "Found ZooKeeper. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
 
    P=$(ps -ef | awk '/TestKafkaCluster/ && !/awk/ {print $2}')
    [[ -n $P ]] && echo "Found Kafka. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
@@ -148,7 +148,7 @@ if [[ ${PROFILE} == ${IN_MEM_PROFILE} ]]; then
 fi
 
 ZOO_LOG="${RUN_DIR}/zoo.log"
-echo "Starting Zoo. Log file is ${ZOO_LOG}"
+echo "Starting ZooKeeper. Log file is ${ZOO_LOG}"
 (${MVN} exec:exec -P${PROFILE},spliceZoo > ${ZOO_LOG} 2>&1) &    ## zookeeper
 #######################################################################################################
 # Wait for up to 65 seconds for zoo to start, checking nc periodically to see if we are connected
