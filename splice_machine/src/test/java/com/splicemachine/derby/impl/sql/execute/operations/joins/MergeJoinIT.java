@@ -358,6 +358,48 @@ public class MergeJoinIT extends SpliceUnitTest {
                 .withRows(rows(
                         row(3, 30, 300, 3000, 30000), row(5, 50, 500, 5000, 50000)))
                 .create();
+
+        new TableCreator(conn)
+                .withCreate("create table tt1_misc_order (a1 int, b1 int, c1 int, d1 int, e1 int, primary key(e1, d1))")
+                .withInsert("insert into tt1_misc_order values(?,?,?,?,?)")
+                .withIndex("create index idx_tt1_misc_order on tt1_misc_order (a1 desc, b1 asc, d1 desc)")
+                .withRows(rows(
+                        row(3, 30, 300, 3000, 30000),
+                        row(3, 30, 300, 3001, 30000),
+                        row(5, 50, 500, 5000, 50000),
+                        row(7, 70, 700, 7000, 70000)))
+                .create();
+        new TableCreator(conn)
+                .withCreate("create table tt2_misc_order (a2 int, b2 int, c2 int, d2 int, e2 int, primary key(e2, d2))")
+                .withInsert("insert into tt2_misc_order values(?,?,?,?,?)")
+                .withIndex("create index idx_tt2_misc_order on tt2_misc_order (a2 desc, b2 asc, d2 desc)")
+                .withRows(rows(
+                        row(3, 30, 300, 3000, 30000),
+                        row(3, 30, 300, 3001, 30000),
+                        row(4, 40, 800, 4000, 40000),
+                        row(5, 50, 500, 5000, 50000),
+                        row(7, 70, 700, 7000, 70000)))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table tt3 (a3 int, b3 int, c3 int, d3 int, e3 int, primary key(e3, d3, b3))")
+                .withInsert("insert into tt3 values(?,?,?,?,?)")
+                .withRows(rows(
+                        row(1,-1,1,1,1),
+                        row(2,-2,2,2,2),
+                        row(5,-5,50,5,5),
+                        row(5,-4,50,5,5)))
+                .create();
+        new TableCreator(conn)
+                .withCreate("create table tt4 (a4 int, b4 int, c4 int, d4 int, e4 int, primary key(e4, d4,b4))")
+                .withInsert("insert into tt4 values(?,?,?,?,?)")
+                .withRows(rows(
+                        row(1,1,1,1,1),
+                        row(2,2,2,2,2),
+                        row(5,4,50,5,5),
+                        row(5,5,50,5,5)))
+                .create();
+
     }
     @Test
     public void testSimpleJoinOverAllStrategies() throws Exception {
@@ -1051,6 +1093,147 @@ public class MergeJoinIT extends SpliceUnitTest {
 
         //test spark path
         sql = sql = "select d1, b1, d2, b2 from tt1 left join tt2 --splice-properties index=idx_tt2, joinStrategy=MERGE, useSpark=true\n on d1=d2 and b1+3=b2+3";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testDescOrder() throws Exception {
+        // 1. test desc order
+        String sql = "select a1,b1,d1,a2,b2,d2 from tt1_misc_order, " +
+                "tt2_misc_order --splice-properties index=idx_tt2_misc_order, joinStrategy=MERGE, useSpark=false\n" +
+                "where a1=a2";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String expected = "A1 |B1 | D1  |A2 |B2 | D2  |\n" +
+                "----------------------------\n" +
+                " 3 |30 |3000 | 3 |30 |3000 |\n" +
+                " 3 |30 |3000 | 3 |30 |3001 |\n" +
+                " 3 |30 |3001 | 3 |30 |3000 |\n" +
+                " 3 |30 |3001 | 3 |30 |3001 |\n" +
+                " 5 |50 |5000 | 5 |50 |5000 |\n" +
+                " 7 |70 |7000 | 7 |70 |7000 |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //test spark path
+        sql = "select a1,b1,d1,a2,b2,d2 from tt1_misc_order, " +
+                "tt2_misc_order --splice-properties index=idx_tt2_misc_order, joinStrategy=MERGE, useSpark=true\n" +
+                "where a1=a2";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // 2. test desc order with equality single table predicate on leading index columns
+        sql = "select a1,b1,d1,a2,b2,d2 from tt1_misc_order, " +
+                "tt2_misc_order --splice-properties index=idx_tt2_misc_order, joinStrategy=MERGE, useSpark=false\n" +
+                "where a1=a2 and b1=b2 and d1=d2 and a1=3 and b1=30";
+        rs = methodWatcher.executeQuery(sql);
+        expected = "A1 |B1 | D1  |A2 |B2 | D2  |\n" +
+                "----------------------------\n" +
+                " 3 |30 |3000 | 3 |30 |3000 |\n" +
+                " 3 |30 |3001 | 3 |30 |3001 |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sql = "select a1,b1,d1,a2,b2,d2 from tt1_misc_order, " +
+                "tt2_misc_order --splice-properties index=idx_tt2_misc_order, joinStrategy=MERGE, useSpark=true\n" +
+                "where a1=a2 and b1=b2 and d1=d2 and a1=3 and b1=30";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //3. test desc order with less than single table predicate on leading index columns
+        sql = "select a1,b1,d1,a2,b2,d2 from tt1_misc_order, " +
+                "tt2_misc_order --splice-properties index=idx_tt2_misc_order, joinStrategy=MERGE, useSpark=false\n" +
+                "where a1=a2 and b1=b2 and d1=d2 and a1<5";
+        rs = methodWatcher.executeQuery(sql);
+        expected = "A1 |B1 | D1  |A2 |B2 | D2  |\n" +
+                "----------------------------\n" +
+                " 3 |30 |3000 | 3 |30 |3000 |\n" +
+                " 3 |30 |3001 | 3 |30 |3001 |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sql = "select a1,b1,d1,a2,b2,d2 from tt1_misc_order, " +
+                "tt2_misc_order --splice-properties index=idx_tt2_misc_order, joinStrategy=MERGE, useSpark=true\n" +
+                "where a1=a2 and b1=b2 and d1=d2 and a1<5";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testMiscOrder() throws Exception {
+        String sql = "select a1,b1,d1,a2,b2,d2 from tt1_misc_order, " +
+                "tt2_misc_order --splice-properties index=idx_tt2_misc_order, joinStrategy=MERGE, useSpark=false\n" +
+                "where a1=a2 and b1=b2 and d1=d2";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String expected = "A1 |B1 | D1  |A2 |B2 | D2  |\n" +
+                "----------------------------\n" +
+                " 3 |30 |3000 | 3 |30 |3000 |\n" +
+                " 3 |30 |3001 | 3 |30 |3001 |\n" +
+                " 5 |50 |5000 | 5 |50 |5000 |\n" +
+                " 7 |70 |7000 | 7 |70 |7000 |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //test spark path
+        sql = "select a1,b1,d1,a2,b2,d2 from tt1_misc_order, " +
+                "tt2_misc_order --splice-properties index=idx_tt2_misc_order, joinStrategy=MERGE, useSpark=true\n" +
+                "where a1=a2 and b1=b2 and d1=d2";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testJoinConditionWithExpression() throws Exception {
+        String sql = "select e3,d3,b3,e4,d4,b4 from tt3, " +
+                "tt4 --splice-properties index=null, joinStrategy=MERGE, useSpark=false\n" +
+                "where e3=e4 and d3=d4 and -b3=b4";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String expected = "E3 |D3 |B3 |E4 |D4 |B4 |\n" +
+                "------------------------\n" +
+                " 1 | 1 |-1 | 1 | 1 | 1 |\n" +
+                " 2 | 2 |-2 | 2 | 2 | 2 |\n" +
+                " 5 | 5 |-4 | 5 | 5 | 4 |\n" +
+                " 5 | 5 |-5 | 5 | 5 | 5 |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //test spark path
+        sql = "select e3,d3,b3,e4,d4,b4 from tt3, " +
+                "tt4 --splice-properties index=null, joinStrategy=MERGE, useSpark=true\n" +
+                "where e3=e4 and d3=d4 and -b3=b4";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testJoinConditionOnNonIndexColumn() throws Exception {
+        String sql = "select e1,d1,c1,e2,d2,c2 from tt1_misc_order, " +
+                "tt2_misc_order --splice-properties index=null, joinStrategy=MERGE, useSpark=false\n" +
+                "where e1=e2 and d1=d2 and c1=c2";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String expected = "E1   | D1  |C1  | E2   | D2  |C2  |\n" +
+                "------------------------------------\n" +
+                "30000 |3000 |300 |30000 |3000 |300 |\n" +
+                "30000 |3001 |300 |30000 |3001 |300 |\n" +
+                "50000 |5000 |500 |50000 |5000 |500 |\n" +
+                "70000 |7000 |700 |70000 |7000 |700 |";
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        //test spark path
+        sql = "select e1,d1,c1,e2,d2,c2 from tt1_misc_order, " +
+                "tt2_misc_order --splice-properties index=null, joinStrategy=MERGE, useSpark=true\n" +
+                "where e1=e2 and d1=d2 and c1=c2";
         rs = methodWatcher.executeQuery(sql);
         assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
