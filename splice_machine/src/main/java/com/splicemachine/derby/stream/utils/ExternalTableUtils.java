@@ -139,9 +139,6 @@ public class ExternalTableUtils {
                 partitionedTableFields[index++] = tableFields[i];
             }
         }
-        for (int pos:partitionColumnMap) {
-            partitionedTableFields[index++] = tableFields[pos];
-        }
 
         for (int i = 0; i < tableFields.length - partitionColumnMap.length; ++i) {
 
