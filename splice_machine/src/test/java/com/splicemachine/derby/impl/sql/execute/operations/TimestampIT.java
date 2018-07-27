@@ -83,7 +83,7 @@ public class TimestampIT extends SpliceUnitTest {
         assertNotNull(BADDIR);
 
         try (Statement s = conn.createStatement()) {
-            s.execute("CALL SYSCS_UTIL.SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE()");
+            // s.execute("CALL SYSCS_UTIL.SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE()");  Currently failing due to SPLICE-2217.
             s.execute("CALL SYSCS_UTIL.INVALIDATE_GLOBAL_DICTIONARY_CACHE()");
             s.execute("call syscs_util.syscs_set_global_database_property('derby.database.convertOutOfRangeTimeStamps', 'true')");
 
@@ -519,7 +519,7 @@ public class TimestampIT extends SpliceUnitTest {
             sqlText = format("select t1.col1 from t1,t2 --SPLICE-PROPERTIES useSpark = %s,joinStrategy=%s  \n" +
             "where t1.col1=t2.col1", useSpark, js);
             rs = methodWatcher.executeQuery(sqlText);
-            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
             rs.close();
         }
     }
@@ -584,7 +584,7 @@ public class TimestampIT extends SpliceUnitTest {
         Connection conn = spliceClassWatcher.getOrCreateConnection();
 
         try (Statement s = conn.createStatement()) {
-            s.execute("CALL SYSCS_UTIL.SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE()");
+            // s.execute("CALL SYSCS_UTIL.SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE()");  Currently failing due to SPLICE-2217.
             s.execute("CALL SYSCS_UTIL.INVALIDATE_GLOBAL_DICTIONARY_CACHE()");
             s.execute("call syscs_util.syscs_set_global_database_property('derby.database.convertOutOfRangeTimeStamps', 'false')");
         }
