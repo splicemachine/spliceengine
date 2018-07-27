@@ -311,17 +311,23 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <V> DataSet<V> readParquetFile(int[] baseColumnMap, int[] partitionColumnMap,String location, OperationContext context,Qualifier[][] qualifiers,DataValueDescriptor probeValue, ExecRow execRow,
+    public <V> DataSet<V> readParquetFile(StructType schema, int[] baseColumnMap, int[] partitionColumnMap,
+                                          String location, OperationContext context,Qualifier[][] qualifiers,
+                                          DataValueDescriptor probeValue, ExecRow execRow,
                                           boolean useSample, double sampleFraction) throws StandardException {
             DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
-            return new ControlDataSet(proc.readParquetFile(baseColumnMap,partitionColumnMap, location, context, qualifiers, probeValue,execRow, useSample, sampleFraction).toLocalIterator());
+            return new ControlDataSet(proc.readParquetFile(schema, baseColumnMap,partitionColumnMap, location,
+                    context, qualifiers, probeValue,execRow, useSample, sampleFraction).toLocalIterator());
    }
 
     @Override
-    public <V> DataSet<V> readAvroFile(int[] baseColumnMap, int[] partitionColumnMap,String location, OperationContext context,Qualifier[][] qualifiers,DataValueDescriptor probeValue, ExecRow execRow,
-                                          boolean useSample, double sampleFraction) throws StandardException {
+    public <V> DataSet<V> readAvroFile(StructType schema, int[] baseColumnMap, int[] partitionColumnMap,
+                                       String location, OperationContext context,Qualifier[][] qualifiers,
+                                       DataValueDescriptor probeValue, ExecRow execRow, boolean useSample,
+                                       double sampleFraction) throws StandardException {
         DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
-        return new ControlDataSet(proc.readAvroFile(baseColumnMap,partitionColumnMap, location, context, qualifiers, probeValue,execRow, useSample, sampleFraction).toLocalIterator());
+        return new ControlDataSet(proc.readAvroFile(schema, baseColumnMap,partitionColumnMap, location, context,
+                qualifiers, probeValue,execRow, useSample, sampleFraction).toLocalIterator());
     }
 
     @Override
