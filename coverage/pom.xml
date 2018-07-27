@@ -198,6 +198,25 @@
 				</dependency>
 			</dependencies>
 		</profile>
+		<profile>
+			<id>hdp2.6.4</id>
+			<dependencies>
+				<dependency> <groupId>${project.groupId}</groupId>
+					<artifactId>hbase_sql-${envClassifier}</artifactId>
+					<version>${project.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>${project.groupId}</groupId>
+					<artifactId>hbase_storage-${envClassifier}</artifactId>
+					<version>${project.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>${project.groupId}</groupId>
+					<artifactId>hbase_pipeline-${envClassifier}</artifactId>
+					<version>${project.version}</version>
+				</dependency>
+			</dependencies>
+		</profile>
         <profile>
         	<id>cdh5.8.3</id>
         <dependencies>
