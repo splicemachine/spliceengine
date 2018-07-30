@@ -1893,7 +1893,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
     }
 
     @Override
-    public Visitable projectionListPruning(boolean considerAllRCs) throws StandardException {
+    public Visitable projectionListPruning(boolean considerAllRCs, boolean firstPass) throws StandardException {
         return this;
     }
 

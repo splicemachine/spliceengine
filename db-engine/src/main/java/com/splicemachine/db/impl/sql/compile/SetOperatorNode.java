@@ -1120,7 +1120,7 @@ abstract class SetOperatorNode extends TableOperatorNode
 	/**
 	 * prune the unreferenced result columns of FromSubquery node and FromBaseTable node
 	 */
-	public Visitable projectionListPruning(boolean considerAllRCs) throws StandardException {
+	public Visitable projectionListPruning(boolean considerAllRCs, boolean firstPass) throws StandardException {
 		/**
 		 * 	unconditionally mark all result columns as referenced, so that the size of RCL for the set operation
 		 * 	and its two sources will be consistent. If we don't set all as referenced, there will be inconsistency
@@ -1129,18 +1129,20 @@ abstract class SetOperatorNode extends TableOperatorNode
 		 * 	select count(*) from (select a1 from t1 intersect select a3 from t3) dt;
  		 */
 
-		resultColumns.setColumnReferences(true, true);
+		if (!firstPass) {
+			resultColumns.setColumnReferences(true, true);
 
-		/**
-		 * 	Since the SET operation's RCs points to the left source's RCs, and both left and right source's RCL should
-		 * 	be consistent with the SET operation's RCL, just propagate the isReferenced property from set operation directly
-		 * 	to the left and right source.
- 		 */
-		for (int i=0; i<resultColumns.size(); i++) {
-			ResultColumn rc = resultColumns.elementAt(i);
-			if (rc.isReferenced()) {
-				leftResultSet.resultColumns.elementAt(i).setReferenced();
-				rightResultSet.resultColumns.elementAt(i).setReferenced();
+			/**
+			 * 	Since the SET operation's RCs points to the left source's RCs, and both left and right source's RCL should
+			 * 	be consistent with the SET operation's RCL, just propagate the isReferenced property from set operation directly
+			 * 	to the left and right source.
+			 */
+			for (int i = 0; i < resultColumns.size(); i++) {
+				ResultColumn rc = resultColumns.elementAt(i);
+				if (rc.isReferenced()) {
+					leftResultSet.resultColumns.elementAt(i).setReferenced();
+					rightResultSet.resultColumns.elementAt(i).setReferenced();
+				}
 			}
 		}
 
