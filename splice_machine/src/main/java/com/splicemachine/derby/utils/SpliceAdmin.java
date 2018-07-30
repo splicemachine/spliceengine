@@ -1668,7 +1668,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             ConglomerateDescriptor conglomerate = lcc.getDataDictionary().getConglomerateDescriptor(conglomId);
 
             // Check generic table permission
-            Activation activation = new SimpleActivation(Arrays.asList(new StatementTablePermission(conglomerate.getSchemaID(), conglomerate.getTableID(), Authorizer.SELECT_PRIV)));
+            Activation activation = new SimpleActivation(Arrays.asList(new StatementTablePermission(conglomerate.getSchemaID(), conglomerate.getTableID(), Authorizer.SELECT_PRIV)), lcc);
             lcc.getAuthorizer().authorize(activation, Authorizer.SELECT_PRIV);
 
             // Special check for SYSUSERS which contains the user/passwords
@@ -1736,7 +1736,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 ConglomerateDescriptor conglomerate = lcc.getDataDictionary().getConglomerateDescriptor(conglomerateId);
 
                 // Check generic table permission
-                Activation activation = new SimpleActivation(Arrays.asList(new StatementTablePermission(conglomerate.getSchemaID(), conglomerate.getTableID(), Authorizer.SELECT_PRIV)));
+                Activation activation = new SimpleActivation(Arrays.asList(new StatementTablePermission(conglomerate.getSchemaID(), conglomerate.getTableID(), Authorizer.SELECT_PRIV)), lcc);
                 lcc.getAuthorizer().authorize(activation, Authorizer.SELECT_PRIV);
 
                 // Special check for SYSUSERS which contains the user/passwords
