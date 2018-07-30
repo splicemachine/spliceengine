@@ -179,6 +179,9 @@ public class ImportUtils{
             unescaped.append(ch);
         }
 
-        return unescaped.toString();
+        if (hadControl && unescaped.length() == 0)
+            return "^";
+        else
+            return unescaped.toString();
     }
 }
