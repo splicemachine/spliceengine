@@ -23,6 +23,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
+import org.apache.spark.sql.types.StructType;
 
 import java.io.InputStream;
 import java.util.Iterator;
@@ -149,15 +150,21 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <V> DataSet<V> readParquetFile(int[] baseColumnMap,int[] partitionColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,ExecRow execRow,
-                                          boolean useSample, double sampleFraction) throws StandardException {
-        return delegate.readParquetFile(baseColumnMap, partitionColumnMap,location, context,qualifiers,probeValue,execRow, useSample, sampleFraction);
+    public <V> DataSet<V> readParquetFile(StructType schema, int[] baseColumnMap, int[] partitionColumnMap,
+                                          String location, OperationContext context, Qualifier[][] qualifiers,
+                                          DataValueDescriptor probeValue, ExecRow execRow, boolean useSample,
+                                          double sampleFraction) throws StandardException {
+        return delegate.readParquetFile(schema, baseColumnMap, partitionColumnMap,location, context, qualifiers,
+                probeValue,execRow, useSample, sampleFraction);
     }
 
     @Override
-    public <V> DataSet<V> readAvroFile(int[] baseColumnMap,int[] partitionColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,ExecRow execRow,
-                                          boolean useSample, double sampleFraction) throws StandardException {
-        return delegate.readAvroFile(baseColumnMap, partitionColumnMap,location, context,qualifiers,probeValue,execRow, useSample, sampleFraction);
+    public <V> DataSet<V> readAvroFile(StructType schema, int[] baseColumnMap,int[] partitionColumnMap,
+                                       String location, OperationContext context, Qualifier[][] qualifiers,
+                                       DataValueDescriptor probeValue,ExecRow execRow, boolean useSample,
+                                       double sampleFraction) throws StandardException {
+        return delegate.readAvroFile(schema, baseColumnMap, partitionColumnMap,location, context,qualifiers,probeValue,
+                execRow, useSample, sampleFraction);
     }
 
     @Override

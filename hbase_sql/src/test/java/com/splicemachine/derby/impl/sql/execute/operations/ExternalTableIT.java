@@ -460,11 +460,11 @@ public class ExternalTableIT extends SpliceUnitTest{
                 " STORED AS AVRO LOCATION '%s'",tablePath));
     }
 
-    @Test @Ignore // DB-6044
+    @Test
     public void testLocationCannotBeAFileAvro() throws  Exception{
         File temp = File.createTempFile("temp-file-avro", ".tmp");
         try {
-            methodWatcher.executeUpdate(String.format("create external table table_to_existing_file_avro (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
+            methodWatcher.executeUpdate(String.format("create external table table_to_existing_file_avro_temp (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
                     " STORED AS AVRO LOCATION '%s'", temp.getAbsolutePath()));
             Assert.fail("Exception not thrown");
         } catch (SQLException ee) {
@@ -715,7 +715,6 @@ public class ExternalTableIT extends SpliceUnitTest{
 
 
     @Test
-    @Ignore // SPLICE-1809
     public void testWriteReadWithPartitionedByFloatTable() throws Exception {
         String tablePath = getExternalResourceDirectory()+"simple_parquet_with_partition";
         methodWatcher.executeUpdate(String.format("create external table simple_parquet_with_partition (col1 int, col2 varchar(24), col3 float(10) )" +
@@ -733,7 +732,6 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
     @Test
-    @Ignore // SPLICE-1809
     public void testWriteReadWithPartitionedByFloatTableAvro() throws Exception {
         String tablePath = getExternalResourceDirectory()+"simple_avro_with_partition";
         methodWatcher.executeUpdate(String.format("create external table simple_avro_with_partition (col1 int, col2 varchar(24), col3 float(10) )" +
@@ -1050,7 +1048,7 @@ public class ExternalTableIT extends SpliceUnitTest{
     @Test
     public void testReadPassedConstraint() throws Exception {
             methodWatcher.executeUpdate(String.format("create external table failing_correct_attribute(col1 varchar(24), col2 varchar(24), col4 varchar(24))" +
-                    "STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_sample_one"));
+                    "partitioned by (col1) STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_sample_one"));
             ResultSet rs = methodWatcher.executeQuery("select COL2 from failing_correct_attribute where col1='AAA'");
             Assert.assertEquals("COL2 |\n" +
                     "------\n" +
@@ -1218,10 +1216,7 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "  1  |test |", TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
-    // look like it will be resolve in the next Spark version
-    // https://issues.apache.org/jira/browse/SPARK-15474
-    // for now ignoring
-    @Test @Ignore
+    @Test
     public void validateReadORCFromEmptyDirectory() throws Exception {
         String path = getExternalResourceDirectory()+"orc_empty";
         methodWatcher.executeUpdate(String.format("create external table orc_empty (col1 int, col2 varchar(24))" +
@@ -1580,7 +1575,6 @@ public class ExternalTableIT extends SpliceUnitTest{
 
 
     @Test
-    @Ignore
     public void testWriteToWrongPartitionedParquetExternalTable() throws Exception {
         try {
             methodWatcher.executeUpdate(String.format("create external table w_partitioned_parquet (col1 int, col2 varchar(24))" +
@@ -1600,7 +1594,6 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
     @Test
-    @Ignore
     public void testWriteToWrongPartitionedAvroExternalTable() throws Exception {
         try {
             methodWatcher.executeUpdate(String.format("create external table w_partitioned_avro (col1 int, col2 varchar(24))" +
@@ -2605,5 +2598,33 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "  1  |  1  |\n" +
                 "  2  |  2  |\n" +
                 "  3  |  3  |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+
+    @Test
+    public void testParquetMergeSchema() throws Exception {
+        try {
+            methodWatcher.executeUpdate(String.format("create external table parquet_schema_evolution (c1 int, c2 varchar(2), c3 double)" +
+                    " STORED AS PARQUET LOCATION '%s'", getResourceDirectory() + "parquet_schema_evolution"));
+            Assert.fail("Exception not thrown");
+        }
+        catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception","EXT23",e.getSQLState());
+        }
+
+        methodWatcher.executeUpdate(String.format("create external table parquet_schema_evolution (c1 int, c2 varchar(2), c3 double)" +
+                " STORED AS PARQUET LOCATION '%s' merge schema", getResourceDirectory() + "parquet_schema_evolution"));
+
+
+        ResultSet rs = methodWatcher.executeQuery("select * from parquet_schema_evolution order by 1");
+        String actual = TestUtils.FormattedResult.ResultFactory.toString(rs);
+        String expected =
+                "C1 |C2 |  C3   |\n" +
+                "----------------\n" +
+                " 1 |CA | NULL  |\n" +
+                " 2 |NY | NULL  |\n" +
+                " 3 |TX | NULL  |\n" +
+                " 4 |NJ |100.01 |";
+        Assert.assertEquals(actual, expected, actual);
     }
 }

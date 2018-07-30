@@ -27,23 +27,19 @@ import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerB
 import com.splicemachine.derby.stream.function.TableScanPredicateFunction;
 import com.splicemachine.derby.stream.function.TableScanTupleMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.utils.ExternalTableUtils;
 import com.splicemachine.derby.stream.utils.StreamUtils;
-import com.splicemachine.derby.stream.utils.AvroUtils;
-import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.SMInputFormat;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.sql.types.StructType;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.sql.Blob;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 
 /**
  * @author Scott Fines
@@ -81,6 +77,8 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
             return dsp.readPinnedTable(Long.parseLong(tableName),baseColumnMap,location,operationContext,operation.getScanInformation().getScanQualifiers(),null,operation.getExecRowDefinition()).filter(new TableScanPredicateFunction(operationContext));
         }
         if (storedAs!= null) {
+            StructType schema = ExternalTableUtils.getSchema(activation, Long.parseLong(tableName));
+
             ScanOperation operation = op==null?null:(ScanOperation) op;
             ExecRow execRow = operation==null?template:op.getExecRowDefinition();
             Qualifier[][] qualifiers = operation == null?null:operation.getScanInformation().getScanQualifiers();
@@ -88,12 +86,13 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
             if (storedAs.equals("T"))
                 locatedRows = dsp.readTextFile(op,location,escaped,delimited,baseColumnMap,operationContext,qualifiers,null,execRow, useSample, sampleFraction);
             else if (storedAs.equals("P"))
-                locatedRows = dsp.readParquetFile(baseColumnMap,partitionByColumns,location,operationContext,qualifiers,null,execRow, useSample, sampleFraction);
+                locatedRows = dsp.readParquetFile(schema, baseColumnMap,partitionByColumns,location,operationContext,qualifiers,null,execRow, useSample, sampleFraction);
             else if (storedAs.equals("A")) {
-                AvroUtils.supportAvroDateTypeColumns(execRow);
-                locatedRows = dsp.readAvroFile(baseColumnMap, partitionByColumns, location, operationContext, qualifiers, null, execRow, useSample, sampleFraction);
+                ExternalTableUtils.supportAvroDateTypeColumns(execRow);
+                locatedRows = dsp.readAvroFile(schema, baseColumnMap, partitionByColumns, location, operationContext, qualifiers, null, execRow, useSample, sampleFraction);
             }
             else if (storedAs.equals("O"))
+
                 locatedRows = dsp.readORCFile(baseColumnMap,partitionByColumns,location,operationContext,qualifiers,null,execRow, useSample, sampleFraction, false);
             else {
                 throw new UnsupportedOperationException("storedAs Type not supported -> " + storedAs);
@@ -154,5 +153,4 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         this.dsp = (SparkDataSetProcessor)in.readObject();
         this.op = (SpliceOperation)in.readObject();
     }
-
 }

@@ -48,8 +48,8 @@ import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.UpdateDataSetWriterBuilder;
-import com.splicemachine.derby.stream.utils.AvroUtils;
 import com.splicemachine.derby.stream.output.*;
+import com.splicemachine.derby.stream.utils.ExternalTableUtils;
 import com.splicemachine.utils.ByteDataInput;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
@@ -778,7 +778,7 @@ public class SparkDataSet<V> implements DataSet<V> {
                                                 OperationContext context) {
         try {
 
-            StructType schema = AvroUtils.supportAvroDateType(context.getOperation().getExecRowDefinition().schema(),"a");
+            StructType schema = ExternalTableUtils.supportAvroDateType(context.getOperation().getExecRowDefinition().schema(),"a");
 
             Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
                     rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowAvroFunction()),
