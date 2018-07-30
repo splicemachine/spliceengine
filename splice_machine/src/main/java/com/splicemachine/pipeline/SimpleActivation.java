@@ -30,10 +30,11 @@ import java.util.Vector;
 
 public class SimpleActivation extends BaseActivation {
 
-    public SimpleActivation(List<StatementTablePermission> statementTablePermissions) {
+    public SimpleActivation(List<StatementTablePermission> statementTablePermissions, LanguageConnectionContext context) throws StandardException {
         GenericPreparedStatement gps = new GenericPreparedStatement(null);
         gps.setRequiredPermissionsList(statementTablePermissions);
         preStmt = gps;
+        initFromContext(context);
     }
     @Override
     protected int getExecutionCount() {
