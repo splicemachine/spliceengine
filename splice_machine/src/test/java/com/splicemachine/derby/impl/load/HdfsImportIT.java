@@ -1857,6 +1857,43 @@ public class HdfsImportIT extends SpliceUnitTest {
         assertContains(badLines, containsString("partial record found [bbb"));
     }
 
+    @Test
+    public void testCircumflexColumnDelimiter() throws Exception {
+
+        methodWatcher.getOrCreateConnection().createStatement().executeUpdate(
+                format("create table %s ",spliceSchemaWatcher.schemaName+".TIRN_ASSIGNMENT")+
+                        "(BATCH_DATE date default '2018-07-07', IRN decimal(9,0),\n" +
+                        "GROUP_NUM decimal(9,0),\n" +
+                        "GROUP_BEG_DT decimal(9, 0),\n" +
+                        "SYS_POSTING_DT decimal(9, 0),\n" +
+                        "GROUP_END_DT decimal(9, 0),\n" +
+                        "GROUP_TYPE_CD varchar(1000),\n" +
+                        "PROCESSOR_ID varchar(1000))");
+
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
+                        "'%s'," +  // schema name
+                        "'%s'," +  // table name
+                        "'IRN,GROUP_NUM,GROUP_BEG_DT,SYS_POSTING_DT,GROUP_END_DT,GROUP_TYPE_CD,PROCESSOR_ID',"  +  // insert column list
+                        "'%s'," +  // file path
+                        "'^'," +   // column delimiter
+                        "null," +  // character delimiter
+                        "null," +  // timestamp format
+                        "null," +  // date format
+                        "null," +  // time format
+                        "0," +    // max bad records
+                        "'%s'," +  // bad record dir
+                        "true," +  // has one line records
+                        "null)",   // char set
+                spliceSchemaWatcher.schemaName, "TIRN_ASSIGNMENT",
+                getResourceDirectory() + "smccd.csv",
+                BADDIR.getCanonicalPath()));
+
+
+        ps.execute();
+
+
+    }
+
     private static void assertContains(List<String> collection, Matcher<String> target) {
         for (String source : collection) {
             if (target.matches(source)) {
