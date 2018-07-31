@@ -1225,7 +1225,7 @@
             </activation>
             <properties>
                 <envClassifier>mapr6.0.0</envClassifier>
-                <envHbase>hbase1.1.1</envHbase>
+                <envHbase>hbase1.1.0</envHbase>
                 <hadoop.version>2.7.0-mapr-1710</hadoop.version>
                 <hadoop.tools.version>1.0.3-mapr-5.2.0</hadoop.tools.version>
                 <hbase.version>1.1.8-mapr-1710</hbase.version>
