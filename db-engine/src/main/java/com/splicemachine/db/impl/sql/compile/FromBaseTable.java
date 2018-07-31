@@ -1081,10 +1081,12 @@ public class FromBaseTable extends FromTable {
                 //sql accessing a view, we only need to look for select privilege
                 //on the actual view and that is what the following code is
                 //checking.
-                for(int i=0;i<resultColumns.size();i++){
-                    ResultColumn rc=resultColumns.elementAt(i);
-                    if(rc.isPrivilegeCollectionRequired())
+                // we only need to collect privilege requirement if the current
+                // view's isPrivilegeCollectionRequired is set
+                if(isPrivilegeCollectionRequired()) {
+                    for (ResultColumn rc : resultColumns) {
                         compilerContext.addRequiredColumnPriv(rc.getTableColumnDescriptor());
+                    }
                 }
 
                 fsq=(FromSubquery)getNodeFactory().getNode(
