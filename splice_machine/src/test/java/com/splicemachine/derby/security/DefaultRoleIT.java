@@ -17,10 +17,7 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.HBaseTest;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -89,8 +86,8 @@ public class DefaultRoleIT {
     private static SpliceTableWatcher tableWatcher4 = new SpliceTableWatcher(TABLE4, SCHEMA4,"(a4 int, b4 int, c4 int)" );
     private static SpliceTableWatcher tableWatcher5 = new SpliceTableWatcher(TABLE5, SCHEMA5,"(a5 int, b5 int, c5 int)" );
 
-    @Rule
-    public TestRule chain =
+    @ClassRule
+    public static TestRule chain =
             RuleChain.outerRule(spliceClassWatcherAdmin)
                     .around(spliceSchemaWatcher1)
                     .around(spliceSchemaWatcher2)
@@ -135,8 +132,8 @@ public class DefaultRoleIT {
     String localURLTemplate = "jdbc:splice://localhost:1527/splicedb;create=true;user=%s;password=%s";
     String remoteURLTemplate = "jdbc:splice://localhost:1528/splicedb;create=true;user=%s;password=%s";
 
-    @Before
-    public  void setUpClass() throws Exception {
+    @BeforeClass
+    public static void setUpClass() throws Exception {
         String grantPrivilegeTemplate = "grant all privileges on schema %s to %s";
 
         adminConn = spliceClassWatcherAdmin.createConnection();
@@ -154,6 +151,8 @@ public class DefaultRoleIT {
 
     @AfterClass
     public static void tearDown() throws Exception {
+        adminConn.close();
+        
         spliceClassWatcherAdmin.execute(format("drop role %s", ROLE1));
         spliceClassWatcherAdmin.execute(format("drop role %s", ROLE2));
         spliceClassWatcherAdmin.execute(format("drop role %s", ROLE3));
@@ -206,6 +205,9 @@ public class DefaultRoleIT {
         rs.close();
 
         testPrivileges(user1Conn2, new boolean[] {false, false, false, true, true});
+
+        user1Conn.close();
+        user1Conn2.close();
     }
 
     @Test
@@ -255,6 +257,9 @@ public class DefaultRoleIT {
         rs.close();
 
         testPrivileges(user1Conn2, new boolean[] {false, true, true, true, true});
+
+        user1Conn.close();
+        user1Conn2.close();
     }
 
     @Test
@@ -303,6 +308,9 @@ public class DefaultRoleIT {
         rs.close();
 
         testPrivileges(user1Conn2, new boolean[] {false, true, false, true, true});
+
+        user1Conn.close();
+        user1Conn2.close();
     }
 
     @Test
@@ -353,6 +361,9 @@ public class DefaultRoleIT {
         rs.close();
 
         testPrivileges(user1Conn2, new boolean[] {false, true, false, false, true});
+
+        user1Conn.close();
+        user1Conn2.close();
     }
 
     @Test
@@ -415,6 +426,9 @@ public class DefaultRoleIT {
 
         testPrivileges(user1Conn2, new boolean[] {false, false, false, true, true});
 
+        user1Conn.close();
+        user1Conn2.close();
+
     }
 
     @Test
@@ -461,6 +475,9 @@ public class DefaultRoleIT {
 
         testPrivileges(user1Conn, new boolean[] {false, true, false, false, true});
         testPrivileges(user1Conn2, new boolean[] {false, true, false, false, true});
+
+        user1Conn.close();
+        user1Conn2.close();
     }
 
     private void clearAllRolesOnUsers() throws Exception {
