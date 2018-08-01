@@ -5,6 +5,7 @@ URL=""
 HOST="localhost"
 PORT="1527"
 USER="splice"
+QUOTE=0
 PASS="admin"
 PROMPT=0
 SECURE=0
@@ -27,11 +28,12 @@ message() {
 
 show_help() {
    echo "Splice Machine SQL client wrapper script"
-   echo "Usage: $(basename $BASH_SOURCE) [-U url|-h host] [-p port] [-u user] [-s pass] [-P] [-S] [-k principal] [-K keytab] [-w width] [-f scriptfile] [-o output] [-q]"
+   echo "Usage: $(basename $BASH_SOURCE) [-U url|-h host] [-p port] [-u user] [-Q] [-s pass] [-P] [-S] [-k principal] [-K keytab] [-w width] [-f script] [-o output] [-q]"
    echo -e "\t-U url\t\t full JDBC URL for Splice Machine database"
    echo -e "\t-h host\t\t IP address or hostname of Splice Machine (HBase RegionServer)"
    echo -e "\t-p port\t\t Port which Splice Machine is listening on, defaults to 1527"
    echo -e "\t-u user\t\t username for Splice Machine database"
+   echo -e "\t-Q \t\t Quote the username, e.g. for users with . - or @ in the username. e.g. dept-first.last@@company.com"
    echo -e "\t-s pass\t\t password for Splice Machine database"
    echo -e "\t-P \t\t prompt for unseen password"
    echo -e "\t-S \t\t use ssl=basic on connection"
@@ -49,7 +51,7 @@ USERARG=""
 PASSARG=""
 
 # Process command line args
-while getopts "U:h:p:u:s:PSk:K:w:f:o:q" opt; do
+while getopts "U:h:p:u:Qs:PSk:K:w:f:o:q" opt; do
    case $opt in
       U)
          URL="${OPTARG}"
@@ -62,6 +64,9 @@ while getopts "U:h:p:u:s:PSk:K:w:f:o:q" opt; do
          ;;
       u)
          USERARG="${OPTARG}"
+         ;;
+      Q)
+         QUOTE=1
          ;;
       s)
          PASSARG="${OPTARG}"
@@ -212,7 +217,12 @@ else
       fi
    fi
    IJ_SYS_ARGS+=" -Dij.connection.splice=jdbc:splice://${HOST}:${PORT}/splicedb${SSL}${KERBEROS}"
-   export JAVA_TOOL_OPTIONS="-Dij.user='\"$USER\"' -Dij.password=$PASS"
+
+   if (( ! $QUOTE )); then
+     export JAVA_TOOL_OPTIONS="-Dij.user=$USER -Dij.password=$PASS"
+   else
+     export JAVA_TOOL_OPTIONS="-Dij.user='\"$USER\"' -Dij.password=$PASS"
+   fi
 fi
 
 if hash rlwrap 2>/dev/null; then
