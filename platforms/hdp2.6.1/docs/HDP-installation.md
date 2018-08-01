@@ -24,6 +24,7 @@ your cluster contains the prerequisite software components:
 * HDFS installed
 * YARN installed
 * ZooKeeper installed
+* Spark 2 installed
 * Ensure that Phoenix services are **NOT** installed on your cluster, as
   they interfere with Splice Machine HBase settings.
 
@@ -74,31 +75,47 @@ After install the rpm,restart ambari-server using 'service ambari-server restart
 
 Follow the steps to install splicemachine server.
 
-1.click the action button on the left buttom of the ambari page,then click on 'Add Services'
+1. Click the action button on the left bottom of the ambari page,then click on 'Add Services'
 
 <img src="docs/add_services.jpg" alt="Add Service" width="400" height="200">
 
-2.choose splice machine from the 'add service wizard'
+2. Choose splice machine from the 'add service wizard'
 
 <img src="docs/add_service_wizard.jpg" alt="Add Service Wizard" width="400" height="200">
 
-3.choose hosts needed to install splice machine,only choose hosts that have hbase region server installed.Then click next.
+3. Choose the master machine. It need to be the same machine with HBase master.
+
+4. Choose hosts needed to install splice machine,only choose hosts that have hbase region server 
+installed.Then click next.
 
 <img src="docs/choose_hosts.jpeg" alt="Choose hosts" width="400" height="200">
 
-4.O On the page of custom services,no properties need to customize by hand.
+5. On the page of custom services,no properties need to customize by hand unless you would like to
+ add Apache Ranger Support.
 
 <img src="docs/custom_services.jpeg" alt="Custom Services" width="400" height="200">
 
-5.please review all the configuration change made by ambari and click OK to continue.
+6. Please review all the configuration change made by ambari and click OK to continue.
 
 <img src="docs/dependent_config.jpeg" alt="dependent_config.jpeg" width="400" height="200">
 
-6.please click next all the way down to this page ,then click 'deploy',after that finishes,splice machine is installed.
+**Note**: Ambari will not show all the recommend values in some situations. Make sure these important configurations are set properly by click "recommend" button next to the configs:
+
+(1) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.master.classes` includes `com.splicemachine.hbase.SpliceMasterObserver`.
+
+(2) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.regionserver.classes` includes `com.splicemachine.hbase.RegionServerLifecycleObserver`.
+
+(3) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.region.classes` includes `org.apache.hadoop.hbase.security.access.SecureBulkLoadEndpoint,com.splicemachine.hbase.MemstoreAwareObserver,com.splicemachine.derby.hbase.SpliceIndexObserver,com.splicemachine.derby.hbase.SpliceIndexEndpoint,com.splicemachine.hbase.RegionSizeEndpoint,com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint,com.splicemachine.si.data.hbase.coprocessor.SIObserver,com.splicemachine.hbase.BackupEndpointObserver`. If the property is not found, you can add the property in "Custom hbase-site".
+
+(4) In Hbase's config "hbase-env template", make sure the comments like "Splice Specific Informatio" are in the configurations.
+
+
+7. Please click next all the way down to this page ,then click 'deploy',after that finishes,splice
+ machine is installed.
 
 <img src="docs/review.jpeg" alt="dependent_config.jpeg" width="400" height="200">
 
-7.restart all the services affected to start splice machine!
+8. Restart all the services affected to start splice machine!
 
 
 
@@ -138,6 +155,98 @@ If you're using Kerberos, you need to add this option to your HBase Master Java 
    ````
    -Dsplice.spark.hadoop.fs.hdfs.impl.disable.cache=true
    ````
+   
+### Enabling Ranger for Authorization
+
+Splice Machine installs with Native authorization configured; native
+authorization uses the Splice Machine dictionary tables to determine permissions on database objects.
+
+
+#### Config Splice Machine Ambari Service
+
+
+In the tab:  Advanced ranger-splicemachine-audit
+
+1. Check audit to HDFS
+2. Check audit to SOLR
+3. For the config: xasecure.audit.destination.solr.urls change localhost to the hostname / node 
+for SOLR
+4. Set xasecure.audit.is.enabled to true
+
+In the tab:  Advanced ranger-splicemachine-security
+
+1. Update ranger.plugin.splicemachine.policy.rest.url
+2. Change localhost to the host / node for Ranger Server
+
+
+#### Add Ranger Service for Splice Machine
+
+Before changing the authorization scheme, the Splice Machine ranger service needs to be installed.  As part of the Splice Machine Ambari Service, 
+the admin plugin for Splice Machine is added to the Ranger web application.
+
+The service can be installed by executing the following from a command line on the machine where the Ambari Service resides.
+
+Then post this file to Ranger API. Run the command bellow on master. `admin:admin` here is 
+Ranger's username and password.
+
+```
+curl -sS -u admin:admin -H "Content-Type: application/json" -X POST http://localhost:6080/service/plugins/definitions -d @/var/lib/ambari-server/resources/stacks/HDP/2.6/services/SPLICEMACHINE/configuration/ranger-servicedef-splicemachine.json
+```
+1. Go to Ranger admin web page.
+2. You should see SpliceMachine Plugin
+3. Click on the plus sign (+) next to SpliceMachine
+4. Need to add a Service: the service name is the same name as you configured in
+`ranger.plugin.splicemachine.service.name`, which is `splicemachine` by default.
+
+Note: if you see some error like this when click "test connection":
+
+```
+Unable to retrieve any files using given parameters, You can still save the repository and start
+creating policies, but you would not be able to use autocomplete for resource names.
+Check ranger_admin.log for more info.
+
+org.apache.ranger.plugin.client.HadoopException: Unable to login to Hadoop environment [splicemachine]. 
+Unable to login to Hadoop environment [splicemachine]. 
+Unable to decrypt password due to error. 
+Input length must be multiple of 8 when decrypting with padded cipher. 
+```
+
+It is because of a [Ranger bug](https://issues.apache.org/jira/browse/RANGER-1640?attachmentOrder=asc).
+You can ignore the error and test if autocomplete is working later.
+
+#### Config Ranger Policies
+
+Once you save the service then click on the service name you just created.
+You should see a several policies for the splice user.
+The following policy is required so SYSIBM routines can support database connectivity.
+
+| Required Policy Name | Logic | Users |
+|--------------|------|------|
+| SYSIBM| `Schema=SYSIBM,routine=*,permissions=execute` | `All users/groups that will use the database`
+
+Note: when you create database user with
+
+```sql
+call syscs_util.syscs_create_user('ranger_test', 'admin');
+```
+
+Actually the username is parsed as uppercase. So you need to config the username as `RANGER_TEST`
+ in Ranger. If you want to create a database user with lower case, quote the username with double
+  quote in a single quote:
+  
+```sql
+call syscs_util.syscs_create_user('"ranger_test"', 'admin');
+```
+
+##### Config HBase
+
+Once this is done, you can change the authorization scheme to RANGER by adding this option to your HBase Region Server Java Configuration Options:
+
+   ````
+   -Dsplice.authorization.scheme=RANGER
+   ````
+
+It is set to **NATIVE** by default.
 
 ### Modify the Log Location
 
