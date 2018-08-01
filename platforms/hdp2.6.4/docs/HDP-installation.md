@@ -24,6 +24,7 @@ your cluster contains the prerequisite software components:
 * HDFS installed
 * YARN installed
 * ZooKeeper installed
+* Spark 2 installed
 * Ensure that Phoenix services are **NOT** installed on your cluster, as
   they interfere with Splice Machine HBase settings.
 
@@ -97,6 +98,17 @@ installed.Then click next.
 6. Please review all the configuration change made by ambari and click OK to continue.
 
 <img src="docs/dependent_config.jpeg" alt="dependent_config.jpeg" width="400" height="200">
+
+**Note**: Ambari will not show all the recommend values in some situations. Make sure these important configurations are set properly by click "recommend" button next to the configs:
+
+(1) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.master.classes` includes `com.splicemachine.hbase.SpliceMasterObserver`.
+
+(2) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.regionserver.classes` includes `com.splicemachine.hbase.RegionServerLifecycleObserver`.
+
+(3) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.region.classes` includes `org.apache.hadoop.hbase.security.access.SecureBulkLoadEndpoint,com.splicemachine.hbase.MemstoreAwareObserver,com.splicemachine.derby.hbase.SpliceIndexObserver,com.splicemachine.derby.hbase.SpliceIndexEndpoint,com.splicemachine.hbase.RegionSizeEndpoint,com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint,com.splicemachine.si.data.hbase.coprocessor.SIObserver,com.splicemachine.hbase.BackupEndpointObserver`. If the property is not found, you can add the property in "Custom hbase-site".
+
+(4) In Hbase's config "hbase-env template", make sure the comments like "Splice Specific Informatio" are in the configurations.
+
 
 7. Please click next all the way down to this page ,then click 'deploy',after that finishes,splice
  machine is installed.
