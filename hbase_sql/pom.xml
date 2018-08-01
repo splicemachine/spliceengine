@@ -1391,6 +1391,38 @@
             <properties>
                 <ee_out>,ee</ee_out>
             </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>splice_ee-${envClassifier}</artifactId>
+                    <version>${project.version}</version>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>splice_backup-${envClassifier}</artifactId>
+                    <version>${project.version}</version>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>splice_auth</artifactId>
+                    <version>${project.version}</version>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>splice_colperms</artifactId>
+                    <version>${project.version}</version>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>splice_encryption</artifactId>
+                    <version>${project.version}</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
             <build>
                 <plugins>
                     <plugin>
@@ -1398,36 +1430,6 @@
                         <artifactId>build-helper-maven-plugin</artifactId>
                         <version>1.9.1</version>
                         <executions>
-                            <execution>
-                                <id>add-ee-source</id>
-                                <phase>generate-sources</phase>
-                                <goals>
-                                    <goal>add-source</goal>
-                                </goals>
-                                <configuration>
-                                    <sources>
-                                        <source>../../spliceengine-ee/splice_backup/src/main/java</source>
-                                        <source>../../spliceengine-ee/splice_auth/src/main/java</source>
-                                        <source>../../spliceengine-ee/splice_colperms/src/main/java</source>
-                                        <source>../../spliceengine-ee/splice_encryption/src/main/java</source>
-                                        <source>../../spliceengine-ee/splice_ee/src/main/java</source>
-                                    </sources>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>add-ee-resource</id>
-                                <phase>generate-resources</phase>
-                                <goals>
-                                    <goal>add-resource</goal>
-                                </goals>
-                                <configuration>
-                                    <resources>
-                                        <resource>
-                                            <directory>../../spliceengine-ee/splice_ee/src/main/resources</directory>
-                                        </resource>
-                                    </resources>
-                                </configuration>
-                            </execution>
                             <execution>
                                 <id>add-ee-test-source</id>
                                 <phase>generate-sources</phase>
