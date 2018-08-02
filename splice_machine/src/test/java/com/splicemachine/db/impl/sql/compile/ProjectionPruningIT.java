@@ -1106,4 +1106,20 @@ public class ProjectionPruningIT extends SpliceUnitTest {
             conn.setAutoCommit(oldAutoCommit);
         }
     }
+
+    @Test
+    public void testDB7293() throws Exception {
+        setProjectionPruningProperty(projectionPruningDisabled);
+
+        String sqlText = "select a4 from (select a1,b1 from t1 union values (4, 'ddd') except select a4,b4 from t4) dt(a1,b1) left join t4 on dt.a1 = a4";
+
+        String expected = "A4  |\n" +
+                "------\n" +
+                "NULL |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+    }
 }
