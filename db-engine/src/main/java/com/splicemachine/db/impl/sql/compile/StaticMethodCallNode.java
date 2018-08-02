@@ -117,6 +117,9 @@ import java.lang.reflect.Modifier;
  *
  */
 public class StaticMethodCallNode extends MethodCallNode {
+	public static final String PYPROCEDURE_WRAPPER_CLASS_NAME = "com.splicemachine.derby.utils.PyRoutineWrapper";
+	public static final String PYPROCEDURE_WRAPPER_METHOD_NAME = "PyProcedureWrapper";
+
 	private TableName procedureName;
 
 	private LocalField[] outParamArrays;
@@ -141,7 +144,6 @@ public class StaticMethodCallNode extends MethodCallNode {
 
 	AliasDescriptor	ad;
 	boolean resolvePyProc = false;
-	AliasDescriptor origAd;
 
 	private AggregateNode   resolvedAggregate;
 	private boolean appearsInGroupBy = false;
@@ -273,13 +275,7 @@ public class StaticMethodCallNode extends MethodCallNode {
 			
 
 
-			/* Query is dependent on the AliasDescriptor */
-            if(this.resolvePyProc){
-                cc.createDependency(origAd);
-            }
-            else{
                 cc.createDependency(ad);
-            }
 
 
 			methodName = ad.getAliasInfo().getMethodName();
@@ -697,25 +693,14 @@ public class StaticMethodCallNode extends MethodCallNode {
 			}
 
 			// If the resolved StaticMethodCallNode has the LANGUAGE PYTHON,
-			// it will resolves in calling method DEMO
+			// it will resolves in calling method PyProcedureWrapper
 			// The parameters, and retruen type for these two Stored Procedures are the same
-			if(this.routineInfo!=null && this.routineInfo.getLanguage().equals("PYTHON")&&!this.methodName.equals("DEMO"))
+			if(this.routineInfo!=null && this.routineInfo.getLanguage().equals("PYTHON"))
 			{
 
 				this.resolvePyProc = true;
 				// need to add compiled Python code bytes into signature and methodParms
 				byte[] compiledPyCode = this.routineInfo.getCompiledPyCode();
-
-				// Stored the info of the regeisterd PYTHON procedure
-				this.origAd = this.ad;
-				RoutineAliasInfo origRoutineInfo = this.routineInfo;
-				JSQLType[] origSignature = signature;
-
-				this.methodName = "DEMO";
-				TableName newTableName = new TableName();
-				newTableName.init(this.procedureName.getSchemaName(), "DEMO");
-				this.procedureName = newTableName;
-				this.resolvePythonRoutine(fromList,subqueryList, aggregateVector,sd);
 
 				// Update the parameterCnt ,parameterModes, parameterNames, parameterTypes
 				int origParmCnt = this.routineInfo.getParameterCount();
@@ -738,46 +723,46 @@ public class StaticMethodCallNode extends MethodCallNode {
 						compiledPyCode.length);
 
 				// update the routineInfo and the AliasDescriptor
-				this.routineInfo = new RoutineAliasInfo("DEMO",
+				this.routineInfo = new RoutineAliasInfo(PYPROCEDURE_WRAPPER_METHOD_NAME,
 						"JAVA",
 						updatedParmCnt,
 						updatedParmNames,
 						updatedParmTypes,
 						updatedParmModes,
-						origRoutineInfo.getMaxDynamicResultSets(),
-						origRoutineInfo.getParameterStyle(),
-						origRoutineInfo.getSQLAllowed(),
-						origRoutineInfo.isDeterministic(),
-						origRoutineInfo.hasDefinersRights(),
-						origRoutineInfo.calledOnNullInput(),
-						origRoutineInfo.getReturnType(),
+						this.routineInfo.getMaxDynamicResultSets(),
+						this.routineInfo.getParameterStyle(),
+						this.routineInfo.getSQLAllowed(),
+						this.routineInfo.isDeterministic(),
+						this.routineInfo.hasDefinersRights(),
+						this.routineInfo.calledOnNullInput(),
+						this.routineInfo.getReturnType(),
 						null);
 
 				this.ad = new AliasDescriptor(this.ad.getDataDictionary(),
-						this.ad.getUUID(),
-						this.ad.getName(),
-						this.ad.getSchemaUUID(),
-						this.ad.getJavaClassName(),
-						this.ad.getAliasType(),
-						this.ad.getNameSpace(),
-						this.ad.getSystemAlias(),
-						this.routineInfo,
-						this.ad.getSpecificName());
+						ad.getUUID(),
+						ad.getName(),
+						ad.getSchemaUUID(),
+						PYPROCEDURE_WRAPPER_CLASS_NAME,
+						ad.getAliasType(),
+						ad.getNameSpace(),
+						ad.getSystemAlias(),
+						routineInfo,
+						ad.getSpecificName());
 
 				// Update signature by adding in the script String's corresponding JSQLType
 				JSQLType pyCodeType = new JSQLType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(TypeId.BLOB_NAME));
-				JSQLType[] updatedSigs = new JSQLType[origSignature.length+1];
+				JSQLType[] updatedSigs = new JSQLType[signature.length+1];
 				int j = 0;
-				for(int i = 0; i < origSignature.length+1; i++){
-					if(i<origSignature.length && origSignature[i].getSQLType().getTypeId().getCorrespondingJavaTypeName().equals("java.sql.ResultSet[]")){
+				for(int i = 0; i < signature.length+1; i++){
+					if(i<signature.length && signature[i].getSQLType().getTypeId().getCorrespondingJavaTypeName().equals("java.sql.ResultSet[]")){
 						updatedSigs[i] = pyCodeType;
 					}
 					else{
-						if(j == origSignature.length){
+						if(j == signature.length){
 							updatedSigs[i] = pyCodeType;
 						}
 						else{
-							updatedSigs[i] = origSignature[j];
+							updatedSigs[i] = signature[j];
 							j++;
 						}
 					}
@@ -1048,7 +1033,8 @@ public class StaticMethodCallNode extends MethodCallNode {
 									throws StandardException
 	{
 		boolean isPy = false;
-		if(routineInfo != null && getMethodName().equals("DEMO")){
+		if(routineInfo != null && getMethodName().equals(StaticMethodCallNode.PYPROCEDURE_WRAPPER_METHOD_NAME)&&
+				getJavaClassName().equals(StaticMethodCallNode.PYPROCEDURE_WRAPPER_CLASS_NAME)){
 			isPy = true;
 		}
 
@@ -1443,45 +1429,5 @@ public class StaticMethodCallNode extends MethodCallNode {
 	int getPrivType()
 	{
 		return Authorizer.EXECUTE_PRIV;
-	}
-
-	/**
-	 * Resolve the static wrapper method for Python Procedure
-	 * Update the AliasDescriptor and routineDefiner
-	 * @param fromList
-	 * @param subqueryList
-	 * @param aggregateVector
-	 * @param sd
-	 * @throws StandardException
-	 */
-	private void resolvePythonRoutine(FromList fromList,
-								SubqueryList subqueryList,
-								List<AggregateNode> aggregateVector,
-								SchemaDescriptor sd) throws StandardException {
-		if (sd.getUUID() != null) {
-
-			List<AliasDescriptor> list = getDataDictionary().getRoutineList(
-					sd.getUUID().toString(), methodName,
-					forCallStatement ? AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR : AliasInfo.ALIAS_NAME_SPACE_FUNCTION_AS_CHAR
-			);
-
-			if(list.size()!= 1){
-				// raise exception Wrapper Method DEMO has not been registered yet.
-			}
-
-
-			AliasDescriptor proc = list.get(0);
-
-			RoutineAliasInfo routineInfo = (RoutineAliasInfo) proc.getAliasInfo();
-
-			ad = proc;
-
-			// If a procedure is in the system schema and defined as executing
-			// SQL do we set we are in system code.
-			if (sd.isSystemSchema() && (routineInfo.getReturnType() == null) && routineInfo.getSQLAllowed() != RoutineAliasInfo.NO_SQL)
-				isSystemCode = true;
-
-			routineDefiner = sd.getAuthorizationId();
-		}
 	}
 }

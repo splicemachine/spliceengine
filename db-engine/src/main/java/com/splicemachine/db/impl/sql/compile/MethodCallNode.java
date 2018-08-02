@@ -534,7 +534,8 @@ abstract class MethodCallNode extends JavaValueNode
 			throws StandardException
 	{
 		// Determine whether the method is the Java wrapper method for Python procedure call
-		boolean isPy = method.getName().equals("DEMO");
+		boolean isPy = method.getName().equals(StaticMethodCallNode.PYPROCEDURE_WRAPPER_METHOD_NAME) &&
+				javaClassName.equals(StaticMethodCallNode.PYPROCEDURE_WRAPPER_CLASS_NAME);
 
 		int				param;
 
@@ -846,9 +847,10 @@ abstract class MethodCallNode extends JavaValueNode
                 }
 	 	setJavaTypeName( typeName );
 
-		if(methodName.equals("DEMO")){
+		if(methodName.equals(StaticMethodCallNode.PYPROCEDURE_WRAPPER_METHOD_NAME) &&
+				javaClassName.equals(StaticMethodCallNode.PYPROCEDURE_WRAPPER_CLASS_NAME)){
 			// Added for PYTHON stored procedure
-			// Since the actual Stored Procedure called fo Python Stored Procedure takes Object.. args
+			// Since the actual method gets called fo Python Stored Procedure takes Object.. args
 			// as its arguments. The method ParameterTypes cannot be directly derived
 			// via reflection. Hence it will be manually set.
 			int parameterTypesLen = signature.length;

@@ -314,7 +314,10 @@ public class CreateAliasNode extends DDLStatementNode{
 
                 if(routineElements[LANGUAGE].equals("PYTHON")){
                     try {
-                        compiledPyCode = PyCodeUtil.compile((String) routineElements[EXTERNAL_NAME]);
+                        // SQL_CONTROL: 0 - MODIFIES SQL DATA, 1 - READS SQL DATA, 2 - CONTAINS SQL, 3- NO SQL
+                        boolean makeConn = (Short) routineElements[SQL_CONTROL] == null||(Short) routineElements[SQL_CONTROL]<3;
+                        compiledPyCode =
+                                PyCodeUtil.compile((String) routineElements[EXTERNAL_NAME], makeConn);
                     }catch (Exception e){
                         // Fill in Exception Handling
                         throw StandardException.plainWrapException(e);

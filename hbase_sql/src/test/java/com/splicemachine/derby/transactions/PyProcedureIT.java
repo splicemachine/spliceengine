@@ -55,18 +55,7 @@ public class PyProcedureIT extends SpliceUnitTest {
 
     // Names of files and SQL objects.
     private static final String SCHEMA_NAME = CLASS_NAME;
-    private static final String JAR_FILE_SQL_NAME = SCHEMA_NAME + ".TXN_IT_PROCS_JAR";
     private static final String EMPLOYEE_TABLE_NAME_BASE = SCHEMA_NAME + ".EMPLOYEE";
-
-    // SQL SQL statements to load the custom jar files and add it to the CLASSPATH.
-    private static final String CALL_INSTALL_JAR_FORMAT_STRING = "CALL SQLJ.INSTALL_JAR('%s', '%s', 0)";
-    private static final String CALL_REMOVE_JAR_FORMAT_STRING = "CALL SQLJ.REMOVE_JAR('%s', 0)";
-    private static final String CALL_SET_CLASSPATH_FORMAT_STRING = "CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', '%s')";
-    private static final String CALL_SET_CLASSPATH_TO_DEFAULT = "CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', NULL)";
-
-    // SQL statement to create the wrapper procedure 'DEMO' for Python Stored Procedure
-    private static final String CREATE_PROC_DEMO = String.format("CREATE PROCEDURE %s.DEMO() PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.DEMO'", SCHEMA_NAME);
-    private static final String DROP_PROC_DEMO = String.format("DROP PROCEDURE %s.DEMO", SCHEMA_NAME);
 
     // SQL statements to create and drop stored procedures.
     private static final String CREATE_PROC_CREATE_EMPLOYEE_TABLE = String.format("CREATE PROCEDURE %s.CREATE_EMPLOYEE_TABLE(IN tableName VARCHAR(40)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 0 EXTERNAL NAME 'def run(tableName):\n" +
@@ -221,23 +210,6 @@ public class PyProcedureIT extends SpliceUnitTest {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
-        String STORED_PROCS_JAR_FILE = System.getProperty("user.dir")+"/target/txn-it/txn-it.jar";//getJarFileForClass(TxnTestProcs.class);
-        assertTrue("Cannot find procedures jar file: "+STORED_PROCS_JAR_FILE, STORED_PROCS_JAR_FILE != null &&
-                STORED_PROCS_JAR_FILE.endsWith("jar"));
-
-        // Install the jar file of user-defined stored procedures.
-        spliceClassWatcher.executeUpdate(String.format(CALL_INSTALL_JAR_FORMAT_STRING, STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
-
-        // Add the jar file into the DB class path.
-        spliceClassWatcher.executeUpdate(String.format(CALL_SET_CLASSPATH_FORMAT_STRING, JAR_FILE_SQL_NAME));
-
-        // Create the wrapper procedure for Python stored procedure
-        spliceClassWatcher.executeUpdate(CREATE_PROC_DEMO);
-
-        // Recompile the stored statements since the SQLJ and CLASSPATH stored procedures invalidate all of the stored statements.
-        // Recompiling will avoid write-write conflicts between the concurrent IT execution threads.
-//		spliceClassWatcher.executeUpdate("call SYSCS_UTIL.SYSCS_RECOMPILE_INVALID_STORED_STATEMENTS()");
-
         // Create the user-defined stored procedures to create and drop the EMPLOYEE table.
         spliceClassWatcher.executeUpdate(CREATE_PROC_CREATE_EMPLOYEE_TABLE);
         spliceClassWatcher.executeUpdate(CREATE_PROC_DROP_EMPLOYEE_TABLE);
@@ -249,15 +221,6 @@ public class PyProcedureIT extends SpliceUnitTest {
         // Drop the user-defined stored procedures to create and drop the EMPLOYEE table.
         spliceClassWatcher.executeUpdate(DROP_PROC_CREATE_EMPLOYEE_TABLE);
         spliceClassWatcher.executeUpdate(DROP_PROC_DROP_EMPLOYEE_TABLE);
-
-        // Drop the wrapper procedure for Python stored procedure
-        spliceClassWatcher.executeUpdate(DROP_PROC_DEMO);
-
-        // Remove the jar file from the DB class path.
-//		spliceClassWatcher.executeUpdate(CALL_SET_CLASSPATH_TO_DEFAULT);
-
-        // Remove the jar file from the DB.
-        spliceClassWatcher.executeUpdate(String.format(CALL_REMOVE_JAR_FORMAT_STRING, JAR_FILE_SQL_NAME));
     }
 
     /*
