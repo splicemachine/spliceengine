@@ -55,6 +55,7 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.iapi.sql.execute.RunningOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.management.StatementManagement;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.hbase.JMXThreadPool;
@@ -62,12 +63,14 @@ import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.pipeline.SimpleActivation;
+import com.splicemachine.pipeline.threadpool.ThreadPoolStatus;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.logging.Logging;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.SerializationUtils;
@@ -99,30 +102,115 @@ public class SpliceAdmin extends BaseAdminProcedures{
     private static Logger LOG=Logger.getLogger(SpliceAdmin.class);
 
     public static void SYSCS_SET_LOGGER_LEVEL(final String loggerName,final String logLevel) throws SQLException{
-        EngineDriver.driver().dbAdministrator().setLoggerLevel(loggerName,logLevel);
-    }
+        List<HostAndPort> servers;
+        try {
+            servers = EngineDriver.driver().getServiceDiscovery().listServers();
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
 
-    public static void SYSCS_GET_LOGGER_LEVEL(final String loggerName,final ResultSet[] resultSet) throws SQLException{
-        List<String> levels = EngineDriver.driver().dbAdministrator().getLoggerLevel(loggerName);
-
-        StringBuilder sb=new StringBuilder("select * from (values ");
-        int i = 0;
-        for(String level  : levels){
-            sb.append(String.format("('%s')",level));
-            if (i++ != levels.size()-1) {
-                sb.append(", ");
+        for (HostAndPort server : servers) {
+            try (Connection connection = RemoteUser.getConnection(server.toString())) {
+                try (PreparedStatement ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL_LOCAL(?, ?)")) {
+                    ps.setString(1, loggerName);
+                    ps.setString(2, logLevel);
+                    ps.execute();
+                }
             }
         }
+    }
+    public static void SYSCS_SET_LOGGER_LEVEL_LOCAL(final String loggerName,final String logLevel) throws SQLException{
+        Logging logging;
+        try {
+            logging = JMXUtils.getLocalMBeanProxy(JMXUtils.LOGGING_MANAGEMENT, Logging.class);
+        }catch(MalformedObjectNameException e){
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+        logging.setLoggerLevel(loggerName,logLevel);
+    }
+
+    public static void SYSCS_GET_LOGGER_LEVEL_LOCAL(final String loggerName,final ResultSet[] resultSet) throws SQLException{
+        Logging logging;
+        try {
+            logging = JMXUtils.getLocalMBeanProxy(JMXUtils.LOGGING_MANAGEMENT, Logging.class);
+        }catch(MalformedObjectNameException e){
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+
+        StringBuilder sb=new StringBuilder("select * from (values ");
+        String loggerLevel=logging.getLoggerLevel(loggerName);
+        sb.append(String.format("('%s')",loggerLevel));
         sb.append(") foo (logLevel)");
         resultSet[0]=executeStatement(sb);
     }
 
-    public static void SYSCS_GET_LOGGERS(final ResultSet[] resultSet) throws SQLException{
-        Set<String> loggers = EngineDriver.driver().dbAdministrator().getLoggers();
+    public static void SYSCS_GET_LOGGER_LEVEL(final String loggerName,final ResultSet[] resultSet) throws SQLException{
+        List<String> loggerLevels = new ArrayList<>();
+
+        List<HostAndPort> servers;
+        try {
+            servers = EngineDriver.driver().getServiceDiscovery().listServers();
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+
+        for (HostAndPort server : servers) {
+            try (Connection connection = RemoteUser.getConnection(server.toString())) {
+                try (PreparedStatement ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_GET_LOGGER_LEVEL_LOCAL(?)")) {
+                    ps.setString(1, loggerName);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            loggerLevels.add(rs.getString(1));
+                        }
+                    }
+                };
+            }
+        }
+        List<ExecRow> rows = new ArrayList<>();
+        for (String logger : loggerLevels) {
+            ExecRow row = new ValueRow(1);
+            row.setColumn(1, new SQLVarchar(logger));
+            rows.add(row);
+        }
+
+        GenericColumnDescriptor[] descriptors = {
+                new GenericColumnDescriptor("LOG_LEVEL", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
+        };
+
+        EmbedConnection conn = (EmbedConnection)getDefaultConn();
+        LanguageConnectionContext lcc = conn.getLanguageConnection();
+        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
+        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, descriptors, lastActivation);
+        try {
+            resultsToWrap.openCore();
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
+        resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
+    }
+
+
+    public static void SYSCS_GET_LOGGERS_LOCAL(final ResultSet[] resultSet) throws SQLException {
+        Logging logging;
+        try {
+            logging = JMXUtils.getLocalMXBeanProxy(JMXUtils.LOGGING_MANAGEMENT, Logging.class);
+        }catch(MalformedObjectNameException e){
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+
         StringBuilder sb=new StringBuilder("select * from (values ");
-        List<String> loggerNames=new ArrayList<>(loggers);
-        Collections.sort(loggerNames);
-        for(String logger : loggerNames){
+        HashSet<String> loggerNames = new HashSet<>();
+        loggerNames.addAll(logging.getLoggerNames());
+
+        ArrayList<String> loggers = new ArrayList<>(loggerNames);
+        Collections.sort(loggers);
+        for(String logger : loggers){
             sb.append(String.format("('%s')",logger));
             sb.append(", ");
         }
@@ -131,6 +219,52 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
         sb.append(") foo (spliceLogger)");
         resultSet[0]=executeStatement(sb);
+    }
+
+    public static void SYSCS_GET_LOGGERS(final ResultSet[] resultSet) throws SQLException{
+        Set<String> loggers = new HashSet<>();
+
+        List<HostAndPort> servers;
+        try {
+            servers = EngineDriver.driver().getServiceDiscovery().listServers();
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+
+        for (HostAndPort server : servers) {
+            try (Connection connection = RemoteUser.getConnection(server.toString())) {
+                try (ResultSet rs = connection.createStatement().executeQuery("call SYSCS_UTIL.SYSCS_GET_LOGGERS_LOCAL()")) {
+                    while (rs.next()) {
+                        loggers.add(rs.getString(1));
+                    }
+                }
+            }
+        }
+
+        ArrayList<String> loggerNames = new ArrayList<>(loggers);
+        Collections.sort(loggerNames);
+
+        List<ExecRow> rows = new ArrayList<>();
+        for (String logger : loggerNames) {
+            ExecRow row = new ValueRow(1);
+            row.setColumn(1, new SQLVarchar(logger));
+            rows.add(row);
+        }
+
+        GenericColumnDescriptor[] descriptors = {
+                new GenericColumnDescriptor("SPLICE_LOGGER", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
+        };
+
+        EmbedConnection conn = (EmbedConnection)getDefaultConn();
+        LanguageConnectionContext lcc = conn.getLanguageConnection();
+        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
+        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, descriptors, lastActivation);
+        try {
+            resultsToWrap.openCore();
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
+        resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
     }
 
     public static void SYSCS_GET_ACTIVE_SERVERS(ResultSet[] resultSet) throws SQLException{
@@ -151,22 +285,73 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     public static void SYSCS_GET_VERSION_INFO(final ResultSet[] resultSet) throws SQLException{
-        Map<String,Map<String,String>> versionInfo=EngineDriver.driver().dbAdministrator().getDatabaseVersionInfo();
-        StringBuilder sb=new StringBuilder("select * from (values ");
-        int i=0;
-        for(Map.Entry<String,Map<String,String>> entry: versionInfo.entrySet()){
-            if(i!=0){
-                sb.append(", ");
-            }
-            Map attrs = entry.getValue();
-            sb.append(String.format("('%s','%s','%s','%s','%s')",
-                    entry.getKey(),
-                    attrs.get("release"),
-                    attrs.get("implementationVersion"),
-                    attrs.get("buildTime"),
-                    attrs.get("url")));
-            i++;
+        List<HostAndPort> servers;
+        try {
+            servers = EngineDriver.driver().getServiceDiscovery().listServers();
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }
+
+        List<ExecRow> rows = new ArrayList<>();
+        for (HostAndPort server : servers) {
+            try (Connection connection = RemoteUser.getConnection(server.toString())) {
+                try (ResultSet rs = connection.createStatement().executeQuery("call SYSCS_UTIL.SYSCS_GET_VERSION_INFO_LOCAL()")) {
+                    while (rs.next()) {
+                        ExecRow row = new ValueRow(5);
+
+                        row.setColumn(1, new SQLVarchar(rs.getString(1)));
+                        row.setColumn(2, new SQLVarchar(rs.getString(2)));
+                        row.setColumn(3, new SQLVarchar(rs.getString(3)));
+                        row.setColumn(4, new SQLVarchar(rs.getString(4)));
+                        row.setColumn(5, new SQLVarchar(rs.getString(5)));
+                        rows.add(row);
+                    }
+                }
+            }
+        }
+
+        GenericColumnDescriptor[] descriptors = {
+                new GenericColumnDescriptor("HOSTNAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
+                new GenericColumnDescriptor("RELEASE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
+                new GenericColumnDescriptor("IMPLEMENTATION_VERSION", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
+                new GenericColumnDescriptor("BUILD_TIME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
+                new GenericColumnDescriptor("URL", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
+        };
+
+
+        EmbedConnection conn = (EmbedConnection)getDefaultConn();
+        LanguageConnectionContext lcc = conn.getLanguageConnection();
+        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
+        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, descriptors, lastActivation);
+        try {
+            resultsToWrap.openCore();
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
+        resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
+    }
+
+    public static void SYSCS_GET_VERSION_INFO_LOCAL(final ResultSet[] resultSet) throws SQLException{
+        DatabaseVersion version;
+        try {
+            version = JMXUtils.getLocalMBeanProxy(JMXUtils.SPLICEMACHINE_VERSION, DatabaseVersion.class);
+        }catch(MalformedObjectNameException e){
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        } catch (IOException e) {
+                throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+
+        SConfiguration config=EngineDriver.driver().getConfiguration();
+        String hostname = NetworkUtils.getHostname(config);
+        int port = config.getNetworkBindPort();
+
+        StringBuilder sb=new StringBuilder("select * from (values ");
+        sb.append(String.format("('%s','%s','%s','%s','%s')",
+                hostname + ":" + port,
+                version.getRelease(),
+                version.getImplementationVersion(),
+                version.getBuildTime(),
+                version.getURL()));
         sb.append(") foo (hostname, release, implementationVersion, buildTime, url)");
         resultSet[0]=executeStatement(sb);
     }
@@ -349,29 +534,6 @@ public class SpliceAdmin extends BaseAdminProcedures{
          * backwards compatibility. However, the logic has been moved to TransactionAdmin
          */
         TransactionAdmin.killAllActiveTransactions(maximumTransactionId);
-    }
-
-    public static void SYSCS_SET_WRITE_POOL(final int writePool) throws SQLException{
-        EngineDriver.driver().dbAdministrator().setWritePoolMaxThreadCount(writePool);
-
-    }
-
-    public static void SYSCS_GET_WRITE_POOL(final ResultSet[] resultSet) throws SQLException{
-        Map<String,Integer> threadCounts = EngineDriver.driver().dbAdministrator().getWritePoolMaxThreadCount();
-
-        StringBuilder sb=new StringBuilder("select * from (values ");
-        int i=0;
-        for(Map.Entry<String,Integer> tC:threadCounts.entrySet()){
-            if(i!=0){
-                sb.append(", ");
-            }
-            sb.append(String.format("('%s',%d)",
-                    tC.getKey(),
-                    tC.getValue()));
-            i++;
-        }
-        sb.append(") foo (hostname, maxTaskWorkers)");
-        resultSet[0]=executeStatement(sb);
     }
 
     public static void SYSCS_GET_REGION_SERVER_TASK_INFO(final ResultSet[] resultSet) throws StandardException, SQLException {
@@ -976,25 +1138,46 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
 
     public static void SYSCS_GET_GLOBAL_DATABASE_PROPERTY(final String key,final ResultSet[] resultSet) throws SQLException{
-        Map<String,String> valueMap = EngineDriver.driver().dbAdministrator().getGlobalDatabaseProperty(key);
 
-        ResultSetBuilder rsBuilder=new ResultSetBuilder();
-        try{
-            rsBuilder.getColumnBuilder()
-                    .addColumn("HOST_NAME",Types.VARCHAR,32)
-                    .addColumn("PROPERTY_VALUE",Types.VARCHAR,128);
-            RowBuilder rowBuilder=rsBuilder.getRowBuilder();
-            int hostIdx=0;
-            for(Map.Entry<String,String> entry : valueMap.entrySet()){
-                rowBuilder.getDvd(0).setValue(entry.getKey());
-                rowBuilder.getDvd(1).setValue(entry.getValue());
-                rowBuilder.addRow();
-                hostIdx++;
+        List<HostAndPort> servers;
+        try {
+            servers = EngineDriver.driver().getServiceDiscovery().listServers();
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+
+        List<ExecRow> rows = new ArrayList<>();
+        for (HostAndPort server : servers) {
+            try (Connection connection = RemoteUser.getConnection(server.toString())) {
+                try (PreparedStatement ps = connection.prepareStatement("values SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY(?)")) {
+                    ps.setString(1, key);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            ExecRow row = new ValueRow(1);
+                            row.setColumn(1, new SQLVarchar(server.toString()));
+                            row.setColumn(2, new SQLVarchar(rs.getString(1)));
+                            rows.add(row);
+                        }
+                    }
+                };
             }
-            resultSet[0]=rsBuilder.buildResultSet((EmbedConnection)getDefaultConn());
-        }catch(StandardException se){
+        }
+
+        GenericColumnDescriptor[] descriptors = {
+                new GenericColumnDescriptor("HOST_NAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
+                new GenericColumnDescriptor("PROPERTY_VALUE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
+        };
+
+        EmbedConnection conn = (EmbedConnection)getDefaultConn();
+        LanguageConnectionContext lcc = conn.getLanguageConnection();
+        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
+        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, descriptors, lastActivation);
+        try {
+            resultsToWrap.openCore();
+        } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
         }
+        resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
     }
 
     public static void SYSCS_SET_GLOBAL_DATABASE_PROPERTY(final String key,final String value) throws SQLException{
@@ -1029,7 +1212,20 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     public static void SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE() throws SQLException{
-        EngineDriver.driver().dbAdministrator().emptyGlobalStatementCache();
+        List<HostAndPort> servers;
+        try {
+            servers = EngineDriver.driver().getServiceDiscovery().listServers();
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+
+        for (HostAndPort server : servers) {
+            try (Connection connection = RemoteUser.getConnection(server.toString())) {
+                try (PreparedStatement ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_EMPTY_STATEMENT_CACHE()")) {
+                    ps.execute();
+                }
+            }
+        }
     }
 
     private static Collection<PartitionServer> getLoad() throws SQLException{

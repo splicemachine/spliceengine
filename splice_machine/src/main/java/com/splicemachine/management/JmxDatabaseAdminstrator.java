@@ -146,20 +146,14 @@ public class JmxDatabaseAdminstrator implements DatabaseAdministrator{
     }
 
     @Override
-    public Map<String,String> getGlobalDatabaseProperty(final String key) throws SQLException{
-        final Map<String,String> data = new HashMap<>();
-        operate(new JMXServerOperation(){
-            @Override
-            public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException{
-                List<DatabasePropertyManagement> dbPropManagement = JMXUtils.getDatabasePropertyManagement(connections);
-                int i=0;
-                for(DatabasePropertyManagement dpm:dbPropManagement){
-                    data.put(connections.get(i).getFirst(),dpm.getDatabaseProperty(key));
-                    i++;
-                }
-            }
-        });
-        return data;
+    public String getDatabaseProperty(final String key) throws SQLException{
+        DatabasePropertyManagement dpm = null;
+        try {
+            dpm = JMXUtils.getLocalMBeanProxy(JMXUtils.DATABASE_PROPERTY_MANAGEMENT, DatabasePropertyManagement.class);
+        }catch(MalformedObjectNameException|IOException e){
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+        return dpm.getDatabaseProperty(key);
     }
 
     @Override

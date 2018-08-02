@@ -133,6 +133,8 @@ public class ConfigurationBuilder {
     public int olapServerMemoryOverhead;
     public int olapServerVirtualCores;
     public int partitionserverJmxPort;
+    public String partitionserverJmxUser;
+    public String partitionserverJmxPassword;
     public int partitionserverPort;
     public long broadcastRegionMbThreshold;
     public long broadcastRegionRowThreshold;
