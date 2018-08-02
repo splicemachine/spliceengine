@@ -38,6 +38,8 @@ import scala.Predef;
 /**
  * This class is the IT test for Python Stored Procedure. It has two parts.
  * The first part mimics the CallableTransactionIT test under the hbase_sql project, testing the transactional correctness.
+ * However, tests for savepoint are not included as zxJDBC does not support savepoint as far as I know.
+ * SQLAlchemy might be the tool for enabling savepoint, but even this only supports certain DB.
  * The second part mimics the ProcedureTest test under the db-testing, focusing on whether the Python Stored Procedure
  * behaves properly when dealing with different number of ResultSets, IN/OUT parameters, and the correctness of the
  * PyStoredProcedureResultSetFacotry.
@@ -128,9 +130,6 @@ public class PyProcedureIT extends SpliceUnitTest {
             "    conn.close()'", SCHEMA_NAME);
     private static final String DROP_PROC_CREATE_INSERT_AND_GET_EMPLOYEE = String.format("DROP PROCEDURE %s.CREATE_INSERT_AND_GET_EMPLOYEE", SCHEMA_NAME);
 
-//    private static final String CREATE_PROC_INSERT_AND_GET_EMPLOYEE_COMMIT_TXN = String.format("CREATE PROCEDURE %s.INSERT_AND_GET_EMPLOYEE_COMMIT_TXN(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.INSERT_AND_GET_EMPLOYEE_COMMIT_TXN'", SCHEMA_NAME);
-//    private static final String DROP_PROC_INSERT_AND_GET_EMPLOYEE_COMMIT_TXN = String.format("DROP PROCEDURE %s.INSERT_AND_GET_EMPLOYEE_COMMIT_TXN", SCHEMA_NAME);
-
     // For zxJDBC autocommit is turned off by default. Also, in nested conneciton, the auto commit cannot be turned on.
     private static final String CREATE_PROC_INSERT_AND_GET_EMPLOYEE_NO_COMMIT_TXN = String.format("CREATE PROCEDURE %s.INSERT_AND_GET_EMPLOYEE_NO_COMMIT_TXN(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 1 EXTERNAL NAME 'def run(tableName, empId, fname, lname, rs):\n" +
             "    c = conn.cursor()\n" +
@@ -163,14 +162,6 @@ public class PyProcedureIT extends SpliceUnitTest {
             "    c.close()\n" +
             "    conn.close()'", SCHEMA_NAME);
     private static final String DROP_PROC_INSERT_AND_GET_EMPLOYEE_ROLLBACK_TXN = String.format("DROP PROCEDURE %s.INSERT_AND_GET_EMPLOYEE_ROLLBACK_TXN", SCHEMA_NAME);
-
-    // zxJDBC does not support savepoint as far as I know. SQLAlchemy might be the tool for enabling savepoint. However, some search suggest that it might need special support.
-//    private static final String CREATE_PROC_INSERT_AND_GET_EMPLOYEE_RELEASE_SVPT = String.format("CREATE PROCEDURE %s.INSERT_AND_GET_EMPLOYEE_RELEASE_SVPT(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.INSERT_AND_GET_EMPLOYEE_RELEASE_SVPT'", SCHEMA_NAME);
-//    private static final String DROP_PROC_INSERT_AND_GET_EMPLOYEE_RELEASE_SVPT = String.format("DROP PROCEDURE %s.INSERT_AND_GET_EMPLOYEE_RELEASE_SVPT", SCHEMA_NAME);
-//    private static final String CREATE_PROC_INSERT_AND_GET_EMPLOYEE_NO_RELEASE_SVPT = String.format("CREATE PROCEDURE %s.INSERT_AND_GET_EMPLOYEE_NO_RELEASE_SVPT(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.INSERT_AND_GET_EMPLOYEE_NO_RELEASE_SVPT'", SCHEMA_NAME);
-//    private static final String DROP_PROC_INSERT_AND_GET_EMPLOYEE_NO_RELEASE_SVPT = String.format("DROP PROCEDURE %s.INSERT_AND_GET_EMPLOYEE_NO_RELEASE_SVPT", SCHEMA_NAME);
-//    private static final String CREATE_PROC_INSERT_AND_GET_EMPLOYEE_ROLLBACK_SVPT = String.format("CREATE PROCEDURE %s.INSERT_AND_GET_EMPLOYEE_ROLLBACK_SVPT(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.INSERT_AND_GET_EMPLOYEE_ROLLBACK_SVPT'", SCHEMA_NAME);
-//    private static final String DROP_PROC_INSERT_AND_GET_EMPLOYEE_ROLLBACK_SVPT = String.format("DROP PROCEDURE %s.INSERT_AND_GET_EMPLOYEE_ROLLBACK_SVPT", SCHEMA_NAME);
 
     private static final String CREATE_PROC_GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS = String.format("CREATE PROCEDURE %s.GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS(IN tableName VARCHAR(40), IN id INT, OUT errorCode VARCHAR(100), OUT errorMessage VARCHAR(100)) " +
             "PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 1 EXTERNAL NAME 'def run(tableName, empId, customizedMessage1, customizedMessage2, rs):\n" +
@@ -446,7 +437,6 @@ public class PyProcedureIT extends SpliceUnitTest {
         stmt.execute();
         rs = stmt.getResultSet();
 
-//        rs = stmt.executeQuery();
         Assert.assertEquals("Incorrect # of rows returned!", 1, resultSetSize(rs));
         Assert.assertEquals("Incorrect customized message1", "The first message", stmt.getString(3));
         Assert.assertEquals("Incorrect customized message2", "The second message", stmt.getString(4));
