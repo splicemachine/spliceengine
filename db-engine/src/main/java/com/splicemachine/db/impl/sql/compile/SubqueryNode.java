@@ -455,9 +455,25 @@ public class SubqueryNode extends ValueNode{
 		/* reject ? parameters in the select list of subqueries */
         resultSet.rejectParameters();
 
+		/* bind the left operand, if there is one */
+        if(leftOperand!=null){
+            leftOperand=leftOperand.bindExpression(fromList,subqueryList,aggregateVector);
+        }
+
+        if(orderByList!=null){
+            orderByList.pullUpOrderByColumns(resultSet);
+        }
+
+		/* bind the expressions in the underlying subquery */
+        resultSet.bindExpressions(fromList);
+
         if(subqueryType==EXISTS_SUBQUERY){
 			/* Bind the expression in the SELECT list */
-            resultSet.bindTargetExpressions(fromList, true);
+			/* there is no need to bind the expression again below as we've called bindExpressions
+               right above, and any undefined column reference in the select clause should have been reported.
+               so comment out this line
+             */
+            // resultSet.bindTargetExpressions(fromList, true);
 
 			/*
 			 * reject any untyped nulls in the EXISTS subquery before
@@ -473,18 +489,6 @@ public class SubqueryNode extends ValueNode{
 			 */
             resultSet=resultSet.setResultToBooleanTrueNode(false);
         }
-
-		/* bind the left operand, if there is one */
-        if(leftOperand!=null){
-            leftOperand=leftOperand.bindExpression(fromList,subqueryList,aggregateVector);
-        }
-
-        if(orderByList!=null){
-            orderByList.pullUpOrderByColumns(resultSet);
-        }
-
-		/* bind the expressions in the underlying subquery */
-        resultSet.bindExpressions(fromList);
 
         resultSet.bindResultColumns(fromList);
 
