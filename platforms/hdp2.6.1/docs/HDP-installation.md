@@ -1,4 +1,3 @@
-(to be updated with new PRM packaging info)
 
 # Installing and Configuring Splice Machine for Hortonworks HDP
 
@@ -36,19 +35,12 @@ operating environment, and are called out in detail in the
 
 Setup local yum repo on ambari server node ( or a node that all the nodes in the cluster can access) :
 
-0.make sure there is a http server on the node that your_node_url is accessable.
-
-1.make sure createrepo is installed on the node ( use 'yum install createrepo' to confirm)
-
-2.put the splicemachine rpm under /var/www/html/ambari-repo/ ( or the path you choose)
-
-3.use 'createrepo /var/www/html/ambari-repo/' to create the repo metadata
-
-4.open the url your_node_url/ambari-repo to confirm it can be accessed by yum
-
-5.put a file named splicemachine.repo under /etc/yums.repo.d/
-
-the content is as below 
+1. Make sure there is a http server on the node that your_node_url is accessable.
+2. Make sure createrepo is installed on the node ( use 'yum install createrepo' to confirm)
+3. Put the splicemachine rpm under `/var/www/html/ambari-repo/` ( or the path you choose)
+4. Use `createrepo /var/www/html/ambari-repo/` to create the repo metadata.
+5. Open the url `your_node_url/ambari-repo` to confirm it can be accessed by yum.
+6. Put a file named `splicemachine.repo` under ``/etc/yums.repo.d/` with the content is as below
 
   ````
   [splicemachine]
@@ -57,21 +49,20 @@ the content is as below
   enabled=1
   gpgcheck=0
   ````
-  
-6. rum yum list | grep splicemachine to make sure the custom repo is up and running.  
+7. Run `yum list | grep splicemachine` to make sure the custom repo is up and running.
 
 Perform the following steps **on each node** in your cluster:
 
-1.  install the splicemachine  custom ambari service rpm using following command (take version 2.5.0.1811 for example) :
+Install the Splice Machine custom Ambari service rpm using the following command (take version 2.5.0.1811 for example) :
 
-    ````
-    sudo yum install splicemachine_ambari_service
-    ````
+```
+sudo yum install splicemachine_ambari_service
+```
 
-After install the rpm,restart ambari-server using 'service ambari-server restart'
+After install the rpm, restart ambari-server using `service ambari-server restart`.
 
 
-## install splicemachine using ambari service
+## Install splicemachine using Ambari service
 
 Follow the steps to install splicemachine server.
 
